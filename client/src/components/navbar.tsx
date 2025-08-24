@@ -13,18 +13,18 @@ export default function Navbar() {
   };
 
   const foreverFilesCategories = [
-    { name: "Child Information", icon: "👶" },
-    { name: "Disaster Planning", icon: "⚠️" },
-    { name: "Elderly Parents", icon: "👴" },
-    { name: "Estate Planning", icon: "📋" },
-    { name: "Getting Married", icon: "💍" },
-    { name: "Home Buying", icon: "🏠" },
-    { name: "International Travel", icon: "✈️" },
-    { name: "Starting a Family", icon: "👨‍👩‍👧" },
-    { name: "Moving", icon: "📦" },
-    { name: "When Someone Dies", icon: "🌿" },
-    { name: "Digital Security", icon: "🔒" },
-    { name: "Neurodiversity", icon: "🧠" }
+    { name: "Child Information", icon: "👶", path: "/child-information" },
+    { name: "Disaster Planning", icon: "⚠️", path: "/disaster-planning" },
+    { name: "Elderly Parents", icon: "👴", path: "/elderly-parents" },
+    { name: "Estate Planning", icon: "📋", path: "/estate-planning" },
+    { name: "Getting Married", icon: "💍", path: "/getting-married" },
+    { name: "Home Buying", icon: "🏠", path: "/home-buying" },
+    { name: "International Travel", icon: "✈️", path: "/international-travel" },
+    { name: "Starting a Family", icon: "👨‍👩‍👧", path: "/starting-a-family" },
+    { name: "Moving", icon: "📦", path: "/moving" },
+    { name: "When Someone Dies", icon: "🌿", path: "/when-someone-dies" },
+    { name: "Digital Security", icon: "🔒", path: "/digital-security" },
+    { name: "Neurodiversity", icon: "🧠", path: "/neurodiversity" }
   ];
 
   const moreGoodieGuidesCategories = [
@@ -68,7 +68,7 @@ export default function Navbar() {
                       {foreverFilesCategories.map((category, index) => (
                         <a
                           key={index}
-                          href="#"
+                          href={category.path}
                           className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors group"
                         >
                           <span className="text-xl mr-3">{category.icon}</span>
@@ -175,7 +175,7 @@ export default function Navbar() {
                   {foreverFilesCategories.map((category, index) => (
                     <a
                       key={index}
-                      href="#"
+                      href={category.path}
                       className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-primary rounded"
                     >
                       <span className="text-base mr-2">{category.icon}</span>
