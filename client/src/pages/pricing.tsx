@@ -74,11 +74,11 @@ const pricingPlans = [
 
 export default function Pricing() {
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-[#0a0a0a]">
       <Navbar />
       
       {/* Header */}
-      <section className="bg-black py-16 lg:py-24">
+      <section className="bg-gradient-to-b from-[#0a0a0a] to-[#FFD700]/10 py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl lg:text-5xl font-bold text-white mb-4">
             For every family, at every stage of life,
@@ -90,7 +90,7 @@ export default function Pricing() {
       </section>
 
       {/* Pricing Plans */}
-      <section className="bg-[#0d0d0d] py-16 lg:py-24">
+      <section className="bg-gradient-to-b from-[#FFD700]/10 to-[#0a0a0a] py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {pricingPlans.map((plan, index) => (
@@ -119,7 +119,7 @@ export default function Pricing() {
                 <a
                   href={plan.buttonLink}
                   data-testid={`button-${plan.name.toLowerCase()}-plan`}
-                  className="cta-button w-full inline-block px-6 py-3 rounded-lg font-semibold mb-6"
+                  className="bg-[#FFD700] hover:bg-[#FFD700]/90 hover:shadow-[0_0_20px_rgba(255,215,0,0.5)] text-black w-full inline-block px-6 py-3 rounded-lg font-semibold mb-6 transition-all duration-300"
                 >
                   {plan.buttonText}
                 </a>
@@ -149,7 +149,7 @@ export default function Pricing() {
       </section>
 
       {/* Complete Compare Plans Table */}
-      <section className="bg-black py-16 lg:py-24">
+      <section className="bg-gradient-to-b from-[#0a0a0a] to-[#121212] py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl lg:text-4xl font-bold text-white text-center mb-16">
             Compare plans
@@ -169,13 +169,13 @@ export default function Pricing() {
                 <tr className="border-b border-[var(--dark-accent)]">
                   <td className="py-4"></td>
                   <td className="text-center py-4">
-                    <a href="/signup" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full text-sm font-semibold">Get started</a>
+                    <a href="/signup" className="bg-[#FFD700] hover:bg-[#FFD700]/90 hover:shadow-[0_0_15px_rgba(255,215,0,0.5)] text-black px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300">Get started</a>
                   </td>
                   <td className="text-center py-4">
-                    <a href="/signup" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full text-sm font-semibold">Get started</a>
+                    <a href="/signup" className="bg-[#FFD700] hover:bg-[#FFD700]/90 hover:shadow-[0_0_15px_rgba(255,215,0,0.5)] text-black px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300">Get started</a>
                   </td>
                   <td className="text-center py-4">
-                    <a href="/signup" className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-full text-sm font-semibold">Get started</a>
+                    <a href="/signup" className="bg-[#FFD700] hover:bg-[#FFD700]/90 hover:shadow-[0_0_15px_rgba(255,215,0,0.5)] text-black px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300">Get started</a>
                   </td>
                 </tr>
                 
@@ -185,97 +185,97 @@ export default function Pricing() {
                     <h3 className="text-xl font-bold text-[var(--primary-gold)]">Features</h3>
                   </td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Items</td>
                   <td className="text-center py-3 text-[#CCCCCC]">12</td>
                   <td className="text-center py-3 text-[#CCCCCC]">Unlimited</td>
                   <td className="text-center py-3 text-[#CCCCCC]">Unlimited</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Autopilot</td>
                   <td className="text-center py-3 text-[#CCCCCC]">10 documents</td>
                   <td className="text-center py-3 text-[#CCCCCC]">Unlimited</td>
                   <td className="text-center py-3 text-[#CCCCCC]">Unlimited</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Advanced security & privacy</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Inbox</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">SecureLink™ sharing</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Search</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Reminders</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Recommendation engine</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Mobile app</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Browser extension</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Email to Inbox</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Automatic layout</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Household data graph</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">The FamilyVault Marketplace™</td>
                   <td className="text-center py-3 text-red-500">✗</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">YubiKey support</td>
                   <td className="text-center py-3 text-red-500">✗</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Collaborators</td>
                   <td className="text-center py-3 text-[#CCCCCC]">Unlimited</td>
                   <td className="text-center py-3 text-[#CCCCCC]">Unlimited</td>
@@ -288,19 +288,19 @@ export default function Pricing() {
                     <h3 className="text-xl font-bold text-[var(--primary-gold)]">Support</h3>
                   </td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Help center articles</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Access to FamilyVault Certified Experts™</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Email & chat support</td>
                   <td className="text-center py-3 text-red-500">✗</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
@@ -313,61 +313,61 @@ export default function Pricing() {
                     <h3 className="text-xl font-bold text-[var(--primary-gold)]">Categories</h3>
                   </td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Business</td>
                   <td className="text-center py-3 text-red-500">✗</td>
                   <td className="text-center py-3 text-red-500">✗</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Family IDs</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Finance</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Property</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Passwords</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Insurance</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Taxes</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Legal</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Family resources</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
-                <tr className="border-b border-gray-800">
+                <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
                   <td className="py-3 text-[#CCCCCC]">Contacts</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
@@ -378,13 +378,13 @@ export default function Pricing() {
                 <tr className="border-t-2 border-[var(--dark-accent)]">
                   <td className="py-4"></td>
                   <td className="text-center py-4">
-                    <a href="/signup" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full text-sm font-semibold">Get started</a>
+                    <a href="/signup" className="bg-[#FFD700] hover:bg-[#FFD700]/90 hover:shadow-[0_0_15px_rgba(255,215,0,0.5)] text-black px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300">Get started</a>
                   </td>
                   <td className="text-center py-4">
-                    <a href="/signup" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full text-sm font-semibold">Get started</a>
+                    <a href="/signup" className="bg-[#FFD700] hover:bg-[#FFD700]/90 hover:shadow-[0_0_15px_rgba(255,215,0,0.5)] text-black px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300">Get started</a>
                   </td>
                   <td className="text-center py-4">
-                    <a href="/signup" className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-full text-sm font-semibold">Get started</a>
+                    <a href="/signup" className="bg-[#FFD700] hover:bg-[#FFD700]/90 hover:shadow-[0_0_15px_rgba(255,215,0,0.5)] text-black px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300">Get started</a>
                   </td>
                 </tr>
               </tbody>
@@ -394,7 +394,7 @@ export default function Pricing() {
       </section>
 
       {/* What's Included in Every Plan */}
-      <section className="bg-[#0d0d0d] py-16 lg:py-24">
+      <section className="bg-gradient-to-b from-[#121212] to-[#0a0a0a] py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
@@ -410,8 +410,8 @@ export default function Pricing() {
             <h3 className="text-2xl font-bold text-[var(--primary-gold)] mb-8 text-center">Security</h3>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="gold-card rounded-xl p-6 text-center">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <span className="text-blue-600 text-xl">🔐</span>
+                <div className="w-12 h-12 border-2 border-[#FFD700] rounded-lg flex items-center justify-center mx-auto mb-4 bg-transparent">
+                  <span className="text-[#FFD700] text-xl">🔐</span>
                 </div>
                 <h4 className="font-semibold text-white mb-3">Multi-factor authentication</h4>
                 <p className="text-[#CCCCCC] text-sm">FamilyVault's multi-factor authentication protects against unauthorized access.</p>
@@ -431,8 +431,8 @@ export default function Pricing() {
                 <p className="text-[#CCCCCC] text-sm">FamilyVault uses behavior analytics to detect anomalies and unusual activities.</p>
               </div>
               <div className="gold-card rounded-xl p-6 text-center">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <span className="text-blue-600 text-xl">🔐</span>
+                <div className="w-12 h-12 border-2 border-[#FFD700] rounded-lg flex items-center justify-center mx-auto mb-4 bg-transparent">
+                  <span className="text-[#FFD700] text-xl">🔐</span>
                 </div>
                 <h4 className="font-semibold text-white mb-3">Data encryption</h4>
                 <p className="text-[#CCCCCC] text-sm">FamilyVault data is encrypted in transit and at rest using 256-bit AES encryption keys.</p>
@@ -473,8 +473,8 @@ export default function Pricing() {
             <h3 className="text-2xl font-bold text-[var(--primary-gold)] mb-8 text-center">Organization</h3>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="gold-card rounded-xl p-6 text-center">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <span className="text-green-600 text-xl">📖</span>
+                <div className="w-12 h-12 border-2 border-[#FFD700] rounded-lg flex items-center justify-center mx-auto mb-4 bg-transparent">
+                  <span className="text-[#FFD700] text-xl">📖</span>
                 </div>
                 <h4 className="font-semibold text-white mb-3">Personalized guides</h4>
                 <p className="text-[#CCCCCC] text-sm">Get started quickly with helpful in-app tools designed to keep you organized.</p>
@@ -522,8 +522,8 @@ export default function Pricing() {
             <h3 className="text-2xl font-bold text-[var(--primary-gold)] mb-8 text-center">Automation</h3>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="gold-card rounded-xl p-6 text-center">
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <span className="text-purple-600 text-xl">📊</span>
+                <div className="w-12 h-12 border-2 border-[#FFD700] rounded-lg flex items-center justify-center mx-auto mb-4 bg-transparent">
+                  <span className="text-[#FFD700] text-xl">📊</span>
                 </div>
                 <h4 className="font-semibold text-white mb-3">Document analysis</h4>
                 <p className="text-[#CCCCCC] text-sm">Autopilot analyzes hundreds of document types — powered by AI.</p>
@@ -583,20 +583,20 @@ export default function Pricing() {
       </section>
 
       {/* Here's how we keep things organized */}
-      <section className="bg-gray-100 py-16 lg:py-24">
+      <section className="bg-gradient-to-b from-[#0a0a0a] to-[#121212] py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 text-center mb-16">
+          <h2 className="text-3xl lg:text-4xl font-bold text-white text-center mb-16">
             Here's how we keep things organized
           </h2>
           
           <div className="grid lg:grid-cols-3 gap-12 items-center">
             {/* Category */}
             <div className="text-center">
-              <div className="bg-white rounded-xl p-8 shadow-lg mb-6">
+              <div className="bg-[#121212] border border-[#FFD700]/30 rounded-xl p-8 shadow-lg mb-6">
                 <div className="space-y-3">
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
-                    <span className="text-gray-700">Finance</span>
+                    <span className="text-[#CCCCCC]">Finance</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
@@ -612,25 +612,25 @@ export default function Pricing() {
                   </div>
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Category</h3>
-              <p className="text-gray-600">FamilyVault's digital vault is divided into sections like Finance, Family IDs, or Insurance.</p>
+              <h3 className="text-xl font-bold text-[#FFD700] mb-2">Category</h3>
+              <p className="text-[#CCCCCC]">FamilyVault's digital vault is divided into sections like Finance, Family IDs, or Insurance.</p>
             </div>
 
             {/* Item */}
             <div className="text-center">
-              <div className="bg-white rounded-xl p-8 shadow-lg mb-6">
+              <div className="bg-[#121212] border border-[#FFD700]/30 rounded-xl p-8 shadow-lg mb-6">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="text-sm text-gray-500 mb-2">David's New York Life Insurance</div>
                   <div className="text-xs text-gray-400">Jane Reynolds</div>
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Item</h3>
-              <p className="text-gray-600">This is an entry in a category, like a person, an insurance policy, or a financial account. Silver and Gold plans allow unlimited items.</p>
+              <h3 className="text-xl font-bold text-[#FFD700] mb-2">Item</h3>
+              <p className="text-[#CCCCCC]">This is an entry in a category, like a person, an insurance policy, or a financial account. Silver and Gold plans allow unlimited items.</p>
             </div>
 
             {/* Details */}
             <div className="text-center">
-              <div className="bg-white rounded-xl p-8 shadow-lg mb-6">
+              <div className="bg-[#121212] border border-[#FFD700]/30 rounded-xl p-8 shadow-lg mb-6">
                 <div className="space-y-2 text-left">
                   <div className="flex justify-between">
                     <span className="text-gray-600 text-sm">Policy Name:</span>
@@ -650,44 +650,44 @@ export default function Pricing() {
                   </div>
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Details</h3>
-              <p className="text-gray-600">These are specific elements within an item, like a policy number, with no limit to how many you can store.</p>
+              <h3 className="text-xl font-bold text-[#FFD700] mb-2">Details</h3>
+              <p className="text-[#CCCCCC]">These are specific elements within an item, like a policy number, with no limit to how many you can store.</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Families Love FamilyVault */}
-      <section className="bg-white py-16 lg:py-24">
+      <section className="bg-gradient-to-b from-[#121212] to-[#0a0a0a] py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 text-center mb-16">
+          <h2 className="text-3xl lg:text-4xl font-bold text-white text-center mb-16">
             Families Love FamilyVault
           </h2>
           
           <div className="flex justify-center space-x-4 overflow-hidden">
             <div className="w-32 h-32 rounded-full overflow-hidden">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500 text-sm">Family Photo</span>
+              <div className="w-full h-full bg-[#121212] border border-[#FFD700]/30 flex items-center justify-center">
+                <span className="text-[#FFD700] text-sm">Family Photo</span>
               </div>
             </div>
             <div className="w-32 h-32 rounded-full overflow-hidden">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500 text-sm">Family Photo</span>
+              <div className="w-full h-full bg-[#121212] border border-[#FFD700]/30 flex items-center justify-center">
+                <span className="text-[#FFD700] text-sm">Family Photo</span>
               </div>
             </div>
             <div className="w-32 h-32 rounded-full overflow-hidden">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500 text-sm">Family Photo</span>
+              <div className="w-full h-full bg-[#121212] border border-[#FFD700]/30 flex items-center justify-center">
+                <span className="text-[#FFD700] text-sm">Family Photo</span>
               </div>
             </div>
             <div className="w-32 h-32 rounded-full overflow-hidden">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500 text-sm">Family Photo</span>
+              <div className="w-full h-full bg-[#121212] border border-[#FFD700]/30 flex items-center justify-center">
+                <span className="text-[#FFD700] text-sm">Family Photo</span>
               </div>
             </div>
             <div className="w-32 h-32 rounded-full overflow-hidden">
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-500 text-sm">Family Photo</span>
+              <div className="w-full h-full bg-[#121212] border border-[#FFD700]/30 flex items-center justify-center">
+                <span className="text-[#FFD700] text-sm">Family Photo</span>
               </div>
             </div>
           </div>
@@ -695,7 +695,7 @@ export default function Pricing() {
       </section>
 
       {/* Frequently Asked Questions */}
-      <section className="bg-[#0d0d0d] py-16 lg:py-24">
+      <section className="bg-gradient-to-b from-[#0a0a0a] to-[#121212] py-16 lg:py-24">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl lg:text-4xl font-bold text-white text-center mb-16">
             Frequently asked questions
@@ -703,11 +703,11 @@ export default function Pricing() {
           
           <div className="space-y-6">
             <details className="group">
-              <summary className="flex justify-between items-center w-full p-6 bg-black rounded-lg cursor-pointer hover:bg-gray-900 transition-colors">
+              <summary className="flex justify-between items-center w-full p-6 bg-[#121212] border border-[#FFD700]/20 rounded-lg cursor-pointer hover:bg-[#1a1a1a] transition-colors">
                 <span className="text-lg font-medium text-white">How long has FamilyVault been in business?</span>
-                <span className="ml-6 flex-shrink-0 text-[var(--primary-gold)]">+</span>
+                <span className="ml-6 flex-shrink-0 text-[#FFD700]">+</span>
               </summary>
-              <div className="mt-4 p-6 bg-gray-900 rounded-lg">
+              <div className="mt-4 p-6 bg-[#0a0a0a] border-l-4 border-[#FFD700] rounded-lg">
                 <p className="text-[#CCCCCC]">
                   FamilyVault has helped thousands of families stay organized and secure since 2020, 
                   ensuring they're prepared for all of life's important moments.
@@ -716,11 +716,11 @@ export default function Pricing() {
             </details>
 
             <details className="group">
-              <summary className="flex justify-between items-center w-full p-6 bg-black rounded-lg cursor-pointer hover:bg-gray-900 transition-colors">
+              <summary className="flex justify-between items-center w-full p-6 bg-[#121212] border border-[#FFD700]/20 rounded-lg cursor-pointer hover:bg-[#1a1a1a] transition-colors">
                 <span className="text-lg font-medium text-white">What happens to my information if I stop subscribing to FamilyVault?</span>
-                <span className="ml-6 flex-shrink-0 text-[var(--primary-gold)]">+</span>
+                <span className="ml-6 flex-shrink-0 text-[#FFD700]">+</span>
               </summary>
-              <div className="mt-4 p-6 bg-gray-900 rounded-lg">
+              <div className="mt-4 p-6 bg-[#0a0a0a] border-l-4 border-[#FFD700] rounded-lg">
                 <p className="text-[#CCCCCC]">
                   You will be able to securely export your information, keeping your documents safe and accessible.
                 </p>
@@ -728,11 +728,11 @@ export default function Pricing() {
             </details>
 
             <details className="group">
-              <summary className="flex justify-between items-center w-full p-6 bg-black rounded-lg cursor-pointer hover:bg-gray-900 transition-colors">
+              <summary className="flex justify-between items-center w-full p-6 bg-[#121212] border border-[#FFD700]/20 rounded-lg cursor-pointer hover:bg-[#1a1a1a] transition-colors">
                 <span className="text-lg font-medium text-white">How does FamilyVault's digital vault compare to other solutions?</span>
-                <span className="ml-6 flex-shrink-0 text-[var(--primary-gold)]">+</span>
+                <span className="ml-6 flex-shrink-0 text-[#FFD700]">+</span>
               </summary>
-              <div className="mt-4 p-6 bg-gray-900 rounded-lg">
+              <div className="mt-4 p-6 bg-[#0a0a0a] border-l-4 border-[#FFD700] rounded-lg">
                 <div className="text-[#CCCCCC] space-y-4">
                   <p>
                     We've seen families build DIY solutions to keep track of their important family information using 
@@ -759,11 +759,11 @@ export default function Pricing() {
             </details>
 
             <details className="group">
-              <summary className="flex justify-between items-center w-full p-6 bg-black rounded-lg cursor-pointer hover:bg-gray-900 transition-colors">
+              <summary className="flex justify-between items-center w-full p-6 bg-[#121212] border border-[#FFD700]/20 rounded-lg cursor-pointer hover:bg-[#1a1a1a] transition-colors">
                 <span className="text-lg font-medium text-white">Is FamilyVault secure?</span>
-                <span className="ml-6 flex-shrink-0 text-[var(--primary-gold)]">+</span>
+                <span className="ml-6 flex-shrink-0 text-[#FFD700]">+</span>
               </summary>
-              <div className="mt-4 p-6 bg-gray-900 rounded-lg">
+              <div className="mt-4 p-6 bg-[#0a0a0a] border-l-4 border-[#FFD700] rounded-lg">
                 <p className="text-[#CCCCCC]">
                   FamilyVault deploys world-class security measures – data encryption, multi-factor authentication, 
                   tokenization, threat detection, stolen-password alerts, and biometric authentication – to ensure your 
