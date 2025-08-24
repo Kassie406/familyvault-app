@@ -39,13 +39,15 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <span className="text-2xl font-bold text-primary">FamilyVault</span>
+            <a href="/" className="text-2xl font-bold text-primary hover:opacity-80 transition-opacity">
+              FamilyVault
+            </a>
           </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-8">
-              <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
+              <a href="/" className="text-gray-600 hover:text-primary font-medium transition-colors">
                 Home
               </a>
               
@@ -154,7 +156,7 @@ export default function Navbar() {
       {isMenuOpen && (
         <div className="md:hidden bg-white shadow-lg">
           <div className="px-4 pt-2 pb-3 space-y-1">
-            <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
+            <a href="/" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
               Home
             </a>
             
