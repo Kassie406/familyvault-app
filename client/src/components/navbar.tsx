@@ -27,9 +27,6 @@ export default function Navbar() {
                 Forever Files
               </a>
               <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
-                Memory Lane
-              </a>
-              <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
                 Security
               </a>
               <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
@@ -79,9 +76,6 @@ export default function Navbar() {
             </a>
             <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
               Forever Files
-            </a>
-            <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
-              Memory Lane
             </a>
             <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
               Security
