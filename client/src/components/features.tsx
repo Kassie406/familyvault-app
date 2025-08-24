@@ -33,10 +33,10 @@ const features = [
 
 export default function Features() {
   return (
-    <section className="bg-white py-16 lg:py-24">
+    <section className="bg-black py-16 lg:py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
             Rule at the Business of Life
           </h2>
         </div>
@@ -51,14 +51,14 @@ export default function Features() {
               }`}
             >
               <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                <h3 className="text-2xl font-bold text-[#D4AF37] mb-4">
                   {feature.title}
                 </h3>
-                <p className="text-lg text-gray-600 mb-6">
+                <p className="text-lg text-[#CCCCCC] mb-6">
                   {feature.description}
                 </p>
               </div>
-              <div className={`bg-gray-100 rounded-2xl p-8 flex items-center justify-center ${
+              <div className={`bg-black border border-[#D4AF37] rounded-2xl p-8 flex items-center justify-center ${
                 index % 2 === 1 ? 'lg:order-1' : ''
               }`}>
                 <img 
