@@ -5,6 +5,8 @@ export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isForeverFilesOpen, setIsForeverFilesOpen] = useState(false);
   const [isForeverFilesMobileOpen, setIsForeverFilesMobileOpen] = useState(false);
+  const [isMoreGoodieGuidesOpen, setIsMoreGoodieGuidesOpen] = useState(false);
+  const [isMoreGoodieGuidesMobileOpen, setIsMoreGoodieGuidesMobileOpen] = useState(false);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -23,6 +25,12 @@ export default function Navbar() {
     { name: "When Someone Dies", icon: "🌿" },
     { name: "Digital Security", icon: "🔒" },
     { name: "Neurodiversity", icon: "🧠" }
+  ];
+
+  const moreGoodieGuidesCategories = [
+    { name: "Blogs", icon: "📝" },
+    { name: "Guides & Checklists", icon: "📋" },
+    { name: "Help center", icon: "❓" }
   ];
 
   return (
@@ -81,9 +89,37 @@ export default function Navbar() {
               <a href="/pricing" className="text-gray-600 hover:text-primary font-medium transition-colors">
                 Pricing
               </a>
-              <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
-                More Goodie Guides
-              </a>
+              
+              {/* More Goodie Guides Dropdown */}
+              <div 
+                className="relative"
+                onMouseEnter={() => setIsMoreGoodieGuidesOpen(true)}
+                onMouseLeave={() => setIsMoreGoodieGuidesOpen(false)}
+              >
+                <button className="text-gray-600 hover:text-primary font-medium transition-colors flex items-center">
+                  More Goodie Guides
+                  <ChevronDown className="w-4 h-4 ml-1" />
+                </button>
+                
+                {isMoreGoodieGuidesOpen && (
+                  <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 p-6 z-50">
+                    <div className="space-y-4">
+                      {moreGoodieGuidesCategories.map((category, index) => (
+                        <a
+                          key={index}
+                          href="#"
+                          className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors group"
+                        >
+                          <span className="text-xl mr-3">{category.icon}</span>
+                          <span className="text-sm font-medium text-gray-700 group-hover:text-primary">
+                            {category.name}
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -156,9 +192,32 @@ export default function Navbar() {
             <a href="/pricing" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
               Pricing
             </a>
-            <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
-              More Goodie Guides
-            </a>
+            
+            {/* More Goodie Guides Mobile Dropdown */}
+            <div>
+              <button
+                onClick={() => setIsMoreGoodieGuidesMobileOpen(!isMoreGoodieGuidesMobileOpen)}
+                className="w-full text-left px-3 py-2 text-gray-600 hover:text-primary font-medium flex items-center justify-between"
+              >
+                More Goodie Guides
+                <ChevronDown className={`w-4 h-4 transition-transform ${isMoreGoodieGuidesMobileOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isMoreGoodieGuidesMobileOpen && (
+                <div className="ml-4 space-y-1 bg-gray-50 rounded-lg p-2">
+                  {moreGoodieGuidesCategories.map((category, index) => (
+                    <a
+                      key={index}
+                      href="#"
+                      className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-primary rounded"
+                    >
+                      <span className="text-base mr-2">{category.icon}</span>
+                      {category.name}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
             <hr className="my-2" />
             <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
               Login
