@@ -11,7 +11,7 @@ export default function Hero() {
               Keep your family's world safe, organized, and always within reach
             </h1>
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-              FamilyVault safeguards your family's important information in one place, ensuring you're prepared for anything that may come your way.
+              FamilyVault brings together everything that matters most — so your loved ones are protected, prepared, and connected.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
               <a
