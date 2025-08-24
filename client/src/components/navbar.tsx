@@ -78,7 +78,7 @@ export default function Navbar() {
               <a href="/reviews" className="text-gray-600 hover:text-primary font-medium transition-colors">
                 Reviews
               </a>
-              <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
+              <a href="/pricing" className="text-gray-600 hover:text-primary font-medium transition-colors">
                 Pricing
               </a>
               <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
@@ -153,7 +153,7 @@ export default function Navbar() {
             <a href="/reviews" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
               Reviews
             </a>
-            <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
+            <a href="/pricing" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
               Pricing
             </a>
             <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
