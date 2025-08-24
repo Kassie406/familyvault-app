@@ -58,7 +58,7 @@ export default function Features() {
                   {feature.description}
                 </p>
               </div>
-              <div className={`bg-black border border-[#D4AF37] rounded-2xl p-8 flex items-center justify-center ${
+              <div className={`gold-card rounded-2xl p-8 flex items-center justify-center ${
                 index % 2 === 1 ? 'lg:order-1' : ''
               }`}>
                 <img 

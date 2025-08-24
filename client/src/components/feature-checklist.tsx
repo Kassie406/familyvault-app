@@ -41,7 +41,7 @@ export default function FeatureChecklist() {
 
           {/* Center Image */}
           <div className="flex justify-center">
-            <div className="bg-black border border-[#D4AF37] p-8 rounded-2xl shadow-xl">
+            <div className="gold-card p-8 rounded-2xl shadow-xl">
               <img 
                 src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=500" 
                 alt="Family document organization collage showing important papers and certificates" 

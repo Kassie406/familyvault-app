@@ -30,7 +30,7 @@ export default function Benefits() {
             <div className="absolute inset-0 bg-black/30 rounded-2xl flex items-center justify-center">
               <button 
                 data-testid="button-play-video"
-                className="bg-[#D4AF37] hover:bg-[#B8860B] rounded-full p-6 transition-colors hover-lift"
+                className="cta-button rounded-full p-6"
               >
                 <Play className="w-12 h-12 text-black ml-1" />
               </button>
@@ -51,7 +51,7 @@ export default function Benefits() {
                 <div 
                   key={index}
                   data-testid={`benefit-${index + 1}`}
-                  className="bg-black border border-[#C5A028] rounded-xl p-6 shadow-sm hover-lift"
+                  className="gold-card rounded-xl p-6 shadow-sm hover-lift"
                 >
                   <h3 className="font-bold text-white text-lg mb-2">
                     {benefit.title}

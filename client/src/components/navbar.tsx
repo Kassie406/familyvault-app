@@ -47,7 +47,7 @@ export default function Navbar() {
           {/* Desktop Navigation */}
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-8">
-              <a href="/" className="text-[#CCCCCC] hover:text-[#D4AF37] font-medium transition-colors">
+              <a href="/" className="text-[#CCCCCC] hover:text-[var(--secondary-accent)] font-medium transition-colors">
                 Home
               </a>
               
@@ -57,7 +57,7 @@ export default function Navbar() {
                 onMouseEnter={() => setIsForeverFilesOpen(true)}
                 onMouseLeave={() => setIsForeverFilesOpen(false)}
               >
-                <button className="text-[#CCCCCC] hover:text-[#D4AF37] font-medium transition-colors flex items-center">
+                <button className="text-[#CCCCCC] hover:text-[var(--secondary-accent)] font-medium transition-colors flex items-center">
                   Forever Files
                   <ChevronDown className="w-4 h-4 ml-1" />
                 </button>
@@ -72,7 +72,7 @@ export default function Navbar() {
                           className="flex items-center p-3 rounded-lg hover:bg-[#111111] transition-colors group"
                         >
                           <span className="text-xl mr-3">{category.icon}</span>
-                          <span className="text-sm font-medium text-[#CCCCCC] group-hover:text-[#D4AF37]">
+                          <span className="text-sm font-medium text-[#CCCCCC] group-hover:text-[var(--secondary-accent)]">
                             {category.name}
                           </span>
                         </a>
@@ -82,13 +82,13 @@ export default function Navbar() {
                 )}
               </div>
               
-              <a href="/security" className="text-[#CCCCCC] hover:text-[#D4AF37] font-medium transition-colors">
+              <a href="/security" className="text-[#CCCCCC] hover:text-[var(--secondary-accent)] font-medium transition-colors">
                 Security
               </a>
-              <a href="/reviews" className="text-[#CCCCCC] hover:text-[#D4AF37] font-medium transition-colors">
+              <a href="/reviews" className="text-[#CCCCCC] hover:text-[var(--secondary-accent)] font-medium transition-colors">
                 Reviews
               </a>
-              <a href="/pricing" className="text-[#CCCCCC] hover:text-[#D4AF37] font-medium transition-colors">
+              <a href="/pricing" className="text-[#CCCCCC] hover:text-[var(--secondary-accent)] font-medium transition-colors">
                 Pricing
               </a>
               
@@ -98,7 +98,7 @@ export default function Navbar() {
                 onMouseEnter={() => setIsMoreGoodieGuidesOpen(true)}
                 onMouseLeave={() => setIsMoreGoodieGuidesOpen(false)}
               >
-                <button className="text-[#CCCCCC] hover:text-[#D4AF37] font-medium transition-colors flex items-center">
+                <button className="text-[#CCCCCC] hover:text-[var(--secondary-accent)] font-medium transition-colors flex items-center">
                   More Goodie Guides
                   <ChevronDown className="w-4 h-4 ml-1" />
                 </button>
@@ -113,7 +113,7 @@ export default function Navbar() {
                           className="flex items-center p-3 rounded-lg hover:bg-[#111111] transition-colors group"
                         >
                           <span className="text-xl mr-3">{category.icon}</span>
-                          <span className="text-sm font-medium text-[#CCCCCC] group-hover:text-[#D4AF37]">
+                          <span className="text-sm font-medium text-[#CCCCCC] group-hover:text-[var(--secondary-accent)]">
                             {category.name}
                           </span>
                         </a>
@@ -127,7 +127,7 @@ export default function Navbar() {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <a href="/login" className="text-[#CCCCCC] hover:text-[#D4AF37] font-medium transition-colors">
+            <a href="/login" className="text-[#CCCCCC] hover:text-[var(--secondary-accent)] font-medium transition-colors">
               Login
             </a>
             <a
@@ -144,7 +144,7 @@ export default function Navbar() {
             <button
               data-testid="button-mobile-menu"
               onClick={toggleMenu}
-              className="text-[#CCCCCC] hover:text-[#D4AF37]"
+              className="text-[#CCCCCC] hover:text-[var(--secondary-accent)]"
             >
               {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -156,7 +156,7 @@ export default function Navbar() {
       {isMenuOpen && (
         <div className="md:hidden bg-black shadow-lg">
           <div className="px-4 pt-2 pb-3 space-y-1">
-            <a href="/" className="block px-3 py-2 text-[#CCCCCC] hover:text-[#D4AF37] font-medium">
+            <a href="/" className="block px-3 py-2 text-[#CCCCCC] hover:text-[var(--secondary-accent)] font-medium">
               Home
             </a>
             
@@ -164,7 +164,7 @@ export default function Navbar() {
             <div>
               <button
                 onClick={() => setIsForeverFilesMobileOpen(!isForeverFilesMobileOpen)}
-                className="w-full text-left px-3 py-2 text-[#CCCCCC] hover:text-[#D4AF37] font-medium flex items-center justify-between"
+                className="w-full text-left px-3 py-2 text-[#CCCCCC] hover:text-[var(--secondary-accent)] font-medium flex items-center justify-between"
               >
                 Forever Files
                 <ChevronDown className={`w-4 h-4 transition-transform ${isForeverFilesMobileOpen ? 'rotate-180' : ''}`} />
@@ -176,7 +176,7 @@ export default function Navbar() {
                     <a
                       key={index}
                       href={category.path}
-                      className="flex items-center px-3 py-2 text-sm text-[#CCCCCC] hover:text-[#D4AF37] rounded"
+                      className="flex items-center px-3 py-2 text-sm text-[#CCCCCC] hover:text-[var(--secondary-accent)] rounded"
                     >
                       <span className="text-base mr-2">{category.icon}</span>
                       {category.name}
@@ -186,13 +186,13 @@ export default function Navbar() {
               )}
             </div>
             
-            <a href="/security" className="block px-3 py-2 text-[#CCCCCC] hover:text-[#D4AF37] font-medium">
+            <a href="/security" className="block px-3 py-2 text-[#CCCCCC] hover:text-[var(--secondary-accent)] font-medium">
               Security
             </a>
-            <a href="/reviews" className="block px-3 py-2 text-[#CCCCCC] hover:text-[#D4AF37] font-medium">
+            <a href="/reviews" className="block px-3 py-2 text-[#CCCCCC] hover:text-[var(--secondary-accent)] font-medium">
               Reviews
             </a>
-            <a href="/pricing" className="block px-3 py-2 text-[#CCCCCC] hover:text-[#D4AF37] font-medium">
+            <a href="/pricing" className="block px-3 py-2 text-[#CCCCCC] hover:text-[var(--secondary-accent)] font-medium">
               Pricing
             </a>
             
@@ -200,7 +200,7 @@ export default function Navbar() {
             <div>
               <button
                 onClick={() => setIsMoreGoodieGuidesMobileOpen(!isMoreGoodieGuidesMobileOpen)}
-                className="w-full text-left px-3 py-2 text-[#CCCCCC] hover:text-[#D4AF37] font-medium flex items-center justify-between"
+                className="w-full text-left px-3 py-2 text-[#CCCCCC] hover:text-[var(--secondary-accent)] font-medium flex items-center justify-between"
               >
                 More Goodie Guides
                 <ChevronDown className={`w-4 h-4 transition-transform ${isMoreGoodieGuidesMobileOpen ? 'rotate-180' : ''}`} />
@@ -212,7 +212,7 @@ export default function Navbar() {
                     <a
                       key={index}
                       href="#"
-                      className="flex items-center px-3 py-2 text-sm text-[#CCCCCC] hover:text-[#D4AF37] rounded"
+                      className="flex items-center px-3 py-2 text-sm text-[#CCCCCC] hover:text-[var(--secondary-accent)] rounded"
                     >
                       <span className="text-base mr-2">{category.icon}</span>
                       {category.name}
@@ -222,7 +222,7 @@ export default function Navbar() {
               )}
             </div>
             <hr className="my-2" />
-            <a href="/login" className="block px-3 py-2 text-[#CCCCCC] hover:text-[#D4AF37] font-medium">
+            <a href="/login" className="block px-3 py-2 text-[#CCCCCC] hover:text-[var(--secondary-accent)] font-medium">
               Login
             </a>
             <a

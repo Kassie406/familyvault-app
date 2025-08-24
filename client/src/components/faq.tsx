@@ -42,7 +42,7 @@ export default function FAQ() {
 
         <div className="space-y-4">
           {faqs.map((faq, index) => (
-            <div key={index} className="border border-[#C5A028] rounded-xl bg-black">
+            <div key={index} className="faq-item rounded-xl">
               <button
                 data-testid={`faq-toggle-${index + 1}`}
                 onClick={() => toggleFAQ(index)}

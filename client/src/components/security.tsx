@@ -74,7 +74,7 @@ export default function Security() {
               <div 
                 key={index}
                 data-testid={`security-feature-${index + 1}`}
-                className="bg-black border border-[#D4AF37] rounded-2xl p-8 shadow-sm hover-lift"
+                className="gold-card rounded-2xl p-8 shadow-sm hover-lift"
               >
                 <div className="w-12 h-12 bg-[#D4AF37]/10 rounded-xl flex items-center justify-center mb-6">
                   <Icon className="w-6 h-6 text-[#D4AF37]" />
@@ -89,7 +89,7 @@ export default function Security() {
         <div className="text-center mt-12">
           <button 
             data-testid="button-learn-more-security"
-            className="bg-[#D4AF37] hover:bg-[#B8860B] text-black px-8 py-3 rounded-lg font-semibold transition-colors hover-lift"
+            className="cta-button px-8 py-3 rounded-lg font-semibold"
           >
             Learn more
           </button>

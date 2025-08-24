@@ -22,7 +22,7 @@ export default function Testimonials() {
             <div 
               key={index}
               data-testid={`testimonial-${index + 1}`}
-              className="bg-black border border-[#C5A028] rounded-2xl p-6 text-center hover-lift"
+              className="gold-card rounded-2xl p-6 text-center hover-lift"
             >
               <div className={`w-16 h-16 bg-gradient-to-br ${testimonial.gradient} rounded-full mx-auto mb-4 flex items-center justify-center`}>
                 <span className="text-white font-bold text-lg">{testimonial.initials}</span>
