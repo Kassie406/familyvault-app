@@ -1,11 +1,11 @@
 import Navbar from "@/components/navbar";
-import { Plane, Passport, Shield, Heart, FileText, MapPin, Clock, CheckCircle } from "lucide-react";
+import { Plane, FileText, Shield, Heart, MapPin, Clock, CheckCircle, BookOpen } from "lucide-react";
 
 export default function InternationalTravel() {
   const travelCategories = [
     {
       title: "Travel Documents",
-      icon: Passport,
+      icon: BookOpen,
       items: [
         "Passport (valid for 6+ months)",
         "Visa documents and permits",
