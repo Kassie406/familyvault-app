@@ -21,7 +21,7 @@ export default function Navbar() {
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-8">
               <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
-                The Nest
+                Home
               </a>
               <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
                 Keep Safe
@@ -75,7 +75,7 @@ export default function Navbar() {
         <div className="md:hidden bg-white shadow-lg">
           <div className="px-4 pt-2 pb-3 space-y-1">
             <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
-              The Nest
+              Home
             </a>
             <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
               Keep Safe
