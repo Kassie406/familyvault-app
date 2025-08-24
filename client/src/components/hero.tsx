@@ -8,7 +8,7 @@ export default function Hero() {
           {/* Left Column */}
           <div className="max-w-2xl">
             <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 leading-tight mb-6">
-              Organize all of life's details, quickly and effortlessly
+              Keep your family's world safe, organized, and always within reach
             </h1>
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
               FamilyVault safeguards your family's important information in one place, ensuring you're prepared for anything that may come your way.
