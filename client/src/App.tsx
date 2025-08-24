@@ -8,6 +8,7 @@ import Home from "@/pages/home";
 import Security from "@/pages/security";
 import Reviews from "@/pages/reviews";
 import Pricing from "@/pages/pricing";
+import Login from "@/pages/login";
 
 function Router() {
   return (
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/security" component={Security} />
       <Route path="/reviews" component={Reviews} />
       <Route path="/pricing" component={Pricing} />
+      <Route path="/login" component={Login} />
       <Route component={NotFound} />
     </Switch>
   );

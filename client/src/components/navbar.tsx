@@ -125,7 +125,7 @@ export default function Navbar() {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
+            <a href="/login" className="text-gray-600 hover:text-primary font-medium transition-colors">
               Login
             </a>
             <button 
@@ -219,7 +219,7 @@ export default function Navbar() {
               )}
             </div>
             <hr className="my-2" />
-            <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
+            <a href="/login" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
               Login
             </a>
             <button 
