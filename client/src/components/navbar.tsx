@@ -128,12 +128,13 @@ export default function Navbar() {
             <a href="/login" className="text-gray-600 hover:text-primary font-medium transition-colors">
               Login
             </a>
-            <button 
+            <a
+              href="/signup"
               data-testid="button-get-started-nav"
               className="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-lg font-medium transition-colors"
             >
               Get Started Free
-            </button>
+            </a>
           </div>
 
           {/* Mobile menu button */}
@@ -222,12 +223,13 @@ export default function Navbar() {
             <a href="/login" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
               Login
             </a>
-            <button 
+            <a
+              href="/signup"
               data-testid="button-get-started-mobile"
-              className="w-full mt-2 bg-primary hover:bg-secondary text-white px-4 py-2 rounded-lg font-medium"
+              className="w-full mt-2 bg-primary hover:bg-secondary text-white px-4 py-2 rounded-lg font-medium text-center block"
             >
               Get Started Free
-            </button>
+            </a>
           </div>
         </div>
       )}

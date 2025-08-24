@@ -9,6 +9,7 @@ import Security from "@/pages/security";
 import Reviews from "@/pages/reviews";
 import Pricing from "@/pages/pricing";
 import Login from "@/pages/login";
+import Signup from "@/pages/signup";
 
 function Router() {
   return (
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/reviews" component={Reviews} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/login" component={Login} />
+      <Route path="/signup" component={Signup} />
       <Route component={NotFound} />
     </Switch>
   );
