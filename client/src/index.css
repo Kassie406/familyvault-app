@@ -10,6 +10,9 @@
   --card-foreground: #000000;
   --popover: hsl(0, 0%, 100%);
   --popover-foreground: #000000;
+  --primary-gold: #D4AF37;
+  --secondary-accent: #FFD700; 
+  --dark-accent: #B8860B;
   --primary: #D4AF37;
   --primary-foreground: hsl(0, 0%, 0%);
   --secondary: #B8860B;
@@ -134,4 +137,75 @@
 
 .hover-lift:hover {
   transform: translateY(-4px);
+}
+
+/* Luxury Gold Button Effects */
+.btn-gold {
+  background: var(--primary-gold);
+  color: #000;
+  transition: all 0.3s ease;
+}
+
+.btn-gold:hover {
+  background: var(--secondary-accent);
+  box-shadow: 0 0 15px var(--secondary-accent);
+  transform: translateY(-2px);
+}
+
+/* Hero and Footer Gradient Background */
+.hero-gradient {
+  background: linear-gradient(180deg, #000 0%, #111 60%, rgba(212, 175, 55, 0.1) 100%);
+}
+
+/* Section Dividers */
+.gold-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--dark-accent) 50%, transparent 100%);
+  margin: 2rem 0;
+}
+
+/* Gold Content Card Borders */
+.gold-card {
+  border: 1px solid var(--dark-accent);
+  background: #000;
+  transition: all 0.3s ease;
+}
+
+.gold-card:hover {
+  border-color: var(--primary-gold);
+  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.15);
+}
+
+/* CTA Button Glow Effect */
+.cta-button {
+  background: var(--primary-gold);
+  color: #000;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.cta-button:hover {
+  background: var(--secondary-accent);
+  box-shadow: 0 0 15px var(--secondary-accent);
+  transform: translateY(-2px);
+}
+
+/* FAQ Enhancement */
+.faq-item {
+  background: #000;
+  border: 1px solid var(--dark-accent);
+  transition: all 0.3s ease;
+}
+
+.faq-item:hover {
+  border-color: var(--primary-gold);
+}
+
+/* Navbar Gold Highlights */
+.nav-highlight {
+  color: var(--primary-gold);
+}
+
+.nav-highlight:hover {
+  color: var(--secondary-accent);
 }

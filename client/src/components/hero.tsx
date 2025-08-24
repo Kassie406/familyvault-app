@@ -2,7 +2,7 @@ import { Star } from "lucide-react";
 
 export default function Hero() {
   return (
-    <section className="bg-black relative overflow-hidden py-16 lg:py-24">
+    <section className="hero-gradient relative overflow-hidden py-16 lg:py-24">
       {/* Gold gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-black via-black/90 to-[#D4AF37]/20"></div>
       
@@ -21,7 +21,7 @@ export default function Hero() {
               <a
                 href="/signup"
                 data-testid="button-get-started-hero"
-                className="bg-[#D4AF37] hover:bg-[#B8860B] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors hover-lift text-center"
+                className="cta-button px-8 py-4 rounded-lg font-semibold text-lg text-center"
               >
                 Get Started Free
               </a>

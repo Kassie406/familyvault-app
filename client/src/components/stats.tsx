@@ -31,7 +31,7 @@ export default function Stats() {
 
         <div className="grid md:grid-cols-3 gap-8">
           {stats.map((stat, index) => (
-            <div key={index} className="bg-black border border-[#C5A028] rounded-2xl p-8 text-center hover-lift">
+            <div key={index} className="gold-card rounded-2xl p-8 text-center hover-lift">
               <div 
                 data-testid={`stat-${index + 1}`}
                 className="text-4xl lg:text-5xl font-bold text-[#D4AF37] mb-4"
