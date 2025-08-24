@@ -1,0 +1,126 @@
+🎨 Color Style Guide
+
+Primary: Gold (#D4AF37 or #FFD700)
+
+Secondary: Black (#000000)
+
+Backgrounds: Off-white (#F8F8F8) or very dark gray (#111111)
+
+Accents: White (#FFFFFF) for text contrast, subtle gray (#E0E0E0) for dividers
+
+🏠 Layered Home Page Redesign (Gold + Black)
+1. Hero Section (Top)
+
+Background: Black with a subtle gold gradient overlay.
+
+Headline (White/Gold):
+
+“Protect Your Family’s Legacy in One Vault”
+
+Subtext (Gray/Gold):
+
+“All your family’s important details, preserved and always within reach.”
+
+CTA Button: Gold button with black text: “Get Started Free”
+
+Image/Mockup: Laptop mockup showing dashboard UI → glowing gold accents.
+
+2. “Secure Everything That Matters” (Docs)
+
+Background: White for contrast.
+
+Headline (Black/Gold underline):
+
+“Secure Everything That Matters”
+
+Layout: 2 columns → Left = Icon list, Right = Vault image
+
+Icons: Gold outline icons (passport, bank, health, etc.).
+
+Accent: Each list item has a gold checkmark.
+
+3. Stats Section
+
+Background: Black with faint gold grid texture.
+
+Headline (White):
+
+“Time, Money, and Energy Families Waste Without Organization”
+
+3 Cards (Black background, Gold text for numbers):
+
+⏰ 51+ Hours wasted yearly
+
+💳 $1,268 lost in late fees
+
+😟 84% stressed about documents
+
+Hover effect: Card glows gold border.
+
+4. “Life is Easier with FamilyVault”
+
+Background: Gold-to-white gradient.
+
+Video Card: Centered, black frame, gold play button.
+
+3 Benefit Cards:
+
+👨‍👩‍👧 Support Loved Ones
+
+📑 Simplify Paperwork
+
+⚖️ Smooth Estate Planning
+
+Design: Black cards with gold icons + white text.
+
+5. Features (“Rule at the Business of Life”)
+
+Background: White.
+
+Headline (Black/Gold):
+
+“Run Family Life Like a Pro”
+
+3 Columns:
+
+🗂 Organize (Black + gold folder icon)
+
+🔐 Share (Lock icon glowing gold)
+
+⏱ Save Time (Gold clock outline)
+
+Hover effect: Icon fills gold, card shadow black.
+
+6. Security Section
+
+Background: Black (luxury look).
+
+Headline (Gold):
+
+“Bank-Grade Security, Built for Families”
+
+6 Feature Icons: Gold glowing line icons (lock, fingerprint, shield).
+
+Cards: Black with gold borders, white text.
+
+7. Testimonials
+
+Background: White or light gray.
+
+Carousel Cards: White cards with black border, gold star ratings ⭐⭐⭐⭐⭐
+
+Tagline:
+
+“Trusted Across Generations.”
+
+8. FAQ + Pricing
+
+FAQ Section: Black text on white accordion with gold highlights.
+
+Pricing Section:
+
+3 Cards (Free, Standard, Premium)
+
+Premium plan highlighted with gold border + crown icon 👑
+
+Black background, gold pricing text.
