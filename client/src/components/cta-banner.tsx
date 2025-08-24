@@ -32,12 +32,13 @@ export default function CTABanner() {
         <h2 className="text-3xl lg:text-4xl font-bold text-white mb-8">
           3 pricing tiers, starting with free
         </h2>
-        <button 
+        <a
+          href="/pricing"
           data-testid="button-learn-more-pricing"
-          className="bg-white hover:bg-gray-100 text-primary px-8 py-4 rounded-lg font-semibold text-lg transition-colors hover-lift"
+          className="bg-white hover:bg-gray-100 text-primary px-8 py-4 rounded-lg font-semibold text-lg transition-colors hover-lift inline-block"
         >
           Learn more
-        </button>
+        </a>
       </div>
     </section>
   );

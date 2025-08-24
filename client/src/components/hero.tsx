@@ -14,12 +14,13 @@ export default function Hero() {
               FamilyVault safeguards your family's important information in one place, ensuring you're prepared for anything that may come your way.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <button 
+              <a
+                href="/signup"
                 data-testid="button-get-started-hero"
-                className="bg-primary hover:bg-secondary text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors hover-lift"
+                className="bg-primary hover:bg-secondary text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors hover-lift text-center"
               >
                 Get Started Free
-              </button>
+              </a>
               <button 
                 data-testid="button-see-how-it-works"
                 className="border-2 border-gray-300 hover:border-primary text-gray-700 hover:text-primary px-8 py-4 rounded-lg font-semibold text-lg transition-colors hover-lift"

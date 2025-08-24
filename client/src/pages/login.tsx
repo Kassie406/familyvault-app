@@ -86,7 +86,7 @@ export default function Login() {
                 <p className="text-sm text-gray-600">
                   Don't have an account?{' '}
                   <a 
-                    href="#" 
+                    href="/signup" 
                     className="font-medium text-primary hover:text-secondary"
                     data-testid="sign-up-link"
                   >
