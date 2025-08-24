@@ -32,25 +32,25 @@ export default function FAQ() {
   };
 
   return (
-    <section className="bg-white py-16 lg:py-24">
+    <section className="bg-[#111111] py-16 lg:py-24">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
             Frequently Asked Questions
           </h2>
         </div>
 
         <div className="space-y-4">
           {faqs.map((faq, index) => (
-            <div key={index} className="border border-gray-200 rounded-xl">
+            <div key={index} className="border border-[#C5A028] rounded-xl bg-black">
               <button
                 data-testid={`faq-toggle-${index + 1}`}
                 onClick={() => toggleFAQ(index)}
-                className="w-full text-left px-6 py-6 flex justify-between items-center hover:bg-gray-50 transition-colors"
+                className="w-full text-left px-6 py-6 flex justify-between items-center hover:bg-[#111111] transition-colors"
               >
-                <span className="text-lg font-semibold text-gray-900">{faq.question}</span>
+                <span className="text-lg font-semibold text-[#D4AF37]">{faq.question}</span>
                 <ChevronDown 
-                  className={`w-6 h-6 text-gray-400 transition-transform ${
+                  className={`w-6 h-6 text-[#CCCCCC] transition-transform ${
                     openIndex === index ? 'rotate-180' : ''
                   }`}
                 />
@@ -60,7 +60,7 @@ export default function FAQ() {
                   data-testid={`faq-content-${index + 1}`}
                   className="px-6 pb-6 faq-content"
                 >
-                  <p className="text-gray-600">{faq.answer}</p>
+                  <p className="text-[#CCCCCC]">{faq.answer}</p>
                 </div>
               )}
             </div>

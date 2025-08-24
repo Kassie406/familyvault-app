@@ -34,12 +34,12 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="sticky top-0 bg-white shadow-sm z-50 border-b border-gray-100">
+    <nav className="sticky top-0 bg-black shadow-sm z-50 border-b border-[#C5A028]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <a href="/" className="text-2xl font-bold text-primary hover:opacity-80 transition-opacity">
+            <a href="/" className="text-2xl font-bold text-[#D4AF37] hover:opacity-80 transition-opacity">
               FamilyVault
             </a>
           </div>
@@ -47,7 +47,7 @@ export default function Navbar() {
           {/* Desktop Navigation */}
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-8">
-              <a href="/" className="text-gray-600 hover:text-primary font-medium transition-colors">
+              <a href="/" className="text-[#CCCCCC] hover:text-[#D4AF37] font-medium transition-colors">
                 Home
               </a>
               
@@ -57,22 +57,22 @@ export default function Navbar() {
                 onMouseEnter={() => setIsForeverFilesOpen(true)}
                 onMouseLeave={() => setIsForeverFilesOpen(false)}
               >
-                <button className="text-gray-600 hover:text-primary font-medium transition-colors flex items-center">
+                <button className="text-[#CCCCCC] hover:text-[#D4AF37] font-medium transition-colors flex items-center">
                   Forever Files
                   <ChevronDown className="w-4 h-4 ml-1" />
                 </button>
                 
                 {isForeverFilesOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-100 p-6 z-50">
+                  <div className="absolute top-full left-0 mt-2 w-96 bg-black rounded-xl shadow-2xl border border-[#C5A028] p-6 z-50">
                     <div className="grid grid-cols-2 gap-4">
                       {foreverFilesCategories.map((category, index) => (
                         <a
                           key={index}
                           href={category.path}
-                          className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors group"
+                          className="flex items-center p-3 rounded-lg hover:bg-[#111111] transition-colors group"
                         >
                           <span className="text-xl mr-3">{category.icon}</span>
-                          <span className="text-sm font-medium text-gray-700 group-hover:text-primary">
+                          <span className="text-sm font-medium text-[#CCCCCC] group-hover:text-[#D4AF37]">
                             {category.name}
                           </span>
                         </a>
@@ -82,13 +82,13 @@ export default function Navbar() {
                 )}
               </div>
               
-              <a href="/security" className="text-gray-600 hover:text-primary font-medium transition-colors">
+              <a href="/security" className="text-[#CCCCCC] hover:text-[#D4AF37] font-medium transition-colors">
                 Security
               </a>
-              <a href="/reviews" className="text-gray-600 hover:text-primary font-medium transition-colors">
+              <a href="/reviews" className="text-[#CCCCCC] hover:text-[#D4AF37] font-medium transition-colors">
                 Reviews
               </a>
-              <a href="/pricing" className="text-gray-600 hover:text-primary font-medium transition-colors">
+              <a href="/pricing" className="text-[#CCCCCC] hover:text-[#D4AF37] font-medium transition-colors">
                 Pricing
               </a>
               
@@ -98,22 +98,22 @@ export default function Navbar() {
                 onMouseEnter={() => setIsMoreGoodieGuidesOpen(true)}
                 onMouseLeave={() => setIsMoreGoodieGuidesOpen(false)}
               >
-                <button className="text-gray-600 hover:text-primary font-medium transition-colors flex items-center">
+                <button className="text-[#CCCCCC] hover:text-[#D4AF37] font-medium transition-colors flex items-center">
                   More Goodie Guides
                   <ChevronDown className="w-4 h-4 ml-1" />
                 </button>
                 
                 {isMoreGoodieGuidesOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 p-6 z-50">
+                  <div className="absolute top-full right-0 mt-2 w-64 bg-black rounded-xl shadow-2xl border border-[#C5A028] p-6 z-50">
                     <div className="space-y-4">
                       {moreGoodieGuidesCategories.map((category, index) => (
                         <a
                           key={index}
                           href="#"
-                          className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors group"
+                          className="flex items-center p-3 rounded-lg hover:bg-[#111111] transition-colors group"
                         >
                           <span className="text-xl mr-3">{category.icon}</span>
-                          <span className="text-sm font-medium text-gray-700 group-hover:text-primary">
+                          <span className="text-sm font-medium text-[#CCCCCC] group-hover:text-[#D4AF37]">
                             {category.name}
                           </span>
                         </a>
@@ -127,13 +127,13 @@ export default function Navbar() {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <a href="/login" className="text-gray-600 hover:text-primary font-medium transition-colors">
+            <a href="/login" className="text-[#CCCCCC] hover:text-[#D4AF37] font-medium transition-colors">
               Login
             </a>
             <a
               href="/signup"
               data-testid="button-get-started-nav"
-              className="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              className="bg-[#D4AF37] hover:bg-[#B8860B] text-black px-4 py-2 rounded-lg font-medium transition-colors"
             >
               Get Started Free
             </a>
@@ -144,7 +144,7 @@ export default function Navbar() {
             <button
               data-testid="button-mobile-menu"
               onClick={toggleMenu}
-              className="text-gray-600 hover:text-primary"
+              className="text-[#CCCCCC] hover:text-[#D4AF37]"
             >
               {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -154,9 +154,9 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {isMenuOpen && (
-        <div className="md:hidden bg-white shadow-lg">
+        <div className="md:hidden bg-black shadow-lg">
           <div className="px-4 pt-2 pb-3 space-y-1">
-            <a href="/" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
+            <a href="/" className="block px-3 py-2 text-[#CCCCCC] hover:text-[#D4AF37] font-medium">
               Home
             </a>
             
@@ -164,19 +164,19 @@ export default function Navbar() {
             <div>
               <button
                 onClick={() => setIsForeverFilesMobileOpen(!isForeverFilesMobileOpen)}
-                className="w-full text-left px-3 py-2 text-gray-600 hover:text-primary font-medium flex items-center justify-between"
+                className="w-full text-left px-3 py-2 text-[#CCCCCC] hover:text-[#D4AF37] font-medium flex items-center justify-between"
               >
                 Forever Files
                 <ChevronDown className={`w-4 h-4 transition-transform ${isForeverFilesMobileOpen ? 'rotate-180' : ''}`} />
               </button>
               
               {isForeverFilesMobileOpen && (
-                <div className="ml-4 space-y-1 bg-gray-50 rounded-lg p-2">
+                <div className="ml-4 space-y-1 bg-[#111111] rounded-lg p-2">
                   {foreverFilesCategories.map((category, index) => (
                     <a
                       key={index}
                       href={category.path}
-                      className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-primary rounded"
+                      className="flex items-center px-3 py-2 text-sm text-[#CCCCCC] hover:text-[#D4AF37] rounded"
                     >
                       <span className="text-base mr-2">{category.icon}</span>
                       {category.name}
@@ -186,13 +186,13 @@ export default function Navbar() {
               )}
             </div>
             
-            <a href="/security" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
+            <a href="/security" className="block px-3 py-2 text-[#CCCCCC] hover:text-[#D4AF37] font-medium">
               Security
             </a>
-            <a href="/reviews" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
+            <a href="/reviews" className="block px-3 py-2 text-[#CCCCCC] hover:text-[#D4AF37] font-medium">
               Reviews
             </a>
-            <a href="/pricing" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
+            <a href="/pricing" className="block px-3 py-2 text-[#CCCCCC] hover:text-[#D4AF37] font-medium">
               Pricing
             </a>
             
@@ -200,19 +200,19 @@ export default function Navbar() {
             <div>
               <button
                 onClick={() => setIsMoreGoodieGuidesMobileOpen(!isMoreGoodieGuidesMobileOpen)}
-                className="w-full text-left px-3 py-2 text-gray-600 hover:text-primary font-medium flex items-center justify-between"
+                className="w-full text-left px-3 py-2 text-[#CCCCCC] hover:text-[#D4AF37] font-medium flex items-center justify-between"
               >
                 More Goodie Guides
                 <ChevronDown className={`w-4 h-4 transition-transform ${isMoreGoodieGuidesMobileOpen ? 'rotate-180' : ''}`} />
               </button>
               
               {isMoreGoodieGuidesMobileOpen && (
-                <div className="ml-4 space-y-1 bg-gray-50 rounded-lg p-2">
+                <div className="ml-4 space-y-1 bg-[#111111] rounded-lg p-2">
                   {moreGoodieGuidesCategories.map((category, index) => (
                     <a
                       key={index}
                       href="#"
-                      className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-primary rounded"
+                      className="flex items-center px-3 py-2 text-sm text-[#CCCCCC] hover:text-[#D4AF37] rounded"
                     >
                       <span className="text-base mr-2">{category.icon}</span>
                       {category.name}
@@ -222,13 +222,13 @@ export default function Navbar() {
               )}
             </div>
             <hr className="my-2" />
-            <a href="/login" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
+            <a href="/login" className="block px-3 py-2 text-[#CCCCCC] hover:text-[#D4AF37] font-medium">
               Login
             </a>
             <a
               href="/signup"
               data-testid="button-get-started-mobile"
-              className="w-full mt-2 bg-primary hover:bg-secondary text-white px-4 py-2 rounded-lg font-medium text-center block"
+              className="w-full mt-2 bg-[#D4AF37] hover:bg-[#B8860B] text-black px-4 py-2 rounded-lg font-medium text-center block"
             >
               Get Started Free
             </a>

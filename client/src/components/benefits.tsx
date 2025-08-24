@@ -17,7 +17,7 @@ const benefits = [
 
 export default function Benefits() {
   return (
-    <section className="bg-gray-50 py-16 lg:py-24">
+    <section className="bg-[#111111] py-16 lg:py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left Column - Video */}
@@ -30,19 +30,19 @@ export default function Benefits() {
             <div className="absolute inset-0 bg-black/30 rounded-2xl flex items-center justify-center">
               <button 
                 data-testid="button-play-video"
-                className="bg-white/90 hover:bg-white rounded-full p-6 transition-colors hover-lift"
+                className="bg-[#D4AF37] hover:bg-[#B8860B] rounded-full p-6 transition-colors hover-lift"
               >
-                <Play className="w-12 h-12 text-primary ml-1" />
+                <Play className="w-12 h-12 text-black ml-1" />
               </button>
             </div>
             <div className="absolute bottom-4 left-4 bg-white/90 rounded-lg px-3 py-1">
-              <span className="text-sm font-medium text-gray-900">See how it works</span>
+              <span className="text-sm font-medium text-white">See how it works</span>
             </div>
           </div>
 
           {/* Right Column - Benefits */}
           <div>
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-8">
+            <h2 className="text-3xl lg:text-4xl font-bold text-white mb-8">
               Life is Easier with FamilyVault
             </h2>
             
@@ -51,12 +51,12 @@ export default function Benefits() {
                 <div 
                   key={index}
                   data-testid={`benefit-${index + 1}`}
-                  className="bg-white rounded-xl p-6 shadow-sm hover-lift"
+                  className="bg-black border border-[#C5A028] rounded-xl p-6 shadow-sm hover-lift"
                 >
-                  <h3 className="font-bold text-gray-900 text-lg mb-2">
+                  <h3 className="font-bold text-white text-lg mb-2">
                     {benefit.title}
                   </h3>
-                  <p className="text-gray-600">
+                  <p className="text-[#CCCCCC]">
                     {benefit.description}
                   </p>
                 </div>

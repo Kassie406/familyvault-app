@@ -9,10 +9,10 @@ const testimonials = [
 
 export default function Testimonials() {
   return (
-    <section className="bg-white py-16 lg:py-24">
+    <section className="bg-black py-16 lg:py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
             What Our Members Say About FamilyVault
           </h2>
         </div>
@@ -22,13 +22,13 @@ export default function Testimonials() {
             <div 
               key={index}
               data-testid={`testimonial-${index + 1}`}
-              className="bg-gray-50 rounded-2xl p-6 text-center hover-lift"
+              className="bg-black border border-[#C5A028] rounded-2xl p-6 text-center hover-lift"
             >
               <div className={`w-16 h-16 bg-gradient-to-br ${testimonial.gradient} rounded-full mx-auto mb-4 flex items-center justify-center`}>
                 <span className="text-white font-bold text-lg">{testimonial.initials}</span>
               </div>
-              <h4 className="font-semibold text-gray-900">{testimonial.name}</h4>
-              <p className="text-sm text-gray-600">{testimonial.location}</p>
+              <h4 className="font-semibold text-[#D4AF37]">{testimonial.name}</h4>
+              <p className="text-sm text-[#CCCCCC]">{testimonial.location}</p>
             </div>
           ))}
         </div>

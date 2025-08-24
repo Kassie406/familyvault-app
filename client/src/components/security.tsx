@@ -43,13 +43,13 @@ const securityFeatures = [
 
 export default function Security() {
   return (
-    <section className="bg-gray-50 py-16 lg:py-24">
+    <section className="bg-[#111111] py-16 lg:py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
             Keep Your Information Safe
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl text-[#CCCCCC] max-w-3xl mx-auto">
             Advanced security and compliance that ensures your family information remains private and protected
           </p>
         </div>
@@ -60,7 +60,7 @@ export default function Security() {
             <div 
               key={index}
               data-testid={`compliance-${index + 1}`}
-              className="text-sm font-medium text-gray-500 px-4 py-2 bg-white rounded-lg"
+              className="text-sm font-medium text-[#CCCCCC] px-4 py-2 bg-black border border-[#D4AF37] rounded-lg"
             >
               {badge}
             </div>
@@ -74,13 +74,13 @@ export default function Security() {
               <div 
                 key={index}
                 data-testid={`security-feature-${index + 1}`}
-                className="bg-white rounded-2xl p-8 shadow-sm hover-lift"
+                className="bg-black border border-[#D4AF37] rounded-2xl p-8 shadow-sm hover-lift"
               >
-                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6">
-                  <Icon className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 bg-[#D4AF37]/10 rounded-xl flex items-center justify-center mb-6">
+                  <Icon className="w-6 h-6 text-[#D4AF37]" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
+                <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
+                <p className="text-[#CCCCCC]">{feature.description}</p>
               </div>
             );
           })}
@@ -89,7 +89,7 @@ export default function Security() {
         <div className="text-center mt-12">
           <button 
             data-testid="button-learn-more-security"
-            className="bg-primary hover:bg-secondary text-white px-8 py-3 rounded-lg font-semibold transition-colors hover-lift"
+            className="bg-[#D4AF37] hover:bg-[#B8860B] text-black px-8 py-3 rounded-lg font-semibold transition-colors hover-lift"
           >
             Learn more
           </button>
