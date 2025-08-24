@@ -10,7 +10,6 @@ import CustomerStory from "@/components/customer-story";
 import FAQ from "@/components/faq";
 import CTABanner from "@/components/cta-banner";
 import Footer from "@/components/footer";
-import { MessageCircle } from "lucide-react";
 
 export default function Home() {
   return (
@@ -27,16 +26,6 @@ export default function Home() {
       <FAQ />
       <CTABanner />
       <Footer />
-      
-      {/* Chat Bot */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button 
-          data-testid="button-chat"
-          className="cta-button rounded-full p-4 shadow-2xl"
-        >
-          <MessageCircle className="w-6 h-6" />
-        </button>
-      </div>
     </div>
   );
 }
