@@ -29,6 +29,18 @@ export default function Navbar() {
               <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
                 Memory Lane
               </a>
+              <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
+                Security
+              </a>
+              <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
+                Reviews
+              </a>
+              <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
+                Pricing
+              </a>
+              <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
+                More Goodie Guides
+              </a>
             </div>
           </div>
 
@@ -70,6 +82,18 @@ export default function Navbar() {
             </a>
             <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
               Memory Lane
+            </a>
+            <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
+              Security
+            </a>
+            <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
+              Reviews
+            </a>
+            <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
+              Pricing
+            </a>
+            <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
+              More Goodie Guides
             </a>
             <hr className="my-2" />
             <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
