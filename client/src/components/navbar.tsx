@@ -24,22 +24,10 @@ export default function Navbar() {
                 Home
               </a>
               <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
-                Keep Safe
-              </a>
-              <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
-                Family Fortune
-              </a>
-              <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
-                Vital Care
-              </a>
-              <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
                 Forever Files
               </a>
               <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
                 Memory Lane
-              </a>
-              <a href="#" className="text-gray-600 hover:text-primary font-medium transition-colors">
-                Guardianship
               </a>
             </div>
           </div>
@@ -78,22 +66,10 @@ export default function Navbar() {
               Home
             </a>
             <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
-              Keep Safe
-            </a>
-            <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
-              Family Fortune
-            </a>
-            <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
-              Vital Care
-            </a>
-            <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
               Forever Files
             </a>
             <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
               Memory Lane
-            </a>
-            <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
-              Guardianship
             </a>
             <hr className="my-2" />
             <a href="#" className="block px-3 py-2 text-gray-600 hover:text-primary font-medium">
