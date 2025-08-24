@@ -5,14 +5,14 @@
 
 :root {
   --background: hsl(0, 0%, 100%);
-  --foreground: hsl(0, 0%, 0%);
+  --foreground: #000000;
   --card: hsl(180, 6.6667%, 97.0588%);
-  --card-foreground: hsl(0, 0%, 0%);
+  --card-foreground: #000000;
   --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(0, 0%, 0%);
-  --primary: hsl(51, 100%, 58%);
+  --popover-foreground: #000000;
+  --primary: #D4AF37;
   --primary-foreground: hsl(0, 0%, 0%);
-  --secondary: hsl(0, 0%, 0%);
+  --secondary: #B8860B;
   --secondary-foreground: hsl(0, 0%, 100%);
   --muted: hsl(240, 1.9608%, 90%);
   --muted-foreground: hsl(210, 25%, 7.8431%);
