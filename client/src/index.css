@@ -157,11 +157,27 @@
   background: linear-gradient(180deg, #000 0%, #111 60%, rgba(212, 175, 55, 0.1) 100%);
 }
 
-/* Section Dividers */
-.gold-divider {
-  height: 1px;
-  background: linear-gradient(90deg, transparent 0%, var(--dark-accent) 50%, transparent 100%);
-  margin: 2rem 0;
+/* Remove white lines and add elegant section styling */
+section {
+  border-top: none !important;
+}
+
+/* Subtle gold gradient dividers */
+.section-divider {
+  height: 2px;
+  background: linear-gradient(to right, #d4af37, #b8860b);
+  margin: 40px auto;
+  width: 80%;
+  border-radius: 2px;
+}
+
+/* Alternate section backgrounds for natural separation */
+section:nth-child(even) {
+  background-color: #0d0d0d !important; /* dark charcoal */
+}
+
+section:nth-child(odd) {
+  background-color: #000000 !important; /* pure black */
 }
 
 /* Gold Content Card Borders */

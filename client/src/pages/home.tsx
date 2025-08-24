@@ -17,21 +17,13 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <Hero />
-      <div className="gold-divider"></div>
       <FeatureChecklist />
-      <div className="gold-divider"></div>
       <Stats />
-      <div className="gold-divider"></div>
       <Benefits />
-      <div className="gold-divider"></div>
       <Features />
-      <div className="gold-divider"></div>
       <Security />
-      <div className="gold-divider"></div>
       <Testimonials />
-      <div className="gold-divider"></div>
       <CustomerStory />
-      <div className="gold-divider"></div>
       <FAQ />
       <CTABanner />
       <Footer />
