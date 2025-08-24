@@ -7,8 +7,10 @@ export default function Hero() {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left Column */}
           <div className="max-w-2xl">
-            <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 leading-tight mb-6">
-              Keep your family's world safe, organized, and always within reach
+            <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 leading-[1.1] tracking-tight mb-6">
+              Keep your family's world safe,<br />
+              organized, and always<br />
+              within reach
             </h1>
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
               FamilyVault brings together everything that matters most — so your loved ones are protected, prepared, and connected.
