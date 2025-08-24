@@ -286,12 +286,13 @@ export default function Reviews() {
             >
               Share Your Experience
             </button>
-            <button 
+            <a
+              href="/signup"
               data-testid="button-start-free-trial"
-              className="border-2 border-white text-white hover:bg-white hover:text-primary px-8 py-4 rounded-lg font-semibold text-lg transition-colors"
+              className="border-2 border-white text-white hover:bg-white hover:text-primary px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
             >
               Start Your Free Trial
-            </button>
+            </a>
           </div>
         </div>
       </section>
