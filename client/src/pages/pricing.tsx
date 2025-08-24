@@ -269,12 +269,13 @@ export default function Pricing() {
                     )}
                   </div>
                   
-                  <button 
-                    className={`w-full py-3 px-6 rounded-lg font-semibold text-lg transition-colors ${plan.buttonStyle}`}
+                  <a
+                    href={plan.name === 'Enterprise' ? '#' : '/signup'}
+                    className={`w-full py-3 px-6 rounded-lg font-semibold text-lg transition-colors ${plan.buttonStyle} text-center block`}
                     data-testid={`get-started-${plan.name.toLowerCase()}`}
                   >
                     {plan.name === 'Enterprise' ? 'Schedule Demo' : 'Get Started'}
-                  </button>
+                  </a>
                 </div>
                 
                 <div className="space-y-4">
@@ -518,12 +519,13 @@ export default function Pricing() {
           <p className="text-xl mb-8 opacity-90">
             Start with our free plan and experience the peace of mind that comes with organized, secure family documents.
           </p>
-          <button 
+          <a
+            href="/signup"
             data-testid="button-start-free-pricing"
-            className="bg-white text-primary hover:bg-gray-100 px-8 py-4 rounded-lg font-semibold text-lg transition-colors"
+            className="bg-white text-primary hover:bg-gray-100 px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
           >
             Start Free Today
-          </button>
+          </a>
         </div>
       </section>
     </div>
