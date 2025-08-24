@@ -15,7 +15,7 @@ export default function Hero() {
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
               FamilyVault brings together everything that matters most — so your loved ones are protected, prepared, and connected.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 mb-8">
+            <div className="flex justify-center mb-8">
               <a
                 href="/signup"
                 data-testid="button-get-started-hero"
@@ -23,12 +23,6 @@ export default function Hero() {
               >
                 Get Started Free
               </a>
-              <button 
-                data-testid="button-see-how-it-works"
-                className="border-2 border-gray-300 hover:border-primary text-gray-700 hover:text-primary px-8 py-4 rounded-lg font-semibold text-lg transition-colors hover-lift"
-              >
-                See How It Works
-              </button>
             </div>
             <p className="text-sm text-gray-500 mb-8">
               <em>No credit card required. Upgrade anytime with a 30-day money-back guarantee.</em>
