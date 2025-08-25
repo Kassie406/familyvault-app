@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import estatePlanningImage from "@assets/image_1756095429229.png";
 import digitalSecurityImage from "@assets/image_1756095779424.png";
+import mobileAppImage from "@assets/image_1756095858406.png";
 
 export default function EstatePlanning() {
   const estatePlanningCards = [
@@ -109,7 +110,9 @@ export default function EstatePlanning() {
     {
       icon: Smartphone,
       title: "Use FamilyVault on the Go", 
-      description: "Access your information anywhere with our mobile app"
+      description: "Access your information anywhere with our mobile app",
+      image: mobileAppImage,
+      imageAlt: "Mobile app interface showing family document categories and navigation"
     },
     {
       icon: Phone,
