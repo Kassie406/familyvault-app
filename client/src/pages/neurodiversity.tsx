@@ -3,6 +3,7 @@ import Footer from "@/components/footer";
 import thoughtfulWorkerImage from "@assets/image_1756096911806.png";
 import digitalSecurityImage from "@assets/image_1756096953729.png";
 import mobileAppImage from "@assets/image_1756097026485.png";
+import askExpertsImage from "@assets/image_1756097099598.png";
 import { 
   Brain,
   Heart, 
@@ -72,7 +73,9 @@ export default function Neurodiversity() {
     {
       icon: Phone,
       title: "Connect With an Expert",
-      description: "Get personalized help organizing your family's documents"
+      description: "Get personalized help organizing your family's documents",
+      image: askExpertsImage,
+      imageAlt: "Blackboard with 'Ask the Experts' text and lightbulbs, representing expert consultation and guidance"
     }
   ];
 
