@@ -2,6 +2,7 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import familyImage from "@assets/image_1756096399044.png";
 import digitalSecurityImage from "@assets/image_1756096462942.png";
+import mobileAppImage from "@assets/image_1756096537141.png";
 import { 
   Baby,
   Heart, 
@@ -111,7 +112,9 @@ export default function StartingAFamily() {
     {
       icon: Smartphone,
       title: "Use FamilyVault on the Go", 
-      description: "Access your information anywhere with our mobile app"
+      description: "Access your information anywhere with our mobile app",
+      image: mobileAppImage,
+      imageAlt: "Mobile app interface showing browse screen with family document categories"
     },
     {
       icon: Phone,
