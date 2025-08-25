@@ -8,6 +8,7 @@ import babysitterImage from "@assets/image_1756085729438.png";
 import securityImage from "@assets/image_1756085840418.png";
 import mobileAppImage from "@assets/image_1756085913047.png";
 import expertsImage from "@assets/image_1756086008968.png";
+import guideBookImage from "@assets/image_1756086136192.png";
 import { 
   FileText, 
   Share2, 
@@ -374,11 +375,12 @@ export default function ChildInformation() {
           <div className="bg-gray-100 rounded-2xl p-8 lg:p-12 mb-16">
             <div className="grid lg:grid-cols-2 gap-8 items-center">
               <div className="flex justify-center">
-                <div className="w-48 h-64 bg-[#FFD700]/20 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <BookOpen className="w-16 h-16 text-[#FFD700] mx-auto mb-4" />
-                    <p className="text-gray-600">Guide Cover</p>
-                  </div>
+                <div className="w-48 h-64 rounded-lg flex items-center justify-center">
+                  <img 
+                    src={guideBookImage}
+                    alt="Wooden letterpress blocks spelling GUIDE BOOK"
+                    className="w-full h-full object-cover rounded-lg"
+                  />
                 </div>
               </div>
               <div>
