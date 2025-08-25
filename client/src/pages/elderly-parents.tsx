@@ -12,6 +12,7 @@ import askExpertsImage from "@assets/image_1756093309581.png";
 import sarahProfileImage from "@assets/image_1756093411593.png";
 import davidProfileImage from "@assets/image_1756093511583.png";
 import mariaProfileImage from "@assets/image_1756093597709.png";
+import guideBookImage from "@assets/image_1756093681107.png";
 import { 
   Heart, 
   DollarSign, 
@@ -561,11 +562,12 @@ export default function ElderlyParents() {
           <div className="bg-[#141414] rounded-2xl p-8 lg:p-12 mb-16 border border-[rgba(212,175,55,0.2)]">
             <div className="grid lg:grid-cols-2 gap-8 items-center">
               <div className="flex justify-center">
-                <div className="w-48 h-64 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center border border-[rgba(212,175,55,0.25)]">
-                  <div className="text-center">
-                    <BookOpen className="w-16 h-16 text-[#D4AF37] mx-auto mb-4" />
-                    <p className="text-[#9CA3AF]">Checklist Cover</p>
-                  </div>
+                <div className="w-48 h-64 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center border border-[rgba(212,175,55,0.25)] overflow-hidden">
+                  <img 
+                    src={guideBookImage} 
+                    alt="Guide Book wooden letters checklist cover"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               </div>
               <div>
