@@ -144,7 +144,7 @@ export default function ChildInformation() {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="pt-16 pb-20">
+      <section className="pt-16" style={{paddingBottom: '50px'}}>
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
             <div className="space-y-5">
@@ -174,7 +174,7 @@ export default function ChildInformation() {
                 </a>
               </div>
             </div>
-            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem]">
+            <div className="overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem]">
               <img 
                 src={soccerKidImage} 
                 alt="Child in soccer jersey with soccer ball" 
@@ -186,10 +186,10 @@ export default function ChildInformation() {
       </section>
 
       {/* Child Information Cards */}
-      <section className="py-20 bg-[#141414]">
+      <section className="bg-[#141414]" style={{paddingTop: '50px', paddingBottom: '80px'}}>
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
+            <h2 className="text-3xl md:text-4xl mb-4" style={{color: '#D4AF37', fontWeight: '700'}}>
               Everything Your Child Needs, Organized
             </h2>
             <p className="text-[#D1D5DB] text-lg max-w-2xl mx-auto">
@@ -203,7 +203,15 @@ export default function ChildInformation() {
               return (
                 <div 
                   key={index}
-                  className="bg-[#141414] rounded-xl p-6 border border-[rgba(212,175,55,0.2)] hover:border-[rgba(212,175,55,0.35)] transition-colors"
+                  className="bg-[#141414] rounded-xl p-6 border border-[rgba(212,175,55,0.2)] transition-all duration-300 cursor-pointer"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.border = '1px solid #D4AF37';
+                    e.currentTarget.style.boxShadow = '0 0 12px rgba(212, 175, 55, 0.5)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.border = '1px solid rgba(212,175,55,0.2)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 >
                   <div className="w-12 h-12 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mb-4">
                     <IconComponent className="w-6 h-6 text-[#D4AF37]" />
@@ -283,7 +291,7 @@ export default function ChildInformation() {
       {/* Meet FamilyVault */}
       <section className="py-20 bg-[#141414]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-6">
+          <h2 className="text-3xl md:text-4xl mb-6" style={{color: '#D4AF37', fontWeight: '700'}}>
             Meet FamilyVault — Your Life, Organized
           </h2>
           <p className="text-[#D1D5DB] text-lg mb-8 max-w-3xl mx-auto">
@@ -331,7 +339,7 @@ export default function ChildInformation() {
       <section className="py-20 bg-[#141414]">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-6">
+            <h2 className="text-3xl md:text-4xl mb-6" style={{color: '#D4AF37', fontWeight: '700'}}>
               Your Data Is Always Protected
             </h2>
             <p className="text-[#D1D5DB] text-lg max-w-3xl mx-auto">
@@ -393,7 +401,7 @@ export default function ChildInformation() {
       <section className="py-20 bg-[#0B0B0B]">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
+            <h2 className="text-3xl md:text-4xl mb-4" style={{color: '#D4AF37', fontWeight: '700'}}>
               Essential Resources: Your Child's Info, All in One Place
             </h2>
             <p className="text-[#D1D5DB] text-lg">
@@ -423,9 +431,22 @@ export default function ChildInformation() {
                 </p>
                 <button
                   data-testid="button-download-guide"
-                  className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-6 py-3 rounded-lg font-semibold transition-colors min-h-[44px]"
+                  className="font-semibold transition-colors min-h-[44px] rounded-lg"
+                  style={{
+                    background: '#D4AF37',
+                    color: '#000',
+                    padding: '12px 24px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#B8962E';
+                    e.currentTarget.style.color = '#fff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#D4AF37';
+                    e.currentTarget.style.color = '#000';
+                  }}
                 >
-                  Download
+                  ⬇ Download
                 </button>
               </div>
             </div>
@@ -433,7 +454,7 @@ export default function ChildInformation() {
 
           {/* Checklists */}
           <div>
-            <h3 className="text-xl font-bold text-[#F3F4F6] mb-8">Checklists</h3>
+            <h3 className="text-xl mb-8" style={{color: '#D4AF37', fontWeight: '700'}}>Checklists</h3>
             <div className="grid md:grid-cols-2 gap-8">
               {[
                 "Checklist: Grandparents' Guide to Watching the Grandkid",
@@ -447,9 +468,23 @@ export default function ChildInformation() {
                       </h4>
                       <button
                         data-testid={`button-download-${index}`}
-                        className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
+                        className="font-medium inline-flex items-center min-h-[44px] rounded transition-colors"
+                        style={{
+                          background: '#D4AF37',
+                          color: '#000',
+                          padding: '8px 14px',
+                          borderRadius: '6px'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#B8962E';
+                          e.currentTarget.style.color = '#fff';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#D4AF37';
+                          e.currentTarget.style.color = '#000';
+                        }}
                       >
-                        Download
+                        ⬇ Download
                         <Download className="w-4 h-4 ml-1" />
                       </button>
                     </div>
@@ -465,7 +500,7 @@ export default function ChildInformation() {
       {/* CTA Bar */}
       <section className="py-16 bg-gradient-to-r from-transparent to-[rgba(212,175,55,0.08)] border-t border-[rgba(212,175,55,0.25)]">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-[#F3F4F6] mb-4">
+          <h2 className="text-2xl md:text-3xl mb-4" style={{color: '#D4AF37', fontWeight: '700'}}>
             Have everything ready for school, sports, or camp in minutes.
           </h2>
           <p className="text-[#D1D5DB] mb-8 text-lg">
@@ -474,7 +509,25 @@ export default function ChildInformation() {
           <a
             href="/signup"
             data-testid="button-final-cta"
-            className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
+            className="font-semibold text-lg transition-colors inline-block min-h-[44px] rounded-lg"
+            style={{
+              background: '#D4AF37',
+              color: '#000',
+              padding: '14px 28px',
+              fontSize: '18px',
+              border: '2px solid #D4AF37',
+              textDecoration: 'none'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#D4AF37';
+              e.currentTarget.style.color = '#000';
+              e.currentTarget.style.boxShadow = '0 0 15px rgba(212, 175, 55, 0.7)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#D4AF37';
+              e.currentTarget.style.color = '#000';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
           >
             Get started free
           </a>

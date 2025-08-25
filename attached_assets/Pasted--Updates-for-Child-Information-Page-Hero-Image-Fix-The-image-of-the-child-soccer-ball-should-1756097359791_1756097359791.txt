@@ -1,0 +1,128 @@
+🔧 Updates for "Child Information" Page
+
+Hero Image Fix
+
+The image of the child (soccer ball) should fill the rectangular box completely, not appear as a circle/cropped.
+
+Add object-fit: cover; border-radius: 0; so all hero images look clean and square-edged.
+
+Spacing & Alignment
+
+Add consistent vertical spacing between the hero banner and the “Everything Your Child Needs” section.
+
+Right now it feels a little “squished.” Add ~30px padding top and bottom.
+
+Section Titles
+
+Make section headings (e.g., “Everything Your Child Needs, Organized” and “Essential Resources”) stand out more with gold accents:
+
+h2, h3 {
+  color: #d4af37; /* gold tone */
+  font-weight: 700;
+}
+
+
+Feature Boxes
+
+The cards (Medical & Allergies, School & Aftercare, etc.) need hover effect for engagement:
+
+Subtle gold border glow on hover.
+
+Cursor pointer.
+
+Image/Text Blocks (Access School & Activity, Emergency Checklist, etc.)
+
+Some images appear stretched. Apply:
+
+img {
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+
+Ensure image/text blocks alternate evenly (image left, text right, then reversed for next block).
+
+Downloadable Resources (Guide + Checklists)
+
+Add download icon (⬇) next to each checklist for clarity.
+
+Style buttons with gold hover effect:
+
+.download-btn {
+  background: #d4af37;
+  color: #000;
+}
+.download-btn:hover {
+  background: #b8962e;
+}
+
+
+Call-to-Action (CTA) Section
+
+At the bottom ("Have everything ready for school, sports, or camp…"), enlarge the Get Started Free button and make it stand out with a glowing gold border.
+
+🟨 Replit Prompt
+
+Here’s what you can paste into Replit:
+
+// Fix Child Information Page Layout
+
+/* Hero Image Full Fill */
+.hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
+}
+
+/* Add spacing after hero */
+.hero-section {
+  padding-bottom: 30px;
+}
+
+/* Gold Section Titles */
+h2, h3 {
+  color: #d4af37;
+  font-weight: 700;
+}
+
+/* Feature Boxes Hover */
+.feature-card {
+  border: 1px solid #333;
+  transition: 0.3s;
+}
+.feature-card:hover {
+  border: 1px solid #d4af37;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.5);
+  cursor: pointer;
+}
+
+/* Image/Text Blocks */
+.section img {
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* Download Buttons */
+.download-btn {
+  background: #d4af37;
+  color: #000;
+  border-radius: 6px;
+  padding: 8px 14px;
+}
+.download-btn:hover {
+  background: #b8962e;
+  color: #fff;
+}
+
+/* Bottom CTA */
+.bottom-cta button {
+  font-size: 18px;
+  padding: 14px 28px;
+  border: 2px solid #d4af37;
+}
+.bottom-cta button:hover {
+  background: #d4af37;
+  color: #000;
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.7);
+}
