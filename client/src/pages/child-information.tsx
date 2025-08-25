@@ -2,6 +2,7 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import soccerKidImage from "@assets/image_1756084550627.png";
 import phoneDocumentImage from "@assets/image_1756085339999.png";
+import wifiPhoneImage from "@assets/image_1756085497967.png";
 import { 
   FileText, 
   Share2, 
@@ -186,6 +187,12 @@ export default function ChildInformation() {
                           src={phoneDocumentImage}
                           alt="Hands holding phone displaying birth certificate document"
                           className="w-full h-full object-cover rounded-xl"
+                        />
+                      ) : index === 1 ? (
+                        <img 
+                          src={wifiPhoneImage}
+                          alt="Phone screen showing Wi-Fi password sharing interface"
+                          className="w-full h-full object-contain"
                         />
                       ) : (
                         <div className="text-center">
