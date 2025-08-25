@@ -2,6 +2,7 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import weddingHandsImage from "@assets/image_1756093794307.png";
 import digitalSecurityImage from "@assets/image_1756093873694.png";
+import mobileAppImage from "@assets/image_1756093955366.png";
 import { 
   Heart,
   Users, 
@@ -109,7 +110,9 @@ export default function GettingMarried() {
     {
       icon: Smartphone, 
       title: "Use FamilyVault on the Go",
-      description: "Access your information anywhere with our mobile app"
+      description: "Access your information anywhere with our mobile app",
+      image: mobileAppImage,
+      imageAlt: "Mobile app interface showing family document categories and navigation"
     },
     {
       icon: Phone,
