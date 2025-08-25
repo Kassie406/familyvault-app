@@ -1,0 +1,85 @@
+Make all top-nav dropdowns behave like the fixed Forever Files menu (no hover gap, tiny close delay, keyboard friendly).
+
+1) Ensure each dropdown trigger + panel are wrapped in a single container with class .nav-item.has-dropdown
+2) Give the trigger .nav-trigger and the panel .dropdown
+3) Add id pairs and aria attributes:
+   <div class="nav-item has-dropdown" id="more-guides">
+     <button class="nav-trigger" aria-expanded="false" aria-controls="more-guides-menu">More Goodie Guides ▾</button>
+     <div class="dropdown" id="more-guides-menu" role="menu" aria-labelledby="more-guides"> ... </div>
+   </div>
+
+4) Use the existing CSS from the Forever Files fix (hover-intent buffer and open state). If not present, include the CSS below.
+5) Replace the single-menu JS with the multi-menu version below so *all* .has-dropdown get the same behavior automatically.
+
+--- CSS (skip if already added earlier) ---
+.nav-item.has-dropdown{ position:relative; }
+.nav-item .dropdown{
+  position:absolute; top:100%; left:0; display:none; min-width:260px;
+  background:linear-gradient(180deg,#111 0%,#0b0b0b 100%);
+  border:1px solid rgba(255,215,0,0.35);
+  border-radius:14px; padding:14px; box-shadow:0 20px 40px rgba(0,0,0,.6); z-index:1000;
+}
+.nav-item.open > .dropdown{ display:block; }
+.nav-item.has-dropdown:hover > .dropdown,
+.nav-item.has-dropdown:focus-within > .dropdown{ display:block; }
+/* invisible “bridge” to remove hover gap */
+.nav-item .dropdown::after{
+  content:""; position:absolute; top:-12px; left:0; width:100%; height:12px;
+}
+.nav-trigger{ background:transparent; color:#fff; border:0; padding:10px 12px; border-radius:10px; }
+.nav-trigger:hover, .nav-item.open .nav-trigger{ background:rgba(255,215,0,.08); }
+.nav-trigger:focus{ outline:2px solid rgba(255,215,0,.2); outline-offset:3px; border-radius:10px; }
+
+--- JS (multi-dropdown; attach to ALL menus) ---
+(() => {
+  const items = document.querySelectorAll('.nav-item.has-dropdown');
+  const CLOSE_DELAY = 150;     // tweak to 200 if needed
+  const GAP_BUFFER  = 12;      // matches ::after height
+
+  items.forEach((dd) => {
+    const trigger = dd.querySelector('.nav-trigger');
+    const panel   = dd.querySelector('.dropdown');
+    if (!trigger || !panel) return;
+
+    let closeTimer = null;
+
+    const open = () => {
+      dd.classList.add('open');
+      trigger.setAttribute('aria-expanded','true');
+      clearTimeout(closeTimer);
+    };
+    const scheduleClose = () => {
+      clearTimeout(closeTimer);
+      closeTimer = setTimeout(() => {
+        dd.classList.remove('open');
+        trigger.setAttribute('aria-expanded','false');
+      }, CLOSE_DELAY);
+    };
+
+    // open on pointer enter + focus; keep open while inside
+    trigger.addEventListener('mouseenter', open);
+    panel.addEventListener('mouseenter', open);
+    trigger.addEventListener('focus', open, true);
+
+    // schedule close when leaving both
+    trigger.addEventListener('mouseleave', scheduleClose);
+    panel.addEventListener('mouseleave', scheduleClose);
+    trigger.addEventListener('blur', scheduleClose, true);
+
+    // close on Escape
+    dd.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        dd.classList.remove('open');
+        trigger.setAttribute('aria-expanded','false');
+        trigger.focus();
+      }
+    });
+
+    // optional: click toggles on mobile
+    trigger.addEventListener('click', (e) => {
+      const openNow = dd.classList.toggle('open');
+      trigger.setAttribute('aria-expanded', openNow ? 'true' : 'false');
+      if (!openNow) trigger.blur();
+    });
+  });
+})();

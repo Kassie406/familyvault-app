@@ -4,62 +4,83 @@ import { Menu, X, ChevronDown } from "lucide-react";
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isForeverFilesMobileOpen, setIsForeverFilesMobileOpen] = useState(false);
-  const [isMoreGoodieGuidesOpen, setIsMoreGoodieGuidesOpen] = useState(false);
   const [isMoreGoodieGuidesMobileOpen, setIsMoreGoodieGuidesMobileOpen] = useState(false);
 
   useEffect(() => {
-    // Forever Files dropdown JS functionality
-    const dd = document.getElementById('forever-files');
-    if(!dd) return;
+    // Multi-dropdown functionality for all nav dropdowns
+    const items = document.querySelectorAll('.nav-item.has-dropdown');
+    const CLOSE_DELAY = 150;
+    const cleanupFunctions: (() => void)[] = [];
 
-    const trigger = dd.querySelector('.nav-trigger') as HTMLElement;
-    const panel = dd.querySelector('.dropdown') as HTMLElement;
-    if (!trigger || !panel) return;
+    items.forEach((dd) => {
+      const trigger = dd.querySelector('.nav-trigger') as HTMLElement;
+      const panel = dd.querySelector('.dropdown') as HTMLElement;
+      if (!trigger || !panel) return;
 
-    let closeTimer: NodeJS.Timeout | null = null;
+      let closeTimer: NodeJS.Timeout | null = null;
 
-    const open = () => {
-      dd.classList.add('open');
-      trigger.setAttribute('aria-expanded', 'true');
-      if (closeTimer) clearTimeout(closeTimer);
-    };
+      const open = () => {
+        dd.classList.add('open');
+        trigger.setAttribute('aria-expanded', 'true');
+        if (closeTimer) clearTimeout(closeTimer);
+      };
 
-    const scheduleClose = () => {
-      if (closeTimer) clearTimeout(closeTimer);
-      closeTimer = setTimeout(() => {
-        dd.classList.remove('open');
-        trigger.setAttribute('aria-expanded', 'false');
-      }, 150); // gentle hover-intent delay
-    };
+      const scheduleClose = () => {
+        if (closeTimer) clearTimeout(closeTimer);
+        closeTimer = setTimeout(() => {
+          dd.classList.remove('open');
+          trigger.setAttribute('aria-expanded', 'false');
+        }, CLOSE_DELAY);
+      };
 
-    // Open on hover/focus
-    trigger.addEventListener('mouseenter', open);
-    panel.addEventListener('mouseenter', open);
-    trigger.addEventListener('focus', open, true);
+      const handleKeydown = (e: Event) => {
+        const keyEvent = e as KeyboardEvent;
+        if (keyEvent.key === 'Escape') {
+          dd.classList.remove('open');
+          trigger.setAttribute('aria-expanded', 'false');
+          trigger.focus();
+        }
+      };
 
-    // Schedule close when leaving both trigger and panel
-    trigger.addEventListener('mouseleave', scheduleClose);
-    panel.addEventListener('mouseleave', scheduleClose);
-    trigger.addEventListener('blur', scheduleClose, true);
+      const handleClick = () => {
+        const openNow = dd.classList.toggle('open');
+        trigger.setAttribute('aria-expanded', openNow ? 'true' : 'false');
+        if (!openNow) trigger.blur();
+      };
 
-    // Close on Escape for accessibility
-    dd.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape'){
-        dd.classList.remove('open');
-        trigger.setAttribute('aria-expanded','false');
-        trigger.focus();
-      }
+      // Open on pointer enter + focus; keep open while inside
+      trigger.addEventListener('mouseenter', open);
+      panel.addEventListener('mouseenter', open);
+      trigger.addEventListener('focus', open, true);
+
+      // Schedule close when leaving both
+      trigger.addEventListener('mouseleave', scheduleClose);
+      panel.addEventListener('mouseleave', scheduleClose);
+      trigger.addEventListener('blur', scheduleClose, true);
+
+      // Close on Escape
+      dd.addEventListener('keydown', handleKeydown);
+
+      // Click toggles on mobile
+      trigger.addEventListener('click', handleClick);
+
+      // Store cleanup function
+      cleanupFunctions.push(() => {
+        if (closeTimer) clearTimeout(closeTimer);
+        trigger.removeEventListener('mouseenter', open);
+        panel.removeEventListener('mouseenter', open);
+        trigger.removeEventListener('focus', open, true);
+        trigger.removeEventListener('mouseleave', scheduleClose);
+        panel.removeEventListener('mouseleave', scheduleClose);
+        trigger.removeEventListener('blur', scheduleClose, true);
+        dd.removeEventListener('keydown', handleKeydown);
+        trigger.removeEventListener('click', handleClick);
+      });
     });
 
-    // Cleanup function
+    // Return cleanup function
     return () => {
-      if (closeTimer) clearTimeout(closeTimer);
-      trigger?.removeEventListener('mouseenter', open);
-      panel?.removeEventListener('mouseenter', open);
-      trigger?.removeEventListener('focus', open, true);
-      trigger?.removeEventListener('mouseleave', scheduleClose);
-      panel?.removeEventListener('mouseleave', scheduleClose);
-      trigger?.removeEventListener('blur', scheduleClose, true);
+      cleanupFunctions.forEach(cleanup => cleanup());
     };
   }, []);
 
@@ -147,34 +168,33 @@ export default function Navbar() {
               </a>
               
               {/* More Goodie Guides Dropdown */}
-              <div 
-                className="relative"
-                onMouseEnter={() => setIsMoreGoodieGuidesOpen(true)}
-                onMouseLeave={() => setIsMoreGoodieGuidesOpen(false)}
-              >
-                <button className="text-[#CCCCCC] hover:text-[var(--secondary-accent)] font-medium transition-colors flex items-center">
+              <div className="nav-item has-dropdown" id="more-guides">
+                <button 
+                  className="nav-trigger" 
+                  aria-expanded="false" 
+                  aria-controls="more-guides-menu"
+                >
                   More Goodie Guides
                   <ChevronDown className="w-4 h-4 ml-1" />
                 </button>
-                
-                {isMoreGoodieGuidesOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-64 bg-black rounded-xl shadow-2xl border border-[#C5A028] p-6 z-50">
-                    <div className="space-y-4">
-                      {moreGoodieGuidesCategories.map((category, index) => (
-                        <a
-                          key={index}
-                          href="#"
-                          className="flex items-center p-3 rounded-lg hover:bg-[#111111] transition-colors group"
-                        >
-                          <span className="text-xl mr-3">{category.icon}</span>
-                          <span className="text-sm font-medium text-[#CCCCCC] group-hover:text-[var(--secondary-accent)]">
-                            {category.name}
-                          </span>
-                        </a>
-                      ))}
-                    </div>
+
+                <div className="dropdown" id="more-guides-menu" role="menu" aria-labelledby="more-guides" style={{right: 0, left: 'auto'}}>
+                  <div className="space-y-2">
+                    {moreGoodieGuidesCategories.map((category, index) => (
+                      <a
+                        key={index}
+                        href="#"
+                        className="item"
+                        role="menuitem"
+                      >
+                        <span className="text-xl">{category.icon}</span>
+                        <span className="text-sm font-medium">
+                          {category.name}
+                        </span>
+                      </a>
+                    ))}
                   </div>
-                )}
+                </div>
               </div>
             </div>
           </div>
