@@ -1,0 +1,71 @@
+Goal: Polish the “Child Information” page to match the site’s gold/black design, fix image shapes (no circles), and improve readability + CTA focus.
+
+1) Global styles for this page:
+- Background: #0B0B0B (near-black)
+- Card/section surfaces: #141414
+- Gold brand: #D4AF37 (primary), hover: #C7A233
+- Text: #F3F4F6 for headings, #D1D5DB for body, #9CA3AF for captions
+- Borders: 1px solid rgba(212,175,55,0.4)
+- Shadows: subtle, not blurry (e.g., shadow-[0_0_0_1px_rgba(212,175,55,0.25)])
+
+2) Hero section
+- Two-column layout (image right on desktop, stacked on mobile).
+- Title: “FamilyVault for Organizing Your Child’s Information”
+- Subtitle/body: keep existing copy; max-width: 65ch.
+- Primary CTA: “Get started free” (gold button, black text, rounded-lg, hover darken).
+- Secondary link (optional): “See what’s included →” (muted text + underline on hover).
+- Remove circular image styling. Use a rectangular media frame:
+  - Container: rounded-xl, overflow-hidden, border (gold alpha)
+  - Image: class="w-full h-full object-cover" (no rounded-full)
+  - Ensure aspect ratio ~16:10 on desktop; ~4:3 on mobile/tablet.
+
+3) Image fix (no circles anywhere on this page)
+- Search this page for any `rounded-full` or avatar-like styles applied to content images.
+- Replace with: `rounded-xl overflow-hidden` on the wrapper and `w-full h-full object-cover` on `<img>`.
+- If images sit inside a fixed-height box, ensure that box has a height set (e.g., `h-72 md:h-80`) so object-cover works.
+
+4) Content blocks (use cards)
+- Create 3–6 cards for common child info (e.g., Immunizations, School & Aftercare, Sports & Activities, Emergency Contacts, Medications & Allergies).
+- Card layout: 3-col on desktop, 2-col tablet, 1-col mobile.
+- Card style: bg-[#141414] rounded-xl p-5 border border-[rgba(212,175,55,0.2)] hover:border-[rgba(212,175,55,0.35)] transition.
+- Each card: small icon, short title, 1–2 line description, and a subtle “Add now →” link.
+
+5) Checklist/feature strip
+- Add a horizontal checklist: “Secure sharing with caregivers”, “Document reminders”, “On-the-go access”, “Medical summary ready”.
+- Use gold check icons; text in #D1D5DB.
+
+6) CTA bar (sticky or section-end)
+- Full-width callout with subtle gold gradient edge: from `transparent` to `rgba(212,175,55,0.08)`.
+- Copy: “Have everything ready for school, sports, or camp in minutes.”
+- Button: same primary style.
+
+7) Accessibility & spacing
+- Enforce min tap target 44px for all actions.
+- Headings use semantic tags (h1, h2, h3).
+- Container max-width: 1200px; consistent vertical rhythm (pt-16 pb-20 per section).
+
+8) Example component (hero image block)
+<div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+  <div class="space-y-5">
+    <span class="inline-flex items-center gap-2 text-[#D4AF37] font-medium bg-[rgba(212,175,55,0.08)] px-3 py-1 rounded-full border border-[rgba(212,175,55,0.25)]">
+      😊 Child Information
+    </span>
+    <h1 class="text-4xl md:text-5xl font-extrabold text-[#F3F4F6] tracking-tight">
+      FamilyVault for Organizing Your Child’s Information
+    </h1>
+    <p class="text-[#D1D5DB] max-w-[65ch]">
+      Keep your child’s important info secure, private, and accessible — ready for school, sports, a babysitter, or camp.
+    </p>
+    <div class="flex flex-wrap gap-4">
+      <a class="bg-[#D4AF37] text-black font-semibold px-5 py-3 rounded-lg hover:bg-[#C7A233] transition" href="/signup">
+        Get started free
+      </a>
+      <a class="text-[#D1D5DB] hover:text-[#F3F4F6] underline underline-offset-4" href="/features">
+        See what’s included →
+      </a>
+    </div>
+  </div>
+  <div class="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem]">
+    <img src="/images/child-soccer.jpg" alt="Child playing soccer" class="w-full h-full object-cover" />
+  </div>
+</div>
