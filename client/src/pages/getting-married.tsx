@@ -3,6 +3,7 @@ import Footer from "@/components/footer";
 import weddingHandsImage from "@assets/image_1756093794307.png";
 import digitalSecurityImage from "@assets/image_1756093873694.png";
 import mobileAppImage from "@assets/image_1756093955366.png";
+import askExpertsImage from "@assets/image_1756094014310.png";
 import { 
   Heart,
   Users, 
@@ -117,7 +118,9 @@ export default function GettingMarried() {
     {
       icon: Phone,
       title: "Connect With an Expert",
-      description: "Get personalized help organizing your family's documents"
+      description: "Get personalized help organizing your family's documents",
+      image: askExpertsImage,
+      imageAlt: "Ask the Experts blackboard with light bulbs showing expert consultation concept"
     }
   ];
 
