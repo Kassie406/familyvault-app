@@ -10,6 +10,7 @@ import mobileAppImage from "@assets/image_1756085913047.png";
 import expertsImage from "@assets/image_1756086008968.png";
 import guideBookImage from "@assets/image_1756086136192.png";
 import sarahProfileImageChild from "@assets/image_1756098304099.png";
+import davidProfileImageChild from "@assets/image_1756098392606.png";
 import { 
   FileText, 
   Share2, 
@@ -129,7 +130,7 @@ export default function ChildInformation() {
       title: "Son & Financial POA", 
       rating: 5, 
       quote: "Managing Dad's finances became so much easier with everything organized digitally.",
-      image: null
+      image: davidProfileImageChild
     },
     { 
       name: "Maria C.", 
