@@ -1,51 +1,100 @@
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import { 
-  Heart, 
-  FileText, 
+  Heart,
+  Rings,
   Users, 
-  Home, 
-  DollarSign,
+  Shield, 
+  FileText,
   Smartphone,
-  Shield,
   Star,
   Zap,
   Eye,
   Key,
-  Download,
-  BookOpen,
+  Phone,
   ChevronRight,
-  Lock,
   UserCheck,
-  Phone
+  Upload,
+  Lock,
+  CreditCard,
+  CheckCircle,
+  Calendar,
+  Home,
+  Banknote
 } from "lucide-react";
 
 export default function GettingMarried() {
-  const features = [
+  const marriageCards = [
     {
       icon: FileText,
-      title: "Organize Your Documents",
-      description: "You saved your wedding contracts and receipts in email — but you must've accidentally deleted the one you need now.",
-      detail: "Keep vital documents in FamilyVault's secure, searchable digital vault — no digging through an inbox needed."
+      title: "Legal Documentation",
+      description: "Store marriage certificates, name change documents, and legal forms.",
+      action: "Add legal docs"
     },
     {
-      icon: Users,
-      title: "Access Important Contacts",
-      description: "You need to reschedule a home repair but can't reach the contractor — your wife has the information and she isn't available.",
-      detail: "Keep shared contacts in FamilyVault so either of you can find who you need, when you need them."
+      icon: CreditCard,
+      title: "Financial Planning",
+      description: "Organize joint accounts, insurance policies, and financial documents.",
+      action: "Add financial info"
     },
     {
       icon: Home,
-      title: "Coordinate Home Maintenance", 
-      description: "You thought your spouse had scheduled the HVAC service — but the system breaks down right before guests arrive.",
-      detail: "FamilyVault lets you store service records and set shared reminders for recurring tasks around the house."
+      title: "Living Arrangements",
+      description: "Keep lease agreements, mortgage documents, and home insurance records.",
+      action: "Add housing docs"
     },
     {
-      icon: DollarSign,
-      title: "Share Financial Details",
-      description: "You didn't talk about debt before the wedding — and you learn that your new husband owes tens of thousands on his credit cards.",
-      detail: "By storing records on FamilyVault, you and your new spouse will maintain a clear picture of each other's finances going forward."
+      icon: Users,
+      title: "Family Information",
+      description: "Document beneficiary changes, emergency contacts, and family details.",
+      action: "Add family info"
+    },
+    {
+      icon: Heart,
+      title: "Wedding Planning",
+      description: "Store vendor contracts, guest lists, and important wedding details.",
+      action: "Add wedding docs"
+    },
+    {
+      icon: Shield,
+      title: "Estate Planning",
+      description: "Organize wills, power of attorney, and inheritance documentation.",
+      action: "Add estate docs"
     }
+  ];
+
+  const features = [
+    {
+      icon: FileText,
+      title: "Navigate Name Changes Smoothly",
+      description: "You're trying to update your driver's license after marriage, but you need your marriage certificate and can't find it anywhere.",
+      detail: "Store your marriage certificate and name change documentation in FamilyVault so you can update all your records seamlessly."
+    },
+    {
+      icon: CreditCard,
+      title: "Combine Your Finances Securely",
+      description: "You're opening a joint bank account but need to provide multiple financial documents that are scattered across different locations.",
+      detail: "Keep all your financial documents organized in one secure place, making it easy to set up joint accounts and merge your finances."
+    },
+    {
+      icon: Shield,
+      title: "Update Your Estate Plans",
+      description: "Your spouse needs to be added as a beneficiary, but you can't remember which accounts and policies need to be updated.",
+      detail: "Track all your insurance policies and accounts in FamilyVault, so you can easily update beneficiaries and estate plans after marriage."
+    },
+    {
+      icon: Users,
+      title: "Share Important Information",
+      description: "Your new spouse needs access to your emergency contacts and medical information, but it's spread across different apps and papers.",
+      detail: "Securely share your important personal information with your spouse through FamilyVault's controlled access features."
+    }
+  ];
+
+  const checklistItems = [
+    "Name change documentation",
+    "Financial account merging",
+    "Beneficiary updates",
+    "Information sharing"
   ];
 
   const bottomFeatures = [
@@ -99,191 +148,250 @@ export default function GettingMarried() {
     }
   ];
 
+  const testimonials = [
+    { name: "Sarah & Mike", title: "Members since 2022", rating: 5, quote: "FamilyVault made combining our finances and updating our documents after marriage so much easier. Everything was organized!" },
+    { name: "Jessica L.", title: "Member since 2021", rating: 5, quote: "The name change process was seamless because all my documents were already organized and accessible in FamilyVault." },
+    { name: "David & Emma", title: "Members since 2023", rating: 5, quote: "Sharing our important information with each other through FamilyVault gave us both peace of mind as newlyweds." }
+  ];
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#0B0B0B] text-[#F3F4F6]">
       <Navbar />
       
       {/* Hero Section */}
-      <section className="pt-24 pb-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-6">
-                <Heart className="w-6 h-6 text-yellow-600" />
-              </div>
-              <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+      <section className="pt-16 pb-20">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+            <div className="space-y-5">
+              <span className="inline-flex items-center gap-2 text-[#D4AF37] font-medium bg-[rgba(212,175,55,0.08)] px-3 py-1 rounded-full border border-[rgba(212,175,55,0.25)]">
+                💍 Getting Married
+              </span>
+              <h1 className="text-4xl md:text-5xl font-extrabold text-[#F3F4F6] tracking-tight">
                 FamilyVault for Getting Married
               </h1>
-              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                Marriage brings big life changes — and the Family Operating System® keeps your most important information secure and shareable, before and long after your wedding day.
+              <p className="text-[#D1D5DB] max-w-[65ch] text-lg">
+                From engagement to "I do" and beyond, the Family Operating System® keeps your new life together organized, secure, and simplified.
               </p>
-              <a
-                href="/signup"
-                data-testid="button-get-started"
-                className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
-              >
-                Get started free
-              </a>
+              <div className="flex flex-wrap gap-4">
+                <a 
+                  href="/signup"
+                  data-testid="button-get-started-free"
+                  className="bg-[#D4AF37] text-black font-semibold px-6 py-3 rounded-lg hover:bg-[#C7A233] transition-colors min-h-[44px] flex items-center"
+                >
+                  Get started free
+                </a>
+                <a 
+                  href="/features"
+                  data-testid="link-see-marriage-features"
+                  className="text-[#D1D5DB] hover:text-[#F3F4F6] underline underline-offset-4 min-h-[44px] flex items-center"
+                >
+                  See marriage planning features →
+                </a>
+              </div>
             </div>
-            <div className="lg:pl-12">
-              <div className="bg-yellow-50 rounded-2xl p-8 h-96 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="flex justify-center items-center mb-4">
-                    <div className="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center mr-4">
-                      <span className="text-2xl">💍</span>
-                    </div>
-                    <div className="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center">
-                      <span className="text-2xl">💍</span>
-                    </div>
-                  </div>
-                  <p className="text-gray-600 text-lg">Wedding rings on elegant background</p>
-                </div>
+            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem] flex items-center justify-center">
+              <div className="text-center">
+                <Heart className="w-24 h-24 text-[#D4AF37] mx-auto mb-4" />
+                <p className="text-[#9CA3AF] text-lg">Couple exchanging rings at wedding ceremony</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* How FamilyVault Helps */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-            How FamilyVault Helps — Through Every Step of Marriage
-          </h2>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            From planning your wedding to combining finances and updating beneficiaries, FamilyVault keeps your information aligned, accessible, and ready when you need it.
-          </p>
+      {/* Marriage Planning Cards */}
+      <section className="py-20 bg-[#141414]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
+              How FamilyVault Supports Your Marriage Journey
+            </h2>
+            <p className="text-[#D1D5DB] text-lg max-w-2xl mx-auto">
+              Keep your documents, finances, and important information organized as you build your new life together.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {marriageCards.map((card, index) => {
+              const IconComponent = card.icon;
+              return (
+                <div 
+                  key={index}
+                  className="bg-[#0B0B0B] rounded-xl p-6 border border-[rgba(212,175,55,0.2)] hover:border-[rgba(212,175,55,0.35)] transition-colors"
+                >
+                  <div className="w-12 h-12 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mb-4">
+                    <IconComponent className="w-6 h-6 text-[#D4AF37]" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-[#F3F4F6] mb-2">
+                    {card.title}
+                  </h3>
+                  <p className="text-[#D1D5DB] mb-4">
+                    {card.description}
+                  </p>
+                  <a 
+                    href="#"
+                    data-testid={`link-${card.action.replace(/\s+/g, '-').toLowerCase()}`}
+                    className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
+                  >
+                    {card.action} →
+                  </a>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Checklist Feature Strip */}
+      <section className="py-12 bg-[#0B0B0B]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {checklistItems.map((item, index) => (
+              <div key={index} className="flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-[#D4AF37] flex-shrink-0" />
+                <span className="text-[#D1D5DB] font-medium">{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Main Features */}
+      <section className="py-20 bg-[#141414]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="space-y-20">
             {features.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="grid lg:grid-cols-2 gap-12 items-center">
                   <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
-                    <div className="bg-gray-100 rounded-2xl p-8 h-64 flex items-center justify-center">
-                      <div className="text-center">
-                        {index === 0 && (
-                          <>
-                            <div className="bg-black rounded-2xl p-4 shadow-lg max-w-xs mx-auto">
-                              <div className="bg-gray-800 text-white text-center py-2 rounded-t text-sm font-semibold mb-3">
-                                Browse
+                    <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#0B0B0B] h-80 flex items-center justify-center">
+                      {index === 0 && (
+                        <div className="bg-[#141414] rounded-lg p-4 max-w-xs mx-auto border border-[rgba(212,175,55,0.2)]">
+                          <div className="bg-[#D4AF37] rounded-t-lg p-3 mb-3">
+                            <div className="flex items-center justify-center">
+                              <Smartphone className="w-8 h-8 text-black" />
+                            </div>
+                          </div>
+                          <div className="text-xs text-[#F3F4F6]">
+                            <div className="flex items-center mb-3">
+                              <div className="w-6 h-6 bg-[rgba(212,175,55,0.2)] rounded mr-2 flex items-center justify-center">
+                                <FileText className="w-4 h-4 text-[#D4AF37]" />
                               </div>
-                              <div className="space-y-2 text-xs text-white">
-                                <div className="flex justify-between items-center py-1">
-                                  <span>📄 Family Info</span>
-                                  <span>📄 Finance</span>
-                                </div>
-                                <div className="flex justify-between items-center py-1">
-                                  <span>🏠 Property</span>
-                                  <span>📋 Documents</span>
-                                </div>
-                                <div className="flex justify-between items-center py-1">
-                                  <span>📊 Taxes</span>
-                                  <span>📖 Resources</span>
-                                </div>
+                              <span className="font-semibold text-[#F3F4F6]">Name Change Documents</span>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="bg-[rgba(212,175,55,0.1)] rounded p-2 border border-[rgba(212,175,55,0.2)]">
+                                <div className="text-xs text-[#D1D5DB]">Marriage Certificate</div>
+                              </div>
+                              <div className="bg-[rgba(212,175,55,0.1)] rounded p-2 border border-[rgba(212,175,55,0.2)]">
+                                <div className="text-xs text-[#D1D5DB]">Social Security Card</div>
+                              </div>
+                              <div className="bg-[rgba(212,175,55,0.1)] rounded p-2 border border-[rgba(212,175,55,0.2)]">
+                                <div className="text-xs text-[#D1D5DB]">Driver's License</div>
                               </div>
                             </div>
-                          </>
-                        )}
-                        {index === 1 && (
-                          <>
-                            <div className="bg-gray-200 rounded-lg p-4 shadow-lg max-w-sm mx-auto">
-                              <div className="text-sm font-semibold mb-3 text-left">📞 Shared HR Contacts</div>
-                              <div className="space-y-2 text-xs">
-                                {[
-                                  { name: "Sophia Bennett", phone: "+1 647 524 1234", type: "Lawyer" },
-                                  { name: "Andy Lynch", phone: "+1 647 567 8990", type: "Advisor" },
-                                  { name: "Monica Miranda", phone: "+1 647 890 4567", type: "Office" },
-                                  { name: "Jose Hampton", phone: "+1 647 234 5678", type: "Warranty" },
-                                  { name: "Tina Jefferson", phone: "+1 647 345 6789", type: "Service" },
-                                  { name: "Katie Lauder", phone: "+1 855 456 7890", type: "Service" }
-                                ].map((contact, i) => (
-                                  <div key={i} className="flex items-center justify-between py-1 border-b border-gray-300 last:border-b-0">
-                                    <div className="flex items-center">
-                                      <div className="w-6 h-6 bg-blue-500 rounded-full mr-2"></div>
-                                      <div>
-                                        <div className="font-medium text-gray-900">{contact.name}</div>
-                                        <div className="text-gray-600">{contact.phone}</div>
-                                      </div>
-                                    </div>
-                                    <span className="text-gray-500">{contact.type}</span>
-                                  </div>
-                                ))}
+                            <div className="mt-3 text-xs text-[#D4AF37]">
+                              <div className="underline">Ready for updates</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {index === 1 && (
+                        <div className="bg-[#141414] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(212,175,55,0.2)]">
+                          <div className="text-xs font-medium mb-3 text-[#F3F4F6]">Joint Financial Accounts</div>
+                          <div className="bg-[rgba(212,175,55,0.1)] rounded p-3 mb-3 text-left border border-[rgba(212,175,55,0.2)]">
+                            <div className="text-xs font-medium mb-2 text-[#F3F4F6]">Accounts to Combine:</div>
+                            <ul className="text-xs space-y-1 text-[#D1D5DB]">
+                              <li>• Joint checking account</li>
+                              <li>• Joint savings account</li>
+                              <li>• Credit card accounts</li>
+                              <li>• Investment accounts</li>
+                              <li>• Auto loans</li>
+                              <li>• Insurance policies</li>
+                            </ul>
+                          </div>
+                          <div className="text-xs">
+                            <div className="font-medium text-[#D4AF37]">Status: Ready to merge</div>
+                            <div className="text-[#D1D5DB] mt-1">All documents organized...</div>
+                          </div>
+                        </div>
+                      )}
+                      {index === 2 && (
+                        <div className="bg-[#141414] rounded-lg p-4 max-w-xs mx-auto border border-[rgba(212,175,55,0.2)]">
+                          <div className="bg-[#D4AF37] rounded-t-lg p-3 mb-3">
+                            <div className="flex items-center justify-center">
+                              <Smartphone className="w-8 h-8 text-black" />
+                            </div>
+                          </div>
+                          <div className="text-xs text-[#F3F4F6]">
+                            <div className="text-center mb-4">
+                              <div className="w-12 h-12 bg-[rgba(212,175,55,0.2)] rounded-full mx-auto mb-2 flex items-center justify-center border border-[rgba(212,175,55,0.3)]">
+                                <Shield className="w-6 h-6 text-[#D4AF37]" />
+                              </div>
+                              <div className="font-medium text-[#F3F4F6]">Beneficiary Updates</div>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="bg-[rgba(212,175,55,0.1)] rounded p-2 text-left border border-[rgba(212,175,55,0.2)]">
+                                <div className="font-medium text-[#F3F4F6]">Life Insurance</div>
+                                <div className="text-[#D1D5DB]">Updated ✓</div>
+                              </div>
+                              <div className="bg-[rgba(212,175,55,0.1)] rounded p-2 text-left border border-[rgba(212,175,55,0.2)]">
+                                <div className="font-medium text-[#F3F4F6]">401(k) Plan</div>
+                                <div className="text-[#D1D5DB]">Pending update</div>
                               </div>
                             </div>
-                          </>
-                        )}
-                        {index === 2 && (
-                          <>
-                            <div className="bg-white rounded-lg p-4 shadow-lg max-w-sm mx-auto">
-                              <div className="flex items-center mb-3">
-                                <Home className="w-5 h-5 text-blue-600 mr-2" />
-                                <span className="font-semibold text-sm">Property</span>
-                              </div>
-                              <div className="space-y-3">
-                                <div className="bg-blue-50 rounded p-3">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="font-medium text-sm">Home Warranty</span>
-                                    <span className="text-xs bg-gray-200 px-2 py-1 rounded">Warranty</span>
-                                  </div>
-                                  <div className="text-xs text-gray-600 space-y-1">
-                                    <div>Premium Shield</div>
-                                    <div>Date required: Jul 15, 2024</div>
-                                    <div>Location of original: Office desk</div>
-                                  </div>
-                                </div>
-                              </div>
+                          </div>
+                        </div>
+                      )}
+                      {index === 3 && (
+                        <div className="bg-[#141414] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(212,175,55,0.2)]">
+                          <div className="text-xs mb-3 text-[#F3F4F6]">
+                            <div className="font-semibold mb-2 text-[#D4AF37]">Shared with Spouse</div>
+                            <div className="flex items-center mb-2">
+                              <div className="w-6 h-6 bg-[rgba(212,175,55,0.2)] rounded-full mr-2 border border-[rgba(212,175,55,0.3)]"></div>
+                              <span>Alex Johnson</span>
+                              <ChevronRight className="w-3 h-3 ml-auto text-[#D4AF37]" />
                             </div>
-                          </>
-                        )}
-                        {index === 3 && (
-                          <>
-                            <div className="bg-black rounded-2xl p-4 shadow-lg max-w-xs mx-auto">
-                              <div className="bg-blue-600 text-white text-center py-2 rounded-t text-sm font-semibold mb-3">
-                                Finance
-                              </div>
-                              <div className="space-y-2 text-xs text-white">
-                                <div className="flex items-center">
-                                  <div className="w-8 h-8 bg-blue-600 rounded mr-3 flex items-center justify-center">
-                                    <span>🏦</span>
-                                  </div>
-                                  <div>
-                                    <div className="font-medium">Chase Premium Savings</div>
-                                    <div className="text-gray-400">Savings **4567</div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center">
-                                  <div className="w-8 h-8 bg-blue-600 rounded mr-3 flex items-center justify-center">
-                                    <span>💳</span>
-                                  </div>
-                                  <div>
-                                    <div className="font-medium">Chase High Interest</div>
-                                    <div className="text-gray-400">Checking **9012</div>
-                                  </div>
-                                </div>
-                              </div>
+                            
+                            <div className="font-semibold mb-2 mt-3 text-[#D4AF37]">Emergency Contacts</div>
+                            <div className="flex items-center mb-1">
+                              <div className="w-6 h-6 bg-[rgba(212,175,55,0.1)] rounded-full mr-2 border border-[rgba(212,175,55,0.2)]"></div>
+                              <span>Mom & Dad</span>
+                              <ChevronRight className="w-3 h-3 ml-auto text-[#D4AF37]" />
                             </div>
-                          </>
-                        )}
-                      </div>
+                            <div className="text-[#D1D5DB] text-xs ml-8">Primary contacts</div>
+                            
+                            <div className="flex items-center">
+                              <div className="w-6 h-6 bg-[rgba(212,175,55,0.1)] rounded-full mr-2 border border-[rgba(212,175,55,0.2)]"></div>
+                              <span>Medical Info</span>
+                              <ChevronRight className="w-3 h-3 ml-auto text-[#D4AF37]" />
+                            </div>
+                            <div className="text-[#D1D5DB] text-xs ml-8">Health records</div>
+                            
+                            <div className="font-semibold mb-2 mt-3 text-[#D4AF37]">Private access</div>
+                            <div className="flex items-center">
+                              <div className="w-6 h-6 bg-[rgba(212,175,55,0.3)] rounded-full mr-2 border border-[rgba(212,175,55,0.4)]"></div>
+                              <span>Personal docs</span>
+                              <ChevronRight className="w-3 h-3 ml-auto text-[#D4AF37]" />
+                            </div>
+                            <div className="text-[#D1D5DB] text-xs ml-8">Individual access only</div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className={index % 2 === 1 ? 'lg:order-1' : ''}>
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
-                      <IconComponent className="w-4 h-4 text-blue-600" />
+                    <div className="w-12 h-12 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mb-6">
+                      <IconComponent className="w-6 h-6 text-[#D4AF37]" />
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                    <h3 className="text-2xl md:text-3xl font-bold text-[#F3F4F6] mb-4">
                       {feature.title}
                     </h3>
-                    <p className="text-gray-600 mb-4 italic">
+                    <p className="text-[#9CA3AF] mb-4 italic text-lg">
                       {feature.description}
                     </p>
-                    <p className="text-gray-800 font-medium">
+                    <p className="text-[#D1D5DB] font-medium text-lg">
                       {feature.detail}
                     </p>
                   </div>
@@ -295,18 +403,18 @@ export default function GettingMarried() {
       </section>
 
       {/* Meet FamilyVault */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-[#0B0B0B]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-6">
             Meet FamilyVault — Your Life, Organized
           </h2>
-          <p className="text-lg text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p className="text-[#D1D5DB] text-lg mb-8 max-w-3xl mx-auto">
             From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/signup"
-            data-testid="button-get-started-free"
-            className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
+            data-testid="button-get-started-cta"
+            className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
           >
             Get started free
           </a>
@@ -314,20 +422,20 @@ export default function GettingMarried() {
       </section>
 
       {/* Bottom Features */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#141414]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8">
             {bottomFeatures.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="text-center">
-                  <div className="bg-gray-100 rounded-2xl p-8 h-48 flex items-center justify-center mb-6">
-                    <IconComponent className="w-12 h-12 text-[#FFD700]" />
+                  <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#0B0B0B] h-48 flex items-center justify-center mb-6">
+                    <IconComponent className="w-12 h-12 text-[#D4AF37]" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-[#F3F4F6] mb-2">
                     {feature.title}
                   </h3>
-                  <p className="text-gray-600">
+                  <p className="text-[#D1D5DB]">
                     {feature.description}
                   </p>
                 </div>
@@ -338,19 +446,19 @@ export default function GettingMarried() {
       </section>
 
       {/* Security Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0B0B0B]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-6">
               Your Data Is Always Protected
             </h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            <p className="text-[#D1D5DB] text-lg max-w-3xl mx-auto">
               Your sensitive information stays private and secure with advanced security and compliance practices.
             </p>
             <div className="mt-8">
               <a
                 href="/security"
-                className="text-[#FFD700] hover:text-[#FFD700]/80 font-medium inline-flex items-center"
+                className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
               >
                 About our security
                 <ChevronRight className="w-4 h-4 ml-1" />
@@ -359,18 +467,25 @@ export default function GettingMarried() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {securityFeatures.map((feature, index) => {
+            {[
+              { icon: Shield, title: "Multi-factor authentication", description: "Secure your account with two-step login protection" },
+              { icon: Eye, title: "Threat detection", description: "24/7 monitoring proactively guards against threats" },
+              { icon: Key, title: "Tokenization", description: "Replaces sensitive data with secure tokens for protection" },
+              { icon: Lock, title: "Data encryption", description: "Your data is securely encrypted both stored and in transit" },
+              { icon: Zap, title: "Stolen password alerts", description: "Get notified instantly if your password is compromised" },
+              { icon: UserCheck, title: "Biometric authentication", description: "Safe, instant access with fingerprint or face ID" }
+            ].map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="flex items-start">
-                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                    <IconComponent className="w-4 h-4 text-purple-600" />
+                  <div className="w-10 h-10 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                    <IconComponent className="w-5 h-5 text-[#D4AF37]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                    <h3 className="font-semibold text-[#F3F4F6] mb-1">
                       {feature.title}
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-[#D1D5DB]">
                       {feature.description}
                     </p>
                   </div>
@@ -381,92 +496,60 @@ export default function GettingMarried() {
 
           {/* Compliance Badges */}
           <div className="mt-16 text-center">
-            <div className="flex justify-center items-center space-x-8 opacity-60">
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">EU GDPR</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">SOC 2 TYPE II</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">SOC 3</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">HIPAA</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">CCPA</div>
+            <div className="flex justify-center items-center space-x-6 opacity-60">
+              {["EU GDPR", "SOC 2 TYPE II", "SOC 3", "HIPAA", "CCPA"].map((badge, index) => (
+                <div key={index} className="text-xs font-semibold text-[#9CA3AF] px-3 py-1 border border-[rgba(212,175,55,0.2)] rounded">
+                  {badge}
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Love Isn't All You Need */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Testimonials */}
+      <section className="py-20 bg-[#141414]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Love Isn't All You Need — Marriage Takes Logistics
+            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
+              What Our Members Say About FamilyVault
             </h2>
-            <p className="text-lg text-gray-600">
-              From merging finances to preparing for the unexpected, these articles and videos explore the practical side of partnership.
-            </p>
           </div>
 
-          {/* Featured Checklist */}
-          <div className="bg-gray-100 rounded-2xl p-8 lg:p-12 mb-16">
-            <div className="grid lg:grid-cols-2 gap-8 items-center">
-              <div className="flex justify-center">
-                <div className="w-48 h-64 bg-[#FFD700]/20 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <BookOpen className="w-16 h-16 text-[#FFD700] mx-auto mb-4" />
-                    <p className="text-gray-600">Wedding bouquet with checklist</p>
-                  </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <div key={index} className="bg-[#0B0B0B] rounded-lg p-6 text-center border border-[rgba(212,175,55,0.2)]">
+                <div className="flex justify-center mb-3">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 text-[#D4AF37] fill-current" />
+                  ))}
                 </div>
+                <p className="text-[#D1D5DB] italic mb-4">"{testimonial.quote}"</p>
+                <div className="w-16 h-16 bg-[rgba(212,175,55,0.1)] rounded-full mx-auto mb-3 border border-[rgba(212,175,55,0.25)]"></div>
+                <div className="font-semibold text-sm text-[#F3F4F6]">{testimonial.name}</div>
+                <div className="text-xs text-[#D1D5DB]">{testimonial.title}</div>
               </div>
-              <div>
-                <div className="text-sm font-semibold text-[#FFD700] mb-2">FEATURED CHECKLIST</div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                  Essential Steps When You're Getting Married
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  A strong marriage is more than a union of hearts. This checklist ensures couples can ensure they start their journey together on a strong foundation, financially and legally.
-                </p>
-                <button
-                  data-testid="button-get-checklist"
-                  className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black px-6 py-3 rounded-lg font-semibold transition-colors"
-                >
-                  Get the checklist
-                </button>
-              </div>
-            </div>
+            ))}
           </div>
+        </div>
+      </section>
 
-          {/* Articles Grid */}
-          <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-8">Articles</h3>
-            <div className="grid md:grid-cols-3 gap-8">
-              {[
-                {
-                  title: "Merging Your Financial Lives: A Complete Guide for Newlyweds",
-                  description: "Essential steps for combining finances and building wealth together"
-                },
-                {
-                  title: "Legal Documents Every Married Couple Should Have",
-                  description: "Protect your partnership with proper legal planning and documentation"  
-                },
-                {
-                  title: "Insurance Changes After Marriage: What You Need to Know",
-                  description: "Navigate beneficiary updates and coverage options for married couples"
-                }
-              ].map((article, index) => (
-                <div key={index} className="bg-gray-50 rounded-lg overflow-hidden">
-                  <div className="h-48 bg-gray-200 flex items-center justify-center">
-                    <Heart className="w-12 h-12 text-gray-400" />
-                  </div>
-                  <div className="p-6">
-                    <h4 className="font-semibold text-gray-900 mb-2 leading-snug">
-                      {article.title}
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      {article.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+      {/* CTA Bar */}
+      <section className="py-16 bg-gradient-to-r from-transparent to-[rgba(212,175,55,0.08)] border-t border-[rgba(212,175,55,0.25)]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold text-[#F3F4F6] mb-4">
+            Start your married life organized and prepared.
+          </h2>
+          <p className="text-[#D1D5DB] mb-8 text-lg">
+            Begin organizing your marriage documents and information with FamilyVault today.
+          </p>
+          <a
+            href="/signup"
+            data-testid="button-final-cta"
+            className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
+          >
+            Get started free
+          </a>
         </div>
       </section>
 
