@@ -1,12 +1,22 @@
-import { Shield, Lock, User, Smartphone, Key, Server, Eye, Database, Users, FileCheck, Award, HelpCircle, ChevronDown } from "lucide-react";
+import { Shield, Lock, User, Smartphone, Key, Server, Eye, Database, Users, FileCheck, Award, HelpCircle, ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import Navbar from "@/components/navbar";
 
 export default function Security() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [openPromise, setOpenPromise] = useState<number | null>(null);
+  const [openAccordion, setOpenAccordion] = useState<string | null>(null);
 
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index);
+  };
+
+  const togglePromise = (index: number) => {
+    setOpenPromise(openPromise === index ? null : index);
+  };
+
+  const toggleAccordion = (section: string) => {
+    setOpenAccordion(openAccordion === section ? null : section);
   };
 
   const faqItems = [
@@ -40,126 +50,297 @@ export default function Security() {
       <section className="bg-gradient-to-b from-[#121212] to-[#0E0E0E] pt-24 pb-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-5xl font-bold text-white mb-6">Security</h1>
-          <p className="text-xl text-[#A5A5A5] leading-relaxed">
-            FamilyVault employs enterprise-grade security measures and cutting-edge infrastructure to safeguard your family's most important information.
-            <br />Discover how we protect what matters most to you.
+          <p className="text-xl text-[#A5A5A5] leading-relaxed mb-8">
+            Enterprise-grade security measures and cutting-edge infrastructure to safeguard your family's most important information.
           </p>
+          
+          {/* Trust Metadata */}
+          <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-[#A5A5A5] mb-8">
+            <span>Last updated: March 2025</span>
+            <span className="w-1 h-1 bg-[#A5A5A5] rounded-full"></span>
+            <span>SOC 2 Type II</span>
+            <span className="w-1 h-1 bg-[#A5A5A5] rounded-full"></span>
+            <span>ISO 27001 Ready</span>
+            <span className="w-1 h-1 bg-[#A5A5A5] rounded-full"></span>
+            <a href="#" className="text-[#FFD43B] hover:text-[#E6C140] transition-colors">System Status ↗</a>
+          </div>
+          
+          {/* Hero CTAs */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a
+              href="#"
+              data-testid="button-trust-overview"
+              className="inline-flex items-center justify-center bg-[#FFD43B] text-[#0E0E0E] font-semibold px-6 py-3 rounded-full hover:bg-[#E6C140] transition-colors focus:outline-none focus:ring-2 focus:ring-[#FFD43B] focus:ring-offset-2 focus:ring-offset-[#0E0E0E] min-h-[44px]"
+            >
+              Read our Trust Overview (PDF)
+            </a>
+            <a
+              href="mailto:security@familyvault.com"
+              data-testid="button-contact-security"
+              className="inline-flex items-center justify-center border border-[#FFD43B] text-[#FFD43B] font-semibold px-6 py-3 rounded-full hover:bg-[#FFD43B]/10 transition-colors focus:outline-none focus:ring-2 focus:ring-[#FFD43B] focus:ring-offset-2 focus:ring-offset-[#0E0E0E] min-h-[44px]"
+            >
+              Contact Security
+            </a>
+          </div>
         </div>
       </section>
 
       {/* Security Commitment */}
-      <section className="py-20 bg-[#0E0E0E] border-t border-[#2A2A2A]">
+      <section className="py-20 bg-[#0E0E0E] border-t border-[#2A2A2A]" id="security-promise">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-center text-white mb-4">
+          <h2 className="text-4xl font-bold text-center text-white mb-16">
             Our security promise to your family
           </h2>
-          <div className="grid md:grid-cols-3 gap-8 mt-16">
-            {/* Protected */}
-            <div className="text-center">
-              <div className="w-16 h-16 bg-[#FFD43B]/10 border border-[#2A2A2A] rounded-full flex items-center justify-center mx-auto mb-6">
-                <Lock className="w-8 h-8 text-[#FFD43B]" />
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Defense-grade Protection */}
+            <div className="bg-[#121212] border border-[#2A2A2A] rounded-xl p-6">
+              <div className="flex items-center mb-4">
+                <Lock className="w-6 h-6 text-[#FFD43B] mr-3" strokeWidth={1.5} />
+                <h3 className="text-xl font-semibold text-white">Defense-grade protection</h3>
               </div>
-              <h3 className="text-2xl font-semibold text-white mb-4">Fortress-Level Protection</h3>
-              <p className="text-[#A5A5A5] leading-relaxed">
-                Your family's documents are safeguarded with military-grade security protocols. We utilize advanced encryption, 
-                multi-layered authentication, and industry-leading security frameworks to create an impenetrable digital vault 
-                for your most sensitive information.
+              <p className="text-[#A5A5A5] mb-4 leading-relaxed">
+                We encrypt data in transit and at rest with AES-256 and TLS. All access is protected by mandatory multi-factor authentication.
               </p>
+              <button
+                onClick={() => togglePromise(0)}
+                className="flex items-center text-[#FFD43B] hover:text-[#E6C140] transition-colors text-sm font-medium"
+                data-testid="button-expand-protection"
+              >
+                Learn more
+                <ChevronRight className={`w-4 h-4 ml-1 transition-transform ${openPromise === 0 ? 'rotate-90' : ''}`} />
+              </button>
+              {openPromise === 0 && (
+                <ul className="mt-4 space-y-2 text-sm text-[#A5A5A5]">
+                  <li>• Military-grade AES-256 encryption for all data</li>
+                  <li>• TLS 1.3 for secure data transmission</li>
+                  <li>• Zero-knowledge architecture protects your privacy</li>
+                  <li>• Regular third-party security audits and penetration testing</li>
+                </ul>
+              )}
             </div>
             
-            {/* Private */}
-            <div className="text-center">
-              <div className="w-16 h-16 bg-[#FFD43B]/10 border border-[#2A2A2A] rounded-full flex items-center justify-center mx-auto mb-6">
-                <Shield className="w-8 h-8 text-[#FFD43B]" />
+            {/* You control your data */}
+            <div className="bg-[#121212] border border-[#2A2A2A] rounded-xl p-6">
+              <div className="flex items-center mb-4">
+                <User className="w-6 h-6 text-[#FFD43B] mr-3" strokeWidth={1.5} />
+                <h3 className="text-xl font-semibold text-white">You control your data</h3>
               </div>
-              <h3 className="text-2xl font-semibold text-white mb-4">Absolute Privacy</h3>
-              <p className="text-[#A5A5A5] leading-relaxed">
-                Your privacy is non-negotiable. We will never share, sell, or monetize your personal information. 
-                Your family's data remains exclusively yours, protected by strict privacy policies and kept secure 
-                whenever you need access.
+              <p className="text-[#A5A5A5] mb-4 leading-relaxed">
+                You choose who sees what, for how long. Export anytime. We never sell or train AI on your data.
               </p>
+              <button
+                onClick={() => togglePromise(1)}
+                className="flex items-center text-[#FFD43B] hover:text-[#E6C140] transition-colors text-sm font-medium"
+                data-testid="button-expand-control"
+              >
+                Learn more
+                <ChevronRight className={`w-4 h-4 ml-1 transition-transform ${openPromise === 1 ? 'rotate-90' : ''}`} />
+              </button>
+              {openPromise === 1 && (
+                <ul className="mt-4 space-y-2 text-sm text-[#A5A5A5]">
+                  <li>• Granular permission controls for family members</li>
+                  <li>• One-click data export in multiple formats</li>
+                  <li>• Your data is never sold, shared, or monetized</li>
+                  <li>• Clear data retention and deletion policies</li>
+                </ul>
+              )}
             </div>
             
-            {/* Yours */}
-            <div className="text-center">
-              <div className="w-16 h-16 bg-[#FFD43B]/10 border border-[#2A2A2A] rounded-full flex items-center justify-center mx-auto mb-6">
-                <User className="w-8 h-8 text-[#FFD43B]" />
+            {/* Transparent Operations */}
+            <div className="bg-[#121212] border border-[#2A2A2A] rounded-xl p-6">
+              <div className="flex items-center mb-4">
+                <Shield className="w-6 h-6 text-[#FFD43B] mr-3" strokeWidth={1.5} />
+                <h3 className="text-xl font-semibold text-white">Transparent operations</h3>
               </div>
-              <h3 className="text-2xl font-semibold text-white mb-4">Complete Ownership</h3>
-              <p className="text-[#A5A5A5] leading-relaxed">
-                You maintain complete control over your family's information. You decide who has access, 
-                what gets shared, and how your data is used. Your family's digital legacy remains entirely 
-                in your hands, with full autonomy over every aspect.
+              <p className="text-[#A5A5A5] mb-4 leading-relaxed">
+                Open security practices, regular audits, and clear policies you can trust and verify.
               </p>
+              <button
+                onClick={() => togglePromise(2)}
+                className="flex items-center text-[#FFD43B] hover:text-[#E6C140] transition-colors text-sm font-medium"
+                data-testid="button-expand-transparency"
+              >
+                Learn more
+                <ChevronRight className={`w-4 h-4 ml-1 transition-transform ${openPromise === 2 ? 'rotate-90' : ''}`} />
+              </button>
+              {openPromise === 2 && (
+                <ul className="mt-4 space-y-2 text-sm text-[#A5A5A5]">
+                  <li>• Public security documentation and policies</li>
+                  <li>• Annual SOC 2 Type II compliance reports</li>
+                  <li>• Incident response plan with clear communication</li>
+                  <li>• Bug bounty program with security researchers</li>
+                </ul>
+              )}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Application Security */}
-      <section className="py-20 bg-[#121212] border-t border-[#2A2A2A]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Technical Security Details */}
+      <section className="py-20 bg-[#121212] border-t border-[#2A2A2A]" id="technical-security">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl font-bold text-center text-white mb-16">
-            Advanced Application Security
+            Technical Security Details
           </h2>
           
-          {/* Multi-factor Authentication */}
-          <div className="mb-16">
-            <div className="flex items-center mb-6">
-              <Smartphone className="w-8 h-8 text-[#FFD43B] mr-4" />
-              <h3 className="text-2xl font-semibold text-white">Enhanced Multi-Factor Authentication</h3>
+          <div className="space-y-4">
+            {/* Account Security */}
+            <div className="bg-[#151515] border border-[#2A2A2A] rounded-xl">
+              <button
+                onClick={() => toggleAccordion('account-security')}
+                className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-[#1A1A1A] rounded-xl transition-colors"
+                data-testid="accordion-account-security"
+                id="account-security"
+              >
+                <div className="flex items-center">
+                  <Smartphone className="w-5 h-5 text-[#FFD43B] mr-3" />
+                  <h3 className="text-lg font-semibold text-white">Account Security</h3>
+                </div>
+                <ChevronDown className={`w-5 h-5 text-[#A5A5A5] transition-transform ${openAccordion === 'account-security' ? 'rotate-180' : ''}`} />
+              </button>
+              {openAccordion === 'account-security' && (
+                <div className="px-6 pb-6">
+                  <ul className="space-y-3 text-[#A5A5A5]">
+                    <li>• <strong className="text-white">MFA mandatory:</strong> Multi-factor authentication required for all accounts</li>
+                    <li>• <strong className="text-white">Strong passwords:</strong> Minimum 8 characters with mixed case, numbers, symbols</li>
+                    <li>• <strong className="text-white">Device trust:</strong> New device verification via SMS or authenticator app</li>
+                    <li>• <strong className="text-white">Session management:</strong> Automatic logout and secure session tokens</li>
+                  </ul>
+                </div>
+              )}
             </div>
-            <div className="bg-[#151515] border border-[#2A2A2A] rounded-xl p-8">
-              <p className="text-[#A5A5A5] mb-6 leading-relaxed">
-                Creating your FamilyVault account requires a unique email and a robust password with at least 8 characters, 
-                including uppercase and lowercase letters, numbers, and special symbols.
-              </p>
-              <p className="text-[#A5A5A5] mb-6 leading-relaxed">
-                Multi-factor authentication is mandatory—not optional—ensuring that only you can access your account. 
-                When signing in from a new device, you'll provide both your password and a secure six-digit code sent to your phone, 
-                creating multiple security layers that dramatically reduce vulnerability to cyber threats.
-              </p>
-              <p className="text-[#A5A5A5] leading-relaxed">
-                This dual-layer protection significantly strengthens your Family Document System® and provides robust 
-                defense against phishing attempts and unauthorized access.
-              </p>
-            </div>
-          </div>
 
-          {/* Biometric Authentication */}
-          <div className="mb-16">
-            <div className="flex items-center mb-6">
-              <Eye className="w-8 h-8 text-[#FFD43B] mr-4" />
-              <h3 className="text-2xl font-semibold text-white">Biometric Security Integration</h3>
+            {/* Data Protection */}
+            <div className="bg-[#151515] border border-[#2A2A2A] rounded-xl">
+              <button
+                onClick={() => toggleAccordion('data-protection')}
+                className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-[#1A1A1A] rounded-xl transition-colors"
+                data-testid="accordion-data-protection"
+                id="data-protection"
+              >
+                <div className="flex items-center">
+                  <Database className="w-5 h-5 text-[#FFD43B] mr-3" />
+                  <h3 className="text-lg font-semibold text-white">Data Protection</h3>
+                </div>
+                <ChevronDown className={`w-5 h-5 text-[#A5A5A5] transition-transform ${openAccordion === 'data-protection' ? 'rotate-180' : ''}`} />
+              </button>
+              {openAccordion === 'data-protection' && (
+                <div className="px-6 pb-6">
+                  <ul className="space-y-3 text-[#A5A5A5]">
+                    <li>• <strong className="text-white">AES-256 at rest:</strong> Military-grade encryption for stored data</li>
+                    <li>• <strong className="text-white">TLS 1.3+ in transit:</strong> Latest encryption for data transmission</li>
+                    <li>• <strong className="text-white">Tokenization:</strong> Sensitive data replaced with secure tokens</li>
+                    <li>• <strong className="text-white">Key management:</strong> Hardware security modules for encryption keys</li>
+                  </ul>
+                </div>
+              )}
             </div>
-            <div className="bg-[#151515] border border-[#2A2A2A] rounded-xl p-8">
-              <p className="text-[#A5A5A5] leading-relaxed">
-                FamilyVault incorporates cutting-edge biometric authentication through facial recognition and fingerprint scanning 
-                on both mobile devices and desktop computers. This additional security layer combines convenience with advanced 
-                protection, allowing family members to quickly and securely access their important documents.
-              </p>
-            </div>
-          </div>
 
-          {/* Physical Security Keys */}
-          <div>
-            <div className="flex items-center mb-6">
-              <Key className="w-8 h-8 text-[#FFD43B] mr-4" />
-              <h3 className="text-2xl font-semibold text-white">Hardware Security Key Support</h3>
+            {/* Platform Security */}
+            <div className="bg-[#151515] border border-[#2A2A2A] rounded-xl">
+              <button
+                onClick={() => toggleAccordion('platform-security')}
+                className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-[#1A1A1A] rounded-xl transition-colors"
+                data-testid="accordion-platform-security"
+                id="platform-security"
+              >
+                <div className="flex items-center">
+                  <Eye className="w-5 h-5 text-[#FFD43B] mr-3" />
+                  <h3 className="text-lg font-semibold text-white">Platform Security</h3>
+                </div>
+                <ChevronDown className={`w-5 h-5 text-[#A5A5A5] transition-transform ${openAccordion === 'platform-security' ? 'rotate-180' : ''}`} />
+              </button>
+              {openAccordion === 'platform-security' && (
+                <div className="px-6 pb-6">
+                  <ul className="space-y-3 text-[#A5A5A5]">
+                    <li>• <strong className="text-white">Biometrics:</strong> Facial recognition and fingerprint authentication</li>
+                    <li>• <strong className="text-white">Hardware keys:</strong> YubiKey and FIDO2 security key support</li>
+                    <li>• <strong className="text-white">Screen privacy:</strong> Automatic masking of sensitive information</li>
+                    <li>• <strong className="text-white">Zero-knowledge:</strong> We cannot access your decrypted data</li>
+                  </ul>
+                </div>
+              )}
             </div>
-            <div className="bg-[#151515] border border-[#2A2A2A] rounded-xl p-8">
-              <p className="text-[#A5A5A5] mb-6 leading-relaxed">
-                Physical security devices provide an additional authentication layer for online services, offering unparalleled protection 
-                against account compromises.
-              </p>
-              <p className="text-[#A5A5A5] mb-6 leading-relaxed">
-                Popular security keys like YubiKeys resemble USB drives and require physical presence for authentication, 
-                making them highly effective against phishing attacks and unauthorized access attempts.
-              </p>
-              <p className="text-[#A5A5A5] leading-relaxed">
-                FamilyVault is among the few family document platforms supporting hardware security keys. This premium feature 
-                is available with our Gold subscription plan. Contact our support team to learn more about enhanced security options.
-              </p>
+
+            {/* AI & Privacy */}
+            <div className="bg-[#151515] border border-[#2A2A2A] rounded-xl">
+              <button
+                onClick={() => toggleAccordion('ai-privacy')}
+                className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-[#1A1A1A] rounded-xl transition-colors"
+                data-testid="accordion-ai-privacy"
+                id="ai-privacy"
+              >
+                <div className="flex items-center">
+                  <Server className="w-5 h-5 text-[#FFD43B] mr-3" />
+                  <h3 className="text-lg font-semibold text-white">AI & Privacy</h3>
+                </div>
+                <ChevronDown className={`w-5 h-5 text-[#A5A5A5] transition-transform ${openAccordion === 'ai-privacy' ? 'rotate-180' : ''}`} />
+              </button>
+              {openAccordion === 'ai-privacy' && (
+                <div className="px-6 pb-6">
+                  <div className="bg-[#0E0E0E] border border-[#FFD43B] rounded-lg p-4 mb-4">
+                    <p className="text-[#FFD43B] font-medium">We do not train AI on your data.</p>
+                  </div>
+                  <ul className="space-y-3 text-[#A5A5A5]">
+                    <li>• <strong className="text-white">Zero-memory design:</strong> AI processes data without storing or learning</li>
+                    <li>• <strong className="text-white">Private cloud:</strong> Third-party AI runs on our secure infrastructure</li>
+                    <li>• <strong className="text-white">Strict contracts:</strong> Data processing agreements with all AI vendors</li>
+                    <li>• <strong className="text-white">No model training:</strong> Your documents never improve external AI systems</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* Operations */}
+            <div className="bg-[#151515] border border-[#2A2A2A] rounded-xl">
+              <button
+                onClick={() => toggleAccordion('operations')}
+                className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-[#1A1A1A] rounded-xl transition-colors"
+                data-testid="accordion-operations"
+                id="operations"
+              >
+                <div className="flex items-center">
+                  <Users className="w-5 h-5 text-[#FFD43B] mr-3" />
+                  <h3 className="text-lg font-semibold text-white">Operations</h3>
+                </div>
+                <ChevronDown className={`w-5 h-5 text-[#A5A5A5] transition-transform ${openAccordion === 'operations' ? 'rotate-180' : ''}`} />
+              </button>
+              {openAccordion === 'operations' && (
+                <div className="px-6 pb-6">
+                  <ul className="space-y-3 text-[#A5A5A5]">
+                    <li>• <strong className="text-white">Background checks:</strong> All employees undergo security clearance</li>
+                    <li>• <strong className="text-white">Least privilege:</strong> Role-based access with minimal permissions</li>
+                    <li>• <strong className="text-white">Regular audits:</strong> Annual SOC 2 and penetration testing</li>
+                    <li>• <strong className="text-white">Device management:</strong> Centralized security for all company devices</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* Incident Response */}
+            <div className="bg-[#151515] border border-[#2A2A2A] rounded-xl">
+              <button
+                onClick={() => toggleAccordion('incident-response')}
+                className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-[#1A1A1A] rounded-xl transition-colors"
+                data-testid="accordion-incident-response"
+                id="incident-response"
+              >
+                <div className="flex items-center">
+                  <Award className="w-5 h-5 text-[#FFD43B] mr-3" />
+                  <h3 className="text-lg font-semibold text-white">Incident Response</h3>
+                </div>
+                <ChevronDown className={`w-5 h-5 text-[#A5A5A5] transition-transform ${openAccordion === 'incident-response' ? 'rotate-180' : ''}`} />
+              </button>
+              {openAccordion === 'incident-response' && (
+                <div className="px-6 pb-6">
+                  <ul className="space-y-3 text-[#A5A5A5]">
+                    <li>• <strong className="text-white">24/7 monitoring:</strong> Real-time threat detection and response</li>
+                    <li>• <strong className="text-white">RTO &lt; 4 hours:</strong> Recovery time objectives for critical systems</li>
+                    <li>• <strong className="text-white">Status page:</strong> Real-time updates during any incidents</li>
+                    <li>• <strong className="text-white">Communication plan:</strong> Immediate notification of affected users</li>
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -338,83 +519,83 @@ export default function Security() {
       </section>
 
       {/* Compliance Certifications */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-[#0E0E0E] border-t border-[#2A2A2A]" id="compliance">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-center text-gray-900 mb-16">
+          <h2 className="text-4xl font-bold text-center text-white mb-16">
             Industry-Leading Compliance Standards
           </h2>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* GDPR */}
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-8">
-              <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mb-6">
-                <Shield className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">EU GDPR Compliant</h3>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                FamilyVault meets the world's most stringent data protection regulations, ensuring comprehensive privacy 
-                controls and rights for our global family members, even though GDPR compliance isn't required in the United States.
-              </p>
-            </div>
-
-            {/* CCPA */}
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-8">
-              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mb-6">
-                <FileCheck className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">CCPA Certified</h3>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                Full compliance with the California Consumer Privacy Act, providing families enhanced control over personal 
-                information collection, usage, and sharing practices with comprehensive transparency.
-              </p>
-            </div>
-
             {/* SOC 2 */}
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-8">
-              <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mb-6">
-                <Award className="w-8 h-8 text-white" />
+            <div className="bg-[#121212] border border-[#2A2A2A] rounded-xl p-8">
+              <div className="w-16 h-16 bg-[#FFD43B]/10 border border-[#2A2A2A] rounded-full flex items-center justify-center mb-6">
+                <Award className="w-8 h-8 text-[#FFD43B]" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">SOC 2 Type 2</h3>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                Independently audited compliance demonstrating the highest level of information security controls and 
-                operational effectiveness over extended periods, with annual third-party penetration testing.
+              <h3 className="text-xl font-bold text-white mb-4">SOC 2 Type 2</h3>
+              <p className="text-[#A5A5A5] text-sm leading-relaxed mb-3">
+                Security, Availability. Independently audited compliance with annual third-party penetration testing.
               </p>
+              <a href="#" className="text-[#FFD43B] hover:text-[#E6C140] text-xs" data-testid="link-soc2-report">View report summary ↗</a>
             </div>
 
-            {/* SOC 3 */}
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-8">
-              <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mb-6">
-                <Database className="w-8 h-8 text-white" />
+            {/* GDPR */}
+            <div className="bg-[#121212] border border-[#2A2A2A] rounded-xl p-8">
+              <div className="w-16 h-16 bg-[#FFD43B]/10 border border-[#2A2A2A] rounded-full flex items-center justify-center mb-6">
+                <Shield className="w-8 h-8 text-[#FFD43B]" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">SOC 3 Certified</h3>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                Public certification demonstrating our commitment to maintaining exceptional security and reliability standards, 
-                fostering trust and ensuring sensitive family data is adequately protected at all times.
+              <h3 className="text-xl font-bold text-white mb-4">EU GDPR Compliant</h3>
+              <p className="text-[#A5A5A5] text-sm leading-relaxed mb-3">
+                Comprehensive privacy controls and rights for global users, exceeding US requirements.
               </p>
+              <a href="#" className="text-[#FFD43B] hover:text-[#E6C140] text-xs" data-testid="link-gdpr-report">View compliance letter ↗</a>
             </div>
 
             {/* HIPAA */}
-            <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-8">
-              <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mb-6">
-                <Lock className="w-8 h-8 text-white" />
+            <div className="bg-[#121212] border border-[#2A2A2A] rounded-xl p-8">
+              <div className="w-16 h-16 bg-[#FFD43B]/10 border border-[#2A2A2A] rounded-full flex items-center justify-center mb-6">
+                <Lock className="w-8 h-8 text-[#FFD43B]" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">HIPAA Compliant</h3>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                Full compliance with Health Insurance Portability and Accountability Act standards, ensuring all medical 
-                information and health-related family documents receive the highest level of protection and privacy.
+              <h3 className="text-xl font-bold text-white mb-4">HIPAA Compliant</h3>
+              <p className="text-[#A5A5A5] text-sm leading-relaxed mb-3">
+                Medical information and health documents receive highest protection standards.
               </p>
+              <a href="#" className="text-[#FFD43B] hover:text-[#E6C140] text-xs" data-testid="link-hipaa-report">Available under NDA ↗</a>
+            </div>
+
+            {/* CCPA */}
+            <div className="bg-[#121212] border border-[#2A2A2A] rounded-xl p-8">
+              <div className="w-16 h-16 bg-[#FFD43B]/10 border border-[#2A2A2A] rounded-full flex items-center justify-center mb-6">
+                <FileCheck className="w-8 h-8 text-[#FFD43B]" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-4">CCPA Certified</h3>
+              <p className="text-[#A5A5A5] text-sm leading-relaxed mb-3">
+                California Consumer Privacy Act compliance with enhanced transparency.
+              </p>
+              <a href="#" className="text-[#FFD43B] hover:text-[#E6C140] text-xs" data-testid="link-ccpa-report">View compliance letter ↗</a>
             </div>
 
             {/* ISO */}
-            <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-8">
-              <div className="w-16 h-16 bg-indigo-500 rounded-full flex items-center justify-center mb-6">
-                <Server className="w-8 h-8 text-white" />
+            <div className="bg-[#121212] border border-[#2A2A2A] rounded-xl p-8">
+              <div className="w-16 h-16 bg-[#FFD43B]/10 border border-[#2A2A2A] rounded-full flex items-center justify-center mb-6">
+                <Server className="w-8 h-8 text-[#FFD43B]" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">ISO 27001 Ready</h3>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                Implementing international standards for information security management systems, ensuring systematic 
-                approaches to managing sensitive family information with continuous security improvement processes.
+              <h3 className="text-xl font-bold text-white mb-4">ISO 27001 Ready</h3>
+              <p className="text-[#A5A5A5] text-sm leading-relaxed mb-3">
+                International standards for information security management systems.
               </p>
+              <a href="#" className="text-[#FFD43B] hover:text-[#E6C140] text-xs" data-testid="link-iso-report">Implementation guide ↗</a>
+            </div>
+
+            {/* SOC 3 */}
+            <div className="bg-[#121212] border border-[#2A2A2A] rounded-xl p-8">
+              <div className="w-16 h-16 bg-[#FFD43B]/10 border border-[#2A2A2A] rounded-full flex items-center justify-center mb-6">
+                <Database className="w-8 h-8 text-[#FFD43B]" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-4">SOC 3 Certified</h3>
+              <p className="text-[#A5A5A5] text-sm leading-relaxed mb-3">
+                Public certification demonstrating exceptional security standards.
+              </p>
+              <a href="#" className="text-[#FFD43B] hover:text-[#E6C140] text-xs" data-testid="link-soc3-report">View public report ↗</a>
             </div>
           </div>
         </div>
