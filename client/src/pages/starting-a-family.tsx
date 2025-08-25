@@ -1,5 +1,6 @@
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import familyImage from "@assets/image_1756096399044.png";
 import { 
   Baby,
   Heart, 
@@ -157,11 +158,12 @@ export default function StartingAFamily() {
                 </a>
               </div>
             </div>
-            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem] flex items-center justify-center">
-              <div className="text-center">
-                <Baby className="w-24 h-24 text-[#D4AF37] mx-auto mb-4" />
-                <p className="text-[#9CA3AF] text-lg">Mother holding her baby with striped shirt</p>
-              </div>
+            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem]">
+              <img 
+                src={familyImage} 
+                alt="Happy family with mother, father, and newborn baby in white clothing"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
         </div>
