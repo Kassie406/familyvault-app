@@ -25,6 +25,7 @@ import {
   Search
 } from "lucide-react";
 import houseKeysImage from "@assets/image_1756095984954.png";
+import digitalSecurityImage from "@assets/image_1756096227958.png";
 
 export default function HomeBuying() {
   const homeBuyingCards = [
@@ -104,7 +105,9 @@ export default function HomeBuying() {
     {
       icon: Shield,
       title: "Organize Your Documents Safely",
-      description: "Secure document storage keeps your financial information protected"
+      description: "Secure document storage keeps your financial information protected",
+      image: digitalSecurityImage,
+      imageAlt: "Digital security shield with circuit board background representing secure document storage"
     },
     {
       icon: Smartphone,
@@ -401,7 +404,15 @@ export default function HomeBuying() {
               return (
                 <div key={index} className="text-center">
                   <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#0B0B0B] h-48 flex items-center justify-center mb-6">
-                    <IconComponent className="w-12 h-12 text-[#D4AF37]" />
+                    {feature.image ? (
+                      <img 
+                        src={feature.image} 
+                        alt={feature.imageAlt}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <IconComponent className="w-12 h-12 text-[#D4AF37]" />
+                    )}
                   </div>
                   <h3 className="text-lg font-semibold text-[#F3F4F6] mb-2">
                     {feature.title}
