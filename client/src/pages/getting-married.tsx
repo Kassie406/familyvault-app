@@ -4,6 +4,7 @@ import houseKeysImage from "@assets/image_1756095984954.png";
 import digitalSecurityImage from "@assets/image_1756093873694.png";
 import mobileAppImage from "@assets/image_1756093955366.png";
 import askExpertsImage from "@assets/image_1756094014310.png";
+import securityShieldImage from "@assets/image_1756096044567.png";
 import { 
   Heart,
   Users, 
@@ -105,8 +106,8 @@ export default function GettingMarried() {
       icon: Shield,
       title: "Back Up Your Data Easily",
       description: "Automatic cloud backup keeps everything safe",
-      image: digitalSecurityImage,
-      imageAlt: "Digital security shield with circuit board background representing secure cloud backup"
+      image: securityShieldImage,
+      imageAlt: "Digital security shield with circuit board background and cybersecurity visualization"
     },
     {
       icon: Smartphone, 
