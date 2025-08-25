@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import movingCoupleImage from "@assets/image_1756094383182.png";
 import digitalSecurityImage from "@assets/image_1756094591825.png";
+import mobileAppImage from "@assets/image_1756094660501.png";
 
 export default function Moving() {
   const features = [
@@ -61,7 +62,9 @@ export default function Moving() {
     {
       icon: Smartphone, 
       title: "Use FamilyVault on the Go",
-      description: "Access your information anywhere with our mobile app"
+      description: "Access your information anywhere with our mobile app",
+      image: mobileAppImage,
+      imageAlt: "Mobile app interface showing family document categories and navigation"
     },
     {
       icon: Phone,
