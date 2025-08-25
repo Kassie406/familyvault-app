@@ -18,6 +18,7 @@ import {
   FileText,
   Link
 } from "lucide-react";
+import laptopSecurityImage from "@assets/image_1756094818120.png";
 
 export default function DigitalSecurity() {
   const features = [
@@ -131,11 +132,12 @@ export default function DigitalSecurity() {
               </a>
             </div>
             <div className="lg:pl-12">
-              <div className="bg-purple-50 rounded-2xl p-8 h-96 flex items-center justify-center">
-                <div className="text-center">
-                  <Users className="w-24 h-24 text-purple-400 mx-auto mb-4" />
-                  <p className="text-gray-600 text-lg">Happy family using devices securely together</p>
-                </div>
+              <div className="bg-purple-50 rounded-2xl p-8 h-96 overflow-hidden">
+                <img 
+                  src={laptopSecurityImage} 
+                  alt="Professional working on laptop with digital security lock overlays representing secure document management"
+                  className="w-full h-full object-cover rounded-lg"
+                />
               </div>
             </div>
           </div>
