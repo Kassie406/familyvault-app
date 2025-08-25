@@ -1,8 +1,8 @@
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import weddingHandsImage from "@assets/image_1756093794307.png";
 import { 
   Heart,
-  Rings,
   Users, 
   Shield, 
   FileText,
@@ -190,10 +190,11 @@ export default function GettingMarried() {
               </div>
             </div>
             <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem] flex items-center justify-center">
-              <div className="text-center">
-                <Heart className="w-24 h-24 text-[#D4AF37] mx-auto mb-4" />
-                <p className="text-[#9CA3AF] text-lg">Couple exchanging rings at wedding ceremony</p>
-              </div>
+              <img 
+                src={weddingHandsImage} 
+                alt="Couple exchanging rings at wedding ceremony"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
         </div>
