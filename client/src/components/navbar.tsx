@@ -1,12 +1,67 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Menu, X, ChevronDown } from "lucide-react";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isForeverFilesOpen, setIsForeverFilesOpen] = useState(false);
   const [isForeverFilesMobileOpen, setIsForeverFilesMobileOpen] = useState(false);
   const [isMoreGoodieGuidesOpen, setIsMoreGoodieGuidesOpen] = useState(false);
   const [isMoreGoodieGuidesMobileOpen, setIsMoreGoodieGuidesMobileOpen] = useState(false);
+
+  useEffect(() => {
+    // Forever Files dropdown JS functionality
+    const dd = document.getElementById('forever-files');
+    if(!dd) return;
+
+    const trigger = dd.querySelector('.nav-trigger') as HTMLElement;
+    const panel = dd.querySelector('.dropdown') as HTMLElement;
+    if (!trigger || !panel) return;
+
+    let closeTimer: NodeJS.Timeout | null = null;
+
+    const open = () => {
+      dd.classList.add('open');
+      trigger.setAttribute('aria-expanded', 'true');
+      if (closeTimer) clearTimeout(closeTimer);
+    };
+
+    const scheduleClose = () => {
+      if (closeTimer) clearTimeout(closeTimer);
+      closeTimer = setTimeout(() => {
+        dd.classList.remove('open');
+        trigger.setAttribute('aria-expanded', 'false');
+      }, 150); // gentle hover-intent delay
+    };
+
+    // Open on hover/focus
+    trigger.addEventListener('mouseenter', open);
+    panel.addEventListener('mouseenter', open);
+    trigger.addEventListener('focus', open, true);
+
+    // Schedule close when leaving both trigger and panel
+    trigger.addEventListener('mouseleave', scheduleClose);
+    panel.addEventListener('mouseleave', scheduleClose);
+    trigger.addEventListener('blur', scheduleClose, true);
+
+    // Close on Escape for accessibility
+    dd.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape'){
+        dd.classList.remove('open');
+        trigger.setAttribute('aria-expanded','false');
+        trigger.focus();
+      }
+    });
+
+    // Cleanup function
+    return () => {
+      if (closeTimer) clearTimeout(closeTimer);
+      trigger?.removeEventListener('mouseenter', open);
+      panel?.removeEventListener('mouseenter', open);
+      trigger?.removeEventListener('focus', open, true);
+      trigger?.removeEventListener('mouseleave', scheduleClose);
+      panel?.removeEventListener('mouseleave', scheduleClose);
+      trigger?.removeEventListener('blur', scheduleClose, true);
+    };
+  }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -52,34 +107,33 @@ export default function Navbar() {
               </a>
               
               {/* Forever Files Dropdown */}
-              <div 
-                className="relative"
-                onMouseEnter={() => setIsForeverFilesOpen(true)}
-                onMouseLeave={() => setIsForeverFilesOpen(false)}
-              >
-                <button className="text-[#CCCCCC] hover:text-[var(--secondary-accent)] font-medium transition-colors flex items-center">
+              <div className="nav-item has-dropdown" id="forever-files">
+                <button 
+                  className="nav-trigger" 
+                  aria-expanded="false" 
+                  aria-controls="ff-menu"
+                >
                   Forever Files
                   <ChevronDown className="w-4 h-4 ml-1" />
                 </button>
-                
-                {isForeverFilesOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-96 bg-black rounded-xl shadow-2xl border border-[#C5A028] p-6 z-50">
-                    <div className="grid grid-cols-2 gap-4">
-                      {foreverFilesCategories.map((category, index) => (
-                        <a
-                          key={index}
-                          href={category.path}
-                          className="flex items-center p-3 rounded-lg hover:bg-[#111111] transition-colors group"
-                        >
-                          <span className="text-xl mr-3">{category.icon}</span>
-                          <span className="text-sm font-medium text-[#CCCCCC] group-hover:text-[var(--secondary-accent)]">
-                            {category.name}
-                          </span>
-                        </a>
-                      ))}
-                    </div>
+
+                <div className="dropdown" id="ff-menu" role="menu" aria-labelledby="forever-files">
+                  <div className="grid-2">
+                    {foreverFilesCategories.map((category, index) => (
+                      <a
+                        key={index}
+                        href={category.path}
+                        className="item"
+                        role="menuitem"
+                      >
+                        <span className="text-xl">{category.icon}</span>
+                        <span className="text-sm font-medium">
+                          {category.name}
+                        </span>
+                      </a>
+                    ))}
                   </div>
-                )}
+                </div>
               </div>
               
               <a href="/security" className="text-[#CCCCCC] hover:text-[var(--secondary-accent)] font-medium transition-colors">
