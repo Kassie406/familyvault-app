@@ -5,6 +5,7 @@ import phoneDocumentImage from "@assets/image_1756085339999.png";
 import wifiPhoneImage from "@assets/image_1756085497967.png";
 import insuranceCardImage from "@assets/image_1756085656097.png";
 import babysitterImage from "@assets/image_1756085729438.png";
+import securityImage from "@assets/image_1756085840418.png";
 import { 
   FileText, 
   Share2, 
@@ -265,7 +266,15 @@ export default function ChildInformation() {
               return (
                 <div key={index} className="text-center">
                   <div className="bg-gray-100 rounded-2xl p-8 h-48 flex items-center justify-center mb-6">
-                    <IconComponent className="w-12 h-12 text-[#FFD700]" />
+                    {index === 0 ? (
+                      <img 
+                        src={securityImage}
+                        alt="Digital security visualization with lock symbol and circuit board"
+                        className="w-full h-full object-cover rounded-xl"
+                      />
+                    ) : (
+                      <IconComponent className="w-12 h-12 text-[#FFD700]" />
+                    )}
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     {feature.title}
