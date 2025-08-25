@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import laptopSecurityImage from "@assets/image_1756094818120.png";
 import digitalSecurityImage from "@assets/image_1756094885841.png";
+import mobileAppImage from "@assets/image_1756094986045.png";
 
 export default function DigitalSecurity() {
   const features = [
@@ -60,7 +61,9 @@ export default function DigitalSecurity() {
     {
       icon: Smartphone, 
       title: "Use FamilyVault on the Go",
-      description: "Access your information anywhere with our mobile app"
+      description: "Access your information anywhere with our mobile app",
+      image: mobileAppImage,
+      imageAlt: "Mobile app interface showing family document categories and navigation"
     },
     {
       icon: Phone,
