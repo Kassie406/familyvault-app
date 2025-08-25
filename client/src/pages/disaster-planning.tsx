@@ -15,10 +15,55 @@ import {
   ChevronRight,
   UserCheck,
   Upload,
-  Play
+  Play,
+  CheckCircle,
+  Download,
+  Home,
+  Car,
+  Activity,
+  PawPrint
 } from "lucide-react";
 
 export default function DisasterPlanning() {
+  const disasterPlanCards = [
+    {
+      icon: Phone,
+      title: "Emergency Contacts",
+      description: "Store family, medical, and emergency service contact information for quick access.",
+      action: "Add contacts"
+    },
+    {
+      icon: FileText,
+      title: "Important Documents",
+      description: "Keep insurance policies, IDs, and legal documents safe and accessible.",
+      action: "Upload documents"
+    },
+    {
+      icon: Heart,
+      title: "Medical Information",
+      description: "Store medical records, prescriptions, and allergy information for family.",
+      action: "Add medical info"
+    },
+    {
+      icon: Home,
+      title: "Property Information",
+      description: "Document your home, belongings, and assets for insurance claims.",
+      action: "Add property details"
+    },
+    {
+      icon: PawPrint,
+      title: "Pet Records",
+      description: "Keep vaccination records and identification for pet shelter access.",
+      action: "Add pet info"
+    },
+    {
+      icon: Shield,
+      title: "Emergency Plan",
+      description: "Create and share evacuation routes and meeting points with family.",
+      action: "Create plan"
+    }
+  ];
+
   const features = [
     {
       icon: Phone,
@@ -39,11 +84,18 @@ export default function DisasterPlanning() {
       detail: "With your home, auto, and health insurance policies stored in FamilyVault's Family Operating System®, you can file a claim immediately."
     },
     {
-      icon: Heart,
+      icon: PawPrint,
       title: "Ensure Your Pet's Safety",
       description: "An evacuation shelter won't accept your pet without vaccination proof, but you didn't think to grab those records when you left home at a rush.",
       detail: "Uploading veterinary records to the Family Operating System® provides proof of your pet's vaccinations and your ownership."
     }
+  ];
+
+  const checklistItems = [
+    "Emergency contact access",
+    "Digital document backup", 
+    "Medical information ready",
+    "Insurance claim support"
   ];
 
   const bottomFeatures = [
@@ -53,47 +105,14 @@ export default function DisasterPlanning() {
       description: "Automatic cloud backup keeps everything safe"
     },
     {
-      icon: Smartphone, 
-      title: "Use FamilyVault on the Go",
+      icon: Smartphone,
+      title: "Use FamilyVault on the Go", 
       description: "Access your information anywhere with our mobile app"
     },
     {
       icon: Phone,
       title: "Connect With an Expert",
       description: "Get personalized help organizing your family's documents"
-    }
-  ];
-
-  const securityFeatures = [
-    {
-      icon: Shield,
-      title: "Multi-factor authentication", 
-      description: "Secure your account with two-step login protection"
-    },
-    {
-      icon: Eye,
-      title: "Threat detection",
-      description: "24/7 monitoring proactively guards against threats" 
-    },
-    {
-      icon: Key,
-      title: "Tokenization",
-      description: "Replaces sensitive data with secure tokens for protection"
-    },
-    {
-      icon: AlertTriangle,
-      title: "Data encryption", 
-      description: "Your data is securely encrypted both stored and in transit"
-    },
-    {
-      icon: Zap,
-      title: "Stolen password alerts",
-      description: "Get notified instantly if your password is compromised"
-    },
-    {
-      icon: UserCheck,
-      title: "Biometric authentication",
-      description: "Safe, instant access with fingerprint or face ID"
     }
   ];
 
@@ -104,38 +123,44 @@ export default function DisasterPlanning() {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#0B0B0B] text-[#F3F4F6]">
       <Navbar />
       
       {/* Hero Section */}
-      <section className="pt-24 pb-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-6">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
-              </div>
-              <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+      <section className="pt-16 pb-20">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+            <div className="space-y-5">
+              <span className="inline-flex items-center gap-2 text-[#D4AF37] font-medium bg-[rgba(212,175,55,0.08)] px-3 py-1 rounded-full border border-[rgba(212,175,55,0.25)]">
+                ⚠️ Disaster Planning
+              </span>
+              <h1 className="text-4xl md:text-5xl font-extrabold text-[#F3F4F6] tracking-tight">
                 FamilyVault for Disaster Planning
               </h1>
-              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+              <p className="text-[#D1D5DB] max-w-[65ch] text-lg">
                 A natural disaster can turn life upside down in an instant — but being prepared can be the difference between order and chaos for you and your family.
               </p>
-              <a
-                href="/signup"
-                data-testid="button-get-started"
-                className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
-              >
-                Get started free
-              </a>
+              <div className="flex flex-wrap gap-4">
+                <a 
+                  href="/signup"
+                  data-testid="button-get-started-free"
+                  className="bg-[#D4AF37] text-black font-semibold px-6 py-3 rounded-lg hover:bg-[#C7A233] transition-colors min-h-[44px] flex items-center"
+                >
+                  Get started free
+                </a>
+                <a 
+                  href="/features"
+                  data-testid="link-see-disaster-features"
+                  className="text-[#D1D5DB] hover:text-[#F3F4F6] underline underline-offset-4 min-h-[44px] flex items-center"
+                >
+                  See disaster planning features →
+                </a>
+              </div>
             </div>
-            <div className="lg:pl-12">
-              <div className="bg-gray-900 rounded-2xl p-8 h-96 flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 opacity-80"></div>
-                <div className="relative text-center text-white">
-                  <AlertTriangle className="w-24 h-24 text-red-400 mx-auto mb-4" />
-                  <p className="text-gray-300 text-lg">Dramatic disaster scene with emergency responders</p>
-                </div>
+            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem] flex items-center justify-center">
+              <div className="text-center">
+                <AlertTriangle className="w-24 h-24 text-[#D4AF37] mx-auto mb-4" />
+                <p className="text-[#9CA3AF] text-lg">Emergency preparedness visualization</p>
               </div>
             </div>
           </div>
@@ -143,27 +168,26 @@ export default function DisasterPlanning() {
       </section>
 
       {/* Customer Story */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-20 bg-[#141414]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
             After the California Wildfires, FamilyVault Became a Family's Lifeline
           </h2>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-12">
+          <p className="text-[#D1D5DB] text-lg max-w-3xl mx-auto mb-12">
             FamilyVault helped Jeremy W.'s family navigate the trauma of losing their home to the Alameda fire — and gave them the tools to start their recovery.
           </p>
           
           <div className="grid lg:grid-cols-2 gap-8 items-center">
-            <div className="bg-gray-800 rounded-2xl p-6 h-64 flex items-center justify-center relative">
-              <div className="absolute inset-0 bg-black opacity-50 rounded-2xl"></div>
-              <div className="relative text-center">
-                <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Play className="w-8 h-8 text-white ml-1" />
+            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#0B0B0B] h-64 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-[rgba(212,175,55,0.1)] rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Play className="w-8 h-8 text-[#D4AF37] ml-1" />
                 </div>
-                <div className="text-white text-sm">
+                <div className="text-[#F3F4F6] text-sm">
                   <div className="font-semibold">After the California Wildfires,</div>
                   <div className="font-semibold">FamilyVault Became</div>
                   <div className="font-semibold">a Lifeline</div>
-                  <div className="text-xs text-gray-300 mt-2">
+                  <div className="text-xs text-[#9CA3AF] mt-2">
                     How FamilyVault helped Jeremy W.'s<br />
                     family through their loss
                   </div>
@@ -171,149 +195,184 @@ export default function DisasterPlanning() {
               </div>
             </div>
             <div className="text-left">
-              <p className="text-gray-600 italic mb-4">
+              <p className="text-[#9CA3AF] italic mb-4 text-lg">
                 "3 years after a wildfire ran its devastating effects immediately without scrambling to replace paperwork or remember what we lost. As tragic as this situation was, FamilyVault made the process so much easier. It gave us a head start when we needed it the most."
               </p>
-              <div className="font-semibold text-gray-900">Jeremy W.</div>
-              <div className="text-sm text-gray-600">FamilyVault member since 2022</div>
+              <div className="font-semibold text-[#F3F4F6]">Jeremy W.</div>
+              <div className="text-sm text-[#D1D5DB]">FamilyVault member since 2022</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* How FamilyVault Helps */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-            How FamilyVault Helps — Before and After a Disaster
-          </h2>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            From securing family IDs to accessing vital insurance documents, FamilyVault ensures your most important information is safe and available when you need it.
-          </p>
+      {/* Disaster Planning Cards */}
+      <section className="py-20 bg-[#0B0B0B]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
+              How FamilyVault Helps — Before and After a Disaster
+            </h2>
+            <p className="text-[#D1D5DB] text-lg max-w-2xl mx-auto">
+              From securing family IDs to accessing vital insurance documents, FamilyVault ensures your most important information is safe and available when you need it.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {disasterPlanCards.map((card, index) => {
+              const IconComponent = card.icon;
+              return (
+                <div 
+                  key={index}
+                  className="bg-[#141414] rounded-xl p-6 border border-[rgba(212,175,55,0.2)] hover:border-[rgba(212,175,55,0.35)] transition-colors"
+                >
+                  <div className="w-12 h-12 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mb-4">
+                    <IconComponent className="w-6 h-6 text-[#D4AF37]" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-[#F3F4F6] mb-2">
+                    {card.title}
+                  </h3>
+                  <p className="text-[#D1D5DB] mb-4">
+                    {card.description}
+                  </p>
+                  <a 
+                    href="#"
+                    data-testid={`link-${card.action.replace(/\s+/g, '-').toLowerCase()}`}
+                    className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
+                  >
+                    {card.action} →
+                  </a>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Checklist Feature Strip */}
+      <section className="py-12 bg-[#141414]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {checklistItems.map((item, index) => (
+              <div key={index} className="flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-[#D4AF37] flex-shrink-0" />
+                <span className="text-[#D1D5DB] font-medium">{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Main Features */}
+      <section className="py-20 bg-[#0B0B0B]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="space-y-20">
             {features.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="grid lg:grid-cols-2 gap-12 items-center">
                   <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
-                    <div className="bg-gray-100 rounded-2xl p-8 h-64 flex items-center justify-center">
-                      <div className="text-center">
-                        {index === 0 && (
-                          <>
-                            <div className="bg-white rounded-lg p-4 shadow-lg max-w-xs mx-auto">
-                              <div className="bg-blue-600 rounded-t-lg p-3 mb-3">
-                                <div className="flex items-center justify-center">
-                                  <Smartphone className="w-8 h-8 text-white" />
-                                </div>
+                    <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#141414] h-80 flex items-center justify-center">
+                      {index === 0 && (
+                        <div className="bg-[#0B0B0B] rounded-lg p-4 max-w-xs mx-auto border border-[rgba(212,175,55,0.2)]">
+                          <div className="bg-[#D4AF37] rounded-t-lg p-3 mb-3">
+                            <div className="flex items-center justify-center">
+                              <Smartphone className="w-8 h-8 text-black" />
+                            </div>
+                          </div>
+                          <div className="text-xs text-[#F3F4F6]">
+                            <div className="font-medium mb-2 text-[#D4AF37]">Emergency Contacts</div>
+                            <div className="space-y-1">
+                              <div className="flex justify-between">
+                                <span>Dad - Michael</span>
+                                <span>(555) 123-4567</span>
                               </div>
-                              <div className="text-xs">
-                                <div className="font-medium mb-2">Emergency Contacts</div>
-                                <div className="space-y-1">
-                                  <div className="flex justify-between">
-                                    <span>Dad - Michael</span>
-                                    <span>(555) 123-4567</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span>Mom - Sarah</span>
-                                    <span>(555) 987-6543</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span>Dr. Johnson</span>
-                                    <span>(555) 246-8135</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span>Insurance</span>
-                                    <span>(555) 369-2580</span>
-                                  </div>
-                                </div>
+                              <div className="flex justify-between">
+                                <span>Mom - Sarah</span>
+                                <span>(555) 987-6543</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Dr. Johnson</span>
+                                <span>(555) 246-8135</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Insurance</span>
+                                <span>(555) 369-2580</span>
                               </div>
                             </div>
-                          </>
-                        )}
-                        {index === 1 && (
-                          <>
-                            <div className="bg-white rounded-lg p-4 shadow-lg max-w-sm mx-auto">
-                              <div className="flex items-center mb-3">
-                                <div className="w-6 h-6 bg-red-100 rounded mr-2 flex items-center justify-center">
-                                  <Heart className="w-4 h-4 text-red-600" />
-                                </div>
-                                <span className="font-semibold text-sm">Medical Directive</span>
-                              </div>
-                              <div className="bg-red-50 rounded p-3 mb-3">
-                                <div className="text-xs font-medium">Sarah Reynolds</div>
-                                <div className="text-xs text-gray-600 mt-1">
-                                  <div>Date required: Feb 12, 2025</div>
-                                  <div>Location of original: Office desk</div>
-                                  <div className="mt-2 text-red-600 font-medium">ALLERGIES: Penicillin</div>
-                                </div>
+                          </div>
+                        </div>
+                      )}
+                      {index === 1 && (
+                        <div className="bg-[#0B0B0B] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(212,175,55,0.2)]">
+                          <div className="flex items-center mb-3">
+                            <div className="w-6 h-6 bg-[rgba(212,175,55,0.2)] rounded mr-2 flex items-center justify-center">
+                              <Heart className="w-4 h-4 text-[#D4AF37]" />
+                            </div>
+                            <span className="font-semibold text-sm text-[#F3F4F6]">Medical Directive</span>
+                          </div>
+                          <div className="bg-[rgba(212,175,55,0.1)] rounded p-3 mb-3 border border-[rgba(212,175,55,0.2)]">
+                            <div className="text-xs font-medium text-[#F3F4F6]">Sarah Reynolds</div>
+                            <div className="text-xs text-[#D1D5DB] mt-1">
+                              <div>Date required: Feb 12, 2025</div>
+                              <div>Location of original: Office desk</div>
+                              <div className="mt-2 text-[#D4AF37] font-medium">ALLERGIES: Penicillin</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {index === 2 && (
+                        <div className="bg-[#0B0B0B] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(212,175,55,0.2)]">
+                          <div className="text-xs font-medium mb-3 text-[#F3F4F6]">Allstate Homeowners Insurance</div>
+                          <div className="space-y-2">
+                            <div className="bg-[rgba(212,175,55,0.1)] rounded p-2 border border-[rgba(212,175,55,0.2)]">
+                              <div className="text-xs text-[#D1D5DB]">Policy Number</div>
+                              <div className="font-mono text-xs text-[#F3F4F6]">HO-123456789</div>
+                            </div>
+                            <div className="bg-[rgba(212,175,55,0.1)] rounded p-2 border border-[rgba(212,175,55,0.2)]">
+                              <div className="text-xs text-[#D1D5DB]">Coverage Amount</div>
+                              <div className="font-semibold text-xs text-[#D4AF37]">$750,000</div>
+                            </div>
+                            <div className="bg-[rgba(212,175,55,0.1)] rounded p-2 border border-[rgba(212,175,55,0.2)]">
+                              <div className="text-xs text-[#D1D5DB]">Agent Contact</div>
+                              <div className="text-xs text-[#F3F4F6]">(555) 456-7890</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {index === 3 && (
+                        <div className="bg-[#0B0B0B] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(212,175,55,0.2)]">
+                          <div className="flex items-center mb-3">
+                            <div className="w-6 h-6 bg-[rgba(212,175,55,0.2)] rounded mr-2 flex items-center justify-center">
+                              <PawPrint className="w-4 h-4 text-[#D4AF37]" />
+                            </div>
+                            <span className="font-semibold text-sm text-[#F3F4F6]">Pet Records - Max</span>
+                          </div>
+                          <div className="bg-[rgba(212,175,55,0.1)] rounded p-3 border border-[rgba(212,175,55,0.2)]">
+                            <div className="text-xs text-[#F3F4F6]">
+                              <div className="font-medium text-[#D4AF37]">Vaccinations Current</div>
+                              <div className="text-[#D1D5DB] mt-1">
+                                <div>Rabies: 03/15/2024</div>
+                                <div>DHPP: 03/15/2024</div>
+                                <div>Vet: Dr. Smith Animal Clinic</div>
+                                <div>Microchip: 982000123456789</div>
                               </div>
                             </div>
-                          </>
-                        )}
-                        {index === 2 && (
-                          <>
-                            <div className="bg-white rounded-lg p-4 shadow-lg max-w-sm mx-auto">
-                              <div className="text-xs font-medium mb-3">Allstate Homeowners Insurance</div>
-                              <div className="space-y-2">
-                                <div className="bg-blue-50 rounded p-2">
-                                  <div className="text-xs">Policy Number</div>
-                                  <div className="font-mono text-xs">HO-123456789</div>
-                                </div>
-                                <div className="bg-blue-50 rounded p-2">
-                                  <div className="text-xs">Coverage Amount</div>
-                                  <div className="font-semibold text-xs">$750,000</div>
-                                </div>
-                                <div className="bg-blue-50 rounded p-2">
-                                  <div className="text-xs">Agent Contact</div>
-                                  <div className="text-xs">(555) 456-7890</div>
-                                </div>
-                              </div>
-                            </div>
-                          </>
-                        )}
-                        {index === 3 && (
-                          <>
-                            <div className="bg-white rounded-lg p-4 shadow-lg max-w-sm mx-auto">
-                              <div className="flex items-center mb-3">
-                                <div className="w-6 h-6 bg-orange-100 rounded mr-2 flex items-center justify-center">
-                                  <Heart className="w-4 h-4 text-orange-600" />
-                                </div>
-                                <span className="font-semibold text-sm">Pet Records - Max</span>
-                              </div>
-                              <div className="bg-orange-50 rounded p-3">
-                                <div className="text-xs">
-                                  <div className="font-medium">Vaccinations Current</div>
-                                  <div className="text-gray-600 mt-1">
-                                    <div>Rabies: 03/15/2024</div>
-                                    <div>DHPP: 03/15/2024</div>
-                                    <div>Vet: Dr. Smith Animal Clinic</div>
-                                    <div>Microchip: 982000123456789</div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </>
-                        )}
-                      </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className={index % 2 === 1 ? 'lg:order-1' : ''}>
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
-                      <IconComponent className="w-4 h-4 text-blue-600" />
+                    <div className="w-12 h-12 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mb-6">
+                      <IconComponent className="w-6 h-6 text-[#D4AF37]" />
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                    <h3 className="text-2xl md:text-3xl font-bold text-[#F3F4F6] mb-4">
                       {feature.title}
                     </h3>
-                    <p className="text-gray-600 mb-4 italic">
+                    <p className="text-[#9CA3AF] mb-4 italic text-lg">
                       {feature.description}
                     </p>
-                    <p className="text-gray-800 font-medium">
+                    <p className="text-[#D1D5DB] font-medium text-lg">
                       {feature.detail}
                     </p>
                   </div>
@@ -325,18 +384,18 @@ export default function DisasterPlanning() {
       </section>
 
       {/* Meet FamilyVault */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-[#141414]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-6">
             Meet FamilyVault — Your Life, Organized
           </h2>
-          <p className="text-lg text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p className="text-[#D1D5DB] text-lg mb-8 max-w-3xl mx-auto">
             From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/signup"
-            data-testid="button-get-started-free"
-            className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
+            data-testid="button-get-started-cta"
+            className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
           >
             Get started free
           </a>
@@ -344,20 +403,20 @@ export default function DisasterPlanning() {
       </section>
 
       {/* Bottom Features */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0B0B0B]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8">
             {bottomFeatures.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="text-center">
-                  <div className="bg-gray-100 rounded-2xl p-8 h-48 flex items-center justify-center mb-6">
-                    <IconComponent className="w-12 h-12 text-[#FFD700]" />
+                  <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#141414] h-48 flex items-center justify-center mb-6">
+                    <IconComponent className="w-12 h-12 text-[#D4AF37]" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-[#F3F4F6] mb-2">
                     {feature.title}
                   </h3>
-                  <p className="text-gray-600">
+                  <p className="text-[#D1D5DB]">
                     {feature.description}
                   </p>
                 </div>
@@ -368,19 +427,19 @@ export default function DisasterPlanning() {
       </section>
 
       {/* Security Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#141414]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-6">
               Your Data Is Always Protected
             </h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            <p className="text-[#D1D5DB] text-lg max-w-3xl mx-auto">
               Your sensitive information stays private and secure with advanced security and compliance practices.
             </p>
             <div className="mt-8">
               <a
                 href="/security"
-                className="text-[#FFD700] hover:text-[#FFD700]/80 font-medium inline-flex items-center"
+                className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
               >
                 About our security
                 <ChevronRight className="w-4 h-4 ml-1" />
@@ -389,18 +448,25 @@ export default function DisasterPlanning() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {securityFeatures.map((feature, index) => {
+            {[
+              { icon: Shield, title: "Multi-factor authentication", description: "Secure your account with two-step login protection" },
+              { icon: Eye, title: "Threat detection", description: "24/7 monitoring proactively guards against threats" },
+              { icon: Key, title: "Tokenization", description: "Replaces sensitive data with secure tokens for protection" },
+              { icon: AlertTriangle, title: "Data encryption", description: "Your data is securely encrypted both stored and in transit" },
+              { icon: Zap, title: "Stolen password alerts", description: "Get notified instantly if your password is compromised" },
+              { icon: UserCheck, title: "Biometric authentication", description: "Safe, instant access with fingerprint or face ID" }
+            ].map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="flex items-start">
-                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                    <IconComponent className="w-4 h-4 text-purple-600" />
+                  <div className="w-10 h-10 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                    <IconComponent className="w-5 h-5 text-[#D4AF37]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                    <h3 className="font-semibold text-[#F3F4F6] mb-1">
                       {feature.title}
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-[#D1D5DB]">
                       {feature.description}
                     </p>
                   </div>
@@ -411,216 +477,60 @@ export default function DisasterPlanning() {
 
           {/* Compliance Badges */}
           <div className="mt-16 text-center">
-            <div className="flex justify-center items-center space-x-8 opacity-60">
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">EU GDPR</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">SOC 2 TYPE II</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">SOC 3</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">HIPAA</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">CCPA</div>
+            <div className="flex justify-center items-center space-x-6 opacity-60">
+              {["EU GDPR", "SOC 2 TYPE II", "SOC 3", "HIPAA", "CCPA"].map((badge, index) => (
+                <div key={index} className="text-xs font-semibold text-[#9CA3AF] px-3 py-1 border border-[rgba(212,175,55,0.2)] rounded">
+                  {badge}
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0B0B0B]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
               What Our Members Say About FamilyVault
             </h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-gray-50 rounded-lg p-6 text-center">
+              <div key={index} className="bg-[#141414] rounded-lg p-6 text-center border border-[rgba(212,175,55,0.2)]">
                 <div className="flex justify-center mb-3">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+                    <Star key={i} className="w-4 h-4 text-[#D4AF37] fill-current" />
                   ))}
                 </div>
-                <p className="text-gray-800 italic mb-4">"{testimonial.quote}"</p>
-                <div className="w-16 h-16 bg-gray-300 rounded-full mx-auto mb-3"></div>
-                <div className="font-semibold text-sm">{testimonial.name}</div>
-                <div className="text-xs text-gray-600">{testimonial.title}</div>
+                <p className="text-[#D1D5DB] italic mb-4">"{testimonial.quote}"</p>
+                <div className="w-16 h-16 bg-[rgba(212,175,55,0.1)] rounded-full mx-auto mb-3 border border-[rgba(212,175,55,0.25)]"></div>
+                <div className="font-semibold text-sm text-[#F3F4F6]">{testimonial.name}</div>
+                <div className="text-xs text-[#D1D5DB]">{testimonial.title}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Pricing */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Simple, Transparent Pricing
-            </h2>
-            <p className="text-lg text-gray-600">
-              No hidden fees. No surprises. Just complete peace of mind.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Free Plan */}
-            <div className="bg-white rounded-lg p-6 border">
-              <h3 className="text-xl font-bold mb-2">Free</h3>
-              <p className="text-gray-600 mb-4">For families starting to prepare for emergencies</p>
-              <div className="text-3xl font-bold mb-6">$0</div>
-              <button
-                data-testid="button-get-started-free-plan"
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold mb-6"
-              >
-                Get started
-              </button>
-              <ul className="space-y-2 text-sm">
-                <li>• Advanced security</li>
-                <li>• 10 items</li>
-                <li>• 500MB</li>
-                <li>• Autopilot™ by FamilyVault (beta)</li>
-                <li>• Unlimited collaborators</li>
-              </ul>
-            </div>
-
-            {/* Silver Plan */}
-            <div className="bg-white rounded-lg p-6 border">
-              <h3 className="text-xl font-bold mb-2">Silver</h3>
-              <p className="text-gray-600 mb-4">Build a comprehensive emergency plan</p>
-              <div className="text-3xl font-bold mb-6">$10</div>
-              <button
-                data-testid="button-get-started-silver-plan"
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold mb-6"
-              >
-                Get started
-              </button>
-              <ul className="space-y-2 text-sm">
-                <li>• Everything in Free plus:</li>
-                <li>• Unlimited items</li>
-                <li>• Autopilot™ by FamilyVault</li>
-                <li>• Archive support</li>
-                <li>• Priority customer expert</li>
-                <li>• The FamilyVault Marketplace</li>
-              </ul>
-            </div>
-
-            {/* Gold Plan */}
-            <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg p-6 border-2 border-purple-300 relative">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-purple-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                Most Popular
-              </div>
-              <h3 className="text-xl font-bold mb-2">Gold</h3>
-              <p className="text-gray-600 mb-4">Organize your business and financial future</p>
-              <div className="text-3xl font-bold mb-6">$20</div>
-              <button
-                data-testid="button-get-started-gold-plan"
-                className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold mb-6"
-              >
-                Get started
-              </button>
-              <ul className="space-y-2 text-sm">
-                <li>• Everything in Silver plus:</li>
-                <li>• Business information</li>
-                <li>• Organization (LLC, S Corp, S Corp, INC, etc.)</li>
-                <li>• Friendly expert support</li>
-                <li>• And more...</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="text-center mt-8 text-sm text-gray-600">
-            30-day money-back guarantee | We support first responders with a hero discount.
-          </div>
-        </div>
-      </section>
-
-      {/* Essential Resources */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Essential Resources for Your Family's Disaster Planning
-            </h2>
-            <p className="text-lg text-gray-600">
-              Explore expert advice on safeguarding your essential documents before, during, and after a disaster.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Featured Article */}
-            <div className="md:col-span-2">
-              <div className="bg-red-900 rounded-2xl p-8 text-white h-64 flex items-center">
-                <div>
-                  <div className="text-sm font-semibold text-red-400 mb-2">FEATURED GUIDE</div>
-                  <h3 className="text-2xl font-bold mb-4">
-                    Be Ready for Any Disaster
-                  </h3>
-                  <p className="text-gray-300 mb-6">
-                    Give yourself the peace of mind that comes with knowing you've done everything possible to keep your family safe.
-                  </p>
-                  <button className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold">
-                    Download
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Additional Resource */}
-            <div>
-              <div className="bg-gray-100 rounded-2xl p-6 h-64 flex flex-col justify-between">
-                <div>
-                  <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
-                    <AlertTriangle className="w-6 h-6 text-red-600" />
-                  </div>
-                  <div className="text-sm font-semibold text-red-600 mb-2">CHECKLIST</div>
-                  <h3 className="font-semibold text-gray-900 mb-2">
-                    Emergency Preparedness Checklist
-                  </h3>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Articles */}
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Articles</h3>
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="bg-gray-50 rounded-lg overflow-hidden">
-                <div className="h-48 bg-red-100 flex items-center justify-center">
-                  <Shield className="w-16 h-16 text-red-600" />
-                </div>
-                <div className="p-6">
-                  <div className="text-sm font-semibold text-red-600 mb-2">Disaster Planning</div>
-                  <h4 className="font-semibold text-gray-900 mb-2">
-                    How to Protect Your Documents From Fire
-                  </h4>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg overflow-hidden">
-                <div className="h-48 bg-red-100 flex items-center justify-center">
-                  <FileText className="w-16 h-16 text-red-600" />
-                </div>
-                <div className="p-6">
-                  <div className="text-sm font-semibold text-red-600 mb-2">Emergency Planning</div>
-                  <h4 className="font-semibold text-gray-900 mb-2">
-                    4 Types of Documents You'll Need in an Emergency
-                  </h4>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg overflow-hidden">
-                <div className="h-48 bg-red-100 flex items-center justify-center">
-                  <Upload className="w-16 h-16 text-red-600" />
-                </div>
-                <div className="p-6">
-                  <div className="text-sm font-semibold text-red-600 mb-2">Document Storage</div>
-                  <h4 className="font-semibold text-gray-900 mb-2">
-                    Emergency Document Storage: Creating a Document Inventory
-                  </h4>
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* CTA Bar */}
+      <section className="py-16 bg-gradient-to-r from-transparent to-[rgba(212,175,55,0.08)] border-t border-[rgba(212,175,55,0.25)]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold text-[#F3F4F6] mb-4">
+            Be ready for anything life throws your way.
+          </h2>
+          <p className="text-[#D1D5DB] mb-8 text-lg">
+            Start building your disaster plan today with FamilyVault.
+          </p>
+          <a
+            href="/signup"
+            data-testid="button-final-cta"
+            className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
+          >
+            Get started free
+          </a>
         </div>
       </section>
 
