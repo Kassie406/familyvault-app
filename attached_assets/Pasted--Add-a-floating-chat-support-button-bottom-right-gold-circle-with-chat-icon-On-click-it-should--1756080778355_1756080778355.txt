@@ -1,0 +1,76 @@
+"Add a floating chat support button (bottom-right, gold circle with chat icon). On click, it should open a support widget styled like the reference picture. The widget must include a welcome header, a bot greeting, and clickable topic options (About, Dashboard Guides, Billing, Feature Request, Report an Issue, Something Else). The widget should slide up smoothly, and be closeable with an X button."
+
+⚡ Code Snippet (React + TailwindCSS)
+import { useState } from "react";
+import { X } from "lucide-react";
+
+export default function ChatSupport() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50">
+      {/* Chat Button */}
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="bg-[#d4af37] hover:bg-[#c7a233] p-4 rounded-full shadow-lg transition"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6 text-black"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-4-.832L3 20l1.13-3.391C3.418 15.46 3 13.775 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+            />
+          </svg>
+        </button>
+      )}
+
+      {/* Chat Widget */}
+      {isOpen && (
+        <div className="w-80 bg-white rounded-lg shadow-xl border border-gray-200">
+          {/* Header */}
+          <div className="flex justify-between items-center bg-[#0f172a] text-white px-4 py-2 rounded-t-lg">
+            <h2 className="font-bold">Welcome to FamilyVault Support</h2>
+            <button onClick={() => setIsOpen(false)}>
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Bot Greeting */}
+          <div className="p-4 text-gray-700">
+            <p className="mb-2">👋 Hi! We're here to help!</p>
+            <p className="mb-4 text-sm">
+              Please select a topic below to get started:
+            </p>
+
+            {/* Options */}
+            <div className="flex flex-col gap-2">
+              {[
+                "About FamilyVault",
+                "Dashboard Guides & How-To",
+                "Subscription or Billing",
+                "Feature Request",
+                "Report an Issue",
+                "Something Else",
+              ].map((option, i) => (
+                <button
+                  key={i}
+                  className="border border-[#2563eb] text-[#2563eb] rounded-full px-3 py-1 text-sm hover:bg-[#2563eb] hover:text-white transition"
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
