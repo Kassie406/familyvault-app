@@ -1,0 +1,126 @@
+for the Home Buying screenshots. Here’s a tight punch-list (design + code) to bring this page in line with the rest of the site and smooth out UX.
+
+What to fix (prioritized)
+
+Theme consistency
+
+Ensure the same dark background, gold accents, and purple “most popular” chips as Pricing/Child Info.
+
+Unify card borders/shadows and icon treatment with the other pages.
+
+Hero alignment + media
+
+Match the hero layout used on Child Info/Estate Planning (left copy, right image).
+
+Make the hero image cover its frame (no letterboxing/cropping surprises).
+
+Feature grid spacing
+
+Equalize the 2-row feature card grid (Pre-Approval, Budget, Research, …) with consistent gap/height so rows align perfectly.
+
+Section rhythm
+
+Insert the same thin gold hairline divider between major sections (“How…Journey” → “Get Pre-Approved Faster” → “Meet FamilyVault” → “Your Data…” → “Testimonials” → “CTA”).
+
+Buttons & CTAs
+
+Use the gold primary and ghost variants exactly like other pages; keep the “Get started free” primary at each section end.
+
+Add a secondary “See home buying features →” link in the hero.
+
+Testimonials
+
+Match the card style used on Getting Married (stars, quote, avatar/initial, “Member since…”). Optionally carousel them on mobile.
+
+Accessibility
+
+H1 only once (page title). Subsequent sections use H2, card titles use H3.
+
+Ensure contrast: gold text on dark passes WCAG (use the same tokens).
+
+Add aria-labels to icon-only badges and to the testimonial slider controls (if added).
+
+Performance
+
+Lazy-load below-the-fold images, set explicit width/height, and use fetchpriority="high" on the hero image.
+
+Drop-in code (keeps theme consistent)
+1) Tokens + utilities (once, global)
+:root{
+  --bg:#0f0f0f; --bg-soft:#121212; --card:#141414;
+  --text:#eaeaea; --muted:#b9b9b9;
+  --gold:#d7b43e; --gold-600:#c6a528; --gold-700:#9c801f;
+  --purple:#7e6bff;
+  --ring:0 0 0 1px rgba(215,180,62,.3), 0 0 0 4px rgba(215,180,62,.12);
+  --radius:16px; --gap:20px; --shadow:0 8px 24px rgba(0,0,0,.35);
+}
+.page--homebuying{background:var(--bg); color:var(--text);}
+.section{padding:56px 0; border-top:1px solid rgba(255,255,255,.06);}
+.section--no-border{border-top:none}
+.hairline{height:1px; background:rgba(255,255,255,.06); margin:48px 0;}
+.btn{display:inline-flex; align-items:center; gap:.5rem; padding:.8rem 1.1rem; border-radius:999px; font-weight:600}
+.btn--gold{background:var(--gold); color:#111; box-shadow:0 6px 16px rgba(215,180,62,.35)}
+.btn--gold:hover{background:var(--gold-600)}
+.btn--ghost{border:1px solid rgba(255,255,255,.16); color:var(--text); background:transparent}
+.badge--most{background:var(--purple); color:white; border-radius:999px; padding:.2rem .6rem; font-size:.75rem}
+
+2) Hero media fill + layout
+.hero{display:grid; grid-template-columns:1.2fr .8fr; gap:clamp(16px,3vw,40px); align-items:center}
+.hero__media{position:relative; border-radius:var(--radius); overflow:hidden; background:#0b0b0b; box-shadow:var(--shadow)}
+.hero__media img{width:100%; height:100%; object-fit:cover; display:block}
+@media (max-width:900px){ .hero{grid-template-columns:1fr; } .hero__media{order:-1; height:46vw; min-height:240px}}
+
+3) Feature card grid (perfect alignment)
+.features{display:grid; grid-template-columns:repeat(3,1fr); gap:var(--gap)}
+.feature-card{
+  background:var(--card); border:1px solid rgba(255,255,255,.08);
+  border-radius:var(--radius); padding:18px; min-height:152px;
+  transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.feature-card:hover{transform:translateY(-2px); border-color:rgba(215,180,62,.35); box-shadow:0 10px 24px rgba(215,180,62,.10)}
+.feature-card__icon{width:28px; height:28px; border-radius:8px; display:grid; place-items:center;
+  background:linear-gradient(180deg, rgba(215,180,62,.2), rgba(215,180,62,.05)); color:var(--gold); margin-bottom:10px}
+@media (max-width:1024px){.features{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:640px){.features{grid-template-columns:1fr}}
+
+4) Section dividers matching other pages
+<div class="hairline" aria-hidden="true"></div>
+
+5) Testimonial cards (reusable)
+.testis{display:grid; grid-template-columns:repeat(3,1fr); gap:var(--gap)}
+.testi{
+  background:var(--card); border:1px solid rgba(255,255,255,.08);
+  border-radius:var(--radius); padding:18px; min-height:150px; position:relative
+}
+.testi .stars{color:var(--gold); margin-bottom:8px; letter-spacing:1px}
+.testi footer{font-size:.85rem; color:var(--muted); margin-top:10px}
+@media (max-width:900px){.testis{grid-template-columns:1fr}}
+
+6) Accessibility & perf (HTML examples)
+<h1>FamilyVault for Home Buying</h1>
+<!-- Later sections use <h2> / <h3> -->
+<img
+  src="/img/home-buying-hero.webp"
+  alt="Hand holding keys in front of a new home"
+  width="960" height="540"
+  fetchpriority="high" />
+
+<img src="/img/feature-preapproval.webp" alt="" loading="lazy" width="560" height="350" />
+<button class="btn btn--gold">Get started free</button>
+<a class="btn btn--ghost" href="#features">See home buying features →</a>
+
+Micro-copy & structure tweaks
+
+Hero text: Mirror the concise style you used on “Getting Married.”
+
+“From pre-approval to closing, keep documents, research, and contacts in one secure place—so you move faster and worry less.”
+
+Feature cards (titles are great—add consistent “Add … →” links on all 6 for scannability).
+
+Mid-page CTAs: After each benefit block (“Get Pre-Approved Faster”, “Track Budget & Timeline”, “Remember What You Saw”), add a subtle inline link: “Open a sample vault →” (ghost style).
+
+Security section: Use the exact icon + copy set from other pages (MFA, Threat detection, Tokenization, Stolen-password alerts, Biometric).
+
+Final CTA band: Reuse the gradient footer band from other pages:
+
+.cta-band{background:linear-gradient(180deg, rgba(215,180,62,.04), rgba(0,0,0,0)); padding:40px 0}

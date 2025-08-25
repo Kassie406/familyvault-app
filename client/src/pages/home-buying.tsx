@@ -134,84 +134,90 @@ export default function HomeBuying() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0B0B0B] text-[#F3F4F6]">
+    <div className="min-h-screen bg-[#0f0f0f] text-[#eaeaea]">
       <Navbar />
       
       {/* Hero Section */}
       <section className="pt-16 pb-20">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
-            <div className="space-y-5">
-              <span className="inline-flex items-center gap-2 text-[#D4AF37] font-medium bg-[rgba(212,175,55,0.08)] px-3 py-1 rounded-full border border-[rgba(212,175,55,0.25)]">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-10 items-center">
+            <div className="space-y-6">
+              <span className="inline-flex items-center gap-2 text-[#d7b43e] font-semibold bg-[rgba(215,180,62,0.04)] px-3 py-1.5 rounded-full border border-[rgba(255,255,255,0.06)] text-sm tracking-wide">
                 🏠 Home Buying
               </span>
-              <h1 className="text-4xl md:text-5xl font-extrabold text-[#F3F4F6] tracking-tight">
+              <h1 className="text-4xl lg:text-5xl font-bold text-[#eaeaea] tracking-tight leading-tight">
                 FamilyVault for Home Buying
               </h1>
-              <p className="text-[#D1D5DB] max-w-[65ch] text-lg">
-                From pre-approval to closing day, the Family Operating System® keeps your home buying process organized, efficient, and stress-free.
+              <p className="text-[#b9b9b9] max-w-[58ch] text-lg leading-relaxed">
+                From pre-approval to closing, keep documents, research, and contacts in one secure place—so you move faster and worry less.
               </p>
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-wrap gap-4 pt-2">
                 <a 
                   href="/signup"
                   data-testid="button-get-started-free"
-                  className="bg-[#D4AF37] text-black font-semibold px-6 py-3 rounded-lg hover:bg-[#C7A233] transition-colors min-h-[44px] flex items-center"
+                  className="inline-flex items-center gap-2 bg-[#d7b43e] text-[#111] font-semibold px-6 py-3 rounded-full hover:bg-[#c6a528] transition-colors min-h-[44px] shadow-[0_6px_16px_rgba(215,180,62,0.35)] focus:outline-none focus:ring-[0_0_0_1px_rgba(215,180,62,0.3),0_0_0_4px_rgba(215,180,62,0.12)]"
                 >
                   Get started free
                 </a>
                 <a 
-                  href="/features"
+                  href="#features"
                   data-testid="link-see-home-features"
-                  className="text-[#D1D5DB] hover:text-[#F3F4F6] underline underline-offset-4 min-h-[44px] flex items-center"
+                  className="inline-flex items-center gap-2 border border-[rgba(255,255,255,0.16)] text-[#eaeaea] bg-transparent px-6 py-3 rounded-full hover:border-[#d7b43e] hover:text-[#d7b43e] transition-colors min-h-[44px] focus:outline-none focus:ring-[0_0_0_1px_rgba(215,180,62,0.3),0_0_0_4px_rgba(215,180,62,0.12)]"
                 >
                   See home buying features →
                 </a>
               </div>
             </div>
-            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem]">
+            <div className="relative rounded-2xl overflow-hidden bg-[#0b0b0b] shadow-[0_8px_24px_rgba(0,0,0,0.35)] order-first lg:order-last">
               <img 
                 src={houseKeysImage} 
-                alt="Hands holding house keys with wooden house keychain representing new home ownership"
-                className="w-full h-full object-cover"
+                alt="Hand holding keys in front of a new home"
+                className="w-full h-full object-cover block"
+                width="960"
+                height="540"
+                fetchPriority="high"
               />
             </div>
           </div>
         </div>
       </section>
 
+      {/* Section divider */}
+      <div className="h-px bg-[rgba(255,255,255,0.06)] mx-4 sm:mx-6 lg:mx-8" aria-hidden="true"></div>
+
       {/* Home Buying Cards */}
-      <section className="py-20 bg-[#141414]">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="features" className="py-20 bg-[#0f0f0f] border-t border-[rgba(255,255,255,0.06)]">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#eaeaea] mb-4">
               How FamilyVault Supports Your Home Buying Journey
             </h2>
-            <p className="text-[#D1D5DB] text-lg max-w-2xl mx-auto">
+            <p className="text-[#b9b9b9] text-lg max-w-2xl mx-auto">
               Keep your documents, research, and contacts organized throughout the entire home buying process.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {homeBuyingCards.map((card, index) => {
               const IconComponent = card.icon;
               return (
                 <div 
                   key={index}
-                  className="bg-[#0B0B0B] rounded-xl p-6 border border-[rgba(212,175,55,0.2)] hover:border-[rgba(212,175,55,0.35)] transition-colors"
+                  className="bg-[#141414] border border-[rgba(255,255,255,0.08)] rounded-2xl p-4 min-h-[152px] transition-all duration-200 hover:transform hover:-translate-y-0.5 hover:border-[rgba(215,180,62,0.35)] hover:shadow-[0_10px_24px_rgba(215,180,62,0.10)] focus-within:ring-2 focus-within:ring-[rgba(215,180,62,0.3)] focus-within:ring-offset-2"
                 >
-                  <div className="w-12 h-12 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mb-4">
-                    <IconComponent className="w-6 h-6 text-[#D4AF37]" />
+                  <div className="w-7 h-7 rounded-lg grid place-items-center bg-gradient-to-b from-[rgba(215,180,62,0.2)] to-[rgba(215,180,62,0.05)] text-[#d7b43e] mb-3">
+                    <IconComponent className="w-4 h-4" />
                   </div>
-                  <h3 className="text-xl font-semibold text-[#F3F4F6] mb-2">
+                  <h3 className="text-lg font-semibold text-[#eaeaea] mb-2">
                     {card.title}
                   </h3>
-                  <p className="text-[#D1D5DB] mb-4">
+                  <p className="text-[#b9b9b9] text-sm mb-4 flex-1">
                     {card.description}
                   </p>
                   <a 
                     href="#"
                     data-testid={`link-${card.action.replace(/\s+/g, '-').toLowerCase()}`}
-                    className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
+                    className="text-[#eaeaea] hover:text-[#d7b43e] font-medium inline-flex items-center text-sm focus:outline-none focus:ring-2 focus:ring-[rgba(215,180,62,0.3)] focus:ring-offset-2"
                   >
                     {card.action} →
                   </a>
@@ -222,67 +228,57 @@ export default function HomeBuying() {
         </div>
       </section>
 
-      {/* Checklist Feature Strip */}
-      <section className="py-12 bg-[#0B0B0B]">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {checklistItems.map((item, index) => (
-              <div key={index} className="flex items-center gap-3">
-                <CheckCircle className="w-6 h-6 text-[#D4AF37] flex-shrink-0" />
-                <span className="text-[#D1D5DB] font-medium">{item}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Section divider */}
+      <div className="h-px bg-[rgba(255,255,255,0.06)] mx-4 sm:mx-6 lg:mx-8" aria-hidden="true"></div>
+
 
       {/* Main Features */}
-      <section className="py-20 bg-[#141414]">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="space-y-20">
+      <section className="py-20 bg-[#0f0f0f] border-t border-[rgba(255,255,255,0.06)]">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="space-y-16">
             {features.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
-                <div key={index} className="grid lg:grid-cols-2 gap-12 items-center">
+                <div key={index} className="grid lg:grid-cols-2 gap-10 items-center">
                   <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
-                    <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#0B0B0B] h-80 flex items-center justify-center">
+                    <div className="bg-[#141414] border border-[rgba(255,255,255,0.08)] rounded-2xl p-4 min-h-[220px] flex items-center justify-center shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
                       {index === 0 && (
-                        <div className="bg-[#141414] rounded-lg p-4 max-w-xs mx-auto border border-[rgba(212,175,55,0.2)]">
-                          <div className="bg-[#D4AF37] rounded-t-lg p-3 mb-3">
+                        <div className="bg-[#0f0f0f] rounded-lg p-4 max-w-xs mx-auto border border-[rgba(255,255,255,0.08)]">
+                          <div className="bg-[#d7b43e] rounded-t-lg p-3 mb-3">
                             <div className="flex items-center justify-center">
                               <Smartphone className="w-8 h-8 text-black" />
                             </div>
                           </div>
-                          <div className="text-xs text-[#F3F4F6]">
+                          <div className="text-xs text-[#eaeaea]">
                             <div className="flex items-center mb-3">
-                              <div className="w-6 h-6 bg-[rgba(212,175,55,0.2)] rounded mr-2 flex items-center justify-center">
-                                <FileText className="w-4 h-4 text-[#D4AF37]" />
+                              <div className="w-6 h-6 bg-[rgba(215,180,62,0.2)] rounded mr-2 flex items-center justify-center">
+                                <FileText className="w-4 h-4 text-[#d7b43e]" />
                               </div>
-                              <span className="font-semibold text-[#F3F4F6]">Mortgage Documents</span>
+                              <span className="font-semibold text-[#eaeaea]">Mortgage Documents</span>
                             </div>
                             <div className="space-y-2">
-                              <div className="bg-[rgba(212,175,55,0.1)] rounded p-2 border border-[rgba(212,175,55,0.2)]">
-                                <div className="text-xs text-[#D1D5DB]">Bank Statements (3 months)</div>
+                              <div className="bg-[rgba(215,180,62,0.1)] rounded p-2 border border-[rgba(255,255,255,0.08)]">
+                                <div className="text-xs text-[#b9b9b9]">Bank Statements (3 months)</div>
                               </div>
-                              <div className="bg-[rgba(212,175,55,0.1)] rounded p-2 border border-[rgba(212,175,55,0.2)]">
-                                <div className="text-xs text-[#D1D5DB]">Pay Stubs</div>
+                              <div className="bg-[rgba(215,180,62,0.1)] rounded p-2 border border-[rgba(255,255,255,0.08)]">
+                                <div className="text-xs text-[#b9b9b9]">Pay Stubs</div>
                               </div>
-                              <div className="bg-[rgba(212,175,55,0.1)] rounded p-2 border border-[rgba(212,175,55,0.2)]">
-                                <div className="text-xs text-[#D1D5DB]">Tax Returns</div>
+                              <div className="bg-[rgba(215,180,62,0.1)] rounded p-2 border border-[rgba(255,255,255,0.08)]">
+                                <div className="text-xs text-[#b9b9b9]">Tax Returns</div>
                               </div>
                             </div>
-                            <div className="mt-3 text-xs text-[#D4AF37]">
+                            <div className="mt-3 text-xs text-[#d7b43e]">
                               <div className="underline">Ready for pre-approval</div>
                             </div>
                           </div>
                         </div>
                       )}
                       {index === 1 && (
-                        <div className="bg-[#141414] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(212,175,55,0.2)]">
-                          <div className="text-xs font-medium mb-3 text-[#F3F4F6]">Home Buying Budget</div>
-                          <div className="bg-[rgba(212,175,55,0.1)] rounded p-3 mb-3 text-left border border-[rgba(212,175,55,0.2)]">
-                            <div className="text-xs font-medium mb-2 text-[#F3F4F6]">Budget Breakdown:</div>
-                            <ul className="text-xs space-y-1 text-[#D1D5DB]">
+                        <div className="bg-[#0f0f0f] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(255,255,255,0.08)]">
+                          <div className="text-xs font-medium mb-3 text-[#eaeaea]">Home Buying Budget</div>
+                          <div className="bg-[rgba(215,180,62,0.1)] rounded p-3 mb-3 text-left border border-[rgba(255,255,255,0.08)]">
+                            <div className="text-xs font-medium mb-2 text-[#eaeaea]">Budget Breakdown:</div>
+                            <ul className="text-xs space-y-1 text-[#b9b9b9]">
                               <li>• Max home price: $450,000</li>
                               <li>• Down payment: $90,000 (20%)</li>
                               <li>• Monthly payment: $2,100</li>
@@ -292,88 +288,96 @@ export default function HomeBuying() {
                             </ul>
                           </div>
                           <div className="text-xs">
-                            <div className="font-medium text-[#D4AF37]">Pre-approval: $475,000</div>
-                            <div className="text-[#D1D5DB] mt-1">Stay within budget range...</div>
+                            <div className="font-medium text-[#d7b43e]">Pre-approval: $475,000</div>
+                            <div className="text-[#b9b9b9] mt-1">Stay within budget range...</div>
                           </div>
                         </div>
                       )}
                       {index === 2 && (
-                        <div className="bg-[#141414] rounded-lg p-4 max-w-xs mx-auto border border-[rgba(212,175,55,0.2)]">
-                          <div className="bg-[#D4AF37] rounded-t-lg p-3 mb-3">
+                        <div className="bg-[#0f0f0f] rounded-lg p-4 max-w-xs mx-auto border border-[rgba(255,255,255,0.08)]">
+                          <div className="bg-[#d7b43e] rounded-t-lg p-3 mb-3">
                             <div className="flex items-center justify-center">
                               <Smartphone className="w-8 h-8 text-black" />
                             </div>
                           </div>
-                          <div className="text-xs text-[#F3F4F6]">
+                          <div className="text-xs text-[#eaeaea]">
                             <div className="text-center mb-4">
-                              <div className="w-12 h-12 bg-[rgba(212,175,55,0.2)] rounded-full mx-auto mb-2 flex items-center justify-center border border-[rgba(212,175,55,0.3)]">
-                                <Home className="w-6 h-6 text-[#D4AF37]" />
+                              <div className="w-12 h-12 bg-[rgba(215,180,62,0.2)] rounded-full mx-auto mb-2 flex items-center justify-center border border-[rgba(215,180,62,0.3)]">
+                                <Home className="w-6 h-6 text-[#d7b43e]" />
                               </div>
-                              <div className="font-medium text-[#F3F4F6]">Property Comparison</div>
+                              <div className="font-medium text-[#eaeaea]">Property Comparison</div>
                             </div>
                             <div className="space-y-1">
-                              <div className="bg-[rgba(212,175,55,0.1)] rounded p-2 text-left border border-[rgba(212,175,55,0.2)]">
-                                <div className="font-medium text-[#F3F4F6]">123 Oak Street</div>
-                                <div className="text-[#D1D5DB]">$425,000 • Great kitchen</div>
+                              <div className="bg-[rgba(215,180,62,0.1)] rounded p-2 text-left border border-[rgba(255,255,255,0.08)]">
+                                <div className="font-medium text-[#eaeaea]">123 Oak Street</div>
+                                <div className="text-[#b9b9b9]">$425,000 • Great kitchen</div>
                               </div>
-                              <div className="bg-[rgba(212,175,55,0.1)] rounded p-2 text-left border border-[rgba(212,175,55,0.2)]">
-                                <div className="font-medium text-[#F3F4F6]">456 Maple Ave</div>
-                                <div className="text-[#D1D5DB]">$440,000 • Foundation issue</div>
+                              <div className="bg-[rgba(215,180,62,0.1)] rounded p-2 text-left border border-[rgba(255,255,255,0.08)]">
+                                <div className="font-medium text-[#eaeaea]">456 Maple Ave</div>
+                                <div className="text-[#b9b9b9]">$440,000 • Foundation issue</div>
                               </div>
                             </div>
                           </div>
                         </div>
                       )}
                       {index === 3 && (
-                        <div className="bg-[#141414] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(212,175,55,0.2)]">
-                          <div className="text-xs mb-3 text-[#F3F4F6]">
-                            <div className="font-semibold mb-2 text-[#D4AF37]">Shared with Realtor</div>
+                        <div className="bg-[#0f0f0f] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(255,255,255,0.08)]">
+                          <div className="text-xs mb-3 text-[#eaeaea]">
+                            <div className="font-semibold mb-2 text-[#d7b43e]">Shared with Realtor</div>
                             <div className="flex items-center mb-2">
-                              <div className="w-6 h-6 bg-[rgba(212,175,55,0.2)] rounded-full mr-2 border border-[rgba(212,175,55,0.3)]"></div>
+                              <div className="w-6 h-6 bg-[rgba(215,180,62,0.2)] rounded-full mr-2 border border-[rgba(215,180,62,0.3)]"></div>
                               <span>Sarah Johnson</span>
-                              <ChevronRight className="w-3 h-3 ml-auto text-[#D4AF37]" />
+                              <ChevronRight className="w-3 h-3 ml-auto text-[#d7b43e]" />
                             </div>
                             
-                            <div className="font-semibold mb-2 mt-3 text-[#D4AF37]">Shared with Lender</div>
+                            <div className="font-semibold mb-2 mt-3 text-[#d7b43e]">Shared with Lender</div>
                             <div className="flex items-center mb-1">
-                              <div className="w-6 h-6 bg-[rgba(212,175,55,0.1)] rounded-full mr-2 border border-[rgba(212,175,55,0.2)]"></div>
+                              <div className="w-6 h-6 bg-[rgba(215,180,62,0.1)] rounded-full mr-2 border border-[rgba(255,255,255,0.08)]"></div>
                               <span>Mike Thompson</span>
-                              <ChevronRight className="w-3 h-3 ml-auto text-[#D4AF37]" />
+                              <ChevronRight className="w-3 h-3 ml-auto text-[#d7b43e]" />
                             </div>
-                            <div className="text-[#D1D5DB] text-xs ml-8">First National Bank</div>
+                            <div className="text-[#b9b9b9] text-xs ml-8">First National Bank</div>
                             
                             <div className="flex items-center">
-                              <div className="w-6 h-6 bg-[rgba(212,175,55,0.1)] rounded-full mr-2 border border-[rgba(212,175,55,0.2)]"></div>
+                              <div className="w-6 h-6 bg-[rgba(215,180,62,0.1)] rounded-full mr-2 border border-[rgba(255,255,255,0.08)]"></div>
                               <span>Alex Rivera</span>
-                              <ChevronRight className="w-3 h-3 ml-auto text-[#D4AF37]" />
+                              <ChevronRight className="w-3 h-3 ml-auto text-[#d7b43e]" />
                             </div>
-                            <div className="text-[#D1D5DB] text-xs ml-8">Loan processor</div>
+                            <div className="text-[#b9b9b9] text-xs ml-8">Loan processor</div>
                             
-                            <div className="font-semibold mb-2 mt-3 text-[#D4AF37]">Private access</div>
+                            <div className="font-semibold mb-2 mt-3 text-[#d7b43e]">Private access</div>
                             <div className="flex items-center">
-                              <div className="w-6 h-6 bg-[rgba(212,175,55,0.3)] rounded-full mr-2 border border-[rgba(212,175,55,0.4)]"></div>
+                              <div className="w-6 h-6 bg-[rgba(215,180,62,0.3)] rounded-full mr-2 border border-[rgba(215,180,62,0.4)]"></div>
                               <span>Financial docs</span>
-                              <ChevronRight className="w-3 h-3 ml-auto text-[#D4AF37]" />
+                              <ChevronRight className="w-3 h-3 ml-auto text-[#d7b43e]" />
                             </div>
-                            <div className="text-[#D1D5DB] text-xs ml-8">Secure sharing only</div>
+                            <div className="text-[#b9b9b9] text-xs ml-8">Secure sharing only</div>
                           </div>
                         </div>
                       )}
                     </div>
                   </div>
                   <div className={index % 2 === 1 ? 'lg:order-1' : ''}>
-                    <div className="w-12 h-12 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mb-6">
-                      <IconComponent className="w-6 h-6 text-[#D4AF37]" />
+                    <div className="w-12 h-12 bg-[rgba(215,180,62,0.1)] border border-[rgba(255,255,255,0.08)] rounded-2xl flex items-center justify-center mb-6">
+                      <IconComponent className="w-6 h-6 text-[#d7b43e]" />
                     </div>
-                    <h3 className="text-2xl md:text-3xl font-bold text-[#F3F4F6] mb-4">
+                    <h3 className="text-2xl md:text-3xl font-bold text-[#eaeaea] mb-4">
                       {feature.title}
                     </h3>
-                    <p className="text-[#9CA3AF] mb-4 italic text-lg">
+                    <p className="text-[#b9b9b9] mb-4 italic text-lg leading-relaxed">
                       {feature.description}
                     </p>
-                    <p className="text-[#D1D5DB] font-medium text-lg">
+                    <p className="text-[#eaeaea] font-medium text-lg leading-relaxed">
                       {feature.detail}
                     </p>
+                    <div className="mt-6">
+                      <a 
+                        href="#" 
+                        className="inline-flex items-center gap-2 border border-[rgba(255,255,255,0.16)] text-[#eaeaea] bg-transparent px-4 py-2 rounded-full hover:border-[#d7b43e] hover:text-[#d7b43e] transition-colors text-sm focus:outline-none focus:ring-[0_0_0_1px_rgba(215,180,62,0.3),0_0_0_4px_rgba(215,180,62,0.12)]"
+                      >
+                        Open a sample vault →
+                      </a>
+                    </div>
                   </div>
                 </div>
               );
@@ -466,14 +470,14 @@ export default function HomeBuying() {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="flex items-start">
-                  <div className="w-10 h-10 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                    <IconComponent className="w-5 h-5 text-[#D4AF37]" />
+                  <div className="w-10 h-10 bg-[rgba(215,180,62,0.1)] border border-[rgba(255,255,255,0.08)] rounded-2xl flex items-center justify-center mr-4 flex-shrink-0">
+                    <IconComponent className="w-5 h-5 text-[#d7b43e]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-[#F3F4F6] mb-1">
+                    <h3 className="font-semibold text-[#eaeaea] mb-1">
                       {feature.title}
                     </h3>
-                    <p className="text-sm text-[#D1D5DB]">
+                    <p className="text-sm text-[#b9b9b9]">
                       {feature.description}
                     </p>
                   </div>
@@ -486,7 +490,7 @@ export default function HomeBuying() {
           <div className="mt-16 text-center">
             <div className="flex justify-center items-center space-x-6 opacity-60">
               {["EU GDPR", "SOC 2 TYPE II", "SOC 3", "HIPAA", "CCPA"].map((badge, index) => (
-                <div key={index} className="text-xs font-semibold text-[#9CA3AF] px-3 py-1 border border-[rgba(212,175,55,0.2)] rounded">
+                <div key={index} className="text-xs font-semibold text-[#b9b9b9] px-3 py-1 border border-[rgba(255,255,255,0.08)] rounded" aria-label={`${badge} compliant`}>
                   {badge}
                 </div>
               ))}
@@ -496,45 +500,49 @@ export default function HomeBuying() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 bg-[#141414]">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0f0f0f] border-t border-[rgba(255,255,255,0.06)]">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#eaeaea] mb-4">
               What Our Members Say About FamilyVault
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-5">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-[#0B0B0B] rounded-lg p-6 text-center border border-[rgba(212,175,55,0.2)]">
-                <div className="flex justify-center mb-3">
+              <div key={index} className="bg-[#141414] border border-[rgba(255,255,255,0.08)] rounded-2xl p-4 text-center min-h-[150px] relative hover:border-[rgba(215,180,62,0.35)] transition-colors duration-300">
+                <div className="flex justify-center mb-2 text-[#d7b43e] tracking-wide">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-[#D4AF37] fill-current" />
+                    <Star key={i} className="w-4 h-4 fill-current" />
                   ))}
                 </div>
-                <p className="text-[#D1D5DB] italic mb-4">"{testimonial.quote}"</p>
-                <div className="w-16 h-16 bg-[rgba(212,175,55,0.1)] rounded-full mx-auto mb-3 border border-[rgba(212,175,55,0.25)]"></div>
-                <div className="font-semibold text-sm text-[#F3F4F6]">{testimonial.name}</div>
-                <div className="text-xs text-[#D1D5DB]">{testimonial.title}</div>
+                <p className="text-[#b9b9b9] italic mb-4 text-sm">"{testimonial.quote}"</p>
+                <div className="w-16 h-16 bg-gradient-to-br from-[#d7b43e] to-[#c6a528] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#d7b43e]">
+                  <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
+                </div>
+                <footer className="text-xs text-[#b9b9b9]">
+                  <div className="font-semibold text-[#eaeaea]">{testimonial.name}</div>
+                  <div>{testimonial.title}</div>
+                </footer>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Bar */}
-      <section className="py-16 bg-gradient-to-r from-transparent to-[rgba(212,175,55,0.08)] border-t border-[rgba(212,175,55,0.25)]">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-[#F3F4F6] mb-4">
-            Start your home buying journey organized and prepared.
+      {/* Final CTA */}
+      <section className="py-12 bg-gradient-to-b from-[rgba(215,180,62,0.04)] to-transparent">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#eaeaea] mb-6">
+            Ready to Simplify Your Home Buying Journey?
           </h2>
-          <p className="text-[#D1D5DB] mb-8 text-lg">
-            Begin organizing your home buying information with FamilyVault today.
+          <p className="text-[#b9b9b9] text-lg mb-8 max-w-2xl mx-auto">
+            Start organizing your documents, research, and contacts with FamilyVault today.
           </p>
           <a
             href="/signup"
             data-testid="button-final-cta"
-            className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
+            className="inline-flex items-center gap-2 bg-[#d7b43e] text-[#111] font-semibold px-8 py-4 rounded-full hover:bg-[#c6a528] transition-colors shadow-[0_6px_16px_rgba(215,180,62,0.35)] focus:outline-none focus:ring-[0_0_0_1px_rgba(215,180,62,0.3),0_0_0_4px_rgba(215,180,62,0.12)] min-h-[44px]"
           >
             Get started free
           </a>
