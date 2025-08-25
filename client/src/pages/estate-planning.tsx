@@ -21,6 +21,7 @@ import {
   Clock,
   Award
 } from "lucide-react";
+import estatePlanningImage from "@assets/image_1756095429229.png";
 
 export default function EstatePlanning() {
   const estatePlanningCards = [
@@ -155,11 +156,12 @@ export default function EstatePlanning() {
                 </a>
               </div>
             </div>
-            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem] flex items-center justify-center">
-              <div className="text-center">
-                <Users className="w-24 h-24 text-[#D4AF37] mx-auto mb-4" />
-                <p className="text-[#9CA3AF] text-lg">Happy family with children by the water</p>
-              </div>
+            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem]">
+              <img 
+                src={estatePlanningImage} 
+                alt="Living trust and estate planning document with gavel representing legal estate planning"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
         </div>
