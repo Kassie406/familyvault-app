@@ -306,3 +306,8 @@ section:nth-child(odd) {
   background:rgba(255,215,0,0.08);
   color:#fff;
 }
+
+/* More Goodie Guides specific styling */
+.nav-item .dropdown[style*="right"] {
+  min-width: 260px;
+}
