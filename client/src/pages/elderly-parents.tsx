@@ -11,6 +11,7 @@ import mobileAppInterfaceImage from "@assets/image_1756093223145.png";
 import askExpertsImage from "@assets/image_1756093309581.png";
 import sarahProfileImage from "@assets/image_1756093411593.png";
 import davidProfileImage from "@assets/image_1756093511583.png";
+import mariaProfileImage from "@assets/image_1756093597709.png";
 import { 
   Heart, 
   DollarSign, 
@@ -146,7 +147,7 @@ export default function ElderlyParents() {
   const testimonials = [
     { name: "Sarah M.", title: "Daughter & Caregiver", rating: 5, quote: "FamilyVault helped me organize all of Mom's medical information in one secure place.", image: sarahProfileImage },
     { name: "David L.", title: "Son & Financial POA", rating: 5, quote: "Managing Dad's finances became so much easier with everything organized digitally.", image: davidProfileImage },
-    { name: "Maria C.", title: "Healthcare Advocate", rating: 5, quote: "Having quick access to medical directives during emergencies was invaluable." }
+    { name: "Maria C.", title: "Healthcare Advocate", rating: 5, quote: "Having quick access to medical directives during emergencies was invaluable.", image: mariaProfileImage }
   ];
 
   const articles = [
