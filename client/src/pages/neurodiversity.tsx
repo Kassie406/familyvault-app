@@ -1,5 +1,6 @@
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import thoughtfulWorkerImage from "@assets/image_1756096911806.png";
 import { 
   Brain,
   Heart, 
@@ -135,11 +136,12 @@ export default function Neurodiversity() {
               </a>
             </div>
             <div className="lg:pl-12">
-              <div className="bg-teal-50 rounded-2xl p-8 h-96 flex items-center justify-center">
-                <div className="text-center">
-                  <Brain className="w-24 h-24 text-teal-400 mx-auto mb-4" />
-                  <p className="text-gray-600 text-lg">Young man with glasses working thoughtfully at his desk</p>
-                </div>
+              <div className="bg-teal-50 rounded-2xl p-8 h-96 overflow-hidden">
+                <img 
+                  src={thoughtfulWorkerImage} 
+                  alt="Young man with glasses and cap working thoughtfully, representing focus and concentration"
+                  className="w-full h-full object-cover rounded-lg"
+                />
               </div>
             </div>
           </div>
