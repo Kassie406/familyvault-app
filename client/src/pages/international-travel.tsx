@@ -1,5 +1,6 @@
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import travelerAirportImage from "@assets/image_1756094101211.png";
 import { 
   Plane, 
   FileText, 
@@ -132,11 +133,12 @@ export default function InternationalTravel() {
               </a>
             </div>
             <div className="lg:pl-12">
-              <div className="bg-orange-50 rounded-2xl p-8 h-96 flex items-center justify-center">
-                <div className="text-center">
-                  <Plane className="w-24 h-24 text-orange-400 mx-auto mb-4" />
-                  <p className="text-gray-600 text-lg">Traveler overlooking scenic mountain landscape</p>
-                </div>
+              <div className="bg-orange-50 rounded-2xl p-8 h-96 flex items-center justify-center overflow-hidden">
+                <img 
+                  src={travelerAirportImage} 
+                  alt="Traveler overlooking scenic mountain landscape at airport"
+                  className="w-full h-full object-cover rounded-lg"
+                />
               </div>
             </div>
           </div>
