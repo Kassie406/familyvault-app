@@ -2,6 +2,7 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import travelerAirportImage from "@assets/image_1756094101211.png";
 import digitalSecurityImage from "@assets/image_1756094141073.png";
+import mobileAppImage from "@assets/image_1756094227046.png";
 import { 
   Plane, 
   FileText, 
@@ -61,7 +62,9 @@ export default function InternationalTravel() {
     {
       icon: Smartphone, 
       title: "Use FamilyVault on the Go",
-      description: "Access your information anywhere with our mobile app"
+      description: "Access your information anywhere with our mobile app",
+      image: mobileAppImage,
+      imageAlt: "Mobile app interface showing family document categories and navigation"
     },
     {
       icon: Phone,
