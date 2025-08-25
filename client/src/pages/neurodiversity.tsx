@@ -2,6 +2,7 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import thoughtfulWorkerImage from "@assets/image_1756096911806.png";
 import digitalSecurityImage from "@assets/image_1756096953729.png";
+import mobileAppImage from "@assets/image_1756097026485.png";
 import { 
   Brain,
   Heart, 
@@ -64,7 +65,9 @@ export default function Neurodiversity() {
     {
       icon: Smartphone, 
       title: "Use FamilyVault on the Go",
-      description: "Access your information anywhere with our mobile app"
+      description: "Access your information anywhere with our mobile app",
+      image: mobileAppImage,
+      imageAlt: "Mobile app interface showing organized family document categories and search functionality"
     },
     {
       icon: Phone,
