@@ -2,6 +2,7 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import memorialImage from "@assets/image_1756096658862.png";
 import digitalSecurityImage from "@assets/image_1756096704415.png";
+import mobileAppImage from "@assets/image_1756096804669.png";
 import { 
   Leaf,
   Heart, 
@@ -112,7 +113,9 @@ export default function WhenSomeoneDies() {
     {
       icon: Smartphone, 
       title: "Access Anywhere",
-      description: "Get important information when you need it, wherever you are"
+      description: "Get important information when you need it, wherever you are",
+      image: mobileAppImage,
+      imageAlt: "Mobile app interface showing browse screen with family document categories"
     },
     {
       icon: Phone,
