@@ -1,6 +1,6 @@
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
-import houseKeysImage from "@assets/image_1756095984954.png";
+import weddingRingsImage from "@assets/generated_images/Wedding_rings_on_marriage_certificate_4b6f91c2.png";
 import digitalSecurityImage from "@assets/image_1756093873694.png";
 import mobileAppImage from "@assets/image_1756093955366.png";
 import askExpertsImage from "@assets/image_1756094014310.png";
@@ -35,37 +35,37 @@ export default function GettingMarried() {
     {
       icon: FileText,
       title: "Legal Documentation",
-      description: "Store marriage certificates, name change documents, and legal forms.",
+      description: "Store marriage certificates and legal forms in one place.",
       action: "Add legal docs"
     },
     {
       icon: CreditCard,
       title: "Financial Planning",
-      description: "Organize joint accounts, insurance policies, and financial documents.",
+      description: "Organize joint accounts, insurance, and key documents.",
       action: "Add financial info"
     },
     {
       icon: Home,
       title: "Living Arrangements",
-      description: "Keep lease agreements, mortgage documents, and home insurance records.",
+      description: "Keep lease, mortgage, and home-related records together.",
       action: "Add housing docs"
     },
     {
       icon: Users,
-      title: "Family Information",
-      description: "Document beneficiary changes, emergency contacts, and family details.",
+      title: "Family Info",
+      description: "Document family details, emergency contacts, and more.",
       action: "Add family info"
     },
     {
       icon: Heart,
       title: "Wedding Planning",
-      description: "Store vendor contracts, guest lists, and important wedding details.",
+      description: "Track vendors, guest lists, and essential wedding details.",
       action: "Add wedding docs"
     },
     {
       icon: Shield,
       title: "Estate Planning",
-      description: "Organize wills, power of attorney, and inheritance documentation.",
+      description: "Manage wills, POAs, and inheritance docs.",
       action: "Add estate docs"
     }
   ];
@@ -162,9 +162,9 @@ export default function GettingMarried() {
   ];
 
   const testimonials = [
-    { name: "Sarah & Mike", title: "Members since 2022", rating: 5, quote: "FamilyVault made combining our finances and updating our documents after marriage so much easier. Everything was organized!", image: sarahProfileImageMarried },
-    { name: "Jessica L.", title: "Member since 2021", rating: 5, quote: "The name change process was seamless because all my documents were already organized and accessible in FamilyVault.", image: jessicaProfileImageMarried },
-    { name: "David & Emma", title: "Members since 2023", rating: 5, quote: "Sharing our important information with each other through FamilyVault gave us both peace of mind as newlyweds.", image: davidEmmaProfileImageMarried }
+    { name: "Sarah & Mike", title: "Members since 2022", rating: 5, quote: "FamilyVault made combining our finances and updating our documents after marriage stress-free.", image: sarahProfileImageMarried },
+    { name: "Jessica L.", title: "Member since 2021", rating: 5, quote: "The name change process was seamless with everything stored in one place.", image: jessicaProfileImageMarried },
+    { name: "David & Emma", title: "Members since 2023", rating: 5, quote: "Sharing documents securely gave us both peace of mind.", image: davidEmmaProfileImageMarried }
   ];
 
   return (
@@ -183,7 +183,7 @@ export default function GettingMarried() {
                 FamilyVault for Getting Married
               </h1>
               <p className="text-[#D1D5DB] max-w-[65ch] text-lg">
-                From engagement to "I do" and beyond, the Family Operating System® keeps your new life together organized, secure, and simplified.
+                From engagement to 'I do' and beyond, FamilyVault keeps your most important documents secure, organized, and ready when you need them.
               </p>
               <div className="flex flex-wrap gap-4">
                 <a 
@@ -204,8 +204,8 @@ export default function GettingMarried() {
             </div>
             <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem] flex items-center justify-center">
               <img 
-                src={houseKeysImage} 
-                alt="Hands holding house keys with wooden house keychain representing new home ownership"
+                src={weddingRingsImage} 
+                alt="Wedding rings on marriage certificate representing the start of married life"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -279,7 +279,7 @@ export default function GettingMarried() {
               return (
                 <div key={index} className="grid lg:grid-cols-2 gap-12 items-center">
                   <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
-                    <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#0B0B0B] h-80 flex items-center justify-center">
+                    <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-gradient-to-br from-[rgba(212,175,55,0.05)] to-[rgba(212,175,55,0.02)] h-96 flex items-center justify-center p-6">
                       {index === 0 && (
                         <div className="bg-[#141414] rounded-lg p-4 max-w-xs mx-auto border border-[rgba(212,175,55,0.2)]">
                           <div className="bg-[#D4AF37] rounded-t-lg p-3 mb-3">
@@ -420,10 +420,10 @@ export default function GettingMarried() {
       <section className="py-20 bg-[#0B0B0B]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-6">
-            Meet FamilyVault — Your Life, Organized
+            Start your marriage stress-free
           </h2>
           <p className="text-[#D1D5DB] text-lg mb-8 max-w-3xl mx-auto">
-            From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
+            Keep your documents secure and accessible today.
           </p>
           <a
             href="/signup"
@@ -538,17 +538,17 @@ export default function GettingMarried() {
             </h2>
           </div>
 
-          <div className="flex overflow-x-auto gap-6 pb-4 snap-x snap-mandatory" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-[#1a1a1a] border border-[#FFD700]/20 rounded-xl p-6 shadow-md min-w-[300px] snap-start text-center flex-shrink-0">
-                <div className="flex justify-center mb-4">
+              <div key={index} className="bg-[#0B0B0B] rounded-lg p-6 text-center border border-[rgba(212,175,55,0.2)]">
+                <div className="flex justify-center mb-3">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-[#FFD700] fill-current" />
+                    <Star key={i} className="w-4 h-4 text-[#D4AF37] fill-current" />
                   ))}
                 </div>
-                <p className="text-[#D1D5DB] italic mb-6 text-lg">"{testimonial.quote}"</p>
+                <p className="text-[#D1D5DB] italic mb-4">"{testimonial.quote}"</p>
                 {testimonial.image ? (
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-[#FFD700] overflow-hidden">
+                  <div className="w-16 h-16 mx-auto mb-3 rounded-full border-2 border-[#FFD700] overflow-hidden">
                     <img 
                       src={testimonial.image} 
                       alt={`${testimonial.name} profile photo`}
@@ -556,26 +556,14 @@ export default function GettingMarried() {
                     />
                   </div>
                 ) : (
-                  <div className="w-16 h-16 bg-gradient-to-br from-[#FFD700] to-[#D4AF37] rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-[#FFD700]">
+                  <div className="w-16 h-16 bg-gradient-to-br from-[#FFD700] to-[#D4AF37] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#FFD700]">
                     <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
                   </div>
                 )}
-                <div className="font-semibold text-lg text-[#F3F4F6]">{testimonial.name}</div>
-                <div className="text-sm text-[#FFD700] font-medium">{testimonial.title}</div>
+                <div className="font-semibold text-sm text-[#F3F4F6]">{testimonial.name}</div>
+                <div className="text-xs text-[#D1D5DB]">{testimonial.title}</div>
               </div>
             ))}
-          </div>
-          
-          {/* Progress indicator */}
-          <div className="flex justify-center mt-6">
-            <div className="flex gap-2">
-              {testimonials.map((_, index) => (
-                <div
-                  key={index}
-                  className="w-2 h-2 rounded-full bg-[#FFD700]/30"
-                ></div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
