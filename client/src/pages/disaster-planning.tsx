@@ -26,6 +26,7 @@ import {
 import disasterSceneImage from "@assets/image_1756095132487.png";
 import digitalSecurityImage from "@assets/image_1756095170275.png";
 import mobileAppImage from "@assets/image_1756095280262.png";
+import askExpertsImage from "@assets/image_1756095363487.png";
 
 export default function DisasterPlanning() {
   const disasterPlanCards = [
@@ -119,7 +120,9 @@ export default function DisasterPlanning() {
     {
       icon: Phone,
       title: "Connect With an Expert",
-      description: "Get personalized help organizing your family's documents"
+      description: "Get personalized help organizing your family's documents",
+      image: askExpertsImage,
+      imageAlt: "Ask the Experts blackboard with light bulbs showing expert consultation concept"
     }
   ];
 
