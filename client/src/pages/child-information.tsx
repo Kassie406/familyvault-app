@@ -147,8 +147,12 @@ export default function ChildInformation() {
             <div className="lg:pl-12">
               <div className="bg-[#FFD700]/10 rounded-2xl p-8 h-96 flex items-center justify-center">
                 <div className="text-center">
-                  <Baby className="w-24 h-24 text-[#FFD700] mx-auto mb-4" />
-                  <p className="text-gray-600 text-lg">Child playing baseball</p>
+                  <img 
+                    src="/attached_assets/image_1756084550627.png" 
+                    alt="Happy child in blue soccer jersey holding soccer ball"
+                    className="w-64 h-64 object-cover rounded-full mx-auto mb-4"
+                  />
+                  <p className="text-gray-600 text-lg">Child playing soccer</p>
                 </div>
               </div>
             </div>
