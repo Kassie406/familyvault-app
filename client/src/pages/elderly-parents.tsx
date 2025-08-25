@@ -1,5 +1,6 @@
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import emergencyChecklistImage from "@assets/image_1756091492533.png";
 import { 
   Heart, 
   DollarSign, 
@@ -174,11 +175,12 @@ export default function ElderlyParents() {
                 </a>
               </div>
             </div>
-            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem] flex items-center justify-center">
-              <div className="text-center">
-                <Users className="w-24 h-24 text-[#D4AF37] mx-auto mb-4" />
-                <p className="text-[#9CA3AF] text-lg">Adult child caring for elderly parent</p>
-              </div>
+            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem]">
+              <img 
+                src={emergencyChecklistImage} 
+                alt="Emergency preparedness checklist document showing disaster planning information"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
         </div>
