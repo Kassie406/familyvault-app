@@ -1,6 +1,7 @@
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import soccerKidImage from "@assets/image_1756084550627.png";
+import phoneDocumentImage from "@assets/image_1756085339999.png";
 import { 
   FileText, 
   Share2, 
@@ -180,10 +181,18 @@ export default function ChildInformation() {
                 <div key={index} className="grid lg:grid-cols-2 gap-12 items-center">
                   <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
                     <div className="bg-gray-100 rounded-2xl p-8 h-64 flex items-center justify-center">
-                      <div className="text-center">
-                        <IconComponent className="w-16 h-16 text-[#FFD700] mx-auto mb-4" />
-                        <p className="text-gray-600">Feature illustration</p>
-                      </div>
+                      {index === 0 ? (
+                        <img 
+                          src={phoneDocumentImage}
+                          alt="Hands holding phone displaying birth certificate document"
+                          className="w-full h-full object-cover rounded-xl"
+                        />
+                      ) : (
+                        <div className="text-center">
+                          <IconComponent className="w-16 h-16 text-[#FFD700] mx-auto mb-4" />
+                          <p className="text-gray-600">Feature illustration</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className={index % 2 === 1 ? 'lg:order-1' : ''}>
