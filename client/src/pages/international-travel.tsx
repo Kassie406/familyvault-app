@@ -116,66 +116,73 @@ export default function InternationalTravel() {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#0B0B0B] text-[#F3F4F6]">
       <Navbar />
       
       {/* Hero Section */}
-      <section className="pt-24 pb-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-6">
-                <Plane className="w-6 h-6 text-orange-600" />
-              </div>
-              <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+      <section className="pt-16 pb-20">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+            <div className="space-y-5">
+              <span className="inline-flex items-center gap-2 text-[#D4AF37] font-medium bg-[rgba(212,175,55,0.08)] px-3 py-1 rounded-full border border-[rgba(212,175,55,0.25)]">
+                ✈️ International Travel
+              </span>
+              <h1 className="text-4xl md:text-5xl font-extrabold text-[#F5F5F5] tracking-tight">
                 FamilyVault for International Travel
               </h1>
-              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+              <p className="text-[#D1D5DB] max-w-[65ch] text-lg">
                 International travel is an adventure, but keeping track of your travel documents shouldn't be. FamilyVault ensures your passport and other docs are secure and accessible.
               </p>
-              <a
-                href="/signup"
-                data-testid="button-get-started"
-                className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
-              >
-                Get started free
-              </a>
-            </div>
-            <div className="lg:pl-12">
-              <div className="bg-orange-50 rounded-2xl p-8 h-96 flex items-center justify-center overflow-hidden">
-                <img 
-                  src={travelerAirportImage} 
-                  alt="Traveler overlooking scenic mountain landscape at airport"
-                  className="w-full h-full object-cover rounded-lg"
-                />
+              <div className="flex flex-wrap gap-4">
+                <a 
+                  href="/signup"
+                  data-testid="button-get-started-free"
+                  className="bg-[#D4AF37] text-black font-semibold px-6 py-3 rounded-lg hover:bg-[#C7A233] transition-colors min-h-[44px] flex items-center"
+                >
+                  Get started free
+                </a>
+                <a 
+                  href="/features"
+                  data-testid="link-see-travel-features"
+                  className="text-[#D1D5DB] hover:text-[#F3F4F6] underline underline-offset-4 min-h-[44px] flex items-center"
+                >
+                  See travel features →
+                </a>
               </div>
+            </div>
+            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem] flex items-center justify-center">
+              <img 
+                src={travelerAirportImage} 
+                alt="Traveler overlooking scenic mountain landscape at airport"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
         </div>
       </section>
 
       {/* Travel Problems, Solved */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-[#141414]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl lg:text-4xl font-bold text-[#F3F4F6] mb-4">
             Travel Problems, Solved
           </h2>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+          <p className="text-lg text-[#FFD700] font-medium max-w-3xl mx-auto">
             Even the best travel plans can go sideways. Lost passport? Emergency? FamilyVault's got your back — keeping you prepared for whatever twist (or chaos) comes your way.
           </p>
         </div>
       </section>
 
       {/* Features */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0B0B0B]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="space-y-20">
             {features.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="grid lg:grid-cols-2 gap-12 items-center">
                   <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
-                    <div className="bg-gray-100 rounded-2xl p-8 h-64 flex items-center justify-center">
+                    <div className="bg-gradient-to-br from-[rgba(212,175,55,0.05)] to-[rgba(212,175,55,0.02)] border border-[rgba(212,175,55,0.25)] rounded-xl p-8 min-h-[220px] flex items-center justify-center transition-all duration-300 hover:border-[#FFD700] hover:shadow-[0_0_12px_rgba(255,215,0,0.33)]">
                       <div className="text-center">
                         {index === 0 && (
                           <>
@@ -257,16 +264,16 @@ export default function InternationalTravel() {
                     </div>
                   </div>
                   <div className={index % 2 === 1 ? 'lg:order-1' : ''}>
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
-                      <IconComponent className="w-4 h-4 text-blue-600" />
+                    <div className="w-12 h-12 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mb-6">
+                      <IconComponent className="w-6 h-6 text-[#D4AF37]" />
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                    <h3 className="text-2xl md:text-3xl font-bold text-[#F3F4F6] mb-4">
                       {feature.title}
                     </h3>
-                    <p className="text-gray-600 mb-4 italic">
+                    <p className="text-[#9CA3AF] mb-4 italic text-lg">
                       {feature.description}
                     </p>
-                    <p className="text-gray-800 font-medium">
+                    <p className="text-[#D1D5DB] font-medium text-lg">
                       {feature.detail}
                     </p>
                   </div>
@@ -278,18 +285,18 @@ export default function InternationalTravel() {
       </section>
 
       {/* Meet FamilyVault */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-[#141414]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-6">
             Meet FamilyVault — Your Life, Organized
           </h2>
-          <p className="text-lg text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p className="text-[#D1D5DB] text-lg mb-8 max-w-3xl mx-auto">
             From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/signup"
-            data-testid="button-get-started-free"
-            className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
+            data-testid="button-get-started-cta"
+            className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
           >
             Get started free
           </a>
@@ -297,28 +304,28 @@ export default function InternationalTravel() {
       </section>
 
       {/* Bottom Features */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0B0B0B]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8">
             {bottomFeatures.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="text-center">
-                  <div className="bg-gray-100 rounded-2xl p-8 h-48 flex items-center justify-center mb-6 overflow-hidden">
+                  <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#141414] h-[200px] flex items-center justify-center mb-6">
                     {feature.image ? (
                       <img 
                         src={feature.image} 
                         alt={feature.imageAlt}
-                        className="w-full h-full object-cover rounded-lg"
+                        className="w-full h-full object-cover"
                       />
                     ) : (
-                      <IconComponent className="w-12 h-12 text-[#FFD700]" />
+                      <IconComponent className="w-12 h-12 text-[#D4AF37]" />
                     )}
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-[#F3F4F6] mb-2">
                     {feature.title}
                   </h3>
-                  <p className="text-gray-600">
+                  <p className="text-[#D1D5DB]">
                     {feature.description}
                   </p>
                 </div>
@@ -329,19 +336,19 @@ export default function InternationalTravel() {
       </section>
 
       {/* Security Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#141414]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-6">
               Your Data Is Always Protected
             </h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            <p className="text-[#D1D5DB] text-lg max-w-3xl mx-auto">
               Your sensitive information stays private and secure with advanced security and compliance practices.
             </p>
             <div className="mt-8">
               <a
                 href="/security"
-                className="text-[#FFD700] hover:text-[#FFD700]/80 font-medium inline-flex items-center"
+                className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
               >
                 About our security
                 <ChevronRight className="w-4 h-4 ml-1" />
@@ -354,14 +361,14 @@ export default function InternationalTravel() {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="flex items-start">
-                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                    <IconComponent className="w-4 h-4 text-purple-600" />
+                  <div className="w-8 h-8 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                    <IconComponent className="w-4 h-4 text-[#D4AF37]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                    <h3 className="font-semibold text-[#F3F4F6] mb-1">
                       {feature.title}
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-[#D1D5DB]">
                       {feature.description}
                     </p>
                   </div>
@@ -373,37 +380,39 @@ export default function InternationalTravel() {
           {/* Compliance Badges */}
           <div className="mt-16 text-center">
             <div className="flex justify-center items-center space-x-8 opacity-60">
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">EU GDPR</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">SOC 2 TYPE II</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">SOC 3</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">HIPAA</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">CCPA</div>
+              <div className="text-xs font-semibold text-[#D1D5DB] px-3 py-1 border border-[rgba(212,175,55,0.25)] rounded">EU GDPR</div>
+              <div className="text-xs font-semibold text-[#D1D5DB] px-3 py-1 border border-[rgba(212,175,55,0.25)] rounded">SOC 2 TYPE II</div>
+              <div className="text-xs font-semibold text-[#D1D5DB] px-3 py-1 border border-[rgba(212,175,55,0.25)] rounded">SOC 3</div>
+              <div className="text-xs font-semibold text-[#D1D5DB] px-3 py-1 border border-[rgba(212,175,55,0.25)] rounded">HIPAA</div>
+              <div className="text-xs font-semibold text-[#D1D5DB] px-3 py-1 border border-[rgba(212,175,55,0.25)] rounded">CCPA</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0B0B0B]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
               What Travelers Say About FamilyVault
             </h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-gray-50 rounded-lg p-6 text-center">
+              <div key={index} className="bg-[#141414] rounded-lg p-6 text-center border border-[rgba(212,175,55,0.2)]">
                 <div className="flex justify-center mb-3">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+                    <Star key={i} className="w-4 h-4 text-[#FFD700] fill-current" />
                   ))}
                 </div>
-                <p className="text-gray-800 italic mb-4">"{testimonial.quote}"</p>
-                <div className="w-16 h-16 bg-gray-300 rounded-full mx-auto mb-3"></div>
-                <div className="font-semibold text-sm">{testimonial.name}</div>
-                <div className="text-xs text-gray-600">{testimonial.title}</div>
+                <p className="text-[#D1D5DB] italic mb-4">"{testimonial.quote}"</p>
+                <div className="w-16 h-16 bg-gradient-to-br from-[#FFD700] to-[#D4AF37] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#FFD700]">
+                  <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
+                </div>
+                <div className="font-semibold text-sm text-[#F3F4F6]">{testimonial.name}</div>
+                <div className="text-xs text-[#D1D5DB]">{testimonial.title}</div>
               </div>
             ))}
           </div>
@@ -411,30 +420,30 @@ export default function InternationalTravel() {
       </section>
 
       {/* Pricing */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-[#141414]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#F3F4F6] mb-4">
               Simple, Transparent Pricing
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-[#D1D5DB]">
               No hidden fees. No surprises. Just complete peace of mind.
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {/* Free Plan */}
-            <div className="bg-white rounded-lg p-6 border">
-              <h3 className="text-xl font-bold mb-2">Free</h3>
-              <p className="text-gray-600 mb-4">For families looking to get started</p>
-              <div className="text-3xl font-bold mb-6">$0</div>
+            <div className="bg-[#111] border border-[#FFD700] rounded-xl p-6 text-[#fff]">
+              <h3 className="text-xl font-bold mb-2 text-[#F3F4F6]">Free</h3>
+              <p className="text-[#D1D5DB] mb-4">For families looking to get started</p>
+              <div className="text-3xl font-bold mb-6 text-[#F3F4F6]">$0</div>
               <button
                 data-testid="button-get-started-free-plan"
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold mb-6"
+                className="w-full bg-[#D4AF37] text-black py-3 rounded-lg font-semibold mb-6 hover:bg-[#C7A233] transition-colors"
               >
                 Get started
               </button>
-              <ul className="space-y-2 text-sm">
+              <ul className="space-y-2 text-sm text-[#D1D5DB]">
                 <li>• Advanced security</li>
                 <li>• 10 items</li>
                 <li>• 500MB</li>
@@ -444,17 +453,17 @@ export default function InternationalTravel() {
             </div>
 
             {/* Silver Plan */}
-            <div className="bg-white rounded-lg p-6 border">
-              <h3 className="text-xl font-bold mb-2">Silver</h3>
-              <p className="text-gray-600 mb-4">Unlock unlimited items and unlock additional resources</p>
-              <div className="text-3xl font-bold mb-6">$10</div>
+            <div className="bg-[#111] border border-[#FFD700] rounded-xl p-6 text-[#fff]">
+              <h3 className="text-xl font-bold mb-2 text-[#F3F4F6]">Silver</h3>
+              <p className="text-[#D1D5DB] mb-4">Unlock unlimited items and unlock additional resources</p>
+              <div className="text-3xl font-bold mb-6 text-[#F3F4F6]">$10</div>
               <button
                 data-testid="button-get-started-silver-plan"
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold mb-6"
+                className="w-full bg-[#D4AF37] text-black py-3 rounded-lg font-semibold mb-6 hover:bg-[#C7A233] transition-colors"
               >
                 Get started
               </button>
-              <ul className="space-y-2 text-sm">
+              <ul className="space-y-2 text-sm text-[#D1D5DB]">
                 <li>• Everything in Free plus:</li>
                 <li>• Unlimited items</li>
                 <li>• Autopilot™ by FamilyVault</li>
@@ -465,20 +474,20 @@ export default function InternationalTravel() {
             </div>
 
             {/* Gold Plan */}
-            <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg p-6 border-2 border-purple-300 relative">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-purple-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+            <div className="bg-[#222] border border-[#FFD700] rounded-xl p-6 text-[#fff] relative shadow-[0_0_15px_rgba(255,215,0,0.33)]">
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#D4AF37] text-black px-4 py-1 rounded-full text-sm font-semibold">
                 Most Popular
               </div>
-              <h3 className="text-xl font-bold mb-2">Gold</h3>
-              <p className="text-gray-600 mb-4">Total peace of mind for your family & your family business</p>
-              <div className="text-3xl font-bold mb-6">$20</div>
+              <h3 className="text-xl font-bold mb-2 text-[#F3F4F6]">Gold</h3>
+              <p className="text-[#D1D5DB] mb-4">Total peace of mind for your family & your family business</p>
+              <div className="text-3xl font-bold mb-6 text-[#F3F4F6]">$20</div>
               <button
                 data-testid="button-get-started-gold-plan"
-                className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold mb-6"
+                className="w-full bg-[#D4AF37] text-black py-3 rounded-lg font-semibold mb-6 hover:bg-[#C7A233] transition-colors"
               >
                 Get started
               </button>
-              <ul className="space-y-2 text-sm">
+              <ul className="space-y-2 text-sm text-[#D1D5DB]">
                 <li>• Everything in Silver plus:</li>
                 <li>• Business information</li>
                 <li>• Organization (LLC, S Corp, S Corp, INC, etc.)</li>
@@ -488,59 +497,59 @@ export default function InternationalTravel() {
             </div>
           </div>
 
-          <div className="text-center mt-8 text-sm text-gray-600">
+          <div className="text-center mt-8 text-sm text-[#D1D5DB]">
             30-day money-back guarantee | We support first responders with a hero discount.
           </div>
         </div>
       </section>
 
       {/* Essential Resources */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0B0B0B]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#F3F4F6] mb-4">
               Essential Resources for International Travel
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-[#D1D5DB]">
               Our travel checklists and articles help you stay prepared and stress-free, no matter where you're headed.
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {/* Checklist 1 */}
-            <div className="bg-gray-50 rounded-lg overflow-hidden">
-              <div className="h-48 bg-orange-100 flex items-center justify-center">
-                <BookOpen className="w-16 h-16 text-orange-600" />
+            <div className="bg-[#111] border border-[rgba(212,175,55,0.2)] rounded-xl overflow-hidden transition-all duration-300 hover:border-[#FFD700] hover:shadow-[0_0_12px_rgba(255,215,0,0.33)]">
+              <div className="h-48 bg-gradient-to-br from-[rgba(212,175,55,0.05)] to-[rgba(212,175,55,0.02)] flex items-center justify-center">
+                <BookOpen className="w-16 h-16 text-[#D4AF37]" />
               </div>
               <div className="p-6">
-                <div className="text-sm font-semibold text-orange-600 mb-2">CHECKLIST</div>
-                <h3 className="font-semibold text-gray-900 mb-2">
+                <div className="text-sm font-semibold text-[#D4AF37] mb-2">CHECKLIST</div>
+                <h3 className="font-semibold text-[#F3F4F6] mb-2">
                   Steps to Take Before International Travel
                 </h3>
               </div>
             </div>
 
             {/* Checklist 2 */}
-            <div className="bg-gray-50 rounded-lg overflow-hidden">
-              <div className="h-48 bg-orange-100 flex items-center justify-center">
-                <BookOpen className="w-16 h-16 text-orange-600" />
+            <div className="bg-[#111] border border-[rgba(212,175,55,0.2)] rounded-xl overflow-hidden transition-all duration-300 hover:border-[#FFD700] hover:shadow-[0_0_12px_rgba(255,215,0,0.33)]">
+              <div className="h-48 bg-gradient-to-br from-[rgba(212,175,55,0.05)] to-[rgba(212,175,55,0.02)] flex items-center justify-center">
+                <BookOpen className="w-16 h-16 text-[#D4AF37]" />
               </div>
               <div className="p-6">
-                <div className="text-sm font-semibold text-orange-600 mb-2">CHECKLIST</div>
-                <h3 className="font-semibold text-gray-900 mb-2">
+                <div className="text-sm font-semibold text-[#D4AF37] mb-2">CHECKLIST</div>
+                <h3 className="font-semibold text-[#F3F4F6] mb-2">
                   How to Stay Safe When Traveling Abroad
                 </h3>
               </div>
             </div>
 
             {/* Article */}
-            <div className="bg-gray-50 rounded-lg overflow-hidden">
-              <div className="h-48 bg-orange-100 flex items-center justify-center">
-                <FileText className="w-16 h-16 text-orange-600" />
+            <div className="bg-[#111] border border-[rgba(212,175,55,0.2)] rounded-xl overflow-hidden transition-all duration-300 hover:border-[#FFD700] hover:shadow-[0_0_12px_rgba(255,215,0,0.33)]">
+              <div className="h-48 bg-gradient-to-br from-[rgba(212,175,55,0.05)] to-[rgba(212,175,55,0.02)] flex items-center justify-center">
+                <FileText className="w-16 h-16 text-[#D4AF37]" />
               </div>
               <div className="p-6">
-                <div className="text-sm font-semibold text-orange-600 mb-2">ARTICLE</div>
-                <h3 className="font-semibold text-gray-900 mb-2">
+                <div className="text-sm font-semibold text-[#D4AF37] mb-2">ARTICLE</div>
+                <h3 className="font-semibold text-[#F3F4F6] mb-2">
                   International Travel Safety Tips
                 </h3>
               </div>
