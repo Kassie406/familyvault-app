@@ -1,0 +1,134 @@
+🔧 Fixes & Improvements for (International Travel) Page
+
+Hero Section (Top Banner)
+
+The title text ("FamilyVault for International Travel") looks too dim against the black background.
+👉 Update CSS to ensure strong white/gold contrast for readability.
+
+The image (traveler at airport) is still in a rounded corner box. For consistency with other pages, make it full rectangle with border-radius: 0.
+
+✅ Prompt for Replit:
+
+// Ensure hero text contrast
+.hero-title, .hero-subtitle {
+  color: #f5f5f5; // light white for clarity
+}
+
+// Fix hero image styling
+.hero-image img {
+  border-radius: 0 !important; // remove rounded corners
+}
+
+
+Section: "Travel Problems, Solved"
+
+The section subtitle text is slightly gray and doesn’t pop enough.
+👉 Make it white or gold highlight so it matches other page styles.
+
+✅ Prompt:
+
+.section-subtitle {
+  color: #FFD700; // gold tone
+  font-weight: 500;
+}
+
+
+Feature Cards (Passport, Medical, Travel Info, Reminders)
+
+The cards are inconsistent in size and alignment. Some have bigger icons, some smaller.
+
+Ensure uniform card width/height and padding.
+
+Add hover effect (slight gold glow) to match branding.
+
+✅ Prompt:
+
+.feature-card {
+  min-height: 220px;
+  border: 1px solid #FFD70033; 
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+  border-color: #FFD700;
+  box-shadow: 0 0 12px #FFD70055;
+}
+
+
+"Meet FamilyVault — Your Life, Organized" Section
+
+The yellow button looks correct ✅.
+
+But the 3 feature icons (Backup, Browse, Ask Expert) look slightly unbalanced. Suggest equal height containers.
+
+✅ Prompt:
+
+.feature-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px; 
+}
+
+
+Testimonials Section ("What Travelers Say About FamilyVault")
+
+Current testimonial cards look good, but:
+
+Add consistent gold stars instead of purple.
+
+Use carousel/slider to match the “Getting Married” page testimonial style.
+
+✅ Prompt:
+
+.testimonial-stars {
+  color: #FFD700; // gold stars
+}
+
+
+Pricing Section (Free, Silver, Gold)
+
+Right now, this section is inconsistent with your gold/black theme.
+
+The purple gradient on Gold plan doesn’t match branding.
+
+Suggest black card background with gold borders instead.
+
+✅ Prompt:
+
+.pricing-card {
+  background: #111;
+  border: 1px solid #FFD700;
+  border-radius: 10px;
+  padding: 20px;
+  color: #fff;
+}
+
+.pricing-card.most-popular {
+  background: #222;
+  box-shadow: 0 0 15px #FFD70055;
+}
+
+
+Final Resources Section ("Essential Resources for International Travel")
+
+The checklist cards currently use a peach/pink tint. This doesn’t match your gold/black.
+
+Suggest black background, gold icons, and white text.
+
+✅ Prompt:
+
+.resource-card {
+  background: #111;
+  border: 1px solid #FFD70033;
+  color: #fff;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.resource-card:hover {
+  border-color: #FFD700;
+  box-shadow: 0 0 12px #FFD70055;
+}
