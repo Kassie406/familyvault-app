@@ -11,6 +11,7 @@ import expertsImage from "@assets/image_1756086008968.png";
 import guideBookImage from "@assets/image_1756086136192.png";
 import sarahProfileImageChild from "@assets/image_1756098304099.png";
 import davidProfileImageChild from "@assets/image_1756098392606.png";
+import mariaProfileImageChild from "@assets/image_1756098466061.png";
 import { 
   FileText, 
   Share2, 
@@ -137,7 +138,7 @@ export default function ChildInformation() {
       title: "Healthcare Advocate", 
       rating: 5, 
       quote: "Having quick access to medical directives during emergencies was invaluable.",
-      image: null
+      image: mariaProfileImageChild
     }
   ];
 
