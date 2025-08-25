@@ -1,6 +1,7 @@
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import emergencyChecklistImage from "@assets/image_1756091492533.png";
+import healthcareProfessionalImage from "@assets/image_1756092217005.png";
 import { 
   Heart, 
   DollarSign, 
@@ -72,7 +73,9 @@ export default function ElderlyParents() {
       icon: Heart,
       title: "Coordinate Medical Care",
       description: "You missed a dose of a parent's medication and later realized it caused a significant health complication.",
-      detail: "Easily keep track of your parents' prescriptions, doctor appointments, and medical directives."
+      detail: "Easily keep track of your parents' prescriptions, doctor appointments, and medical directives.",
+      image: healthcareProfessionalImage,
+      imageAlt: "Healthcare professional in blue scrubs writing on medical documents while using laptop"
     },
     {
       icon: DollarSign,
@@ -252,18 +255,19 @@ export default function ElderlyParents() {
               return (
                 <div key={index} className="grid lg:grid-cols-2 gap-12 items-center">
                   <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
-                    <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#0B0B0B] h-80 flex items-center justify-center">
-                      {index === 0 && (
-                        <div className="bg-[#141414] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(212,175,55,0.2)]">
+                    <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#0B0B0B] h-80">
+                      {index === 0 && feature.image && (
+                        <img 
+                          src={feature.image} 
+                          alt={feature.imageAlt}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      {index === 0 && !feature.image && (
+                        <div className="bg-[#141414] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(212,175,55,0.2)] flex items-center justify-center h-full">
                           <div className="flex items-center mb-3">
                             <Stethoscope className="w-5 h-5 text-[#D4AF37] mr-2" />
                             <span className="font-semibold text-sm text-[#F3F4F6]">Medical Directive</span>
-                          </div>
-                          <div className="text-xs text-[#D1D5DB] text-left space-y-1">
-                            <div className="font-medium text-[#F3F4F6]">Sarah Reynolds</div>
-                            <div>Date required: Feb 12, 2024</div>
-                            <div>Location of original: Office desk</div>
-                            <div className="mt-2 text-[#D4AF37] font-medium">Emergency: Call David (Son)</div>
                           </div>
                         </div>
                       )}
