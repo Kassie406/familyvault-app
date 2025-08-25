@@ -3,6 +3,7 @@ import Footer from "@/components/footer";
 import familyImage from "@assets/image_1756096399044.png";
 import digitalSecurityImage from "@assets/image_1756096462942.png";
 import mobileAppImage from "@assets/image_1756096537141.png";
+import askExpertsImage from "@assets/image_1756096610126.png";
 import { 
   Baby,
   Heart, 
@@ -119,7 +120,9 @@ export default function StartingAFamily() {
     {
       icon: Phone,
       title: "Share With the Right People, the Right Way",
-      description: "Control who sees what with granular sharing permissions"
+      description: "Control who sees what with granular sharing permissions",
+      image: askExpertsImage,
+      imageAlt: "Ask the Experts blackboard with lightbulbs representing expert consultation and guidance"
     }
   ];
 
