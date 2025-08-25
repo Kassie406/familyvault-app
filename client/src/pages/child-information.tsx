@@ -6,6 +6,7 @@ import wifiPhoneImage from "@assets/image_1756085497967.png";
 import insuranceCardImage from "@assets/image_1756085656097.png";
 import babysitterImage from "@assets/image_1756085729438.png";
 import securityImage from "@assets/image_1756085840418.png";
+import mobileAppImage from "@assets/image_1756085913047.png";
 import { 
   FileText, 
   Share2, 
@@ -271,6 +272,12 @@ export default function ChildInformation() {
                         src={securityImage}
                         alt="Digital security visualization with lock symbol and circuit board"
                         className="w-full h-full object-cover rounded-xl"
+                      />
+                    ) : index === 1 ? (
+                      <img 
+                        src={mobileAppImage}
+                        alt="Mobile app interface showing browse screen with family documents and categories"
+                        className="w-full h-full object-contain"
                       />
                     ) : (
                       <IconComponent className="w-12 h-12 text-[#FFD700]" />
