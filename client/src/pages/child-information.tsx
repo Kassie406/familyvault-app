@@ -7,6 +7,7 @@ import insuranceCardImage from "@assets/image_1756085656097.png";
 import babysitterImage from "@assets/image_1756085729438.png";
 import securityImage from "@assets/image_1756085840418.png";
 import mobileAppImage from "@assets/image_1756085913047.png";
+import expertsImage from "@assets/image_1756086008968.png";
 import { 
   FileText, 
   Share2, 
@@ -278,6 +279,12 @@ export default function ChildInformation() {
                         src={mobileAppImage}
                         alt="Mobile app interface showing browse screen with family documents and categories"
                         className="w-full h-full object-contain"
+                      />
+                    ) : index === 2 ? (
+                      <img 
+                        src={expertsImage}
+                        alt="Chalkboard with Ask the Experts text surrounded by light bulb illustrations"
+                        className="w-full h-full object-cover rounded-xl"
                       />
                     ) : (
                       <IconComponent className="w-12 h-12 text-[#FFD700]" />
