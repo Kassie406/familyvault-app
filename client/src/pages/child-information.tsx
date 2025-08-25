@@ -4,6 +4,7 @@ import soccerKidImage from "@assets/image_1756084550627.png";
 import phoneDocumentImage from "@assets/image_1756085339999.png";
 import wifiPhoneImage from "@assets/image_1756085497967.png";
 import insuranceCardImage from "@assets/image_1756085656097.png";
+import babysitterImage from "@assets/image_1756085729438.png";
 import { 
   FileText, 
   Share2, 
@@ -199,6 +200,12 @@ export default function ChildInformation() {
                         <img 
                           src={insuranceCardImage}
                           alt="Hand holding medical insurance card with health policy document in background"
+                          className="w-full h-full object-cover rounded-xl"
+                        />
+                      ) : index === 3 ? (
+                        <img 
+                          src={babysitterImage}
+                          alt="Caregiver sitting with two young children, showing confident childcare"
                           className="w-full h-full object-cover rounded-xl"
                         />
                       ) : (
