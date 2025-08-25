@@ -12,8 +12,7 @@ export default function Reviews() {
       quote: "When our basement flooded, I was able to access our insurance documents instantly from my phone. FamilyVault saved us weeks of paperwork reconstruction and thousands in potential delays.",
       author: "Sarah M.",
       memberSince: "Member since 2023",
-      thumbnail: "🏠",
-      color: "bg-blue-500"
+      thumbnail: "🏠"
     },
     {
       id: 2,
@@ -21,8 +20,7 @@ export default function Reviews() {
       quote: "With three kids in different schools and activities, keeping track of medical forms, permission slips, and schedules was chaos. FamilyVault brought order to our family madness.",
       author: "Marcus & Lisa T.",
       memberSince: "Member since 2024",
-      thumbnail: "👨‍👩‍👧‍👦",
-      color: "bg-green-500"
+      thumbnail: "👨‍👩‍👧‍👦"
     },
     {
       id: 3,
@@ -30,8 +28,7 @@ export default function Reviews() {
       quote: "After my father passed without any organized records, I promised my family wouldn't face the same struggle. FamilyVault ensures everything is documented and accessible.",
       author: "Jennifer L.",
       memberSince: "Member since 2022",
-      thumbnail: "💝",
-      color: "bg-purple-500"
+      thumbnail: "💝"
     },
     {
       id: 4,
@@ -39,8 +36,7 @@ export default function Reviews() {
       quote: "We had documents scattered across email, cloud storage, and filing cabinets. FamilyVault consolidated everything into one secure, searchable system that actually makes sense.",
       author: "David K.",
       memberSince: "Member since 2023",
-      thumbnail: "📁",
-      color: "bg-orange-500"
+      thumbnail: "📁"
     },
     {
       id: 5,
@@ -48,8 +44,7 @@ export default function Reviews() {
       quote: "Unlike regular cloud storage, FamilyVault was built specifically for sensitive family information. The security features give me confidence that our data is truly protected.",
       author: "Dr. Amanda R.",
       memberSince: "Member since 2022",
-      thumbnail: "🔒",
-      color: "bg-red-500"
+      thumbnail: "🔒"
     },
     {
       id: 6,
@@ -57,8 +52,7 @@ export default function Reviews() {
       quote: "Tax season used to take weeks of document hunting. Now everything is organized and ready. FamilyVault has given me my weekends back.",
       author: "Robert C.",
       memberSince: "Member since 2024",
-      thumbnail: "⏰",
-      color: "bg-indigo-500"
+      thumbnail: "⏰"
     }
   ];
 
@@ -115,22 +109,22 @@ export default function Reviews() {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#0E0E0E]">
       <Navbar />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-blue-50 to-white pt-24 pb-16">
+      <section className="bg-gradient-to-b from-[#121212] to-[#0E0E0E] pt-24 pb-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">
+          <h1 className="text-5xl font-bold text-white mb-6">
             Why Families Choose FamilyVault
           </h1>
-          <p className="text-xl text-gray-600 mb-8 leading-relaxed max-w-3xl mx-auto">
+          <p className="text-xl text-[#A5A5A5] mb-8 leading-relaxed max-w-3xl mx-auto">
             Discover how thousands of families use FamilyVault to organize, secure, and share their most important information. 
             Real stories from real families who've transformed their document management.
           </p>
           <button 
             data-testid="button-share-story"
-            className="bg-primary hover:bg-secondary text-white px-8 py-3 rounded-lg font-semibold text-lg transition-colors"
+            className="bg-[#FFD43B] hover:bg-[#E6C140] text-[#0E0E0E] font-semibold px-8 py-4 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#FFD43B] focus:ring-offset-2 focus:ring-offset-[#0E0E0E] min-h-[44px]"
           >
             Share Your Family's Story
           </button>
@@ -138,18 +132,18 @@ export default function Reviews() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-[#0E0E0E] border-t border-[#2A2A2A]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8">
             {stats.map((stat, index) => {
               const IconComponent = stat.icon;
               return (
                 <div key={index} className="text-center">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <IconComponent className="w-8 h-8 text-primary" />
+                  <div className="w-16 h-16 bg-[#FFD43B]/10 border border-[#2A2A2A] rounded-full flex items-center justify-center mx-auto mb-4">
+                    <IconComponent className="w-8 h-8 text-[#FFD43B]" />
                   </div>
-                  <div className="text-3xl font-bold text-gray-900 mb-2">{stat.number}</div>
-                  <div className="text-gray-600 font-medium">{stat.label}</div>
+                  <div className="text-3xl font-bold text-white mb-2">{stat.number}</div>
+                  <div className="text-[#A5A5A5] font-medium">{stat.label}</div>
                 </div>
               );
             })}
@@ -158,12 +152,12 @@ export default function Reviews() {
       </section>
 
       {/* Video Testimonials */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-[#121212] border-t border-[#2A2A2A]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-center text-gray-900 mb-4">
+          <h2 className="text-4xl font-bold text-center text-white mb-4">
             Family Success Stories
           </h2>
-          <p className="text-xl text-gray-600 text-center mb-16 max-w-3xl mx-auto">
+          <p className="text-xl text-[#A5A5A5] text-center mb-16 max-w-3xl mx-auto">
             Hear directly from families who've experienced the peace of mind that comes with having their important information organized and secure.
           </p>
           
@@ -171,23 +165,23 @@ export default function Reviews() {
             {videoTestimonials.map((testimonial) => (
               <div 
                 key={testimonial.id} 
-                className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+                className="bg-[#151515] border border-[#2A2A2A] rounded-xl overflow-hidden hover:border-[#FFD43B]/30 transition-all group"
               >
                 <div className="relative">
-                  <div className={`${testimonial.color} h-48 flex items-center justify-center`}>
-                    <div className="text-6xl">{testimonial.thumbnail}</div>
-                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                  <div className="bg-gradient-to-br from-[#FFD43B]/20 to-[#FFD43B]/5 h-48 flex items-center justify-center">
+                    <div className="text-6xl opacity-80">{testimonial.thumbnail}</div>
+                    <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center group-hover:bg-opacity-10 transition-all">
                       <button 
                         onClick={() => setActiveTestimonial(testimonial.id)}
-                        className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all"
+                        className="w-16 h-16 bg-[#FFD43B] bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all shadow-lg"
                         data-testid={`play-testimonial-${testimonial.id}`}
                       >
-                        <Play className="w-6 h-6 text-gray-800 ml-1" />
+                        <Play className="w-6 h-6 text-[#0E0E0E] ml-1" />
                       </button>
                     </div>
                   </div>
                   <div className="absolute top-4 left-4">
-                    <span className="bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm font-medium">
+                    <span className="bg-[#FFD43B] text-[#0E0E0E] px-3 py-1 rounded-full text-sm font-medium">
                       {testimonial.category}
                     </span>
                   </div>
@@ -196,16 +190,16 @@ export default function Reviews() {
                 <div className="p-6">
                   <div className="flex items-center mb-4">
                     {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+                      <Star key={i} className="w-4 h-4 text-[#FFD43B] fill-current" />
                     ))}
                   </div>
-                  <blockquote className="text-gray-700 mb-4 leading-relaxed">
+                  <blockquote className="text-[#A5A5A5] mb-4 leading-relaxed">
                     "{testimonial.quote}"
                   </blockquote>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-semibold text-gray-900">{testimonial.author}</p>
-                      <p className="text-sm text-gray-500">{testimonial.memberSince}</p>
+                      <p className="font-semibold text-white">{testimonial.author}</p>
+                      <p className="text-sm text-[#A5A5A5]">{testimonial.memberSince}</p>
                     </div>
                   </div>
                 </div>
@@ -216,13 +210,13 @@ export default function Reviews() {
       </section>
 
       {/* Text Testimonials */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-[#0E0E0E] border-t border-[#2A2A2A]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl font-bold text-white mb-4">
               What Families Are Saying
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-[#A5A5A5] max-w-3xl mx-auto">
               Join thousands of satisfied families who have found peace of mind with FamilyVault's secure document management.
             </p>
           </div>
@@ -231,16 +225,16 @@ export default function Reviews() {
             {textTestimonials.map((testimonial, index) => (
               <div 
                 key={index} 
-                className="bg-gray-50 rounded-xl p-8 border border-gray-100 hover:shadow-lg transition-shadow"
+                className="bg-[#121212] border border-[#2A2A2A] rounded-xl p-8 hover:border-[#FFD43B]/30 transition-all"
               >
                 <div className="flex items-center mb-4">
                   <div className="flex space-x-1 mr-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+                      <Star key={i} className="w-4 h-4 text-[#FFD43B] fill-current" />
                     ))}
                   </div>
                   {testimonial.verified && (
-                    <div className="flex items-center text-green-600">
+                    <div className="flex items-center text-[#FFD43B]">
                       <CheckCircle className="w-4 h-4 mr-1" />
                       <span className="text-xs font-medium">Verified</span>
                     </div>
@@ -248,19 +242,19 @@ export default function Reviews() {
                 </div>
                 
                 <div className="mb-4">
-                  <Quote className="w-8 h-8 text-primary/20 mb-2" />
-                  <p className="text-gray-700 leading-relaxed">
+                  <Quote className="w-8 h-8 text-[#FFD43B]/20 mb-2" />
+                  <p className="text-[#A5A5A5] leading-relaxed">
                     {testimonial.review}
                   </p>
                 </div>
                 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                    <p className="text-sm text-gray-500">{testimonial.date}</p>
+                    <p className="font-semibold text-white">{testimonial.name}</p>
+                    <p className="text-sm text-[#A5A5A5]">{testimonial.date}</p>
                   </div>
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                    <Heart className="w-5 h-5 text-primary" />
+                  <div className="w-10 h-10 bg-[#FFD43B]/10 border border-[#2A2A2A] rounded-full flex items-center justify-center">
+                    <Heart className="w-5 h-5 text-[#FFD43B]" />
                   </div>
                 </div>
               </div>
@@ -270,26 +264,26 @@ export default function Reviews() {
       </section>
 
       {/* Share Your Story CTA */}
-      <section className="py-20 bg-primary text-white">
+      <section className="py-20 bg-gradient-to-b from-[#FFD43B]/5 to-transparent border-t border-[#2A2A2A]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-bold mb-6">
+          <h2 className="text-4xl font-bold mb-6 text-white">
             Your story could inspire another family
           </h2>
-          <p className="text-xl mb-8 opacity-90 leading-relaxed">
+          <p className="text-xl mb-8 text-[#A5A5A5] leading-relaxed">
             Has FamilyVault made your life easier, safer, or more organized? Share your experience and help other families 
             discover the peace of mind that comes with having their important information secure and accessible.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button 
               data-testid="button-share-experience"
-              className="bg-white text-primary hover:bg-gray-100 px-8 py-4 rounded-lg font-semibold text-lg transition-colors"
+              className="inline-flex items-center justify-center bg-[#FFD43B] text-[#0E0E0E] font-semibold px-8 py-4 rounded-full hover:bg-[#E6C140] transition-colors focus:outline-none focus:ring-2 focus:ring-[#FFD43B] focus:ring-offset-2 focus:ring-offset-[#0E0E0E] min-h-[44px]"
             >
               Share Your Experience
             </button>
             <a
               href="/pricing"
               data-testid="button-start-free-trial"
-              className="border-2 border-white text-white hover:bg-white hover:text-primary px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
+              className="inline-flex items-center justify-center border border-[#FFD43B] text-[#FFD43B] font-semibold px-8 py-4 rounded-full hover:bg-[#FFD43B]/10 transition-colors focus:outline-none focus:ring-2 focus:ring-[#FFD43B] focus:ring-offset-2 focus:ring-offset-[#0E0E0E] min-h-[44px]"
             >
               Start Your Free Trial
             </a>
@@ -298,45 +292,45 @@ export default function Reviews() {
       </section>
 
       {/* Additional Reviews Section */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-[#121212] border-t border-[#2A2A2A]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-2xl shadow-lg p-8 md:p-12">
+          <div className="bg-[#151515] border border-[#2A2A2A] rounded-2xl p-8 md:p-12">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl font-bold text-white mb-4">
                 More Family Success Stories
               </h2>
-              <p className="text-lg text-gray-600">
+              <p className="text-lg text-[#A5A5A5]">
                 Every family has unique needs, and FamilyVault adapts to help them all stay organized and secure.
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
               <div className="space-y-6">
-                <div className="border-l-4 border-primary pl-6">
+                <div className="border-l-4 border-[#FFD43B] pl-6">
                   <div className="flex items-center mb-2">
                     <div className="flex space-x-1 mr-3">
                       {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+                        <Star key={i} className="w-4 h-4 text-[#FFD43B] fill-current" />
                       ))}
                     </div>
-                    <span className="text-sm text-gray-500">Elena R. • Dec 2024</span>
+                    <span className="text-sm text-[#A5A5A5]">Elena R. • Dec 2024</span>
                   </div>
-                  <p className="text-gray-700 leading-relaxed">
+                  <p className="text-[#B9B9B9] leading-relaxed">
                     "As a military family, we move frequently. FamilyVault ensures all our important documents travel with us digitally, 
                     making relocations so much less stressful. No more lost paperwork during moves!"
                   </p>
                 </div>
 
-                <div className="border-l-4 border-green-500 pl-6">
+                <div className="border-l-4 border-[#FFD43B] pl-6">
                   <div className="flex items-center mb-2">
                     <div className="flex space-x-1 mr-3">
                       {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+                        <Star key={i} className="w-4 h-4 text-[#FFD43B] fill-current" />
                       ))}
                     </div>
-                    <span className="text-sm text-gray-500">Michael & Janet D. • Nov 2024</span>
+                    <span className="text-sm text-[#A5A5A5]">Michael & Janet D. • Nov 2024</span>
                   </div>
-                  <p className="text-gray-700 leading-relaxed">
+                  <p className="text-[#B9B9B9] leading-relaxed">
                     "We're caring for elderly parents while raising teenagers. FamilyVault helps us manage medical information, 
                     school records, and financial documents for multiple generations in one secure place."
                   </p>
@@ -344,31 +338,31 @@ export default function Reviews() {
               </div>
 
               <div className="space-y-6">
-                <div className="border-l-4 border-purple-500 pl-6">
+                <div className="border-l-4 border-[#FFD43B] pl-6">
                   <div className="flex items-center mb-2">
                     <div className="flex space-x-1 mr-3">
                       {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+                        <Star key={i} className="w-4 h-4 text-[#FFD43B] fill-current" />
                       ))}
                     </div>
-                    <span className="text-sm text-gray-500">Thomas K. • Oct 2024</span>
+                    <span className="text-sm text-[#A5A5A5]">Thomas K. • Oct 2024</span>
                   </div>
-                  <p className="text-gray-700 leading-relaxed">
+                  <p className="text-[#B9B9B9] leading-relaxed">
                     "The secure sharing feature is incredible. When my wife was traveling and needed our insurance information, 
                     she could access it instantly. No more texting sensitive information or scrambling through files."
                   </p>
                 </div>
 
-                <div className="border-l-4 border-orange-500 pl-6">
+                <div className="border-l-4 border-[#FFD43B] pl-6">
                   <div className="flex items-center mb-2">
                     <div className="flex space-x-1 mr-3">
                       {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+                        <Star key={i} className="w-4 h-4 text-[#FFD43B] fill-current" />
                       ))}
                     </div>
-                    <span className="text-sm text-gray-500">Rachel M. • Sep 2024</span>
+                    <span className="text-sm text-[#A5A5A5]">Rachel M. • Sep 2024</span>
                   </div>
-                  <p className="text-gray-700 leading-relaxed">
+                  <p className="text-[#B9B9B9] leading-relaxed">
                     "The mobile app saved us during a family emergency. When my son was injured at camp, 
                     I could instantly provide his medical history and insurance details to the hospital staff from my phone."
                   </p>
@@ -380,17 +374,17 @@ export default function Reviews() {
       </section>
 
       {/* Final CTA */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-[#0E0E0E] border-t border-[#2A2A2A]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">
+          <h2 className="text-3xl font-bold text-white mb-6">
             Ready to secure your family's future?
           </h2>
-          <p className="text-lg text-gray-600 mb-8">
+          <p className="text-lg text-[#A5A5A5] mb-8">
             Join thousands of families who trust FamilyVault to protect and organize their most important information.
           </p>
           <button 
             data-testid="button-get-started-reviews"
-            className="bg-primary hover:bg-secondary text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors"
+            className="inline-flex items-center justify-center bg-[#FFD43B] text-[#0E0E0E] font-semibold px-8 py-4 rounded-full hover:bg-[#E6C140] transition-colors focus:outline-none focus:ring-2 focus:ring-[#FFD43B] focus:ring-offset-2 focus:ring-offset-[#0E0E0E] min-h-[44px]"
           >
             Start Your Free Trial Today
           </button>
