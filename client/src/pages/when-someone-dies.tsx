@@ -1,5 +1,6 @@
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import memorialImage from "@assets/image_1756096658862.png";
 import { 
   Leaf,
   Heart, 
@@ -158,11 +159,12 @@ export default function WhenSomeoneDies() {
                 </a>
               </div>
             </div>
-            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem] flex items-center justify-center">
-              <div className="text-center">
-                <Leaf className="w-24 h-24 text-[#D4AF37] mx-auto mb-4" />
-                <p className="text-[#9CA3AF] text-lg">Peaceful garden with memorial flowers</p>
-              </div>
+            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem]">
+              <img 
+                src={memorialImage} 
+                alt="Peaceful memorial scene with white lilies and gentle lighting"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
         </div>
