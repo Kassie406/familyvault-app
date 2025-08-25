@@ -1,0 +1,141 @@
+Apply the following to the “Forever Files” dropdown so it doesn’t close while moving the mouse from the trigger to the panel:
+
+1) HTML: ensure the trigger and panel are siblings inside a single container.
+2) CSS: show the panel when the container is hovered OR focused-within; add a small “buffer” hit-area.
+3) JS: add a 150ms close delay that’s cancelled if the user re-enters the trigger or panel; keep ARIA states in sync.
+
+Use the gold/black theme variables already in the project.
+
+--- HTML (structure to match) ---
+<nav class="nav">
+  <div class="nav-item has-dropdown" id="forever-files">
+    <button class="nav-trigger" aria-expanded="false" aria-controls="ff-menu">
+      Forever Files ▾
+    </button>
+
+    <div class="dropdown" id="ff-menu" role="menu" aria-labelledby="forever-files">
+      <!-- existing grid of items goes here -->
+    </div>
+  </div>
+</nav>
+
+--- CSS ---
+:root{
+  --black:#0a0a0a;
+  --gold:#FFD700;
+  --gold-700:#B8860B;
+  --panel:#111;
+  --ring: rgba(255,215,0,0.2);
+}
+
+/* Container positions the dropdown */
+.nav-item.has-dropdown{
+  position:relative;
+}
+
+/* Hide by default */
+.nav-item .dropdown{
+  position:absolute;
+  top:100%;
+  left:0;
+  display:none;
+  min-width: 320px;
+  background: linear-gradient(180deg, #111 0%, #0b0b0b 100%);
+  border:1px solid rgba(255,215,0,0.35);
+  border-radius:14px;
+  padding:16px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+  z-index:1000;
+}
+
+/* “Open” class toggled by JS */
+.nav-item.open > .dropdown{
+  display:block;
+}
+
+/* Keep open when hovered OR focused within (keyboard support) */
+.nav-item.has-dropdown:hover > .dropdown,
+.nav-item.has-dropdown:focus-within > .dropdown{
+  display:block;
+}
+
+/* Add an invisible buffer to prevent micro-gaps */
+.nav-item .dropdown::after{
+  content:"";
+  position:absolute;
+  top:-12px;       /* extends upward */
+  left:0;
+  width:100%;
+  height:12px;     /* buffer height */
+}
+
+/* Trigger focus ring & hover affordance */
+.nav-trigger{
+  background:transparent;
+  color:#fff;
+  border:0;
+  padding:10px 12px;
+  border-radius:10px;
+}
+.nav-trigger:hover,
+.nav-item.open .nav-trigger{
+  background:rgba(255,215,0,0.08);
+}
+.nav-trigger:focus{
+  outline:2px solid var(--ring);
+  outline-offset:3px;
+  border-radius:10px;
+}
+
+/* Dropdown grid items (keep your existing styles; example) */
+.dropdown .item{
+  display:flex; gap:12px; align-items:center;
+  padding:10px 8px; border-radius:10px; color:#eaeaea;
+}
+.dropdown .item:hover{
+  background:rgba(255,215,0,0.08);
+  color:#fff;
+}
+
+--- JS (delay close + ARIA sync) ---
+(() => {
+  const dd = document.getElementById('forever-files');
+  if(!dd) return;
+
+  const trigger  = dd.querySelector('.nav-trigger');
+  const panel    = dd.querySelector('.dropdown');
+  let closeTimer = null;
+
+  const open = () => {
+    dd.classList.add('open');
+    trigger.setAttribute('aria-expanded', 'true');
+    clearTimeout(closeTimer);
+  };
+
+  const scheduleClose = () => {
+    clearTimeout(closeTimer);
+    closeTimer = setTimeout(() => {
+      dd.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+    }, 150); // gentle hover-intent delay
+  };
+
+  // Open on hover/focus
+  trigger.addEventListener('mouseenter', open);
+  panel.addEventListener('mouseenter', open);
+  trigger.addEventListener('focus', open, true);
+
+  // Schedule close when leaving both trigger and panel
+  trigger.addEventListener('mouseleave', scheduleClose);
+  panel.addEventListener('mouseleave', scheduleClose);
+  trigger.addEventListener('blur', scheduleClose, true);
+
+  // Close on Escape for accessibility
+  dd.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape'){
+      dd.classList.remove('open');
+      trigger.setAttribute('aria-expanded','false');
+      trigger.focus();
+    }
+  });
+})();
