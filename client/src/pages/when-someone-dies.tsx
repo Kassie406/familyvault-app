@@ -3,6 +3,7 @@ import Footer from "@/components/footer";
 import memorialImage from "@assets/image_1756096658862.png";
 import digitalSecurityImage from "@assets/image_1756096704415.png";
 import mobileAppImage from "@assets/image_1756096804669.png";
+import askExpertsImage from "@assets/image_1756096864006.png";
 import { 
   Leaf,
   Heart, 
@@ -120,7 +121,9 @@ export default function WhenSomeoneDies() {
     {
       icon: Phone,
       title: "Expert Support",
-      description: "Get personalized help during difficult times"
+      description: "Get personalized help during difficult times",
+      image: askExpertsImage,
+      imageAlt: "Ask the Experts blackboard with lightbulbs representing expert consultation and guidance"
     }
   ];
 
