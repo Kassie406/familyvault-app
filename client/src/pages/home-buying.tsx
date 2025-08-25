@@ -27,6 +27,7 @@ import {
 import houseKeysImage from "@assets/image_1756095984954.png";
 import digitalSecurityImage from "@assets/image_1756096227958.png";
 import mobileAppImage from "@assets/image_1756096292349.png";
+import askExpertsImage from "@assets/image_1756096343174.png";
 
 export default function HomeBuying() {
   const homeBuyingCards = [
@@ -120,7 +121,9 @@ export default function HomeBuying() {
     {
       icon: Phone,
       title: "Share With Your Team",
-      description: "Collaborate securely with realtors, lenders, and other professionals"
+      description: "Collaborate securely with realtors, lenders, and other professionals",
+      image: askExpertsImage,
+      imageAlt: "Ask the Experts blackboard with light bulbs showing expert consultation concept"
     }
   ];
 
