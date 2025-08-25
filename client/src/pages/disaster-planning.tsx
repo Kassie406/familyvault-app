@@ -23,6 +23,7 @@ import {
   Activity,
   PawPrint
 } from "lucide-react";
+import disasterSceneImage from "@assets/image_1756095132487.png";
 
 export default function DisasterPlanning() {
   const disasterPlanCards = [
@@ -157,11 +158,12 @@ export default function DisasterPlanning() {
                 </a>
               </div>
             </div>
-            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem] flex items-center justify-center">
-              <div className="text-center">
-                <AlertTriangle className="w-24 h-24 text-[#D4AF37] mx-auto mb-4" />
-                <p className="text-[#9CA3AF] text-lg">Emergency preparedness visualization</p>
-              </div>
+            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem]">
+              <img 
+                src={disasterSceneImage} 
+                alt="Firefighter at disaster scene with debris and destruction, representing emergency response"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
         </div>
