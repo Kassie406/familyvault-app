@@ -600,15 +600,15 @@ export default function Pricing() {
                   </div>
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-                    <span className="text-gray-700">Property</span>
+                    <span className="text-[#CCCCCC]">Property</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
-                    <span className="text-gray-700">Insurance</span>
+                    <span className="text-[#CCCCCC]">Insurance</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
-                    <span className="text-gray-700">Taxes</span>
+                    <span className="text-[#CCCCCC]">Taxes</span>
                   </div>
                 </div>
               </div>
@@ -619,9 +619,9 @@ export default function Pricing() {
             {/* Item */}
             <div className="text-center">
               <div className="bg-[#121212] border border-[#FFD700]/30 rounded-xl p-8 shadow-lg mb-6">
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-sm text-gray-500 mb-2">David's New York Life Insurance</div>
-                  <div className="text-xs text-gray-400">Jane Reynolds</div>
+                <div className="bg-[#1a1a1a] border border-[#FFD700]/20 rounded-lg p-4">
+                  <div className="text-sm text-white mb-2">David's New York Life Insurance</div>
+                  <div className="text-xs text-[#CCCCCC]">Jane Reynolds</div>
                 </div>
               </div>
               <h3 className="text-xl font-bold text-[#FFD700] mb-2">Item</h3>
@@ -633,20 +633,20 @@ export default function Pricing() {
               <div className="bg-[#121212] border border-[#FFD700]/30 rounded-xl p-8 shadow-lg mb-6">
                 <div className="space-y-2 text-left">
                   <div className="flex justify-between">
-                    <span className="text-gray-600 text-sm">Policy Name:</span>
-                    <span className="text-gray-900 text-sm font-medium">Cottage Life Insurance</span>
+                    <span className="text-[#CCCCCC] text-sm">Policy Name:</span>
+                    <span className="text-white text-sm font-medium">Cottage Life Insurance</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600 text-sm">Policy Number:</span>
-                    <span className="text-gray-900 text-sm font-medium">347-485-1754-918484</span>
+                    <span className="text-[#CCCCCC] text-sm">Policy Number:</span>
+                    <span className="text-white text-sm font-medium">347-485-1754-918484</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600 text-sm">Issue Date:</span>
-                    <span className="text-gray-900 text-sm font-medium">09/15/2022</span>
+                    <span className="text-[#CCCCCC] text-sm">Issue Date:</span>
+                    <span className="text-white text-sm font-medium">09/15/2022</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600 text-sm">Next Date:</span>
-                    <span className="text-gray-900 text-sm font-medium">03-09-2024</span>
+                    <span className="text-[#CCCCCC] text-sm">Next Date:</span>
+                    <span className="text-white text-sm font-medium">03-09-2024</span>
                   </div>
                 </div>
               </div>
