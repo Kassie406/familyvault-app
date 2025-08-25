@@ -3,6 +3,7 @@ import Footer from "@/components/footer";
 import soccerKidImage from "@assets/image_1756084550627.png";
 import phoneDocumentImage from "@assets/image_1756085339999.png";
 import wifiPhoneImage from "@assets/image_1756085497967.png";
+import insuranceCardImage from "@assets/image_1756085656097.png";
 import { 
   FileText, 
   Share2, 
@@ -193,6 +194,12 @@ export default function ChildInformation() {
                           src={wifiPhoneImage}
                           alt="Phone screen showing Wi-Fi password sharing interface"
                           className="w-full h-full object-contain"
+                        />
+                      ) : index === 2 ? (
+                        <img 
+                          src={insuranceCardImage}
+                          alt="Hand holding medical insurance card with health policy document in background"
+                          className="w-full h-full object-cover rounded-xl"
                         />
                       ) : (
                         <div className="text-center">
