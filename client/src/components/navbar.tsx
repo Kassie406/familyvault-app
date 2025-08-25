@@ -104,9 +104,9 @@ export default function Navbar() {
   ];
 
   const moreGoodieGuidesCategories = [
-    { name: "Blogs", icon: "📝" },
-    { name: "Guides & Checklists", icon: "📋" },
-    { name: "Help center", icon: "❓" }
+    { name: "Blogs", icon: "📝", path: "/blogs" },
+    { name: "Guides & Checklists", icon: "📋", path: "/guides-checklists" },
+    { name: "Help center", icon: "❓", path: "/help-center" }
   ];
 
   return (
@@ -183,7 +183,7 @@ export default function Navbar() {
                     {moreGoodieGuidesCategories.map((category, index) => (
                       <a
                         key={index}
-                        href="#"
+                        href={category.path}
                         className="item"
                         role="menuitem"
                       >
@@ -285,7 +285,7 @@ export default function Navbar() {
                   {moreGoodieGuidesCategories.map((category, index) => (
                     <a
                       key={index}
-                      href="#"
+                      href={category.path}
                       className="flex items-center px-3 py-2 text-sm text-[#CCCCCC] hover:text-[var(--secondary-accent)] rounded"
                     >
                       <span className="text-base mr-2">{category.icon}</span>
