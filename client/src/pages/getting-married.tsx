@@ -538,17 +538,17 @@ export default function GettingMarried() {
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="flex overflow-x-auto gap-6 pb-4 snap-x snap-mandatory" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-[#0B0B0B] rounded-lg p-6 text-center border border-[rgba(212,175,55,0.2)]">
-                <div className="flex justify-center mb-3">
+              <div key={index} className="bg-[#1a1a1a] border border-[#FFD700]/20 rounded-xl p-6 shadow-md min-w-[300px] snap-start text-center flex-shrink-0">
+                <div className="flex justify-center mb-4">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-[#D4AF37] fill-current" />
+                    <Star key={i} className="w-5 h-5 text-[#FFD700] fill-current" />
                   ))}
                 </div>
-                <p className="text-[#D1D5DB] italic mb-4">"{testimonial.quote}"</p>
+                <p className="text-[#D1D5DB] italic mb-6 text-lg">"{testimonial.quote}"</p>
                 {testimonial.image ? (
-                  <div className="w-16 h-16 mx-auto mb-3 rounded-full border-2 border-[#FFD700] overflow-hidden">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-[#FFD700] overflow-hidden">
                     <img 
                       src={testimonial.image} 
                       alt={`${testimonial.name} profile photo`}
@@ -556,14 +556,26 @@ export default function GettingMarried() {
                     />
                   </div>
                 ) : (
-                  <div className="w-16 h-16 bg-gradient-to-br from-[#FFD700] to-[#D4AF37] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#FFD700]">
+                  <div className="w-16 h-16 bg-gradient-to-br from-[#FFD700] to-[#D4AF37] rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-[#FFD700]">
                     <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
                   </div>
                 )}
-                <div className="font-semibold text-sm text-[#F3F4F6]">{testimonial.name}</div>
-                <div className="text-xs text-[#D1D5DB]">{testimonial.title}</div>
+                <div className="font-semibold text-lg text-[#F3F4F6]">{testimonial.name}</div>
+                <div className="text-sm text-[#FFD700] font-medium">{testimonial.title}</div>
               </div>
             ))}
+          </div>
+          
+          {/* Progress indicator */}
+          <div className="flex justify-center mt-6">
+            <div className="flex gap-2">
+              {testimonials.map((_, index) => (
+                <div
+                  key={index}
+                  className="w-2 h-2 rounded-full bg-[#FFD700]/30"
+                ></div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
