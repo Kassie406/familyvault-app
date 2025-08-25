@@ -19,6 +19,7 @@ import {
   Phone,
   Bell
 } from "lucide-react";
+import movingCoupleImage from "@assets/image_1756094383182.png";
 
 export default function Moving() {
   const features = [
@@ -132,11 +133,12 @@ export default function Moving() {
               </a>
             </div>
             <div className="lg:pl-12">
-              <div className="bg-orange-50 rounded-2xl p-8 h-96 flex items-center justify-center">
-                <div className="text-center">
-                  <Package className="w-24 h-24 text-orange-400 mx-auto mb-4" />
-                  <p className="text-gray-600 text-lg">Person carrying moving boxes in a new home</p>
-                </div>
+              <div className="bg-orange-50 rounded-2xl p-8 h-96 overflow-hidden">
+                <img 
+                  src={movingCoupleImage} 
+                  alt="Couple carrying moving boxes outside their new home"
+                  className="w-full h-full object-cover rounded-lg"
+                />
               </div>
             </div>
           </div>
