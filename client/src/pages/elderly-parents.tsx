@@ -8,6 +8,7 @@ import familyAccessImage from "@assets/image_1756092776076.png";
 import familyCookingImage from "@assets/image_1756092907432.png";
 import digitalSecurityImage from "@assets/image_1756093157066.png";
 import mobileAppInterfaceImage from "@assets/image_1756093223145.png";
+import askExpertsImage from "@assets/image_1756093309581.png";
 import { 
   Heart, 
   DollarSign, 
@@ -134,7 +135,9 @@ export default function ElderlyParents() {
     {
       icon: Phone,
       title: "Connect With an Expert",
-      description: "Get personalized help organizing your family's documents"
+      description: "Get personalized help organizing your family's documents",
+      image: askExpertsImage,
+      imageAlt: "Ask the Experts blackboard with light bulbs showing expert consultation concept"
     }
   ];
 
@@ -419,7 +422,7 @@ export default function ElderlyParents() {
               return (
                 <div key={index} className="text-center">
                   <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#0B0B0B] h-48 flex items-center justify-center mb-6">
-                    {(index === 0 || index === 1) && feature.image ? (
+                    {feature.image ? (
                       <img 
                         src={feature.image} 
                         alt={feature.imageAlt}
