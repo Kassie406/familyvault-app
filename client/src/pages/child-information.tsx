@@ -9,6 +9,7 @@ import securityImage from "@assets/image_1756085840418.png";
 import mobileAppImage from "@assets/image_1756085913047.png";
 import expertsImage from "@assets/image_1756086008968.png";
 import guideBookImage from "@assets/image_1756086136192.png";
+import sarahProfileImageChild from "@assets/image_1756098304099.png";
 import { 
   FileText, 
   Share2, 
@@ -121,7 +122,7 @@ export default function ChildInformation() {
       title: "Daughter & Caregiver", 
       rating: 5, 
       quote: "FamilyVault helped me organize all of Mom's medical information in one secure place.",
-      image: null
+      image: sarahProfileImageChild
     },
     { 
       name: "David L.", 
