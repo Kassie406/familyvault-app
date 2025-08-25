@@ -7,6 +7,7 @@ import askExpertsImage from "@assets/image_1756094014310.png";
 import securityShieldImage from "@assets/image_1756096044567.png";
 import sarahProfileImageMarried from "@assets/image_1756098580501.png";
 import jessicaProfileImageMarried from "@assets/image_1756098686586.png";
+import davidEmmaProfileImageMarried from "@assets/image_1756098755503.png";
 import { 
   Heart,
   Users, 
@@ -163,7 +164,7 @@ export default function GettingMarried() {
   const testimonials = [
     { name: "Sarah & Mike", title: "Members since 2022", rating: 5, quote: "FamilyVault made combining our finances and updating our documents after marriage so much easier. Everything was organized!", image: sarahProfileImageMarried },
     { name: "Jessica L.", title: "Member since 2021", rating: 5, quote: "The name change process was seamless because all my documents were already organized and accessible in FamilyVault.", image: jessicaProfileImageMarried },
-    { name: "David & Emma", title: "Members since 2023", rating: 5, quote: "Sharing our important information with each other through FamilyVault gave us both peace of mind as newlyweds.", image: null }
+    { name: "David & Emma", title: "Members since 2023", rating: 5, quote: "Sharing our important information with each other through FamilyVault gave us both peace of mind as newlyweds.", image: davidEmmaProfileImageMarried }
   ];
 
   return (
