@@ -21,6 +21,7 @@ import {
 import laptopSecurityImage from "@assets/image_1756094818120.png";
 import digitalSecurityImage from "@assets/image_1756094885841.png";
 import mobileAppImage from "@assets/image_1756094986045.png";
+import askExpertsImage from "@assets/image_1756095055472.png";
 
 export default function DigitalSecurity() {
   const features = [
@@ -68,7 +69,9 @@ export default function DigitalSecurity() {
     {
       icon: Phone,
       title: "Connect With an Expert",
-      description: "Get personalized help organizing your family's documents"
+      description: "Get personalized help organizing your family's documents",
+      image: askExpertsImage,
+      imageAlt: "Ask the Experts blackboard with light bulbs showing expert consultation concept"
     }
   ];
 
