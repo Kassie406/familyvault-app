@@ -1,6 +1,7 @@
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import weddingHandsImage from "@assets/image_1756093794307.png";
+import digitalSecurityImage from "@assets/image_1756093873694.png";
 import { 
   Heart,
   Users, 
@@ -101,7 +102,9 @@ export default function GettingMarried() {
     {
       icon: Shield,
       title: "Back Up Your Data Easily",
-      description: "Automatic cloud backup keeps everything safe"
+      description: "Automatic cloud backup keeps everything safe",
+      image: digitalSecurityImage,
+      imageAlt: "Digital security shield with circuit board background representing secure cloud backup"
     },
     {
       icon: Smartphone, 
@@ -431,7 +434,15 @@ export default function GettingMarried() {
               return (
                 <div key={index} className="text-center">
                   <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#0B0B0B] h-48 flex items-center justify-center mb-6">
-                    <IconComponent className="w-12 h-12 text-[#D4AF37]" />
+                    {feature.image ? (
+                      <img 
+                        src={feature.image} 
+                        alt={feature.imageAlt}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <IconComponent className="w-12 h-12 text-[#D4AF37]" />
+                    )}
                   </div>
                   <h3 className="text-lg font-semibold text-[#F3F4F6] mb-2">
                     {feature.title}
