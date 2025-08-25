@@ -119,125 +119,149 @@ export default function Neurodiversity() {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#0b0b0b] text-[#e9e9e9]">
       <Navbar />
       
       {/* Hero Section */}
-      <section className="pt-24 pb-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-6">
-                <Brain className="w-6 h-6 text-teal-600" />
-              </div>
-              <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+      <section className="pt-16 pb-20">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-10 items-center">
+            <div className="space-y-6">
+              <span className="inline-flex items-center gap-2 text-[#f4c542] font-semibold bg-[rgba(244,197,66,0.04)] px-3 py-1.5 rounded-full border border-[rgba(255,255,255,0.06)] text-sm tracking-wide">
+                🧠 Neurodiversity
+              </span>
+              <h1 className="text-4xl lg:text-5xl font-bold text-[#e9e9e9] tracking-tight leading-tight">
                 FamilyVault for Neurodivergent Individuals
               </h1>
-              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+              <p className="text-[#b3b3b3] text-lg leading-relaxed">
                 Navigate life with confidence: The Family Operating System® keeps your essential information organized, accessible, and stress-free, supporting your own way of thinking and processing.
               </p>
-              <a
-                href="/signup"
-                data-testid="button-get-started"
-                className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
-              >
-                Get started free
-              </a>
-            </div>
-            <div className="lg:pl-12">
-              <div className="bg-teal-50 rounded-2xl p-8 h-96 overflow-hidden">
-                <img 
-                  src={thoughtfulWorkerImage} 
-                  alt="Young man with glasses and cap working thoughtfully, representing focus and concentration"
-                  className="w-full h-full object-cover rounded-lg"
-                />
+              <div className="flex flex-wrap gap-4 pt-2">
+                <a
+                  href="/signup"
+                  data-testid="button-get-started"
+                  className="inline-flex items-center gap-2 bg-[#f4c542] text-[#111] font-semibold px-6 py-3 rounded-full hover:bg-[#d4aa2e] transition-colors min-h-[44px] shadow-[0_6px_16px_rgba(244,197,66,0.35)] focus:outline-none focus:ring-[0_0_0_1px_rgba(244,197,66,0.3),0_0_0_4px_rgba(244,197,66,0.12)]"
+                >
+                  Get started free
+                </a>
+                <a 
+                  href="#features"
+                  data-testid="link-see-features"
+                  className="inline-flex items-center gap-2 border border-[rgba(255,255,255,0.16)] text-[#e9e9e9] bg-transparent px-6 py-3 rounded-full hover:border-[#f4c542] hover:text-[#f4c542] transition-colors min-h-[44px] focus:outline-none focus:ring-[0_0_0_1px_rgba(244,197,66,0.3),0_0_0_4px_rgba(244,197,66,0.12)]"
+                >
+                  See neurodiversity features →
+                </a>
               </div>
+            </div>
+            <div className="relative rounded-2xl overflow-hidden bg-[#111] shadow-[0_8px_24px_rgba(0,0,0,0.35)] border border-[rgba(244,197,66,0.35)] order-first lg:order-last">
+              <img 
+                src={thoughtfulWorkerImage} 
+                alt="Young man with glasses and cap working thoughtfully, representing focus and concentration"
+                className="w-full h-full object-cover block"
+                width="640"
+                height="480"
+                fetchpriority="high"
+              />
             </div>
           </div>
         </div>
       </section>
 
+      {/* Section divider */}
+      <div className="h-px bg-[rgba(255,255,255,0.06)] mx-4 sm:mx-6 lg:mx-8" aria-hidden="true"></div>
+
       {/* Customer Story Section */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-20 bg-[#0b0b0b] border-t border-[rgba(255,255,255,0.06)]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl lg:text-4xl font-bold text-[#e9e9e9] mb-4">
             How FamilyVault Makes It Easier to Feel Prepared and in Control
           </h2>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-12">
+          <p className="text-lg text-[#b3b3b3] max-w-3xl mx-auto mb-12">
             Daniel J. and his partner live with autism and ADHD, and they know it can be hard to keep life organized when juggling documents, deadlines, and decisions.
           </p>
           
-          <div className="bg-gradient-to-r from-red-200 to-red-300 rounded-2xl p-8 lg:p-12 relative">
+          <div className="bg-[#111] border border-[rgba(255,255,255,0.12)] rounded-2xl p-8 lg:p-12 relative">
             <div className="grid lg:grid-cols-2 gap-8 items-center">
               <div className="text-left">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Daniel J.</h3>
-                <h4 className="text-lg font-semibold text-gray-800 mb-4">Why FamilyVault?<br />The Family Operating System®</h4>
-                <div className="bg-gray-900 text-white px-4 py-2 rounded text-sm inline-block mb-4">
+                <h3 className="text-2xl font-bold text-[#e9e9e9] mb-4">Daniel J.</h3>
+                <h4 className="text-lg font-semibold text-[#b3b3b3] mb-4">Why FamilyVault?<br />The Family Operating System®</h4>
+                <div className="bg-[#f4c542] text-[#111] px-4 py-2 rounded text-sm inline-block mb-4 font-semibold">
                   FamilyVault.
                 </div>
-                <div className="absolute top-8 right-8 bg-white rounded-full p-4 shadow-lg">
-                  <Play className="w-8 h-8 text-gray-600" />
+                <div className="absolute top-8 right-8 bg-[#f4c542] rounded-full p-4 shadow-lg">
+                  <Play className="w-8 h-8 text-[#111]" />
                 </div>
               </div>
-              <div className="bg-white rounded-lg p-6 shadow-lg">
-                <blockquote className="text-gray-800 italic mb-4">
+              <div className="bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-2xl p-6">
+                <div className="flex justify-center mb-2 text-[#f4c542] tracking-wide">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-current" />
+                  ))}
+                </div>
+                <blockquote className="text-[#b3b3b3] italic mb-4 text-sm">
                   "I use FamilyVault on a daily basis. I found this app to be game-changing for me. And it's not just for me, but for my whole family."
                 </blockquote>
-                <div className="text-left">
-                  <div className="font-semibold text-gray-900">Daniel J.</div>
-                  <div className="text-sm text-gray-600">FamilyVault member since 2024</div>
-                </div>
+                <footer className="text-xs text-[#b3b3b3] text-left">
+                  <div className="font-semibold text-[#e9e9e9]">Daniel J.</div>
+                  <div>FamilyVault member since 2024</div>
+                </footer>
               </div>
             </div>
           </div>
         </div>
       </section>
 
+      {/* Section divider */}
+      <div className="h-px bg-[rgba(255,255,255,0.06)] mx-4 sm:mx-6 lg:mx-8" aria-hidden="true"></div>
+
       {/* How FamilyVault Helps */}
-      <section className="py-16 bg-white">
+      <section id="features" className="py-20 bg-[#0b0b0b] border-t border-[rgba(255,255,255,0.06)]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl lg:text-4xl font-bold text-[#e9e9e9] mb-4">
             How FamilyVault Helps — Supporting Your Neurodivergent Life
           </h2>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+          <p className="text-lg text-[#b3b3b3] max-w-3xl mx-auto">
             From medical records to daily schedules, FamilyVault adapts to your cognitive style, reducing overwhelm and keeping your essential information exactly where you need it.
           </p>
         </div>
       </section>
 
+      {/* Section divider */}
+      <div className="h-px bg-[rgba(255,255,255,0.06)] mx-4 sm:px-6 lg:px-8" aria-hidden="true"></div>
+
       {/* Features */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="space-y-20">
+      <section className="py-20 bg-[#0b0b0b] border-t border-[rgba(255,255,255,0.06)]">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="space-y-16">
             {features.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="grid lg:grid-cols-2 gap-12 items-center">
                   <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
-                    <div className="bg-gray-100 rounded-2xl p-8 h-64 flex items-center justify-center">
+                    <div className="bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-2xl p-8 min-h-[280px] flex items-center justify-center">
                       <div className="text-center">
                         {index === 0 && (
                           <>
-                            <div className="bg-white rounded-lg p-4 shadow-lg max-w-sm mx-auto">
+                            <div className="bg-[#0b0b0b] border border-[rgba(255,255,255,0.08)] rounded-lg p-4 max-w-sm mx-auto">
                               <div className="text-xs mb-3">
                                 <div className="flex items-center mb-3">
-                                  <div className="w-6 h-6 bg-blue-100 rounded mr-2 flex items-center justify-center">
-                                    <Stethoscope className="w-4 h-4 text-blue-600" />
+                                  <div className="w-6 h-6 bg-[rgba(244,197,66,0.1)] rounded mr-2 flex items-center justify-center">
+                                    <Stethoscope className="w-4 h-4 text-[#f4c542]" />
                                   </div>
-                                  <span className="font-semibold">Family IDs</span>
+                                  <span className="font-semibold text-[#e9e9e9]">Family IDs</span>
                                 </div>
-                                <div className="bg-blue-50 rounded p-2 mb-3">
+                                <div className="bg-[rgba(244,197,66,0.1)] border border-[rgba(255,255,255,0.08)] rounded p-2 mb-3">
                                   <div className="text-center">
-                                    <div className="font-medium">Medical Directive</div>
-                                    <div className="text-gray-500">Scott Reynolds</div>
-                                    <div className="text-xs">February 12, 2016</div>
-                                    <div className="text-xs">Created by insurance • Other docs</div>
+                                    <div className="font-medium text-[#e9e9e9]">Medical Directive</div>
+                                    <div className="text-[#b3b3b3]">Scott Reynolds</div>
+                                    <div className="text-xs text-[#b3b3b3]">February 12, 2016</div>
+                                    <div className="text-xs text-[#b3b3b3]">Created by insurance • Other docs</div>
                                   </div>
                                 </div>
-                                <div className="text-xs text-gray-800">
+                                <div className="text-xs text-[#e9e9e9]">
                                   <div className="font-medium">Managing Medical Information</div>
-                                  <div className="text-gray-600 mt-1">You're seeing a medical specialist and can't remember which prescriptions you've tried or when your symptoms started.</div>
-                                  <div className="text-gray-800 mt-2">FamilyVault centralizes your medical history, treatment notes, and symptom tracking, so you can quickly access what you need.</div>
+                                  <div className="text-[#b3b3b3] mt-1">You're seeing a medical specialist and can't remember which prescriptions you've tried or when your symptoms started.</div>
+                                  <div className="text-[#e9e9e9] mt-2">FamilyVault centralizes your medical history, treatment notes, and symptom tracking, so you can quickly access what you need.</div>
                                 </div>
                               </div>
                             </div>
@@ -245,46 +269,46 @@ export default function Neurodiversity() {
                         )}
                         {index === 1 && (
                           <>
-                            <div className="bg-white rounded-lg p-4 shadow-lg max-w-sm mx-auto">
-                              <div className="text-xs">
+                            <div className="bg-[#0b0b0b] border border-[rgba(255,255,255,0.08)] rounded-lg p-4 max-w-sm mx-auto">
+                              <div className="text-xs text-[#e9e9e9]">
                                 <div className="space-y-2">
-                                  <div className="flex items-center justify-between bg-gray-50 rounded p-2">
+                                  <div className="flex items-center justify-between bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded p-2">
                                     <div className="flex items-center">
-                                      <div className="w-3 h-3 bg-gray-300 rounded mr-2"></div>
+                                      <div className="w-3 h-3 bg-[#b3b3b3] rounded mr-2"></div>
                                       <span>Family IDs</span>
                                     </div>
-                                    <div className="text-gray-400">5</div>
+                                    <div className="text-[#b3b3b3]">5</div>
                                   </div>
-                                  <div className="flex items-center justify-between bg-gray-50 rounded p-2">
+                                  <div className="flex items-center justify-between bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded p-2">
                                     <div className="flex items-center">
-                                      <div className="w-3 h-3 bg-gray-300 rounded mr-2"></div>
+                                      <div className="w-3 h-3 bg-[#b3b3b3] rounded mr-2"></div>
                                       <span>Finances</span>
                                     </div>
-                                    <div className="text-gray-400">4</div>
+                                    <div className="text-[#b3b3b3]">4</div>
                                   </div>
-                                  <div className="flex items-center justify-between bg-blue-50 rounded p-2">
+                                  <div className="flex items-center justify-between bg-[rgba(244,197,66,0.1)] border border-[rgba(255,255,255,0.08)] rounded p-2">
                                     <div className="flex items-center">
-                                      <div className="w-3 h-3 bg-blue-400 rounded mr-2"></div>
+                                      <div className="w-3 h-3 bg-[#f4c542] rounded mr-2"></div>
                                       <span>2024 John Taxed</span>
                                     </div>
-                                    <div className="text-gray-400">5</div>
+                                    <div className="text-[#b3b3b3]">5</div>
                                   </div>
-                                  <div className="flex items-center justify-between bg-gray-50 rounded p-2">
+                                  <div className="flex items-center justify-between bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded p-2">
                                     <div className="flex items-center">
-                                      <div className="w-3 h-3 bg-gray-300 rounded mr-2"></div>
+                                      <div className="w-3 h-3 bg-[#b3b3b3] rounded mr-2"></div>
                                       <span>2024 Tax Receipts</span>
                                     </div>
-                                    <div className="text-gray-400">5</div>
+                                    <div className="text-[#b3b3b3]">5</div>
                                   </div>
                                 </div>
                                 
-                                <div className="border-t pt-3 mt-3">
+                                <div className="border-t border-[rgba(255,255,255,0.08)] pt-3 mt-3">
                                   <div className="flex items-center mb-2">
-                                    <Calendar className="w-4 h-4 text-blue-600 mr-2" />
-                                    <span className="font-semibold">Staying Organized During Executive Function Challenges</span>
+                                    <Calendar className="w-4 h-4 text-[#f4c542] mr-2" />
+                                    <span className="font-semibold text-[#e9e9e9]">Staying Organized During Executive Function Challenges</span>
                                   </div>
-                                  <div className="text-gray-600">It's tax season and you're overwhelmed trying to gather receipts, W-2s and bank statements while managing work deadlines and daily tasks.</div>
-                                  <div className="text-gray-800 mt-2">FamilyVault's automated organization helps you find important documents quickly, reducing cognitive load during stressful periods.</div>
+                                  <div className="text-[#b3b3b3]">It's tax season and you're overwhelmed trying to gather receipts, W-2s and bank statements while managing work deadlines and daily tasks.</div>
+                                  <div className="text-[#e9e9e9] mt-2">FamilyVault's automated organization helps you find important documents quickly, reducing cognitive load during stressful periods.</div>
                                 </div>
                               </div>
                             </div>
@@ -292,17 +316,17 @@ export default function Neurodiversity() {
                         )}
                         {index === 2 && (
                           <>
-                            <div className="bg-white rounded-lg p-4 shadow-lg max-w-xs mx-auto">
-                              <div className="text-xs">
-                                <div className="bg-gray-800 rounded-t-lg p-3 mb-3">
+                            <div className="bg-[#0b0b0b] border border-[rgba(255,255,255,0.08)] rounded-lg p-4 max-w-xs mx-auto">
+                              <div className="text-xs text-[#e9e9e9]">
+                                <div className="bg-[#f4c542] rounded-t-lg p-3 mb-3">
                                   <div className="flex items-center justify-center">
-                                    <Smartphone className="w-8 h-8 text-white" />
+                                    <Smartphone className="w-8 h-8 text-[#111]" />
                                   </div>
                                 </div>
                                 <div className="space-y-2">
-                                  <div className="text-center text-blue-600 mb-3">
-                                    <div className="w-8 h-8 bg-blue-100 rounded-full mx-auto mb-2 flex items-center justify-center">
-                                      <FileText className="w-4 h-4 text-blue-600" />
+                                  <div className="text-center text-[#f4c542] mb-3">
+                                    <div className="w-8 h-8 bg-[rgba(244,197,66,0.1)] border border-[rgba(255,255,255,0.08)] rounded-full mx-auto mb-2 flex items-center justify-center">
+                                      <FileText className="w-4 h-4 text-[#f4c542]" />
                                     </div>
                                     <div className="font-medium">Browse</div>
                                   </div>
@@ -326,13 +350,13 @@ export default function Neurodiversity() {
                                   </div>
                                 </div>
                                 
-                                <div className="border-t pt-3 mt-3">
+                                <div className="border-t border-[rgba(255,255,255,0.08)] pt-3 mt-3">
                                   <div className="flex items-center mb-2">
-                                    <Phone className="w-4 h-4 text-blue-600 mr-2" />
-                                    <span className="font-semibold">Preparing for Life Transitions</span>
+                                    <Phone className="w-4 h-4 text-[#f4c542] mr-2" />
+                                    <span className="font-semibold text-[#e9e9e9]">Preparing for Life Transitions</span>
                                   </div>
-                                  <div className="text-gray-600">You need to provide background check documents for a new job, but gathering all that information is time-consuming and chaotic.</div>
-                                  <div className="text-gray-800 mt-2">FamilyVault keeps your professional documents organized and easily shareable, letting you focus on the transition.</div>
+                                  <div className="text-[#b3b3b3]">You need to provide background check documents for a new job, but gathering all that information is time-consuming and chaotic.</div>
+                                  <div className="text-[#e9e9e9] mt-2">FamilyVault keeps your professional documents organized and easily shareable, letting you focus on the transition.</div>
                                 </div>
                               </div>
                             </div>
@@ -340,36 +364,36 @@ export default function Neurodiversity() {
                         )}
                         {index === 3 && (
                           <>
-                            <div className="bg-white rounded-lg p-4 shadow-lg max-w-sm mx-auto">
-                              <div className="text-xs">
-                                <div className="bg-gray-100 rounded p-3 mb-3">
+                            <div className="bg-[#0b0b0b] border border-[rgba(255,255,255,0.08)] rounded-lg p-4 max-w-sm mx-auto">
+                              <div className="text-xs text-[#e9e9e9]">
+                                <div className="bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] rounded p-3 mb-3">
                                   <div className="flex items-center justify-between mb-2">
                                     <span className="font-semibold">Laptop Settings</span>
-                                    <div className="text-gray-400">⚙️</div>
+                                    <div className="text-[#f4c542]">⚙️</div>
                                   </div>
                                   <div className="space-y-1">
                                     <div className="flex justify-between">
                                       <span>Luncery</span>
-                                      <div className="w-4 h-4 bg-gray-300 rounded"></div>
+                                      <div className="w-4 h-4 bg-[#b3b3b3] rounded"></div>
                                     </div>
                                     <div className="flex justify-between">
                                       <span>Apertory</span>
-                                      <div className="w-4 h-4 bg-gray-300 rounded"></div>
+                                      <div className="w-4 h-4 bg-[#b3b3b3] rounded"></div>
                                     </div>
                                     <div className="flex justify-between">
                                       <span>Settings</span>
-                                      <div className="w-4 h-4 bg-gray-300 rounded"></div>
+                                      <div className="w-4 h-4 bg-[#b3b3b3] rounded"></div>
                                     </div>
                                   </div>
                                 </div>
                                 
-                                <div className="border-t pt-3">
+                                <div className="border-t border-[rgba(255,255,255,0.08)] pt-3">
                                   <div className="flex items-center mb-2">
-                                    <Shield className="w-4 h-4 text-blue-600 mr-2" />
-                                    <span className="font-semibold">Protecting Your Routine and Information</span>
+                                    <Shield className="w-4 h-4 text-[#f4c542] mr-2" />
+                                    <span className="font-semibold text-[#e9e9e9]">Protecting Your Routine and Information</span>
                                   </div>
-                                  <div className="text-gray-600">You lose your phone — and all access to passwords, phone numbers, and the digital copies of documents you'd kept on it.</div>
-                                  <div className="text-gray-800 mt-2">FamilyVault securely backs up your essential information and lets you access it from any device.</div>
+                                  <div className="text-[#b3b3b3]">You lose your phone — and all access to passwords, phone numbers, and the digital copies of documents you'd kept on it.</div>
+                                  <div className="text-[#e9e9e9] mt-2">FamilyVault securely backs up your essential information and lets you access it from any device.</div>
                                 </div>
                               </div>
                             </div>
@@ -378,17 +402,17 @@ export default function Neurodiversity() {
                       </div>
                     </div>
                   </div>
-                  <div className={index % 2 === 1 ? 'lg:order-1' : ''}>
-                    <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center mb-6">
-                      <IconComponent className="w-4 h-4 text-teal-600" />
+                  <div className={index % 2 === 1 ? 'lg:order-1' : ''} style={{maxWidth: '560px'}}>
+                    <div className="w-7 h-7 bg-[rgba(244,197,66,0.1)] border border-[rgba(255,255,255,0.08)] rounded-full flex items-center justify-center mb-6">
+                      <IconComponent className="w-4 h-4 text-[#f4c542]" />
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                    <h3 className="text-xl md:text-2xl font-semibold text-[#e9e9e9] mb-4">
                       {feature.title}
                     </h3>
-                    <p className="text-gray-600 mb-4 italic">
+                    <p className="text-[#b3b3b3] mb-4 italic">
                       {feature.description}
                     </p>
-                    <p className="text-gray-800 font-medium">
+                    <p className="text-[#e9e9e9] font-medium">
                       {feature.detail}
                     </p>
                   </div>
@@ -451,22 +475,23 @@ export default function Neurodiversity() {
       </section>
 
       {/* Security Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0b0b0b] border-t border-[rgba(255,255,255,0.06)]">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#e9e9e9] mb-6">
               Your Data Is Always Protected
             </h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            <p className="text-lg text-[#b3b3b3] max-w-3xl mx-auto">
               Your sensitive information stays private and secure with advanced security and compliance practices.
             </p>
             <div className="mt-8">
               <a
                 href="/security"
-                className="text-[#FFD700] hover:text-[#FFD700]/80 font-medium inline-flex items-center"
+                className="inline-flex items-center gap-2 border border-[rgba(255,255,255,0.16)] text-[#e9e9e9] bg-transparent px-4 py-2 rounded-full hover:border-[#f4c542] hover:text-[#f4c542] transition-colors min-h-[44px] focus:outline-none focus:ring-[0_0_0_1px_rgba(244,197,66,0.3),0_0_0_4px_rgba(244,197,66,0.12)]"
+                aria-label="Learn more about our security measures"
               >
                 About our security
-                <ChevronRight className="w-4 h-4 ml-1" />
+                <ChevronRight className="w-4 h-4" />
               </a>
             </div>
           </div>
@@ -476,14 +501,14 @@ export default function Neurodiversity() {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="flex items-start">
-                  <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                    <IconComponent className="w-4 h-4 text-teal-600" />
+                  <div className="w-10 h-10 bg-[rgba(244,197,66,0.1)] border border-[rgba(255,255,255,0.08)] rounded-2xl flex items-center justify-center mr-4 flex-shrink-0">
+                    <IconComponent className="w-5 h-5 text-[#f4c542]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                    <h3 className="font-semibold text-[#e9e9e9] mb-1">
                       {feature.title}
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-[#b3b3b3]">
                       {feature.description}
                     </p>
                   </div>
@@ -494,69 +519,79 @@ export default function Neurodiversity() {
 
           {/* Compliance Badges */}
           <div className="mt-16 text-center">
-            <div className="flex justify-center items-center space-x-8 opacity-60">
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">EU GDPR</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">SOC 2 TYPE II</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">SOC 3</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">HIPAA</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">CCPA</div>
+            <div className="flex justify-center items-center space-x-6 opacity-60">
+              <div className="text-xs font-semibold text-[#b3b3b3] px-3 py-1 border border-[rgba(255,255,255,0.08)] rounded" aria-label="EU GDPR compliant">EU GDPR</div>
+              <div className="text-xs font-semibold text-[#b3b3b3] px-3 py-1 border border-[rgba(255,255,255,0.08)] rounded" aria-label="SOC 2 TYPE II compliant">SOC 2 TYPE II</div>
+              <div className="text-xs font-semibold text-[#b3b3b3] px-3 py-1 border border-[rgba(255,255,255,0.08)] rounded" aria-label="SOC 3 compliant">SOC 3</div>
+              <div className="text-xs font-semibold text-[#b3b3b3] px-3 py-1 border border-[rgba(255,255,255,0.08)] rounded" aria-label="HIPAA compliant">HIPAA</div>
+              <div className="text-xs font-semibold text-[#b3b3b3] px-3 py-1 border border-[rgba(255,255,255,0.08)] rounded" aria-label="CCPA compliant">CCPA</div>
             </div>
           </div>
         </div>
       </section>
 
+      {/* Section divider */}
+      <div className="h-px bg-[rgba(255,255,255,0.06)] mx-4 sm:mx-6 lg:mx-8" aria-hidden="true"></div>
+
       {/* Testimonials */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0b0b0b] border-t border-[rgba(255,255,255,0.06)]">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#e9e9e9] mb-4">
               What Our Members Say About FamilyVault
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-5">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-gray-50 rounded-lg p-6 text-center">
-                <div className="flex justify-center mb-3">
+              <div key={index} className="bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-2xl p-4 text-center min-h-[150px] relative hover:border-[rgba(244,197,66,0.35)] transition-colors duration-300">
+                <div className="flex justify-center mb-2 text-[#f4c542] tracking-wide">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+                    <Star key={i} className="w-4 h-4 fill-current" />
                   ))}
                 </div>
-                <p className="text-gray-800 italic mb-4">"{testimonial.quote}"</p>
-                <div className="w-16 h-16 bg-gray-300 rounded-full mx-auto mb-3"></div>
-                <div className="font-semibold text-sm">{testimonial.name}</div>
-                <div className="text-xs text-gray-600">{testimonial.title}</div>
+                <p className="text-[#b3b3b3] italic mb-4 text-sm">"{testimonial.quote}"</p>
+                <div className="w-16 h-16 bg-gradient-to-br from-[#f4c542] to-[#d4aa2e] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#f4c542]">
+                  <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
+                </div>
+                <footer className="text-xs text-[#b3b3b3]">
+                  <div className="font-semibold text-[#e9e9e9]">{testimonial.name}</div>
+                  <div>{testimonial.title}</div>
+                </footer>
               </div>
             ))}
           </div>
         </div>
       </section>
 
+      {/* Section divider */}
+      <div className="h-px bg-[rgba(255,255,255,0.06)] mx-4 sm:mx-6 lg:mx-8" aria-hidden="true"></div>
+
       {/* Pricing */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-[#0b0b0b] border-t border-[rgba(255,255,255,0.06)]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#e9e9e9] mb-4">
               Simple, Transparent Pricing
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-[#b3b3b3]">
               No hidden fees. No surprises. Just complete peace of mind.
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {/* Free Plan */}
-            <div className="bg-white rounded-lg p-6 border">
-              <h3 className="text-xl font-bold mb-2">Free</h3>
-              <p className="text-gray-600 mb-4">For families starting to organize for neurodivergence</p>
-              <div className="text-3xl font-bold mb-6">$0</div>
+            <div className="bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-2xl p-6">
+              <h3 className="text-xl font-bold mb-2 text-[#e9e9e9]">Free</h3>
+              <p className="text-[#b3b3b3] mb-4">For families starting to organize for neurodivergence</p>
+              <div className="text-3xl font-bold mb-6 text-[#e9e9e9]">$0</div>
               <button
                 data-testid="button-get-started-free-plan"
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold mb-6"
+                className="w-full bg-[#f4c542] text-[#111] py-3 rounded-full font-semibold mb-6 hover:bg-[#d4aa2e] transition-colors"
               >
                 Get started
               </button>
-              <ul className="space-y-2 text-sm">
+              <ul className="space-y-2 text-sm text-[#b3b3b3]">
                 <li>• Advanced security</li>
                 <li>• 12 items</li>
                 <li>• 50GB</li>
@@ -567,17 +602,17 @@ export default function Neurodiversity() {
             </div>
 
             {/* Silver Plan */}
-            <div className="bg-white rounded-lg p-6 border">
-              <h3 className="text-xl font-bold mb-2">Silver</h3>
-              <p className="text-gray-600 mb-4">Build a comprehensive organization plan</p>
-              <div className="text-3xl font-bold mb-6">$10</div>
+            <div className="bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-2xl p-6">
+              <h3 className="text-xl font-bold mb-2 text-[#e9e9e9]">Silver</h3>
+              <p className="text-[#b3b3b3] mb-4">Build a comprehensive organization plan</p>
+              <div className="text-3xl font-bold mb-6 text-[#e9e9e9]">$10</div>
               <button
                 data-testid="button-get-started-silver-plan"
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold mb-6"
+                className="w-full bg-[#f4c542] text-[#111] py-3 rounded-full font-semibold mb-6 hover:bg-[#d4aa2e] transition-colors"
               >
                 Get started
               </button>
-              <ul className="space-y-2 text-sm">
+              <ul className="space-y-2 text-sm text-[#b3b3b3]">
                 <li>• Everything in Free plus:</li>
                 <li>• Unlimited items</li>
                 <li>• Autopilot™ by FamilyVault</li>
@@ -588,20 +623,20 @@ export default function Neurodiversity() {
             </div>
 
             {/* Gold Plan */}
-            <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg p-6 border-2 border-purple-300 relative">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-purple-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+            <div className="bg-[#111] border-2 border-[#f4c542] rounded-2xl p-6 relative shadow-[0_0_0_6px_rgba(244,197,66,0.12)]">
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#f4c542] text-[#111] px-4 py-1 rounded-full text-sm font-semibold">
                 Most Popular
               </div>
-              <h3 className="text-xl font-bold mb-2">Gold</h3>
-              <p className="text-gray-600 mb-4">Organize your entire business and financial future</p>
-              <div className="text-3xl font-bold mb-6">$20</div>
+              <h3 className="text-xl font-bold mb-2 text-[#e9e9e9]">Gold</h3>
+              <p className="text-[#b3b3b3] mb-4">Organize your entire business and financial future</p>
+              <div className="text-3xl font-bold mb-6 text-[#e9e9e9]">$20</div>
               <button
                 data-testid="button-get-started-gold-plan"
-                className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold mb-6"
+                className="w-full bg-[#f4c542] text-[#111] py-3 rounded-full font-semibold mb-6 hover:bg-[#d4aa2e] transition-colors"
               >
                 Get started
               </button>
-              <ul className="space-y-2 text-sm">
+              <ul className="space-y-2 text-sm text-[#b3b3b3]">
                 <li>• Everything in Silver plus:</li>
                 <li>• Business information</li>
                 <li>• Organization (LLC, S Corp, S Corp, INC, etc.)</li>
@@ -612,46 +647,72 @@ export default function Neurodiversity() {
             </div>
           </div>
 
-          <div className="text-center mt-8 text-sm text-gray-600">
+          <div className="text-center mt-8 text-sm text-[#b3b3b3]">
             30-day money-back guarantee | We support first responders with a hero discount.
           </div>
         </div>
       </section>
 
+      {/* Section divider */}
+      <div className="h-px bg-[rgba(255,255,255,0.06)] mx-4 sm:mx-6 lg:mx-8" aria-hidden="true"></div>
+
       {/* Essential Resources */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0b0b0b] border-t border-[rgba(255,255,255,0.06)]">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#e9e9e9] mb-4">
               Essential Resources for Neurodivergent Support
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-[#b3b3b3]">
               FamilyVault offers structure you can count on — a calm, secure platform that does the heavy lifting for you.
             </p>
           </div>
 
           {/* Featured Article */}
           <div className="mb-12">
-            <div className="bg-gray-100 rounded-2xl p-8 lg:p-12 flex items-center">
+            <div className="bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-2xl p-8 lg:p-12 flex items-center">
               <div className="flex-1">
-                <div className="text-sm font-semibold text-blue-600 mb-2">FEATURED ARTICLE</div>
-                <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4">
+                <div className="text-sm font-semibold text-[#f4c542] mb-2">FEATURED ARTICLE</div>
+                <h3 className="text-2xl lg:text-3xl font-bold text-[#e9e9e9] mb-4">
                   Tame the Chaos: A Digital Vault for Autism and ADHD
                 </h3>
-                <p className="text-gray-600 mb-6">
+                <p className="text-[#b3b3b3] mb-6">
                   You don't have to overhaul your brain to stay on top of everything. You just need tools that support the way you work.
                 </p>
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold">
+                <a
+                  href="#"
+                  className="inline-flex items-center gap-2 bg-[#f4c542] text-[#111] font-semibold px-6 py-3 rounded-full hover:bg-[#d4aa2e] transition-colors"
+                >
                   Read article
-                </button>
+                  <ChevronRight className="w-4 h-4" />
+                </a>
               </div>
               <div className="hidden lg:block lg:w-1/3 lg:ml-8">
-                <div className="h-48 bg-teal-100 rounded-lg flex items-center justify-center">
-                  <Brain className="w-16 h-16 text-teal-600" />
+                <div className="h-48 bg-[rgba(244,197,66,0.1)] border border-[rgba(255,255,255,0.08)] rounded-2xl flex items-center justify-center">
+                  <Brain className="w-16 h-16 text-[#f4c542]" />
                 </div>
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="py-12 bg-gradient-to-b from-[rgba(244,197,66,0.04)] to-transparent">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#e9e9e9] mb-6">
+            Ready to Organize Your Neurodivergent Life?
+          </h2>
+          <p className="text-[#b3b3b3] text-lg mb-8 max-w-2xl mx-auto">
+            Begin organizing your life's important information with FamilyVault today.
+          </p>
+          <a
+            href="/signup"
+            data-testid="button-final-cta"
+            className="inline-flex items-center gap-2 bg-[#f4c542] text-[#111] font-semibold px-8 py-4 rounded-full hover:bg-[#d4aa2e] transition-colors shadow-[0_6px_16px_rgba(244,197,66,0.35)] focus:outline-none focus:ring-[0_0_0_1px_rgba(244,197,66,0.3),0_0_0_4px_rgba(244,197,66,0.12)] min-h-[44px]"
+          >
+            Get started free
+          </a>
         </div>
       </section>
 
