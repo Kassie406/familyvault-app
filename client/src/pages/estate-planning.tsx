@@ -24,6 +24,7 @@ import {
 import estatePlanningImage from "@assets/image_1756095429229.png";
 import digitalSecurityImage from "@assets/image_1756095779424.png";
 import mobileAppImage from "@assets/image_1756095858406.png";
+import askExpertsImage from "@assets/image_1756095909223.png";
 
 export default function EstatePlanning() {
   const estatePlanningCards = [
@@ -117,7 +118,9 @@ export default function EstatePlanning() {
     {
       icon: Phone,
       title: "Share With the Right People, the Right Way",
-      description: "Control who sees what with granular sharing permissions"
+      description: "Control who sees what with granular sharing permissions",
+      image: askExpertsImage,
+      imageAlt: "Ask the Experts blackboard with light bulbs showing expert consultation concept"
     }
   ];
 
