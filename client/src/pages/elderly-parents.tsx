@@ -33,6 +33,9 @@ import {
   UserCheck,
   Lock,
   CheckCircle,
+  FileSearch,
+  MapPin,
+  Calculator,
   Activity,
   Calendar,
   Home,
@@ -154,15 +157,18 @@ export default function ElderlyParents() {
   const articles = [
     {
       title: "Helping Elderly Parents: The Complete Guide", 
-      description: "Essential steps for navigating the complexities of elder care"
+      description: "Essential steps for navigating the complexities of elder care",
+      icon: BookOpen
     },
     {
       title: "Should Elderly Parents Sign Over Their House? Pros and Cons",
-      description: "Important legal and financial considerations for property transfers"
+      description: "Important legal and financial considerations for property transfers",
+      icon: Home
     },
     {
       title: "Expert Q&A: Knowing When It's Time to Take Over Your Elderly Parents' Finances",
-      description: "Professional guidance on managing aging parents' financial affairs"
+      description: "Professional guidance on managing aging parents' financial affairs",
+      icon: Calculator
     }
   ];
 
@@ -188,7 +194,7 @@ export default function ElderlyParents() {
                 <a 
                   href="/signup"
                   data-testid="button-get-started-free"
-                  className="bg-[#D4AF37] text-black font-semibold px-6 py-3 rounded-lg hover:bg-[#C7A233] transition-colors min-h-[44px] flex items-center"
+                  className="bg-[#D4AF37] text-black font-semibold px-6 py-3 text-lg rounded-lg hover:bg-[#FFD700] hover:shadow-lg transition-all min-h-[44px] flex items-center"
                 >
                   Get started free
                 </a>
@@ -201,12 +207,13 @@ export default function ElderlyParents() {
                 </a>
               </div>
             </div>
-            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem]">
+            <div className="rounded-2xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem] relative">
               <img 
                 src={familyCookingImage} 
                 alt="Adult daughter cooking with elderly father in kitchen, showing caring family relationship"
                 className="w-full h-full object-cover"
               />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent"></div>
             </div>
           </div>
         </div>
@@ -230,10 +237,10 @@ export default function ElderlyParents() {
               return (
                 <div 
                   key={index}
-                  className="bg-[#0B0B0B] rounded-xl p-6 border border-[rgba(212,175,55,0.2)] hover:border-[rgba(212,175,55,0.35)] transition-colors"
+                  className="bg-[#0B0B0B] rounded-xl p-6 border border-[#FFD700]/30 hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer"
                 >
-                  <div className="w-12 h-12 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mb-4">
-                    <IconComponent className="w-6 h-6 text-[#D4AF37]" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#FFD700] to-[#D4AF37] rounded-lg flex items-center justify-center mb-4">
+                    <IconComponent className="w-6 h-6 text-black" />
                   </div>
                   <h3 className="text-xl font-semibold text-[#F3F4F6] mb-2">
                     {card.title}
@@ -276,7 +283,8 @@ export default function ElderlyParents() {
             {features.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
-                <div key={index} className="grid lg:grid-cols-2 gap-12 items-center">
+                <div key={index} className="bg-[#111] border border-[#FFD700]/20 rounded-xl p-6">
+                  <div className="grid lg:grid-cols-2 gap-12 items-center">
                   <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
                     <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#0B0B0B] h-80">
                       {index === 0 && feature.image && (
@@ -378,8 +386,8 @@ export default function ElderlyParents() {
                     </div>
                   </div>
                   <div className={index % 2 === 1 ? 'lg:order-1' : ''}>
-                    <div className="w-12 h-12 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mb-6">
-                      <IconComponent className="w-6 h-6 text-[#D4AF37]" />
+                    <div className="w-12 h-12 bg-gradient-to-br from-[#FFD700] to-[#D4AF37] rounded-lg flex items-center justify-center mb-6">
+                      <IconComponent className="w-6 h-6 text-black" />
                     </div>
                     <h3 className="text-2xl md:text-3xl font-bold text-[#F3F4F6] mb-4">
                       {feature.title}
@@ -390,6 +398,7 @@ export default function ElderlyParents() {
                     <p className="text-[#D1D5DB] font-medium text-lg">
                       {feature.detail}
                     </p>
+                    </div>
                   </div>
                 </div>
               );
@@ -520,26 +529,30 @@ export default function ElderlyParents() {
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="flex overflow-x-auto gap-6 pb-4 snap-x snap-mandatory">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-[#0B0B0B] rounded-lg p-6 text-center border border-[rgba(212,175,55,0.2)]">
-                <div className="flex justify-center mb-3">
+              <div key={index} className="bg-[#1a1a1a] border border-[#FFD700]/20 rounded-xl p-6 shadow-md min-w-[300px] snap-start text-center flex-shrink-0">
+                <div className="flex justify-center mb-4">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-[#D4AF37] fill-current" />
+                    <Star key={i} className="w-5 h-5 text-[#FFD700] fill-current" />
                   ))}
                 </div>
-                <p className="text-[#D1D5DB] italic mb-4">"{testimonial.quote}"</p>
+                <p className="text-[#D1D5DB] italic mb-6 text-lg">"{testimonial.quote}"</p>
                 {testimonial.image ? (
-                  <img 
-                    src={testimonial.image} 
-                    alt={`${testimonial.name} profile photo`}
-                    className="w-16 h-16 rounded-full mx-auto mb-3 object-cover border border-[rgba(212,175,55,0.25)]"
-                  />
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-[#FFD700] overflow-hidden">
+                    <img 
+                      src={testimonial.image} 
+                      alt={`${testimonial.name} profile photo`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                 ) : (
-                  <div className="w-16 h-16 bg-[rgba(212,175,55,0.1)] rounded-full mx-auto mb-3 border border-[rgba(212,175,55,0.25)]"></div>
+                  <div className="w-16 h-16 bg-gradient-to-br from-[#FFD700] to-[#D4AF37] rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-[#FFD700]">
+                    <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
+                  </div>
                 )}
-                <div className="font-semibold text-sm text-[#F3F4F6]">{testimonial.name}</div>
-                <div className="text-xs text-[#D1D5DB]">{testimonial.title}</div>
+                <div className="font-semibold text-lg text-[#F3F4F6]">{testimonial.name}</div>
+                <div className="text-sm text-[#FFD700] font-medium">{testimonial.title}</div>
               </div>
             ))}
           </div>
@@ -590,25 +603,31 @@ export default function ElderlyParents() {
             </div>
           </div>
 
-          {/* Articles Grid */}
-          <div className="space-y-6">
-            {articles.map((article, index) => (
-              <div key={index} className="bg-[#141414] rounded-lg p-6 border border-[rgba(212,175,55,0.2)] hover:border-[rgba(212,175,55,0.35)] transition-colors">
-                <h3 className="text-xl font-semibold text-[#F3F4F6] mb-2">
-                  {article.title}
-                </h3>
-                <p className="text-[#D1D5DB] mb-4">
-                  {article.description}
-                </p>
-                <a 
-                  href="#"
-                  data-testid={`link-read-article-${index + 1}`}
-                  className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
-                >
-                  Read article →
-                </a>
-              </div>
-            ))}
+          {/* Articles Horizontal Scroll */}
+          <div className="flex overflow-x-auto gap-6 pb-4">
+            {articles.map((article, index) => {
+              const IconComponent = article.icon;
+              return (
+                <div key={index} className="bg-[#141414] rounded-lg p-6 border border-[rgba(212,175,55,0.2)] hover:border-[rgba(212,175,55,0.35)] transition-colors min-w-[320px] flex-shrink-0">
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#FFD700] to-[#D4AF37] rounded-lg flex items-center justify-center mb-4">
+                    <IconComponent className="w-6 h-6 text-black" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-[#F3F4F6] mb-2">
+                    {article.title}
+                  </h3>
+                  <p className="text-[#D1D5DB] mb-4">
+                    {article.description}
+                  </p>
+                  <a 
+                    href="#"
+                    data-testid={`link-read-article-${index + 1}`}
+                    className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
+                  >
+                    Read article →
+                  </a>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -625,7 +644,7 @@ export default function ElderlyParents() {
           <a
             href="/signup"
             data-testid="button-final-cta"
-            className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
+            className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-all inline-block min-h-[44px] hover:shadow-[0_0_20px_rgba(212,175,55,0.5)] hover:scale-105"
           >
             Get started free
           </a>

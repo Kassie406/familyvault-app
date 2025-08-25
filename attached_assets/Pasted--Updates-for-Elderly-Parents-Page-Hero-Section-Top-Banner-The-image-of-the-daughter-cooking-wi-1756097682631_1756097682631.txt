@@ -1,0 +1,78 @@
+🔧 Updates for Elderly Parents Page
+
+Hero Section (Top Banner)
+
+The image of the daughter cooking with her father should span the full container width with rounded corners (rounded-2xl) instead of the small floating box.
+
+Add a subtle gradient overlay (black → transparent) on the left side so the white text stands out more clearly.
+
+Make the “Get Started Free” button slightly larger (py-3 px-6 text-lg) and add hover glow (hover:shadow-lg hover:bg-[#FFD700] transition).
+
+Information Grid (Medical Info, Financial Docs, etc.)
+
+Current boxes look stiff. Add:
+
+rounded-xl border border-[#FFD700]/30 hover:shadow-lg hover:scale-105 transition
+
+
+Use gold gradient icons instead of plain line icons. This makes each feature pop and align with your gold/black brand.
+
+Mid-Page Feature Blocks (Coordinate Medical Care, Monitor Finances, etc.)
+
+Right now, images sit on one side and text on the other. Make them card-style blocks with soft background (bg-[#111] border border-[#FFD700]/20 rounded-xl p-6) so they don’t float awkwardly.
+
+Alternate layout: First block (image left, text right), second block (image right, text left). Creates visual rhythm.
+
+Testimonials Section (What Our Members Say)
+
+Instead of floating review boxes, put them in a carousel slider with gold star icons.
+
+Style the testimonial cards:
+
+bg-[#1a1a1a] border border-[#FFD700]/20 rounded-xl p-6 shadow-md
+
+
+Add reviewer avatars in circle frames with a gold border.
+
+Checklist / Resources Section
+
+Those flat boxes (“Helping Elderly Parents: The Complete Guide”) look too plain. Add icons for each guide, like a book for “Complete Guide,” a balance scale for “Legal Considerations,” etc.
+
+Use a horizontal scroll style (like cards you swipe left/right) instead of stacked boxes. This makes it feel more modern.
+
+Final CTA (Bottom Banner)
+
+Right now it’s plain black. Change to a subtle gradient background (bg-gradient-to-r from-black via-[#222] to-black) with a large gold button.
+
+Add small reassuring text under button:
+“30-day free trial. Cancel anytime. No credit card required.”
+
+📌 Replit Prompt for These Fixes
+// Replit Prompt
+Update the Elderly Parents page with the following changes:
+
+1. Hero Section:
+   - Expand hero image to full container width with rounded-2xl corners.
+   - Add black-to-transparent gradient overlay on left side for better text visibility.
+   - Enlarge "Get Started Free" button (py-3 px-6 text-lg) with hover glow (hover:shadow-lg hover:bg-[#FFD700] transition).
+
+2. Info Grid (Medical Info, Financial Docs, etc.):
+   - Add styles: rounded-xl border border-[#FFD700]/30 hover:shadow-lg hover:scale-105 transition.
+   - Replace plain icons with gold gradient icons for consistency.
+
+3. Mid-Page Feature Blocks:
+   - Convert floating images + text into card-style blocks with bg-[#111] border border-[#FFD700]/20 rounded-xl p-6.
+   - Alternate layout (image left → text right, then image right → text left).
+
+4. Testimonials Section:
+   - Convert into carousel slider with gold star icons.
+   - Style cards: bg-[#1a1a1a] border border-[#FFD700]/20 rounded-xl p-6 shadow-md.
+   - Add circular avatars with gold border.
+
+5. Checklist / Resources:
+   - Add icons for each resource guide.
+   - Convert stacked layout into horizontal scroll/swipeable card layout.
+
+6. Bottom CTA:
+   - Add bg-gradient-to-r from-black via-[#222] to-black.
+   - Large gold button with subtext: "30-day free trial. Cancel anytime. No credit card required."
