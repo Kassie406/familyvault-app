@@ -1,6 +1,6 @@
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
-import weddingHandsImage from "@assets/image_1756093794307.png";
+import houseKeysImage from "@assets/image_1756095984954.png";
 import digitalSecurityImage from "@assets/image_1756093873694.png";
 import mobileAppImage from "@assets/image_1756093955366.png";
 import askExpertsImage from "@assets/image_1756094014310.png";
@@ -200,8 +200,8 @@ export default function GettingMarried() {
             </div>
             <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem] flex items-center justify-center">
               <img 
-                src={weddingHandsImage} 
-                alt="Couple exchanging rings at wedding ceremony"
+                src={houseKeysImage} 
+                alt="Hands holding house keys with wooden house keychain representing new home ownership"
                 className="w-full h-full object-cover"
               />
             </div>
