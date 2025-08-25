@@ -3,6 +3,7 @@ import Footer from "@/components/footer";
 import emergencyChecklistImage from "@assets/image_1756091492533.png";
 import healthcareProfessionalImage from "@assets/image_1756092217005.png";
 import financialAnalystImage from "@assets/image_1756092346874.png";
+import contactInfoImage from "@assets/image_1756092689939.png";
 import { 
   Heart, 
   DollarSign, 
@@ -90,7 +91,9 @@ export default function ElderlyParents() {
       icon: Phone,
       title: "Be Prepared for an Emergency",
       description: "A parent had a health crisis and couldn't speak for themselves, and you didn't know how to contact their business partners.",
-      detail: "Store and share emergency contacts in the Family Operating System so the right people are informed when it matters most."
+      detail: "Store and share emergency contacts in the Family Operating System so the right people are informed when it matters most.",
+      image: contactInfoImage,
+      imageAlt: "Mobile phone showing contact information interface with John Doe's details"
     },
     {
       icon: Users,
@@ -298,8 +301,15 @@ export default function ElderlyParents() {
                           </div>
                         </div>
                       )}
-                      {index === 2 && (
-                        <div className="bg-[#141414] rounded-xl p-4 max-w-xs mx-auto text-[#F3F4F6] border border-[rgba(212,175,55,0.2)]">
+                      {index === 2 && feature.image && (
+                        <img 
+                          src={feature.image} 
+                          alt={feature.imageAlt}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      {index === 2 && !feature.image && (
+                        <div className="bg-[#141414] rounded-xl p-4 max-w-xs mx-auto text-[#F3F4F6] border border-[rgba(212,175,55,0.2)] flex items-center justify-center h-full">
                           <div className="text-center mb-4">
                             <div className="w-16 h-16 bg-[rgba(212,175,55,0.1)] rounded-full mx-auto mb-2 flex items-center justify-center border border-[rgba(212,175,55,0.25)]">
                               <span className="text-2xl">👤</span>
