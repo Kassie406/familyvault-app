@@ -1,0 +1,151 @@
+he Security page—nice foundation. To make it feel consistent with the rest of the site and land stronger trust, here’s a tight, action-ready pass.
+
+What’s working
+
+Clean hero with a plainspoken intro.
+
+Clear “promise” pillars (Fortress / Privacy / Ownership).
+
+Deep details below (MFA, biometrics, tokenization, etc.).
+
+Compliance grid + FAQ: exactly what evaluators look for.
+
+High-impact fixes (prioritized)
+
+Unify theme + visual language
+
+Use the same dark theme tokens as other lifecycle pages:
+
+Background: #0E0E0E / panels #121212–#151515
+
+Accent (links, bullets, icons): brand yellow you’re using elsewhere
+
+Card borders: 1px #2A2A2A; shadows off or super subtle
+
+Turn the colored compliance tiles into mono panels with the yellow accent for icons/badges. The current pastel tiles feel off-brand.
+
+Hero: add trust CTAs + metadata
+
+Keep H1: “Security”
+
+Subhead: one sentence; then add small meta row:
+
+“Last updated: Mar 2025 • SOC 2 Type II • ISO 27001 Ready”
+
+Two CTAs side-by-side (yellow primary / outline secondary):
+
+“Read our Trust Overview (PDF)”
+
+“Contact Security” (mailto/security@… or form)
+
+Add a slim Status chip linking to your status page.
+
+Make the promise section scannable
+
+Convert each pillar into:
+
+24px icon (outlined, yellow)
+
+Title (1 line) + one sentence
+
+“Learn more” chevron → expands a 3–4 bullet list
+
+Keep line length ≈ 65–75 chars for readability.
+
+Restructure the long-form tech content
+
+Replace the big paragraphs with accordion groups:
+
+Account Security (MFA mandatory, strong password, device trust)
+
+Data Protection (AES-256 at rest, TLS 1.2+, tokenization)
+
+Platform Security (biometrics, hardware keys, screen privacy)
+
+AI & Privacy (We do not train AI on your data; zero-memory ops)
+
+Operations (audits, background checks, least privilege)
+
+Incident Response (24/7 on-call, RTO/RPO targets, status page)
+
+This mirrors how buyers evaluate and keeps the page light on mobile.
+
+Compliance + Evidence
+
+For each badge add a tiny link: “View letter / report” (even if it’s a redacted sample or “available under NDA”).
+
+Put scope copy under SOC 2 Type II (e.g., “Security, Availability”).
+
+Add Data Residency (where data is stored) + Data Retention & Deletion (what happens on cancel; ties to FAQ answer).
+
+FAQ: tighten + add schema
+
+Keep 5–6 items, each 2–3 sentences max.
+
+Add:
+
+“Where is my data stored?” (regions / provider)
+
+“How do I export or delete everything?” (one-click export + SLA)
+
+Implement FAQPage structured data so this content can surface in search.
+
+Accessibility & consistency
+
+Ensure all yellow on dark meets contrast (≥ 4.5:1). If current yellow fails, slightly darken it on text and keep bright for fills/icons only.
+
+Add a sticky Table of Contents on desktop (jumps to anchors).
+
+Keyboard focus states: 2px focus ring in brand yellow.
+
+Use a semantic heading ladder (H1 → H2 sections → H3 items).
+
+Microcopy tune-ups (examples)
+
+Fortress-Level Protection → Defense-grade protection
+
+We encrypt data in transit and at rest with AES-256 and TLS. All access is protected by mandatory multi-factor authentication.
+
+Complete Ownership → You control your data
+
+You choose who sees what, for how long. Export anytime. We never sell or train AI on your data.
+
+Illustration/diagram
+
+Add a single architecture diagram (simple, monochrome) showing:
+Browser → TLS → App → Encrypted DB / KMS → Backups (encrypted).
+
+Caption: “High-level architecture (not to scale).”
+
+Footer call-to-action
+
+Mirror other pages: yellow primary “Start your free trial” + ghost “Read full security overview”.
+
+Quick content swaps you can lift
+
+AI & Privacy (callout box)
+
+We do not train AI on your data.
+Our AI features run with a zero-memory design: prompts and documents aren’t stored or used to improve models. Third-party AI, when used, runs on our private cloud with strict data-processing agreements.
+
+Data retention & deletion (FAQ)
+
+You can export all data at any time. When you cancel, we start a 30-day grace period (access only). After 30 days, we begin deletion from primary systems and encrypted backups per our backup rotation policy.
+
+Component checklist (for devs/designers)
+
+ Replace pastel compliance cards with dark cards + yellow icon
+
+ Add hero metadata row + dual CTAs + status chip
+
+ Implement accordion groups with deep links (#mfa, #encryption, …)
+
+ Add TOC (desktop sticky) + back-to-top button
+
+ Insert SVG architecture diagram (lazy-loaded)
+
+ Add FAQPage JSON-LD
+
+ Audit contrast + focus states; unify spacing to 8pt grid
+
+ Compress new SVGs; defer non-critical images; keep LCP clean
