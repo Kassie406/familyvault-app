@@ -1,5 +1,6 @@
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import soccerKidImage from "@assets/image_1756084550627.png";
 import { 
   FileText, 
   Share2, 
@@ -148,7 +149,7 @@ export default function ChildInformation() {
               <div className="bg-[#FFD700]/10 rounded-2xl p-8 h-96 flex items-center justify-center">
                 <div className="text-center">
                   <img 
-                    src="/attached_assets/image_1756084550627.png" 
+                    src={soccerKidImage} 
                     alt="Happy child in blue soccer jersey holding soccer ball"
                     className="w-64 h-64 object-cover rounded-full mx-auto mb-4"
                   />
