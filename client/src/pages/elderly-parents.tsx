@@ -4,6 +4,7 @@ import emergencyChecklistImage from "@assets/image_1756091492533.png";
 import healthcareProfessionalImage from "@assets/image_1756092217005.png";
 import financialAnalystImage from "@assets/image_1756092346874.png";
 import contactInfoImage from "@assets/image_1756092689939.png";
+import familyAccessImage from "@assets/image_1756092776076.png";
 import { 
   Heart, 
   DollarSign, 
@@ -99,7 +100,9 @@ export default function ElderlyParents() {
       icon: Users,
       title: "Keep Family Members Informed", 
       description: "Critical decisions were made with some family members out of the loop, leading to misunderstandings and resentment.",
-      detail: "Give multiple family members equal access to your parents' financial data, medical information, and end-of-life care plans."
+      detail: "Give multiple family members equal access to your parents' financial data, medical information, and end-of-life care plans.",
+      image: familyAccessImage,
+      imageAlt: "Family access permissions interface showing full access, partial access, and legacy access levels"
     }
   ];
 
@@ -324,8 +327,15 @@ export default function ElderlyParents() {
                           </div>
                         </div>
                       )}
-                      {index === 3 && (
-                        <div className="bg-[#141414] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(212,175,55,0.2)]">
+                      {index === 3 && feature.image && (
+                        <img 
+                          src={feature.image} 
+                          alt={feature.imageAlt}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      {index === 3 && !feature.image && (
+                        <div className="bg-[#141414] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(212,175,55,0.2)] flex items-center justify-center h-full">
                           <div className="text-sm font-semibold mb-3 text-[#F3F4F6]">Family Access</div>
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
