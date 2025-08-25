@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import disasterSceneImage from "@assets/image_1756095132487.png";
 import digitalSecurityImage from "@assets/image_1756095170275.png";
+import mobileAppImage from "@assets/image_1756095280262.png";
 
 export default function DisasterPlanning() {
   const disasterPlanCards = [
@@ -111,7 +112,9 @@ export default function DisasterPlanning() {
     {
       icon: Smartphone,
       title: "Use FamilyVault on the Go", 
-      description: "Access your information anywhere with our mobile app"
+      description: "Access your information anywhere with our mobile app",
+      image: mobileAppImage,
+      imageAlt: "Mobile app interface showing family document categories and navigation"
     },
     {
       icon: Phone,
