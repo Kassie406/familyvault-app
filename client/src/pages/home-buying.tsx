@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import houseKeysImage from "@assets/image_1756095984954.png";
 import digitalSecurityImage from "@assets/image_1756096227958.png";
+import mobileAppImage from "@assets/image_1756096292349.png";
 
 export default function HomeBuying() {
   const homeBuyingCards = [
@@ -112,7 +113,9 @@ export default function HomeBuying() {
     {
       icon: Smartphone,
       title: "Access Information on the Go", 
-      description: "View documents and information during showings and meetings"
+      description: "View documents and information during showings and meetings",
+      image: mobileAppImage,
+      imageAlt: "Mobile app interface showing family document categories and navigation"
     },
     {
       icon: Phone,
