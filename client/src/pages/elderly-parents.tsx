@@ -5,6 +5,7 @@ import healthcareProfessionalImage from "@assets/image_1756092217005.png";
 import financialAnalystImage from "@assets/image_1756092346874.png";
 import contactInfoImage from "@assets/image_1756092689939.png";
 import familyAccessImage from "@assets/image_1756092776076.png";
+import familyCookingImage from "@assets/image_1756092907432.png";
 import { 
   Heart, 
   DollarSign, 
@@ -189,8 +190,8 @@ export default function ElderlyParents() {
             </div>
             <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem]">
               <img 
-                src={emergencyChecklistImage} 
-                alt="Emergency preparedness checklist document showing disaster planning information"
+                src={familyCookingImage} 
+                alt="Adult daughter cooking with elderly father in kitchen, showing caring family relationship"
                 className="w-full h-full object-cover"
               />
             </div>
