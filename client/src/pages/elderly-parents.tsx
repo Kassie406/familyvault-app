@@ -9,6 +9,7 @@ import familyCookingImage from "@assets/image_1756092907432.png";
 import digitalSecurityImage from "@assets/image_1756093157066.png";
 import mobileAppInterfaceImage from "@assets/image_1756093223145.png";
 import askExpertsImage from "@assets/image_1756093309581.png";
+import sarahProfileImage from "@assets/image_1756093411593.png";
 import { 
   Heart, 
   DollarSign, 
@@ -142,7 +143,7 @@ export default function ElderlyParents() {
   ];
 
   const testimonials = [
-    { name: "Sarah M.", title: "Daughter & Caregiver", rating: 5, quote: "FamilyVault helped me organize all of Mom's medical information in one secure place." },
+    { name: "Sarah M.", title: "Daughter & Caregiver", rating: 5, quote: "FamilyVault helped me organize all of Mom's medical information in one secure place.", image: sarahProfileImage },
     { name: "David L.", title: "Son & Financial POA", rating: 5, quote: "Managing Dad's finances became so much easier with everything organized digitally." },
     { name: "Maria C.", title: "Healthcare Advocate", rating: 5, quote: "Having quick access to medical directives during emergencies was invaluable." }
   ];
@@ -525,7 +526,15 @@ export default function ElderlyParents() {
                   ))}
                 </div>
                 <p className="text-[#D1D5DB] italic mb-4">"{testimonial.quote}"</p>
-                <div className="w-16 h-16 bg-[rgba(212,175,55,0.1)] rounded-full mx-auto mb-3 border border-[rgba(212,175,55,0.25)]"></div>
+                {testimonial.image ? (
+                  <img 
+                    src={testimonial.image} 
+                    alt={`${testimonial.name} profile photo`}
+                    className="w-16 h-16 rounded-full mx-auto mb-3 object-cover border border-[rgba(212,175,55,0.25)]"
+                  />
+                ) : (
+                  <div className="w-16 h-16 bg-[rgba(212,175,55,0.1)] rounded-full mx-auto mb-3 border border-[rgba(212,175,55,0.25)]"></div>
+                )}
                 <div className="font-semibold text-sm text-[#F3F4F6]">{testimonial.name}</div>
                 <div className="text-xs text-[#D1D5DB]">{testimonial.title}</div>
               </div>
