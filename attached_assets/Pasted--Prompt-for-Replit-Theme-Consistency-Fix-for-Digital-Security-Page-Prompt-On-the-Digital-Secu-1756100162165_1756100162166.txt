@@ -1,0 +1,60 @@
+🛠 Prompt for Replit (Theme Consistency Fix for Digital Security Page)
+
+Prompt:
+"On the Digital Security page, make the theme colors consistent with all the other FamilyVault pages (Child Info, Elderly Parents, Getting Married, etc.):
+
+Hero Section
+
+Use the same yellow accent (#FFD93D or existing brand yellow) for the icon and Get Started Free button.
+
+Heading text (FamilyVault for Digital Security) should match the white or near-white (#FFFFFF / #F5F5F5) style used on other page titles, not dark gray/low-contrast.
+
+Subheading should be light gray (#CCCCCC) like the others.
+
+Information Cards (Protect Against Data Loss, Send Sensitive Info, etc.)
+
+Use the same dark background card style with yellow border hover effect (like Moving / International Travel pages).
+
+Headings inside cards should be bold white (#FFFFFF).
+
+Body text should be consistent light gray (#CCCCCC).
+
+Icons should use the gold/yellow accent used in other pages instead of muted tones.
+
+Testimonials Section
+
+Star ratings must be yellow (#FFD93D) instead of white/gray.
+
+Text and name labels should follow the same typography as other testimonial sections.
+
+Pricing Section
+
+Keep card colors consistent:
+
+Free = white background
+
+Silver = light gray background
+
+Gold = yellow or purple highlight (whichever is used globally)
+
+Buttons must use the brand yellow background with black text.
+
+Essential Reading Section
+
+Featured article (What is a Digital Vault?) should use brand highlight background (same blue/teal or yellow highlight as other pages).
+
+Sub-cards should be aligned and styled like the checklist/article cards on Moving and Travel pages.
+
+General Theme Rules Across the Page
+
+Headings: white (#FFFFFF)
+
+Subheadings: light gray (#CCCCCC)
+
+Accent: brand yellow (#FFD93D)
+
+Links & hover effects: underline + yellow highlight
+
+Background: consistent dark (#111111 / #121212)
+
+The goal is for Digital Security to look visually identical in theme and style to all other FamilyVault pages — no mismatched colors or fonts."

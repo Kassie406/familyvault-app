@@ -115,33 +115,42 @@ export default function DigitalSecurity() {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#0b0b0b]">
       <Navbar />
       
       {/* Hero Section */}
-      <section className="pt-24 pb-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="pt-16 pb-20 bg-[#0b0b0b]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
-                <Lock className="w-6 h-6 text-purple-600" />
-              </div>
-              <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+              <span className="inline-flex items-center gap-2 text-[#FFD93D] font-medium bg-[rgba(255,217,61,0.08)] px-3 py-1 rounded-full border border-[rgba(255,217,61,0.25)] mb-6">
+                🔒 Digital Security
+              </span>
+              <h1 className="text-4xl lg:text-5xl font-bold text-[#FFFFFF] mb-6">
                 FamilyVault for Digital Security
               </h1>
-              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+              <p className="text-lg text-[#CCCCCC] mb-8 leading-relaxed">
                 Keeping your documents safe shouldn't be complicated. FamilyVault helps families manage sensitive information with airtight security.
               </p>
-              <a
-                href="/signup"
-                data-testid="button-get-started"
-                className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
-              >
-                Get started free
-              </a>
+              <div className="flex flex-wrap gap-4">
+                <a
+                  href="/signup"
+                  data-testid="button-get-started"
+                  className="bg-[#FFD93D] hover:bg-[#FFD93D]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
+                >
+                  Get started free
+                </a>
+                <a 
+                  href="/security"
+                  data-testid="link-about-security"
+                  className="text-[#FFD93D] hover:underline font-medium inline-flex items-center min-h-[44px]"
+                >
+                  About our security →
+                </a>
+              </div>
             </div>
             <div className="lg:pl-12">
-              <div className="bg-purple-50 rounded-2xl p-8 h-96 overflow-hidden">
+              <div className="bg-[#111111] border border-[rgba(255,217,61,0.2)] rounded-2xl p-8 h-96 overflow-hidden">
                 <img 
                   src={laptopSecurityImage} 
                   alt="Professional working on laptop with digital security lock overlays representing secure document management"
@@ -154,27 +163,27 @@ export default function DigitalSecurity() {
       </section>
 
       {/* Protect Your Family's Information */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-[#0b0b0b]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl lg:text-4xl font-bold text-[#FFFFFF] mb-4">
             Protect Your Family's Information — and Their Future
           </h2>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+          <p className="text-lg text-[#CCCCCC] max-w-3xl mx-auto">
             A computer crash, a fire, a lost thumb drive — your family's important documents are too important to leave vulnerable. FamilyVault secures the information that matters.
           </p>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="space-y-20">
+      {/* Information Cards */}
+      <section className="py-20 bg-[#0b0b0b]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="space-y-16">
             {features.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="grid lg:grid-cols-2 gap-12 items-center">
                   <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
-                    <div className="bg-gray-100 rounded-2xl p-8 h-64 flex items-center justify-center">
+                    <div className="bg-[#111111] border border-[rgba(255,217,61,0.2)] rounded-2xl p-8 h-64 flex items-center justify-center hover:border-[#FFD93D] transition-colors duration-300">
                       <div className="text-center">
                         {index === 0 && (
                           <>
@@ -286,16 +295,16 @@ export default function DigitalSecurity() {
                     </div>
                   </div>
                   <div className={index % 2 === 1 ? 'lg:order-1' : ''}>
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
-                      <IconComponent className="w-4 h-4 text-blue-600" />
+                    <div className="w-8 h-8 bg-[rgba(255,217,61,0.1)] rounded-lg flex items-center justify-center mb-6">
+                      <IconComponent className="w-4 h-4 text-[#FFD93D]" />
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                    <h3 className="text-2xl font-bold text-[#FFFFFF] mb-4">
                       {feature.title}
                     </h3>
-                    <p className="text-gray-600 mb-4 italic">
+                    <p className="text-[#CCCCCC] mb-4 italic">
                       {feature.description}
                     </p>
-                    <p className="text-gray-800 font-medium">
+                    <p className="text-[#FFFFFF] font-medium">
                       {feature.detail}
                     </p>
                   </div>
@@ -307,18 +316,18 @@ export default function DigitalSecurity() {
       </section>
 
       {/* Meet FamilyVault */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-[#0b0b0b]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+          <h2 className="text-3xl lg:text-4xl font-bold text-[#FFFFFF] mb-6">
             Meet FamilyVault — Your Life, Organized
           </h2>
-          <p className="text-lg text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p className="text-lg text-[#CCCCCC] mb-8 max-w-3xl mx-auto">
             From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/signup"
             data-testid="button-get-started-free"
-            className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
+            className="bg-[#FFD93D] hover:bg-[#FFD93D]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
           >
             Get started free
           </a>
@@ -326,14 +335,14 @@ export default function DigitalSecurity() {
       </section>
 
       {/* Bottom Features */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0b0b0b]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8">
             {bottomFeatures.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="text-center">
-                  <div className="bg-gray-100 rounded-2xl p-8 h-48 flex items-center justify-center mb-6 overflow-hidden">
+                  <div className="bg-[#111111] border border-[rgba(255,217,61,0.2)] rounded-2xl p-8 h-48 flex items-center justify-center mb-6 overflow-hidden hover:border-[#FFD93D] transition-colors duration-300">
                     {feature.image ? (
                       <img 
                         src={feature.image} 
@@ -341,13 +350,13 @@ export default function DigitalSecurity() {
                         className="w-full h-full object-cover rounded-lg"
                       />
                     ) : (
-                      <IconComponent className="w-12 h-12 text-[#FFD700]" />
+                      <IconComponent className="w-12 h-12 text-[#FFD93D]" />
                     )}
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-[#FFFFFF] mb-2">
                     {feature.title}
                   </h3>
-                  <p className="text-gray-600">
+                  <p className="text-[#CCCCCC]">
                     {feature.description}
                   </p>
                 </div>
@@ -358,19 +367,19 @@ export default function DigitalSecurity() {
       </section>
 
       {/* Security Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0b0b0b]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#FFFFFF] mb-6">
               Your Data Is Always Protected
             </h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            <p className="text-lg text-[#CCCCCC] max-w-3xl mx-auto">
               Your sensitive information stays private and secure with advanced security and compliance practices.
             </p>
             <div className="mt-8">
               <a
                 href="/security"
-                className="text-[#FFD700] hover:text-[#FFD700]/80 font-medium inline-flex items-center"
+                className="text-[#FFD93D] hover:underline font-medium inline-flex items-center"
               >
                 About our security
                 <ChevronRight className="w-4 h-4 ml-1" />
@@ -383,14 +392,14 @@ export default function DigitalSecurity() {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="flex items-start">
-                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                    <IconComponent className="w-4 h-4 text-purple-600" />
+                  <div className="w-8 h-8 bg-[rgba(255,217,61,0.1)] rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                    <IconComponent className="w-4 h-4 text-[#FFD93D]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                    <h3 className="font-semibold text-[#FFFFFF] mb-1">
                       {feature.title}
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-[#CCCCCC]">
                       {feature.description}
                     </p>
                   </div>
@@ -402,37 +411,39 @@ export default function DigitalSecurity() {
           {/* Compliance Badges */}
           <div className="mt-16 text-center">
             <div className="flex justify-center items-center space-x-8 opacity-60">
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">EU GDPR</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">SOC 2 TYPE II</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">SOC 3</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">HIPAA</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">CCPA</div>
+              <div className="text-xs font-semibold text-[#CCCCCC] px-3 py-1 border border-[rgba(255,255,255,.1)] rounded">EU GDPR</div>
+              <div className="text-xs font-semibold text-[#CCCCCC] px-3 py-1 border border-[rgba(255,255,255,.1)] rounded">SOC 2 TYPE II</div>
+              <div className="text-xs font-semibold text-[#CCCCCC] px-3 py-1 border border-[rgba(255,255,255,.1)] rounded">SOC 3</div>
+              <div className="text-xs font-semibold text-[#CCCCCC] px-3 py-1 border border-[rgba(255,255,255,.1)] rounded">HIPAA</div>
+              <div className="text-xs font-semibold text-[#CCCCCC] px-3 py-1 border border-[rgba(255,255,255,.1)] rounded">CCPA</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0b0b0b]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#FFFFFF] mb-4">
               What Our Members Say About FamilyVault
             </h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-gray-50 rounded-lg p-6 text-center">
+              <div key={index} className="bg-[#111111] border border-[rgba(255,217,61,0.2)] rounded-lg p-6 text-center">
                 <div className="flex justify-center mb-3">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+                    <Star key={i} className="w-4 h-4 text-[#FFD93D] fill-current" />
                   ))}
                 </div>
-                <p className="text-gray-800 italic mb-4">"{testimonial.quote}"</p>
-                <div className="w-16 h-16 bg-gray-300 rounded-full mx-auto mb-3"></div>
-                <div className="font-semibold text-sm">{testimonial.name}</div>
-                <div className="text-xs text-gray-600">{testimonial.title}</div>
+                <p className="text-[#CCCCCC] italic mb-4">"{testimonial.quote}"</p>
+                <div className="w-16 h-16 bg-gradient-to-br from-[#FFD93D] to-[#FFD700] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#FFD93D]">
+                  <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
+                </div>
+                <div className="font-semibold text-sm text-[#FFFFFF]">{testimonial.name}</div>
+                <div className="text-xs text-[#CCCCCC]">{testimonial.title}</div>
               </div>
             ))}
           </div>
@@ -440,13 +451,13 @@ export default function DigitalSecurity() {
       </section>
 
       {/* Pricing */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-[#0b0b0b]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#FFFFFF] mb-4">
               Simple, Transparent Pricing
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-[#CCCCCC]">
               No hidden fees. No surprises. Just complete peace of mind.
             </p>
           </div>
@@ -455,11 +466,11 @@ export default function DigitalSecurity() {
             {/* Free Plan */}
             <div className="bg-white rounded-lg p-6 border">
               <h3 className="text-xl font-bold mb-2">Free</h3>
-              <p className="text-gray-600 mb-4">For individuals getting started with estate planning</p>
+              <p className="text-gray-600 mb-4">For individuals getting started with digital security</p>
               <div className="text-3xl font-bold mb-6">$0</div>
               <button
                 data-testid="button-get-started-free-plan"
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold mb-6"
+                className="w-full bg-[#FFD93D] text-black py-3 rounded-lg font-semibold mb-6 hover:bg-[#FFD93D]/90 transition-colors"
               >
                 Get started
               </button>
@@ -473,13 +484,13 @@ export default function DigitalSecurity() {
             </div>
 
             {/* Silver Plan */}
-            <div className="bg-white rounded-lg p-6 border">
+            <div className="bg-gray-100 rounded-lg p-6 border">
               <h3 className="text-xl font-bold mb-2">Silver</h3>
-              <p className="text-gray-600 mb-4">Comprehensive estate organization for you and your family's resources</p>
+              <p className="text-gray-600 mb-4">Comprehensive digital security for you and your family</p>
               <div className="text-3xl font-bold mb-6">$10</div>
               <button
                 data-testid="button-get-started-silver-plan"
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold mb-6"
+                className="w-full bg-[#FFD93D] text-black py-3 rounded-lg font-semibold mb-6 hover:bg-[#FFD93D]/90 transition-colors"
               >
                 Get started
               </button>
@@ -494,16 +505,16 @@ export default function DigitalSecurity() {
             </div>
 
             {/* Gold Plan */}
-            <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg p-6 border-2 border-purple-300 relative">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-purple-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+            <div className="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-lg p-6 border-2 border-[#FFD93D] relative">
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#FFD93D] text-black px-4 py-1 rounded-full text-sm font-semibold">
                 Most Popular
               </div>
               <h3 className="text-xl font-bold mb-2">Gold</h3>
-              <p className="text-gray-600 mb-4">Total estate and legacy planning - personal and business</p>
+              <p className="text-gray-600 mb-4">Total digital security and legacy planning - personal and business</p>
               <div className="text-3xl font-bold mb-6">$20</div>
               <button
                 data-testid="button-get-started-gold-plan"
-                className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold mb-6"
+                className="w-full bg-[#FFD93D] text-black py-3 rounded-lg font-semibold mb-6 hover:bg-[#FFD93D]/90 transition-colors"
               >
                 Get started
               </button>
@@ -517,100 +528,76 @@ export default function DigitalSecurity() {
             </div>
           </div>
 
-          <div className="text-center mt-8 text-sm text-gray-600">
+          <div className="text-center mt-8 text-sm text-[#CCCCCC]">
             30-day money-back guarantee | We support first responders with a hero discount.
           </div>
         </div>
       </section>
 
-      {/* Essential Resources */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Essential Reading */}
+      <section className="py-20 bg-[#0b0b0b]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#FFFFFF] mb-4">
               Essential Reading for Your Family's Digital Security
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-[#CCCCCC]">
               Explore expert advice for safeguarding your family's important information, ensuring you're prepared for anything that may come your way.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="resources" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
             {/* Featured Article */}
-            <div className="md:col-span-2">
-              <div className="bg-blue-900 rounded-2xl p-8 text-white h-64 flex items-center">
-                <div>
-                  <div className="text-sm font-semibold text-blue-400 mb-2">FEATURED ARTICLE</div>
-                  <h3 className="text-2xl font-bold mb-4">
-                    What Is a Digital Vault? (And Why You Need One)
-                  </h3>
-                  <p className="text-gray-300 mb-6">
-                    A digital vault — like FamilyVault's — gives your family a protected, private place to hold what matters most. IDs, finances, memories, and more are kept safe and accessible when you need them.
-                  </p>
-                  <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold">
-                    Read More
-                  </button>
-                </div>
+            <div className="resource" style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: '16px', padding: '18px', minHeight: '140px', transition: 'transform .18s ease' }}>
+              <div className="inline-flex items-center gap-2 text-[#FFD93D] font-medium bg-[rgba(255,217,61,0.08)] px-3 py-1 rounded-full border border-[rgba(255,217,61,0.25)] mb-4">
+                <BookOpen className="w-4 h-4" />
+                Featured Article
               </div>
+              <h3 className="text-lg font-bold mb-3 text-[#FFFFFF]">
+                What Is a Digital Vault?
+              </h3>
+              <p className="text-[#CCCCCC] mb-4 text-sm">
+                Protected, private place for what matters most
+              </p>
+              <a href="/resources/digital-vault" className="text-[#FFD93D] hover:underline font-medium inline-flex items-center text-sm focus:outline-2 focus:outline-[#FFD93D] focus:outline-offset-2">
+                Read article
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </a>
             </div>
 
-            {/* Additional Resource */}
-            <div>
-              <div className="bg-gray-100 rounded-2xl p-6 h-64 flex flex-col justify-between">
-                <div>
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                    <Lock className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <div className="text-sm font-semibold text-purple-600 mb-2">GUIDE</div>
-                  <h3 className="font-semibold text-gray-900 mb-2">
-                    The Complete Guide to Family Digital Security
-                  </h3>
-                </div>
+            {/* Guide */}
+            <div className="resource" style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: '16px', padding: '18px', minHeight: '140px', transition: 'transform .18s ease' }}>
+              <div className="text-[#FFD93D] font-semibold text-sm mb-3">GUIDE</div>
+              <div className="bg-[rgba(255,217,61,0.05)] rounded-lg p-4 mb-4 flex items-center justify-center h-16">
+                <Lock className="w-8 h-8 text-[#FFD93D]" />
               </div>
+              <h3 className="font-semibold text-[#FFFFFF] text-sm">
+                Complete Guide to Family Digital Security
+              </h3>
             </div>
-          </div>
 
-          {/* Articles */}
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Articles</h3>
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="bg-gray-50 rounded-lg overflow-hidden">
-                <div className="h-48 bg-purple-100 flex items-center justify-center">
-                  <Shield className="w-16 h-16 text-purple-600" />
-                </div>
-                <div className="p-6">
-                  <div className="text-sm font-semibold text-purple-600 mb-2">Digital Security</div>
-                  <h4 className="font-semibold text-gray-900 mb-2">
-                    How to Safely Store and Digitize Family Records
-                  </h4>
-                </div>
+            {/* Security Tips */}
+            <div className="resource" style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: '16px', padding: '18px', minHeight: '140px', transition: 'transform .18s ease' }}>
+              <div className="text-[#FFD93D] font-semibold text-sm mb-3">ARTICLE</div>
+              <div className="bg-[rgba(255,217,61,0.05)] rounded-lg p-4 mb-4 flex items-center justify-center h-16">
+                <Shield className="w-8 h-8 text-[#FFD93D]" />
               </div>
-
-              <div className="bg-gray-50 rounded-lg overflow-hidden">
-                <div className="h-48 bg-purple-100 flex items-center justify-center">
-                  <Key className="w-16 h-16 text-purple-600" />
-                </div>
-                <div className="p-6">
-                  <div className="text-sm font-semibold text-purple-600 mb-2">Password Security</div>
-                  <h4 className="font-semibold text-gray-900 mb-2">
-                    Expert Q&A: Password Hygiene 101
-                  </h4>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg overflow-hidden">
-                <div className="h-48 bg-purple-100 flex items-center justify-center">
-                  <Users className="w-16 h-16 text-purple-600" />
-                </div>
-                <div className="p-6">
-                  <div className="text-sm font-semibold text-purple-600 mb-2">Family Security</div>
-                  <h4 className="font-semibold text-gray-900 mb-2">
-                    How to Safely Share Passwords with Family Members or Trusted Contacts
-                  </h4>
-                </div>
-              </div>
+              <h3 className="font-semibold text-[#FFFFFF] text-sm">
+                How to Safely Store and Digitize Records
+              </h3>
             </div>
           </div>
+
+          <style jsx>{`
+            @media (max-width: 900px) {
+              .resources {
+                grid-template-columns: 1fr !important;
+              }
+            }
+            .resource:hover {
+              transform: translateY(-2px);
+            }
+          `}</style>
         </div>
       </section>
 

@@ -1,0 +1,60 @@
+🔧 Fixes & Updates for Disaster Planning Page
+
+Hero Section (Top Banner)
+
+✅ Title & Subtitle are correct.
+
+⚠️ The “Get Started Free” button color and hover effect should match the same yellow button style across all pages (make sure the hover state uses the same background shade).
+
+⚠️ The subtitle text (“A natural disaster…”) should use the same font-weight and gray tone as other subpages.
+
+Testimonial Section (Wildfire Story)
+
+⚠️ Right now, it looks slightly misaligned compared to other testimonial sections.
+
+✅ Keep the text and video embed, but ensure font size and spacing match the testimonial sections in International Travel and Moving.
+
+✅ Background should stay black with consistent padding.
+
+How FamilyVault Helps Section
+
+✅ Good use of icons + cards.
+
+⚠️ The card borders and hover effects should match Elderly Parents and Getting Married (thin border highlight on hover).
+
+✅ Keep icons in the same golden color as other sections.
+
+Detailed Features Section (Contacts, Medical, Pets, Insurance)
+
+⚠️ Ensure card alignment is consistent (some screenshots show uneven gaps).
+
+⚠️ Text should match line-height and font-weight of the International Travel feature cards.
+
+✅ Icons should stay gold, but add hover highlight effects like the Digital Security page.
+
+Meet FamilyVault Section
+
+✅ Present and styled correctly.
+
+⚠️ Align the three feature blocks (Backup, Browse, Experts) to match the exact padding used on other pages.
+
+Security Section
+
+✅ Security icons are consistent.
+
+⚠️ Ensure the yellow highlight on "About our security" link matches other pages.
+
+Testimonials Section
+
+⚠️ Current testimonial cards look slightly heavier (bold outlines).
+→ Make them consistent with Moving Page (light border, subtle hover effect).
+
+⚠️ Ensure star icons are the same shade of yellow used elsewhere.
+
+Closing CTA (Bottom Banner)
+
+✅ Good use of "Be ready for anything life throws your way".
+
+⚠️ Ensure gradient background matches other page footers (fade-to-black with gold highlight).
+
+✅ Button style must match all other closing CTA buttons.
