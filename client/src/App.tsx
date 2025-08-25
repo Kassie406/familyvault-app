@@ -23,6 +23,9 @@ import Moving from "@/pages/moving";
 import WhenSomeoneDies from "@/pages/when-someone-dies";
 import DigitalSecurity from "@/pages/digital-security";
 import Neurodiversity from "@/pages/neurodiversity";
+import Blogs from "@/pages/blogs";
+import GuidesChecklists from "@/pages/guides-checklists";
+import HelpCenter from "@/pages/help-center";
 
 function Router() {
   return (
@@ -45,6 +48,9 @@ function Router() {
       <Route path="/when-someone-dies" component={WhenSomeoneDies} />
       <Route path="/digital-security" component={DigitalSecurity} />
       <Route path="/neurodiversity" component={Neurodiversity} />
+      <Route path="/blogs" component={Blogs} />
+      <Route path="/guides-checklists" component={GuidesChecklists} />
+      <Route path="/help-center" component={HelpCenter} />
       <Route component={NotFound} />
     </Switch>
   );
