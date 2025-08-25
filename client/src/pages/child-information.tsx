@@ -2,7 +2,7 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import soccerKidImage from "@assets/image_1756084550627.png";
 import phoneDocumentImage from "@assets/image_1756085339999.png";
-import wifiPhoneImage from "@assets/image_1756085497967.png";
+import emergencyChecklistImage from "@assets/image_1756091492533.png";
 import insuranceCardImage from "@assets/image_1756085656097.png";
 import babysitterImage from "@assets/image_1756085729438.png";
 import securityImage from "@assets/image_1756085840418.png";
@@ -87,8 +87,8 @@ export default function ChildInformation() {
       title: "Share Emergency Information Easily", 
       description: "The babysitter needs emergency contacts, allergy info, and the Wi-Fi password — and you're running late for a concert.",
       detail: "Send allergy and medical details, contact information, and more to caregivers instantly.",
-      image: wifiPhoneImage,
-      imageAlt: "Phone screen showing Wi-Fi password sharing interface"
+      image: emergencyChecklistImage,
+      imageAlt: "Emergency preparedness checklist document showing disaster planning information"
     },
     {
       icon: Lock,
