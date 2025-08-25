@@ -515,8 +515,46 @@ export default function ChildInformation() {
             </div>
           </div>
 
+          {/* Articles Horizontal Scroll */}
+          <div className="flex overflow-x-auto gap-6 pb-4">
+            {[
+              {
+                title: "Helping Elderly Parents: The Complete Guide",
+                description: "Essential steps for navigating the complexities of elder care",
+                icon: BookOpen
+              },
+              {
+                title: "Should Elderly Parents Sign Over Their House? Pros and Cons",
+                description: "Important legal and financial considerations for property transfers",
+                icon: Heart
+              }
+            ].map((article, index) => {
+              const IconComponent = article.icon;
+              return (
+                <div key={index} className="bg-[#141414] rounded-lg p-6 border border-[rgba(212,175,55,0.2)] hover:border-[rgba(212,175,55,0.35)] transition-colors min-w-[320px] flex-shrink-0">
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#FFD700] to-[#D4AF37] rounded-lg flex items-center justify-center mb-4">
+                    <IconComponent className="w-6 h-6 text-black" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-[#F3F4F6] mb-2">
+                    {article.title}
+                  </h3>
+                  <p className="text-[#D1D5DB] mb-4">
+                    {article.description}
+                  </p>
+                  <a 
+                    href="#"
+                    data-testid={`link-read-article-${index + 1}`}
+                    className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
+                  >
+                    Read article →
+                  </a>
+                </div>
+              );
+            })}
+          </div>
+
           {/* Checklists */}
-          <div>
+          <div className="mt-16">
             <h3 className="text-xl mb-8" style={{color: '#D4AF37', fontWeight: '700'}}>Checklists</h3>
             <div className="grid md:grid-cols-2 gap-8">
               {[
