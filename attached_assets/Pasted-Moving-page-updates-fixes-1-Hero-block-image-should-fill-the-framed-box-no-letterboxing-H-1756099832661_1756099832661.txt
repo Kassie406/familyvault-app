@@ -1,0 +1,124 @@
+Moving page – updates & fixes
+1) Hero block: image should fill the framed box (no letterboxing)
+/* Hero */
+.moving-hero {
+  display:grid; grid-template-columns: 1.15fr 1fr; gap:32px; align-items:center;
+}
+.moving-hero__media {
+  position:relative; border:1px solid #7a5e08; border-radius:18px; padding:8px;
+  background:#0f0f0f; /* match page bg so there’s no “halo” */
+}
+.moving-hero__img {
+  display:block; width:100%; height:420px; border-radius:12px;
+  object-fit:cover; object-position:center; /* fills the box */
+}
+@media (max-width: 900px){
+  .moving-hero { grid-template-columns: 1fr; }
+  .moving-hero__img { height:280px; }
+}
+
+
+HTML hint:
+Wrap your hero image with .moving-hero__media and add class="moving-hero__img" to the <img>.
+
+2) Kill the faint horizontal “white bars” between sections
+
+(These come from default separators/margins.)
+
+/* Global section seams */
+.section { background:#0b0b0b; }
+.section--alt { background:linear-gradient(180deg,#0b0b0b 0%, #0b0b0b 100%); } /* no visible seam */
+
+/* Remove stray borders and pseudo rules */
+.section, .band, .container {
+  border:0 !important;
+}
+.section::before, .section::after, .band::before, .band::after {
+  content:none !important;
+}
+
+/* Collapse accidental gaps that render as light lines on dark bg */
+.section + .section,
+.section + .band,
+.band + .section { margin-top:0; }
+
+/* Body background behind everything */
+html, body { background:#0b0b0b; }
+
+3) Feature rows (card on left + text on right) – tidy spacing & mobile stack
+.feature-row {
+  display:grid; grid-template-columns: 420px 1fr; gap:32px; align-items:center;
+  padding:48px 0; border-bottom:1px solid rgba(255,255,255,.06);
+}
+.feature-row:last-of-type { border-bottom:0; }
+.feature-card {
+  border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:18px;
+  background:rgba(255,255,255,.02);
+}
+@media (max-width: 980px){
+  .feature-row { grid-template-columns: 1fr; }
+}
+
+4) Typography & contrast (dark theme friendly)
+h1, .h1 { font-size:36px; line-height:1.2; color:#fff; margin:0 0 12px; }
+h2, .h2 { font-size:28px; line-height:1.25; color:#fff; margin:0 0 10px; }
+p { color:#c9c9c9; }
+a.link-arrow { color:#f1c232; text-decoration:none; }
+a.link-arrow:hover { text-decoration:underline; }
+
+5) Testimonial rail: make it readable & consistent with other pages
+.testimonials {
+  display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; padding:40px 0;
+}
+.testimonial {
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);
+  border-radius:16px; padding:20px; color:#ddd;
+}
+.testimonial .name { color:#bdbdbd; font-size:12px; margin-top:8px; }
+@media (max-width: 900px){
+  .testimonials { grid-template-columns:1fr; }
+}
+
+6) Pricing cards: fix alignment & button consistency
+.pricing { display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; }
+.plan {
+  background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.1);
+  border-radius:18px; padding:22px; display:flex; flex-direction:column;
+}
+.plan .cta { margin-top:auto; }
+.button--gold {
+  background:#f1c232; color:#111; border:0; border-radius:999px; padding:10px 16px;
+}
+.button--gold:hover { filter:brightness(.95); }
+@media (max-width: 900px){
+  .pricing { grid-template-columns:1fr; }
+}
+
+7) “Essential resources” grid: equal heights + tidy hover
+.resources { display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; }
+.resource {
+  background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08);
+  border-radius:16px; padding:18px; min-height:140px; transition:transform .18s ease;
+}
+.resource:hover { transform:translateY(-2px); }
+@media (max-width: 900px){
+  .resources { grid-template-columns:1fr; }
+}
+
+8) CTA band (the big “Get started free” stripe) – no seams
+.cta-band {
+  padding:56px 0;
+  background:radial-gradient(1200px 300px at 50% 100%, rgba(241,194,50,.15) 0%, rgba(11,11,11,0) 70%), #0b0b0b;
+}
+
+9) Accessibility & perf quick wins
+
+Add alt text to every illustration (e.g., “Family carrying boxes into new home”).
+
+loading="lazy" on non-hero images.
+
+Prefer width/height on images to prevent CLS.
+
+Ensure focus states on all CTAs:
+
+.button:focus-visible { outline:2px solid #f1c232; outline-offset:2px; }

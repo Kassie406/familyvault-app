@@ -116,66 +116,106 @@ export default function Moving() {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#0b0b0b]">
       <Navbar />
       
       {/* Hero Section */}
-      <section className="pt-24 pb-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <section className="pt-16 pb-20 bg-[#0b0b0b]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="moving-hero" style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: '32px', alignItems: 'center' }}>
             <div>
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-6">
-                <Package className="w-6 h-6 text-orange-600" />
-              </div>
-              <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+              <span className="inline-flex items-center gap-2 text-[#f1c232] font-medium bg-[rgba(241,194,50,0.08)] px-3 py-1 rounded-full border border-[rgba(241,194,50,0.25)] mb-6">
+                📦 Moving
+              </span>
+              <h1 className="text-4xl md:text-5xl font-bold text-[#fff] mb-4 leading-tight">
                 FamilyVault for Moving to a New Home
               </h1>
-              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+              <p className="text-[#c9c9c9] mb-8 text-lg leading-relaxed">
                 A new home brings big changes — and the Family Operating System® keeps your essential information secure and accessible before, during, and after your move.
               </p>
-              <a
-                href="/signup"
-                data-testid="button-get-started"
-                className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
-              >
-                Get started free
-              </a>
-            </div>
-            <div className="lg:pl-12">
-              <div className="bg-orange-50 rounded-2xl p-8 h-96 overflow-hidden">
-                <img 
-                  src={movingCoupleImage} 
-                  alt="Couple carrying moving boxes outside their new home"
-                  className="w-full h-full object-cover rounded-lg"
-                />
+              <div className="flex flex-wrap gap-4">
+                <a
+                  href="/signup"
+                  data-testid="button-get-started"
+                  className="bg-[#f1c232] hover:brightness-95 text-[#111] px-8 py-3 rounded-full font-semibold text-lg transition-all inline-flex items-center focus:outline-2 focus:outline-[#f1c232] focus:outline-offset-2"
+                >
+                  Get started free
+                </a>
+                <a 
+                  href="/features"
+                  data-testid="link-see-moving-features"
+                  className="text-[#f1c232] hover:underline font-medium inline-flex items-center min-h-[44px]"
+                >
+                  See moving features →
+                </a>
               </div>
+            </div>
+            <div className="moving-hero__media" style={{ position: 'relative', border: '1px solid #7a5e08', borderRadius: '18px', padding: '8px', background: '#0f0f0f' }}>
+              <img 
+                src={movingCoupleImage} 
+                alt="Family carrying boxes into new home"
+                className="moving-hero__img"
+                style={{ display: 'block', width: '100%', height: '420px', borderRadius: '12px', objectFit: 'cover', objectPosition: 'center' }}
+                loading="eager"
+                width="600"
+                height="420"
+              />
+              <style jsx>{`
+                @media (max-width: 900px) {
+                  .moving-hero {
+                    grid-template-columns: 1fr !important;
+                  }
+                  .moving-hero__img {
+                    height: 280px !important;
+                  }
+                }
+                @media (max-width: 980px) {
+                  .feature-row {
+                    grid-template-columns: 1fr !important;
+                  }
+                }
+                @media (max-width: 900px) {
+                  .testimonials {
+                    grid-template-columns: 1fr !important;
+                  }
+                  .pricing {
+                    grid-template-columns: 1fr !important;
+                  }
+                  .resources {
+                    grid-template-columns: 1fr !important;
+                  }
+                }
+                .resource:hover {
+                  transform: translateY(-2px);
+                }
+              `}</style>
             </div>
           </div>
         </div>
       </section>
 
       {/* How FamilyVault Helps */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-[#0b0b0b]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl lg:text-4xl font-bold text-[#fff] mb-4">
             How FamilyVault Helps — Through All Stages of Moving
           </h2>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+          <p className="text-lg text-[#c9c9c9] max-w-3xl mx-auto">
             Whether you're confirming movers or settling into your new home, your important documents stay private, protected, and ready to use.
           </p>
         </div>
       </section>
 
       {/* Features */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="space-y-20">
+      <section className="py-20 bg-[#0b0b0b]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div>
             {features.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
-                <div key={index} className="grid lg:grid-cols-2 gap-12 items-center">
-                  <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
-                    <div className="bg-gray-100 rounded-2xl p-8 h-64 flex items-center justify-center">
+                <div key={index} className="feature-row" style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: '32px', alignItems: 'center', padding: '48px 0', borderBottom: index < features.length - 1 ? '1px solid rgba(255,255,255,.06)' : '0' }}>
+                  <div>
+                    <div className="feature-card" style={{ border: '1px solid rgba(255,255,255,.08)', borderRadius: '16px', padding: '18px', background: 'rgba(255,255,255,.02)' }}>
                       <div className="text-center">
                         {index === 0 && (
                           <>
@@ -263,17 +303,17 @@ export default function Moving() {
                       </div>
                     </div>
                   </div>
-                  <div className={index % 2 === 1 ? 'lg:order-1' : ''}>
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
-                      <IconComponent className="w-4 h-4 text-blue-600" />
+                  <div>
+                    <div className="w-8 h-8 bg-[rgba(241,194,50,0.1)] rounded-lg flex items-center justify-center mb-6">
+                      <IconComponent className="w-4 h-4 text-[#f1c232]" />
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                    <h3 className="text-2xl font-bold text-[#fff] mb-4">
                       {feature.title}
                     </h3>
-                    <p className="text-gray-600 mb-4 italic">
+                    <p className="text-[#c9c9c9] mb-4 italic">
                       {feature.description}
                     </p>
-                    <p className="text-gray-800 font-medium">
+                    <p className="text-[#fff] font-medium">
                       {feature.detail}
                     </p>
                   </div>
@@ -284,19 +324,19 @@ export default function Moving() {
         </div>
       </section>
 
-      {/* Meet FamilyVault */}
-      <section className="py-20 bg-gray-50">
+      {/* Meet FamilyVault - CTA Band */}
+      <section className="cta-band" style={{ padding: '56px 0', background: 'radial-gradient(1200px 300px at 50% 100%, rgba(241,194,50,.15) 0%, rgba(11,11,11,0) 70%), #0b0b0b' }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+          <h2 className="text-3xl lg:text-4xl font-bold text-[#fff] mb-6">
             Meet FamilyVault — Your Life, Organized
           </h2>
-          <p className="text-lg text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p className="text-lg text-[#c9c9c9] mb-8 max-w-3xl mx-auto">
             From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/signup"
             data-testid="button-get-started-free"
-            className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
+            className="bg-[#f1c232] hover:brightness-95 text-[#111] px-8 py-4 rounded-full font-semibold text-lg transition-all inline-block focus:outline-2 focus:outline-[#f1c232] focus:outline-offset-2"
           >
             Get started free
           </a>
@@ -304,28 +344,29 @@ export default function Moving() {
       </section>
 
       {/* Bottom Features */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0b0b0b]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8">
             {bottomFeatures.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="text-center">
-                  <div className="bg-gray-100 rounded-2xl p-8 h-48 flex items-center justify-center mb-6 overflow-hidden">
+                  <div className="bg-[rgba(255,255,255,.03)] border border-[rgba(255,255,255,.08)] rounded-2xl p-8 h-[200px] flex items-center justify-center mb-6 overflow-hidden">
                     {feature.image ? (
                       <img 
                         src={feature.image} 
                         alt={feature.imageAlt}
                         className="w-full h-full object-cover rounded-lg"
+                        loading="lazy"
                       />
                     ) : (
-                      <IconComponent className="w-12 h-12 text-[#FFD700]" />
+                      <IconComponent className="w-12 h-12 text-[#f1c232]" />
                     )}
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-[#fff] mb-2">
                     {feature.title}
                   </h3>
-                  <p className="text-gray-600">
+                  <p className="text-[#c9c9c9]">
                     {feature.description}
                   </p>
                 </div>
@@ -336,19 +377,19 @@ export default function Moving() {
       </section>
 
       {/* Security Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0b0b0b]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#fff] mb-6">
               Your Data Is Always Protected
             </h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            <p className="text-lg text-[#c9c9c9] max-w-3xl mx-auto">
               Your sensitive information stays private and secure with advanced security and compliance practices.
             </p>
             <div className="mt-8">
               <a
                 href="/security"
-                className="text-[#FFD700] hover:text-[#FFD700]/80 font-medium inline-flex items-center"
+                className="text-[#f1c232] hover:underline font-medium inline-flex items-center focus:outline-2 focus:outline-[#f1c232] focus:outline-offset-2"
               >
                 About our security
                 <ChevronRight className="w-4 h-4 ml-1" />
@@ -361,14 +402,14 @@ export default function Moving() {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="flex items-start">
-                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                    <IconComponent className="w-4 h-4 text-purple-600" />
+                  <div className="w-8 h-8 bg-[rgba(241,194,50,0.1)] rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                    <IconComponent className="w-4 h-4 text-[#f1c232]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                    <h3 className="font-semibold text-[#fff] mb-1">
                       {feature.title}
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-[#c9c9c9]">
                       {feature.description}
                     </p>
                   </div>
@@ -380,37 +421,39 @@ export default function Moving() {
           {/* Compliance Badges */}
           <div className="mt-16 text-center">
             <div className="flex justify-center items-center space-x-8 opacity-60">
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">EU GDPR</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">SOC 2 TYPE II</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">SOC 3</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">HIPAA</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">CCPA</div>
+              <div className="text-xs font-semibold text-[#c9c9c9] px-3 py-1 border border-[rgba(255,255,255,.1)] rounded">EU GDPR</div>
+              <div className="text-xs font-semibold text-[#c9c9c9] px-3 py-1 border border-[rgba(255,255,255,.1)] rounded">SOC 2 TYPE II</div>
+              <div className="text-xs font-semibold text-[#c9c9c9] px-3 py-1 border border-[rgba(255,255,255,.1)] rounded">SOC 3</div>
+              <div className="text-xs font-semibold text-[#c9c9c9] px-3 py-1 border border-[rgba(255,255,255,.1)] rounded">HIPAA</div>
+              <div className="text-xs font-semibold text-[#c9c9c9] px-3 py-1 border border-[rgba(255,255,255,.1)] rounded">CCPA</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0b0b0b]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#fff] mb-4">
               What Our Members Say About FamilyVault
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="testimonials" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '18px', padding: '40px 0' }}>
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-gray-50 rounded-lg p-6 text-center">
+              <div key={index} className="testimonial" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)', borderRadius: '16px', padding: '20px', color: '#ddd' }}>
                 <div className="flex justify-center mb-3">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+                    <Star key={i} className="w-4 h-4 text-[#f1c232] fill-current" />
                   ))}
                 </div>
-                <p className="text-gray-800 italic mb-4">"{testimonial.quote}"</p>
-                <div className="w-16 h-16 bg-gray-300 rounded-full mx-auto mb-3"></div>
-                <div className="font-semibold text-sm">{testimonial.name}</div>
-                <div className="text-xs text-gray-600">{testimonial.title}</div>
+                <p className="italic mb-4">"{testimonial.quote}"</p>
+                <div className="w-16 h-16 bg-gradient-to-br from-[#f1c232] to-[#d4af37] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#f1c232]">
+                  <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
+                </div>
+                <div className="font-semibold text-sm text-[#fff]">{testimonial.name}</div>
+                <div className="name" style={{ color: '#bdbdbd', fontSize: '12px', marginTop: '8px' }}>{testimonial.title}</div>
               </div>
             ))}
           </div>
@@ -418,30 +461,32 @@ export default function Moving() {
       </section>
 
       {/* Pricing */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-[#0b0b0b]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#fff] mb-4">
               Simple, Transparent Pricing
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-[#c9c9c9]">
               No hidden fees. No surprises. Just complete peace of mind.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="pricing" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '18px' }}>
             {/* Free Plan */}
-            <div className="bg-white rounded-lg p-6 border">
-              <h3 className="text-xl font-bold mb-2">Free</h3>
-              <p className="text-gray-600 mb-4">For families looking to get started</p>
-              <div className="text-3xl font-bold mb-6">$0</div>
+            <div className="plan" style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.1)', borderRadius: '18px', padding: '22px', display: 'flex', flexDirection: 'column' }}>
+              <h3 className="text-xl font-bold mb-2 text-[#fff]">Free</h3>
+              <p className="text-[#c9c9c9] mb-4">For families looking to get started</p>
+              <div className="text-3xl font-bold mb-6 text-[#fff]">$0</div>
               <button
                 data-testid="button-get-started-free-plan"
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold mb-6"
+                className="button--gold cta" style={{ background: '#f1c232', color: '#111', border: '0', borderRadius: '999px', padding: '10px 16px', width: '100%', marginTop: 'auto', fontWeight: '600', fontSize: '16px', cursor: 'pointer', transition: 'filter 0.2s' }}
+                onMouseEnter={(e) => e.target.style.filter = 'brightness(.95)'}
+                onMouseLeave={(e) => e.target.style.filter = 'brightness(1)'}
               >
                 Get started
               </button>
-              <ul className="space-y-2 text-sm">
+              <ul className="space-y-2 text-sm text-[#c9c9c9] mt-6">
                 <li>• Advanced security</li>
                 <li>• 10 items</li>
                 <li>• 500MB</li>
@@ -451,17 +496,19 @@ export default function Moving() {
             </div>
 
             {/* Silver Plan */}
-            <div className="bg-white rounded-lg p-6 border">
-              <h3 className="text-xl font-bold mb-2">Silver</h3>
-              <p className="text-gray-600 mb-4">Unlock unlimited items and unlock additional resources</p>
-              <div className="text-3xl font-bold mb-6">$10</div>
+            <div className="plan" style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.1)', borderRadius: '18px', padding: '22px', display: 'flex', flexDirection: 'column' }}>
+              <h3 className="text-xl font-bold mb-2 text-[#fff]">Silver</h3>
+              <p className="text-[#c9c9c9] mb-4">Unlock unlimited items and unlock additional resources</p>
+              <div className="text-3xl font-bold mb-6 text-[#fff]">$10</div>
               <button
                 data-testid="button-get-started-silver-plan"
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold mb-6"
+                className="button--gold cta" style={{ background: '#f1c232', color: '#111', border: '0', borderRadius: '999px', padding: '10px 16px', width: '100%', marginTop: 'auto', fontWeight: '600', fontSize: '16px', cursor: 'pointer', transition: 'filter 0.2s' }}
+                onMouseEnter={(e) => e.target.style.filter = 'brightness(.95)'}
+                onMouseLeave={(e) => e.target.style.filter = 'brightness(1)'}
               >
                 Get started
               </button>
-              <ul className="space-y-2 text-sm">
+              <ul className="space-y-2 text-sm text-[#c9c9c9] mt-6">
                 <li>• Everything in Free plus:</li>
                 <li>• Unlimited items</li>
                 <li>• Autopilot™ by FamilyVault</li>
@@ -472,20 +519,22 @@ export default function Moving() {
             </div>
 
             {/* Gold Plan */}
-            <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg p-6 border-2 border-purple-300 relative">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-purple-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+            <div className="plan" style={{ background: 'rgba(255,255,255,.05)', border: '2px solid #f1c232', borderRadius: '18px', padding: '22px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#f1c232] text-[#111] px-4 py-1 rounded-full text-sm font-semibold">
                 Most Popular
               </div>
-              <h3 className="text-xl font-bold mb-2">Gold</h3>
-              <p className="text-gray-600 mb-4">Total peace of mind for your family & your family business</p>
-              <div className="text-3xl font-bold mb-6">$20</div>
+              <h3 className="text-xl font-bold mb-2 text-[#fff]">Gold</h3>
+              <p className="text-[#c9c9c9] mb-4">Total peace of mind for your family & your family business</p>
+              <div className="text-3xl font-bold mb-6 text-[#fff]">$20</div>
               <button
                 data-testid="button-get-started-gold-plan"
-                className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold mb-6"
+                className="button--gold cta" style={{ background: '#f1c232', color: '#111', border: '0', borderRadius: '999px', padding: '10px 16px', width: '100%', marginTop: 'auto', fontWeight: '600', fontSize: '16px', cursor: 'pointer', transition: 'filter 0.2s' }}
+                onMouseEnter={(e) => e.target.style.filter = 'brightness(.95)'}
+                onMouseLeave={(e) => e.target.style.filter = 'brightness(1)'}
               >
                 Get started
               </button>
-              <ul className="space-y-2 text-sm">
+              <ul className="space-y-2 text-sm text-[#c9c9c9] mt-6">
                 <li>• Everything in Silver plus:</li>
                 <li>• Business information</li>
                 <li>• Organization (LLC, S Corp, S Corp, INC, etc.)</li>
@@ -495,98 +544,63 @@ export default function Moving() {
             </div>
           </div>
 
-          <div className="text-center mt-8 text-sm text-gray-600">
+          <div className="text-center mt-8 text-sm text-[#c9c9c9]">
             30-day money-back guarantee | We support first responders with a hero discount.
           </div>
         </div>
       </section>
 
       {/* Essential Resources */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0b0b0b]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#fff] mb-4">
               Essential Resources for Moving to a New Home
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-[#c9c9c9]">
               Get expert guidance to stay organized, avoid common pitfalls, and settle in with less stress.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="resources" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
             {/* Featured Guide */}
-            <div className="md:col-span-2">
-              <div className="bg-gray-900 rounded-2xl p-8 text-white h-64 flex items-center">
-                <div>
-                  <div className="text-sm font-semibold text-blue-400 mb-2">FEATURED GUIDE</div>
-                  <h3 className="text-2xl font-bold mb-4">
-                    The Ultimate Moving Guide: Less Stress, More Control, a Smoother Start
-                  </h3>
-                  <p className="text-gray-300 mb-6">
-                    From timelines to checklists to document storage, FamilyVault helps you stay organized and in control through every part of your move.
-                  </p>
-                  <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold">
-                    Download
-                  </button>
-                </div>
+            <div className="resource" style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: '16px', padding: '18px', minHeight: '140px', transition: 'transform .18s ease' }}>
+              <div className="inline-flex items-center gap-2 text-[#f1c232] font-medium bg-[rgba(241,194,50,0.08)] px-3 py-1 rounded-full border border-[rgba(241,194,50,0.25)] mb-4">
+                <Bell className="w-4 h-4" />
+                Featured Guide
               </div>
+              <h3 className="text-lg font-bold mb-3 text-[#fff]">
+                Complete Moving Guide
+              </h3>
+              <p className="text-[#c9c9c9] mb-4 text-sm">
+                Less stress, more control, smoother start
+              </p>
+              <a href="/resources/moving-guide" className="text-[#f1c232] hover:underline font-medium inline-flex items-center text-sm focus:outline-2 focus:outline-[#f1c232] focus:outline-offset-2">
+                Download guide
+                <Download className="w-4 h-4 ml-1" />
+              </a>
             </div>
 
-            {/* Additional Resource */}
-            <div>
-              <div className="bg-gray-100 rounded-2xl p-6 h-64 flex flex-col justify-between">
-                <div>
-                  <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
-                    <Package className="w-6 h-6 text-orange-600" />
-                  </div>
-                  <div className="text-sm font-semibold text-orange-600 mb-2">CHECKLIST</div>
-                  <h3 className="font-semibold text-gray-900 mb-2">
-                    Moving Checklist: 8 Weeks to Moving Day
-                  </h3>
-                </div>
+            {/* Checklist */}
+            <div className="resource" style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: '16px', padding: '18px', minHeight: '140px', transition: 'transform .18s ease' }}>
+              <div className="text-[#f1c232] font-semibold text-sm mb-3">CHECKLIST</div>
+              <div className="bg-[rgba(241,194,50,0.05)] rounded-lg p-4 mb-4 flex items-center justify-center h-16">
+                <Package className="w-8 h-8 text-[#f1c232]" />
               </div>
+              <h3 className="font-semibold text-[#fff] text-sm">
+                Moving Checklist: 8 Weeks to Moving Day
+              </h3>
             </div>
-          </div>
 
-          {/* Articles */}
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Articles</h3>
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="bg-gray-50 rounded-lg overflow-hidden">
-                <div className="h-48 bg-orange-100 flex items-center justify-center">
-                  <FileText className="w-16 h-16 text-orange-600" />
-                </div>
-                <div className="p-6">
-                  <div className="text-sm font-semibold text-orange-600 mb-2">Moving</div>
-                  <h4 className="font-semibold text-gray-900 mb-2">
-                    Why It's Time to Ditch Your Paper Filing System
-                  </h4>
-                </div>
+            {/* Document Organizer */}
+            <div className="resource" style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: '16px', padding: '18px', minHeight: '140px', transition: 'transform .18s ease' }}>
+              <div className="text-[#f1c232] font-semibold text-sm mb-3">ARTICLE</div>
+              <div className="bg-[rgba(241,194,50,0.05)] rounded-lg p-4 mb-4 flex items-center justify-center h-16">
+                <FileText className="w-8 h-8 text-[#f1c232]" />
               </div>
-
-              <div className="bg-gray-50 rounded-lg overflow-hidden">
-                <div className="h-48 bg-orange-100 flex items-center justify-center">
-                  <BookOpen className="w-16 h-16 text-orange-600" />
-                </div>
-                <div className="p-6">
-                  <div className="text-sm font-semibold text-orange-600 mb-2">Moving</div>
-                  <h4 className="font-semibold text-gray-900 mb-2">
-                    How to Organize Important Documents Before You Move
-                  </h4>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg overflow-hidden">
-                <div className="h-48 bg-orange-100 flex items-center justify-center">
-                  <Home className="w-16 h-16 text-orange-600" />
-                </div>
-                <div className="p-6">
-                  <div className="text-sm font-semibold text-orange-600 mb-2">Moving</div>
-                  <h4 className="font-semibold text-gray-900 mb-2">
-                    Moving for Work: How to Stay Organized
-                  </h4>
-                </div>
-              </div>
+              <h3 className="font-semibold text-[#fff] text-sm">
+                How to Organize Documents Before Moving
+              </h3>
             </div>
           </div>
         </div>
