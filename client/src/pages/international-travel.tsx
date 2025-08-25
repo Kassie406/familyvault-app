@@ -1,6 +1,7 @@
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import travelerAirportImage from "@assets/image_1756094101211.png";
+import digitalSecurityImage from "@assets/image_1756094141073.png";
 import { 
   Plane, 
   FileText, 
@@ -53,7 +54,9 @@ export default function InternationalTravel() {
     {
       icon: Shield,
       title: "Back Up Your Data Easily",
-      description: "Automatic cloud backup keeps everything safe"
+      description: "Automatic cloud backup keeps everything safe",
+      image: digitalSecurityImage,
+      imageAlt: "Digital security shield with circuit board background representing secure cloud backup"
     },
     {
       icon: Smartphone, 
@@ -295,8 +298,16 @@ export default function InternationalTravel() {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="text-center">
-                  <div className="bg-gray-100 rounded-2xl p-8 h-48 flex items-center justify-center mb-6">
-                    <IconComponent className="w-12 h-12 text-[#FFD700]" />
+                  <div className="bg-gray-100 rounded-2xl p-8 h-48 flex items-center justify-center mb-6 overflow-hidden">
+                    {feature.image ? (
+                      <img 
+                        src={feature.image} 
+                        alt={feature.imageAlt}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    ) : (
+                      <IconComponent className="w-12 h-12 text-[#FFD700]" />
+                    )}
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     {feature.title}
