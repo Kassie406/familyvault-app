@@ -25,212 +25,251 @@ import {
   Download,
   BookOpen,
   Phone,
-  ChevronRight
+  ChevronRight,
+  Heart,
+  Calendar,
+  Activity,
+  AlertCircle,
+  Pill
 } from "lucide-react";
 
 export default function ChildInformation() {
+  const childInfoCards = [
+    {
+      icon: Heart,
+      title: "Medical & Allergies",
+      description: "Track medications, allergies, and medical history in one secure place.",
+      action: "Add medical info"
+    },
+    {
+      icon: FileText,
+      title: "School & Aftercare",
+      description: "Store enrollment documents, emergency contacts, and school information.",
+      action: "Add school details"
+    },
+    {
+      icon: Activity,
+      title: "Sports & Activities",
+      description: "Keep track of sports forms, activity schedules, and coach contacts.",
+      action: "Add activities"
+    },
+    {
+      icon: Shield,
+      title: "Emergency Contacts",
+      description: "Quick access to pediatrician, family, and emergency contact information.",
+      action: "Add contacts"
+    },
+    {
+      icon: Calendar,
+      title: "Immunizations",
+      description: "Digital vaccination records and upcoming immunization reminders.",
+      action: "Add immunizations"
+    },
+    {
+      icon: Users,
+      title: "Caregiver Access",
+      description: "Safely share essential information with babysitters and family.",
+      action: "Manage sharing"
+    }
+  ];
+
   const features = [
     {
       icon: FileText,
       title: "Access School & Activity Records",
       description: "You're rushing to complete your child's school registration — only to realize you can't find their birth certificate.",
-      detail: "Instantly pull up vaccination records, birth certificates, and enrollment documents."
+      detail: "Instantly pull up vaccination records, birth certificates, and enrollment documents.",
+      image: phoneDocumentImage,
+      imageAlt: "Hands holding phone displaying birth certificate document"
     },
     {
       icon: Share2,
-      title: "Share Emergency Information Easily",
+      title: "Share Emergency Information Easily", 
       description: "The babysitter needs emergency contacts, allergy info, and the Wi-Fi password — and you're running late for a concert.",
-      detail: "Send allergy and medical details, contact information, and more to caregivers instantly."
+      detail: "Send allergy and medical details, contact information, and more to caregivers instantly.",
+      image: wifiPhoneImage,
+      imageAlt: "Phone screen showing Wi-Fi password sharing interface"
     },
     {
       icon: Lock,
       title: "Store Logins & Important Docs",
       description: "At a last-minute doctor's appointment, the receptionist asks for insurance details — but you don't have your card with you.",
-      detail: "Keep insurance cards, school portal credentials, and other key information secure and accessible."
+      detail: "Keep insurance cards, school portal credentials, and other key information secure and accessible.",
+      image: insuranceCardImage,
+      imageAlt: "Hand holding medical insurance card with health policy document in background"
     },
     {
       icon: Users,
-      title: "Leave Kids With Caregivers Confidently", 
+      title: "Leave Kids With Caregivers Confidently",
       description: "You're away for the weekend, and the grandparents need access to your child's medical information in case of an emergency.",
-      detail: "Ensure babysitters and grandparents have the information they need, from emergency contacts to medical details."
+      detail: "Ensure babysitters and grandparents have the information they need, from emergency contacts to medical details.",
+      image: babysitterImage,
+      imageAlt: "Caregiver sitting with two young children, showing confident childcare"
     }
+  ];
+
+  const checklistItems = [
+    "Secure sharing with caregivers",
+    "Document reminders", 
+    "On-the-go access",
+    "Medical summary ready"
   ];
 
   const bottomFeatures = [
     {
       icon: Shield,
       title: "Back Up Your Data Easily",
-      description: "Automatic cloud backup keeps everything safe"
+      description: "Automatic cloud backup keeps everything safe",
+      image: securityImage,
+      imageAlt: "Digital security visualization with lock symbol and circuit board"
     },
     {
-      icon: Smartphone, 
-      title: "Use FamilyVault on the Go",
-      description: "Access your information anywhere with our mobile app"
+      icon: Smartphone,
+      title: "Use FamilyVault on the Go", 
+      description: "Access your information anywhere with our mobile app",
+      image: mobileAppImage,
+      imageAlt: "Mobile app interface showing browse screen with family documents and categories"
     },
     {
       icon: Phone,
       title: "Connect With an Expert",
-      description: "Get personalized help organizing your family's documents"
-    }
-  ];
-
-  const securityFeatures = [
-    {
-      icon: Shield,
-      title: "Multi-factor authentication", 
-      description: "Secure your account with two-step login protection"
-    },
-    {
-      icon: Eye,
-      title: "Threat detection",
-      description: "24/7 monitoring proactively guards against threats" 
-    },
-    {
-      icon: Key,
-      title: "Tokenization",
-      description: "Replaces sensitive data with secure tokens for protection"
-    },
-    {
-      icon: Lock,
-      title: "Data encryption", 
-      description: "Your data is securely encrypted both stored and in transit"
-    },
-    {
-      icon: Zap,
-      title: "Stolen password alerts",
-      description: "Get notified instantly if your password is compromised"
-    },
-    {
-      icon: Baby,
-      title: "Biometric authentication",
-      description: "Safe, instant access with fingerprint or face ID"
-    }
-  ];
-
-  const resources = [
-    {
-      type: "Guide",
-      title: "The Ultimate Guide for Organizing Your Child's Information",
-      description: "Keep your child's medical info, emergency contacts, and key records in one place. This downloadable guide makes it easy to stay prepared for school, caregivers, travel, and more.",
-      image: "📘"
-    }
-  ];
-
-  const checklists = [
-    {
-      title: "Checklist: Grandparents' Guide to Watching the Grandkid",
-      type: "checklist"
-    },
-    {
-      title: "What the Babysitter Needs to Know", 
-      type: "checklist"
+      description: "Get personalized help organizing your family's documents",
+      image: expertsImage,
+      imageAlt: "Chalkboard with Ask the Experts text surrounded by light bulb illustrations"
     }
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#0B0B0B] text-[#F3F4F6]">
       <Navbar />
       
       {/* Hero Section */}
-      <section className="pt-24 pb-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="w-12 h-12 bg-[#FFD700] rounded-lg flex items-center justify-center mb-6">
-                <Baby className="w-6 h-6 text-black" />
-              </div>
-              <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+      <section className="pt-16 pb-20">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+            <div className="space-y-5">
+              <span className="inline-flex items-center gap-2 text-[#D4AF37] font-medium bg-[rgba(212,175,55,0.08)] px-3 py-1 rounded-full border border-[rgba(212,175,55,0.25)]">
+                👶 Child Information
+              </span>
+              <h1 className="text-4xl md:text-5xl font-extrabold text-[#F3F4F6] tracking-tight">
                 FamilyVault for Organizing Your Child's Information
               </h1>
-              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                Stop searching for scattered details. Keep your child's important info secure, private, and accessible — so when you need it for school, sports, a babysitter, or camp, you'll be ready.
+              <p className="text-[#D1D5DB] max-w-[65ch] text-lg">
+                Keep your child's important info secure, private, and accessible — ready for school, sports, a babysitter, or camp.
               </p>
-              <a
-                href="/signup"
-                data-testid="button-get-started"
-                className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
-              >
-                Get started free
-              </a>
-            </div>
-            <div className="lg:pl-12">
-              <div className="bg-[#FFD700]/10 rounded-2xl p-8 h-96 overflow-hidden">
-                <img 
-                  src={soccerKidImage} 
-                  alt="Happy child in blue soccer jersey holding soccer ball"
-                  className="w-full h-full object-cover"
-                />
+              <div className="flex flex-wrap gap-4">
+                <a 
+                  href="/signup"
+                  data-testid="button-get-started-free"
+                  className="bg-[#D4AF37] text-black font-semibold px-6 py-3 rounded-lg hover:bg-[#C7A233] transition-colors min-h-[44px] flex items-center"
+                >
+                  Get started free
+                </a>
+                <a 
+                  href="/features"
+                  data-testid="link-see-features"
+                  className="text-[#D1D5DB] hover:text-[#F3F4F6] underline underline-offset-4 min-h-[44px] flex items-center"
+                >
+                  See what's included →
+                </a>
               </div>
+            </div>
+            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem]">
+              <img 
+                src={soccerKidImage} 
+                alt="Child in soccer jersey with soccer ball" 
+                className="w-full h-full object-cover" 
+              />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Find Information Fast */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-            Find Your Child's Information — Fast
-          </h2>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            FamilyVault takes the "Where did I put that?" out of parenting by keeping medical info, emergency contacts, and other key documents organized in one secure place.
-          </p>
+      {/* Child Information Cards */}
+      <section className="py-20 bg-[#141414]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
+              Everything Your Child Needs, Organized
+            </h2>
+            <p className="text-[#D1D5DB] text-lg max-w-2xl mx-auto">
+              From medical records to school forms, keep all your child's important information secure and easily accessible.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {childInfoCards.map((card, index) => {
+              const IconComponent = card.icon;
+              return (
+                <div 
+                  key={index}
+                  className="bg-[#141414] rounded-xl p-6 border border-[rgba(212,175,55,0.2)] hover:border-[rgba(212,175,55,0.35)] transition-colors"
+                >
+                  <div className="w-12 h-12 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mb-4">
+                    <IconComponent className="w-6 h-6 text-[#D4AF37]" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-[#F3F4F6] mb-2">
+                    {card.title}
+                  </h3>
+                  <p className="text-[#D1D5DB] mb-4">
+                    {card.description}
+                  </p>
+                  <a 
+                    href="#"
+                    data-testid={`link-${card.action.replace(/\s+/g, '-').toLowerCase()}`}
+                    className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
+                  >
+                    {card.action} →
+                  </a>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Checklist Feature Strip */}
+      <section className="py-12 bg-[#0B0B0B]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {checklistItems.map((item, index) => (
+              <div key={index} className="flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-[#D4AF37] flex-shrink-0" />
+                <span className="text-[#D1D5DB] font-medium">{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Main Features */}
+      <section className="py-20 bg-[#0B0B0B]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="space-y-20">
             {features.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="grid lg:grid-cols-2 gap-12 items-center">
                   <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
-                    <div className="bg-gray-100 rounded-2xl p-8 h-64 flex items-center justify-center">
-                      {index === 0 ? (
-                        <img 
-                          src={phoneDocumentImage}
-                          alt="Hands holding phone displaying birth certificate document"
-                          className="w-full h-full object-cover rounded-xl"
-                        />
-                      ) : index === 1 ? (
-                        <img 
-                          src={wifiPhoneImage}
-                          alt="Phone screen showing Wi-Fi password sharing interface"
-                          className="w-full h-full object-contain"
-                        />
-                      ) : index === 2 ? (
-                        <img 
-                          src={insuranceCardImage}
-                          alt="Hand holding medical insurance card with health policy document in background"
-                          className="w-full h-full object-cover rounded-xl"
-                        />
-                      ) : index === 3 ? (
-                        <img 
-                          src={babysitterImage}
-                          alt="Caregiver sitting with two young children, showing confident childcare"
-                          className="w-full h-full object-cover rounded-xl"
-                        />
-                      ) : (
-                        <div className="text-center">
-                          <IconComponent className="w-16 h-16 text-[#FFD700] mx-auto mb-4" />
-                          <p className="text-gray-600">Feature illustration</p>
-                        </div>
-                      )}
+                    <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#141414] h-80">
+                      <img 
+                        src={feature.image}
+                        alt={feature.imageAlt}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   </div>
                   <div className={index % 2 === 1 ? 'lg:order-1' : ''}>
-                    <div className="w-8 h-8 bg-[#FFD700] rounded-lg flex items-center justify-center mb-6">
-                      <IconComponent className="w-4 h-4 text-black" />
+                    <div className="w-12 h-12 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mb-6">
+                      <IconComponent className="w-6 h-6 text-[#D4AF37]" />
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                    <h3 className="text-2xl md:text-3xl font-bold text-[#F3F4F6] mb-4">
                       {feature.title}
                     </h3>
-                    <p className="text-gray-600 mb-4 italic">
+                    <p className="text-[#9CA3AF] mb-4 italic text-lg">
                       {feature.description}
                     </p>
-                    <p className="text-gray-800 font-medium">
+                    <p className="text-[#D1D5DB] font-medium text-lg">
                       {feature.detail}
                     </p>
                   </div>
@@ -242,18 +281,18 @@ export default function ChildInformation() {
       </section>
 
       {/* Meet FamilyVault */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-[#141414]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-6">
             Meet FamilyVault — Your Life, Organized
           </h2>
-          <p className="text-lg text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p className="text-[#D1D5DB] text-lg mb-8 max-w-3xl mx-auto">
             From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/signup"
-            data-testid="button-get-started-free"
-            className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
+            data-testid="button-get-started-cta"
+            className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
           >
             Get started free
           </a>
@@ -261,40 +300,24 @@ export default function ChildInformation() {
       </section>
 
       {/* Bottom Features */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0B0B0B]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8">
             {bottomFeatures.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="text-center">
-                  <div className="bg-gray-100 rounded-2xl p-8 h-48 flex items-center justify-center mb-6">
-                    {index === 0 ? (
-                      <img 
-                        src={securityImage}
-                        alt="Digital security visualization with lock symbol and circuit board"
-                        className="w-full h-full object-cover rounded-xl"
-                      />
-                    ) : index === 1 ? (
-                      <img 
-                        src={mobileAppImage}
-                        alt="Mobile app interface showing browse screen with family documents and categories"
-                        className="w-full h-full object-contain"
-                      />
-                    ) : index === 2 ? (
-                      <img 
-                        src={expertsImage}
-                        alt="Chalkboard with Ask the Experts text surrounded by light bulb illustrations"
-                        className="w-full h-full object-cover rounded-xl"
-                      />
-                    ) : (
-                      <IconComponent className="w-12 h-12 text-[#FFD700]" />
-                    )}
+                  <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#141414] h-48 flex items-center justify-center mb-6">
+                    <img 
+                      src={feature.image}
+                      alt={feature.imageAlt}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-[#F3F4F6] mb-2">
                     {feature.title}
                   </h3>
-                  <p className="text-gray-600">
+                  <p className="text-[#D1D5DB]">
                     {feature.description}
                   </p>
                 </div>
@@ -305,19 +328,19 @@ export default function ChildInformation() {
       </section>
 
       {/* Security Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#141414]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-6">
               Your Data Is Always Protected
             </h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            <p className="text-[#D1D5DB] text-lg max-w-3xl mx-auto">
               Your sensitive information stays private and secure with advanced security and compliance practices.
             </p>
             <div className="mt-8">
               <a
                 href="/security"
-                className="text-[#FFD700] hover:text-[#FFD700]/80 font-medium inline-flex items-center"
+                className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
               >
                 About our security
                 <ChevronRight className="w-4 h-4 ml-1" />
@@ -326,18 +349,25 @@ export default function ChildInformation() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {securityFeatures.map((feature, index) => {
+            {[
+              { icon: Shield, title: "Multi-factor authentication", description: "Secure your account with two-step login protection" },
+              { icon: Eye, title: "Threat detection", description: "24/7 monitoring proactively guards against threats" },
+              { icon: Key, title: "Tokenization", description: "Replaces sensitive data with secure tokens for protection" },
+              { icon: Lock, title: "Data encryption", description: "Your data is securely encrypted both stored and in transit" },
+              { icon: Zap, title: "Stolen password alerts", description: "Get notified instantly if your password is compromised" },
+              { icon: Baby, title: "Biometric authentication", description: "Safe, instant access with fingerprint or face ID" }
+            ].map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="flex items-start">
-                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                    <IconComponent className="w-4 h-4 text-purple-600" />
+                  <div className="w-10 h-10 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                    <IconComponent className="w-5 h-5 text-[#D4AF37]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                    <h3 className="font-semibold text-[#F3F4F6] mb-1">
                       {feature.title}
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-[#D1D5DB]">
                       {feature.description}
                     </p>
                   </div>
@@ -348,52 +378,52 @@ export default function ChildInformation() {
 
           {/* Compliance Badges */}
           <div className="mt-16 text-center">
-            <div className="flex justify-center items-center space-x-8 opacity-60">
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">EU GDPR</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">SOC 2 TYPE II</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">SOC 3</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">HIPAA</div>
-              <div className="text-xs font-semibold text-gray-500 px-3 py-1 border rounded">CCPA</div>
+            <div className="flex justify-center items-center space-x-6 opacity-60">
+              {["EU GDPR", "SOC 2 TYPE II", "SOC 3", "HIPAA", "CCPA"].map((badge, index) => (
+                <div key={index} className="text-xs font-semibold text-[#9CA3AF] px-3 py-1 border border-[rgba(212,175,55,0.2)] rounded">
+                  {badge}
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
       {/* Essential Resources */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0B0B0B]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
               Essential Resources: Your Child's Info, All in One Place
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-[#D1D5DB] text-lg">
               Explore expert advice on the important information every parent should have on hand.
             </p>
           </div>
 
           {/* Featured Guide */}
-          <div className="bg-gray-100 rounded-2xl p-8 lg:p-12 mb-16">
+          <div className="bg-[#141414] rounded-2xl p-8 lg:p-12 mb-16 border border-[rgba(212,175,55,0.2)]">
             <div className="grid lg:grid-cols-2 gap-8 items-center">
               <div className="flex justify-center">
-                <div className="w-48 h-64 rounded-lg flex items-center justify-center">
+                <div className="w-48 h-64 rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)]">
                   <img 
                     src={guideBookImage}
                     alt="Wooden letterpress blocks spelling GUIDE BOOK"
-                    className="w-full h-full object-cover rounded-lg"
+                    className="w-full h-full object-cover"
                   />
                 </div>
               </div>
               <div>
-                <div className="text-sm font-semibold text-[#FFD700] mb-2">FEATURED GUIDE</div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                <div className="text-sm font-semibold text-[#D4AF37] mb-2">FEATURED GUIDE</div>
+                <h3 className="text-2xl font-bold text-[#F3F4F6] mb-4">
                   The Ultimate Guide for Organizing Your Child's Information
                 </h3>
-                <p className="text-gray-600 mb-6">
+                <p className="text-[#D1D5DB] mb-6">
                   Keep your child's medical info, emergency contacts, and key records in one place. This downloadable guide makes it easy to stay prepared for school, caregivers, travel, and more.
                 </p>
                 <button
                   data-testid="button-download-guide"
-                  className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black px-6 py-3 rounded-lg font-semibold transition-colors"
+                  className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-6 py-3 rounded-lg font-semibold transition-colors min-h-[44px]"
                 >
                   Download
                 </button>
@@ -403,29 +433,51 @@ export default function ChildInformation() {
 
           {/* Checklists */}
           <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-8">Checklists</h3>
+            <h3 className="text-xl font-bold text-[#F3F4F6] mb-8">Checklists</h3>
             <div className="grid md:grid-cols-2 gap-8">
-              {checklists.map((checklist, index) => (
-                <div key={index} className="bg-gray-50 rounded-lg p-6">
+              {[
+                "Checklist: Grandparents' Guide to Watching the Grandkid",
+                "What the Babysitter Needs to Know"
+              ].map((checklist, index) => (
+                <div key={index} className="bg-[#141414] rounded-lg p-6 border border-[rgba(212,175,55,0.2)]">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-semibold text-gray-900 mb-2">
-                        {checklist.title}
+                      <h4 className="font-semibold text-[#F3F4F6] mb-2">
+                        {checklist}
                       </h4>
                       <button
                         data-testid={`button-download-${index}`}
-                        className="text-[#FFD700] hover:text-[#FFD700]/80 font-medium inline-flex items-center"
+                        className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
                       >
                         Download
                         <Download className="w-4 h-4 ml-1" />
                       </button>
                     </div>
-                    <CheckCircle className="w-8 h-8 text-[#FFD700]" />
+                    <CheckCircle className="w-8 h-8 text-[#D4AF37]" />
                   </div>
                 </div>
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* CTA Bar */}
+      <section className="py-16 bg-gradient-to-r from-transparent to-[rgba(212,175,55,0.08)] border-t border-[rgba(212,175,55,0.25)]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold text-[#F3F4F6] mb-4">
+            Have everything ready for school, sports, or camp in minutes.
+          </h2>
+          <p className="text-[#D1D5DB] mb-8 text-lg">
+            Start organizing your child's information today with FamilyVault.
+          </p>
+          <a
+            href="/signup"
+            data-testid="button-final-cta"
+            className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
+          >
+            Get started free
+          </a>
         </div>
       </section>
 
