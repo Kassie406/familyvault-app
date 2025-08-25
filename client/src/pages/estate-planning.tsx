@@ -131,45 +131,46 @@ export default function EstatePlanning() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0B0B0B] text-[#F3F4F6]">
+    <div className="min-h-screen bg-[#0F0F10] text-[#EDEDED]">
       <Navbar />
       
       {/* Hero Section */}
       <section className="pt-16 pb-20">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
-            <div className="space-y-5">
-              <span className="inline-flex items-center gap-2 text-[#D4AF37] font-medium bg-[rgba(212,175,55,0.08)] px-3 py-1 rounded-full border border-[rgba(212,175,55,0.25)]">
-                📋 Estate Planning
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
+            <div className="space-y-6">
+              <span className="inline-flex items-center gap-2 text-[#E7C74D] font-semibold bg-[rgba(231,199,77,0.08)] px-3 py-1.5 rounded-full border border-[rgba(255,255,255,0.08)] text-sm tracking-wide">
+                ⚖️ Estate Planning
               </span>
-              <h1 className="text-4xl md:text-5xl font-extrabold text-[#F3F4F6] tracking-tight">
+              <h1 className="text-4xl lg:text-5xl font-bold text-[#EDEDED] tracking-tight leading-tight">
                 FamilyVault for Estate Planning
               </h1>
-              <p className="text-[#D1D5DB] max-w-[65ch] text-lg">
-                What if something happened to you? Secure and organize your family's vital information for your loved ones when they need it most.
+              <p className="text-[#9BA3AF] max-w-[58ch] text-lg leading-relaxed">
+                Secure and organize your vital information so your loved ones have what they need, when they need it most.
               </p>
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-wrap gap-4 pt-2">
                 <a 
                   href="/signup"
                   data-testid="button-get-started-free"
-                  className="bg-[#D4AF37] text-black font-semibold px-6 py-3 rounded-lg hover:bg-[#C7A233] transition-colors min-h-[44px] flex items-center"
+                  className="bg-[#E7C74D] text-[#1A1A1B] font-bold px-6 py-3 rounded-full hover:transform hover:-translate-y-0.5 transition-transform focus:outline-none focus:ring-2 focus:ring-[#8EC8FF] focus:ring-offset-2 min-h-[44px] flex items-center"
                 >
                   Get started free
                 </a>
                 <a 
-                  href="/features"
+                  href="#features"
                   data-testid="link-see-estate-features"
-                  className="text-[#D1D5DB] hover:text-[#F3F4F6] underline underline-offset-4 min-h-[44px] flex items-center"
+                  className="text-[#EDEDED] hover:text-[#E7C74D] hover:border-[#E7C74D] border-b border-[rgba(255,255,255,0.08)] min-h-[44px] flex items-center focus:outline-none focus:ring-2 focus:ring-[#8EC8FF] focus:ring-offset-2"
                 >
                   See estate planning features →
                 </a>
               </div>
             </div>
-            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem]">
+            <div className="rounded-2xl overflow-hidden border border-[rgba(255,255,255,0.08)] bg-[#151517] p-2 shadow-[0_6px_28px_rgba(0,0,0,0.35)]">
               <img 
                 src={estatePlanningImage} 
-                alt="Living trust and estate planning document with gavel representing legal estate planning"
-                className="w-full h-full object-cover"
+                alt="Estate planning documents and gavel representing legal estate planning"
+                className="w-full h-full object-cover rounded-xl"
+                loading="eager"
               />
             </div>
           </div>
@@ -177,38 +178,38 @@ export default function EstatePlanning() {
       </section>
 
       {/* Estate Planning Cards */}
-      <section className="py-20 bg-[#141414]">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="features" className="py-20 bg-[#0F0F10]">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#EDEDED] mb-4">
               Your Estate Planning, Simplified
             </h2>
-            <p className="text-[#D1D5DB] text-lg max-w-2xl mx-auto">
+            <p className="text-[#9BA3AF] text-lg max-w-2xl mx-auto">
               FamilyVault's Family Operating System® helps you ensure your wishes are clear, your assets are protected, and your family has guidance for the future.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {estatePlanningCards.map((card, index) => {
               const IconComponent = card.icon;
               return (
                 <div 
                   key={index}
-                  className="bg-[#0B0B0B] rounded-xl p-6 border border-[rgba(212,175,55,0.2)] hover:border-[rgba(212,175,55,0.35)] transition-colors"
+                  className="bg-[#151517] border border-[rgba(255,255,255,0.08)] rounded-2xl p-4 min-h-[172px] flex flex-col gap-3 hover:border-[rgba(231,199,77,0.08)] hover:shadow-[0_0_0_1px_rgba(231,199,77,0.08),0_10px_30px_rgba(0,0,0,0.35)] hover:transform hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-[#8EC8FF] focus-within:ring-offset-2"
                 >
-                  <div className="w-12 h-12 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mb-4">
-                    <IconComponent className="w-6 h-6 text-[#D4AF37]" />
+                  <div className="w-9 h-9 bg-[rgba(231,199,77,0.08)] border border-[rgba(255,255,255,0.08)] rounded-xl flex items-center justify-center">
+                    <IconComponent className="w-5 h-5 text-[#E7C74D]" />
                   </div>
-                  <h3 className="text-xl font-semibold text-[#F3F4F6] mb-2">
+                  <h3 className="text-lg font-semibold text-[#EDEDED]">
                     {card.title}
                   </h3>
-                  <p className="text-[#D1D5DB] mb-4">
+                  <p className="text-[#9BA3AF] text-sm flex-1">
                     {card.description}
                   </p>
                   <a 
                     href="#"
                     data-testid={`link-${card.action.replace(/\s+/g, '-').toLowerCase()}`}
-                    className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
+                    className="text-[#EDEDED] hover:text-[#E7C74D] hover:border-[#E7C74D] border-b border-[rgba(255,255,255,0.08)] inline-flex items-center text-sm focus:outline-none focus:ring-2 focus:ring-[#8EC8FF] focus:ring-offset-2"
                   >
                     {card.action} →
                   </a>
@@ -216,86 +217,83 @@ export default function EstatePlanning() {
               );
             })}
           </div>
-        </div>
-      </section>
 
-      {/* Checklist Feature Strip */}
-      <section className="py-12 bg-[#0B0B0B]">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Feature Pills */}
+          <div className="flex flex-wrap gap-2.5 mt-8 justify-center">
             {checklistItems.map((item, index) => (
-              <div key={index} className="flex items-center gap-3">
-                <CheckCircle className="w-6 h-6 text-[#D4AF37] flex-shrink-0" />
-                <span className="text-[#D1D5DB] font-medium">{item}</span>
+              <div key={index} className="inline-flex items-center gap-2 h-10 px-4 rounded-full border border-[rgba(255,255,255,0.08)] text-[#9BA3AF] bg-transparent hover:border-[#E7C74D] hover:text-[#E7C74D] transition-colors focus:outline-none focus:ring-2 focus:ring-[#8EC8FF] focus:ring-offset-2">
+                <CheckCircle className="w-4 h-4" />
+                <span className="text-sm">{item}</span>
               </div>
             ))}
           </div>
         </div>
       </section>
 
+
       {/* Main Features */}
-      <section className="py-20 bg-[#141414]">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="space-y-20">
+      <section className="py-20 bg-[#0F0F10]">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="space-y-16">
             {features.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
-                <div key={index} className="grid lg:grid-cols-2 gap-12 items-center">
+                <div key={index} className="grid lg:grid-cols-2 gap-10 items-center">
                   <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
-                    <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#0B0B0B] h-80 flex items-center justify-center">
+                    <div className="bg-[#151517] border border-[rgba(255,255,255,0.08)] rounded-2xl p-4 min-h-[220px] flex items-center justify-center shadow-[0_6px_28px_rgba(0,0,0,0.35)]">
                       {index === 0 && (
-                        <div className="bg-[#141414] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(212,175,55,0.2)]">
-                          <div className="text-xs font-medium mb-3 text-[#F3F4F6]">Mary Reynolds Will</div>
+                        <div className="bg-[#0F0F10] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(255,255,255,0.08)]">
+                          <div className="text-xs font-medium mb-3 text-[#EDEDED]">Mary Reynolds Will</div>
                           <div className="space-y-2">
-                            <div className="bg-[rgba(212,175,55,0.1)] rounded p-2 border border-[rgba(212,175,55,0.2)]">
-                              <div className="text-xs text-[#D1D5DB]">Last updated</div>
-                              <div className="font-semibold text-xs text-[#F3F4F6]">Jan 15, 2024</div>
+                            <div className="bg-[rgba(231,199,77,0.08)] rounded p-2 border border-[rgba(255,255,255,0.08)]">
+                              <div className="text-xs text-[#9BA3AF]">Last updated</div>
+                              <div className="font-semibold text-xs text-[#EDEDED]">Jan 15, 2024</div>
                             </div>
-                            <div className="bg-[rgba(212,175,55,0.1)] rounded p-2 border border-[rgba(212,175,55,0.2)]">
-                              <div className="text-xs text-[#D1D5DB]">Location of original</div>
-                              <div className="text-xs text-[#F3F4F6]">Attorney: Office desk</div>
+                            <div className="bg-[rgba(231,199,77,0.08)] rounded p-2 border border-[rgba(255,255,255,0.08)]">
+                              <div className="text-xs text-[#9BA3AF]">Location of original</div>
+                              <div className="text-xs text-[#EDEDED]">Attorney: Office desk</div>
                             </div>
-                            <div className="bg-[rgba(212,175,55,0.2)] rounded p-2 border border-[rgba(212,175,55,0.3)]">
-                              <div className="text-xs font-medium text-[#D4AF37]">Status: Active</div>
-                              <div className="text-xs text-[#D4AF37]">Living Trust</div>
+                            <div className="bg-[rgba(231,199,77,0.1)] rounded p-2 border border-[rgba(231,199,77,0.2)]">
+                              <div className="text-xs font-medium text-[#E7C74D]">Status: Active</div>
+                              <div className="text-xs text-[#E7C74D]">Living Trust</div>
                             </div>
                           </div>
                         </div>
                       )}
                       {index === 1 && (
-                        <div className="bg-[#141414] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(212,175,55,0.2)]">
+                        <div className="bg-[#0F0F10] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(255,255,255,0.08)]">
                           <div className="flex items-center mb-3">
-                            <div className="w-6 h-6 bg-[rgba(212,175,55,0.2)] rounded mr-2 flex items-center justify-center">
-                              <FileText className="w-4 h-4 text-[#D4AF37]" />
+                            <div className="w-6 h-6 bg-[rgba(231,199,77,0.08)] rounded mr-2 flex items-center justify-center">
+                              <FileText className="w-4 h-4 text-[#E7C74D]" />
                             </div>
-                            <span className="font-semibold text-sm text-[#F3F4F6]">Medical Directive</span>
+                            <span className="font-semibold text-sm text-[#EDEDED]">Medical Directive</span>
                           </div>
-                          <div className="bg-[rgba(212,175,55,0.1)] rounded p-3 mb-3 border border-[rgba(212,175,55,0.2)]">
-                            <div className="text-xs font-medium text-[#F3F4F6]">Sarah Reynolds</div>
-                            <div className="text-xs text-[#D1D5DB] mt-1">
+                          <div className="bg-[rgba(231,199,77,0.08)] rounded p-3 mb-3 border border-[rgba(255,255,255,0.08)]">
+                            <div className="text-xs font-medium text-[#EDEDED]">Sarah Reynolds</div>
+                            <div className="text-xs text-[#9BA3AF] mt-1">
                               <div>Date created: Jan 15, 2024</div>
                               <div>Location of original: Office desk</div>
-                              <div className="mt-2 text-[#D4AF37] font-medium">Shared with: Dr. Johnson</div>
+                              <div className="mt-2 text-[#E7C74D] font-medium">Shared with: Dr. Johnson</div>
                             </div>
                           </div>
                         </div>
                       )}
                       {index === 2 && (
-                        <div className="bg-[#141414] rounded-lg p-4 max-w-xs mx-auto border border-[rgba(212,175,55,0.2)]">
-                          <div className="bg-[#D4AF37] rounded-t-lg p-3 mb-3">
+                        <div className="bg-[#0F0F10] rounded-lg p-4 max-w-xs mx-auto border border-[rgba(255,255,255,0.08)]">
+                          <div className="bg-[#E7C74D] rounded-t-lg p-3 mb-3">
                             <div className="flex items-center justify-center">
                               <Smartphone className="w-8 h-8 text-black" />
                             </div>
                           </div>
-                          <div className="text-xs text-[#F3F4F6]">
-                            <div className="font-medium mb-2 text-[#D4AF37]">Financial Accounts</div>
+                          <div className="text-xs text-[#EDEDED]">
+                            <div className="font-medium mb-2 text-[#E7C74D]">Financial Accounts</div>
                             <div className="space-y-1">
-                              <div className="flex items-center p-2 bg-[rgba(212,175,55,0.1)] rounded border border-[rgba(212,175,55,0.2)]">
-                                <div className="w-3 h-3 bg-[#D4AF37] rounded mr-2"></div>
+                              <div className="flex items-center p-2 bg-[rgba(231,199,77,0.08)] rounded border border-[rgba(255,255,255,0.08)]">
+                                <div className="w-3 h-3 bg-[#E7C74D] rounded mr-2"></div>
                                 <span>E*Trade Premium Savings</span>
                               </div>
-                              <div className="flex items-center p-2 bg-[rgba(212,175,55,0.1)] rounded border border-[rgba(212,175,55,0.2)]">
-                                <div className="w-3 h-3 bg-[#C7A233] rounded mr-2"></div>
+                              <div className="flex items-center p-2 bg-[rgba(231,199,77,0.08)] rounded border border-[rgba(255,255,255,0.08)]">
+                                <div className="w-3 h-3 bg-[#E7C74D] rounded mr-2"></div>
                                 <span>Chase High Interest Savings</span>
                               </div>
                             </div>
@@ -303,32 +301,32 @@ export default function EstatePlanning() {
                         </div>
                       )}
                       {index === 3 && (
-                        <div className="bg-[#141414] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(212,175,55,0.2)]">
-                          <div className="text-xs mb-3 text-[#F3F4F6]">
-                            <div className="font-semibold mb-2 text-[#D4AF37]">Full access</div>
+                        <div className="bg-[#0F0F10] rounded-lg p-4 max-w-sm mx-auto border border-[rgba(255,255,255,0.08)]">
+                          <div className="text-xs mb-3 text-[#EDEDED]">
+                            <div className="font-semibold mb-2 text-[#E7C74D]">Full access</div>
                             <div className="flex items-center mb-2">
-                              <div className="w-6 h-6 bg-[rgba(212,175,55,0.2)] rounded-full mr-2 border border-[rgba(212,175,55,0.3)]"></div>
+                              <div className="w-6 h-6 bg-[rgba(231,199,77,0.1)] rounded-full mr-2 border border-[rgba(231,199,77,0.2)]"></div>
                               <span>David Reynolds</span>
-                              <ChevronRight className="w-3 h-3 ml-auto text-[#D4AF37]" />
+                              <ChevronRight className="w-3 h-3 ml-auto text-[#E7C74D]" />
                             </div>
                             
-                            <div className="font-semibold mb-2 mt-3 text-[#D4AF37]">Partial access</div>
+                            <div className="font-semibold mb-2 mt-3 text-[#E7C74D]">Partial access</div>
                             <div className="flex items-center mb-1">
-                              <div className="w-6 h-6 bg-[rgba(212,175,55,0.1)] rounded-full mr-2 border border-[rgba(212,175,55,0.2)]"></div>
+                              <div className="w-6 h-6 bg-[rgba(231,199,77,0.08)] rounded-full mr-2 border border-[rgba(255,255,255,0.08)]"></div>
                               <span>Christine Marcello</span>
-                              <ChevronRight className="w-3 h-3 ml-auto text-[#D4AF37]" />
+                              <ChevronRight className="w-3 h-3 ml-auto text-[#E7C74D]" />
                             </div>
                             <div className="flex items-center">
-                              <div className="w-6 h-6 bg-[rgba(212,175,55,0.1)] rounded-full mr-2 border border-[rgba(212,175,55,0.2)]"></div>
+                              <div className="w-6 h-6 bg-[rgba(231,199,77,0.08)] rounded-full mr-2 border border-[rgba(255,255,255,0.08)]"></div>
                               <span>Sabrina Pless</span>
-                              <ChevronRight className="w-3 h-3 ml-auto text-[#D4AF37]" />
+                              <ChevronRight className="w-3 h-3 ml-auto text-[#E7C74D]" />
                             </div>
                             
-                            <div className="font-semibold mb-2 mt-3 text-[#D4AF37]">Legacy access</div>
+                            <div className="font-semibold mb-2 mt-3 text-[#E7C74D]">Legacy access</div>
                             <div className="flex items-center">
-                              <div className="w-6 h-6 bg-[rgba(212,175,55,0.3)] rounded-full mr-2 border border-[rgba(212,175,55,0.4)]"></div>
+                              <div className="w-6 h-6 bg-[rgba(231,199,77,0.15)] rounded-full mr-2 border border-[rgba(231,199,77,0.25)]"></div>
                               <span>Anna Reynolds</span>
-                              <ChevronRight className="w-3 h-3 ml-auto text-[#D4AF37]" />
+                              <ChevronRight className="w-3 h-3 ml-auto text-[#E7C74D]" />
                             </div>
                           </div>
                         </div>
@@ -336,16 +334,16 @@ export default function EstatePlanning() {
                     </div>
                   </div>
                   <div className={index % 2 === 1 ? 'lg:order-1' : ''}>
-                    <div className="w-12 h-12 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mb-6">
-                      <IconComponent className="w-6 h-6 text-[#D4AF37]" />
+                    <div className="w-12 h-12 bg-[rgba(231,199,77,0.08)] border border-[rgba(255,255,255,0.08)] rounded-xl flex items-center justify-center mb-6">
+                      <IconComponent className="w-6 h-6 text-[#E7C74D]" />
                     </div>
-                    <h3 className="text-2xl md:text-3xl font-bold text-[#F3F4F6] mb-4">
+                    <h3 className="text-2xl md:text-3xl font-bold text-[#EDEDED] mb-4">
                       {feature.title}
                     </h3>
-                    <p className="text-[#9CA3AF] mb-4 italic text-lg">
+                    <p className="text-[#9BA3AF] mb-4 italic text-lg leading-relaxed">
                       {feature.description}
                     </p>
-                    <p className="text-[#D1D5DB] font-medium text-lg">
+                    <p className="text-[#EDEDED] font-medium text-lg leading-relaxed">
                       {feature.detail}
                     </p>
                   </div>
@@ -357,18 +355,18 @@ export default function EstatePlanning() {
       </section>
 
       {/* Meet FamilyVault */}
-      <section className="py-20 bg-[#0B0B0B]">
+      <section className="py-20 bg-[#0F0F10]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#EDEDED] mb-6">
             Meet FamilyVault — Your Life, Organized
           </h2>
-          <p className="text-[#D1D5DB] text-lg mb-8 max-w-3xl mx-auto">
+          <p className="text-[#9BA3AF] text-lg mb-8 max-w-3xl mx-auto">
             From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/signup"
             data-testid="button-get-started-cta"
-            className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
+            className="bg-[#E7C74D] hover:bg-[#E7C74D]/90 text-[#1A1A1B] px-8 py-4 rounded-full font-bold text-lg transition-colors inline-block min-h-[44px] focus:outline-none focus:ring-2 focus:ring-[#8EC8FF] focus:ring-offset-2"
           >
             Get started free
           </a>
@@ -376,28 +374,29 @@ export default function EstatePlanning() {
       </section>
 
       {/* Bottom Features */}
-      <section className="py-20 bg-[#141414]">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0F0F10]">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8">
             {bottomFeatures.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="text-center">
-                  <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#0B0B0B] h-48 flex items-center justify-center mb-6">
+                  <div className="rounded-2xl overflow-hidden border border-[rgba(255,255,255,0.08)] bg-[#151517] h-48 flex items-center justify-center mb-6 hover:border-[rgba(231,199,77,0.08)] transition-colors duration-300">
                     {feature.image ? (
                       <img 
                         src={feature.image} 
                         alt={feature.imageAlt}
-                        className="w-full h-full object-cover rounded-lg"
+                        className="w-full h-full object-cover rounded-xl"
+                        loading="lazy"
                       />
                     ) : (
-                      <IconComponent className="w-12 h-12 text-[#D4AF37]" />
+                      <IconComponent className="w-12 h-12 text-[#E7C74D]" />
                     )}
                   </div>
-                  <h3 className="text-lg font-semibold text-[#F3F4F6] mb-2">
+                  <h3 className="text-lg font-semibold text-[#EDEDED] mb-2">
                     {feature.title}
                   </h3>
-                  <p className="text-[#D1D5DB]">
+                  <p className="text-[#9BA3AF]">
                     {feature.description}
                   </p>
                 </div>
@@ -408,19 +407,19 @@ export default function EstatePlanning() {
       </section>
 
       {/* Security Section */}
-      <section className="py-20 bg-[#0B0B0B]">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0F0F10] border-t border-[rgba(255,255,255,0.08)]">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-6">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#EDEDED] mb-6">
               Your Data Is Always Protected
             </h2>
-            <p className="text-[#D1D5DB] text-lg max-w-3xl mx-auto">
+            <p className="text-[#9BA3AF] text-lg max-w-3xl mx-auto">
               Your sensitive information stays private and secure with advanced security and compliance practices.
             </p>
             <div className="mt-8">
               <a
                 href="/security"
-                className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
+                className="text-[#EDEDED] hover:text-[#E7C74D] hover:border-[#E7C74D] border-b border-[rgba(255,255,255,0.08)] font-medium inline-flex items-center min-h-[44px] focus:outline-none focus:ring-2 focus:ring-[#8EC8FF] focus:ring-offset-2"
               >
                 About our security
                 <ChevronRight className="w-4 h-4 ml-1" />
@@ -440,14 +439,14 @@ export default function EstatePlanning() {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="flex items-start">
-                  <div className="w-10 h-10 bg-[rgba(212,175,55,0.1)] rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                    <IconComponent className="w-5 h-5 text-[#D4AF37]" />
+                  <div className="w-10 h-10 bg-[rgba(231,199,77,0.08)] border border-[rgba(255,255,255,0.08)] rounded-xl flex items-center justify-center mr-4 flex-shrink-0">
+                    <IconComponent className="w-5 h-5 text-[#E7C74D]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-[#F3F4F6] mb-1">
+                    <h3 className="font-semibold text-[#EDEDED] mb-1">
                       {feature.title}
                     </h3>
-                    <p className="text-sm text-[#D1D5DB]">
+                    <p className="text-sm text-[#9BA3AF]">
                       {feature.description}
                     </p>
                   </div>
@@ -460,7 +459,7 @@ export default function EstatePlanning() {
           <div className="mt-16 text-center">
             <div className="flex justify-center items-center space-x-6 opacity-60">
               {["EU GDPR", "SOC 2 TYPE II", "SOC 3", "HIPAA", "CCPA"].map((badge, index) => (
-                <div key={index} className="text-xs font-semibold text-[#9CA3AF] px-3 py-1 border border-[rgba(212,175,55,0.2)] rounded">
+                <div key={index} className="text-xs font-semibold text-[#9BA3AF] px-3 py-1 border border-[rgba(255,255,255,0.08)] rounded">
                   {badge}
                 </div>
               ))}
@@ -470,45 +469,47 @@ export default function EstatePlanning() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 bg-[#141414]">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#0F0F10]">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#EDEDED] mb-4">
               What Our Members Say About FamilyVault
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-[#0B0B0B] rounded-lg p-6 text-center border border-[rgba(212,175,55,0.2)]">
+              <div key={index} className="bg-[#151517] border border-[rgba(255,255,255,0.08)] rounded-2xl p-4 text-center hover:border-[rgba(231,199,77,0.08)] transition-colors duration-300">
                 <div className="flex justify-center mb-3">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-[#D4AF37] fill-current" />
+                    <Star key={i} className="w-4 h-4 text-[#E7C74D] fill-current" />
                   ))}
                 </div>
-                <p className="text-[#D1D5DB] italic mb-4">"{testimonial.quote}"</p>
-                <div className="w-16 h-16 bg-[rgba(212,175,55,0.1)] rounded-full mx-auto mb-3 border border-[rgba(212,175,55,0.25)]"></div>
-                <div className="font-semibold text-sm text-[#F3F4F6]">{testimonial.name}</div>
-                <div className="text-xs text-[#D1D5DB]">{testimonial.title}</div>
+                <p className="text-[#9BA3AF] italic mb-4">"{testimonial.quote}"</p>
+                <div className="w-16 h-16 bg-gradient-to-br from-[#E7C74D] to-[#FFD700] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#E7C74D]">
+                  <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
+                </div>
+                <div className="font-semibold text-sm text-[#EDEDED]">{testimonial.name}</div>
+                <div className="text-xs text-[#9BA3AF]">{testimonial.title}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Bar */}
-      <section className="py-16 bg-gradient-to-r from-transparent to-[rgba(212,175,55,0.08)] border-t border-[rgba(212,175,55,0.25)]">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-[#F3F4F6] mb-4">
-            Secure your family's future today.
+      {/* Bottom CTA */}
+      <section className="py-20 bg-gradient-to-b from-[rgba(231,199,77,0.07)] to-transparent border-t border-[rgba(255,255,255,0.08)]">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#EDEDED] mb-6">
+            Secure Your Family's Future Today
           </h2>
-          <p className="text-[#D1D5DB] mb-8 text-lg">
+          <p className="text-[#9BA3AF] text-lg mb-8 max-w-2xl mx-auto">
             Start organizing your estate planning documents with FamilyVault.
           </p>
           <a
             href="/signup"
             data-testid="button-final-cta"
-            className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
+            className="bg-[#E7C74D] hover:bg-[#E7C74D]/90 text-[#1A1A1B] px-8 py-4 rounded-full font-bold text-lg transition-colors inline-block min-h-[44px] focus:outline-none focus:ring-2 focus:ring-[#8EC8FF] focus:ring-offset-2"
           >
             Get started free
           </a>
