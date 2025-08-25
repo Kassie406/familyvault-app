@@ -2,6 +2,7 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import emergencyChecklistImage from "@assets/image_1756091492533.png";
 import healthcareProfessionalImage from "@assets/image_1756092217005.png";
+import financialAnalystImage from "@assets/image_1756092346874.png";
 import { 
   Heart, 
   DollarSign, 
@@ -81,7 +82,9 @@ export default function ElderlyParents() {
       icon: DollarSign,
       title: "Monitor or Take Over Finances", 
       description: "Some of your parents' important bills went unpaid because you didn't have information about their finances.",
-      detail: "Collaborate with your parents to help manage their finances through FamilyVault, including bills, insurance policies, and taxes."
+      detail: "Collaborate with your parents to help manage their finances through FamilyVault, including bills, insurance policies, and taxes.",
+      image: financialAnalystImage,
+      imageAlt: "Financial analyst reviewing financial data on computer and tablet showing charts and graphs"
     },
     {
       icon: Phone,
@@ -271,8 +274,15 @@ export default function ElderlyParents() {
                           </div>
                         </div>
                       )}
-                      {index === 1 && (
-                        <div className="bg-[#141414] rounded-xl p-4 max-w-xs mx-auto border border-[rgba(212,175,55,0.2)]">
+                      {index === 1 && feature.image && (
+                        <img 
+                          src={feature.image} 
+                          alt={feature.imageAlt}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      {index === 1 && !feature.image && (
+                        <div className="bg-[#141414] rounded-xl p-4 max-w-xs mx-auto border border-[rgba(212,175,55,0.2)] flex items-center justify-center h-full">
                           <div className="bg-[#D4AF37] text-black text-center py-2 rounded-t text-sm font-semibold mb-3">
                             Finance Dashboard
                           </div>
