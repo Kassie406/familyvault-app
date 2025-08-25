@@ -24,6 +24,7 @@ import {
   DollarSign,
   Search
 } from "lucide-react";
+import movingCoupleImage from "@assets/image_1756094383182.png";
 
 export default function HomeBuying() {
   const homeBuyingCards = [
@@ -158,11 +159,12 @@ export default function HomeBuying() {
                 </a>
               </div>
             </div>
-            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem] flex items-center justify-center">
-              <div className="text-center">
-                <Home className="w-24 h-24 text-[#D4AF37] mx-auto mb-4" />
-                <p className="text-[#9CA3AF] text-lg">Modern family home with real estate sign</p>
-              </div>
+            <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.35)] bg-[#141414] h-72 md:h-[22rem]">
+              <img 
+                src={movingCoupleImage} 
+                alt="Couple carrying moving boxes outside their new home"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
         </div>
