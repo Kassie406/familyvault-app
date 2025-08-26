@@ -1,4 +1,3 @@
-import { Play } from "lucide-react";
 import familyOrganizingImage from "@assets/generated_images/Family_organizing_documents_together_f055f61d.png";
 
 const benefits = [
@@ -28,17 +27,7 @@ export default function Benefits() {
               alt="Family working together to organize important documents and family information" 
               className="rounded-2xl shadow-2xl w-full h-auto" 
             />
-            <div className="absolute inset-0 bg-black/30 rounded-2xl flex items-center justify-center">
-              <button 
-                data-testid="button-play-video"
-                className="cta-button rounded-full p-6"
-              >
-                <Play className="w-12 h-12 text-black ml-1" />
-              </button>
-            </div>
-            <div className="absolute bottom-4 left-4 bg-white/90 rounded-lg px-3 py-1">
-              <span className="text-sm font-medium text-white">See how it works</span>
-            </div>
+
           </div>
 
           {/* Right Column - Benefits */}
