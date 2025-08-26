@@ -1,4 +1,4 @@
-import { Play } from "lucide-react";
+import familyEmergencyImage from "@assets/generated_images/Family_reviewing_emergency_documents_7cd823f0.png";
 
 export default function CustomerStory() {
   return (
@@ -17,18 +17,10 @@ export default function CustomerStory() {
             </div>
             
             <img 
-              src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600" 
-              alt="Family crisis recovery scene showing digital organization helping during emergencies" 
+              src={familyEmergencyImage} 
+              alt="Family reviewing emergency documents and insurance papers together during recovery process" 
               className="rounded-2xl shadow-2xl w-full h-auto" 
             />
-            <div className="absolute inset-0 bg-black/30 rounded-2xl flex items-center justify-center">
-              <button 
-                data-testid="button-play-customer-story"
-                className="bg-white/90 hover:bg-white rounded-full p-6 transition-colors hover-lift"
-              >
-                <Play className="w-12 h-12 text-primary ml-1" />
-              </button>
-            </div>
           </div>
 
           {/* Right Column - Quote */}
