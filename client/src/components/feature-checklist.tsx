@@ -42,11 +42,11 @@ export default function FeatureChecklist() {
 
           {/* Center Image */}
           <div className="flex justify-center">
-            <div className="gold-card p-8 rounded-2xl shadow-xl">
+            <div className="gold-card p-6 rounded-2xl shadow-xl max-w-lg">
               <img 
                 src={documentCollageImage} 
                 alt="Important family documents including passports, driver's license, tax forms, and family photos organized together" 
-                className="rounded-xl w-full h-auto" 
+                className="rounded-xl w-full h-auto min-h-[400px] object-cover" 
               />
               <div className="text-center mt-4">
                 <p className="text-sm text-[#CCCCCC] font-medium">Document Collage</p>
