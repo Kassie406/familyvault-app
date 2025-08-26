@@ -1,4 +1,5 @@
 import { Play } from "lucide-react";
+import familyOrganizingImage from "@assets/generated_images/Family_organizing_documents_together_f055f61d.png";
 
 const benefits = [
   {
@@ -23,8 +24,8 @@ export default function Benefits() {
           {/* Left Column - Video */}
           <div className="relative">
             <img 
-              src="https://images.unsplash.com/photo-1586281380349-632531db7ed4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600" 
-              alt="Home office organization scene with filing systems and digital tools" 
+              src={familyOrganizingImage} 
+              alt="Family working together to organize important documents and family information" 
               className="rounded-2xl shadow-2xl w-full h-auto" 
             />
             <div className="absolute inset-0 bg-black/30 rounded-2xl flex items-center justify-center">
