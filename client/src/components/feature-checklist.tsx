@@ -1,5 +1,5 @@
 import { Check } from "lucide-react";
-import documentCollageImage from "@assets/image_1756234681936.png";
+import documentCollageImage from "@assets/generated_images/Transparent_document_collage_f3ca596f.png";
 
 const leftFeatures = [
   "Passports",
