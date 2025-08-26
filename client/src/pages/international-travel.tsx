@@ -420,7 +420,7 @@ export default function InternationalTravel() {
       </section>
 
       {/* Pricing */}
-      <section className="py-20 bg-[#141414]">
+      <section className="py-20 bg-[#0B0B0B]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-[#F3F4F6] mb-4">
@@ -433,64 +433,69 @@ export default function InternationalTravel() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {/* Free Plan */}
-            <div className="bg-[#111] border border-[#FFD700] rounded-xl p-6 text-[#fff]">
+            <div className="bg-[#1A1A1A] border border-[rgba(212,175,55,0.2)] rounded-xl p-6 flex flex-col">
+              <div className="h-8"></div> {/* Spacer for badge alignment */}
               <h3 className="text-xl font-bold mb-2 text-[#F3F4F6]">Free</h3>
-              <p className="text-[#D1D5DB] mb-4">For families looking to get started</p>
+              <p className="text-[#D1D5DB] mb-4 h-12">For families starting to organize for international travel</p>
               <div className="text-3xl font-bold mb-6 text-[#F3F4F6]">$0</div>
               <button
                 data-testid="button-get-started-free-plan"
-                className="w-full bg-[#D4AF37] text-black py-3 rounded-lg font-semibold mb-6 hover:bg-[#C7A233] transition-colors"
+                className="w-full bg-[#D4AF37] text-black py-3 rounded-full font-semibold mb-6 hover:bg-[#C7A233] transition-colors"
               >
                 Get started
               </button>
-              <ul className="space-y-2 text-sm text-[#D1D5DB]">
+              <ul className="space-y-2 text-sm text-[#D1D5DB] flex-1">
                 <li>• Advanced security</li>
-                <li>• 10 items</li>
-                <li>• 500MB</li>
+                <li>• 12 items</li>
+                <li>• 50GB</li>
                 <li>• Autopilot™ by FamilyVault (beta)</li>
+                <li>• Tailored onboarding</li>
                 <li>• Unlimited collaborators</li>
               </ul>
             </div>
 
             {/* Silver Plan */}
-            <div className="bg-[#111] border border-[#FFD700] rounded-xl p-6 text-[#fff]">
+            <div className="bg-[#1A1A1A] border border-[rgba(212,175,55,0.2)] rounded-xl p-6 flex flex-col">
+              <div className="h-8"></div> {/* Spacer for badge alignment */}
               <h3 className="text-xl font-bold mb-2 text-[#F3F4F6]">Silver</h3>
-              <p className="text-[#D1D5DB] mb-4">Unlock unlimited items and unlock additional resources</p>
+              <p className="text-[#D1D5DB] mb-4 h-12">Build a comprehensive organization plan</p>
               <div className="text-3xl font-bold mb-6 text-[#F3F4F6]">$10</div>
               <button
                 data-testid="button-get-started-silver-plan"
-                className="w-full bg-[#D4AF37] text-black py-3 rounded-lg font-semibold mb-6 hover:bg-[#C7A233] transition-colors"
+                className="w-full bg-[#D4AF37] text-black py-3 rounded-full font-semibold mb-6 hover:bg-[#C7A233] transition-colors"
               >
                 Get started
               </button>
-              <ul className="space-y-2 text-sm text-[#D1D5DB]">
+              <ul className="space-y-2 text-sm text-[#D1D5DB] flex-1">
                 <li>• Everything in Free plus:</li>
                 <li>• Unlimited items</li>
                 <li>• Autopilot™ by FamilyVault</li>
-                <li>• Archive support</li>
+                <li>• Liability support</li>
                 <li>• Priority customer expert</li>
                 <li>• The FamilyVault Marketplace</li>
               </ul>
             </div>
 
             {/* Gold Plan */}
-            <div className="bg-[#222] border border-[#FFD700] rounded-xl p-6 text-[#fff] relative shadow-[0_0_15px_rgba(255,215,0,0.33)]">
+            <div className="bg-[#1A1A1A] border-2 border-[#D4AF37] rounded-xl p-6 relative shadow-[0_0_0_6px_rgba(212,175,55,0.12)] flex flex-col">
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#D4AF37] text-black px-4 py-1 rounded-full text-sm font-semibold">
                 Most Popular
               </div>
+              <div className="h-8"></div> {/* Spacer that accounts for the badge */}
               <h3 className="text-xl font-bold mb-2 text-[#F3F4F6]">Gold</h3>
-              <p className="text-[#D1D5DB] mb-4">Total peace of mind for your family & your family business</p>
+              <p className="text-[#D1D5DB] mb-4 h-12">Organize your entire business and financial future</p>
               <div className="text-3xl font-bold mb-6 text-[#F3F4F6]">$20</div>
               <button
                 data-testid="button-get-started-gold-plan"
-                className="w-full bg-[#D4AF37] text-black py-3 rounded-lg font-semibold mb-6 hover:bg-[#C7A233] transition-colors"
+                className="w-full bg-[#D4AF37] text-black py-3 rounded-full font-semibold mb-6 hover:bg-[#C7A233] transition-colors"
               >
                 Get started
               </button>
-              <ul className="space-y-2 text-sm text-[#D1D5DB]">
+              <ul className="space-y-2 text-sm text-[#D1D5DB] flex-1">
                 <li>• Everything in Silver plus:</li>
                 <li>• Business information</li>
                 <li>• Organization (LLC, S Corp, S Corp, INC, etc.)</li>
+                <li>• Entity relationship mapping</li>
                 <li>• Friendly expert support</li>
                 <li>• And more...</li>
               </ul>
