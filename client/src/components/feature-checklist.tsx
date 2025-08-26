@@ -48,9 +48,6 @@ export default function FeatureChecklist() {
                 alt="Important family documents including passports, driver's license, tax forms, and family photos organized together" 
                 className="rounded-xl w-full h-auto min-h-[400px] object-cover" 
               />
-              <div className="text-center mt-4">
-                <p className="text-sm text-[#CCCCCC] font-medium">Document Collage</p>
-              </div>
             </div>
           </div>
 
