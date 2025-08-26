@@ -33,8 +33,79 @@ import {
   Calendar,
   Activity,
   AlertCircle,
+  Check,
   Pill
 } from "lucide-react";
+
+const pricingPlans = [
+  {
+    name: "Free",
+    subtitle: "For families looking to get started",
+    price: "$0",
+    period: "Forever",
+    popular: false,
+    features: [
+      "Advanced security & privacy",
+      "12 items",
+      "Autopilot™ (trial)", 
+      "Unlimited collaborators"
+    ],
+    buttonText: "Get started",
+    buttonLink: "/signup"
+  },
+  {
+    name: "Silver", 
+    subtitle: "Upload unlimited items and unlock additional resources",
+    price: "$10",
+    period: "Per month. Paid annually.",
+    popular: true,
+    features: [
+      "Everything in Free plus:",
+      "Unlimited items",
+      "Unlimited Autopilot™",
+      "YubiKey support",
+      "FamilyVault Marketplace™ discounts",
+      "And more…"
+    ],
+    buttonText: "Get started",
+    buttonLink: "/signup"
+  },
+  {
+    name: "Gold",
+    subtitle: "Total peace of mind for your family & your family business", 
+    price: "$20",
+    period: "Per month. Paid annually.",
+    popular: false,
+    features: [
+      "Everything in Silver plus:",
+      "Business information organization (LLCs, C-Corp, S-Corp, K1s, etc.)",
+      "Reminders for important filing and compliance dates",
+      "Access business documents from anywhere",
+      "Prioritized customer support via email, chat, and SMS",
+      "And more…"
+    ],
+    buttonText: "Get started",
+    buttonLink: "/signup"
+  },
+  {
+    name: "For advisors",
+    subtitle: "Keep client information organized and secure",
+    price: "Custom Pricing",
+    period: "",
+    popular: false,
+    features: [
+      "Everything in Gold plus:",
+      "Advisor portal",
+      "Volume-based pricing",
+      "Co-branding",
+      "FamilyVault Certified Expert™ training",
+      "Dedicated account manager",
+      "And more…"
+    ],
+    buttonText: "Schedule a demo",
+    buttonLink: "/contact"
+  }
+];
 
 export default function ChildInformation() {
   const childInfoCards = [
@@ -193,8 +264,8 @@ export default function ChildInformation() {
                   Get started free
                 </a>
                 <a 
-                  href="/features"
-                  data-testid="link-see-features"
+                  href="#pricing"
+                  data-testid="link-see-pricing"
                   className="text-[#D1D5DB] hover:text-[#F3F4F6] underline underline-offset-4 min-h-[44px] flex items-center"
                 >
                   See what's included →
@@ -356,91 +427,70 @@ export default function ChildInformation() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section className="py-20 bg-[#0B0B0B]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Pricing Plans */}
+      <section id="pricing" className="bg-gradient-to-b from-[#FFD700]/10 to-[#0a0a0a] py-16 lg:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-[#F3F4F6] mb-4">
-              Simple, Transparent Pricing
+            <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
+              For every family, at every stage of life,
             </h2>
-            <p className="text-lg text-[#D1D5DB]">
-              No hidden fees. No surprises. Just complete peace of mind.
+            <p className="text-2xl lg:text-3xl text-white">
+              FamilyVault has a plan for you.
             </p>
           </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Free Plan */}
-            <div className="bg-[#1A1A1A] border border-[rgba(212,175,55,0.2)] rounded-xl p-6 flex flex-col">
-              <div className="h-8"></div> {/* Spacer for badge alignment */}
-              <h3 className="text-xl font-bold mb-2 text-[#F3F4F6]">Free</h3>
-              <p className="text-[#D1D5DB] mb-4 h-12">For families starting to organize for neurodivergence</p>
-              <div className="text-3xl font-bold mb-6 text-[#F3F4F6]">$0</div>
-              <button
-                data-testid="button-get-started-free-plan"
-                className="w-full bg-[#D4AF37] text-black py-3 rounded-full font-semibold mb-6 hover:bg-[#C7A233] transition-colors"
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {pricingPlans.map((plan, index) => (
+              <div 
+                key={index}
+                className={`gold-card rounded-2xl p-8 text-center hover-lift relative ${
+                  plan.popular ? 'ring-2 ring-[#D4AF37]' : ''
+                }`}
               >
-                Get started
-              </button>
-              <ul className="space-y-2 text-sm text-[#D1D5DB] flex-1">
-                <li>• Advanced security</li>
-                <li>• 12 items</li>
-                <li>• 50GB</li>
-                <li>• Autopilot™ by FamilyVault (beta)</li>
-                <li>• Tailored onboarding</li>
-                <li>• Unlimited collaborators</li>
-              </ul>
-            </div>
-
-            {/* Silver Plan */}
-            <div className="bg-[#1A1A1A] border border-[rgba(212,175,55,0.2)] rounded-xl p-6 flex flex-col">
-              <div className="h-8"></div> {/* Spacer for badge alignment */}
-              <h3 className="text-xl font-bold mb-2 text-[#F3F4F6]">Silver</h3>
-              <p className="text-[#D1D5DB] mb-4 h-12">Build a comprehensive organization plan</p>
-              <div className="text-3xl font-bold mb-6 text-[#F3F4F6]">$10</div>
-              <button
-                data-testid="button-get-started-silver-plan"
-                className="w-full bg-[#D4AF37] text-black py-3 rounded-full font-semibold mb-6 hover:bg-[#C7A233] transition-colors"
-              >
-                Get started
-              </button>
-              <ul className="space-y-2 text-sm text-[#D1D5DB] flex-1">
-                <li>• Everything in Free plus:</li>
-                <li>• Unlimited items</li>
-                <li>• Autopilot™ by FamilyVault</li>
-                <li>• Liability support</li>
-                <li>• Priority customer expert</li>
-                <li>• The FamilyVault Marketplace</li>
-              </ul>
-            </div>
-
-            {/* Gold Plan */}
-            <div className="bg-[#1A1A1A] border-2 border-[#D4AF37] rounded-xl p-6 relative shadow-[0_0_0_6px_rgba(212,175,55,0.12)] flex flex-col">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#D4AF37] text-black px-4 py-1 rounded-full text-sm font-semibold">
-                Most Popular
+                {plan.popular && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <span className="bg-[#D4AF37] text-black px-4 py-1 rounded-full text-sm font-semibold">
+                      Most Popular
+                    </span>
+                  </div>
+                )}
+                
+                <h3 className="text-2xl font-bold text-[#D4AF37] mb-2">{plan.name}</h3>
+                <p className="text-[#CCCCCC] mb-6">{plan.subtitle}</p>
+                
+                <div className="mb-6">
+                  <div className="text-4xl lg:text-5xl font-bold text-white mb-2">{plan.price}</div>
+                  {plan.period && <p className="text-[#CCCCCC]">{plan.period}</p>}
+                </div>
+                
+                <a
+                  href={plan.buttonLink}
+                  data-testid={`button-${plan.name.toLowerCase()}-plan`}
+                  className="bg-[#FFD700] hover:bg-[#FFD700]/90 hover:shadow-[0_0_20px_rgba(255,215,0,0.5)] text-black w-full inline-block px-6 py-3 rounded-lg font-semibold mb-6 transition-all duration-300"
+                >
+                  {plan.buttonText}
+                </a>
+                
+                <ul className="space-y-3 text-left">
+                  {plan.features.map((feature, featureIndex) => (
+                    <li key={featureIndex} className="flex items-start">
+                      <Check className="w-5 h-5 text-[#D4AF37] mt-0.5 mr-3 flex-shrink-0" />
+                      <span className="text-[#CCCCCC]">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <div className="h-8"></div> {/* Spacer that accounts for the badge */}
-              <h3 className="text-xl font-bold mb-2 text-[#F3F4F6]">Gold</h3>
-              <p className="text-[#D1D5DB] mb-4 h-12">Organize your entire business and financial future</p>
-              <div className="text-3xl font-bold mb-6 text-[#F3F4F6]">$20</div>
-              <button
-                data-testid="button-get-started-gold-plan"
-                className="w-full bg-[#D4AF37] text-black py-3 rounded-full font-semibold mb-6 hover:bg-[#C7A233] transition-colors"
-              >
-                Get started
-              </button>
-              <ul className="space-y-2 text-sm text-[#D1D5DB] flex-1">
-                <li>• Everything in Silver plus:</li>
-                <li>• Business information</li>
-                <li>• Organization (LLC, S Corp, S Corp, INC, etc.)</li>
-                <li>• Entity relationship mapping</li>
-                <li>• Friendly expert support</li>
-                <li>• And more...</li>
-              </ul>
-            </div>
+            ))}
           </div>
-
-          <div className="text-center mt-8 text-sm text-[#D1D5DB]">
-            30-day money-back guarantee | We support first responders with a hero discount.
+          
+          <div className="text-center mt-12">
+            <p className="text-[#CCCCCC] mb-2">30-day money-back guarantee</p>
+            <p className="text-[#CCCCCC]">
+              We're proud to support{' '}
+              <a href="mailto:support@familyvault.com" className="text-[#D4AF37] hover:text-[#FFD700]">
+                community heroes with a 50% discount.
+              </a>
+            </p>
           </div>
         </div>
       </section>
