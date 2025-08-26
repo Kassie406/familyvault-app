@@ -581,19 +581,18 @@ export default function Neurodiversity() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {/* Free Plan */}
-            <div className="bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-2xl p-6 flex flex-col h-full">
-              <div className="flex-1">
-                <h3 className="text-xl font-bold mb-2 text-[#e9e9e9]">Free</h3>
-                <p className="text-[#b3b3b3] mb-4">For families starting to organize for neurodivergence</p>
-                <div className="text-3xl font-bold mb-6 text-[#e9e9e9]">$0</div>
-              </div>
+            <div className="bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-2xl p-6 flex flex-col">
+              <div className="h-8"></div> {/* Spacer for badge alignment */}
+              <h3 className="text-xl font-bold mb-2 text-[#e9e9e9]">Free</h3>
+              <p className="text-[#b3b3b3] mb-4 h-12">For families starting to organize for neurodivergence</p>
+              <div className="text-3xl font-bold mb-6 text-[#e9e9e9]">$0</div>
               <button
                 data-testid="button-get-started-free-plan"
                 className="w-full bg-[#f4c542] text-[#111] py-3 rounded-full font-semibold mb-6 hover:bg-[#d4aa2e] transition-colors"
               >
                 Get started
               </button>
-              <ul className="space-y-2 text-sm text-[#b3b3b3]">
+              <ul className="space-y-2 text-sm text-[#b3b3b3] flex-1">
                 <li>• Advanced security</li>
                 <li>• 12 items</li>
                 <li>• 50GB</li>
@@ -604,19 +603,18 @@ export default function Neurodiversity() {
             </div>
 
             {/* Silver Plan */}
-            <div className="bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-2xl p-6 flex flex-col h-full">
-              <div className="flex-1">
-                <h3 className="text-xl font-bold mb-2 text-[#e9e9e9]">Silver</h3>
-                <p className="text-[#b3b3b3] mb-4">Build a comprehensive organization plan</p>
-                <div className="text-3xl font-bold mb-6 text-[#e9e9e9]">$10</div>
-              </div>
+            <div className="bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-2xl p-6 flex flex-col">
+              <div className="h-8"></div> {/* Spacer for badge alignment */}
+              <h3 className="text-xl font-bold mb-2 text-[#e9e9e9]">Silver</h3>
+              <p className="text-[#b3b3b3] mb-4 h-12">Build a comprehensive organization plan</p>
+              <div className="text-3xl font-bold mb-6 text-[#e9e9e9]">$10</div>
               <button
                 data-testid="button-get-started-silver-plan"
                 className="w-full bg-[#f4c542] text-[#111] py-3 rounded-full font-semibold mb-6 hover:bg-[#d4aa2e] transition-colors"
               >
                 Get started
               </button>
-              <ul className="space-y-2 text-sm text-[#b3b3b3]">
+              <ul className="space-y-2 text-sm text-[#b3b3b3] flex-1">
                 <li>• Everything in Free plus:</li>
                 <li>• Unlimited items</li>
                 <li>• Autopilot™ by FamilyVault</li>
@@ -627,22 +625,21 @@ export default function Neurodiversity() {
             </div>
 
             {/* Gold Plan */}
-            <div className="bg-[#111] border-2 border-[#f4c542] rounded-2xl p-6 relative shadow-[0_0_0_6px_rgba(244,197,66,0.12)] flex flex-col h-full">
+            <div className="bg-[#111] border-2 border-[#f4c542] rounded-2xl p-6 relative shadow-[0_0_0_6px_rgba(244,197,66,0.12)] flex flex-col">
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#f4c542] text-[#111] px-4 py-1 rounded-full text-sm font-semibold">
                 Most Popular
               </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold mb-2 text-[#e9e9e9]">Gold</h3>
-                <p className="text-[#b3b3b3] mb-4">Organize your entire business and financial future</p>
-                <div className="text-3xl font-bold mb-6 text-[#e9e9e9]">$20</div>
-              </div>
+              <div className="h-8"></div> {/* Spacer that accounts for the badge */}
+              <h3 className="text-xl font-bold mb-2 text-[#e9e9e9]">Gold</h3>
+              <p className="text-[#b3b3b3] mb-4 h-12">Organize your entire business and financial future</p>
+              <div className="text-3xl font-bold mb-6 text-[#e9e9e9]">$20</div>
               <button
                 data-testid="button-get-started-gold-plan"
                 className="w-full bg-[#f4c542] text-[#111] py-3 rounded-full font-semibold mb-6 hover:bg-[#d4aa2e] transition-colors"
               >
                 Get started
               </button>
-              <ul className="space-y-2 text-sm text-[#b3b3b3]">
+              <ul className="space-y-2 text-sm text-[#b3b3b3] flex-1">
                 <li>• Everything in Silver plus:</li>
                 <li>• Business information</li>
                 <li>• Organization (LLC, S Corp, S Corp, INC, etc.)</li>
