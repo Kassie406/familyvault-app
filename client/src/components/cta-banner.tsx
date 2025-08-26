@@ -61,11 +61,11 @@ export default function CTABanner() {
           3 pricing tiers, starting with free
         </h2>
         
-        <div className="grid md:grid-cols-3 gap-8 mb-12">
-          {pricingPlans.map((plan, index) => (
+        <div className="grid md:grid-cols-3 gap-8 mb-12 items-start">
+          {pricingPlans.slice(0, 3).map((plan, index) => (
             <div 
               key={index}
-              className={`gold-card rounded-2xl p-8 text-center hover-lift relative flex flex-col ${
+              className={`gold-card rounded-2xl p-8 text-center hover-lift relative h-full flex flex-col justify-between ${
                 plan.popular ? 'ring-2 ring-[#D4AF37]' : ''
               }`}
             >
@@ -77,24 +77,24 @@ export default function CTABanner() {
                 </div>
               )}
               
-              <div className="flex-grow">
+              <div>
                 <h3 className="text-2xl font-bold text-[#D4AF37] mb-2">{plan.name}</h3>
                 <p className="text-[#CCCCCC] mb-6">{plan.subtitle}</p>
                 
                 <div className="mb-6">
                   <div className="text-4xl lg:text-5xl font-bold text-white mb-2">{plan.price}</div>
                 </div>
+                
+                <a
+                  href={plan.buttonLink}
+                  data-testid={`button-${plan.name.toLowerCase()}-plan`}
+                  className="bg-[#FFD700] hover:bg-[#FFD700]/90 hover:shadow-[0_0_20px_rgba(255,215,0,0.5)] text-black w-full inline-block px-6 py-3 rounded-lg font-semibold mb-6 transition-all duration-300"
+                >
+                  {plan.buttonText}
+                </a>
               </div>
               
-              <a
-                href={plan.buttonLink}
-                data-testid={`button-${plan.name.toLowerCase()}-plan`}
-                className="bg-[#FFD700] hover:bg-[#FFD700]/90 hover:shadow-[0_0_20px_rgba(255,215,0,0.5)] text-black w-full inline-block px-6 py-3 rounded-lg font-semibold mb-6 transition-all duration-300"
-              >
-                {plan.buttonText}
-              </a>
-              
-              <ul className="space-y-3 text-left">
+              <ul className="space-y-3 text-left mt-auto">
                 {plan.features.map((feature, featureIndex) => (
                   <li key={featureIndex} className="flex items-start">
                     <Check className="w-5 h-5 text-[#D4AF37] mt-0.5 mr-3 flex-shrink-0" />
