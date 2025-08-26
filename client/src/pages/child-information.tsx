@@ -120,24 +120,24 @@ export default function ChildInformation() {
 
   const testimonials = [
     { 
-      name: "Sarah M.", 
-      title: "Daughter & Caregiver", 
+      name: "Sarah & Mike", 
+      title: "Members since 2022", 
       rating: 5, 
-      quote: "FamilyVault helped me organize all of Mom's medical information in one secure place.",
+      quote: "FamilyVault made combining our finances and updating our documents after marriage stress-free.",
       image: sarahProfileImageChild
     },
     { 
-      name: "David L.", 
-      title: "Son & Financial POA", 
+      name: "Jessica L.", 
+      title: "Member since 2021", 
       rating: 5, 
-      quote: "Managing Dad's finances became so much easier with everything organized digitally.",
+      quote: "The name change process was seamless with everything stored in one place.",
       image: davidProfileImageChild
     },
     { 
-      name: "Maria C.", 
-      title: "Healthcare Advocate", 
+      name: "David & Emma", 
+      title: "Members since 2023", 
       rating: 5, 
-      quote: "Having quick access to medical directives during emergencies was invaluable.",
+      quote: "Sharing documents securely gave us both peace of mind.",
       image: mariaProfileImageChild
     }
   ];
@@ -316,7 +316,7 @@ export default function ChildInformation() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 bg-[#141414]">
+      <section className="py-20 bg-[#0B0B0B]">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
@@ -324,17 +324,19 @@ export default function ChildInformation() {
             </h2>
           </div>
 
-          <div className="flex overflow-x-auto gap-6 pb-4 snap-x snap-mandatory">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-[#1a1a1a] border border-[#FFD700]/20 rounded-xl p-6 shadow-md min-w-[300px] snap-start text-center flex-shrink-0">
-                <div className="flex justify-center mb-4">
+              <div key={index} className="bg-[#1A1A1A] border border-[rgba(212,175,55,0.2)] rounded-xl p-8 text-center">
+                <div className="flex justify-center mb-6">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-[#FFD700] fill-current" />
+                    <Star key={i} className="w-5 h-5 text-[#D4AF37] fill-current" />
                   ))}
                 </div>
-                <p className="text-[#D1D5DB] italic mb-6 text-lg">"{testimonial.quote}"</p>
+                <p className="text-[#F3F4F6] italic mb-8 text-lg leading-relaxed">
+                  "{testimonial.quote}"
+                </p>
                 {testimonial.image ? (
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-[#FFD700] overflow-hidden">
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full border-3 border-[#D4AF37] overflow-hidden">
                     <img 
                       src={testimonial.image} 
                       alt={`${testimonial.name} profile photo`}
@@ -342,12 +344,12 @@ export default function ChildInformation() {
                     />
                   </div>
                 ) : (
-                  <div className="w-16 h-16 bg-gradient-to-br from-[#FFD700] to-[#D4AF37] rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-[#FFD700]">
+                  <div className="w-20 h-20 bg-gradient-to-br from-[#D4AF37] to-[#C7A233] rounded-full mx-auto mb-4 flex items-center justify-center border-3 border-[#D4AF37]">
                     <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
                   </div>
                 )}
-                <div className="font-semibold text-lg text-[#F3F4F6]">{testimonial.name}</div>
-                <div className="text-sm text-[#FFD700] font-medium">{testimonial.title}</div>
+                <div className="font-semibold text-xl text-[#F3F4F6] mb-1">{testimonial.name}</div>
+                <div className="text-sm text-[#D4AF37] font-medium">{testimonial.title}</div>
               </div>
             ))}
           </div>
