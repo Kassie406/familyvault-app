@@ -1,4 +1,4 @@
-import familyEmergencyImage from "@assets/generated_images/Family_reviewing_emergency_documents_7cd823f0.png";
+import insuranceRecoveryImage from "@assets/generated_images/Family_with_insurance_recovery_documents_649fad52.png";
 
 export default function CustomerStory() {
   return (
@@ -17,8 +17,8 @@ export default function CustomerStory() {
             </div>
             
             <img 
-              src={familyEmergencyImage} 
-              alt="Family reviewing emergency documents and insurance papers together during recovery process" 
+              src={insuranceRecoveryImage} 
+              alt="Family working with insurance recovery documents and emergency planning materials" 
               className="rounded-2xl shadow-2xl w-full h-auto" 
             />
           </div>
