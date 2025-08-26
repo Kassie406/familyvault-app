@@ -1,0 +1,97 @@
+Your “Get started” button is between two blocks:
+
+[ INTRO (title + copy + price) ]   <-- heights differ per card
+[ CTA button ]                     <-- this is what you want aligned
+[ FEATURES list ]                  <-- varies a lot
+
+
+Since the INTRO block is taller/shorter per card (Gold has more lines than Free/Silver), the CTA ends up at different Y-positions. Making the whole card the same height or pushing the button to the bottom won’t fix it, because the button is not at the bottom — it’s between intro and features.
+
+Fix: equalize the INTRO block height
+
+Wrap everything above the button in a .plan__head (or whatever you call it).
+
+Give that wrapper the same min-height on all cards (CSS variable makes it easy to tune).
+
+Keep the card as a column so the layout stays clean.
+
+HTML (structure)
+<div class="pricing-grid">
+  <article class="plan">
+    <div class="plan__head">
+      <h3>Free</h3>
+      <p>For families looking to get started</p>
+      <div class="plan__price">$0</div>
+      <div class="plan__cadence">Forever</div>
+    </div>
+
+    <button class="plan__cta">Get started</button>
+
+    <ul class="plan__features">
+      <!-- features … -->
+    </ul>
+  </article>
+
+  <!-- repeat for Silver, Gold, Advisors… (same structure) -->
+</div>
+
+CSS (drop-in)
+.pricing-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px,1fr));
+  gap: 2rem;
+}
+
+/* Each card */
+.plan{
+  display:flex;
+  flex-direction:column;
+  height:100%;
+}
+
+/* Everything ABOVE the button */
+.plan__head{
+  display:flex;
+  flex-direction:column;
+  gap:.5rem;
+
+  /* This is the alignment lever – make all cards use the same head height */
+  min-height: var(--plan-head-min, 260px);
+}
+
+/* Button – normal block, not absolutely positioned */
+.plan__cta{
+  margin: 1rem 0 1.25rem;
+  /* width/align as you like */
+}
+
+/* Features continue below */
+.plan__features{
+  display:flex;
+  flex-direction:column;
+  gap:.75rem;
+}
+@media (min-width: 1024px){
+  .plan__head{ --plan-head-min: 290px; } /* tweak if needed on desktop */
+}
+
+
+That single min-height on .plan__head forces the button to land at the same vertical position across all cards, regardless of how much intro text each has.
+
+Prefer not to guess a pixel value?
+
+Use a tiny JS helper to auto-equalize the tallest head (works great on Replit):
+
+<script>
+  window.addEventListener('load', () => {
+    const heads = [...document.querySelectorAll('.plan__head')];
+    const max = Math.max(...heads.map(h => h.offsetHeight));
+    heads.forEach(h => h.style.minHeight = `${max}px`);
+  });
+  window.addEventListener('resize', () => {
+    const heads = [...document.querySelectorAll('.plan__head')];
+    heads.forEach(h => h.style.minHeight = '');              // reset
+    const max = Math.max(...heads.map(h => h.offsetHeight)); // recalc
+    heads.forEach(h => h.style.minHeight = `${max}px`);
+  });
+</script>
