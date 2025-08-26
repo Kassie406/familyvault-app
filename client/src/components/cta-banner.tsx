@@ -65,7 +65,7 @@ export default function CTABanner() {
           {pricingPlans.map((plan, index) => (
             <div 
               key={index}
-              className={`gold-card rounded-2xl p-8 text-center hover-lift relative flex flex-col h-full ${
+              className={`gold-card rounded-2xl p-8 text-center hover-lift relative flex flex-col justify-between h-full ${
                 plan.popular ? 'ring-2 ring-[#D4AF37]' : ''
               }`}
             >
@@ -77,25 +77,15 @@ export default function CTABanner() {
                 </div>
               )}
               
-              <div className="flex-grow">
+              <div className="card-content">
                 <h3 className="text-2xl font-bold text-[#D4AF37] mb-2">{plan.name}</h3>
                 <p className="text-[#CCCCCC] mb-6">{plan.subtitle}</p>
                 
                 <div className="mb-6">
                   <div className="text-4xl lg:text-5xl font-bold text-white mb-2">{plan.price}</div>
                 </div>
-              </div>
-              
-              <div className="mt-auto">
-                <a
-                  href={plan.buttonLink}
-                  data-testid={`button-${plan.name.toLowerCase()}-plan`}
-                  className="bg-[#FFD700] hover:bg-[#FFD700]/90 hover:shadow-[0_0_20px_rgba(255,215,0,0.5)] text-black w-full inline-block px-6 py-3 rounded-lg font-semibold mb-6 transition-all duration-300"
-                >
-                  {plan.buttonText}
-                </a>
                 
-                <ul className="space-y-3 text-left">
+                <ul className="space-y-3 text-left mb-6">
                   {plan.features.map((feature, featureIndex) => (
                     <li key={featureIndex} className="flex items-start">
                       <Check className="w-5 h-5 text-[#D4AF37] mt-0.5 mr-3 flex-shrink-0" />
@@ -104,6 +94,14 @@ export default function CTABanner() {
                   ))}
                 </ul>
               </div>
+              
+              <a
+                href={plan.buttonLink}
+                data-testid={`button-${plan.name.toLowerCase()}-plan`}
+                className="bg-[#FFD700] hover:bg-[#FFD700]/90 hover:shadow-[0_0_20px_rgba(255,215,0,0.5)] text-black w-full inline-block px-6 py-3 rounded-lg font-semibold mt-auto transition-all duration-300"
+              >
+                {plan.buttonText}
+              </a>
             </div>
           ))}
         </div>
