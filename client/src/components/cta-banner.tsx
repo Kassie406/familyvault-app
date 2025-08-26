@@ -65,7 +65,7 @@ export default function CTABanner() {
           {pricingPlans.map((plan, index) => (
             <div 
               key={index}
-              className={`gold-card rounded-2xl p-8 text-center hover-lift relative ${
+              className={`gold-card rounded-2xl p-8 text-center hover-lift relative flex flex-col ${
                 plan.popular ? 'ring-2 ring-[#D4AF37]' : ''
               }`}
             >
@@ -77,11 +77,13 @@ export default function CTABanner() {
                 </div>
               )}
               
-              <h3 className="text-2xl font-bold text-[#D4AF37] mb-2">{plan.name}</h3>
-              <p className="text-[#CCCCCC] mb-6">{plan.subtitle}</p>
-              
-              <div className="mb-6">
-                <div className="text-4xl lg:text-5xl font-bold text-white mb-2">{plan.price}</div>
+              <div className="flex-grow">
+                <h3 className="text-2xl font-bold text-[#D4AF37] mb-2">{plan.name}</h3>
+                <p className="text-[#CCCCCC] mb-6">{plan.subtitle}</p>
+                
+                <div className="mb-6">
+                  <div className="text-4xl lg:text-5xl font-bold text-white mb-2">{plan.price}</div>
+                </div>
               </div>
               
               <a
