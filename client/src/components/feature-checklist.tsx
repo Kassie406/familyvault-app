@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import documentCollageImage from "@assets/image_1756234681936.png";
 
 const leftFeatures = [
   "Passports",
@@ -43,8 +44,8 @@ export default function FeatureChecklist() {
           <div className="flex justify-center">
             <div className="gold-card p-8 rounded-2xl shadow-xl">
               <img 
-                src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=500" 
-                alt="Family document organization collage showing important papers and certificates" 
+                src={documentCollageImage} 
+                alt="Important family documents including passports, driver's license, tax forms, and family photos organized together" 
                 className="rounded-xl w-full h-auto" 
               />
               <div className="text-center mt-4">
