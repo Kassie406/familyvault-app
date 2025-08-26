@@ -1,10 +1,10 @@
-import referenceImage from "@assets/image_1756233236442.png";
+import referenceImage from "@assets/image_1756234681936.png";
 
 export default function CTABanner() {
   const images = [
     {
       src: referenceImage,
-      alt: "FamilyVault pricing tiers illustration showing document organization and planning features"
+      alt: "Important family documents including passports, driver's license, tax forms, and family photos organized together"
     },
     {
       src: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
