@@ -1,8 +1,10 @@
+import referenceImage from "@assets/image_1756233236442.png";
+
 export default function CTABanner() {
   const images = [
     {
-      src: "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-      alt: "Family security scene showing digital protection and safety"
+      src: referenceImage,
+      alt: "FamilyVault pricing tiers illustration showing document organization and planning features"
     },
     {
       src: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
