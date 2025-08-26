@@ -2,16 +2,16 @@ import insuranceRecoveryImage from "@assets/generated_images/Family_with_insuran
 
 export default function CustomerStory() {
   return (
-    <section className="bg-gray-50 py-16 lg:py-24">
+    <section className="bg-[#111111] py-16 lg:py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left Column - Video */}
           <div className="relative">
             <div className="text-center mb-8">
-              <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
                 After the Wildfire Crisis, FamilyVault Became a Family's Lifeline
               </h2>
-              <p className="text-lg text-gray-600">
+              <p className="text-lg text-[#CCCCCC]">
                 FamilyVault helped Jeremy W.'s family navigate the trauma of losing their home to a wildfire — and gave them the tools to start their recovery.
               </p>
             </div>
