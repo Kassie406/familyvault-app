@@ -113,37 +113,43 @@ export default function ChildInformation() {
       icon: Heart,
       title: "Medical & Allergies",
       description: "Track medications, allergies, and medical history in one secure place.",
-      action: "Add medical info"
+      action: "Add medical info",
+      link: "/medical-allergies"
     },
     {
       icon: FileText,
       title: "School & Aftercare",
       description: "Store enrollment documents, emergency contacts, and school information.",
-      action: "Add school details"
+      action: "Add school details",
+      link: "/school-aftercare"
     },
     {
       icon: Activity,
       title: "Sports & Activities",
       description: "Keep track of sports forms, activity schedules, and coach contacts.",
-      action: "Add activities"
+      action: "Add activities",
+      link: "/sports-activities"
     },
     {
       icon: Shield,
       title: "Emergency Contacts",
       description: "Quick access to pediatrician, family, and emergency contact information.",
-      action: "Add contacts"
+      action: "Add contacts",
+      link: "/emergency-contacts"
     },
     {
       icon: Calendar,
       title: "Immunizations",
       description: "Digital vaccination records and upcoming immunization reminders.",
-      action: "Add immunizations"
+      action: "Add immunizations",
+      link: "/immunizations"
     },
     {
       icon: Users,
       title: "Caregiver Access",
       description: "Safely share essential information with babysitters and family.",
-      action: "Manage sharing"
+      action: "Manage sharing",
+      link: "/caregiver-access"
     }
   ];
 
@@ -321,7 +327,7 @@ export default function ChildInformation() {
                     {card.description}
                   </p>
                   <a 
-                    href="#"
+                    href={card.link}
                     data-testid={`link-${card.action.replace(/\s+/g, '-').toLowerCase()}`}
                     className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
                   >

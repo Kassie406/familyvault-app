@@ -26,6 +26,12 @@ import Neurodiversity from "@/pages/neurodiversity";
 import Blogs from "@/pages/blogs";
 import GuidesChecklists from "@/pages/guides-checklists";
 import HelpCenter from "@/pages/help-center";
+import MedicalAllergies from "@/pages/medical-allergies";
+import SchoolAftercare from "@/pages/school-aftercare";
+import SportsActivities from "@/pages/sports-activities";
+import EmergencyContacts from "@/pages/emergency-contacts";
+import Immunizations from "@/pages/immunizations";
+import CaregiverAccess from "@/pages/caregiver-access";
 
 function Router() {
   return (
@@ -51,6 +57,12 @@ function Router() {
       <Route path="/blogs" component={Blogs} />
       <Route path="/guides-checklists" component={GuidesChecklists} />
       <Route path="/help-center" component={HelpCenter} />
+      <Route path="/medical-allergies" component={MedicalAllergies} />
+      <Route path="/school-aftercare" component={SchoolAftercare} />
+      <Route path="/sports-activities" component={SportsActivities} />
+      <Route path="/emergency-contacts" component={EmergencyContacts} />
+      <Route path="/immunizations" component={Immunizations} />
+      <Route path="/caregiver-access" component={CaregiverAccess} />
       <Route component={NotFound} />
     </Switch>
   );
