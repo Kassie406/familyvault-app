@@ -3,6 +3,15 @@ import { Link } from "wouter";
 export default function Signup() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F8F9FA] to-[#E3E7ED] flex items-center justify-center p-4">
+      {/* Logo in top left */}
+      <Link 
+        href="/"
+        className="absolute top-6 left-6 text-2xl font-bold text-[#D4AF37] hover:text-[#B8860B] transition-colors"
+        data-testid="logo-home-link"
+      >
+        FamilyVault
+      </Link>
+      
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
