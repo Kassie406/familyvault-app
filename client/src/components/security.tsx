@@ -87,12 +87,13 @@ export default function Security() {
         </div>
 
         <div className="text-center mt-12">
-          <button 
+          <a 
+            href="/security-documentation"
             data-testid="button-learn-more-security"
-            className="cta-button px-8 py-3 rounded-lg font-semibold"
+            className="cta-button px-8 py-3 rounded-lg font-semibold inline-block"
           >
             Learn more
-          </button>
+          </a>
         </div>
       </div>
     </section>
