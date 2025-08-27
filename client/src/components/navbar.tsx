@@ -205,7 +205,7 @@ export default function Navbar() {
               Login
             </a>
             <a
-              href="/pricing"
+              href="/signup"
               data-testid="button-get-started-nav"
               className="bg-[#D4AF37] hover:bg-[#B8860B] text-black px-4 py-2 rounded-lg font-medium transition-colors"
             >
@@ -300,7 +300,7 @@ export default function Navbar() {
               Login
             </a>
             <a
-              href="/pricing"
+              href="/signup"
               data-testid="button-get-started-mobile"
               className="w-full mt-2 bg-[#D4AF37] hover:bg-[#B8860B] text-black px-4 py-2 rounded-lg font-medium text-center block"
             >

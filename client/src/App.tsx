@@ -11,6 +11,7 @@ import Reviews from "@/pages/reviews";
 import Pricing from "@/pages/pricing";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
+import SignupOptions from "@/pages/signup-options";
 import ChildInformation from "@/pages/child-information";
 import DisasterPlanning from "@/pages/disaster-planning";
 import ElderlyParents from "@/pages/elderly-parents";
@@ -42,6 +43,7 @@ function Router() {
       <Route path="/pricing" component={Pricing} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
+      <Route path="/signup-options" component={SignupOptions} />
       <Route path="/child-information" component={ChildInformation} />
       <Route path="/disaster-planning" component={DisasterPlanning} />
       <Route path="/elderly-parents" component={ElderlyParents} />

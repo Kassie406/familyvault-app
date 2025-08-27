@@ -19,7 +19,7 @@ export default function Hero() {
             </p>
             <div className="flex justify-center mb-8">
               <a
-                href="/pricing"
+                href="/signup"
                 data-testid="button-get-started-hero"
                 className="cta-button px-8 py-4 rounded-lg font-semibold text-lg text-center"
               >
