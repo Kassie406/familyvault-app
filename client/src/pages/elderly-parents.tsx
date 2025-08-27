@@ -199,7 +199,7 @@ export default function ElderlyParents() {
                   Get started free
                 </a>
                 <a 
-                  href="/features"
+                  href="/pricing"
                   data-testid="link-see-elder-care-features"
                   className="text-[#D1D5DB] hover:text-[#F3F4F6] underline underline-offset-4 min-h-[44px] flex items-center"
                 >
