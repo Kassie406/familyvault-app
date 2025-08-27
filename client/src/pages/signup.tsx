@@ -6,7 +6,7 @@ export default function Signup() {
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="text-[#6B7280] font-medium text-sm mb-2">Trustworthy.</div>
+          <div className="text-[#6B7280] font-medium text-sm mb-2">FamilyVault.</div>
           <h1 className="text-2xl font-bold text-[#1F2937] mb-2">Create your account</h1>
         </div>
 
@@ -41,7 +41,7 @@ export default function Signup() {
             Already have an account? <Link href="/signin" className="text-[#3B82F6] hover:underline">Sign in</Link>
           </p>
           <p className="text-xs text-[#6B7280]">
-            By creating a Trustworthy account, you agree to our{' '}
+            By creating a FamilyVault account, you agree to our{' '}
             <a href="#" className="text-[#3B82F6] hover:underline">Terms and Conditions</a>{' '}
             and <a href="#" className="text-[#3B82F6] hover:underline">Privacy Policy</a>
           </p>
