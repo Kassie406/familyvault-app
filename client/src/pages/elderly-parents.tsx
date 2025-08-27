@@ -48,37 +48,43 @@ export default function ElderlyParents() {
       icon: Heart,
       title: "Medical Information",
       description: "Store medications, doctor contacts, and medical directives for easy access.",
-      action: "Add medical info"
+      action: "Add medical info",
+      link: "/elderly-medical-info"
     },
     {
       icon: DollarSign,
       title: "Financial Documents",
       description: "Keep bank accounts, insurance policies, and important bills organized.",
-      action: "Add finances"
+      action: "Add finances",
+      link: "/elderly-finances"
     },
     {
       icon: Phone,
       title: "Emergency Contacts",
       description: "Store healthcare providers, family members, and legal representatives.",
-      action: "Add contacts"
+      action: "Add contacts",
+      link: "/elderly-emergency-contacts"
     },
     {
       icon: FileText,
       title: "Legal Documents",
       description: "Organize wills, power of attorney, and advance directives.",
-      action: "Add documents"
+      action: "Add documents",
+      link: "/elderly-legal-documents"
     },
     {
       icon: Home,
       title: "Property Information",
       description: "Document home ownership, utilities, and important property details.",
-      action: "Add property info"
+      action: "Add property info",
+      link: "/elderly-property-info"
     },
     {
       icon: Users,
       title: "Care Team Access",
       description: "Share information with family members and healthcare providers.",
-      action: "Manage access"
+      action: "Manage access",
+      link: "/elderly-care-team-access"
     }
   ];
 
@@ -249,7 +255,7 @@ export default function ElderlyParents() {
                     {card.description}
                   </p>
                   <a 
-                    href="#"
+                    href={card.link}
                     data-testid={`link-${card.action.replace(/\s+/g, '-').toLowerCase()}`}
                     className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
                   >
