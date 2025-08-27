@@ -11,6 +11,7 @@ import SecurityDocumentation from "@/pages/security-documentation";
 import TrustOverview from "@/pages/trust-overview";
 import Reviews from "@/pages/reviews";
 import Pricing from "@/pages/pricing";
+import ScheduleDemo from "@/pages/schedule-demo";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import SignupOptions from "@/pages/signup-options";
@@ -45,6 +46,7 @@ function Router() {
       <Route path="/trust-overview" component={TrustOverview} />
       <Route path="/reviews" component={Reviews} />
       <Route path="/pricing" component={Pricing} />
+      <Route path="/schedule-demo" component={ScheduleDemo} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/signup-options" component={SignupOptions} />
