@@ -758,7 +758,7 @@ export default function ChildInformation() {
             Start organizing your child's information today with FamilyVault.
           </p>
           <a
-            href="/signup"
+            href="/pricing"
             data-testid="button-final-cta"
             className="font-semibold text-lg transition-colors inline-block min-h-[44px] rounded-lg"
             style={{
