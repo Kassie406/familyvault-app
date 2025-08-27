@@ -103,7 +103,7 @@ const pricingPlans = [
       "And more…"
     ],
     buttonText: "Schedule a demo",
-    buttonLink: "/contact"
+    buttonLink: "/schedule-demo"
   }
 ];
 
