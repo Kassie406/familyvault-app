@@ -36,6 +36,12 @@ import SportsActivities from "@/pages/sports-activities";
 import EmergencyContacts from "@/pages/emergency-contacts";
 import Immunizations from "@/pages/immunizations";
 import CaregiverAccess from "@/pages/caregiver-access";
+import ElderlyMedicalInfo from "@/pages/elderly-medical-info";
+import ElderlyFinances from "@/pages/elderly-finances";
+import ElderlyEmergencyContacts from "@/pages/elderly-emergency-contacts";
+import ElderlyLegalDocuments from "@/pages/elderly-legal-documents";
+import ElderlyPropertyInfo from "@/pages/elderly-property-info";
+import ElderlyCareTeamAccess from "@/pages/elderly-care-team-access";
 
 function Router() {
   return (
@@ -71,6 +77,12 @@ function Router() {
       <Route path="/emergency-contacts" component={EmergencyContacts} />
       <Route path="/immunizations" component={Immunizations} />
       <Route path="/caregiver-access" component={CaregiverAccess} />
+      <Route path="/elderly-medical-info" component={ElderlyMedicalInfo} />
+      <Route path="/elderly-finances" component={ElderlyFinances} />
+      <Route path="/elderly-emergency-contacts" component={ElderlyEmergencyContacts} />
+      <Route path="/elderly-legal-documents" component={ElderlyLegalDocuments} />
+      <Route path="/elderly-property-info" component={ElderlyPropertyInfo} />
+      <Route path="/elderly-care-team-access" component={ElderlyCareTeamAccess} />
       <Route component={NotFound} />
     </Switch>
   );
