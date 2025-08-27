@@ -68,7 +68,7 @@ export default function Security() {
           {/* Hero CTAs */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="#"
+              href="/trust-overview"
               data-testid="button-trust-overview"
               className="inline-flex items-center justify-center bg-[#FFD43B] text-[#0E0E0E] font-semibold px-6 py-3 rounded-full hover:bg-[#E6C140] transition-colors focus:outline-none focus:ring-2 focus:ring-[#FFD43B] focus:ring-offset-2 focus:ring-offset-[#0E0E0E] min-h-[44px]"
             >
