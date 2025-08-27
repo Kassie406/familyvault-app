@@ -173,6 +173,17 @@ export default function Security() {
               )}
             </div>
           </div>
+          
+          {/* Main Learn More CTA */}
+          <div className="text-center mt-12">
+            <a 
+              href="/security-documentation"
+              data-testid="button-learn-more-main"
+              className="inline-flex items-center justify-center bg-[#FFD43B] text-[#0E0E0E] font-semibold px-8 py-3 rounded-full hover:bg-[#E6C140] transition-colors focus:outline-none focus:ring-2 focus:ring-[#FFD43B] focus:ring-offset-2 focus:ring-offset-[#0E0E0E] min-h-[44px]"
+            >
+              Learn more
+            </a>
+          </div>
         </div>
       </section>
 
