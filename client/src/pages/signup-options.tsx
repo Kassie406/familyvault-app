@@ -65,7 +65,7 @@ export default function SignupOptions() {
             Already have an account? <Link href="/signin" className="text-[#3B82F6] hover:underline">Sign in</Link>
           </p>
           <p className="text-xs text-[#6B7280]">
-            By creating a Trustworthy account, you agree to our{' '}
+            By creating a FamilyVault account, you agree to our{' '}
             <a href="#" className="text-[#3B82F6] hover:underline">Terms and Conditions</a>{' '}
             and <a href="#" className="text-[#3B82F6] hover:underline">Privacy Policy</a>
           </p>
