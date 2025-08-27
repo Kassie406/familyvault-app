@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Security from "@/pages/security";
 import SecurityDocumentation from "@/pages/security-documentation";
+import TrustOverview from "@/pages/trust-overview";
 import Reviews from "@/pages/reviews";
 import Pricing from "@/pages/pricing";
 import Login from "@/pages/login";
@@ -41,6 +42,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/security" component={Security} />
       <Route path="/security-documentation" component={SecurityDocumentation} />
+      <Route path="/trust-overview" component={TrustOverview} />
       <Route path="/reviews" component={Reviews} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/login" component={Login} />
