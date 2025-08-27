@@ -270,7 +270,7 @@ export default function ChildInformation() {
                   Get started free
                 </a>
                 <a 
-                  href="#pricing"
+                  href="/pricing"
                   data-testid="link-see-pricing"
                   className="text-[#D1D5DB] hover:text-[#F3F4F6] underline underline-offset-4 min-h-[44px] flex items-center"
                 >
