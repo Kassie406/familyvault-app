@@ -192,7 +192,7 @@ export default function ElderlyParents() {
               </p>
               <div className="flex flex-wrap gap-4">
                 <a 
-                  href="/signup"
+                  href="/pricing"
                   data-testid="button-get-started-free"
                   className="bg-[#D4AF37] text-black font-semibold px-6 py-3 text-lg rounded-lg hover:bg-[#FFD700] hover:shadow-lg transition-all min-h-[44px] flex items-center"
                 >
@@ -417,7 +417,7 @@ export default function ElderlyParents() {
             From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
-            href="/signup"
+            href="/pricing"
             data-testid="button-get-started-cta"
             className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
           >
@@ -733,7 +733,7 @@ export default function ElderlyParents() {
             Start organizing your family's important information today.
           </p>
           <a
-            href="/signup"
+            href="/pricing"
             data-testid="button-final-cta"
             className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-all inline-block min-h-[44px] hover:shadow-[0_0_20px_rgba(212,175,55,0.5)] hover:scale-105"
           >
