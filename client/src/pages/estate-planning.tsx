@@ -596,7 +596,7 @@ export default function EstatePlanning() {
             Start organizing your estate planning documents with FamilyVault.
           </p>
           <a
-            href="/signup"
+            href="/pricing"
             data-testid="button-final-cta"
             className="bg-[#E7C74D] hover:bg-[#E7C74D]/90 text-[#1A1A1B] px-8 py-4 rounded-full font-bold text-lg transition-colors inline-block min-h-[44px] focus:outline-none focus:ring-2 focus:ring-[#8EC8FF] focus:ring-offset-2"
           >
