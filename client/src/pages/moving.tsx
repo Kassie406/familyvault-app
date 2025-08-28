@@ -135,14 +135,14 @@ export default function Moving() {
               </p>
               <div className="flex flex-wrap gap-4">
                 <a
-                  href="/signup"
+                  href="/pricing"
                   data-testid="button-get-started"
                   className="bg-[#f1c232] hover:brightness-95 text-[#111] px-8 py-3 rounded-full font-semibold text-lg transition-all inline-flex items-center focus:outline-2 focus:outline-[#f1c232] focus:outline-offset-2"
                 >
                   Get started free
                 </a>
                 <a 
-                  href="/features"
+                  href="/pricing"
                   data-testid="link-see-moving-features"
                   className="text-[#f1c232] hover:underline font-medium inline-flex items-center min-h-[44px]"
                 >
