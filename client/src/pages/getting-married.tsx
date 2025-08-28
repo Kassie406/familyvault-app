@@ -36,37 +36,43 @@ export default function GettingMarried() {
       icon: FileText,
       title: "Legal Documentation",
       description: "Store marriage certificates and legal forms in one place.",
-      action: "Add legal docs"
+      action: "Add legal docs",
+      href: "/married-legal-docs"
     },
     {
       icon: CreditCard,
       title: "Financial Planning",
       description: "Organize joint accounts, insurance, and key documents.",
-      action: "Add financial info"
+      action: "Add financial info",
+      href: "/married-financial-planning"
     },
     {
       icon: Home,
       title: "Living Arrangements",
       description: "Keep lease, mortgage, and home-related records together.",
-      action: "Add housing docs"
+      action: "Add housing docs",
+      href: "/married-living-arrangements"
     },
     {
       icon: Users,
       title: "Family Info",
       description: "Document family details, emergency contacts, and more.",
-      action: "Add family info"
+      action: "Add family info",
+      href: "/married-family-info"
     },
     {
       icon: Heart,
       title: "Wedding Planning",
       description: "Track vendors, guest lists, and essential wedding details.",
-      action: "Add wedding docs"
+      action: "Add wedding docs",
+      href: "/married-wedding-planning"
     },
     {
       icon: Shield,
       title: "Estate Planning",
       description: "Manage wills, POAs, and inheritance docs.",
-      action: "Add estate docs"
+      action: "Add estate docs",
+      href: "/married-estate-planning"
     }
   ];
 
@@ -243,7 +249,7 @@ export default function GettingMarried() {
                     {card.description}
                   </p>
                   <a 
-                    href="#"
+                    href={card.href}
                     data-testid={`link-${card.action.replace(/\s+/g, '-').toLowerCase()}`}
                     className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
                   >
