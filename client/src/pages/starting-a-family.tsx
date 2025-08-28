@@ -34,37 +34,43 @@ export default function StartingAFamily() {
       icon: Heart,
       title: "Pregnancy & Medical Records",
       description: "Store insurance cards, medical records, and prenatal visit information.",
-      action: "Add medical info"
+      action: "Add medical info",
+      href: "/starting-family-pregnancy-medical-records"
     },
     {
       icon: Baby,
       title: "Baby Documentation",
       description: "Keep birth certificates, immunization records, and pediatric information safe.",
-      action: "Add baby records"
+      action: "Add baby records",
+      href: "/starting-family-baby-documentation"
     },
     {
       icon: Users,
       title: "Childcare Information",
       description: "Organize babysitter instructions, emergency contacts, and care details.",
-      action: "Add childcare info"
+      action: "Add childcare info",
+      href: "/starting-family-childcare-information"
     },
     {
       icon: Shield,
       title: "Guardianship Planning",
       description: "Document guardian arrangements and share important instructions.",
-      action: "Add guardian info"
+      action: "Add guardian info",
+      href: "/starting-family-guardianship-planning"
     },
     {
       icon: FileText,
       title: "Legal Documents",
       description: "Store wills, custody papers, and family legal documentation.",
-      action: "Add legal docs"
+      action: "Add legal docs",
+      href: "/starting-family-legal-documents"
     },
     {
       icon: CreditCard,
       title: "Insurance & Benefits",
       description: "Keep health insurance, life insurance, and benefits information organized.",
-      action: "Add insurance info"
+      action: "Add insurance info",
+      href: "/starting-family-insurance-benefits"
     }
   ];
 
@@ -214,7 +220,7 @@ export default function StartingAFamily() {
                     {card.description}
                   </p>
                   <a 
-                    href="#"
+                    href={card.href}
                     data-testid={`link-${card.action.replace(/\s+/g, '-').toLowerCase()}`}
                     className="text-[#d7b43e] hover:text-[#eaeaea] font-medium inline-flex items-center text-sm focus:outline-none focus:ring-2 focus:ring-[rgba(215,180,62,0.3)] focus:ring-offset-2"
                   >

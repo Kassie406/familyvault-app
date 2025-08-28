@@ -66,6 +66,12 @@ import HomeBuyingPropertyResearch from "@/pages/home-buying-property-research";
 import HomeBuyingInspectionRecords from "@/pages/home-buying-inspection-records";
 import HomeBuyingClosingDocumentation from "@/pages/home-buying-closing-documentation";
 import HomeBuyingProfessionalContacts from "@/pages/home-buying-professional-contacts";
+import StartingFamilyPregnancyMedicalRecords from "@/pages/starting-family-pregnancy-medical-records";
+import StartingFamilyBabyDocumentation from "@/pages/starting-family-baby-documentation";
+import StartingFamilyChildcareInformation from "@/pages/starting-family-childcare-information";
+import StartingFamilyGuardianshipPlanning from "@/pages/starting-family-guardianship-planning";
+import StartingFamilyLegalDocuments from "@/pages/starting-family-legal-documents";
+import StartingFamilyInsuranceBenefits from "@/pages/starting-family-insurance-benefits";
 
 function Router() {
   return (
@@ -131,6 +137,12 @@ function Router() {
       <Route path="/home-buying-inspection-records" component={HomeBuyingInspectionRecords} />
       <Route path="/home-buying-closing-documentation" component={HomeBuyingClosingDocumentation} />
       <Route path="/home-buying-professional-contacts" component={HomeBuyingProfessionalContacts} />
+      <Route path="/starting-family-pregnancy-medical-records" component={StartingFamilyPregnancyMedicalRecords} />
+      <Route path="/starting-family-baby-documentation" component={StartingFamilyBabyDocumentation} />
+      <Route path="/starting-family-childcare-information" component={StartingFamilyChildcareInformation} />
+      <Route path="/starting-family-guardianship-planning" component={StartingFamilyGuardianshipPlanning} />
+      <Route path="/starting-family-legal-documents" component={StartingFamilyLegalDocuments} />
+      <Route path="/starting-family-insurance-benefits" component={StartingFamilyInsuranceBenefits} />
       <Route component={NotFound} />
     </Switch>
   );
