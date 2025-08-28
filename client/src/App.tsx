@@ -60,6 +60,12 @@ import EstatePowerOfAttorney from "@/pages/estate-power-of-attorney";
 import EstateBeneficiaryInformation from "@/pages/estate-beneficiary-information";
 import EstateAssetDocumentation from "@/pages/estate-asset-documentation";
 import EstateProfessionalContacts from "@/pages/estate-professional-contacts";
+import HomeBuyingPreapprovalDocuments from "@/pages/home-buying-preapproval-documents";
+import HomeBuyingBudgetAffordability from "@/pages/home-buying-budget-affordability";
+import HomeBuyingPropertyResearch from "@/pages/home-buying-property-research";
+import HomeBuyingInspectionRecords from "@/pages/home-buying-inspection-records";
+import HomeBuyingClosingDocumentation from "@/pages/home-buying-closing-documentation";
+import HomeBuyingProfessionalContacts from "@/pages/home-buying-professional-contacts";
 
 function Router() {
   return (
@@ -119,6 +125,12 @@ function Router() {
       <Route path="/estate-beneficiary-information" component={EstateBeneficiaryInformation} />
       <Route path="/estate-asset-documentation" component={EstateAssetDocumentation} />
       <Route path="/estate-professional-contacts" component={EstateProfessionalContacts} />
+      <Route path="/home-buying-preapproval-documents" component={HomeBuyingPreapprovalDocuments} />
+      <Route path="/home-buying-budget-affordability" component={HomeBuyingBudgetAffordability} />
+      <Route path="/home-buying-property-research" component={HomeBuyingPropertyResearch} />
+      <Route path="/home-buying-inspection-records" component={HomeBuyingInspectionRecords} />
+      <Route path="/home-buying-closing-documentation" component={HomeBuyingClosingDocumentation} />
+      <Route path="/home-buying-professional-contacts" component={HomeBuyingProfessionalContacts} />
       <Route component={NotFound} />
     </Switch>
   );
