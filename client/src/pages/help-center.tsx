@@ -338,12 +338,13 @@ export default function HelpCenter() {
           <p className="text-lg text-[#A5A5A5] mb-8">
             Join thousands of families who trust FamilyVault to organize and secure their important information.
           </p>
-          <button 
+          <a
+            href="/pricing"
             data-testid="button-get-started-help"
             className="inline-flex items-center justify-center bg-[#FFD43B] text-[#0E0E0E] font-semibold px-8 py-4 rounded-full hover:bg-[#E6C140] transition-colors focus:outline-none focus:ring-2 focus:ring-[#FFD43B] focus:ring-offset-2 focus:ring-offset-[#0E0E0E] min-h-[44px]"
           >
             Start Your Free Trial
-          </button>
+          </a>
         </div>
       </section>
     </div>
