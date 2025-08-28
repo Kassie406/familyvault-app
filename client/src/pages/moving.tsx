@@ -334,7 +334,7 @@ export default function Moving() {
             From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
-            href="/signup"
+            href="/pricing"
             data-testid="button-get-started-free"
             className="bg-[#f1c232] hover:brightness-95 text-[#111] px-8 py-4 rounded-full font-semibold text-lg transition-all inline-block focus:outline-2 focus:outline-[#f1c232] focus:outline-offset-2"
           >
