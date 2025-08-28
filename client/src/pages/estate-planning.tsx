@@ -32,37 +32,43 @@ export default function EstatePlanning() {
       icon: FileText,
       title: "Wills & Trusts",
       description: "Store your will, trust documents, and beneficiary information securely.",
-      action: "Add documents"
+      action: "Add documents",
+      href: "/estate-wills-trusts"
     },
     {
       icon: Heart,
       title: "Healthcare Directives",
       description: "Keep living wills and advance healthcare directives accessible to family.",
-      action: "Add directives"
+      action: "Add directives",
+      href: "/estate-healthcare-directives"
     },
     {
       icon: Scale,
       title: "Power of Attorney",
       description: "Organize financial and healthcare power of attorney documents.",
-      action: "Add POA documents"
+      action: "Add POA documents",
+      href: "/estate-power-of-attorney"
     },
     {
       icon: Users,
       title: "Beneficiary Information",
       description: "Maintain updated beneficiary details for all accounts and policies.",
-      action: "Add beneficiaries"
+      action: "Add beneficiaries",
+      href: "/estate-beneficiary-information"
     },
     {
       icon: Briefcase,
       title: "Asset Documentation",
       description: "Document property, investments, and valuable assets for estate planning.",
-      action: "Add assets"
+      action: "Add assets",
+      href: "/estate-asset-documentation"
     },
     {
       icon: Phone,
       title: "Professional Contacts",
       description: "Store attorney, financial advisor, and accountant contact information.",
-      action: "Add contacts"
+      action: "Add contacts",
+      href: "/estate-professional-contacts"
     }
   ];
 
@@ -207,7 +213,7 @@ export default function EstatePlanning() {
                     {card.description}
                   </p>
                   <a 
-                    href="#"
+                    href={card.href}
                     data-testid={`link-${card.action.replace(/\s+/g, '-').toLowerCase()}`}
                     className="text-[#EDEDED] hover:text-[#E7C74D] hover:border-[#E7C74D] border-b border-[rgba(255,255,255,0.08)] inline-flex items-center text-sm focus:outline-none focus:ring-2 focus:ring-[#8EC8FF] focus:ring-offset-2"
                   >

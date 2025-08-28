@@ -54,6 +54,12 @@ import DisasterMedicalInformation from "@/pages/disaster-medical-information";
 import DisasterPropertyInformation from "@/pages/disaster-property-information";
 import DisasterPetRecords from "@/pages/disaster-pet-records";
 import DisasterEmergencyPlan from "@/pages/disaster-emergency-plan";
+import EstateWillsTrusts from "@/pages/estate-wills-trusts";
+import EstateHealthcareDirectives from "@/pages/estate-healthcare-directives";
+import EstatePowerOfAttorney from "@/pages/estate-power-of-attorney";
+import EstateBeneficiaryInformation from "@/pages/estate-beneficiary-information";
+import EstateAssetDocumentation from "@/pages/estate-asset-documentation";
+import EstateProfessionalContacts from "@/pages/estate-professional-contacts";
 
 function Router() {
   return (
@@ -107,6 +113,12 @@ function Router() {
       <Route path="/disaster-property-information" component={DisasterPropertyInformation} />
       <Route path="/disaster-pet-records" component={DisasterPetRecords} />
       <Route path="/disaster-emergency-plan" component={DisasterEmergencyPlan} />
+      <Route path="/estate-wills-trusts" component={EstateWillsTrusts} />
+      <Route path="/estate-healthcare-directives" component={EstateHealthcareDirectives} />
+      <Route path="/estate-power-of-attorney" component={EstatePowerOfAttorney} />
+      <Route path="/estate-beneficiary-information" component={EstateBeneficiaryInformation} />
+      <Route path="/estate-asset-documentation" component={EstateAssetDocumentation} />
+      <Route path="/estate-professional-contacts" component={EstateProfessionalContacts} />
       <Route component={NotFound} />
     </Switch>
   );
