@@ -209,7 +209,12 @@ export default function WhenSomeoneDies() {
                     {card.description}
                   </p>
                   <a 
-                    href="#"
+                    href={card.action === "Add estate docs" ? "/when-someone-dies-estate-documentation" :
+                          card.action === "Add financial info" ? "/when-someone-dies-financial-accounts" :
+                          card.action === "Add contacts" ? "/when-someone-dies-contact-management" :
+                          card.action === "Add bills" ? "/when-someone-dies-bills-obligations" :
+                          card.action === "Add legal items" ? "/when-someone-dies-legal-responsibilities" :
+                          card.action === "Add deadlines" ? "/when-someone-dies-important-deadlines" : "#"}
                     data-testid={`link-${card.action.replace(/\s+/g, '-').toLowerCase()}`}
                     className="text-[#D4AF37] hover:text-[#C7A233] font-medium inline-flex items-center min-h-[44px]"
                   >
