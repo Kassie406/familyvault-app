@@ -42,6 +42,12 @@ import ElderlyEmergencyContacts from "@/pages/elderly-emergency-contacts";
 import ElderlyLegalDocuments from "@/pages/elderly-legal-documents";
 import ElderlyPropertyInfo from "@/pages/elderly-property-info";
 import ElderlyCareTeamAccess from "@/pages/elderly-care-team-access";
+import MarriedLegalDocs from "@/pages/married-legal-docs";
+import MarriedFinancialPlanning from "@/pages/married-financial-planning";
+import MarriedLivingArrangements from "@/pages/married-living-arrangements";
+import MarriedFamilyInfo from "@/pages/married-family-info";
+import MarriedWeddingPlanning from "@/pages/married-wedding-planning";
+import MarriedEstatePlanning from "@/pages/married-estate-planning";
 
 function Router() {
   return (
@@ -83,6 +89,12 @@ function Router() {
       <Route path="/elderly-legal-documents" component={ElderlyLegalDocuments} />
       <Route path="/elderly-property-info" component={ElderlyPropertyInfo} />
       <Route path="/elderly-care-team-access" component={ElderlyCareTeamAccess} />
+      <Route path="/married-legal-docs" component={MarriedLegalDocs} />
+      <Route path="/married-financial-planning" component={MarriedFinancialPlanning} />
+      <Route path="/married-living-arrangements" component={MarriedLivingArrangements} />
+      <Route path="/married-family-info" component={MarriedFamilyInfo} />
+      <Route path="/married-wedding-planning" component={MarriedWeddingPlanning} />
+      <Route path="/married-estate-planning" component={MarriedEstatePlanning} />
       <Route component={NotFound} />
     </Switch>
   );
