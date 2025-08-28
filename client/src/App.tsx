@@ -72,6 +72,12 @@ import StartingFamilyChildcareInformation from "@/pages/starting-family-childcar
 import StartingFamilyGuardianshipPlanning from "@/pages/starting-family-guardianship-planning";
 import StartingFamilyLegalDocuments from "@/pages/starting-family-legal-documents";
 import StartingFamilyInsuranceBenefits from "@/pages/starting-family-insurance-benefits";
+import WhenSomeoneDiesEstateDocumentation from "@/pages/when-someone-dies-estate-documentation";
+import WhenSomeoneDiesFinancialAccounts from "@/pages/when-someone-dies-financial-accounts";
+import WhenSomeoneDiesContactManagement from "@/pages/when-someone-dies-contact-management";
+import WhenSomeoneDiesBillsObligations from "@/pages/when-someone-dies-bills-obligations";
+import WhenSomeoneDiesLegalResponsibilities from "@/pages/when-someone-dies-legal-responsibilities";
+import WhenSomeoneDiesImportantDeadlines from "@/pages/when-someone-dies-important-deadlines";
 
 function Router() {
   return (
@@ -143,6 +149,12 @@ function Router() {
       <Route path="/starting-family-guardianship-planning" component={StartingFamilyGuardianshipPlanning} />
       <Route path="/starting-family-legal-documents" component={StartingFamilyLegalDocuments} />
       <Route path="/starting-family-insurance-benefits" component={StartingFamilyInsuranceBenefits} />
+      <Route path="/when-someone-dies-estate-documentation" component={WhenSomeoneDiesEstateDocumentation} />
+      <Route path="/when-someone-dies-financial-accounts" component={WhenSomeoneDiesFinancialAccounts} />
+      <Route path="/when-someone-dies-contact-management" component={WhenSomeoneDiesContactManagement} />
+      <Route path="/when-someone-dies-bills-obligations" component={WhenSomeoneDiesBillsObligations} />
+      <Route path="/when-someone-dies-legal-responsibilities" component={WhenSomeoneDiesLegalResponsibilities} />
+      <Route path="/when-someone-dies-important-deadlines" component={WhenSomeoneDiesImportantDeadlines} />
       <Route component={NotFound} />
     </Switch>
   );
