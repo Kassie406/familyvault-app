@@ -404,7 +404,7 @@ export default function DisasterPlanning() {
             From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
-            href="/signup"
+            href="/pricing"
             data-testid="button-get-started-cta"
             className="bg-[#FFD93D] hover:bg-[#FFD93D]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
           >
