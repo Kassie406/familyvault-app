@@ -152,14 +152,14 @@ export default function StartingAFamily() {
               </p>
               <div className="flex flex-wrap gap-4 pt-2">
                 <a 
-                  href="/signup"
+                  href="/pricing"
                   data-testid="button-get-started-free"
                   className="inline-flex items-center gap-2 bg-[#d7b43e] text-[#111] font-semibold px-6 py-3 rounded-full hover:bg-[#c6a528] transition-colors min-h-[44px] shadow-[0_6px_16px_rgba(215,180,62,0.35)] focus:outline-none focus:ring-[0_0_0_1px_rgba(215,180,62,0.3),0_0_0_4px_rgba(215,180,62,0.12)]"
                 >
                   Get started free
                 </a>
                 <a 
-                  href="#features"
+                  href="/pricing"
                   data-testid="link-see-family-features"
                   className="inline-flex items-center gap-2 border border-[rgba(255,255,255,0.16)] text-[#eaeaea] bg-transparent px-6 py-3 rounded-full hover:border-[#d7b43e] hover:text-[#d7b43e] transition-colors min-h-[44px] focus:outline-none focus:ring-[0_0_0_1px_rgba(215,180,62,0.3),0_0_0_4px_rgba(215,180,62,0.12)]"
                 >
@@ -398,7 +398,7 @@ export default function StartingAFamily() {
             From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
-            href="/signup"
+            href="/pricing"
             data-testid="button-get-started-cta"
             className="inline-flex items-center gap-2 bg-[#d7b43e] text-[#111] font-semibold px-8 py-4 rounded-full hover:bg-[#c6a528] transition-colors shadow-[0_6px_16px_rgba(215,180,62,0.35)] focus:outline-none focus:ring-[0_0_0_1px_rgba(215,180,62,0.3),0_0_0_4px_rgba(215,180,62,0.12)] min-h-[44px]"
           >
@@ -644,7 +644,7 @@ export default function StartingAFamily() {
             Begin organizing your family's important information with FamilyVault today.
           </p>
           <a
-            href="/signup"
+            href="/pricing"
             data-testid="button-final-cta"
             className="inline-flex items-center gap-2 bg-[#d7b43e] text-[#111] font-semibold px-8 py-4 rounded-full hover:bg-[#c6a528] transition-colors shadow-[0_6px_16px_rgba(215,180,62,0.35)] focus:outline-none focus:ring-[0_0_0_1px_rgba(215,180,62,0.3),0_0_0_4px_rgba(215,180,62,0.12)] min-h-[44px]"
           >
