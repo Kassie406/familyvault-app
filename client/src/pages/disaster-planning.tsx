@@ -635,7 +635,7 @@ export default function DisasterPlanning() {
             Don't wait for disaster to strike. Start organizing your family's critical information today with FamilyVault.
           </p>
           <a
-            href="/signup"
+            href="/pricing"
             data-testid="button-final-cta"
             className="bg-[#FFD93D] hover:bg-[#FFD93D]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
           >
