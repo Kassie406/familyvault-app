@@ -187,14 +187,14 @@ export default function GettingMarried() {
               </p>
               <div className="flex flex-wrap gap-4">
                 <a 
-                  href="/signup"
+                  href="/pricing"
                   data-testid="button-get-started-free"
                   className="bg-[#D4AF37] text-black font-semibold px-6 py-3 rounded-lg hover:bg-[#C7A233] transition-colors min-h-[44px] flex items-center"
                 >
                   Get started free
                 </a>
                 <a 
-                  href="/features"
+                  href="/pricing"
                   data-testid="link-see-marriage-features"
                   className="text-[#D1D5DB] hover:text-[#F3F4F6] underline underline-offset-4 min-h-[44px] flex items-center"
                 >
@@ -426,7 +426,7 @@ export default function GettingMarried() {
             Keep your documents secure and accessible today.
           </p>
           <a
-            href="/signup"
+            href="/pricing"
             data-testid="button-get-started-cta"
             className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
           >
@@ -667,7 +667,7 @@ export default function GettingMarried() {
             Begin organizing your marriage documents and information with FamilyVault today.
           </p>
           <a
-            href="/signup"
+            href="/pricing"
             data-testid="button-final-cta"
             className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
           >
