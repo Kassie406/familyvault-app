@@ -138,14 +138,14 @@ export default function Neurodiversity() {
               </p>
               <div className="flex flex-wrap gap-4 pt-2">
                 <a
-                  href="/signup"
+                  href="/pricing"
                   data-testid="button-get-started"
                   className="inline-flex items-center gap-2 bg-[#f4c542] text-[#111] font-semibold px-6 py-3 rounded-full hover:bg-[#d4aa2e] transition-colors min-h-[44px] shadow-[0_6px_16px_rgba(244,197,66,0.35)] focus:outline-none focus:ring-[0_0_0_1px_rgba(244,197,66,0.3),0_0_0_4px_rgba(244,197,66,0.12)]"
                 >
                   Get started free
                 </a>
                 <a 
-                  href="#features"
+                  href="/pricing"
                   data-testid="link-see-features"
                   className="inline-flex items-center gap-2 border border-[rgba(255,255,255,0.16)] text-[#e9e9e9] bg-transparent px-6 py-3 rounded-full hover:border-[#f4c542] hover:text-[#f4c542] transition-colors min-h-[44px] focus:outline-none focus:ring-[0_0_0_1px_rgba(244,197,66,0.3),0_0_0_4px_rgba(244,197,66,0.12)]"
                 >
@@ -433,7 +433,7 @@ export default function Neurodiversity() {
             From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
-            href="/signup"
+            href="/pricing"
             data-testid="button-get-started-free"
             className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
           >
@@ -710,7 +710,7 @@ export default function Neurodiversity() {
             Begin organizing your life's important information with FamilyVault today.
           </p>
           <a
-            href="/signup"
+            href="/pricing"
             data-testid="button-final-cta"
             className="inline-flex items-center gap-2 bg-[#f4c542] text-[#111] font-semibold px-8 py-4 rounded-full hover:bg-[#d4aa2e] transition-colors shadow-[0_6px_16px_rgba(244,197,66,0.35)] focus:outline-none focus:ring-[0_0_0_1px_rgba(244,197,66,0.3),0_0_0_4px_rgba(244,197,66,0.12)] min-h-[44px]"
           >
