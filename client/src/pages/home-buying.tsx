@@ -35,37 +35,43 @@ export default function HomeBuying() {
       icon: FileText,
       title: "Pre-Approval Documents",
       description: "Keep bank statements, pay stubs, and loan paperwork organized.",
-      action: "Add financial docs"
+      action: "Add financial docs",
+      href: "/home-buying-preapproval-documents"
     },
     {
       icon: Calculator,
       title: "Budget & Affordability",
       description: "Track down payment funds, monthly payment calculations, and closing costs.",
-      action: "Add budget info"
+      action: "Add budget info",
+      href: "/home-buying-budget-affordability"
     },
     {
       icon: Search,
       title: "Property Research",
       description: "Store listings, inspection reports, and neighborhood information.",
-      action: "Add property info"
+      action: "Add property info",
+      href: "/home-buying-property-research"
     },
     {
       icon: Home,
       title: "Home Inspection Records",
       description: "Organize inspection reports, repair estimates, and contractor details.",
-      action: "Add inspection docs"
+      action: "Add inspection docs",
+      href: "/home-buying-inspection-records"
     },
     {
       icon: DollarSign,
       title: "Closing Documentation",
       description: "Store title documents, insurance policies, and final paperwork.",
-      action: "Add closing docs"
+      action: "Add closing docs",
+      href: "/home-buying-closing-documentation"
     },
     {
       icon: Phone,
       title: "Professional Contacts",
       description: "Keep realtor, lender, inspector, and attorney contact information.",
-      action: "Add contacts"
+      action: "Add contacts",
+      href: "/home-buying-professional-contacts"
     }
   ];
 
@@ -215,7 +221,7 @@ export default function HomeBuying() {
                     {card.description}
                   </p>
                   <a 
-                    href="#"
+                    href={card.href}
                     data-testid={`link-${card.action.replace(/\s+/g, '-').toLowerCase()}`}
                     className="text-[#eaeaea] hover:text-[#d7b43e] font-medium inline-flex items-center text-sm focus:outline-none focus:ring-2 focus:ring-[rgba(215,180,62,0.3)] focus:ring-offset-2"
                   >
