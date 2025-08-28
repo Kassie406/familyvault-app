@@ -48,6 +48,12 @@ import MarriedLivingArrangements from "@/pages/married-living-arrangements";
 import MarriedFamilyInfo from "@/pages/married-family-info";
 import MarriedWeddingPlanning from "@/pages/married-wedding-planning";
 import MarriedEstatePlanning from "@/pages/married-estate-planning";
+import DisasterEmergencyContacts from "@/pages/disaster-emergency-contacts";
+import DisasterImportantDocuments from "@/pages/disaster-important-documents";
+import DisasterMedicalInformation from "@/pages/disaster-medical-information";
+import DisasterPropertyInformation from "@/pages/disaster-property-information";
+import DisasterPetRecords from "@/pages/disaster-pet-records";
+import DisasterEmergencyPlan from "@/pages/disaster-emergency-plan";
 
 function Router() {
   return (
@@ -95,6 +101,12 @@ function Router() {
       <Route path="/married-family-info" component={MarriedFamilyInfo} />
       <Route path="/married-wedding-planning" component={MarriedWeddingPlanning} />
       <Route path="/married-estate-planning" component={MarriedEstatePlanning} />
+      <Route path="/disaster-emergency-contacts" component={DisasterEmergencyContacts} />
+      <Route path="/disaster-important-documents" component={DisasterImportantDocuments} />
+      <Route path="/disaster-medical-information" component={DisasterMedicalInformation} />
+      <Route path="/disaster-property-information" component={DisasterPropertyInformation} />
+      <Route path="/disaster-pet-records" component={DisasterPetRecords} />
+      <Route path="/disaster-emergency-plan" component={DisasterEmergencyPlan} />
       <Route component={NotFound} />
     </Switch>
   );

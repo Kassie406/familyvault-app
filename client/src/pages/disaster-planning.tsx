@@ -34,37 +34,43 @@ export default function DisasterPlanning() {
       icon: Phone,
       title: "Emergency Contacts",
       description: "Store family, medical, and emergency service contact information for quick access.",
-      action: "Add contacts"
+      action: "Add contacts",
+      href: "/disaster-emergency-contacts"
     },
     {
       icon: FileText,
       title: "Important Documents",
       description: "Keep insurance policies, IDs, and legal documents safe and accessible.",
-      action: "Upload documents"
+      action: "Upload documents",
+      href: "/disaster-important-documents"
     },
     {
       icon: Heart,
       title: "Medical Information",
       description: "Store medical records, prescriptions, and allergy information for family.",
-      action: "Add medical info"
+      action: "Add medical info",
+      href: "/disaster-medical-information"
     },
     {
       icon: Home,
       title: "Property Information",
       description: "Document your home, belongings, and assets for insurance claims.",
-      action: "Add property details"
+      action: "Add property details",
+      href: "/disaster-property-information"
     },
     {
       icon: PawPrint,
       title: "Pet Records",
       description: "Keep vaccination records and identification for pet shelter access.",
-      action: "Add pet info"
+      action: "Add pet info",
+      href: "/disaster-pet-records"
     },
     {
       icon: Shield,
       title: "Emergency Plan",
       description: "Create and share evacuation routes and meeting points with family.",
-      action: "Create plan"
+      action: "Create plan",
+      href: "/disaster-emergency-plan"
     }
   ];
 
@@ -246,7 +252,7 @@ export default function DisasterPlanning() {
                     {card.description}
                   </p>
                   <a 
-                    href="#"
+                    href={card.href}
                     data-testid={`link-${card.action.replace(/\s+/g, '-').toLowerCase()}`}
                     className="text-[#FFD93D] hover:underline font-medium inline-flex items-center min-h-[44px] focus:outline-2 focus:outline-[#FFD93D] focus:outline-offset-2"
                   >
