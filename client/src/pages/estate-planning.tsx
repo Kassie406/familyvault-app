@@ -150,14 +150,14 @@ export default function EstatePlanning() {
               </p>
               <div className="flex flex-wrap gap-4 pt-2">
                 <a 
-                  href="/signup"
+                  href="/pricing"
                   data-testid="button-get-started-free"
                   className="bg-[#E7C74D] text-[#1A1A1B] font-bold px-6 py-3 rounded-full hover:transform hover:-translate-y-0.5 transition-transform focus:outline-none focus:ring-2 focus:ring-[#8EC8FF] focus:ring-offset-2 min-h-[44px] flex items-center"
                 >
                   Get started free
                 </a>
                 <a 
-                  href="#features"
+                  href="/pricing"
                   data-testid="link-see-estate-features"
                   className="text-[#EDEDED] hover:text-[#E7C74D] hover:border-[#E7C74D] border-b border-[rgba(255,255,255,0.08)] min-h-[44px] flex items-center focus:outline-none focus:ring-2 focus:ring-[#8EC8FF] focus:ring-offset-2"
                 >
