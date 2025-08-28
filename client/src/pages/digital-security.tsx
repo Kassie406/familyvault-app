@@ -134,14 +134,14 @@ export default function DigitalSecurity() {
               </p>
               <div className="flex flex-wrap gap-4">
                 <a
-                  href="/signup"
+                  href="/pricing"
                   data-testid="button-get-started"
                   className="bg-[#FFD93D] hover:bg-[#FFD93D]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
                 >
                   Get started free
                 </a>
                 <a 
-                  href="/security"
+                  href="/pricing"
                   data-testid="link-about-security"
                   className="text-[#FFD93D] hover:underline font-medium inline-flex items-center min-h-[44px]"
                 >
