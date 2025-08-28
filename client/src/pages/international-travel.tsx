@@ -135,14 +135,14 @@ export default function InternationalTravel() {
               </p>
               <div className="flex flex-wrap gap-4">
                 <a 
-                  href="/signup"
+                  href="/pricing"
                   data-testid="button-get-started-free"
                   className="bg-[#D4AF37] text-black font-semibold px-6 py-3 rounded-lg hover:bg-[#C7A233] transition-colors min-h-[44px] flex items-center"
                 >
                   Get started free
                 </a>
                 <a 
-                  href="/features"
+                  href="/pricing"
                   data-testid="link-see-travel-features"
                   className="text-[#D1D5DB] hover:text-[#F3F4F6] underline underline-offset-4 min-h-[44px] flex items-center"
                 >
