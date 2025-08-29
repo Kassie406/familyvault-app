@@ -163,7 +163,7 @@ export default function Moving() {
                 width="600"
                 height="420"
               />
-              <style jsx>{`
+              <style>{`
                 @media (max-width: 900px) {
                   .moving-hero {
                     grid-template-columns: 1fr !important;
