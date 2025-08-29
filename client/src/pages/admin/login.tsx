@@ -25,7 +25,7 @@ export default function AdminLogin() {
 
   // Redirect if already authenticated as admin
   if (user?.user && ['ADMIN', 'PRESIDENT'].includes(user.user.role)) {
-    setLocation('/admin');
+    setLocation('/dashboard');
     return null;
   }
 
@@ -62,7 +62,7 @@ export default function AdminLogin() {
       
       // Invalidate auth cache and redirect
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
-      setLocation('/admin');
+      setLocation('/dashboard');
     },
     onError: (error: Error) => {
       toast({
