@@ -1,0 +1,1115 @@
+Perfect—here are the drop-in pieces you asked for:
+
+A minimal React UI for Feature Flags and Webhooks
+
+A fixed Impersonation red banner (with ⌥Esc to stop) + tiny status API
+
+A small seed script to create a sample flag and print OIDC envs
+
+I’ve kept everything framework-agnostic (plain React + fetch). Paths match the REST you already have.
+
+0) Small server add-ons
+a) Impersonation status endpoint (for the banner)
+// src/routes/admin/impersonate-status.js
+import express from 'express';
+import db from '../../db.js';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+
+const router = express.Router();
+
+router.get('/status', requireAdmin, async (req, res) => {
+  const sid = req.cookies?.impersonation;
+  if (!sid) return res.json({ active: false });
+
+  const { rows } = await db.query(
+    `SELECT s.id, s.expires_at, s.target_id, u.email AS target_email
+       FROM impersonation_sessions s
+       JOIN users u ON u.id = s.target_id
+      WHERE s.id=$1 AND s.ended_at IS NULL AND s.expires_at > now()`,
+    [sid]
+  );
+
+  if (!rows.length) return res.json({ active: false });
+  res.json({
+    active: true,
+    sessionId: rows[0].id,
+    targetId: rows[0].target_id,
+    targetEmail: rows[0].target_email,
+    expiresAt: rows[0].expires_at
+  });
+});
+
+export default router;
+
+
+Mount it:
+
+// app.js
+import impersonationStatus from './routes/admin/impersonate-status.js';
+app.use('/admin/impersonate', impersonationStatus);
+
+1) React UI – Feature Flags
+src/console/pages/FlagsPage.tsx
+src/console/components/FlagEditor.tsx
+
+src/console/pages/FlagsPage.tsx
+import React, { useEffect, useMemo, useState } from 'react';
+import FlagEditor from '../components/FlagEditor';
+
+type Flag = {
+  id: string;
+  key: string;
+  name: string;
+  description?: string;
+  status: 'active'|'archived';
+  force_on?: boolean;
+  force_off?: boolean;
+  targeting: {
+    percentage?: number;
+    allowDomains?: string[];
+    allowUserIds?: string[];
+    blockUserIds?: string[];
+  };
+  updated_at: string;
+};
+
+export default function FlagsPage() {
+  const [items, setItems] = useState<Flag[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Flag|null>(null);
+  const [creating, setCreating] = useState(false);
+  const [query, setQuery] = useState('');
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(f =>
+      f.key.toLowerCase().includes(q) ||
+      f.name.toLowerCase().includes(q)
+    );
+  }, [items, query]);
+
+  async function load() {
+    setLoading(true);
+    const r = await fetch('/admin/flags', { credentials:'include' });
+    const j = await r.json();
+    setItems(j.items || []);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  return (
+    <div className="page flags">
+      <div className="page-header">
+        <h1>Feature Flags</h1>
+        <div className="actions">
+          <input
+            className="input"
+            placeholder="Search flags…"
+            value={query}
+            onChange={e=>setQuery(e.target.value)}
+          />
+          <button className="btn btn-primary" onClick={()=>setCreating(true)}>
+            + New Flag
+          </button>
+        </div>
+      </div>
+
+      {loading ? <div className="card">Loading…</div> : (
+        <div className="card">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Name</th>
+                <th>Rollout</th>
+                <th>Force</th>
+                <th>Status</th>
+                <th>Updated</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(f => (
+                <tr key={f.id}>
+                  <td><code>{f.key}</code></td>
+                  <td>{f.name}</td>
+                  <td>{(f.targeting?.percentage ?? 0)}%</td>
+                  <td>
+                    {f.force_on ? 'ON' : f.force_off ? 'OFF' : '—'}
+                  </td>
+                  <td>{f.status}</td>
+                  <td>{new Date(f.updated_at).toLocaleString()}</td>
+                  <td>
+                    <button className="btn btn-small" onClick={()=>setEditing(f)}>Edit</button>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan={7} style={{textAlign:'center', opacity:.7}}>No flags</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {(creating || editing) && (
+        <FlagEditor
+          initial={editing || undefined}
+          onClose={() => { setCreating(false); setEditing(null); }}
+          onSaved={() => { setCreating(false); setEditing(null); load(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+src/console/components/FlagEditor.tsx
+import React, { useEffect, useState } from 'react';
+
+type FlagDraft = {
+  id?: string;
+  key: string;
+  name: string;
+  description?: string;
+  status: 'active'|'archived';
+  force_on?: boolean;
+  force_off?: boolean;
+  targeting: {
+    percentage?: number;
+    allowDomains?: string[];
+    allowUserIds?: string[];
+    blockUserIds?: string[];
+  };
+};
+
+export default function FlagEditor({
+  initial,
+  onClose,
+  onSaved
+}: {
+  initial?: FlagDraft;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [draft, setDraft] = useState<FlagDraft>(initial || {
+    key: '',
+    name: '',
+    status: 'active',
+    targeting: { percentage: 0, allowDomains:[], allowUserIds:[], blockUserIds:[] }
+  });
+  const [testingUser, setTestingUser] = useState('');
+  const [preview, setPreview] = useState<boolean|null>(null);
+  const isEdit = Boolean(initial?.id);
+
+  function update<K extends keyof FlagDraft>(k: K, v: FlagDraft[K]) {
+    setDraft(d => ({ ...d, [k]: v }));
+  }
+
+  async function save() {
+    const body = JSON.stringify(draft);
+    const opts = { method: isEdit ? 'PATCH' : 'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body };
+    const url = isEdit ? `/admin/flags/${draft.id}` : '/admin/flags';
+    const r = await fetch(url, opts);
+    if (!r.ok) return alert('Save failed');
+    onSaved();
+  }
+
+  async function testUser() {
+    // simple preview: hit your existing evaluation path by injecting `X-Preview-User`
+    const r = await fetch('/app/flags/mine', {
+      credentials:'include',
+      headers:{ 'X-Preview-User': testingUser } // optional if you add support server-side
+    });
+    const flags = await r.json();
+    setPreview(Boolean(flags[draft.key]));
+  }
+
+  // keep force_on/off mutually exclusive
+  useEffect(() => {
+    if (draft.force_on && draft.force_off) {
+      setDraft(d => ({ ...d, force_off: false }));
+    }
+  }, [draft.force_on]);
+  useEffect(() => {
+    if (draft.force_on && draft.force_off) {
+      setDraft(d => ({ ...d, force_on: false }));
+    }
+  }, [draft.force_off]);
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <h2>{isEdit ? 'Edit Flag' : 'Create Flag'}</h2>
+
+        {!isEdit && (
+          <div className="form-row">
+            <label>Key</label>
+            <input value={draft.key} onChange={e=>update('key', e.target.value)} placeholder="new-billing-ui" />
+          </div>
+        )}
+
+        <div className="form-row">
+          <label>Name</label>
+          <input value={draft.name} onChange={e=>update('name', e.target.value)} />
+        </div>
+
+        <div className="form-row">
+          <label>Description</label>
+          <textarea value={draft.description || ''} onChange={e=>update('description', e.target.value)} />
+        </div>
+
+        <div className="grid2">
+          <div className="form-row">
+            <label>Rollout %</label>
+            <input
+              type="number" min={0} max={100}
+              value={draft.targeting.percentage ?? 0}
+              onChange={e=>setDraft(d=>({ ...d, targeting:{ ...d.targeting, percentage: Number(e.target.value) }}))}
+            />
+          </div>
+          <div className="form-row">
+            <label>Status</label>
+            <select value={draft.status} onChange={e=>update('status', e.target.value as any)}>
+              <option value="active">active</option>
+              <option value="archived">archived</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid3">
+          <div className="form-row">
+            <label>Force On</label>
+            <input type="checkbox" checked={!!draft.force_on} onChange={e=>update('force_on', e.target.checked)} />
+          </div>
+          <div className="form-row">
+            <label>Force Off</label>
+            <input type="checkbox" checked={!!draft.force_off} onChange={e=>update('force_off', e.target.checked)} />
+          </div>
+        </div>
+
+        <div className="grid3">
+          <div className="form-row">
+            <label>Allow Domains</label>
+            <input
+              placeholder="@myco.com, @partner.org"
+              value={(draft.targeting.allowDomains||[]).join(', ')}
+              onChange={e=>setDraft(d=>({ ...d, targeting:{ ...d.targeting, allowDomains: e.target.value.split(',').map(s=>s.trim()).filter(Boolean) }}))}
+            />
+          </div>
+          <div className="form-row">
+            <label>Allow User IDs</label>
+            <input
+              placeholder="uuid, uuid"
+              value={(draft.targeting.allowUserIds||[]).join(', ')}
+              onChange={e=>setDraft(d=>({ ...d, targeting:{ ...d.targeting, allowUserIds: e.target.value.split(',').map(s=>s.trim()).filter(Boolean) }}))}
+            />
+          </div>
+          <div className="form-row">
+            <label>Block User IDs</label>
+            <input
+              placeholder="uuid, uuid"
+              value={(draft.targeting.blockUserIds||[]).join(', ')}
+              onChange={e=>setDraft(d=>({ ...d, targeting:{ ...d.targeting, blockUserIds: e.target.value.split(',').map(s=>s.trim()).filter(Boolean) }}))}
+            />
+          </div>
+        </div>
+
+        <div className="preview-row">
+          <input className="input" placeholder="Preview as user id or email…" value={testingUser} onChange={e=>setTestingUser(e.target.value)} />
+          <button className="btn" onClick={testUser}>Preview</button>
+          {preview !== null && (
+            <span className="pill" style={{marginLeft:8, background: preview ? '#22c55e' : '#ef4444'}}>
+              {preview ? 'ENABLED' : 'DISABLED'}
+            </span>
+          )}
+        </div>
+
+        <div className="modal-actions">
+          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" onClick={save}>{isEdit ? 'Save' : 'Create'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+2) React UI – Webhooks (outbound)
+
+Schema (if you haven’t added it yet)
+
+-- 007_webhooks.sql
+CREATE TABLE webhook_endpoints (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  url         TEXT NOT NULL,
+  secret      TEXT NOT NULL,
+  events      TEXT[] NOT NULL,            -- e.g. '{user.created,invoice.paid}'
+  active      BOOLEAN NOT NULL DEFAULT TRUE,
+  created_by  UUID,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+
+Admin routes (CRUD + test send)
+
+// src/routes/admin/webhooks.js
+import express from 'express';
+import db from '../../db.js';
+import crypto from 'crypto';
+import fetch from 'node-fetch';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+
+const router = express.Router();
+
+router.get('/', requireAdmin, async (_req, res) => {
+  const { rows } = await db.query(`SELECT id, url, events, active, created_at, updated_at FROM webhook_endpoints ORDER BY created_at DESC`);
+  res.json({ items: rows });
+});
+
+router.post('/', requireAdmin, async (req, res) => {
+  const { url, events, active, secret } = req.body;
+  const sec = secret || crypto.randomBytes(24).toString('hex');
+  const { rows } = await db.query(
+    `INSERT INTO webhook_endpoints (url, events, active, secret, created_by)
+     VALUES ($1,$2,$3,$4,$5) RETURNING id, url, events, active, created_at, updated_at`,
+    [url, events, active ?? true, sec, req.user.id]
+  );
+  res.status(201).json(rows[0]);
+});
+
+router.patch('/:id', requireAdmin, async (req, res) => {
+  const fields = ['url','events','active'];
+  const sets=[]; const params=[];
+  for (const f of fields) if (f in req.body) { params.push(req.body[f]); sets.push(`${f}=$${params.length}`); }
+  params.push(req.params.id);
+  const { rows } = await db.query(
+    `UPDATE webhook_endpoints SET ${sets.join(', ')}, updated_at=now() WHERE id=$${params.length} RETURNING id,url,events,active,created_at,updated_at`
+  , params);
+  res.json(rows[0]);
+});
+
+router.post('/:id/test', requireAdmin, async (req, res) => {
+  // send a sample event to verify signature/receiver
+  const { rows } = await db.query(`SELECT * FROM webhook_endpoints WHERE id=$1`, [req.params.id]);
+  if (!rows.length) return res.status(404).end();
+  const ep = rows[0];
+
+  const event = {
+    id: crypto.randomUUID(),
+    type: 'webhook.test',
+    created: new Date().toISOString(),
+    data: { ok:true, hello: 'FamilyCircle Secure' }
+  };
+  const payload = JSON.stringify(event);
+  const sig = crypto.createHmac('sha256', ep.secret).update(payload).digest('hex');
+
+  const r = await fetch(ep.url, {
+    method:'POST',
+    headers: { 'Content-Type':'application/json', 'X-FCS-Signature': sig },
+    body: payload
+  });
+  res.json({ status: r.status, ok: r.ok });
+});
+
+export default router;
+
+
+React page
+
+src/console/pages/WebhooksPage.tsx
+
+import React, { useEffect, useState } from 'react';
+
+type Endpoint = {
+  id: string;
+  url: string;
+  events: string[];
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+const ALL_EVENTS = [
+  'user.created', 'user.deleted' ,
+  'subscription.created','subscription.updated','subscription.canceled',
+  'invoice.paid','invoice.failed',
+  'webhook.test'
+];
+
+export default function WebhooksPage() {
+  const [items, setItems] = useState<Endpoint[]>([]);
+  const [creating, setCreating] = useState(false);
+  const [draft, setDraft] = useState<Partial<Endpoint>>({ url:'', events:['user.created'], active:true });
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    setLoading(true);
+    const r = await fetch('/admin/webhooks', { credentials:'include' });
+    const j = await r.json();
+    setItems(j.items || []);
+    setLoading(false);
+  }
+  useEffect(()=>{ load(); }, []);
+
+  async function create() {
+    const r = await fetch('/admin/webhooks', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(draft)
+    });
+    if (!r.ok) return alert('Create failed');
+    setCreating(false);
+    setDraft({ url:'', events:['user.created'], active:true });
+    load();
+  }
+
+  async function toggleActive(id: string, active: boolean) {
+    const r = await fetch(`/admin/webhooks/${id}`, {
+      method:'PATCH', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ active })
+    });
+    if (!r.ok) return alert('Update failed');
+    load();
+  }
+
+  async function testSend(id: string) {
+    const r = await fetch(`/admin/webhooks/${id}/test`, {
+      method:'POST', credentials:'include'
+    });
+    const j = await r.json();
+    alert(`Test sent → status ${j.status} (ok=${j.ok})`);
+  }
+
+  return (
+    <div className="page webhooks">
+      <div className="page-header">
+        <h1>Webhooks</h1>
+        <button className="btn btn-primary" onClick={()=>setCreating(true)}>+ New Endpoint</button>
+      </div>
+
+      {loading ? <div className="card">Loading…</div> : (
+        <div className="card">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>URL</th>
+                <th>Events</th>
+                <th>Active</th>
+                <th>Updated</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {items.map(e => (
+                <tr key={e.id}>
+                  <td style={{maxWidth:420, overflow:'hidden', textOverflow:'ellipsis'}}>{e.url}</td>
+                  <td>{e.events.join(', ')}</td>
+                  <td>
+                    <label className="switch">
+                      <input type="checkbox" checked={e.active} onChange={ev=>toggleActive(e.id, ev.target.checked)} />
+                      <span />
+                    </label>
+                  </td>
+                  <td>{new Date(e.updated_at).toLocaleString()}</td>
+                  <td>
+                    <button className="btn btn-small" onClick={()=>testSend(e.id)}>Send test</button>
+                  </td>
+                </tr>
+              ))}
+              {items.length === 0 && <tr><td colSpan={5} style={{textAlign:'center'}}>No endpoints</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {creating && (
+        <div className="modal-backdrop" onClick={()=>setCreating(false)}>
+          <div className="modal" onClick={e=>e.stopPropagation()}>
+            <h2>New Endpoint</h2>
+            <div className="form-row">
+              <label>Destination URL</label>
+              <input value={draft.url || ''} onChange={e=>setDraft(d=>({ ...d, url: e.target.value }))} placeholder="https://example.com/webhooks/fcs" />
+            </div>
+
+            <div className="form-row">
+              <label>Events</label>
+              <div className="tags">
+                {ALL_EVENTS.map(ev => {
+                  const on = draft.events?.includes(ev);
+                  return (
+                    <button
+                      key={ev}
+                      className={'tag' + (on ? ' on' : '')}
+                      onClick={()=>{
+                        setDraft(d=>{
+                          const curr = new Set(d.events || []);
+                          if (curr.has(ev)) curr.delete(ev); else curr.add(ev);
+                          return { ...d, events: Array.from(curr) };
+                        });
+                      }}
+                    >
+                      {ev}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="form-row">
+              <label>Active</label>
+              <input type="checkbox" checked={!!draft.active} onChange={e=>setDraft(d=>({ ...d, active: e.target.checked }))} />
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn" onClick={()=>setCreating(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={create}>Create</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+3) Impersonation red banner (with ⌥Esc)
+src/console/components/ImpersonationBanner.tsx
+src/console/styles/impersonation.css
+
+src/console/components/ImpersonationBanner.tsx
+import React, { useEffect, useState } from 'react';
+
+type Status = { active: boolean; targetEmail?: string; expiresAt?: string };
+
+export default function ImpersonationBanner() {
+  const [st, setSt] = useState<Status>({ active:false });
+
+  async function load() {
+    try {
+      const r = await fetch('/admin/impersonate/status', { credentials:'include' });
+      const j = await r.json(); setSt(j);
+    } catch {}
+  }
+
+  async function stop(reason='ended-by-admin') {
+    await fetch('/admin/impersonate/stop', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ reason })
+    });
+    setSt({ active:false });
+    window.location.reload();
+  }
+
+  useEffect(()=>{ load(); const t = setInterval(load, 10_000); return ()=>clearInterval(t); }, []);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.key === 'Escape' || e.keyCode === 27) && (e.altKey || e.metaKey)) {
+        e.preventDefault();
+        stop('keyboard-stop');
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  if (!st.active) return null;
+
+  const exp = st.expiresAt ? new Date(st.expiresAt).toLocaleTimeString() : '';
+
+  return (
+    <div className="impersonation-banner">
+      <div className="impersonation-inner">
+        <span className="dot" /> <strong>IMPERSONATING</strong>
+        <span className="sep">•</span>
+        {st.targetEmail}
+        {exp && <span className="sep">•</span>}
+        {exp && <>expires <b>{exp}</b></>}
+      </div>
+      <div className="grow" />
+      <button className="btn btn-danger" onClick={()=>stop()}>Stop (⌥Esc)</button>
+    </div>
+  );
+}
+
+src/console/styles/impersonation.css
+.impersonation-banner {
+  position: fixed;
+  z-index: 9999;
+  top: 0; left: 0; right: 0;
+  height: 44px;
+  display: flex; align-items: center;
+  padding: 0 12px;
+  background: #b91c1c; /* red-700 */
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(0,0,0,.25);
+  font-size: 14px;
+}
+.impersonation-inner { display: inline-flex; align-items: center; gap: 8px; }
+.impersonation-inner .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #fff;
+  display:inline-block; margin-right: 6px;
+  animation: ping 1.6s infinite ease-in-out;
+}
+@keyframes ping { 0% { opacity: .9; transform: scale(1); } 50% { opacity: .5; transform: scale(1.4); } 100% { opacity: .9; transform: scale(1); } }
+.impersonation-banner .sep { opacity: .8; margin: 0 6px; }
+.impersonation-banner .grow { flex: 1 1 auto; }
+.btn.btn-danger {
+  background:#111; border:1px solid rgba(255,255,255,.35); color:#fff; padding:6px 10px; border-radius:8px;
+}
+
+
+Add it to your console layout (once):
+
+// src/console/AppShell.tsx
+import React from 'react';
+import ImpersonationBanner from './components/ImpersonationBanner';
+import './styles/impersonation.css';
+
+export default function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <ImpersonationBanner />
+      {/* push content 44px down */}
+      <div style={{ paddingTop: 44 }}>{children}</div>
+    </>
+  );
+}
+
+4) Seed script – one flag + OIDC reminder
+scripts/seed_flags_oidc.js
+
+// scripts/seed_flags_oidc.js
+import db from '../src/db.js';
+
+async function main() {
+  console.log('Seeding sample feature flag...');
+  await db.query(`
+    INSERT INTO feature_flags (key, name, description, targeting, status)
+    VALUES ($1,$2,$3,$4,'active')
+    ON CONFLICT (key) DO NOTHING
+  `, [
+    'new-billing-ui',
+    'New Billing UI',
+    'Gradual rollout of the redesigned billing experience.',
+    { percentage: 10, allowDomains: ['@familycirclesecure.com'] }
+  ]);
+
+  console.log('\nExample OIDC env (paste to .env):\n');
+  console.log(`OIDC_ISSUER_URL=https://YOUR_IDP/.well-known/openid-configuration`);
+  console.log(`OIDC_CLIENT_ID=xxxxxxxxxxxxxxxx`);
+  console.log(`OIDC_CLIENT_SECRET=xxxxxxxxxxxxxxxx`);
+  console.log(`OIDC_REDIRECT_URI=https://console.familycirclesecure.com/auth/sso/callback`);
+  console.log(`OIDC_ALLOWED_DOMAIN=@familycirclesecure.com # or blank`);
+  console.log(`# OIDC_ALLOWED_GROUP=fcs-admins       # optional`);
+}
+
+main().then(()=>process.exit(0)).catch(err=>{ console.error(err); process.exit(1); });
+
+
+Run:
+
+node scripts/seed_flags_oidc.js
+
+5) Small style bits used above
+
+If you don’t already have basic UI utility styles:
+
+/* shared console styles (add to your main console CSS) */
+.page-header { display:flex; align-items:center; justify-content:space-between; margin:12px 0 8px; }
+.actions { display:flex; gap:8px; align-items:center; }
+.card { background:#0f1316; border:1px solid #23282d; border-radius:12px; padding:12px; }
+.table { width:100%; border-collapse:collapse; }
+.table th, .table td { border-bottom:1px solid #1b2025; padding:10px; text-align:left; }
+.btn { background:#222; color:#fff; border:1px solid #3a3f45; padding:8px 12px; border-radius:10px; }
+.btn-small { padding:6px 10px; border-radius:8px; }
+.btn-primary { background:#e0b530; border-color:#e0b530; color:#0b0c0f; font-weight:600; }
+.input, textarea, select { background:#0c1013; border:1px solid #2b3036; color:#dfe5ee; padding:8px 10px; border-radius:8px; }
+.modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:2000; }
+.modal { width:min(780px, 92vw); background:#0c1013; border:1px solid #2a2f35; border-radius:14px; padding:16px; }
+.form-row { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.tags { display:flex; flex-wrap:wrap; gap:8px; }
+.tag { border:1px solid #3b4148; background:#11161a; color:#dfe5ee; border-radius:999px; padding:6px 10px; cursor:pointer; }
+.tag.on { background:#e0b530; color:#0b0c0f; border-color:#e0b530; }
+.pill { display:inline-flex; align-items:center; height:24px; padding:0 8px; border-radius:999px; font-size:12px; color:#fff; }
+.switch { position:relative; width:40px; height:22px; display:inline-block; }
+.switch input { display:none; }
+.switch span { position:absolute; inset:0; background:#3a3f45; border-radius:999px; }
+.switch span:after { content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; background:#fff; border-radius:50%; transition:all .18s; }
+.switch input:checked + span { background:#22c55e; }
+.switch input:checked + span:after { transform:translateX(18px); }
+
+
+(Colors follow your dark console with the gold accent #E0B530 used for primary buttons to match the site.)
+
+What’s now ready
+
+Flags UI: search, create/edit, rollout %, allow-lists, force on/off, quick preview
+
+Webhooks UI: create endpoints, choose events, activate, send test
+
+Impersonation banner: always visible on top while impersonating, ⌥Esc to stop, countdown
+
+Seed script for a sample flag and explicit OIDC env reminders
+
+If you want me to wire Consent Manager (cookie categories + records) or a simple inbound webhook receiver tester page next, say the word and I’ll add it in the same style.
+
+You said:
+go ahead
+ChatGPT said:
+
+You got it—here are two more production-grade modules you can drop in:
+
+9) Consent Manager (configure cookie categories, banner copy, regions, script auto-blocking; record + export consent)
+
+10) Inbound Webhook Receiver “Tester” (endpoint to receive + verify signatures, console UI to inspect deliveries)
+
+Everything matches your existing stack (Node/Express + Postgres + React). Just paste what you need.
+
+9) Consent Manager (config + banner + auto-block)
+DB schema
+-- 008_consent_manager.sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TABLE consent_configs (
+  id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  version        TEXT NOT NULL,                 -- e.g. "2025-01"
+  banner_title   TEXT NOT NULL,
+  banner_body    TEXT NOT NULL,
+  regions        TEXT[] NOT NULL DEFAULT '{}',  -- e.g. {'EU','US-CA'}
+  categories     JSONB NOT NULL,                -- { functional:true, analytics:false, marketing:false, custom: [{key,label,required}] }
+  scripts        JSONB NOT NULL,                -- [{key,label,category,src,integrity?}]
+  is_active      BOOLEAN NOT NULL DEFAULT FALSE,
+  created_by     UUID,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX consent_configs_active_once ON consent_configs (is_active) WHERE is_active = TRUE;
+
+
+Shape examples
+
+{
+  "categories": {
+    "functional": true,
+    "analytics": false,
+    "marketing": false,
+    "custom": [
+      {"key":"ads","label":"Personalized Ads","required":false}
+    ]
+  },
+  "scripts": [
+    {"key":"plausible","label":"Analytics","category":"analytics","src":"https://plausible.io/js/script.js"},
+    {"key":"posthog","label":"Product Analytics","category":"analytics","src":"https://cdn.posthog.com/js"}
+  ]
+}
+
+Admin API
+// src/routes/admin/consent-config.js
+import express from 'express';
+import db from '../../db.js';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+
+const router = express.Router();
+
+// list (latest first)
+router.get('/', requireAdmin, async (_req,res) => {
+  const { rows } = await db.query(`SELECT * FROM consent_configs ORDER BY created_at DESC`);
+  res.json({ items: rows });
+});
+
+// create draft
+router.post('/', requireAdmin, async (req,res) => {
+  const { version, banner_title, banner_body, regions, categories, scripts } = req.body;
+  const { rows } = await db.query(
+    `INSERT INTO consent_configs (version,banner_title,banner_body,regions,categories,scripts,created_by)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [version, banner_title, banner_body, regions||[], categories||{}, scripts||[], req.user.id]
+  );
+  res.status(201).json(rows[0]);
+});
+
+// activate (enforce single active)
+router.post('/:id/activate', requireAdmin, async (req,res) => {
+  await db.query(`UPDATE consent_configs SET is_active=FALSE WHERE is_active=TRUE`);
+  const { rows } = await db.query(`UPDATE consent_configs SET is_active=TRUE WHERE id=$1 RETURNING *`, [req.params.id]);
+  res.json(rows[0]);
+});
+
+// public: fetch active config
+export async function getActiveConsentConfig() {
+  const { rows } = await db.query(`SELECT * FROM consent_configs WHERE is_active=TRUE LIMIT 1`);
+  return rows[0] || null;
+}
+
+export default router;
+
+
+Mount:
+
+import consentConfigAdmin from './routes/admin/consent-config.js';
+app.use('/admin/consent-config', consentConfigAdmin);
+
+Public “edge” route to get config + record consent
+
+(You already have /consent/record from prior steps; keep it. Add fetch-config:)
+
+// src/routes/public/consent-config.js
+import express from 'express';
+import { getActiveConsentConfig } from '../admin/consent-config.js';
+
+const router = express.Router();
+router.get('/active', async (_req,res) => {
+  const cfg = await getActiveConsentConfig();
+  res.json({ config: cfg || null });
+});
+export default router;
+
+
+Mount:
+
+import publicConsentConfig from './routes/public/consent-config.js';
+app.use('/consent', publicConsentConfig);
+
+Client: lazy load scripts only if consented
+<!-- Add in your public/portal bundle head or before </body> -->
+<script>
+(async function() {
+  // Load active config
+  const r = await fetch('/consent/active'); const j = await r.json();
+  if (!j.config) return;
+
+  const key = 'fcs-consent';
+  const saved = localStorage.getItem(key);
+  const prefs = saved ? JSON.parse(saved) : null;
+
+  // Simple banner if no consent yet
+  if (!prefs) {
+    const banner = document.createElement('div');
+    banner.id = 'consent-banner';
+    banner.innerHTML = `
+      <div class="cb">
+        <div>
+          <strong>${j.config.banner_title}</strong>
+          <p>${j.config.banner_body}</p>
+          <label><input id="cb-functional" type="checkbox" checked disabled> Functional (required)</label>
+          <label><input id="cb-analytics" type="checkbox"> Analytics</label>
+          <label><input id="cb-marketing" type="checkbox"> Marketing</label>
+        </div>
+        <div class="actions">
+          <button id="cb-accept">Accept</button>
+          <button id="cb-reject">Reject non-essential</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(banner);
+
+    const save = async (allowAnalytics, allowMarketing) => {
+      const val = { functional:true, analytics:allowAnalytics, marketing:allowMarketing, at:Date.now(), version:j.config.version };
+      localStorage.setItem(key, JSON.stringify(val));
+      // record event
+      await fetch('/consent/record', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ userId:null, scope:'analytics', policySlug:'privacy', policyVersion:j.config.version, action: allowAnalytics?'given':'withdrawn' })
+      });
+      document.getElementById('consent-banner').remove();
+      loadAllowedScripts(val, j.config.scripts);
+    };
+
+    document.getElementById('cb-accept').onclick = () => save(true,true);
+    document.getElementById('cb-reject').onclick = () => save(false,false);
+  } else {
+    loadAllowedScripts(prefs, j.config.scripts);
+  }
+
+  function loadAllowedScripts(prefs, scripts) {
+    scripts.forEach(s => {
+      const category = s.category || 'functional';
+      if (category === 'functional' || prefs[category]) {
+        const el = document.createElement('script');
+        el.src = s.src; el.async = true;
+        if (s.integrity) { el.integrity = s.integrity; el.crossOrigin='anonymous'; }
+        document.head.appendChild(el);
+      }
+    });
+  }
+})();
+</script>
+
+<style>
+#consent-banner { position:fixed; left:0; right:0; bottom:0; z-index:9999; background:#0b0c0f; border-top:1px solid #2a2f35; color:#e8eaf0; }
+#consent-banner .cb { max-width:1100px; margin:0 auto; display:flex; gap:16px; padding:16px; align-items:center; }
+#consent-banner label { display:block; margin:6px 0; opacity:.9; }
+#consent-banner .actions { margin-left:auto; display:flex; gap:10px; }
+#consent-banner button { background:#e0b530; color:#0b0c0f; border:0; padding:8px 12px; border-radius:10px; font-weight:600; }
+</style>
+
+
+This respects your gold/charcoal theme, shows a simple consent bar, stores choices, calls /consent/record, and only loads analytics scripts when allowed.
+
+Console UI (minimal)
+
+Add a page “Compliance → Consent Config” that lists versions and lets you:
+
+Create new config (version, copy, categories, scripts)
+
+Activate a config (enforces single active)
+
+Preview banner
+
+(You can reuse the modal and table styles from earlier pages.)
+
+10) Inbound Webhook “Receiver” Tester
+
+Use this to confirm third-party systems (or your own outbound hooks) post correctly.
+
+DB schema
+-- 009_inbound_webhooks.sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TABLE inbound_endpoints (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  slug         TEXT UNIQUE NOT NULL,         -- e.g. "stripe-test", "zapier-1"
+  secret       TEXT NOT NULL,                -- HMAC secret to verify signatures
+  created_by   UUID,
+  active       BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE inbound_deliveries (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  endpoint_id  UUID NOT NULL REFERENCES inbound_endpoints(id) ON DELETE CASCADE,
+  received_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  status_code  INT,                          -- your response code back to sender
+  signature_ok BOOLEAN,
+  headers      JSONB,
+  body         JSONB
+);
+
+CREATE INDEX inbound_deliveries_endpoint_idx ON inbound_deliveries(endpoint_id, received_at DESC);
+
+Verify + receive endpoint
+// src/routes/public/inbound-webhooks.js
+import express from 'express';
+import crypto from 'crypto';
+import db from '../../db.js';
+
+const router = express.Router();
+
+// Raw body for signature verification
+router.use('/receiver/:slug', express.raw({ type: '*/*' }));
+
+router.post('/receiver/:slug', async (req, res) => {
+  const { rows } = await db.query(`SELECT * FROM inbound_endpoints WHERE slug=$1 AND active=TRUE`, [req.params.slug]);
+  if (!rows.length) return res.status(404).json({ error:'unknown endpoint' });
+  const ep = rows[0];
+
+  const raw = req.body instanceof Buffer ? req.body.toString('utf8') : '';
+  const hdrSig = req.get('X-FCS-Signature') || req.get('X-Signature') || '';
+  const calc = crypto.createHmac('sha256', ep.secret).update(raw).digest('hex');
+  const signature_ok = crypto.timingSafeEqual(Buffer.from(calc), Buffer.from(hdrSig || '', 'utf8'));
+
+  // attempt JSON parse safely
+  let json = null;
+  try { json = JSON.parse(raw); } catch {}
+
+  // persist
+  const ins = await db.query(
+    `INSERT INTO inbound_deliveries (endpoint_id, signature_ok, headers, body)
+     VALUES ($1,$2,$3,$4) RETURNING id`,
+    [ep.id, signature_ok, req.headers, json || { raw }]
+  );
+
+  // Respond 200 if signature ok, else 400
+  const code = signature_ok ? 200 : 400;
+  await db.query(`UPDATE inbound_deliveries SET status_code=$1 WHERE id=$2`, [code, ins.rows[0].id]);
+
+  res.status(code).json({ ok: signature_ok });
+});
+
+export default router;
+
+
+Mount:
+
+import inboundReceiver from './routes/public/inbound-webhooks.js';
+app.use('/hooks', inboundReceiver); // POST /hooks/receiver/:slug
+
+Admin API: manage endpoints + list deliveries
+// src/routes/admin/inbound-webhooks.js
+import express from 'express';
+import crypto from 'crypto';
+import db from '../../db.js';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+
+const router = express.Router();
+
+router.get('/endpoints', requireAdmin, async (_req,res) => {
+  const { rows } = await db.query(`SELECT id, slug, active, created_at FROM inbound_endpoints ORDER BY created_at DESC`);
+  res.json({ items: rows });
+});
+
+router.post('/endpoints', requireAdmin, async (req,res) => {
+  const { slug, secret } = req.body;
+  const s = secret || crypto.randomBytes(24).toString('hex');
+  const { rows } = await db.query(
+    `INSERT INTO inbound_endpoints (slug, secret, created_by) VALUES ($1,$2,$3) RETURNING id, slug, active, created_at`,
+    [slug, s, req.user.id]
+  );
+  res.status(201).json(rows[0]);
+});
+
+router.get('/deliveries', requireAdmin, async (req,res) => {
+  const { endpointId, limit=100 } = req.query;
+  const params=[]; let sql=`SELECT * FROM inbound_deliveries`;
+  if (endpointId) { params.push(endpointId); sql += ` WHERE endpoint_id=$${params.length}`; }
+  params.push(Number(limit)); sql += ` ORDER BY received_at DESC LIMIT $${params.length}`;
+  const { rows } = await db.query(sql, params);
+  res.json({ items: rows });
+});
+
+export default router;
+
+
+Mount:
+
+import inboundAdmin from './routes/admin/inbound-webhooks.js';
+app.use('/admin/inbound', inboundAdmin);
+
+Console UI (minimal)
+
+Page Integrations → Inbound Tester
+
+Create endpoint (slug → gives you URL POST https://portal.familycirclesecure.com/hooks/receiver/<slug> and a secret).
+
+Table of deliveries (time, signature ok, status, short payload preview).
+
+Click a row → modal with full headers/body.
+
+(Reuse your table, modal, input, btn styles.)
+
+“Tell Replit what to do” (prompt you can paste)
+
+Prompt for Replit
+
+Add a Consent Manager with Postgres tables (consent_configs) and admin routes at /admin/consent-config to create versions of banner copy, categories, and script definitions, with an activation endpoint that ensures only one active config. Add a public route /consent/active to fetch the active config. On the public site, implement a consent banner that stores choices in localStorage and only loads non-essential scripts if consented. When a user accepts/rejects analytics, POST to /consent/record (already exists).
+
+Add an Inbound Webhook Receiver Tester:
+
+DB: inbound_endpoints (slug, secret, active) and inbound_deliveries (headers, body, signature_ok, status_code).
+
+Public endpoint: POST /hooks/receiver/:slug that verifies HMAC sha256 signature from header X-FCS-Signature against the endpoint’s secret using the raw body, stores the request, and returns 200 if signature matches, 400 otherwise.
+
+Admin endpoints under /admin/inbound: create/list endpoints and list deliveries with pagination.
+
+Add minimal console pages:
+
+Compliance → Consent Config: list, create, activate; preview banner.
+
+Integrations → Inbound Tester: create endpoint (show URL + secret), list recent deliveries, modal to view payload.
+
+Use our existing styles/components. Primary accent stays gold #E0B530 on the dark console theme. Protect all admin routes with RBAC.
