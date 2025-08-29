@@ -13,6 +13,7 @@ interface PromoPopup {
   ctaText: string;
   ctaUrl?: string;
   bgGradient: string;
+  targetDomains?: string[];
   showAfterSeconds?: number;
   showOncePerSession?: boolean;
   expiresAt?: string;
@@ -82,6 +83,15 @@ export default function PromoPopupManager() {
       
       // Check if popup expired
       if (activePopup.expiresAt && new Date() > new Date(activePopup.expiresAt)) return;
+      
+      // Check domain targeting
+      if (activePopup.targetDomains && activePopup.targetDomains.length > 0) {
+        const currentDomain = window.location.hostname;
+        const shouldShow = activePopup.targetDomains.some(domain => 
+          currentDomain === domain || currentDomain.endsWith(`.${domain}`)
+        );
+        if (!shouldShow) return;
+      }
       
       setPopup(activePopup);
       

@@ -25,6 +25,7 @@ interface Promotion {
   bgGradient?: string;
   textColor?: string;
   icon?: string;
+  targetDomains?: string[];
   showAfterSeconds?: number;
   showOncePerSession?: boolean;
   expiresAt?: string;
@@ -52,11 +53,18 @@ export default function MarketingPromotions() {
     bgGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     textColor: '#ffffff',
     icon: 'gift',
+    targetDomains: ['familycirclesecure.com'],
     showAfterSeconds: 5,
     showOncePerSession: true,
     expiresAt: '',
     isActive: true
   });
+
+  const AVAILABLE_DOMAINS = [
+    { id: 'familycirclesecure.com', label: 'Main Website', description: 'familycirclesecure.com' },
+    { id: 'portal.familycirclesecure.com', label: 'Family Portal', description: 'portal.familycirclesecure.com' },
+    { id: 'hub.familycirclesecure.com', label: 'Professional Hub', description: 'hub.familycirclesecure.com' }
+  ];
 
   const generatePromoCode = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -69,6 +77,22 @@ export default function MarketingPromotions() {
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleDomainToggle = (domainId: string) => {
+    setFormData(prev => {
+      const currentDomains = prev.targetDomains || [];
+      const isSelected = currentDomains.includes(domainId);
+      
+      let newDomains;
+      if (isSelected) {
+        newDomains = currentDomains.filter(d => d !== domainId);
+      } else {
+        newDomains = [...currentDomains, domainId];
+      }
+      
+      return { ...prev, targetDomains: newDomains };
+    });
   };
 
   const resetForm = () => {
@@ -85,6 +109,7 @@ export default function MarketingPromotions() {
       bgGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       textColor: '#ffffff',
       icon: 'gift',
+      targetDomains: ['familycirclesecure.com'],
       showAfterSeconds: 5,
       showOncePerSession: true,
       expiresAt: '',
@@ -99,6 +124,15 @@ export default function MarketingPromotions() {
         toast({
           title: 'Validation Error',
           description: 'Title and promo code are required',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      if (!formData.targetDomains || formData.targetDomains.length === 0) {
+        toast({
+          title: 'Validation Error',
+          description: 'Please select at least one website to target',
           variant: 'destructive'
         });
         return;
@@ -149,6 +183,7 @@ export default function MarketingPromotions() {
       bgGradient: promo.bgGradient || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       textColor: promo.textColor || '#ffffff',
       icon: promo.icon || 'gift',
+      targetDomains: promo.targetDomains || ['familycirclesecure.com'],
       showAfterSeconds: promo.showAfterSeconds || 5,
       showOncePerSession: promo.showOncePerSession !== false,
       expiresAt: promo.expiresAt || '',
@@ -201,6 +236,7 @@ export default function MarketingPromotions() {
         bgColor: '#1e40af',
         textColor: '#ffffff',
         icon: 'gift',
+        targetDomains: ['familycirclesecure.com', 'portal.familycirclesecure.com'],
         expiresAt: '2025-03-01',
         isActive: true,
         createdAt: '2025-01-15T00:00:00Z'
@@ -215,6 +251,7 @@ export default function MarketingPromotions() {
         ctaText: 'Upgrade Now',
         ctaUrl: '/pricing?plan=enterprise',
         bgGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        targetDomains: ['familycirclesecure.com'],
         showAfterSeconds: 5,
         showOncePerSession: true,
         expiresAt: '2025-03-01',
@@ -296,6 +333,21 @@ export default function MarketingPromotions() {
                           <span>Expires: {new Date(promo.expiresAt).toLocaleDateString()}</span>
                         )}
                       </div>
+                      {promo.targetDomains && promo.targetDomains.length > 0 && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs text-muted-foreground">Targets:</span>
+                          <div className="flex gap-1">
+                            {promo.targetDomains.map(domain => {
+                              const domainInfo = AVAILABLE_DOMAINS.find(d => d.id === domain);
+                              return domainInfo ? (
+                                <Badge key={domain} variant="outline" className="text-xs">
+                                  {domainInfo.label}
+                                </Badge>
+                              ) : null;
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -433,6 +485,36 @@ export default function MarketingPromotions() {
                       placeholder="50% OFF"
                     />
                   </div>
+                )}
+              </div>
+
+              {/* Target Domains */}
+              <div className="space-y-2">
+                <Label>Target Websites</Label>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Choose which websites this promotion should appear on
+                </p>
+                <div className="space-y-3">
+                  {AVAILABLE_DOMAINS.map(domain => (
+                    <div key={domain.id} className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        id={`domain-${domain.id}`}
+                        checked={(formData.targetDomains || []).includes(domain.id)}
+                        onChange={() => handleDomainToggle(domain.id)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <Label htmlFor={`domain-${domain.id}`} className="flex-1 cursor-pointer">
+                        <div className="font-medium">{domain.label}</div>
+                        <div className="text-sm text-muted-foreground">{domain.description}</div>
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                {(!formData.targetDomains || formData.targetDomains.length === 0) && (
+                  <p className="text-sm text-red-600 mt-2">
+                    Please select at least one website to target
+                  </p>
                 )}
               </div>
 

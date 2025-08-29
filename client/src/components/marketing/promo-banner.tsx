@@ -12,6 +12,7 @@ interface PromoBanner {
   bgColor: string;
   textColor: string;
   icon?: 'gift' | 'zap' | 'clock';
+  targetDomains?: string[];
   expiresAt?: string;
   isActive: boolean;
 }
@@ -67,6 +68,15 @@ export default function PromoBanner() {
       
       // Check if banner expired
       if (activeBanner.expiresAt && new Date() > new Date(activeBanner.expiresAt)) return;
+      
+      // Check domain targeting
+      if (activeBanner.targetDomains && activeBanner.targetDomains.length > 0) {
+        const currentDomain = window.location.hostname;
+        const shouldShow = activeBanner.targetDomains.some(domain => 
+          currentDomain === domain || currentDomain.endsWith(`.${domain}`)
+        );
+        if (!shouldShow) return;
+      }
       
       setBanner(activeBanner);
     } catch (error) {
