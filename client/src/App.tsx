@@ -204,10 +204,20 @@ function Router() {
 
 function App() {
   // Check subdomain to determine interface type
-  const subdomain = window.location.hostname.split('.')[0];
-  const isAdminDomain = subdomain === 'console' || window.location.pathname.startsWith('/admin');
-  const isPortalDomain = subdomain === 'portal';
-  const isHubDomain = subdomain === 'hub';
+  const hostname = window.location.hostname;
+  const pathname = window.location.pathname;
+  
+  // Debug logging
+  console.log('Hostname:', hostname, 'Pathname:', pathname);
+  
+  const subdomain = hostname.split('.')[0];
+  const isAdminDomain = subdomain === 'console' || 
+                       hostname === 'console.familycirclesecure.com' || 
+                       pathname.startsWith('/admin');
+  const isPortalDomain = subdomain === 'portal' || hostname === 'portal.familycirclesecure.com';
+  const isHubDomain = subdomain === 'hub' || hostname === 'hub.familycirclesecure.com';
+  
+  console.log('Admin domain check:', isAdminDomain, 'Subdomain:', subdomain);
   
   // Admin Console Interface
   if (isAdminDomain) {
