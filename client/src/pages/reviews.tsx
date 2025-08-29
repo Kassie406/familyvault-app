@@ -180,15 +180,6 @@ export default function Reviews() {
                       alt={`${testimonial.author} profile`}
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center group-hover:bg-opacity-10 transition-all">
-                      <button 
-                        onClick={() => setActiveTestimonial(testimonial.id)}
-                        className="w-16 h-16 bg-[#FFD43B] bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all shadow-lg"
-                        data-testid={`play-testimonial-${testimonial.id}`}
-                      >
-                        <Play className="w-6 h-6 text-[#0E0E0E] ml-1" />
-                      </button>
-                    </div>
                   </div>
                   <div className="absolute top-4 left-4">
                     <span className="bg-[#FFD43B] text-[#0E0E0E] px-3 py-1 rounded-full text-sm font-medium">
