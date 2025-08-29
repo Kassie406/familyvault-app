@@ -347,29 +347,28 @@ export default function Moving() {
       </section>
 
       {/* Bottom Features */}
-      <section className="py-20 bg-[#0b0b0b]">
+      <section className="py-20 bg-[#141414]">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8">
             {bottomFeatures.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="text-center">
-                  <div className="bg-[rgba(255,255,255,.03)] border border-[rgba(255,255,255,.08)] rounded-2xl p-8 h-[200px] flex items-center justify-center mb-6 overflow-hidden">
+                  <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#0B0B0B] h-48 flex items-center justify-center mb-6">
                     {feature.image ? (
                       <img 
                         src={feature.image} 
                         alt={feature.imageAlt}
-                        className="w-full h-full object-cover rounded-lg"
-                        loading="lazy"
+                        className="w-full h-full object-cover"
                       />
                     ) : (
-                      <IconComponent className="w-12 h-12 text-[#f1c232]" />
+                      <IconComponent className="w-12 h-12 text-[#D4AF37]" />
                     )}
                   </div>
-                  <h3 className="text-lg font-semibold text-[#fff] mb-2">
+                  <h3 className="text-lg font-semibold text-[#F3F4F6] mb-2">
                     {feature.title}
                   </h3>
-                  <p className="text-[#c9c9c9]">
+                  <p className="text-[#D1D5DB]">
                     {feature.description}
                   </p>
                 </div>
