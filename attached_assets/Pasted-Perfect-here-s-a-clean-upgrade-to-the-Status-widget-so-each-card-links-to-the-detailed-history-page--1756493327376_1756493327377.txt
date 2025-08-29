@@ -1,0 +1,221 @@
+Perfect—here’s a clean upgrade to the Status widget so each card links to the detailed history page and shows a 24-hour average latency badge. I’ll add a tiny server “summary” endpoint, then the widget + a route link.
+
+1) Server summary endpoint (last result + 24h avg latency)
+
+File: src/routes/admin/status.js
+(Add these two routes below your existing ones.)
+
+// Get last check per component + 24h avg latency
+router.get('/summary', requireAdmin, async (_req, res) => {
+  const { rows: last } = await db.query(`
+    SELECT DISTINCT ON (component)
+      component, ok, latency_ms, ts
+    FROM status_checks
+    ORDER BY component, ts DESC
+  `);
+
+  const { rows: avg } = await db.query(`
+    SELECT component, AVG(latency_ms)::int AS avg_latency_ms
+    FROM status_checks
+    WHERE ts > now() - interval '24 hours'
+    GROUP BY component
+  `);
+
+  const avgMap = Object.fromEntries(avg.map(r => [r.component, r.avg_latency_ms]));
+  const components = last.map(r => ({
+    component: r.component,
+    ok: r.ok,
+    latency_ms: r.latency_ms,
+    avg_latency_ms: avgMap[r.component] ?? null,
+    ts: r.ts
+  }));
+
+  res.json({ components });
+});
+
+
+(You already have /admin/status/public and the history routes; this adds a richer summary feed.)
+
+2) Console routing: link target for details
+
+If you used the StatusPage.tsx I gave earlier, ensure it’s mounted at /console/status (or similar). For example:
+
+// src/console/ConsoleRouter.tsx
+import { Routes, Route } from 'react-router-dom';
+import HomePage from './pages/HomePage';
+import StatusPage from './pages/StatusPage';
+// …other imports
+
+export default function ConsoleRouter() {
+  return (
+    <Routes>
+      <Route path="/console" element={<HomePage />} />
+      <Route path="/console/status" element={<StatusPage />} />
+      {/* …others */}
+    </Routes>
+  );
+}
+
+3) Upgraded Status Widget (click-through + avg latency badge)
+
+Replace your widget with this version:
+
+File: src/console/components/StatusWidget.tsx
+
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+type Comp = {
+  component: string;
+  ok: boolean;
+  latency_ms?: number;
+  avg_latency_ms?: number | null;
+  ts?: string;
+};
+
+const GOLD = '#E0B530';
+
+function Pill({ ok }: { ok: boolean }) {
+  return (
+    <span
+      style={{
+        display:'inline-flex', alignItems:'center', gap:6, padding:'4px 8px',
+        borderRadius:999, fontSize:12, fontWeight:600,
+        color: ok ? '#0b0c0f' : '#fff', background: ok ? '#22c55e' : '#ef4444'
+      }}
+    >
+      <span style={{ width:8, height:8, borderRadius:'50%', background: ok ? '#065f46' : '#7f1d1d' }} />
+      {ok ? 'OK' : 'FAIL'}
+    </span>
+  );
+}
+
+function LatencyBadge({ now, avg }: { now?: number; avg?: number | null }) {
+  if (avg == null && now == null) return null;
+  const txt = [
+    now != null ? `now ${now}ms` : null,
+    avg != null ? `24h ${avg}ms` : null
+  ].filter(Boolean).join(' · ');
+  return (
+    <span
+      title="Current vs 24h average latency"
+      style={{
+        marginLeft:8, fontSize:12, padding:'2px 8px', borderRadius:999,
+        background:'#12161a', border:'1px solid #2b3036', color:'#dfe5ee'
+      }}
+    >
+      {txt}
+    </span>
+  );
+}
+
+export default function StatusWidget() {
+  const [items, setItems] = useState<Comp[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [last, setLast] = useState<Date | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  async function load() {
+    setErr(null);
+    try {
+      const r = await fetch('/admin/status/summary', { credentials:'include' });
+      if (!r.ok) throw new Error('Failed to fetch status summary');
+      const j = await r.json();
+      // Stable order
+      const order = ['db','smtp','webhooks','auth','stripe'];
+      const sorted = [
+        ...order.map(k => j.components.find((c:Comp) => c.component === k)).filter(Boolean),
+        ...j.components.filter((c:Comp) => !order.includes(c.component))
+      ] as Comp[];
+      setItems(sorted);
+      setLast(new Date());
+    } catch (e: any) {
+      setErr(e.message || 'Error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="card" style={{ borderColor:'#23282d' }}>
+      <div style={{ display:'flex', alignItems:'center', marginBottom:8 }}>
+        <h2 style={{ margin:0, fontSize:18 }}>System Status</h2>
+        <div style={{ marginLeft:'auto', display:'flex', gap:8 }}>
+          <button className="btn" onClick={() => navigate('/console/status')} style={{ borderColor:GOLD }}>
+            View details
+          </button>
+          {last && <span style={{ fontSize:12, opacity:.7 }}>Updated {last.toLocaleTimeString()}</span>}
+          <button className="btn" onClick={load} disabled={loading} style={{ borderColor:GOLD }}>
+            {loading ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
+      </div>
+
+      {err && <div style={{ marginBottom:8, color:'#ef4444' }}>{err}</div>}
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px,1fr))', gap:12 }}>
+        {items.map((c) => (
+          <button
+            key={c.component}
+            onClick={() => navigate('/console/status')}
+            className="card"
+            style={{
+              textAlign:'left', cursor:'pointer',
+              background:'#0f1316',
+              border:`1px solid ${c.ok ? '#1d2a21' : '#2a1b1b'}`,
+              boxShadow: c.ok
+                ? '0 0 0 1px rgba(34,197,94,.08) inset'
+                : '0 0 0 1px rgba(239,68,68,.08) inset'
+            }}
+          >
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{
+                width:28, height:28, borderRadius:8, background:'#0c1013',
+                border:'1px solid #2b3036', display:'grid', placeItems:'center'
+              }}>
+                <div style={{ width:10, height:10, borderRadius:'50%', background: c.ok ? '#22c55e' : '#ef4444' }} />
+              </div>
+              <div style={{ display:'grid' }}>
+                <strong style={{ textTransform:'uppercase', fontSize:12, letterSpacing:.5 }}>{c.component}</strong>
+                <span style={{ opacity:.8, fontSize:12 }}>Health</span>
+              </div>
+              <div style={{ marginLeft:'auto', display:'flex', alignItems:'center' }}>
+                <Pill ok={c.ok} />
+                <LatencyBadge now={c.latency_ms} avg={c.avg_latency_ms ?? undefined} />
+              </div>
+            </div>
+          </button>
+        ))}
+        {items.length === 0 && !loading && !err && (
+          <div style={{ opacity:.7 }}>No components reported yet.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+4) Optional: small polish on the history page
+
+On your StatusPage.tsx, add a tiny header link back:
+
+<div className="page-header">
+  <h1>System Status</h1>
+  <a className="btn" href="/console">← Back to dashboard</a>
+</div>
+
+5) “Tell Replit what to do” (paste this)
+
+Prompt for Replit
+
+Add a new admin route GET /admin/status/summary that returns, for each component, the latest result (ok, latency_ms, ts) and the 24-hour average latency (avg_latency_ms).
+
+Replace src/console/components/StatusWidget.tsx with the upgraded version that fetches /admin/status/summary, renders OK/FAIL cards with a latency badge (“now Xms · 24h Yms”), refreshes every 30s, and makes each card clickable to /console/status. Keep the dark theme with gold accent #E0B530.
+
+Ensure the console router has a route at /console/status using the existing StatusPage.tsx.

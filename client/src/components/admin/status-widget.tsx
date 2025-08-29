@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ExternalLink } from 'lucide-react';
 
-type Component = { component: string; ok: boolean };
+type Component = { 
+  component: string; 
+  ok: boolean; 
+  latency_ms?: number | null;
+  avg_latency_ms?: number | null;
+  ts?: string;
+};
 type StatusResponse = { components: Component[] };
 
 const GOLD = '#E0B530';
@@ -29,6 +36,26 @@ function StatusPill({ ok }: { ok: boolean }) {
   );
 }
 
+function LatencyBadge({ current, average }: { current?: number | null; average?: number | null }) {
+  if (current == null && average == null) return null;
+  
+  const parts = [];
+  if (current != null) parts.push(`now ${current}ms`);
+  if (average != null) parts.push(`24h ${average}ms`);
+  const text = parts.join(' · ');
+  
+  return (
+    <Badge 
+      variant="outline" 
+      className="ml-2 text-xs px-2 py-0.5 border-muted-foreground/30 bg-muted/30"
+      title="Current vs 24h average latency"
+      data-testid="latency-badge"
+    >
+      {text}
+    </Badge>
+  );
+}
+
 export default function StatusWidget() {
   const [components, setComponents] = useState<Component[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,7 +65,7 @@ export default function StatusWidget() {
   async function loadStatus() {
     setError(null);
     try {
-      const response = await fetch('/api/admin/status/public', { 
+      const response = await fetch('/api/admin/status/summary', { 
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
@@ -46,7 +73,7 @@ export default function StatusWidget() {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch system status');
+        throw new Error('Failed to fetch system status summary');
       }
       
       const data: StatusResponse = await response.json();
@@ -63,7 +90,7 @@ export default function StatusWidget() {
       setComponents(sortedComponents);
       setLastUpdated(new Date());
     } catch (err: any) {
-      setError(err.message || 'Failed to load system status');
+      setError(err.message || 'Failed to load system status summary');
     } finally {
       setLoading(false);
     }
@@ -75,9 +102,22 @@ export default function StatusWidget() {
     return () => clearInterval(interval);
   }, []);
 
+  const [, setLocation] = useLocation();
+
   const handleRefresh = () => {
     setLoading(true);
     loadStatus();
+  };
+
+  const handleViewDetails = () => {
+    setLocation('/admin');
+    // Note: In a real app, this would navigate to a dedicated status page
+    // For now, we'll use the security section as a placeholder
+  };
+
+  const handleComponentClick = (component: string) => {
+    setLocation('/admin');
+    // Note: In a real app, this would navigate to component-specific details
   };
 
   const allSystemsOperational = components.length > 0 && components.every(c => c.ok);
@@ -104,10 +144,22 @@ export default function StatusWidget() {
             <Button 
               variant="outline" 
               size="sm" 
+              onClick={handleViewDetails}
+              className="text-xs"
+              data-testid="view-details"
+              style={{ borderColor: GOLD, color: GOLD }}
+            >
+              <ExternalLink className="w-3 h-3 mr-1" />
+              View Details
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
               onClick={handleRefresh}
               disabled={loading}
               className="text-xs"
               data-testid="refresh-status"
+              style={{ borderColor: GOLD }}
             >
               <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
               {loading ? 'Refreshing...' : 'Refresh'}
@@ -138,12 +190,13 @@ export default function StatusWidget() {
           {components.map((component) => (
             <Card 
               key={component.component}
-              className={`transition-colors ${
+              className={`transition-all cursor-pointer hover:shadow-md ${
                 component.ok 
-                  ? 'bg-background hover:bg-green-50/50 dark:hover:bg-green-900/10 border-green-200/30 dark:border-green-800/30' 
-                  : 'bg-background hover:bg-red-50/50 dark:hover:bg-red-900/10 border-red-200/30 dark:border-red-800/30'
+                  ? 'bg-background hover:bg-green-50/50 dark:hover:bg-green-900/10 border-green-200/30 dark:border-green-800/30 hover:border-green-300 dark:hover:border-green-700' 
+                  : 'bg-background hover:bg-red-50/50 dark:hover:bg-red-900/10 border-red-200/30 dark:border-red-800/30 hover:border-red-300 dark:hover:border-red-700'
               }`}
               data-testid={`component-${component.component}`}
+              onClick={() => handleComponentClick(component.component)}
             >
               <CardContent className="p-3">
                 <div className="flex items-center gap-3">
@@ -166,7 +219,10 @@ export default function StatusWidget() {
                     </div>
                   </div>
                   
-                  <StatusPill ok={component.ok} />
+                  <div className="flex items-center">
+                    <StatusPill ok={component.ok} />
+                    <LatencyBadge current={component.latency_ms} average={component.avg_latency_ms} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
