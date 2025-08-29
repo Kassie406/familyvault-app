@@ -1,25 +1,54 @@
 import express, { type Request, Response, NextFunction } from "express";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { type AuthenticatedRequest, optionalAuth, requireAuth, loginUser, registerUser } from "./auth";
+import { storage } from "./storage";
 
 const app = express();
 
-// Subdomain detection middleware
-app.use((req: Request, res: Response, next: NextFunction) => {
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+    },
+  },
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'production' ? 1000 : 10000, // More lenient in development
+  message: { error: 'Too many requests' }
+});
+app.use(limiter);
+
+// Body parsing
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+
+// Enhanced subdomain detection middleware
+app.use((req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const host = req.get('Host') || '';
   const subdomain = host.split('.')[0];
   
-  // Mark requests based on subdomain
-  (req as any).isAdminRequest = subdomain === 'console';
-  (req as any).isPortalRequest = subdomain === 'portal';
-  (req as any).isHubRequest = subdomain === 'hub';
-  (req as any).subdomain = subdomain;
+  // Attach subdomain info to request
+  req.subdomain = subdomain;
+  req.isAdminRequest = subdomain === 'console';
+  req.isPortalRequest = subdomain === 'portal';
+  req.isHubRequest = subdomain === 'hub';
   
   log(`Request from host: ${host}, subdomain: ${subdomain}, type: ${subdomain}`);
   next();
 });
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -49,6 +78,206 @@ app.use((req, res, next) => {
   });
 
   next();
+});
+
+// Authentication routes
+app.post('/api/auth/login', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password required' });
+    }
+
+    const result = await loginUser(username, password);
+    if (!result) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Set HTTP-only cookie
+    res.cookie('token', result.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    res.json({
+      user: {
+        id: result.user.id,
+        username: result.user.username,
+        email: result.user.email,
+        name: result.user.name,
+        role: result.user.role,
+        orgId: result.user.orgId
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+app.post('/api/auth/register', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { username, password, email, name } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password required' });
+    }
+
+    const result = await registerUser({ username, password, email, name });
+    if (!result) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
+
+    res.cookie('token', result.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    res.json({
+      user: {
+        id: result.user.id,
+        username: result.user.username,
+        email: result.user.email,
+        name: result.user.name,
+        role: result.user.role,
+        orgId: result.user.orgId
+      }
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+app.post('/api/auth/logout', (req: AuthenticatedRequest, res: Response) => {
+  res.clearCookie('token');
+  res.json({ success: true });
+});
+
+app.get('/api/auth/me', requireAuth(), async (req: AuthenticatedRequest, res: Response) => {
+  res.json({
+    user: {
+      id: req.user!.id,
+      username: req.user!.username,
+      email: req.user!.email,
+      name: req.user!.name,
+      role: req.user!.role,
+      orgId: req.user!.orgId
+    }
+  });
+});
+
+// Admin API routes (require ADMIN role or higher)
+app.get('/api/admin/users', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // TODO: Add pagination and filtering
+    res.json({ users: [], total: 0, message: 'User management coming soon' });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+app.get('/api/admin/plans', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const plans = await storage.getAllPlans();
+    res.json({ plans });
+  } catch (error) {
+    console.error('Get plans error:', error);
+    res.status(500).json({ error: 'Failed to fetch plans' });
+  }
+});
+
+app.get('/api/admin/coupons', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const coupons = await storage.getAllCoupons();
+    res.json({ coupons });
+  } catch (error) {
+    console.error('Get coupons error:', error);
+    res.status(500).json({ error: 'Failed to fetch coupons' });
+  }
+});
+
+app.post('/api/admin/coupons', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { code, percentOff, amountOff, validFrom, validTo, maxRedemptions } = req.body;
+    
+    if (!code) {
+      return res.status(400).json({ error: 'Coupon code required' });
+    }
+
+    const coupon = await storage.createCoupon({
+      code,
+      percentOff,
+      amountOff,
+      validFrom: validFrom ? new Date(validFrom) : undefined,
+      validTo: validTo ? new Date(validTo) : undefined,
+      maxRedemptions
+    });
+
+    res.json({ coupon });
+  } catch (error) {
+    console.error('Create coupon error:', error);
+    res.status(500).json({ error: 'Failed to create coupon' });
+  }
+});
+
+app.get('/api/admin/articles', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const articles = await storage.getAllArticles();
+    res.json({ articles });
+  } catch (error) {
+    console.error('Get articles error:', error);
+    res.status(500).json({ error: 'Failed to fetch articles' });
+  }
+});
+
+app.get('/api/admin/consents', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const consents = await storage.getConsentEvents(500);
+    res.json({ consents });
+  } catch (error) {
+    console.error('Get consents error:', error);
+    res.status(500).json({ error: 'Failed to fetch consent events' });
+  }
+});
+
+app.get('/api/admin/audit', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const logs = await storage.getAuditLogs(500);
+    res.json({ logs });
+  } catch (error) {
+    console.error('Get audit logs error:', error);
+    res.status(500).json({ error: 'Failed to fetch audit logs' });
+  }
+});
+
+// Public consent tracking
+app.post('/api/public/consent', optionalAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { consent } = req.body;
+    
+    if (!consent || typeof consent !== 'object') {
+      return res.status(400).json({ error: 'Consent object required' });
+    }
+
+    await storage.createConsentEvent({
+      userId: req.user?.id,
+      ip: req.ip || req.socket?.remoteAddress,
+      userAgent: req.get('User-Agent'),
+      consent
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Consent tracking error:', error);
+    res.status(500).json({ error: 'Failed to track consent' });
+  }
 });
 
 (async () => {
