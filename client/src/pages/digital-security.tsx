@@ -606,7 +606,7 @@ export default function DigitalSecurity() {
             </div>
           </div>
 
-          <style jsx>{`
+          <style>{`
             @media (max-width: 900px) {
               .resources {
                 grid-template-columns: 1fr !important;
