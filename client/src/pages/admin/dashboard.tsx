@@ -24,6 +24,8 @@ import EnhancedFeatureFlags from '@/components/admin/enhanced-feature-flags';
 import WebhooksManager from '@/components/admin/webhooks-manager';
 import AdvancedFeatureFlags from '@/components/admin/advanced-feature-flags';
 import AdvancedWebhooks from '@/components/admin/advanced-webhooks';
+import { TamperEvidentAudit } from '@/components/admin/tamper-evident-audit';
+import { AdvancedCoupons } from '@/components/admin/advanced-coupons';
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -442,6 +444,20 @@ export default function AdminDashboard() {
         return (
           <div className="space-y-6">
             <AdvancedWebhooks />
+          </div>
+        );
+      
+      case 'tamper-audit':
+        return (
+          <div className="space-y-6">
+            <TamperEvidentAudit />
+          </div>
+        );
+      
+      case 'advanced-coupons':
+        return (
+          <div className="space-y-6">
+            <AdvancedCoupons />
           </div>
         );
       
