@@ -14,6 +14,7 @@ import {
   TrendingUp, BarChart3, PieChart, Server, ShieldCheck 
 } from 'lucide-react';
 import AdminLayout from '@/components/admin/admin-layout';
+import SecurityCenterCard from '@/components/admin/security-center-card';
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -142,6 +143,8 @@ export default function AdminDashboard() {
         return (
           <div className="space-y-6">
             <EnhancedStatsCards />
+            
+            <SecurityCenterCard />
             
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {/* System Status Widget */}

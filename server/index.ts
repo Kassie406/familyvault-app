@@ -177,6 +177,27 @@ app.get('/api/auth/me', optionalAuth, async (req: AuthenticatedRequest, res: Res
 });
 
 // Admin API routes (require ADMIN role or higher)
+
+// Security metrics for Admin Security Center
+app.get('/api/admin/security/metrics', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // TODO: Replace with real security metrics from database
+    const metrics = {
+      twoFactorEnabled: false, // Check if any admin users have 2FA enabled
+      activeSessions: 1, // Count active admin sessions
+      lastLogin: new Date().toISOString(),
+      ipAllowlistConfigured: false, // Check if IP restrictions are set
+      lastKeyRotation: null, // Last API key rotation date
+      adminUsers: 1, // Count of admin users
+      failedLogins24h: 0, // Failed login attempts in last 24h
+    };
+    res.json(metrics);
+  } catch (error) {
+    console.error('Get security metrics error:', error);
+    res.status(500).json({ error: 'Failed to fetch security metrics' });
+  }
+});
+
 app.get('/api/admin/users', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     // TODO: Add pagination and filtering
