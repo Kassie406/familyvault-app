@@ -140,7 +140,7 @@ export default function HomeBuying() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-[#eaeaea]">
+    <div className="min-h-screen" style={{background: 'var(--bg)', color: 'var(--text)'}}>
       <Navbar />
       
       {/* Hero Section */}
