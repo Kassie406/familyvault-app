@@ -10,6 +10,8 @@ import AdminDashboard from "@/pages/admin/dashboard";
 import AdminLayout from "@/components/admin/admin-layout";
 import Home from "@/pages/home";
 import Security from "@/pages/security";
+import PromoBanner from "@/components/marketing/promo-banner";
+import PromoPopupManager from "@/components/marketing/promo-popup";
 import SecurityDocumentation from "@/pages/security-documentation";
 import TrustOverview from "@/pages/trust-overview";
 import Reviews from "@/pages/reviews";
@@ -253,7 +255,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
+        <PromoBanner />
         <Router />
+        <PromoPopupManager />
         <ChatSupport />
       </TooltipProvider>
     </QueryClientProvider>

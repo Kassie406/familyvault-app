@@ -29,6 +29,7 @@ import { AdvancedCoupons } from '@/components/admin/advanced-coupons';
 import StatusWidget from '@/components/admin/status-widget';
 import ToastHost from '@/components/admin/toast-host';
 import StatusWatcher from '@/components/admin/status-watcher';
+import MarketingPromotions from '@/components/admin/marketing-promotions';
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -432,6 +433,12 @@ export default function AdminDashboard() {
         return (
           <div className="space-y-6">
             <AdvancedCoupons />
+          </div>
+        );
+      case 'marketing-promotions':
+        return (
+          <div className="space-y-6">
+            <MarketingPromotions />
           </div>
         );
       
