@@ -134,7 +134,7 @@ export default function WhenSomeoneDies() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0B0B0B] text-[#F3F4F6]">
+    <div className="min-h-screen" style={{background: 'var(--bg)', color: 'var(--text)'}}>
       <Navbar />
       
       {/* Hero Section */}

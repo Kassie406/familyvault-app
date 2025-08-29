@@ -139,7 +139,7 @@ export default function StartingAFamily() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-[#eaeaea]">
+    <div className="min-h-screen" style={{background: 'var(--bg)', color: 'var(--text)'}}>
       <Navbar />
       
       {/* Hero Section */}
@@ -180,7 +180,7 @@ export default function StartingAFamily() {
                 className="w-full h-full object-cover block"
                 width="640"
                 height="480"
-                fetchpriority="high"
+                fetchPriority="high"
               />
             </div>
           </div>
