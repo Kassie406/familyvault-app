@@ -184,7 +184,7 @@ function App() {
     );
   }
   
-  // Portal Interface
+  // Portal Interface - Main Family Access
   if (isPortalDomain) {
     return (
       <QueryClientProvider client={queryClient}>
@@ -192,7 +192,7 @@ function App() {
           <Toaster />
           <div className="bg-blue-600 text-white text-center py-2 px-4">
             <p className="text-sm font-medium">
-              🌐 Client Portal - FamilyCircle Secure Access Hub
+              🌐 Family Portal - Welcome to FamilyCircle Secure
             </p>
           </div>
           <Router />
@@ -201,7 +201,7 @@ function App() {
     );
   }
   
-  // Hub Interface
+  // Hub Interface - Professional Workspace (Future Use)
   if (isHubDomain) {
     return (
       <QueryClientProvider client={queryClient}>
@@ -209,7 +209,7 @@ function App() {
           <Toaster />
           <div className="bg-green-600 text-white text-center py-2 px-4">
             <p className="text-sm font-medium">
-              🏠 Family Hub - FamilyCircle Secure Central Command
+              🏢 Professional Hub - FamilyCircle Secure Workspace
             </p>
           </div>
           <Router />
