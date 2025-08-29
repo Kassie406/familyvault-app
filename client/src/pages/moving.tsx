@@ -23,9 +23,9 @@ import movingCoupleImage from "@assets/image_1756094383182.png";
 import digitalSecurityImage from "@assets/image_1756094591825.png";
 import mobileAppImage from "@assets/image_1756094660501.png";
 import askExpertsImage from "@assets/image_1756094723870.png";
-import jessicaProfileImage from "@assets/image_1756435585056.png";
-import michaelProfileImage from "@assets/image_1756435738962.png";
-import amandaProfileImage from "@assets/image_1756435935370.png";
+import jessicaProfileImage from "@assets/generated_images/Jessica_moving_reviewer_headshot_8e565bdd.png";
+import michaelProfileImage from "@assets/generated_images/Michael_moving_reviewer_headshot_367e0514.png";
+import amandaProfileImage from "@assets/generated_images/Amanda_moving_reviewer_headshot_63882a69.png";
 
 export default function Moving() {
   const features = [
