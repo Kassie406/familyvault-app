@@ -161,6 +161,26 @@ function Router() {
 }
 
 function App() {
+  // Check if this is an admin request based on subdomain
+  const isAdminDomain = window.location.hostname.split('.')[0] === 'console';
+  
+  if (isAdminDomain) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          {/* Admin Header Banner */}
+          <div className="bg-red-600 text-white text-center py-2 px-4">
+            <p className="text-sm font-medium">
+              🔒 Admin Console - FamilyVault Management Interface
+            </p>
+          </div>
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
