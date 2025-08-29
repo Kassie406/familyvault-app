@@ -336,10 +336,29 @@ section:nth-child(odd) {
 }
 
 .cta-button:hover {
-  background: var(--brand-2);
+  background: var(--brand-2) !important;
   color: #000 !important;
   box-shadow: 0 10px 24px rgba(240,185,11,.18);
   transform: translateY(-2px);
+}
+
+/* Ultra-specific overrides to ensure black text on hover */
+.hero .cta-button:hover,
+a.cta-button:hover,
+[data-testid="button-get-started-hero"]:hover,
+section .cta-button:hover {
+  background: var(--brand-2) !important;
+  color: #000000 !important;
+  text-decoration: none !important;
+}
+
+/* Force black text specifically for gold/brand colored buttons on hover */
+.cta-button:hover,
+.btn-primary:hover,
+.btn-gold:hover,
+button[class*="bg-"]:hover,
+a[class*="bg-"]:hover {
+  color: #000000 !important;
 }
 
 /* FAQ Enhancement */
