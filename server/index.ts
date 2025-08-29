@@ -8,6 +8,11 @@ import { setupVite, serveStatic, log } from "./vite";
 import { type AuthenticatedRequest, optionalAuth, requireAuth, loginUser, registerUser } from "./auth";
 import { storage } from "./storage";
 import { AuditService, getAuditContext } from "./audit-service";
+import { escalationWorker } from "./escalation-worker";
+import { smsService } from "./sms-service";
+import { eq, desc, and } from "drizzle-orm";
+import { incidents, oncallTargets } from "@shared/schema";
+import { db as dbConnection } from "./db";
 
 const app = express();
 
@@ -1485,6 +1490,90 @@ app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequ
   }
 });
 
+// Incident management API routes
+app.get('/api/admin/incidents', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { status = 'all' } = req.query;
+    
+    let query = dbConnection.select().from(incidents);
+    
+    if (status === 'open') {
+      query = query.where(eq(incidents.status, 'open'));
+    } else if (status === 'acknowledged') {
+      query = query.where(eq(incidents.status, 'acknowledged'));
+    } else if (status === 'closed') {
+      query = query.where(eq(incidents.status, 'closed'));
+    }
+    
+    const result = await query.orderBy(desc(incidents.openedAt)).limit(100);
+    
+    res.json({ incidents: result });
+  } catch (error) {
+    console.error('Get incidents error:', error);
+    res.status(500).json({ error: 'Failed to fetch incidents' });
+  }
+});
+
+app.post('/api/admin/incidents/:id/acknowledge', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await dbConnection.update(incidents)
+      .set({ 
+        status: 'acknowledged',
+        acknowledgedAt: new Date(),
+        acknowledgedBy: req.user!.id
+      })
+      .where(eq(incidents.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Incident not found' });
+    }
+    
+    // Log the acknowledgment
+    const auditService = new AuditService();
+    await auditService.writeAudit(
+      getAuditContext(req),
+      {
+        action: 'incident.acknowledge',
+        objectType: 'incident',
+        objectId: id,
+        after: { acknowledgedBy: req.user!.id, acknowledgedAt: new Date() }
+      }
+    );
+    
+    res.json({ success: true, incident: result[0] });
+  } catch (error) {
+    console.error('Acknowledge incident error:', error);
+    res.status(500).json({ error: 'Failed to acknowledge incident' });
+  }
+});
+
+app.get('/api/admin/oncall-targets', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const targets = await dbConnection.select()
+      .from(oncallTargets)
+      .where(eq(oncallTargets.active, true))
+      .orderBy(oncallTargets.tier);
+    
+    res.json({ targets });
+  } catch (error) {
+    console.error('Get oncall targets error:', error);
+    res.status(500).json({ error: 'Failed to fetch oncall targets' });
+  }
+});
+
+app.get('/api/admin/sms/status', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const status = smsService.getConfigurationStatus();
+    res.json(status);
+  } catch (error) {
+    console.error('SMS status error:', error);
+    res.status(500).json({ error: 'Failed to get SMS status' });
+  }
+});
+
 // Public consent tracking
 app.post('/api/public/consent', optionalAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -1539,5 +1628,9 @@ app.post('/api/public/consent', optionalAuth, async (req: AuthenticatedRequest, 
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Start the escalation worker
+    escalationWorker.start();
+    log('Escalation worker started');
   });
 })();

@@ -7,6 +7,7 @@ import ChatSupport from "@/components/chat-support";
 import NotFound from "@/pages/not-found";
 import AdminLogin from "@/pages/admin/login";
 import AdminDashboard from "@/pages/admin/dashboard";
+import AdminIncidents from "@/pages/admin/incidents";
 import AdminLayout from "@/components/admin/admin-layout";
 import Home from "@/pages/home";
 import Security from "@/pages/security";
@@ -88,6 +89,7 @@ function AdminRouter() {
   return (
     <Switch>
       <Route path="/dashboard" component={AdminDashboard} />
+      <Route path="/incidents" component={AdminIncidents} />
       <Route path="/login" component={AdminLogin} />
       <Route path="/" component={AdminLogin} />
       <Route component={AdminLogin} />

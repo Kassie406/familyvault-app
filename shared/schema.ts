@@ -111,6 +111,63 @@ export const securitySettings = pgTable("security_settings", {
   updatedBy: varchar("updated_by"),
 });
 
+// Status monitoring and alerting tables
+export const statusAlertState = pgTable("status_alert_state", {
+  component: text("component").primaryKey(),
+  lastState: boolean("last_state"),
+  lastAlertAt: timestamp("last_alert_at"),
+  cooldownUntil: timestamp("cooldown_until"),
+  dailySent: integer("daily_sent").default(0).notNull(),
+  counterDate: text("counter_date").default(sql`CURRENT_DATE`).notNull(),
+});
+
+export const statusMaintenance = pgTable("status_maintenance", {
+  id: boolean("id").primaryKey().default(true),
+  enabled: boolean("enabled").default(false).notNull(),
+  reason: text("reason"),
+  until: timestamp("until"),
+});
+
+export const statusMaintenanceComponents = pgTable("status_maintenance_components", {
+  component: text("component").primaryKey(),
+  enabled: boolean("enabled").default(false).notNull(),
+  reason: text("reason"),
+  until: timestamp("until"),
+});
+
+export const statusQuietHours = pgTable("status_quiet_hours", {
+  id: boolean("id").primaryKey().default(true),
+  enabled: boolean("enabled").default(false).notNull(),
+  tz: text("tz").default("UTC").notNull(),
+  startMin: integer("start_min").default(1380).notNull(), // 23:00
+  endMin: integer("end_min").default(420).notNull(), // 07:00
+  criticalOnly: boolean("critical_only").default(true).notNull(),
+});
+
+// Incident management tables
+export const incidents = pgTable("incidents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  component: text("component").notNull(),
+  severity: text("severity").notNull(), // S1, S2, etc.
+  openedAt: timestamp("opened_at").defaultNow().notNull(),
+  acknowledgedAt: timestamp("acknowledged_at"),
+  acknowledgedBy: varchar("acknowledged_by"),
+  closedAt: timestamp("closed_at"),
+  status: text("status").default("open").notNull(), // open, acknowledged, closed
+  lastEscalationTier: integer("last_escalation_tier").default(0).notNull(),
+  description: text("description"),
+});
+
+export const oncallTargets = pgTable("oncall_targets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tier: integer("tier").notNull(),
+  kind: text("kind").notNull(), // email, sms, voice
+  to: text("to").notNull(),
+  name: text("name"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -189,6 +246,34 @@ export const insertSecuritySettingSchema = createInsertSchema(securitySettings).
   updatedBy: true,
 });
 
+export const insertIncidentSchema = createInsertSchema(incidents).pick({
+  component: true,
+  severity: true,
+  acknowledgedAt: true,
+  acknowledgedBy: true,
+  closedAt: true,
+  status: true,
+  lastEscalationTier: true,
+  description: true,
+});
+
+export const insertOncallTargetSchema = createInsertSchema(oncallTargets).pick({
+  tier: true,
+  kind: true,
+  to: true,
+  name: true,
+  active: true,
+});
+
+export const insertStatusAlertStateSchema = createInsertSchema(statusAlertState).pick({
+  component: true,
+  lastState: true,
+  lastAlertAt: true,
+  cooldownUntil: true,
+  dailySent: true,
+  counterDate: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -216,3 +301,12 @@ export type AdminSession = typeof adminSessions.$inferSelect;
 
 export type InsertSecuritySetting = z.infer<typeof insertSecuritySettingSchema>;
 export type SecuritySetting = typeof securitySettings.$inferSelect;
+
+export type InsertIncident = z.infer<typeof insertIncidentSchema>;
+export type Incident = typeof incidents.$inferSelect;
+
+export type InsertOncallTarget = z.infer<typeof insertOncallTargetSchema>;
+export type OncallTarget = typeof oncallTargets.$inferSelect;
+
+export type InsertStatusAlertState = z.infer<typeof insertStatusAlertStateSchema>;
+export type StatusAlertState = typeof statusAlertState.$inferSelect;
