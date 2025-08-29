@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser";
+import crypto from "crypto";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { type AuthenticatedRequest, optionalAuth, requireAuth, loginUser, registerUser } from "./auth";
@@ -270,6 +271,88 @@ app.get('/api/admin/consents', requireAuth('ADMIN'), async (req: AuthenticatedRe
   } catch (error) {
     console.error('Get consents error:', error);
     res.status(500).json({ error: 'Failed to fetch consent events' });
+  }
+});
+
+// Webhook endpoints - simplified for now, returning empty results
+app.get('/api/admin/webhooks', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // TODO: Implement webhook storage methods
+    res.json({ items: [] });
+  } catch (error) {
+    console.error('Get webhooks error:', error);
+    res.status(500).json({ error: 'Failed to fetch webhook endpoints' });
+  }
+});
+
+app.post('/api/admin/webhooks', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { url, events, active } = req.body;
+    
+    if (!url || !events || !Array.isArray(events)) {
+      return res.status(400).json({ error: 'URL and events array required' });
+    }
+
+    // TODO: Implement webhook creation
+    const webhook = {
+      id: crypto.randomUUID(),
+      url,
+      events,
+      active: active ?? true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    res.status(201).json(webhook);
+  } catch (error) {
+    console.error('Create webhook error:', error);
+    res.status(500).json({ error: 'Failed to create webhook endpoint' });
+  }
+});
+
+app.patch('/api/admin/webhooks/:id', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { url, events, active } = req.body;
+    
+    // TODO: Implement webhook update
+    const webhook = {
+      id,
+      url: url || 'https://example.com/webhook',
+      events: events || ['user.created'],
+      active: active ?? true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    res.json(webhook);
+  } catch (error) {
+    console.error('Update webhook error:', error);
+    res.status(500).json({ error: 'Failed to update webhook endpoint' });
+  }
+});
+
+app.delete('/api/admin/webhooks/:id', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    // TODO: Implement webhook deletion
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete webhook error:', error);
+    res.status(500).json({ error: 'Failed to delete webhook endpoint' });
+  }
+});
+
+app.post('/api/admin/webhooks/:id/test', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    // TODO: Implement webhook testing
+    res.json({ status: 200, ok: true });
+  } catch (error) {
+    console.error('Test webhook error:', error);
+    res.status(500).json({ error: 'Failed to test webhook endpoint' });
   }
 });
 
