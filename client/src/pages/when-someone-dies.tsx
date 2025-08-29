@@ -4,9 +4,9 @@ import memorialImage from "@assets/image_1756096658862.png";
 import digitalSecurityImage from "@assets/image_1756096704415.png";
 import mobileAppImage from "@assets/image_1756096804669.png";
 import askExpertsImage from "@assets/image_1756096864006.png";
-import michaelProfileImage from "@assets/generated_images/Michael_when_someone_dies_reviewer_headshot_7b4f832a.png";
-import sarahProfileImage from "@assets/generated_images/Sarah_when_someone_dies_reviewer_headshot_9c5e6d14.png";
-import davidProfileImage from "@assets/generated_images/David_when_someone_dies_reviewer_headshot_2a8f7b39.png";
+import michaelProfileImage from "@assets/generated_images/Michael_when_someone_dies_reviewer_headshot_52b5bc9d.png";
+import sarahProfileImage from "@assets/generated_images/Sarah_when_someone_dies_reviewer_headshot_3798da7a.png";
+import davidProfileImage from "@assets/generated_images/David_when_someone_dies_reviewer_headshot_0f26d402.png";
 import { 
   Leaf,
   Heart, 
