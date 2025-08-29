@@ -23,6 +23,9 @@ import movingCoupleImage from "@assets/image_1756094383182.png";
 import digitalSecurityImage from "@assets/image_1756094591825.png";
 import mobileAppImage from "@assets/image_1756094660501.png";
 import askExpertsImage from "@assets/image_1756094723870.png";
+import jessicaProfileImage from "@assets/image_1756435585056.png";
+import michaelProfileImage from "@assets/image_1756435738962.png";
+import amandaProfileImage from "@assets/image_1756435935370.png";
 
 export default function Moving() {
   const features = [
@@ -110,9 +113,9 @@ export default function Moving() {
   ];
 
   const testimonials = [
-    { name: "Jessica M.", title: "Member since 2022", rating: 5, quote: "FamilyVault made our cross-country move so much smoother — everything was organized and accessible." },
-    { name: "Michael K.", title: "Member since 2023", rating: 5, quote: "Lost our moving contract during the chaos, but having it in FamilyVault saved us from a huge headache." },
-    { name: "Amanda R.", title: "Member since 2021", rating: 5, quote: "Being able to share documents with our family during the move was invaluable." }
+    { name: "Jessica M.", title: "Member since 2022", rating: 5, quote: "FamilyVault made our cross-country move so much smoother — everything was organized and accessible.", image: jessicaProfileImage },
+    { name: "Michael K.", title: "Member since 2023", rating: 5, quote: "Lost our moving contract during the chaos, but having it in FamilyVault saved us from a huge headache.", image: michaelProfileImage },
+    { name: "Amanda R.", title: "Member since 2021", rating: 5, quote: "Being able to share documents with our family during the move was invaluable.", image: amandaProfileImage }
   ];
 
   return (
@@ -449,9 +452,19 @@ export default function Moving() {
                   ))}
                 </div>
                 <p className="italic mb-4">"{testimonial.quote}"</p>
-                <div className="w-16 h-16 bg-gradient-to-br from-[#f1c232] to-[#d4af37] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#f1c232]">
-                  <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
-                </div>
+                {testimonial.image ? (
+                  <div className="w-16 h-16 mx-auto mb-3 rounded-full border-2 border-[#f1c232] overflow-hidden">
+                    <img 
+                      src={testimonial.image} 
+                      alt={`${testimonial.name} profile photo`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 bg-gradient-to-br from-[#f1c232] to-[#d4af37] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#f1c232]">
+                    <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
+                  </div>
+                )}
                 <div className="font-semibold text-sm text-[#fff]">{testimonial.name}</div>
                 <div className="name" style={{ color: '#bdbdbd', fontSize: '12px', marginTop: '8px' }}>{testimonial.title}</div>
               </div>
