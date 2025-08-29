@@ -427,18 +427,18 @@ export default function Neurodiversity() {
       </section>
 
       {/* Meet FamilyVault */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-[#0b0b0b]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+          <h2 className="text-3xl lg:text-4xl font-bold text-[#e9e9e9] mb-6">
             Meet FamilyVault — Your Life, Organized
           </h2>
-          <p className="text-lg text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p className="text-lg text-[#b3b3b3] mb-8 max-w-3xl mx-auto">
             From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/pricing"
             data-testid="button-get-started-free"
-            className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
+            className="bg-[#f4c542] hover:bg-[#d4aa2e] text-[#111] px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
           >
             Get started free
           </a>
