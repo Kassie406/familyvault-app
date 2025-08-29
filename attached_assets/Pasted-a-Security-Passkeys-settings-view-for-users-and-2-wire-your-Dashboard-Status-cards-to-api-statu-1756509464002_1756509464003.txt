@@ -1,0 +1,263 @@
+a Security → Passkeys settings view for users and (2) wire your Dashboard Status cards to /api/status.
+
+1) Security → Passkeys (Settings page)
+A) API routes (server)
+
+You already have:
+
+GET /api/webauthn/credentials (list)
+
+DELETE /api/webauthn/credentials/:id
+
+GET /api/webauthn/registration/options
+
+POST /api/webauthn/registration/verify
+
+Add one small helper route so the UI can show whether passkey sign-in is available:
+
+// app.js
+app.get('/api/webauthn/config', (req, res) => {
+  res.json({
+    rpID: process.env.RP_ID,
+    origins: (process.env.RP_ORIGINS || '').split(',').map(s => s.trim()),
+    enabled: !!process.env.RP_ID,
+  });
+});
+
+B) Settings page HTML (drop into your settings/profile template)
+
+This fits your dark theme (yellow accents). It gives: add passkey, list existing, delete.
+
+<section class="card bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+  <header class="flex items-center justify-between mb-4">
+    <div>
+      <h2 class="text-xl font-semibold text-neutral-100">Passkeys</h2>
+      <p class="text-sm text-neutral-400">Use device passkeys for stronger, phishing-resistant sign-in.</p>
+    </div>
+    <button id="btn-add-passkey"
+            class="btn btn-primary">
+      + Add passkey
+    </button>
+  </header>
+
+  <div id="passkey-empty" class="hidden text-sm text-neutral-400">
+    You don’t have any passkeys yet.
+  </div>
+
+  <ul id="passkey-list" class="divide-y divide-neutral-800"></ul>
+
+  <template id="tpl-passkey-item">
+    <li class="py-3 flex items-center justify-between">
+      <div class="space-y-1">
+        <div class="text-neutral-200 font-medium">
+          <span class="pk-device"></span>
+          <span class="ml-2 text-neutral-500 text-xs pk-backup"></span>
+        </div>
+        <div class="text-xs text-neutral-500">Added <span class="pk-date"></span></div>
+      </div>
+      <button class="btn btn-ghost text-red-400 hover:text-red-300 pk-delete">Remove</button>
+    </li>
+  </template>
+</section>
+
+<style>
+  .btn { padding:.6rem .9rem; border-radius:.75rem; font-weight:600; }
+  .btn-primary{ background:#eab308; color:#0a0a0a; }
+  .btn-primary:hover{ filter:brightness(1.05); }
+  .btn-ghost{ background:transparent; }
+</style>
+
+<script type="module">
+  import {
+    startRegistration
+  } from 'https://cdn.skypack.dev/@simplewebauthn/browser';
+
+  const $list = document.querySelector('#passkey-list');
+  const $empty = document.querySelector('#passkey-empty');
+  const $add = document.querySelector('#btn-add-passkey');
+  const $tpl = document.querySelector('#tpl-passkey-item');
+
+  async function fetchJSON(url, opts={}) {
+    const r = await fetch(url, { credentials:'include', ...opts });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
+
+  async function loadPasskeys() {
+    const items = await fetchJSON('/api/webauthn/credentials');
+    $list.innerHTML = '';
+    if (!items.length) {
+      $empty.classList.remove('hidden');
+      return;
+    }
+    $empty.classList.add('hidden');
+
+    for (const item of items) {
+      const node = $tpl.content.cloneNode(true);
+      node.querySelector('.pk-device').textContent =
+        item.device_type === 'singleDevice' ? 'This device passkey' : 'Multi-device passkey';
+      node.querySelector('.pk-backup').textContent =
+        item.backup_state ? '(Backed up)' : '';
+      node.querySelector('.pk-date').textContent =
+        new Date(item.created_at).toLocaleString();
+      const del = node.querySelector('.pk-delete');
+      del.addEventListener('click', async () => {
+        if (!confirm('Remove this passkey? You may lose sign-in from that device.')) return;
+        await fetchJSON(`/api/webauthn/credentials/${item.id}`, { method:'DELETE', credentials:'include' });
+        await loadPasskeys();
+      });
+      $list.appendChild(node);
+    }
+  }
+
+  async function addPasskey() {
+    try {
+      const cfg = await fetchJSON('/api/webauthn/config');
+      if (!cfg.enabled) return alert('Passkeys are not enabled.');
+
+      // 1) get options
+      const options = await fetchJSON('/api/webauthn/registration/options');
+      // 2) invoke platform authenticator
+      const att = await startRegistration(options);
+      // 3) send to server
+      const resp = await fetchJSON('/api/webauthn/registration/verify', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(att),
+        credentials:'include'
+      });
+      if (resp.ok) {
+        await loadPasskeys();
+        alert('Passkey added!');
+      } else {
+        alert('Failed to add passkey.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Could not add passkey. Your browser/device may not support it.');
+    }
+  }
+
+  $add.addEventListener('click', addPasskey);
+  loadPasskeys();
+</script>
+
+
+This module uses the /api/webauthn/* routes you already have. It stays inside your theme and needs no extra build step.
+
+2) Dashboard Status Cards wiring
+
+You exposed /api/status. Here’s a small front-end controller to light up cards like DB, Storage, Auth, CSRF with OK/FAIL badges every 30s.
+
+A) Minimal HTML for cards
+<section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+  <div class="status-card" data-key="db">
+    <h3 class="t">Database</h3>
+    <span class="badge">…</span>
+    <div class="err mt-2 text-xs text-neutral-500"></div>
+  </div>
+  <div class="status-card" data-key="storage">
+    <h3 class="t">Object Storage</h3>
+    <span class="badge">…</span>
+    <div class="err mt-2 text-xs text-neutral-500"></div>
+  </div>
+  <div class="status-card" data-key="auth">
+    <h3 class="t">Auth</h3>
+    <span class="badge">…</span>
+    <div class="sub text-xs text-neutral-400 mt-1"></div>
+  </div>
+  <div class="status-card" data-key="csrf">
+    <h3 class="t">CSRF</h3>
+    <span class="badge">…</span>
+  </div>
+</section>
+
+<style>
+  .status-card{ background:#0b0b0b; border:1px solid #1f1f1f; border-radius:1rem; padding:1rem; }
+  .status-card .badge{
+    display:inline-flex; align-items:center; gap:.5rem;
+    font-weight:700; font-size:.8rem; padding:.25rem .6rem; border-radius:.6rem;
+    background:#1f2937; color:#e5e7eb;
+  }
+  .ok   { background:#16a34a22 !important; color:#86efac !important; }
+  .fail { background:#7f1d1d22 !important; color:#fca5a5 !important; }
+</style>
+
+B) Polling script
+<script type="module">
+  const cards = [...document.querySelectorAll('.status-card')]
+    .reduce((m, el) => (m[el.dataset.key] = el, m), {});
+
+  async function refresh() {
+    try {
+      const r = await fetch('/api/status', { credentials:'include' });
+      const data = await r.json();
+
+      update('db', data.db);
+      update('storage', data.storage);
+      update('csrf', data.csrf);
+      update('auth', data.auth, (el, v) => {
+        el.querySelector('.sub').textContent = v?.methods ? `Methods: ${v.methods.join(', ')}` : '';
+      });
+    } catch(e) {
+      // If status endpoint fails, mark all as fail once
+      ['db','storage','auth','csrf'].forEach(k => update(k, {ok:false, error:'status endpoint unreachable'}));
+    }
+  }
+
+  function update(key, val, extra) {
+    const el = cards[key]; if (!el) return;
+    const badge = el.querySelector('.badge');
+    badge.textContent = val?.ok ? 'OK' : 'FAIL';
+    badge.classList.toggle('ok', !!val?.ok);
+    badge.classList.toggle('fail', !val?.ok);
+    const err = el.querySelector('.err');
+    if (err) err.textContent = val?.ok ? '' : (val?.error || '');
+    if (extra) extra(el, val);
+  }
+
+  refresh();
+  setInterval(refresh, 30_000);
+</script>
+
+
+This makes the “System Status” section live and useful without any extra libraries.
+
+3) Optional guardrails (high-risk actions)
+
+Quick middleware you can reuse to force re-auth (passkey or TOTP) for sensitive endpoints like exporting docs, changing billing, adding new SSO, etc.
+
+// highrisk.js
+const THIRTY_MIN = 30 * 60 * 1000;
+
+function requireRecentReauth(req, res, next) {
+  const t = req.session.lastStrongAuthAt;
+  if (t && (Date.now() - t) < THIRTY_MIN) return next();
+  return res.status(401).json({ error: 're_auth_required' });
+}
+
+// Call this after a successful passkey login or TOTP step-up:
+function markStrongAuth(req) {
+  req.session.lastStrongAuthAt = Date.now();
+}
+
+module.exports = { requireRecentReauth, markStrongAuth };
+
+
+Use:
+
+const { requireRecentReauth, markStrongAuth } = require('./highrisk');
+
+// After WebAuthn verification succeeds:
+markStrongAuth(req);
+
+// Protect sensitive routes:
+app.post('/api/billing/plan', requireAuth, requireRecentReauth, async (req,res)=>{ /*…*/ });
+
+What this gives you
+
+A clean Passkeys management UI your members can use immediately
+
+Live status cards on your admin dashboard
+
+Hooks to enforce step-up re-auth for critical operations
