@@ -4,9 +4,9 @@ import familyImage from "@assets/image_1756096399044.png";
 import digitalSecurityImage from "@assets/image_1756096462942.png";
 import mobileAppImage from "@assets/image_1756096537141.png";
 import askExpertsImage from "@assets/image_1756096610126.png";
-import mariaProfileImage from "@assets/generated_images/Maria_disaster_planning_reviewer_headshot_2bb05e36.png";
-import jamesProfileImage from "@assets/generated_images/Michael_estate_planning_reviewer_headshot_de7c16fa.png";
-import lisaProfileImage from "@assets/generated_images/Linda_estate_planning_reviewer_headshot_ca4073a1.png";
+import mariaProfileImage from "@assets/generated_images/Maria_starting_family_reviewer_headshot_bb9a429b.png";
+import jamesProfileImage from "@assets/generated_images/James_starting_family_reviewer_headshot_6f34dc89.png";
+import lisaProfileImage from "@assets/generated_images/Lisa_starting_family_reviewer_headshot_48d53e6d.png";
 import { 
   Baby,
   Heart, 
