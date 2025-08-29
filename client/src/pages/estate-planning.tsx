@@ -165,9 +165,9 @@ export default function EstatePlanning() {
                 <a 
                   href="/pricing"
                   data-testid="link-see-estate-features"
-                  className="text-[#EDEDED] hover:text-[#E7C74D] hover:border-[#E7C74D] border-b border-[rgba(255,255,255,0.08)] min-h-[44px] flex items-center focus:outline-none focus:ring-2 focus:ring-[#8EC8FF] focus:ring-offset-2"
+                  className="text-[#D1D5DB] hover:text-[#F3F4F6] underline underline-offset-4 min-h-[44px] flex items-center"
                 >
-                  See estate planning features →
+                  See what's included →
                 </a>
               </div>
             </div>
