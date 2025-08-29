@@ -22,9 +22,9 @@ import laptopSecurityImage from "@assets/image_1756094818120.png";
 import digitalSecurityImage from "@assets/image_1756094885841.png";
 import mobileAppImage from "@assets/image_1756094986045.png";
 import askExpertsImage from "@assets/image_1756095055472.png";
-import marcusProfileImage from "@assets/generated_images/Marcus_security_reviewer_headshot_4a8e6f12.png";
-import sarahProfileImage from "@assets/generated_images/Sarah_security_reviewer_headshot_9b5c2d83.png";
-import kevinProfileImage from "@assets/generated_images/Kevin_security_reviewer_headshot_1e7f4a59.png";
+import marcusProfileImage from "@assets/generated_images/Marcus_security_reviewer_headshot_48a71e8c.png";
+import sarahProfileImage from "@assets/generated_images/Sarah_security_reviewer_headshot_7297a04d.png";
+import kevinProfileImage from "@assets/generated_images/Kevin_security_reviewer_headshot_c79a848a.png";
 
 export default function DigitalSecurity() {
   const features = [
