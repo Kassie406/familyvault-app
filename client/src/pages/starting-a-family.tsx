@@ -167,9 +167,9 @@ export default function StartingAFamily() {
                 <a 
                   href="/pricing"
                   data-testid="link-see-family-features"
-                  className="inline-flex items-center gap-2 border border-[rgba(255,255,255,0.16)] text-[#eaeaea] bg-transparent px-6 py-3 rounded-full hover:border-[#d7b43e] hover:text-[#d7b43e] transition-colors min-h-[44px] focus:outline-none focus:ring-[0_0_0_1px_rgba(215,180,62,0.3),0_0_0_4px_rgba(215,180,62,0.12)]"
+                  className="text-[#D1D5DB] hover:text-[#F3F4F6] underline underline-offset-4 min-h-[44px] flex items-center"
                 >
-                  See family planning features →
+                  See what's included →
                 </a>
               </div>
             </div>
