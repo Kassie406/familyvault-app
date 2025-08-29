@@ -159,17 +159,21 @@ app.post('/api/auth/logout', (req: AuthenticatedRequest, res: Response) => {
   res.json({ success: true });
 });
 
-app.get('/api/auth/me', requireAuth(), async (req: AuthenticatedRequest, res: Response) => {
-  res.json({
-    user: {
-      id: req.user!.id,
-      username: req.user!.username,
-      email: req.user!.email,
-      name: req.user!.name,
-      role: req.user!.role,
-      orgId: req.user!.orgId
-    }
-  });
+app.get('/api/auth/me', optionalAuth, async (req: AuthenticatedRequest, res: Response) => {
+  if (req.user) {
+    res.json({
+      user: {
+        id: req.user.id,
+        username: req.user.username,
+        email: req.user.email,
+        name: req.user.name,
+        role: req.user.role,
+        orgId: req.user.orgId
+      }
+    });
+  } else {
+    res.status(401).json({ error: 'Not authenticated' });
+  }
 });
 
 // Admin API routes (require ADMIN role or higher)

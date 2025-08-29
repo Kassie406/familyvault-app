@@ -227,9 +227,6 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
-          <div style={{backgroundColor: 'red', padding: '10px', color: 'white', textAlign: 'center'}}>
-            DEBUG: Admin Console Mode Active - {hostname}
-          </div>
           <AdminRouter />
         </TooltipProvider>
       </QueryClientProvider>
