@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import AdminLayout from '@/components/admin/admin-layout';
 import SecurityCenterCard from '@/components/admin/security-center-card';
+import SessionManagement from '@/components/admin/session-management';
 
 export default function AdminDashboard() {
   const { toast } = useToast();

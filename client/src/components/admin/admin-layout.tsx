@@ -10,6 +10,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
 import { Input } from '@/components/ui/input';
+import GlobalSearch, { useGlobalSearch } from './global-search';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -20,6 +21,7 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children, activeSection = 'overview', onSectionChange }: AdminLayoutProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { isOpen: isSearchOpen, setIsOpen: setIsSearchOpen } = useGlobalSearch();
 
   const { data: user } = useQuery({
     queryKey: ['/api/auth/me'],
@@ -153,14 +155,16 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
               </div>
 
               <div className="flex items-center space-x-4">
-                {/* Search Bar */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input 
-                    placeholder="Search..." 
-                    className="pl-10 w-64 bg-gray-50 border-gray-200"
-                  />
-                </div>
+                {/* Global Search (⌘K) */}
+                <Button 
+                  variant="outline" 
+                  className="w-64 justify-start text-gray-500 bg-gray-50 border-gray-200 hover:bg-gray-100"
+                  onClick={() => setIsSearchOpen(true)}
+                  data-testid="button-global-search"
+                >
+                  <Search className="w-4 h-4 mr-2" />
+                  Search everywhere... ⌘K
+                </Button>
                 
                 {/* Toolbar Actions */}
                 <Button variant="outline" size="sm">
@@ -181,6 +185,9 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
           {children}
         </main>
       </div>
+
+      {/* Global Search Modal */}
+      <GlobalSearch isOpen={isSearchOpen} onOpenChange={setIsSearchOpen} />
     </div>
   );
 }
