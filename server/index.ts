@@ -13,7 +13,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { type AuthenticatedRequest, optionalAuth, requireAuth, loginUser, registerUser } from "./auth";
 import { storage } from "./storage";
-import { AuditService, getAuditContext } from "./audit-service";
+import { requireRecentReauth, markStrongAuth } from "./reauth-middleware";
 import { escalationWorker } from "./escalation-worker";
 import { smsService } from "./sms-service";
 import { eq, desc, and } from "drizzle-orm";
@@ -322,6 +322,12 @@ app.post('/api/auth/webauthn/register/complete', requireAuth, csrfProtection, as
       credential,
       expectedChallenge
     );
+    
+    if (result.verified) {
+      // Mark strong authentication event for passkey registration
+      markStrongAuth(req);
+    }
+    
     res.json(result);
   } catch (error) {
     console.error('WebAuthn registration completion failed:', error);
@@ -360,6 +366,10 @@ app.post('/api/auth/webauthn/authenticate/complete', async (req: Request, res: R
           maxAge: 30 * 60 * 1000, // 30 minutes for security
           path: '/'
         });
+        
+        // Mark strong authentication event for passkey login
+        markStrongAuth(req);
+        
         res.json({ success: true, user: { id: user.id, email: user.email, role: user.role } });
       } else {
         res.status(401).json({ error: 'User not found' });
@@ -394,6 +404,20 @@ app.delete('/api/auth/webauthn/credentials/:id', requireAuth, csrfProtection, as
     console.error('Failed to remove WebAuthn credential:', error);
     res.status(500).json({ error: 'Failed to remove WebAuthn credential' });
   }
+});
+
+// WebAuthn configuration endpoint for frontend
+app.get('/api/auth/webauthn/config', (req: Request, res: Response) => {
+  const rpId = process.env.NODE_ENV === 'production' ? 'familycirclesecure.com' : 'localhost';
+  const origins = process.env.NODE_ENV === 'production' 
+    ? ['https://familycirclesecure.com'] 
+    : ['http://localhost:5000'];
+  
+  res.json({
+    rpID: rpId,
+    origins: origins,
+    enabled: true // Always enabled since we have WebAuthn service
+  });
 });
 
 app.get('/api/auth/me', optionalAuth, async (req: AuthenticatedRequest, res: Response) => {

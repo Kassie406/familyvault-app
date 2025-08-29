@@ -21,6 +21,7 @@ import ScheduleDemo from "@/pages/schedule-demo";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import SignupOptions from "@/pages/signup-options";
+import Settings from "@/pages/settings";
 import ChildInformation from "@/pages/child-information";
 import DisasterPlanning from "@/pages/disaster-planning";
 import ElderlyParents from "@/pages/elderly-parents";
@@ -110,6 +111,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/signup-options" component={SignupOptions} />
+      <Route path="/settings" component={Settings} />
       <Route path="/child-information" component={ChildInformation} />
       <Route path="/disaster-planning" component={DisasterPlanning} />
       <Route path="/elderly-parents" component={ElderlyParents} />
