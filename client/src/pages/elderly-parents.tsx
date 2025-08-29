@@ -9,9 +9,9 @@ import familyCookingImage from "@assets/image_1756092907432.png";
 import digitalSecurityImage from "@assets/image_1756093157066.png";
 import mobileAppInterfaceImage from "@assets/image_1756093223145.png";
 import askExpertsImage from "@assets/image_1756093309581.png";
-import sarahProfileImage from "@assets/image_1756093411593.png";
-import davidProfileImage from "@assets/image_1756093511583.png";
-import mariaProfileImage from "@assets/image_1756093597709.png";
+import margaretProfileImage from "@assets/generated_images/Margaret_elderly_care_reviewer_38c3019a.png";
+import robertProfileImage from "@assets/generated_images/Robert_elderly_care_reviewer_56f5005b.png";
+import lindaProfileImage from "@assets/generated_images/Linda_elderly_care_reviewer_32776375.png";
 import guideBookImage from "@assets/image_1756093681107.png";
 import { 
   Heart, 
@@ -155,9 +155,9 @@ export default function ElderlyParents() {
   ];
 
   const testimonials = [
-    { name: "Sarah & Mike", title: "Members since 2022", rating: 5, quote: "FamilyVault made combining our finances and updating our documents after marriage stress-free.", image: sarahProfileImage },
-    { name: "Jessica L.", title: "Member since 2021", rating: 5, quote: "The name change process was seamless with everything stored in one place.", image: davidProfileImage },
-    { name: "David & Emma", title: "Members since 2023", rating: 5, quote: "Sharing documents securely gave us both peace of mind.", image: mariaProfileImage }
+    { name: "Margaret T.", title: "Member since 2022", rating: 5, quote: "FamilyVault helped me organize all my mother's medical records and legal documents in one secure place.", image: margaretProfileImage },
+    { name: "Robert K.", title: "Member since 2021", rating: 5, quote: "Having my father's medications and doctor contacts organized has made caregiving so much easier.", image: robertProfileImage },
+    { name: "Linda M.", title: "Member since 2023", rating: 5, quote: "When my parents needed emergency care, all their information was instantly accessible to the medical team.", image: lindaProfileImage }
   ];
 
   const articles = [
