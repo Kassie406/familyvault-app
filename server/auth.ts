@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import argon2 from 'argon2';
+import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { storage } from './storage';
 import { type User } from '@shared/schema';
@@ -25,6 +27,15 @@ export interface AuthenticatedRequest extends Request {
   isAdminRequest?: boolean;
   isPortalRequest?: boolean;
   isHubRequest?: boolean;
+  auditCtx?: {
+    actorId: string;
+    actorEmail?: string;
+    actorRole?: string;
+    ip?: string;
+    userAgent?: string;
+  };
+  sessionId?: string;
+  deviceId?: string;
 }
 
 // JWT utilities
@@ -50,13 +61,40 @@ export function verifyToken(token: string): any {
   }
 }
 
-// Password utilities
+// Enhanced password utilities with Argon2id
 export async function hashPassword(password: string): Promise<string> {
-  return await bcrypt.hash(password, 12);
+  // Use Argon2id for new passwords - more secure than bcrypt
+  return await argon2.hash(password, {
+    type: argon2.argon2id,
+    memoryCost: 19456, // 19 MiB
+    timeCost: 3,
+    parallelism: 1,
+  });
 }
 
 export async function comparePasswords(password: string, hashedPassword: string): Promise<boolean> {
-  return await bcrypt.compare(password, hashedPassword);
+  // Support both legacy bcrypt and new Argon2id hashes
+  if (hashedPassword.startsWith('$argon2id$')) {
+    return await argon2.verify(hashedPassword, password);
+  } else {
+    // Legacy bcrypt support for migration
+    return await bcrypt.compare(password, hashedPassword);
+  }
+}
+
+// Session security utilities
+export function generateSecureToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+export function generateDeviceFingerprint(req: Request): string {
+  const components = [
+    req.get('User-Agent') || '',
+    req.get('Accept-Language') || '',
+    req.get('Accept-Encoding') || '',
+    req.ip || req.socket?.remoteAddress || '',
+  ];
+  return crypto.createHash('sha256').update(components.join('|')).digest('hex');
 }
 
 // Role checking utility

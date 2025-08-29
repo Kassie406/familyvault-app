@@ -144,6 +144,65 @@ export const statusQuietHours = pgTable("status_quiet_hours", {
   criticalOnly: boolean("critical_only").default(true).notNull(),
 });
 
+// Security tables for enhanced authentication
+export const userDevices = pgTable("user_devices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  fingerprint: text("fingerprint").notNull().unique(),
+  name: text("name"), // e.g., "MacBook Pro - Chrome"
+  trusted: boolean("trusted").default(false).notNull(),
+  lastUsed: timestamp("last_used").defaultNow().notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  location: text("location"), // e.g., "San Francisco, CA"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const webauthnCredentials = pgTable("webauthn_credentials", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  credentialId: text("credential_id").notNull().unique(),
+  publicKey: text("public_key").notNull(),
+  counter: integer("counter").default(0).notNull(),
+  transports: json("transports"), // ['usb', 'nfc', 'ble', 'internal']
+  name: text("name"), // User-friendly name like "YubiKey"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastUsed: timestamp("last_used"),
+});
+
+export const totpSecrets = pgTable("totp_secrets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  secret: text("secret").notNull(),
+  backupCodes: json("backup_codes"), // Array of backup codes
+  enabled: boolean("enabled").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const secureSessionStore = pgTable("secure_session_store", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: text("session_id").notNull().unique(),
+  userId: varchar("user_id").notNull(),
+  deviceId: varchar("device_id"),
+  data: json("data").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastActivity: timestamp("last_activity").defaultNow().notNull(),
+});
+
+export const fileSignatures = pgTable("file_signatures", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fileKey: text("file_key").notNull().unique(),
+  signature: text("signature").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  userId: varchar("user_id"),
+  orgId: varchar("org_id"),
+  permissions: json("permissions"), // ['read', 'download', 'share']
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Incident management tables
 export const incidents = pgTable("incidents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -265,6 +324,52 @@ export const insertOncallTargetSchema = createInsertSchema(oncallTargets).pick({
   active: true,
 });
 
+// Security schema inserts
+export const insertUserDeviceSchema = createInsertSchema(userDevices).pick({
+  userId: true,
+  fingerprint: true,
+  name: true,
+  trusted: true,
+  ipAddress: true,
+  userAgent: true,
+  location: true,
+});
+
+export const insertWebauthnCredentialSchema = createInsertSchema(webauthnCredentials).pick({
+  userId: true,
+  credentialId: true,
+  publicKey: true,
+  counter: true,
+  transports: true,
+  name: true,
+});
+
+export const insertTotpSecretSchema = createInsertSchema(totpSecrets).pick({
+  userId: true,
+  secret: true,
+  backupCodes: true,
+  enabled: true,
+});
+
+export const insertSecureSessionSchema = createInsertSchema(secureSessionStore).pick({
+  sessionId: true,
+  userId: true,
+  deviceId: true,
+  data: true,
+  expiresAt: true,
+  ipAddress: true,
+  userAgent: true,
+});
+
+export const insertFileSignatureSchema = createInsertSchema(fileSignatures).pick({
+  fileKey: true,
+  signature: true,
+  expiresAt: true,
+  userId: true,
+  orgId: true,
+  permissions: true,
+});
+
 export const insertStatusAlertStateSchema = createInsertSchema(statusAlertState).pick({
   component: true,
   lastState: true,
@@ -310,3 +415,19 @@ export type OncallTarget = typeof oncallTargets.$inferSelect;
 
 export type InsertStatusAlertState = z.infer<typeof insertStatusAlertStateSchema>;
 export type StatusAlertState = typeof statusAlertState.$inferSelect;
+
+// Security types
+export type InsertUserDevice = z.infer<typeof insertUserDeviceSchema>;
+export type UserDevice = typeof userDevices.$inferSelect;
+
+export type InsertWebauthnCredential = z.infer<typeof insertWebauthnCredentialSchema>;
+export type WebauthnCredential = typeof webauthnCredentials.$inferSelect;
+
+export type InsertTotpSecret = z.infer<typeof insertTotpSecretSchema>;
+export type TotpSecret = typeof totpSecrets.$inferSelect;
+
+export type InsertSecureSession = z.infer<typeof insertSecureSessionSchema>;
+export type SecureSession = typeof secureSessionStore.$inferSelect;
+
+export type InsertFileSignature = z.infer<typeof insertFileSignatureSchema>;
+export type FileSignature = typeof fileSignatures.$inferSelect;
