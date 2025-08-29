@@ -13,7 +13,7 @@
   --line: #2a2b2e;        /* subtle borders */
   --brand: #f6c33d;       /* gold */
   --brand-2: #f0b90b;     /* hover gold */
-  --brand-ink: #111;      /* text on gold */
+  --brand-ink: #000;      /* pure black text on gold */
   --focus: #ffe69070;     /* focus ring */
   
   /* Legacy compatibility - mapped to new system */
@@ -77,6 +77,7 @@
 
 .btn-primary:hover {
   background: var(--brand-2);
+  color: #000 !important;
   transform: translateY(-1px);
   box-shadow: 0 10px 24px rgba(240,185,11,.18);
 }
@@ -122,7 +123,7 @@
 .hover\:bg-\[#C7A233\]:hover,
 .hover\:bg-\[#c6a528\]:hover {
   background-color: var(--brand-2) !important;
-  color: var(--brand-ink) !important;
+  color: #000 !important;
 }
 
 /* Header and navigation */
@@ -269,7 +270,7 @@
 
 .btn-gold:hover {
   background: var(--brand-2);
-  color: var(--brand-ink); /* ensure text stays visible */
+  color: #000 !important;
   box-shadow: 0 0 15px var(--brand-2);
   transform: translateY(-2px);
 }
@@ -336,7 +337,7 @@ section:nth-child(odd) {
 
 .cta-button:hover {
   background: var(--brand-2);
-  color: var(--brand-ink);
+  color: #000 !important;
   box-shadow: 0 10px 24px rgba(240,185,11,.18);
   transform: translateY(-2px);
 }
