@@ -167,9 +167,9 @@ export default function DisasterPlanning() {
                 <a 
                   href="/pricing"
                   data-testid="link-see-disaster-features"
-                  className="text-[#FFD93D] hover:underline font-medium min-h-[44px] flex items-center"
+                  className="text-[#D1D5DB] hover:text-[#F3F4F6] underline underline-offset-4 min-h-[44px] flex items-center"
                 >
-                  See disaster planning features →
+                  See what's included →
                 </a>
               </div>
             </div>
