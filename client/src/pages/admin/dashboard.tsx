@@ -22,6 +22,8 @@ import FeatureFlagsManager from '@/components/admin/feature-flags-manager';
 import ImpersonationManager from '@/components/admin/impersonation-manager';
 import EnhancedFeatureFlags from '@/components/admin/enhanced-feature-flags';
 import WebhooksManager from '@/components/admin/webhooks-manager';
+import AdvancedFeatureFlags from '@/components/admin/advanced-feature-flags';
+import AdvancedWebhooks from '@/components/admin/advanced-webhooks';
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -418,6 +420,13 @@ export default function AdminDashboard() {
             <EnhancedFeatureFlags />
           </div>
         );
+      
+      case 'advanced-feature-flags':
+        return (
+          <div className="space-y-6">
+            <AdvancedFeatureFlags />
+          </div>
+        );
 
       case 'webhooks':
         return (
@@ -426,6 +435,13 @@ export default function AdminDashboard() {
               <h2 className="text-2xl font-bold">Webhooks Management</h2>
             </div>
             <WebhooksManager />
+          </div>
+        );
+      
+      case 'advanced-webhooks':
+        return (
+          <div className="space-y-6">
+            <AdvancedWebhooks />
           </div>
         );
       
