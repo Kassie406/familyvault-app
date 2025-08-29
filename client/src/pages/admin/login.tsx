@@ -23,12 +23,6 @@ export default function AdminLogin() {
     retry: false,
   });
 
-  // Redirect if already authenticated as admin
-  if (user?.user && ['ADMIN', 'PRESIDENT'].includes(user.user.role)) {
-    setLocation('/dashboard');
-    return null;
-  }
-
   const loginMutation = useMutation({
     mutationFn: async ({ username, password }: { username: string; password: string }) => {
       const response = await fetch('/api/auth/login', {
@@ -72,6 +66,12 @@ export default function AdminLogin() {
       });
     },
   });
+
+  // Redirect if already authenticated as admin (after all hooks)
+  if (user?.user && ['ADMIN', 'PRESIDENT'].includes(user.user.role)) {
+    setLocation('/dashboard');
+    return null;
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
