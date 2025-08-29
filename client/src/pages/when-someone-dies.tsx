@@ -4,6 +4,9 @@ import memorialImage from "@assets/image_1756096658862.png";
 import digitalSecurityImage from "@assets/image_1756096704415.png";
 import mobileAppImage from "@assets/image_1756096804669.png";
 import askExpertsImage from "@assets/image_1756096864006.png";
+import michaelProfileImage from "@assets/generated_images/Michael_when_someone_dies_reviewer_headshot_7b4f832a.png";
+import sarahProfileImage from "@assets/generated_images/Sarah_when_someone_dies_reviewer_headshot_9c5e6d14.png";
+import davidProfileImage from "@assets/generated_images/David_when_someone_dies_reviewer_headshot_2a8f7b39.png";
 import { 
   Leaf,
   Heart, 
@@ -128,9 +131,9 @@ export default function WhenSomeoneDies() {
   ];
 
   const testimonials = [
-    { name: "Michael B.", title: "Member since 2022", rating: 5, quote: "After losing my wife, FamilyVault made managing her estate so much easier. Everything was organized and accessible when I needed it most." },
-    { name: "Sarah K.", title: "Member since 2021", rating: 5, quote: "The document sharing features helped our family coordinate during a difficult time. We could focus on grieving instead of searching for paperwork." },
-    { name: "David M.", title: "Member since 2023", rating: 5, quote: "Having all my father's financial information organized in FamilyVault saved us months of stress during probate." }
+    { name: "Michael B.", title: "Member since 2022", rating: 5, quote: "After losing my wife, FamilyVault made managing her estate so much easier. Everything was organized and accessible when I needed it most.", image: michaelProfileImage },
+    { name: "Sarah K.", title: "Member since 2021", rating: 5, quote: "The document sharing features helped our family coordinate during a difficult time. We could focus on grieving instead of searching for paperwork.", image: sarahProfileImage },
+    { name: "David M.", title: "Member since 2023", rating: 5, quote: "Having all my father's financial information organized in FamilyVault saved us months of stress during probate.", image: davidProfileImage }
   ];
 
   return (
@@ -546,7 +549,13 @@ export default function WhenSomeoneDies() {
                   ))}
                 </div>
                 <p className="text-[#D1D5DB] italic mb-4">"{testimonial.quote}"</p>
-                <div className="w-16 h-16 bg-[rgba(212,175,55,0.1)] rounded-full mx-auto mb-3 border border-[rgba(212,175,55,0.25)]"></div>
+                <div className="w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden border-2 border-[rgba(212,175,55,0.25)]">
+                  <img 
+                    src={testimonial.image} 
+                    alt={`${testimonial.name} profile`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
                 <div className="font-semibold text-sm text-[#F3F4F6]">{testimonial.name}</div>
                 <div className="text-xs text-[#D1D5DB]">{testimonial.title}</div>
               </div>
