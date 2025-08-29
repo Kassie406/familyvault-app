@@ -3,6 +3,18 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Subdomain detection middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const host = req.get('Host') || '';
+  const subdomain = host.split('.')[0];
+  
+  // Mark requests as admin if they come from console subdomain
+  (req as any).isAdminRequest = subdomain === 'console';
+  
+  log(`Request from host: ${host}, subdomain: ${subdomain}, isAdmin: ${(req as any).isAdminRequest}`);
+  next();
+});
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
