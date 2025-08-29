@@ -160,7 +160,7 @@ export default function DisasterPlanning() {
                 <a 
                   href="/pricing"
                   data-testid="button-get-started-free"
-                  className="bg-[#FFD93D] text-black font-semibold px-6 py-3 rounded-lg hover:bg-[#FFD93D]/90 transition-colors min-h-[44px] flex items-center"
+                  className="bg-[#D4AF37] text-black font-semibold px-6 py-3 rounded-lg hover:bg-[#C7A233] transition-colors min-h-[44px] flex items-center"
                 >
                   Get started free
                 </a>
@@ -412,7 +412,7 @@ export default function DisasterPlanning() {
           <a
             href="/pricing"
             data-testid="button-get-started-cta"
-            className="bg-[#FFD93D] hover:bg-[#FFD93D]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
+            className="bg-[#D4AF37] text-black font-semibold px-8 py-4 rounded-lg hover:bg-[#C7A233] transition-colors inline-block min-h-[44px]"
           >
             Get started free
           </a>
@@ -643,7 +643,7 @@ export default function DisasterPlanning() {
           <a
             href="/pricing"
             data-testid="button-final-cta"
-            className="bg-[#FFD93D] hover:bg-[#FFD93D]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
+            className="bg-[#D4AF37] text-black font-semibold px-8 py-4 rounded-lg hover:bg-[#C7A233] transition-colors inline-block min-h-[44px]"
           >
             Get started free
           </a>
