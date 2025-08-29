@@ -16,7 +16,7 @@ import { db as dbConnection } from "./db";
 
 const app = express();
 
-// Security middleware
+// Enhanced security middleware with development support
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -24,10 +24,36 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      scriptSrc: process.env.NODE_ENV === 'development' 
+        ? ["'self'", "'unsafe-inline'", "'unsafe-eval'"] 
+        : ["'self'"],
+      connectSrc: process.env.NODE_ENV === 'development'
+        ? ["'self'", "ws:", "wss:"]
+        : ["'self'"],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
     },
   },
+  crossOriginEmbedderPolicy: false, // Disable for development compatibility
+  crossOriginOpenerPolicy: { policy: "same-origin" },
+  crossOriginResourcePolicy: { policy: "same-site" },
+  hsts: process.env.NODE_ENV === 'production' ? {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  } : false
 }));
+
+// Additional security headers
+app.use((req, res, next) => {
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Permissions-Policy', 'geolocation=(), camera=(), microphone=(), interest-cohort=()');
+  next();
+});
 
 // Rate limiting
 const limiter = rateLimit({
@@ -101,12 +127,13 @@ app.post('/api/auth/login', async (req: AuthenticatedRequest, res: Response) => 
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Set HTTP-only cookie
+    // Set secure HTTP-only cookie
     res.cookie('token', result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      sameSite: 'strict',
+      maxAge: 30 * 60 * 1000, // 30 minutes for security
+      path: '/'
     });
 
     res.json({
@@ -141,8 +168,9 @@ app.post('/api/auth/register', async (req: AuthenticatedRequest, res: Response) 
     res.cookie('token', result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      sameSite: 'strict',
+      maxAge: 30 * 60 * 1000, // 30 minutes for security
+      path: '/'
     });
 
     res.json({
@@ -438,14 +466,14 @@ app.post('/api/admin/coupons-v2', requireAuth('ADMIN'), async (req: Authenticate
     
     // Write audit log
     if (req.auditCtx) {
-      await auditService.writeAudit(req.auditCtx, {
-        action: 'coupon.create',
-        objectType: 'coupon',
-        objectId: coupon.id,
-        before: null,
-        after: coupon,
-        reason: req.body.reason
-      });
+      await AuditService.logAdminAction(
+        'coupon.create',
+        'coupon',
+        coupon.id,
+        null,
+        coupon,
+        getAuditContext(req)
+      );
     }
     
     res.status(201).json(coupon);
@@ -471,14 +499,14 @@ app.put('/api/admin/coupons-v2/:id', requireAuth('ADMIN'), async (req: Authentic
     
     // Write audit log
     if (req.auditCtx) {
-      await auditService.writeAudit(req.auditCtx, {
-        action: 'coupon.update',
-        objectType: 'coupon',
-        objectId: id,
+      await AuditService.logAdminAction(
+        'coupon.update',
+        'coupon',
+        id,
         before,
-        after: coupon,
-        reason: req.body.reason
-      });
+        coupon,
+        getAuditContext(req)
+      );
     }
     
     res.json(coupon);
@@ -504,13 +532,14 @@ app.post('/api/admin/coupons-v2/:id/archive', requireAuth('ADMIN'), async (req: 
     
     // Write audit log
     if (req.auditCtx) {
-      await auditService.writeAudit(req.auditCtx, {
-        action: 'coupon.archive',
-        objectType: 'coupon',
-        objectId: id,
+      await AuditService.logAdminAction(
+        'coupon.archive',
+        'coupon',
+        id,
         before,
-        after: { ...before, archived: true }
-      });
+        { ...before, archived: true },
+        getAuditContext(req)
+      );
     }
     
     res.json({ success: true });
@@ -1407,9 +1436,9 @@ app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequ
         id: coupon.id,
         type: 'coupon',
         title: coupon.code,
-        subtitle: `${coupon.discount}${coupon.isPercentage ? '%' : '$'} off`,
-        metadata: `Used ${coupon.usageCount} times`,
-        status: coupon.isActive ? 'active' : 'inactive',
+        subtitle: `${coupon.percentOff ? coupon.percentOff + '%' : (coupon.amountOff ? '$' + coupon.amountOff : '')} off`,
+        metadata: `Used ${coupon.timesRedeemed} times`,
+        status: coupon.active ? 'active' : 'inactive',
         timestamp: coupon.createdAt,
         url: `/admin/coupons/${coupon.id}`
       });
@@ -1419,7 +1448,7 @@ app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequ
     const articles = await storage.getAllArticles();
     const matchingArticles = articles.filter(article => 
       article.title.toLowerCase().includes(searchQuery) ||
-      (article.content && article.content.toLowerCase().includes(searchQuery))
+      (article.bodyMd && article.bodyMd.toLowerCase().includes(searchQuery))
     ).slice(0, 10);
     
     matchingArticles.forEach(article => {
@@ -1428,7 +1457,7 @@ app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequ
         type: 'article',
         title: article.title,
         subtitle: article.slug,
-        metadata: `${article.content?.length || 0} characters`,
+        metadata: `${article.bodyMd?.length || 0} characters`,
         status: article.published ? 'published' : 'draft',
         timestamp: article.createdAt,
         url: `/admin/articles/${article.id}`
@@ -1438,8 +1467,7 @@ app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequ
     // Search Plans
     const plans = await storage.getAllPlans();
     const matchingPlans = plans.filter(plan => 
-      plan.name.toLowerCase().includes(searchQuery) ||
-      (plan.description && plan.description.toLowerCase().includes(searchQuery))
+      plan.name.toLowerCase().includes(searchQuery)
     ).slice(0, 10);
     
     matchingPlans.forEach(plan => {
@@ -1447,8 +1475,8 @@ app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequ
         id: plan.id,
         type: 'plan',
         title: plan.name,
-        subtitle: `$${plan.price}/month`,
-        metadata: plan.description || 'No description',
+        subtitle: `$${(plan.amountCents / 100).toFixed(2)}/${plan.interval}`,
+        metadata: plan.features ? JSON.stringify(plan.features) : 'No features',
         status: 'active',
         timestamp: plan.createdAt,
         url: `/admin/plans/${plan.id}`
@@ -1532,15 +1560,13 @@ app.post('/api/admin/incidents/:id/acknowledge', requireAuth('ADMIN'), async (re
     }
     
     // Log the acknowledgment
-    const auditService = new AuditService();
-    await auditService.writeAudit(
-      getAuditContext(req),
-      {
-        action: 'incident.acknowledge',
-        objectType: 'incident',
-        objectId: id,
-        after: { acknowledgedBy: req.user!.id, acknowledgedAt: new Date() }
-      }
+    await AuditService.logAdminAction(
+      'incident.acknowledge',
+      'incident',
+      id,
+      null,
+      { acknowledgedBy: req.user!.id, acknowledgedAt: new Date() },
+      getAuditContext(req)
     );
     
     res.json({ success: true, incident: result[0] });
