@@ -1,6 +1,12 @@
 import { Star, Play, Quote, Heart, Users, Shield, FileText, Clock, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import Navbar from "@/components/navbar";
+import sarahProfileImage from "@assets/generated_images/Sarah_emergency_readiness_reviewer_headshot_cb2345f9.png";
+import marcusLisaProfileImage from "@assets/generated_images/Marcus_Lisa_couple_reviewer_headshot_8a830a92.png";
+import jenniferProfileImage from "@assets/generated_images/Jennifer_peace_mind_reviewer_headshot_018be71f.png";
+import davidProfileImage from "@assets/generated_images/David_organization_reviewer_headshot_5944238d.png";
+import amandaProfileImage from "@assets/generated_images/Amanda_security_reviewer_headshot_89cf17a3.png";
+import robertProfileImage from "@assets/generated_images/Robert_time_savings_reviewer_headshot_ee439bb3.png";
 
 export default function Reviews() {
   const [activeTestimonial, setActiveTestimonial] = useState<number | null>(null);
@@ -12,7 +18,7 @@ export default function Reviews() {
       quote: "When our basement flooded, I was able to access our insurance documents instantly from my phone. FamilyVault saved us weeks of paperwork reconstruction and thousands in potential delays.",
       author: "Sarah M.",
       memberSince: "Member since 2023",
-      thumbnail: "🏠"
+      profileImage: sarahProfileImage
     },
     {
       id: 2,
@@ -20,7 +26,7 @@ export default function Reviews() {
       quote: "With three kids in different schools and activities, keeping track of medical forms, permission slips, and schedules was chaos. FamilyVault brought order to our family madness.",
       author: "Marcus & Lisa T.",
       memberSince: "Member since 2024",
-      thumbnail: "👨‍👩‍👧‍👦"
+      profileImage: marcusLisaProfileImage
     },
     {
       id: 3,
@@ -28,7 +34,7 @@ export default function Reviews() {
       quote: "After my father passed without any organized records, I promised my family wouldn't face the same struggle. FamilyVault ensures everything is documented and accessible.",
       author: "Jennifer L.",
       memberSince: "Member since 2022",
-      thumbnail: "💝"
+      profileImage: jenniferProfileImage
     },
     {
       id: 4,
@@ -36,7 +42,7 @@ export default function Reviews() {
       quote: "We had documents scattered across email, cloud storage, and filing cabinets. FamilyVault consolidated everything into one secure, searchable system that actually makes sense.",
       author: "David K.",
       memberSince: "Member since 2023",
-      thumbnail: "📁"
+      profileImage: davidProfileImage
     },
     {
       id: 5,
@@ -44,7 +50,7 @@ export default function Reviews() {
       quote: "Unlike regular cloud storage, FamilyVault was built specifically for sensitive family information. The security features give me confidence that our data is truly protected.",
       author: "Dr. Amanda R.",
       memberSince: "Member since 2022",
-      thumbnail: "🔒"
+      profileImage: amandaProfileImage
     },
     {
       id: 6,
@@ -52,7 +58,7 @@ export default function Reviews() {
       quote: "Tax season used to take weeks of document hunting. Now everything is organized and ready. FamilyVault has given me my weekends back.",
       author: "Robert C.",
       memberSince: "Member since 2024",
-      thumbnail: "⏰"
+      profileImage: robertProfileImage
     }
   ];
 
@@ -168,8 +174,12 @@ export default function Reviews() {
                 className="bg-[#151515] border border-[#2A2A2A] rounded-xl overflow-hidden hover:border-[#FFD43B]/30 transition-all group"
               >
                 <div className="relative">
-                  <div className="bg-gradient-to-br from-[#FFD43B]/20 to-[#FFD43B]/5 h-48 flex items-center justify-center">
-                    <div className="text-6xl opacity-80">{testimonial.thumbnail}</div>
+                  <div className="h-48 overflow-hidden">
+                    <img 
+                      src={testimonial.profileImage} 
+                      alt={`${testimonial.author} profile`}
+                      className="w-full h-full object-cover"
+                    />
                     <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center group-hover:bg-opacity-10 transition-all">
                       <button 
                         onClick={() => setActiveTestimonial(testimonial.id)}
