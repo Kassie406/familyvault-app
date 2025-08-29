@@ -1,0 +1,390 @@
+Awesome — let’s add the next three “pro-grade” console capabilities you asked for:
+
+6) Feature Flags (percent rollouts, targeting rules, kill-switch)
+
+7) Admin Impersonation with guardrails (reason, timeout, audit)
+
+8) Admin SSO (OIDC) for your internal team
+
+I’ll keep using Node/Express + PostgreSQL + React like the rest of your stack. You can paste each section independently.
+
+6) Feature Flags (rollouts & targeting)
+DB schema
+-- 005_feature_flags.sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TYPE flag_status AS ENUM ('active','archived');
+
+CREATE TABLE feature_flags (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  key           TEXT UNIQUE NOT NULL,            -- e.g. 'new-billing-ui'
+  name          TEXT NOT NULL,
+  description   TEXT,
+  status        flag_status NOT NULL DEFAULT 'active',
+  force_on      BOOLEAN,                         -- hard override
+  force_off     BOOLEAN,
+  targeting     JSONB NOT NULL DEFAULT '{}'::jsonb, -- rules (see below)
+  created_by    UUID,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Example targeting JSON shape
+-- {
+--   "percentage": 25,                 // rollout % (0..100)
+--   "allowDomains": ["@myco.com"],    // user.email endsWith any
+--   "allowUserIds": ["uuid", ...],    // explicit allow list
+--   "blockUserIds": []
+-- }
+
+Deterministic bucketing (user → 0..99)
+// src/flags/hash.js
+import crypto from 'crypto';
+
+export function bucket(userId, flagKey) {
+  const h = crypto.createHash('sha1');
+  h.update(`${flagKey}:${userId}`);
+  // map to 0..99 (stable per flag+user)
+  return parseInt(h.digest('hex').slice(0, 8), 16) % 100;
+}
+
+Evaluate function
+// src/flags/evalFlag.js
+import db from '../db.js';
+import { bucket } from './hash.js';
+
+export async function evalFlag(flagKey, user) {
+  const { rows } = await db.query(`SELECT * FROM feature_flags WHERE key=$1 AND status='active'`, [flagKey]);
+  if (!rows.length) return false; // default off if unknown
+  const f = rows[0];
+
+  if (f.force_on === true)  return true;
+  if (f.force_off === true) return false;
+
+  const t = f.targeting || {};
+  if (t.blockUserIds?.includes(user.id)) return false;
+  if (t.allowUserIds?.includes(user.id)) return true;
+
+  if (t.allowDomains?.length && user.email) {
+    const hit = t.allowDomains.some(sfx => user.email.toLowerCase().endsWith(sfx.toLowerCase()));
+    if (hit) return true;
+  }
+
+  const pct = Number(t.percentage || 0);
+  if (pct <= 0) return false;
+  const b = bucket(user.id, flagKey);
+  return b < pct; // 25% → allow buckets 0..24
+}
+
+Admin API to manage flags
+// src/routes/admin/flags.js
+import express from 'express';
+import db from '../../db.js';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+
+const router = express.Router();
+
+router.get('/', requireAdmin, async (_req, res) => {
+  const { rows } = await db.query(`SELECT * FROM feature_flags ORDER BY updated_at DESC`);
+  res.json({ items: rows });
+});
+
+router.post('/', requireAdmin, async (req, res) => {
+  const { key, name, description, targeting } = req.body;
+  const { rows } = await db.query(
+    `INSERT INTO feature_flags (key, name, description, targeting, created_by)
+     VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+    [key, name, description || null, targeting || {}, req.user.id]
+  );
+  res.status(201).json(rows[0]);
+});
+
+router.patch('/:id', requireAdmin, async (req, res) => {
+  const cols = ['name','description','status','force_on','force_off','targeting'];
+  const sets = [];
+  const params = [];
+  cols.forEach(c => { if (c in req.body) { params.push(req.body[c]); sets.push(`${c}=$${params.length}`); }});
+  params.push(req.params.id);
+  const sql = `UPDATE feature_flags SET ${sets.join(', ')}, updated_at=now() WHERE id=$${params.length} RETURNING *`;
+  const { rows } = await db.query(sql, params);
+  res.json(rows[0]);
+});
+
+export default router;
+
+Edge endpoint to fetch flags for the signed-in user
+// src/routes/app/flags.js
+import express from 'express';
+import db from '../../db.js';
+import { evalFlag } from '../../flags/evalFlag.js';
+import { requireUser } from '../../mw/requireUser.js';
+
+const router = express.Router();
+
+router.get('/mine', requireUser, async (req, res) => {
+  const { rows } = await db.query(`SELECT key FROM feature_flags WHERE status='active'`);
+  const out = {};
+  for (const r of rows) out[r.key] = await evalFlag(r.key, req.user);
+  res.json(out); // { 'new-billing-ui': true, ... }
+});
+
+export default router;
+
+Client hook (React)
+// src/console/hooks/useFlags.ts
+import { useEffect, useState } from 'react';
+
+export function useFlags() {
+  const [flags, setFlags] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    fetch('/app/flags/mine', { credentials:'include' })
+      .then(r => r.json()).then(setFlags).catch(() => setFlags({}));
+  }, []);
+  return (key: string, fallback=false) => flags[key] ?? fallback;
+}
+
+
+Console UI: add Settings → Feature Flags with:
+
+grid of flags (key/name),
+
+slider 0–100% rollout, allow lists, force on/off,
+
+instant preview by entering a user id/email (evaluates server-side).
+
+7) Admin Impersonation (reason + timeout + audit)
+
+You already have basic impersonation. These upgrades add reason capture, fixed TTL, no nesting, and strong audit.
+
+Session storage
+-- 006_impersonation_guardrails.sql
+CREATE TABLE impersonation_sessions (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  admin_id     UUID NOT NULL,
+  target_id    UUID NOT NULL,
+  reason       TEXT,
+  started_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at   TIMESTAMPTZ NOT NULL,
+  ended_at     TIMESTAMPTZ,
+  ended_reason TEXT
+);
+CREATE INDEX ON impersonation_sessions(admin_id, ended_at);
+
+Middleware helpers
+// src/mw/impersonation.js
+import db from '../db.js';
+
+export async function startImpersonation({ adminId, targetId, reason, ttlMinutes = 20 }) {
+  // ensure no active session for this admin
+  const active = await db.query(
+    `SELECT * FROM impersonation_sessions WHERE admin_id=$1 AND ended_at IS NULL AND expires_at > now()`,
+    [adminId]
+  );
+  if (active.rowCount) throw new Error('Impersonation already active');
+
+  const { rows } = await db.query(
+    `INSERT INTO impersonation_sessions (admin_id, target_id, reason, expires_at)
+     VALUES ($1,$2,$3, now() + ($4||' minutes')::interval) RETURNING *`,
+    [adminId, targetId, reason || null, String(ttlMinutes)]
+  );
+  return rows[0];
+}
+
+export async function stopImpersonation(sessionId, endedReason='ended') {
+  await db.query(
+    `UPDATE impersonation_sessions SET ended_at=now(), ended_reason=$2 WHERE id=$1 AND ended_at IS NULL`,
+    [sessionId, endedReason]
+  );
+}
+
+Routes (start/stop) + cookie marker
+// src/routes/admin/impersonate.js
+import express from 'express';
+import db from '../../db.js';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+import { startImpersonation, stopImpersonation } from '../../mw/impersonation.js';
+import { writeAudit } from '../../audit/audit.js';
+
+const router = express.Router();
+
+router.post('/start', requireAdmin, async (req, res) => {
+  const { userId, reason, ttlMinutes } = req.body;
+  const session = await startImpersonation({ adminId: req.user.id, targetId: userId, reason, ttlMinutes });
+
+  // store tiny cookie w/ session id (separate from auth token)
+  res.cookie('impersonation', session.id, { httpOnly:true, sameSite:'Lax', secure:true });
+  await writeAudit({ ...req.auditCtx }, {
+    action: 'impersonation.start',
+    objectType: 'user',
+    objectId: userId,
+    after: { reason, expires_at: session.expires_at }
+  });
+  res.json({ ok:true, sessionId: session.id, expiresAt: session.expires_at });
+});
+
+router.post('/stop', requireAdmin, async (req, res) => {
+  const sid = req.cookies.impersonation;
+  if (sid) await stopImpersonation(sid, req.body.reason || 'ended-by-admin');
+  res.clearCookie('impersonation');
+  await writeAudit({ ...req.auditCtx }, { action:'impersonation.stop', objectType:'user', objectId:req.user.id });
+  res.json({ ok:true });
+});
+
+export default router;
+
+Apply the effective user on each request
+// src/mw/effectiveUser.js
+import db from '../db.js';
+
+export async function applyEffectiveUser(req, _res, next) {
+  req.effectiveUser = req.user; // default
+  const sid = req.cookies?.impersonation;
+  if (!sid) return next();
+
+  const { rows } = await db.query(
+    `SELECT s.*, u.id AS target_id
+       FROM impersonation_sessions s
+       JOIN users u ON u.id=s.target_id
+      WHERE s.id=$1 AND s.ended_at IS NULL AND s.expires_at > now()`,
+    [sid]
+  );
+  if (!rows.length) return next();
+
+  // Side-channel banner
+  req.flags = { ...(req.flags||{}), __impersonating: true, __impersonation_exp: rows[0].expires_at };
+  // Use target as effective user
+  req.effectiveUser = { ...req.user, id: rows[0].target_id, __impersonated: true, __impSid: sid };
+  next();
+}
+
+
+Mount applyEffectiveUser after your auth middleware. In your UI, if __impersonating, show the red banner with “Stop Impersonation (⌥Esc)” and countdown.
+
+Guardrails recommended
+
+Disable dangerous actions while impersonating (e.g., deleting payment methods, changing password).
+
+Force stop when TTL hits zero (worker/cron to clean up expired sessions).
+
+8) Admin SSO (OIDC) for your team
+
+Use openid-client
+. Supports Okta, Auth0, Azure AD, Google Workspace, etc.
+
+Env
+OIDC_ISSUER_URL=https://YOUR_ISSUER/.well-known/openid-configuration
+OIDC_CLIENT_ID=...
+OIDC_CLIENT_SECRET=...
+OIDC_REDIRECT_URI=https://console.familycirclesecure.com/auth/sso/callback
+OIDC_ALLOWED_DOMAIN=@familycirclesecure.com   # or leave blank to use group claim
+OIDC_ALLOWED_GROUP=fcs-admins                 # optional: check `groups` claim
+
+OIDC wiring
+// src/auth/oidc.js
+import { Issuer, generators } from 'openid-client';
+import db from '../db.js';
+
+let client;
+export async function getClient() {
+  if (client) return client;
+  const issuer = await Issuer.discover(process.env.OIDC_ISSUER_URL);
+  client = new issuer.Client({
+    client_id: process.env.OIDC_CLIENT_ID,
+    client_secret: process.env.OIDC_CLIENT_SECRET,
+    redirect_uris: [process.env.OIDC_REDIRECT_URI],
+    response_types: ['code'],
+  });
+  return client;
+}
+
+export async function ssoStart(req, res) {
+  const c = await getClient();
+  const state = generators.state();
+  const nonce = generators.nonce();
+  req.session.oidc = { state, nonce, returnTo: req.query.returnTo || '/console' };
+  const url = c.authorizationUrl({
+    scope: 'openid email profile',
+    state, nonce
+  });
+  res.redirect(url);
+}
+
+export async function ssoCallback(req, res) {
+  const { state, nonce, returnTo } = req.session.oidc || {};
+  const c = await getClient();
+  const params = c.callbackParams(req);
+  const tokenSet = await c.callback(process.env.OIDC_REDIRECT_URI, params, { state, nonce });
+  const claims = tokenSet.claims();
+
+  // Gatekeeping: allowed domain OR group
+  const email = (claims.email || '').toLowerCase();
+  const domainOk = process.env.OIDC_ALLOWED_DOMAIN
+    ? email.endsWith(process.env.OIDC_ALLOWED_DOMAIN.toLowerCase())
+    : true;
+  const groups = claims.groups || claims['custom:groups'] || [];
+  const groupOk = process.env.OIDC_ALLOWED_GROUP
+    ? Array.isArray(groups) && groups.includes(process.env.OIDC_ALLOWED_GROUP)
+    : true;
+
+  if (!domainOk || !groupOk) return res.status(403).send('Not allowed');
+
+  // Upsert admin user
+  const { rows } = await db.query(
+    `INSERT INTO users (email, role)
+     VALUES ($1,'ADMIN')
+     ON CONFLICT (email) DO UPDATE SET role='ADMIN'
+     RETURNING *`,
+    [email]
+  );
+
+  // Establish your normal admin session (cookie/JWT)
+  req.session.userId = rows[0].id;
+  res.redirect(returnTo || '/console');
+}
+
+Routes
+// src/routes/auth/sso.js
+import express from 'express';
+import { ssoStart, ssoCallback } from '../../auth/oidc.js';
+
+const router = express.Router();
+router.get('/login', ssoStart);
+router.get('/callback', ssoCallback);
+export default router;
+
+
+Console UI:
+
+On the admin login page, show “Sign in with SSO” (link to /auth/sso/login).
+
+Keep your local admin login as a recovery path (behind “Having trouble?”).
+
+Wire everything
+// app.js (or server bootstrap)
+import flagsAdmin from './routes/admin/flags.js';
+import consentAdmin from './routes/admin/consent.js';
+import webhooksAdmin from './routes/admin/webhooks.js';
+import impersonateAdmin from './routes/admin/impersonate.js';
+import searchAdmin from './routes/admin/search.js';
+import userFlags from './routes/app/flags.js';
+import ssoRoutes from './routes/auth/sso.js';
+import { applyEffectiveUser } from './mw/effectiveUser.js';
+
+// ... auth/session middleware first ...
+app.use(applyEffectiveUser);
+
+app.use('/admin/flags', flagsAdmin);
+app.use('/admin/consent', consentAdmin);
+app.use('/admin/webhooks', webhooksAdmin);
+app.use('/admin/impersonate', impersonateAdmin);
+app.use('/admin/search', searchAdmin);
+app.use('/app/flags', userFlags);
+app.use('/auth/sso', ssoRoutes);
+
+What you get now
+
+Feature Flags with % rollouts, allow-lists, overrides, and a single /app/flags/mine endpoint the client can cache.
+
+Impersonation that’s time-boxed, audited, and bannered, with safe defaults and easy kill-switch.
+
+Admin SSO (OIDC) that restricts access to your org’s domain/groups but still lets you fall back to local admin login.

@@ -5,7 +5,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { 
   Shield, LogOut, User, Settings, LayoutDashboard, Users, CreditCard, 
-  Ticket, FileText, ShieldCheck, Activity, Search, Filter, Bell 
+  Ticket, FileText, ShieldCheck, Activity, Search, Filter, Bell, 
+  Flag, UserX 
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
@@ -52,6 +53,8 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
     { id: 'plans', label: 'Subscription Plans', icon: CreditCard, description: 'Pricing & billing' },
     { id: 'coupons', label: 'Coupons', icon: Ticket, description: 'Promotional codes' },
     { id: 'content', label: 'Content', icon: FileText, description: 'CMS & articles' },
+    { id: 'feature-flags', label: 'Feature Flags', icon: Flag, description: 'Rollouts & targeting' },
+    { id: 'impersonation', label: 'Impersonation', icon: UserX, description: 'Admin user support' },
     { id: 'compliance', label: 'Compliance', icon: ShieldCheck, description: 'GDPR & privacy' },
     { id: 'security', label: 'Security', icon: Activity, description: 'Audit & monitoring' },
   ];
