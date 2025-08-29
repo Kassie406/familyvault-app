@@ -1,0 +1,188 @@
+Love it. Here’s a clean, drop-in Status Widget for your console home that shows OK / FAIL cards (DB, SMTP, Stripe, etc.), auto-refreshes, and matches your gold/charcoal theme.
+
+1) React widget (cards with OK/FAIL)
+
+File: src/console/components/StatusWidget.tsx
+
+import React, { useEffect, useState } from 'react';
+
+type Comp = { component: string; ok: boolean };
+type Resp = { components: Comp[] };
+
+const GOLD = '#E0B530';
+
+function Pill({ ok }: { ok: boolean }) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '4px 8px',
+        borderRadius: 999,
+        fontSize: 12,
+        fontWeight: 600,
+        color: ok ? '#0b0c0f' : '#fff',
+        background: ok ? '#22c55e' : '#ef4444'
+      }}
+    >
+      <span
+        style={{
+          width: 8, height: 8, borderRadius: '50%',
+          background: ok ? '#065f46' : '#7f1d1d'
+        }}
+      />
+      {ok ? 'OK' : 'FAIL'}
+    </span>
+  );
+}
+
+export default function StatusWidget() {
+  const [items, setItems] = useState<Comp[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [last, setLast] = useState<Date | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function load() {
+    setErr(null);
+    try {
+      const r = await fetch('/admin/status/public', { credentials: 'include' });
+      if (!r.ok) throw new Error('Failed to fetch status');
+      const j: Resp = await r.json();
+      // Stable order for visual consistency
+      const order = ['db', 'smtp', 'webhooks', 'auth', 'stripe'];
+      const sorted = [
+        ...order
+          .map(k => j.components.find(c => c.component === k))
+          .filter(Boolean) as Comp[],
+        ...j.components.filter(c => !order.includes(c.component)),
+      ];
+      setItems(sorted);
+      setLast(new Date());
+    } catch (e: any) {
+      setErr(e.message || 'Error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 30_000); // refresh every 30s
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="card" style={{ borderColor: '#23282d' }}>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+        <h2 style={{ margin: 0, fontSize: 18 }}>System Status</h2>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          {last && (
+            <span style={{ fontSize: 12, opacity: .7 }}>
+              Updated {last.toLocaleTimeString()}
+            </span>
+          )}
+          <button className="btn" onClick={load} disabled={loading} style={{ borderColor: GOLD }}>
+            {loading ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
+      </div>
+
+      {err && (
+        <div style={{ marginBottom: 8, color: '#ef4444' }}>
+          {err}
+        </div>
+      )}
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: 12
+        }}
+      >
+        {items.map((c) => (
+          <div
+            key={c.component}
+            className="card"
+            style={{
+              background: '#0f1316',
+              border: `1px solid ${c.ok ? '#1d2a21' : '#2a1b1b'}`,
+              boxShadow: c.ok
+                ? '0 0 0 1px rgba(34,197,94,.08) inset'
+                : '0 0 0 1px rgba(239,68,68,.08) inset'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: 8,
+                background: '#0c1013',
+                border: '1px solid #2b3036',
+                display: 'grid', placeItems: 'center'
+              }}>
+                {/* simple icon dot */}
+                <div style={{
+                  width: 10, height: 10, borderRadius: '50%',
+                  background: c.ok ? '#22c55e' : '#ef4444'
+                }} />
+              </div>
+              <div style={{ display: 'grid' }}>
+                <strong style={{ textTransform: 'uppercase', fontSize: 12, letterSpacing: .5 }}>
+                  {c.component}
+                </strong>
+                <span style={{ opacity: .8, fontSize: 12 }}>Health</span>
+              </div>
+              <div style={{ marginLeft: 'auto' }}>
+                <Pill ok={c.ok} />
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {items.length === 0 && !loading && !err && (
+          <div style={{ opacity: .7 }}>No components reported yet.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+2) Add it to your Console home
+
+File: src/console/pages/HomePage.tsx (or your dashboard shell)
+
+import React from 'react';
+import StatusWidget from '../components/StatusWidget';
+
+export default function HomePage() {
+  return (
+    <div className="page">
+      <div className="page-header">
+        <h1>Console Overview</h1>
+      </div>
+
+      <div style={{ display: 'grid', gap: 12 }}>
+        <StatusWidget />
+        {/* Add other home widgets below (metrics, recent activity, etc.) */}
+      </div>
+    </div>
+  );
+}
+
+3) (Optional) tiny CSS polish
+
+If you already use the shared styles I gave earlier, you’re set. If not, add this to your console CSS:
+
+/* Cards already exist in your theme—this keeps the widget consistent */
+.card { background:#0f1316; border:1px solid #23282d; border-radius:12px; padding:12px; }
+.btn { background:#222; color:#fff; border:1px solid #3a3f45; padding:8px 12px; border-radius:10px; }
+
+4) “Tell Replit what to do” (copy/paste)
+
+Prompt for Replit
+
+Create a React component src/console/components/StatusWidget.tsx that fetches /admin/status/public (credentials included) and renders responsive cards for each component showing OK/FAIL using our dark theme with gold accent #E0B530. It should refresh every 30 seconds and support a manual “Refresh” button.
+
+Add the widget to the console home page (src/console/pages/HomePage.tsx or the main dashboard component) near the top.
+
+Ensure /admin/status/public is already mounted (from our System Status module). If not, mount it. Keep styles aligned with existing .card and .btn classes. No breaking changes.

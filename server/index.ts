@@ -382,6 +382,152 @@ app.get('/api/admin/audit/search', requireAuth('ADMIN'), async (req: Authenticat
   }
 });
 
+// Enhanced audit logs v2 with tamper-evident features
+app.get('/api/admin/audit-v2', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { auditService } = await import('./audit-service-v2.js');
+    const { limit, cursor } = req.query;
+    const logs = await auditService.getAuditLogs(
+      limit ? Number(limit) : 100,
+      cursor as string
+    );
+    res.json(logs);
+  } catch (error) {
+    console.error('Get audit logs v2 error:', error);
+    res.status(500).json({ error: 'Failed to fetch audit logs' });
+  }
+});
+
+app.get('/api/admin/audit-v2/verify', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { auditService } = await import('./audit-service-v2.js');
+    const result = await auditService.verifyChainIntegrity();
+    res.json(result);
+  } catch (error) {
+    console.error('Verify audit integrity error:', error);
+    res.status(500).json({ error: 'Failed to verify integrity' });
+  }
+});
+
+// Enhanced coupons v2 endpoints
+app.get('/api/admin/coupons-v2', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { couponsV2Service } = await import('./coupons-v2-service.js');
+    const coupons = await couponsV2Service.getAllCoupons();
+    res.json(coupons);
+  } catch (error) {
+    console.error('Get coupons v2 error:', error);
+    res.status(500).json({ error: 'Failed to fetch coupons' });
+  }
+});
+
+app.post('/api/admin/coupons-v2', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { couponsV2Service } = await import('./coupons-v2-service.js');
+    const { auditService, attachAuditContext } = await import('./audit-service-v2.js');
+    
+    // Attach audit context
+    attachAuditContext(req, res, () => {});
+    
+    const coupon = await couponsV2Service.createCoupon(req.body);
+    
+    // Write audit log
+    if (req.auditCtx) {
+      await auditService.writeAudit(req.auditCtx, {
+        action: 'coupon.create',
+        objectType: 'coupon',
+        objectId: coupon.id,
+        before: null,
+        after: coupon,
+        reason: req.body.reason
+      });
+    }
+    
+    res.status(201).json(coupon);
+  } catch (error) {
+    console.error('Create coupon v2 error:', error);
+    res.status(500).json({ error: 'Failed to create coupon' });
+  }
+});
+
+app.put('/api/admin/coupons-v2/:id', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { couponsV2Service } = await import('./coupons-v2-service.js');
+    const { auditService, attachAuditContext } = await import('./audit-service-v2.js');
+    const { id } = req.params;
+    
+    // Get before state
+    const before = (await couponsV2Service.getAllCoupons()).find(c => c.id === id);
+    
+    // Attach audit context
+    attachAuditContext(req, res, () => {});
+    
+    const coupon = await couponsV2Service.updateCoupon(id, req.body);
+    
+    // Write audit log
+    if (req.auditCtx) {
+      await auditService.writeAudit(req.auditCtx, {
+        action: 'coupon.update',
+        objectType: 'coupon',
+        objectId: id,
+        before,
+        after: coupon,
+        reason: req.body.reason
+      });
+    }
+    
+    res.json(coupon);
+  } catch (error) {
+    console.error('Update coupon v2 error:', error);
+    res.status(500).json({ error: 'Failed to update coupon' });
+  }
+});
+
+app.post('/api/admin/coupons-v2/:id/archive', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { couponsV2Service } = await import('./coupons-v2-service.js');
+    const { auditService, attachAuditContext } = await import('./audit-service-v2.js');
+    const { id } = req.params;
+    
+    // Get before state
+    const before = (await couponsV2Service.getAllCoupons()).find(c => c.id === id);
+    
+    // Attach audit context
+    attachAuditContext(req, res, () => {});
+    
+    await couponsV2Service.archiveCoupon(id);
+    
+    // Write audit log
+    if (req.auditCtx) {
+      await auditService.writeAudit(req.auditCtx, {
+        action: 'coupon.archive',
+        objectType: 'coupon',
+        objectId: id,
+        before,
+        after: { ...before, archived: true }
+      });
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Archive coupon v2 error:', error);
+    res.status(500).json({ error: 'Failed to archive coupon' });
+  }
+});
+
+app.post('/api/admin/coupons-v2/evaluate', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { couponsV2Service } = await import('./coupons-v2-service.js');
+    const { code, planId, subtotalCents, userId } = req.body;
+    
+    const result = await couponsV2Service.evaluateCoupon(code, planId, subtotalCents, userId);
+    res.json(result);
+  } catch (error) {
+    console.error('Evaluate coupon v2 error:', error);
+    res.status(500).json({ error: 'Failed to evaluate coupon' });
+  }
+});
+
 // Admin session management endpoints
 app.get('/api/admin/sessions', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {
