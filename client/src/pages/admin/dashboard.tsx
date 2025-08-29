@@ -27,6 +27,8 @@ import AdvancedWebhooks from '@/components/admin/advanced-webhooks';
 import { TamperEvidentAudit } from '@/components/admin/tamper-evident-audit';
 import { AdvancedCoupons } from '@/components/admin/advanced-coupons';
 import StatusWidget from '@/components/admin/status-widget';
+import ToastHost from '@/components/admin/toast-host';
+import StatusWatcher from '@/components/admin/status-watcher';
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -520,8 +522,11 @@ export default function AdminDashboard() {
   };
 
   return (
-    <AdminLayout activeSection={activeSection} onSectionChange={setActiveSection}>
-      {renderSectionContent()}
-    </AdminLayout>
+    <ToastHost>
+      <StatusWatcher />
+      <AdminLayout activeSection={activeSection} onSectionChange={setActiveSection}>
+        {renderSectionContent()}
+      </AdminLayout>
+    </ToastHost>
   );
 }

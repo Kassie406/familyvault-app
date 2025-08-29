@@ -1,0 +1,485 @@
+1) Server summary endpoint (last result + 24h avg latency)
+
+File: src/routes/admin/status.js
+(Add these two routes below your existing ones.)
+
+// Get last check per component + 24h avg latency
+router.get('/summary', requireAdmin, async (_req, res) => {
+  const { rows: last } = await db.query(`
+    SELECT DISTINCT ON (component)
+      component, ok, latency_ms, ts
+    FROM status_checks
+    ORDER BY component, ts DESC
+  `);
+
+  const { rows: avg } = await db.query(`
+    SELECT component, AVG(latency_ms)::int AS avg_latency_ms
+    FROM status_checks
+    WHERE ts > now() - interval '24 hours'
+    GROUP BY component
+  `);
+
+  const avgMap = Object.fromEntries(avg.map(r => [r.component, r.avg_latency_ms]));
+  const components = last.map(r => ({
+    component: r.component,
+    ok: r.ok,
+    latency_ms: r.latency_ms,
+    avg_latency_ms: avgMap[r.component] ?? null,
+    ts: r.ts
+  }));
+
+  res.json({ components });
+});
+
+
+(You already have /admin/status/public and the history routes; this adds a richer summary feed.)
+
+2) Console routing: link target for details
+
+If you used the StatusPage.tsx I gave earlier, ensure it’s mounted at /console/status (or similar). For example:
+
+// src/console/ConsoleRouter.tsx
+import { Routes, Route } from 'react-router-dom';
+import HomePage from './pages/HomePage';
+import StatusPage from './pages/StatusPage';
+// …other imports
+
+export default function ConsoleRouter() {
+  return (
+    <Routes>
+      <Route path="/console" element={<HomePage />} />
+      <Route path="/console/status" element={<StatusPage />} />
+      {/* …others */}
+    </Routes>
+  );
+}
+
+3) Upgraded Status Widget (click-through + avg latency badge)
+
+Replace your widget with this version:
+
+File: src/console/components/StatusWidget.tsx
+
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+type Comp = {
+  component: string;
+  ok: boolean;
+  latency_ms?: number;
+  avg_latency_ms?: number | null;
+  ts?: string;
+};
+
+const GOLD = '#E0B530';
+
+function Pill({ ok }: { ok: boolean }) {
+  return (
+    <span
+      style={{
+        display:'inline-flex', alignItems:'center', gap:6, padding:'4px 8px',
+        borderRadius:999, fontSize:12, fontWeight:600,
+        color: ok ? '#0b0c0f' : '#fff', background: ok ? '#22c55e' : '#ef4444'
+      }}
+    >
+      <span style={{ width:8, height:8, borderRadius:'50%', background: ok ? '#065f46' : '#7f1d1d' }} />
+      {ok ? 'OK' : 'FAIL'}
+    </span>
+  );
+}
+
+function LatencyBadge({ now, avg }: { now?: number; avg?: number | null }) {
+  if (avg == null && now == null) return null;
+  const txt = [
+    now != null ? `now ${now}ms` : null,
+    avg != null ? `24h ${avg}ms` : null
+  ].filter(Boolean).join(' · ');
+  return (
+    <span
+      title="Current vs 24h average latency"
+      style={{
+        marginLeft:8, fontSize:12, padding:'2px 8px', borderRadius:999,
+        background:'#12161a', border:'1px solid #2b3036', color:'#dfe5ee'
+      }}
+    >
+      {txt}
+    </span>
+  );
+}
+
+export default function StatusWidget() {
+  const [items, setItems] = useState<Comp[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [last, setLast] = useState<Date | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  async function load() {
+    setErr(null);
+    try {
+      const r = await fetch('/admin/status/summary', { credentials:'include' });
+      if (!r.ok) throw new Error('Failed to fetch status summary');
+      const j = await r.json();
+      // Stable order
+      const order = ['db','smtp','webhooks','auth','stripe'];
+      const sorted = [
+        ...order.map(k => j.components.find((c:Comp) => c.component === k)).filter(Boolean),
+        ...j.components.filter((c:Comp) => !order.includes(c.component))
+      ] as Comp[];
+      setItems(sorted);
+      setLast(new Date());
+    } catch (e: any) {
+      setErr(e.message || 'Error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="card" style={{ borderColor:'#23282d' }}>
+      <div style={{ display:'flex', alignItems:'center', marginBottom:8 }}>
+        <h2 style={{ margin:0, fontSize:18 }}>System Status</h2>
+        <div style={{ marginLeft:'auto', display:'flex', gap:8 }}>
+          <button className="btn" onClick={() => navigate('/console/status')} style={{ borderColor:GOLD }}>
+            View details
+          </button>
+          {last && <span style={{ fontSize:12, opacity:.7 }}>Updated {last.toLocaleTimeString()}</span>}
+          <button className="btn" onClick={load} disabled={loading} style={{ borderColor:GOLD }}>
+            {loading ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
+      </div>
+
+      {err && <div style={{ marginBottom:8, color:'#ef4444' }}>{err}</div>}
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px,1fr))', gap:12 }}>
+        {items.map((c) => (
+          <button
+            key={c.component}
+            onClick={() => navigate('/console/status')}
+            className="card"
+            style={{
+              textAlign:'left', cursor:'pointer',
+              background:'#0f1316',
+              border:`1px solid ${c.ok ? '#1d2a21' : '#2a1b1b'}`,
+              boxShadow: c.ok
+                ? '0 0 0 1px rgba(34,197,94,.08) inset'
+                : '0 0 0 1px rgba(239,68,68,.08) inset'
+            }}
+          >
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{
+                width:28, height:28, borderRadius:8, background:'#0c1013',
+                border:'1px solid #2b3036', display:'grid', placeItems:'center'
+              }}>
+                <div style={{ width:10, height:10, borderRadius:'50%', background: c.ok ? '#22c55e' : '#ef4444' }} />
+              </div>
+              <div style={{ display:'grid' }}>
+                <strong style={{ textTransform:'uppercase', fontSize:12, letterSpacing:.5 }}>{c.component}</strong>
+                <span style={{ opacity:.8, fontSize:12 }}>Health</span>
+              </div>
+              <div style={{ marginLeft:'auto', display:'flex', alignItems:'center' }}>
+                <Pill ok={c.ok} />
+                <LatencyBadge now={c.latency_ms} avg={c.avg_latency_ms ?? undefined} />
+              </div>
+            </div>
+          </button>
+        ))}
+        {items.length === 0 && !loading && !err && (
+          <div style={{ opacity:.7 }}>No components reported yet.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+4) Optional: small polish on the history page
+
+On your StatusPage.tsx, add a tiny header link back:
+
+<div className="page-header">
+  <h1>System Status</h1>
+  <a className="btn" href="/console">← Back to dashboard</a>
+</div>
+
+5) “Tell Replit what to do” (paste this)
+
+Prompt for Replit
+
+Add a new admin route GET /admin/status/summary that returns, for each component, the latest result (ok, latency_ms, ts) and the 24-hour average latency (avg_latency_ms).
+
+Replace src/console/components/StatusWidget.tsx with the upgraded version that fetches /admin/status/summary, renders OK/FAIL cards with a latency badge (“now Xms · 24h Yms”), refreshes every 30s, and makes each card clickable to /console/status. Keep the dark theme with gold accent #E0B530.
+
+Ensure the console router has a route at /console/status using the existing StatusPage.tsx.
+
+If you want, I can next add toasts when any component flips from OK→FAIL, using a lastSeenState in localStorage, or wire Slack alerts when checks fail consecutively.
+
+You said:
+ok go ahead
+ChatGPT said:
+Thought for 8s
+
+Awesome — let’s wire real-time toasts in the console when a component flips state, and Slack alerts when checks fail (and when they recover). Everything plugs into the Status module you already have.
+
+A) Frontend: toast alerts on OK↔FAIL flips
+
+1) Toast system (reusable)
+src/console/components/ToastHost.tsx
+
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+
+type Toast = { id: string; kind: 'error'|'success'|'info'; title: string; body?: string };
+type Ctx = { push: (t: Omit<Toast,'id'>) => void };
+
+const ToastCtx = createContext<Ctx | null>(null);
+export function useToasts() {
+  const ctx = useContext(ToastCtx);
+  if (!ctx) throw new Error('ToastHost missing');
+  return ctx;
+}
+
+export default function ToastHost({ children }: { children: React.ReactNode }) {
+  const [items, setItems] = useState<Toast[]>([]);
+
+  const push = useCallback((t: Omit<Toast,'id'>) => {
+    const id = crypto.randomUUID();
+    const toast: Toast = { id, ...t };
+    setItems(prev => [toast, ...prev]);
+    setTimeout(() => setItems(prev => prev.filter(x => x.id !== id)), 6000);
+  }, []);
+
+  const ctx = useMemo<Ctx>(() => ({ push }), [push]);
+
+  return (
+    <ToastCtx.Provider value={ctx}>
+      {children}
+      <div style={{
+        position:'fixed', right:16, bottom:16, display:'grid', gap:10, zIndex:9998, width:'min(360px, 92vw)'
+      }}>
+        {items.map(t => (
+          <div key={t.id} style={{
+            background:'#0f1316',
+            border:'1px solid ' + (t.kind==='error' ? '#7f1d1d' : t.kind==='success' ? '#1d2a21' : '#2b3036'),
+            borderRadius:12, padding:'10px 12px', boxShadow:'0 10px 30px rgba(0,0,0,.35)', color:'#e8eaf0'
+          }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{
+                width:10, height:10, borderRadius:'50%',
+                background: t.kind==='error' ? '#ef4444' : t.kind==='success' ? '#22c55e' : '#E0B530'
+              }} />
+              <strong>{t.title}</strong>
+            </div>
+            {t.body && <div style={{ opacity:.9, marginTop:6, fontSize:13 }}>{t.body}</div>}
+          </div>
+        ))}
+      </div>
+    </ToastCtx.Provider>
+  );
+}
+
+
+2) Status watcher (polls summary, compares to last state)
+src/console/components/StatusWatcher.tsx
+
+import React, { useEffect } from 'react';
+import { useToasts } from './ToastHost';
+
+type Comp = { component: string; ok: boolean; latency_ms?: number };
+const KEY = 'fcs-status-last';
+
+export default function StatusWatcher() {
+  const { push } = useToasts();
+
+  async function check() {
+    const r = await fetch('/admin/status/summary', { credentials:'include' });
+    if (!r.ok) return;
+    const j = await r.json() as { components: Comp[] };
+
+    const prev = JSON.parse(localStorage.getItem(KEY) || '{}') as Record<string, boolean>;
+    const now: Record<string, boolean> = {};
+    j.components.forEach(c => {
+      now[c.component] = c.ok;
+      if (prev[c.component] === undefined) return; // first run, no toast
+      if (prev[c.component] !== c.ok) {
+        if (c.ok) {
+          push({
+            kind:'success',
+            title:`${c.component.toUpperCase()} recovered`,
+            body:`Component is back to OK.`
+          });
+        } else {
+          push({
+            kind:'error',
+            title:`${c.component.toUpperCase()} failing`,
+            body:`Recent check indicates a failure.`
+          });
+        }
+      }
+    });
+    localStorage.setItem(KEY, JSON.stringify(now));
+  }
+
+  useEffect(() => {
+    // prime state without toasts
+    (async () => {
+      try {
+        const r = await fetch('/admin/status/summary', { credentials:'include' });
+        if (!r.ok) return;
+        const j = await r.json();
+        const init: Record<string, boolean> = {};
+        (j.components || []).forEach((c: Comp) => init[c.component] = c.ok);
+        localStorage.setItem(KEY, JSON.stringify(init));
+      } catch {}
+    })();
+
+    const id = setInterval(check, 30_000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return null; // no UI, just toasts
+}
+
+
+3) Wrap your console once
+src/console/AppShell.tsx (or your root layout)
+
+import React from 'react';
+import ToastHost from './components/ToastHost';
+import StatusWatcher from './components/StatusWatcher';
+import ImpersonationBanner from './components/ImpersonationBanner';
+import './styles/impersonation.css';
+
+export default function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <ToastHost>
+      <ImpersonationBanner />
+      <StatusWatcher />
+      <div style={{ paddingTop: 44 }}>{children}</div>
+    </ToastHost>
+  );
+}
+
+
+That’s it — your console will pop a red FAIL toast when a component flips to failing, and a green recovered toast when it comes back.
+
+B) Backend: Slack alerts on consecutive failures & on recovery
+
+1) Slack notifier
+src/notify/slack.js
+
+import fetch from 'node-fetch';
+
+export async function slackNotify(text, blocks) {
+  const url = process.env.SLACK_WEBHOOK_URL;
+  if (!url) return;
+  await fetch(url, {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify(blocks ? { text, blocks } : { text })
+  }).catch(() => {});
+}
+
+
+ENV
+
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/xxxxx/yyyyy/zzzzz
+
+
+2) Failure streak + recovery detection
+Update your status routes (same file as /admin/status/run and /admin/status/summary).
+
+Add helpers near top of src/routes/admin/status.js:
+
+async function getLastTwoFor(component, db) {
+  const { rows } = await db.query(
+    `SELECT ok, ts FROM status_checks WHERE component=$1 ORDER BY ts DESC LIMIT 2`, [component]
+  );
+  return rows;
+}
+
+async function consecutiveFailCount(component, db, upto = 5) {
+  const { rows } = await db.query(
+    `SELECT ok FROM status_checks WHERE component=$1 ORDER BY ts DESC LIMIT $2`,
+    [component, upto]
+  );
+  let c = 0;
+  for (const r of rows) {
+    if (r.ok === false) c += 1; else break;
+  }
+  return c;
+}
+
+
+Then modify your run route so that after each saveCheck you evaluate flips/streaks and send Slack:
+
+import { slackNotify } from '../../notify/slack.js';
+
+// inside router.post('/run', ...)
+for (const fn of [checkDB, checkSMTP, checkStripe]) {
+  const r = await fn();
+  checks.push(r);
+  await saveCheck(r);
+
+  // Flip detection (last->current)
+  const lastTwo = await getLastTwoFor(r.component, db);
+  if (lastTwo.length === 2) {
+    const [current, previous] = lastTwo; // ordered DESC by ts
+    if (previous.ok === true && current.ok === false) {
+      await slackNotify(`❌ ${r.component.toUpperCase()} FAILED`,
+        [
+          { type:'section', text:{ type:'mrkdwn', text:`*❌ ${r.component.toUpperCase()} FAILED*` } },
+          { type:'context', elements:[{ type:'mrkdwn', text:`Status flip from OK → FAIL` }] }
+        ]
+      );
+    }
+    if (previous.ok === false && current.ok === true) {
+      await slackNotify(`✅ ${r.component.toUpperCase()} RECOVERED`,
+        [
+          { type:'section', text:{ type:'mrkdwn', text:`*✅ ${r.component.toUpperCase()} RECOVERED*` } },
+          { type:'context', elements:[{ type:'mrkdwn', text:`Back to OK` }] }
+        ]
+      );
+    }
+  }
+
+  // Streak detection (e.g., 3 consecutive fails)
+  if (r.ok === false) {
+    const streak = await consecutiveFailCount(r.component, db, 5);
+    if (streak === 3) {
+      await slackNotify(`🚨 ${r.component.toUpperCase()} failing 3x in a row`,
+        [
+          { type:'section', text:{ type:'mrkdwn', text:`*🚨 ${r.component.toUpperCase()} failing 3x in a row*` } },
+          { type:'context', elements:[{ type:'mrkdwn', text:`Please investigate.` }] }
+        ]
+      );
+    }
+  }
+}
+
+
+This will post Slack messages when:
+
+a component flips OK → FAIL (incident),
+
+flips FAIL → OK (recovery),
+
+hits 3 consecutive fails (escalation).
+
+If you prefer a Slack bot token + chat.postMessage, we can switch easily; webhooks are the quickest.
+
+C) “Tell Replit what to do” (paste this)
+
+Prompt for Replit
+
+Add a toast system: create src/console/components/ToastHost.tsx and wrap the console shell with it. Add src/console/components/StatusWatcher.tsx that polls /admin/status/summary every 30s, compares to the last stored state in localStorage, and shows toasts when any component flips OK→FAIL (red) or FAIL→OK (green).
+
+Add Slack alerts: create src/notify/slack.js (incoming webhook) and update the /admin/status/run route to send a Slack message when a component flips OK→FAIL or FAIL→OK, and when it reaches 3 consecutive failures. Use SLACK_WEBHOOK_URL from env.
+
+Ensure the Status widget/summary endpoint already exist (from previous steps). Keep styles consistent with the dark theme + gold accent. RBAC remains required for admin routes.
