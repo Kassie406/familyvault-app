@@ -200,7 +200,7 @@ export default function ElderlyParents() {
                 <a 
                   href="/pricing"
                   data-testid="button-get-started-free"
-                  className="bg-[#D4AF37] text-black font-semibold px-6 py-3 text-lg rounded-lg hover:bg-[#FFD700] hover:shadow-lg transition-all min-h-[44px] flex items-center"
+                  className="bg-[#D4AF37] text-black font-semibold px-6 py-3 rounded-lg hover:bg-[#C7A233] transition-colors min-h-[44px] flex items-center"
                 >
                   Get started free
                 </a>
