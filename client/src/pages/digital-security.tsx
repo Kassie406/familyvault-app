@@ -19,9 +19,9 @@ import {
   Link
 } from "lucide-react";
 import laptopSecurityImage from "@assets/image_1756094818120.png";
-import digitalSecurityImage from "@assets/image_1756094885841.png";
-import mobileAppImage from "@assets/image_1756094986045.png";
-import askExpertsImage from "@assets/image_1756095055472.png";
+import digitalSecurityImage from "@assets/generated_images/Cloud_backup_security_illustration_01b8f657.png";
+import mobileAppImage from "@assets/generated_images/FamilyVault_mobile_app_interface_d4485332.png";
+import askExpertsImage from "@assets/generated_images/Ask_experts_blackboard_illustration_e21e4a7b.png";
 import marcusProfileImage from "@assets/generated_images/Marcus_security_reviewer_headshot_48a71e8c.png";
 import sarahProfileImage from "@assets/generated_images/Sarah_security_reviewer_headshot_7297a04d.png";
 import kevinProfileImage from "@assets/generated_images/Kevin_security_reviewer_headshot_c79a848a.png";
@@ -61,21 +61,21 @@ export default function DigitalSecurity() {
       title: "Back Up Your Data Easily",
       description: "Automatic cloud backup keeps everything safe",
       image: digitalSecurityImage,
-      imageAlt: "Digital security shield with circuit board background representing secure cloud backup"
+      imageAlt: "Professional digital security and cloud backup illustration with blue tones and shield protection"
     },
     {
       icon: Smartphone, 
       title: "Use FamilyVault on the Go",
       description: "Access your information anywhere with our mobile app",
       image: mobileAppImage,
-      imageAlt: "Mobile app interface showing family document categories and navigation"
+      imageAlt: "Clean FamilyVault mobile app interface mockup showing family document categories"
     },
     {
       icon: Phone,
       title: "Connect With an Expert",
       description: "Get personalized help organizing your family's documents",
       image: askExpertsImage,
-      imageAlt: "Ask the Experts blackboard with light bulbs showing expert consultation concept"
+      imageAlt: "Professional blackboard with Ask the Experts text and consultation theme"
     }
   ];
 
