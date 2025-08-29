@@ -4,6 +4,9 @@ import familyImage from "@assets/image_1756096399044.png";
 import digitalSecurityImage from "@assets/image_1756096462942.png";
 import mobileAppImage from "@assets/image_1756096537141.png";
 import askExpertsImage from "@assets/image_1756096610126.png";
+import mariaProfileImage from "@assets/generated_images/Maria_disaster_planning_reviewer_headshot_2bb05e36.png";
+import jamesProfileImage from "@assets/generated_images/Michael_estate_planning_reviewer_headshot_de7c16fa.png";
+import lisaProfileImage from "@assets/generated_images/Linda_estate_planning_reviewer_headshot_ca4073a1.png";
 import { 
   Baby,
   Heart, 
@@ -133,9 +136,9 @@ export default function StartingAFamily() {
   ];
 
   const testimonials = [
-    { name: "Maria S.", title: "Member since 2022", rating: 5, quote: "FamilyVault helped us stay organized throughout pregnancy and after our baby arrived. Everything we needed was right there!" },
-    { name: "James R.", title: "Member since 2021", rating: 5, quote: "Having all our baby's medical records and insurance info accessible made doctor visits so much smoother." },
-    { name: "Lisa K.", title: "Member since 2023", rating: 5, quote: "The babysitter instructions feature gave us peace of mind when leaving our newborn for the first time." }
+    { name: "Maria S.", title: "Member since 2022", rating: 5, quote: "FamilyVault helped us stay organized throughout pregnancy and after our baby arrived. Everything we needed was right there!", image: mariaProfileImage },
+    { name: "James R.", title: "Member since 2021", rating: 5, quote: "Having all our baby's medical records and insurance info accessible made doctor visits so much smoother.", image: jamesProfileImage },
+    { name: "Lisa K.", title: "Member since 2023", rating: 5, quote: "The babysitter instructions feature gave us peace of mind when leaving our newborn for the first time.", image: lisaProfileImage }
   ];
 
   return (
@@ -538,8 +541,12 @@ export default function StartingAFamily() {
                   ))}
                 </div>
                 <p className="text-[#b9b9b9] italic mb-4 text-sm">"{testimonial.quote}"</p>
-                <div className="w-16 h-16 bg-gradient-to-br from-[#d7b43e] to-[#c6a528] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#d7b43e]">
-                  <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
+                <div className="w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden border-2 border-[#d7b43e]">
+                  <img 
+                    src={testimonial.image} 
+                    alt={`${testimonial.name} profile`}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <footer className="text-xs text-[#b9b9b9]">
                   <div className="font-semibold text-[#eaeaea]">{testimonial.name}</div>
