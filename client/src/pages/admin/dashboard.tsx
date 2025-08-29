@@ -26,6 +26,7 @@ import AdvancedFeatureFlags from '@/components/admin/advanced-feature-flags';
 import AdvancedWebhooks from '@/components/admin/advanced-webhooks';
 import { TamperEvidentAudit } from '@/components/admin/tamper-evident-audit';
 import { AdvancedCoupons } from '@/components/admin/advanced-coupons';
+import StatusWidget from '@/components/admin/status-widget';
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -153,42 +154,13 @@ export default function AdminDashboard() {
       case 'overview':
         return (
           <div className="space-y-6">
+            <StatusWidget />
+            
             <EnhancedStatsCards />
             
             <SecurityCenterCard />
             
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {/* System Status Widget */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Server className="w-5 h-5 mr-2 text-green-600" />
-                    System Status
-                  </CardTitle>
-                  <CardDescription>Platform health overview</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span>Database</span>
-                      <Badge variant="secondary" className="bg-green-100 text-green-800">Connected</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Authentication</span>
-                      <Badge variant="secondary" className="bg-green-100 text-green-800">Active</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Admin API</span>
-                      <Badge variant="secondary" className="bg-green-100 text-green-800">Operational</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Audit Logging</span>
-                      <Badge variant="secondary" className="bg-green-100 text-green-800">Recording</Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* Recent Activity Widget */}
               <Card>
                 <CardHeader>
