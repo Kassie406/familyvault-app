@@ -22,6 +22,9 @@ import laptopSecurityImage from "@assets/image_1756094818120.png";
 import digitalSecurityImage from "@assets/image_1756094885841.png";
 import mobileAppImage from "@assets/image_1756094986045.png";
 import askExpertsImage from "@assets/image_1756095055472.png";
+import marcusProfileImage from "@assets/generated_images/Marcus_security_reviewer_headshot_df340985.png";
+import sarahProfileImage from "@assets/generated_images/Sarah_security_reviewer_headshot_2c8e5741.png";
+import kevinProfileImage from "@assets/generated_images/Kevin_security_reviewer_headshot_a5b12f96.png";
 
 export default function DigitalSecurity() {
   const features = [
@@ -109,9 +112,9 @@ export default function DigitalSecurity() {
   ];
 
   const testimonials = [
-    { name: "Marcus D.", title: "Member since 2022", rating: 5, quote: "FamilyVault's security features give me peace of mind knowing our family documents are protected." },
-    { name: "Sarah L.", title: "Member since 2023", rating: 5, quote: "The SecureLinks feature is amazing - I can share documents safely without worrying about them being stored everywhere." },
-    { name: "Kevin R.", title: "Member since 2021", rating: 5, quote: "Lost my computer in a break-in, but all our important documents were safe in FamilyVault's digital vault." }
+    { name: "Marcus D.", title: "Member since 2022", rating: 5, quote: "FamilyVault's security features give me peace of mind knowing our family documents are protected.", image: marcusProfileImage },
+    { name: "Sarah L.", title: "Member since 2023", rating: 5, quote: "The SecureLinks feature is amazing - I can share documents safely without worrying about them being stored everywhere.", image: sarahProfileImage },
+    { name: "Kevin R.", title: "Member since 2021", rating: 5, quote: "Lost my computer in a break-in, but all our important documents were safe in FamilyVault's digital vault.", image: kevinProfileImage }
   ];
 
   return (
@@ -439,9 +442,19 @@ export default function DigitalSecurity() {
                   ))}
                 </div>
                 <p className="text-[#CCCCCC] italic mb-4">"{testimonial.quote}"</p>
-                <div className="w-16 h-16 bg-gradient-to-br from-[#FFD93D] to-[#FFD700] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#FFD93D]">
-                  <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
-                </div>
+                {testimonial.image ? (
+                  <div className="w-16 h-16 mx-auto mb-3 rounded-full border-2 border-[#FFD93D] overflow-hidden">
+                    <img 
+                      src={testimonial.image} 
+                      alt={`${testimonial.name} profile photo`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 bg-gradient-to-br from-[#FFD93D] to-[#FFD700] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#FFD93D]">
+                    <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
+                  </div>
+                )}
                 <div className="font-semibold text-sm text-[#FFFFFF]">{testimonial.name}</div>
                 <div className="text-xs text-[#CCCCCC]">{testimonial.title}</div>
               </div>
