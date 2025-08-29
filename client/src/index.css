@@ -12,7 +12,7 @@
   --muted: #a8a9ad;       /* secondary text */
   --line: #2a2b2e;        /* subtle borders */
   --brand: #f6c33d;       /* gold */
-  --brand-2: #f0b90b;     /* hover gold */
+  --brand-2: #f6c33d;     /* same gold for hover - no color change */
   --brand-ink: #000;      /* pure black text on gold */
   --focus: #ffe69070;     /* focus ring */
   
