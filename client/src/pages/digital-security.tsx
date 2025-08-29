@@ -136,7 +136,7 @@ export default function DigitalSecurity() {
                 <a
                   href="/pricing"
                   data-testid="button-get-started"
-                  className="bg-[#FFD93D] hover:bg-[#FFD93D]/90 text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block"
+                  className="bg-[#D4AF37] text-black font-semibold px-6 py-3 rounded-lg hover:bg-[#C7A233] transition-colors min-h-[44px] flex items-center"
                 >
                   Get started free
                 </a>
