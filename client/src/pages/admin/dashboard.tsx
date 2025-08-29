@@ -132,14 +132,14 @@ export default function AdminDashboard() {
 
       <div className="mt-6">
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="plans">Subscription Plans</TabsTrigger>
-            <TabsTrigger value="coupons">Coupons</TabsTrigger>
-            <TabsTrigger value="content">Content</TabsTrigger>
-            <TabsTrigger value="compliance">Compliance</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-7 bg-gray-100 dark:bg-gray-800 h-auto p-1">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:text-gray-700 data-[state=inactive]:bg-transparent font-medium py-3 px-4 text-sm">Overview</TabsTrigger>
+            <TabsTrigger value="users" className="data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:text-gray-700 data-[state=inactive]:bg-transparent font-medium py-3 px-4 text-sm">Users</TabsTrigger>
+            <TabsTrigger value="plans" className="data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:text-gray-700 data-[state=inactive]:bg-transparent font-medium py-3 px-4 text-sm">Subscription Plans</TabsTrigger>
+            <TabsTrigger value="coupons" className="data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:text-gray-700 data-[state=inactive]:bg-transparent font-medium py-3 px-4 text-sm">Coupons</TabsTrigger>
+            <TabsTrigger value="content" className="data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:text-gray-700 data-[state=inactive]:bg-transparent font-medium py-3 px-4 text-sm">Content</TabsTrigger>
+            <TabsTrigger value="compliance" className="data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:text-gray-700 data-[state=inactive]:bg-transparent font-medium py-3 px-4 text-sm">Compliance</TabsTrigger>
+            <TabsTrigger value="security" className="data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:text-gray-700 data-[state=inactive]:bg-transparent font-medium py-3 px-4 text-sm">Security</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
