@@ -857,6 +857,7 @@ app.get('/api/marketing/active-banner', async (req: Request, res: Response) => {
       bgColor: '#1e40af', // blue-800
       textColor: '#ffffff',
       icon: 'gift',
+      targetDomains: ['familycirclesecure.com', 'portal.familycirclesecure.com'], // Show on main site and portal
       expiresAt: '2025-03-01T00:00:00Z',
       isActive: true
     };
@@ -881,6 +882,7 @@ app.get('/api/marketing/active-popup', async (req: Request, res: Response) => {
       ctaText: 'Upgrade Now',
       ctaUrl: '/pricing?plan=enterprise',
       bgGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      targetDomains: ['familycirclesecure.com'], // Show only on main site
       showAfterSeconds: 5,
       showOncePerSession: true,
       expiresAt: '2025-03-01T00:00:00Z',
