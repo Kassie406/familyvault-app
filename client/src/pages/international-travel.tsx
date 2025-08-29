@@ -4,6 +4,9 @@ import travelerAirportImage from "@assets/image_1756094101211.png";
 import digitalSecurityImage from "@assets/image_1756094141073.png";
 import mobileAppImage from "@assets/image_1756094227046.png";
 import askExpertsImage from "@assets/image_1756094303286.png";
+import martinProfileImage from "@assets/generated_images/Martin_travel_reviewer_headshot_d2f990ce.png";
+import emilyProfileImage from "@assets/generated_images/Emily_travel_reviewer_headshot_3954bfa8.png";
+import oscarProfileImage from "@assets/generated_images/Oscar_travel_reviewer_headshot_30a66945.png";
 import { 
   Plane, 
   FileText, 
@@ -110,9 +113,9 @@ export default function InternationalTravel() {
   ];
 
   const testimonials = [
-    { name: "Martin F.", title: "Member since 2023", rating: 5, quote: "FamilyVault made international travel so much easier — had everything I needed in one place." },
-    { name: "Emily G.", title: "Member since 2021", rating: 5, quote: "Lost my passport abroad, but having a digital copy in FamilyVault saved me hours of stress." },
-    { name: "Oscar S.", title: "Member since 2023", rating: 5, quote: "Finally, a secure way to keep my travel documents organized and accessible." }
+    { name: "Martin F.", title: "Member since 2023", rating: 5, quote: "FamilyVault made international travel so much easier — had everything I needed in one place.", image: martinProfileImage },
+    { name: "Emily G.", title: "Member since 2021", rating: 5, quote: "Lost my passport abroad, but having a digital copy in FamilyVault saved me hours of stress.", image: emilyProfileImage },
+    { name: "Oscar S.", title: "Member since 2023", rating: 5, quote: "Finally, a secure way to keep my travel documents organized and accessible.", image: oscarProfileImage }
   ];
 
   return (
@@ -408,9 +411,19 @@ export default function InternationalTravel() {
                   ))}
                 </div>
                 <p className="text-[#D1D5DB] italic mb-4">"{testimonial.quote}"</p>
-                <div className="w-16 h-16 bg-gradient-to-br from-[#FFD700] to-[#D4AF37] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#FFD700]">
-                  <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
-                </div>
+                {testimonial.image ? (
+                  <div className="w-16 h-16 mx-auto mb-3 rounded-full border-2 border-[#FFD700] overflow-hidden">
+                    <img 
+                      src={testimonial.image} 
+                      alt={`${testimonial.name} profile photo`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 bg-gradient-to-br from-[#FFD700] to-[#D4AF37] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#FFD700]">
+                    <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
+                  </div>
+                )}
                 <div className="font-semibold text-sm text-[#F3F4F6]">{testimonial.name}</div>
                 <div className="text-xs text-[#D1D5DB]">{testimonial.title}</div>
               </div>
