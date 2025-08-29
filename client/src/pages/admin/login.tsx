@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -67,11 +67,12 @@ export default function AdminLogin() {
     },
   });
 
-  // Redirect if already authenticated as admin (after all hooks)
-  if (user?.user && ['ADMIN', 'PRESIDENT'].includes(user.user.role)) {
-    setLocation('/dashboard');
-    return null;
-  }
+  // Redirect if already authenticated as admin (using useEffect to avoid render issues)
+  useEffect(() => {
+    if (user?.user && ['ADMIN', 'PRESIDENT'].includes(user.user.role)) {
+      setLocation('/dashboard');
+    }
+  }, [user, setLocation]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
