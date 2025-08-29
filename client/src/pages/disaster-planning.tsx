@@ -27,6 +27,9 @@ import disasterSceneImage from "@assets/image_1756095132487.png";
 import digitalSecurityImage from "@assets/image_1756095170275.png";
 import mobileAppImage from "@assets/image_1756095280262.png";
 import askExpertsImage from "@assets/image_1756095363487.png";
+import jenniferProfileImage from "@assets/generated_images/Jennifer_disaster_planning_reviewer_headshot_2e2092c3.png";
+import robertProfileImage from "@assets/generated_images/Robert_disaster_planning_reviewer_headshot_acefd499.png";
+import mariaProfileImage from "@assets/generated_images/Maria_disaster_planning_reviewer_headshot_2bb05e36.png";
 
 export default function DisasterPlanning() {
   const disasterPlanCards = [
@@ -133,9 +136,9 @@ export default function DisasterPlanning() {
   ];
 
   const testimonials = [
-    { name: "Jennifer M.", title: "Member since 2022", rating: 5, quote: "After Hurricane Laura hit, having all our documents in FamilyVault was a lifesaver for insurance claims." },
-    { name: "Robert K.", title: "Member since 2021", rating: 5, quote: "When we had to evacuate for wildfires, I could access our family's medical info instantly from my phone." },
-    { name: "Maria S.", title: "Member since 2023", rating: 5, quote: "FamilyVault helped us get organized before disaster struck. Now we feel prepared for anything." }
+    { name: "Jennifer M.", title: "Member since 2022", rating: 5, quote: "After Hurricane Laura hit, having all our documents in FamilyVault was a lifesaver for insurance claims.", image: jenniferProfileImage },
+    { name: "Robert K.", title: "Member since 2021", rating: 5, quote: "When we had to evacuate for wildfires, I could access our family's medical info instantly from my phone.", image: robertProfileImage },
+    { name: "Maria S.", title: "Member since 2023", rating: 5, quote: "FamilyVault helped us get organized before disaster struck. Now we feel prepared for anything.", image: mariaProfileImage }
   ];
 
   return (
@@ -531,8 +534,12 @@ export default function DisasterPlanning() {
                   ))}
                 </div>
                 <p className="text-[#CCCCCC] italic mb-4">"{testimonial.quote}"</p>
-                <div className="w-16 h-16 bg-gradient-to-br from-[#FFD93D] to-[#FFD700] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#FFD93D]">
-                  <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
+                <div className="w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden border-2 border-[#FFD93D]">
+                  <img 
+                    src={testimonial.image} 
+                    alt={`${testimonial.name} profile`}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <div className="font-semibold text-sm text-[#FFFFFF]">{testimonial.name}</div>
                 <div className="text-xs text-[#CCCCCC]">{testimonial.title}</div>
