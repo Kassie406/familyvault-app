@@ -1,8 +1,11 @@
 import express, { type Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import slowDown from "express-slow-down";
 import cookieParser from "cookie-parser";
 import crypto from "crypto";
+import { SecureStorageService } from "./storage-service";
+import { CSRFService } from "./csrf-service";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { type AuthenticatedRequest, optionalAuth, requireAuth, loginUser, registerUser } from "./auth";
@@ -55,18 +58,32 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rate limiting
+// Enhanced rate limiting with DoS protection
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 1000 : 10000, // More lenient in development
-  message: { error: 'Too many requests' }
+  max: process.env.NODE_ENV === 'production' ? 300 : 1000, // Balanced for security
+  message: { error: 'Too many requests from this IP, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
-app.use(limiter);
+
+const speedLimiter = slowDown({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  delayAfter: 200, // Allow 200 requests at full speed
+  delayMs: () => 250, // Slow down subsequent requests by 250ms
+  validate: { delayMs: false } // Disable warning
+});
+
+app.use(limiter, speedLimiter);
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+// CSRF Protection (applied selectively to state-changing operations)
+const csrfProtection = CSRFService.createProtection();
+app.use(CSRFService.errorHandler());
 
 // Enhanced subdomain detection middleware
 app.use((req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -192,6 +209,69 @@ app.post('/api/auth/register', async (req: AuthenticatedRequest, res: Response) 
 app.post('/api/auth/logout', (req: AuthenticatedRequest, res: Response) => {
   res.clearCookie('token');
   res.json({ success: true });
+});
+
+// CSRF token endpoint (apply CSRF protection to generate token)
+app.get('/api/csrf-token', csrfProtection, CSRFService.getTokenEndpoint());
+
+// Secure file storage endpoints
+app.post('/api/files/upload-url', requireAuth, csrfProtection, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { filename, contentType } = req.body;
+    
+    if (!filename || !contentType) {
+      return res.status(400).json({ error: 'Filename and content type are required' });
+    }
+
+    // Generate secure file key
+    const fileKey = SecureStorageService.generateSecureFileKey(filename, req.user!.id);
+    const orgId = req.user!.email || req.user!.id; // Use email as org identifier for now
+    
+    // Create signed upload URL
+    const uploadUrl = await SecureStorageService.createUploadUrl(
+      fileKey,
+      contentType,
+      orgId,
+      req.user!.id
+    );
+
+    res.json({
+      uploadUrl,
+      fileKey,
+      expiresIn: 300 // 5 minutes
+    });
+  } catch (error) {
+    console.error('File upload URL generation failed:', error);
+    res.status(500).json({ error: 'Failed to generate upload URL' });
+  }
+});
+
+app.post('/api/files/download-url', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { fileKey } = req.body;
+    
+    if (!fileKey) {
+      return res.status(400).json({ error: 'File key is required' });
+    }
+
+    const orgId = req.user!.email || req.user!.id; // Use email as org identifier for now
+    
+    // Validate file access
+    if (!SecureStorageService.validateFileAccess(fileKey, orgId)) {
+      return res.status(403).json({ error: 'Access denied to this file' });
+    }
+
+    // Create signed download URL
+    const downloadUrl = await SecureStorageService.createDownloadUrl(fileKey, orgId);
+
+    res.json({
+      downloadUrl,
+      expiresIn: 300 // 5 minutes
+    });
+  } catch (error) {
+    console.error('File download URL generation failed:', error);
+    res.status(500).json({ error: 'Failed to generate download URL' });
+  }
 });
 
 app.get('/api/auth/me', optionalAuth, async (req: AuthenticatedRequest, res: Response) => {

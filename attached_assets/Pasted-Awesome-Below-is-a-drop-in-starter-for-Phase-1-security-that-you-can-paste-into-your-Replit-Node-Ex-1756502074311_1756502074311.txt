@@ -1,0 +1,531 @@
+Awesome. Below is a drop-in starter for Phase-1 security that you can paste into your Replit Node/Express app. It gives you:
+
+Hardened Express config (Helmet + CSP, CSRF, rate-limit, cookie security).
+
+Postgres schema with RLS (true tenant isolation).
+
+Auth scaffolding (Argon2id password, TOTP MFA, secure session cookies).
+
+Signed file URLs for S3/R2.
+
+Minimal audit logging.
+
+You can add features on top, but this is a secure baseline.
+
+1) Install packages
+npm i express helmet cors compression cookie-parser csurf express-rate-limit express-slow-down \
+argon2 otplib uuid zod \
+pg pg-pool connect-pg-simple express-session \
+@aws-sdk/client-s3 @aws-sdk/s3-request-presigner
+
+2) Environment (.env)
+# Web
+NODE_ENV=production
+PORT=3000
+APP_URL=https://familycirclesecure.com
+COOKIE_DOMAIN=.familycirclesecure.com
+
+# Postgres
+PGHOST=...
+PGPORT=5432
+PGDATABASE=...
+PGUSER=appuser
+PGPASSWORD=********
+
+# Session
+SESSION_SECRET=replace-with-32-char-random
+SESSION_NAME=__fcsid
+
+# S3 / Cloudflare R2
+S3_ENDPOINT=https://<r2-account>.r2.cloudflarestorage.com
+S3_REGION=auto
+S3_BUCKET=fcs-user-data
+S3_ACCESS_KEY_ID=...
+S3_SECRET_ACCESS_KEY=...
+
+# CSP (adjust if you serve from a CDN)
+CSP_IMG_SRC="'self' data: blob:"
+CSP_SCRIPT_SRC="'self'"
+CSP_STYLE_SRC="'self' 'unsafe-inline'"
+
+3) Postgres: roles + schema + RLS
+
+You can run this once from psql or a migration.
+RLS isolates every query by org_id using session variables we set per request.
+
+-- App role with minimum privileges
+CREATE ROLE appuser LOGIN PASSWORD '***';
+
+-- App-owned schema
+CREATE SCHEMA IF NOT EXISTS fcs AUTHORIZATION appuser;
+SET search_path TO fcs, public;
+
+-- orgs/users/memberships
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TABLE IF NOT EXISTS orgs (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS users (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email citext UNIQUE NOT NULL,
+  password_hash text NOT NULL,
+  mfa_secret text, -- TOTP secret (encrypted later, but OK to start)
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- PRESIDENT, MEMBER, AGENT, FAMILY_ACCESSOR
+CREATE TYPE role_t AS ENUM ('PRESIDENT', 'MEMBER', 'AGENT', 'FAMILY_ACCESSOR');
+
+CREATE TABLE IF NOT EXISTS memberships (
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  org_id  uuid NOT NULL REFERENCES orgs(id)  ON DELETE CASCADE,
+  role    role_t NOT NULL,
+  PRIMARY KEY (user_id, org_id)
+);
+
+-- user content metadata (actual files live in S3/R2)
+CREATE TABLE IF NOT EXISTS documents (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  org_id uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  owner_id uuid NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+  path text NOT NULL,             -- object key in S3
+  content_type text,
+  byte_size bigint,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Immutable-ish audit log
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id bigserial PRIMARY KEY,
+  org_id uuid,
+  user_id uuid,
+  action text NOT NULL,
+  ip inet,
+  user_agent text,
+  extra jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- RLS helpers (GUCs)
+-- We read these from the app for each request: org & user
+ALTER DATABASE :PGDATABASE SET search_path TO fcs, public;
+
+-- Enable RLS
+ALTER TABLE orgs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE memberships ENABLE ROW LEVEL SECURITY;
+ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+
+-- RLS policy function: safe lookup of current settings
+CREATE OR REPLACE FUNCTION fcs.current_org() RETURNS uuid AS $$
+  SELECT current_setting('app.current_org_id', true)::uuid;
+$$ LANGUAGE sql STABLE;
+
+CREATE OR REPLACE FUNCTION fcs.current_user_id() RETURNS uuid AS $$
+  SELECT current_setting('app.current_user_id', true)::uuid;
+$$ LANGUAGE sql STABLE;
+
+-- Policies: row belongs to current org
+CREATE POLICY orgs_by_id ON orgs
+  USING (id = fcs.current_org());
+
+CREATE POLICY memberships_by_org ON memberships
+  USING (org_id = fcs.current_org());
+
+CREATE POLICY docs_by_org ON documents
+  USING (org_id = fcs.current_org())
+  WITH CHECK (org_id = fcs.current_org());
+
+-- Audit is visible only inside its org (reads allowed)
+CREATE POLICY audit_by_org ON audit_logs
+  USING (org_id IS NULL OR org_id = fcs.current_org());
+
+-- Grant to app role
+GRANT USAGE ON SCHEMA fcs TO appuser;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA fcs TO appuser;
+
+
+How this works: Before each DB query we run:
+SET app.current_org_id = $ORG_ID; SET app.current_user_id = $USER_ID;
+Then Postgres enforces isolation (no app code can “forget” to scope).
+
+4) db.js – Postgres pool that sets RLS variables per request
+// db.js
+const { Pool } = require('pg');
+
+const pool = new Pool({
+  connectionString:
+    process.env.DATABASE_URL || undefined, // optional
+  host: process.env.PGHOST,
+  port: process.env.PGPORT,
+  database: process.env.PGDATABASE,
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  application_name: 'fcs-api'
+});
+
+async function withTenant(client, orgId, userId) {
+  await client.query('SET app.current_org_id = $1', [orgId || null]);
+  await client.query('SET app.current_user_id = $1', [userId || null]);
+}
+
+module.exports = { pool, withTenant };
+
+5) security.js – Express hardening middlewares
+// security.js
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const slowDown = require('express-slow-down');
+const cookieParser = require('cookie-parser');
+const csrf = require('csurf');
+const cors = require('cors');
+const compression = require('compression');
+
+function buildSecurity(app) {
+  app.set('trust proxy', 1);
+
+  app.use(compression());
+
+  app.use(helmet({
+    crossOriginOpenerPolicy: { policy: 'same-origin' },
+    crossOriginResourcePolicy: { policy: 'same-origin' },
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        "img-src": [process.env.CSP_IMG_SRC || "'self' data:"],
+        "script-src": [process.env.CSP_SCRIPT_SRC || "'self'"],
+        "style-src": [process.env.CSP_STYLE_SRC || "'self' 'unsafe-inline'"],
+      }
+    },
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+    referrerPolicy: { policy: 'no-referrer' }
+  }));
+
+  app.use(cors({
+    origin: [process.env.APP_URL],
+    credentials: true
+  }));
+
+  // Baseline DoS protection
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false
+  });
+  const speed = slowDown({ windowMs: 15 * 60 * 1000, delayAfter: 200, delayMs: 250 });
+  app.use(limiter, speed);
+
+  app.use(cookieParser());
+}
+
+function csrfProtection() {
+  return csrf({
+    cookie: {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      domain: process.env.COOKIE_DOMAIN
+    }
+  });
+}
+
+module.exports = { buildSecurity, csrfProtection };
+
+6) session.js – secure cookie sessions (stored in Postgres)
+// session.js
+const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
+const { pool } = require('./db');
+
+function buildSession() {
+  return session({
+    store: new pgSession({ pool }),
+    secret: process.env.SESSION_SECRET,
+    name: process.env.SESSION_NAME || '__fcsid',
+    resave: false,
+    saveUninitialized: false,
+    rolling: true,
+    cookie: {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      domain: process.env.COOKIE_DOMAIN,
+      maxAge: 1000 * 60 * 60 * 2 // 2h
+    }
+  });
+}
+
+module.exports = { buildSession };
+
+7) auth.js – Argon2id login + TOTP MFA
+// auth.js
+const argon2 = require('argon2');
+const { authenticator } = require('otplib');
+const { z } = require('zod');
+const { pool, withTenant } = require('./db');
+const { v4: uuid } = require('uuid');
+
+authenticator.options = { step: 30, window: [1,1] };
+
+async function register(email, password) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const hash = await argon2.hash(password, { type: argon2.argon2id });
+    const { rows: u } = await client.query(
+      'INSERT INTO users(email,password_hash) VALUES($1,$2) RETURNING id',
+      [email.toLowerCase(), hash]
+    );
+    const orgName = email.split('@')[0] + ' Family';
+    const { rows: o } = await client.query(
+      'INSERT INTO orgs(name) VALUES($1) RETURNING id', [orgName]
+    );
+    await client.query(
+      'INSERT INTO memberships(user_id,org_id,role) VALUES($1,$2,$3)',
+      [u[0].id, o[0].id, 'PRESIDENT']
+    );
+    await client.query('COMMIT');
+    return { userId: u[0].id, orgId: o[0].id };
+  } catch (e) {
+    await client.query('ROLLBACK'); throw e;
+  } finally {
+    client.release();
+  }
+}
+
+async function login(req, email, password, otpCodeOptional) {
+  const client = await pool.connect();
+  try {
+    const { rows } = await client.query(
+      'SELECT id, password_hash, mfa_secret FROM users WHERE email=$1', [email.toLowerCase()]
+    );
+    if (!rows[0]) return null;
+    const ok = await argon2.verify(rows[0].password_hash, password);
+    if (!ok) return null;
+
+    // MFA if enabled
+    if (rows[0].mfa_secret) {
+      if (!otpCodeOptional || !authenticator.check(otpCodeOptional, rows[0].mfa_secret)) {
+        return { mfaRequired: true };
+      }
+    }
+
+    // load primary org (first membership); prod: allow org selection
+    const { rows: m } = await client.query(
+      `SELECT org_id, role FROM memberships WHERE user_id=$1 ORDER BY role='PRESIDENT' DESC LIMIT 1`,
+      [rows[0].id]
+    );
+    if (!m[0]) return null;
+
+    // set session
+    req.session.userId = rows[0].id;
+    req.session.orgId = m[0].org_id;
+    req.session.role = m[0].role;
+
+    // Set RLS variables for this connection (for immediate queries)
+    await withTenant(client, m[0].org_id, rows[0].id);
+
+    // audit
+    await client.query(
+      'INSERT INTO audit_logs(org_id,user_id,action,ip,user_agent) VALUES($1,$2,$3,$4,$5)',
+      [m[0].org_id, rows[0].id, 'login', req.ip, req.get('user-agent')]
+    );
+
+    return { ok: true, role: m[0].role };
+  } finally {
+    client.release();
+  }
+}
+
+function requireAuth(req, res, next) {
+  if (!req.session?.userId || !req.session?.orgId) {
+    return res.status(401).json({ error: 'auth_required' });
+  }
+  next();
+}
+
+module.exports = { register, login, requireAuth };
+
+8) storage.js – signed URLs (S3 / R2)
+// storage.js
+const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+
+const s3 = new S3Client({
+  region: process.env.S3_REGION,
+  endpoint: process.env.S3_ENDPOINT,
+  credentials: {
+    accessKeyId: process.env.S3_ACCESS_KEY_ID,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY
+  }
+});
+
+async function createUploadUrl(key, contentType) {
+  const cmd = new PutObjectCommand({
+    Bucket: process.env.S3_BUCKET, Key: key, ContentType: contentType
+  });
+  return getSignedUrl(s3, cmd, { expiresIn: 60 * 5 });
+}
+
+async function createDownloadUrl(key) {
+  const cmd = new GetObjectCommand({ Bucket: process.env.S3_BUCKET, Key: key });
+  return getSignedUrl(s3, cmd, { expiresIn: 60 * 5 });
+}
+
+module.exports = { createUploadUrl, createDownloadUrl };
+
+9) app.js – wire everything together
+// app.js
+require('dotenv').config();
+const express = require('express');
+const { buildSecurity, csrfProtection } = require('./security');
+const { buildSession } = require('./session');
+const { pool, withTenant } = require('./db');
+const { register, login, requireAuth } = require('./auth');
+const { z } = require('zod');
+const { v4: uuid } = require('uuid');
+const { createUploadUrl, createDownloadUrl } = require('./storage');
+
+const app = express();
+buildSecurity(app);
+app.use(express.json());
+app.use(buildSession());
+
+// Attach RLS vars for each request (for any new DB connection used in handlers)
+app.use(async (req, res, next) => {
+  // nothing to set globally; each handler that gets a client should call withTenant()
+  next();
+});
+
+/** Routes **/
+
+app.get('/health', (req, res) => res.json({ ok: true }));
+
+app.post('/api/auth/register', csrfProtection(), async (req, res, next) => {
+  try {
+    const schema = z.object({ email: z.string().email(), password: z.string().min(12) });
+    const { email, password } = schema.parse(req.body);
+    const r = await register(email, password);
+    res.json({ ok: true, ...r });
+  } catch (e) { next(e); }
+});
+
+app.post('/api/auth/login', csrfProtection(), async (req, res, next) => {
+  try {
+    const schema = z.object({ email: z.string().email(), password: z.string(), otp: z.string().optional() });
+    const { email, password, otp } = schema.parse(req.body);
+    const r = await login(req, email, password, otp);
+    if (!r) return res.status(401).json({ error: 'invalid_credentials' });
+    if (r.mfaRequired) return res.status(206).json({ mfaRequired: true });
+    res.json({ ok: true, role: r.role });
+  } catch (e) { next(e); }
+});
+
+app.post('/api/auth/logout', requireAuth, (req, res) => {
+  req.session.destroy(() => res.json({ ok: true }));
+});
+
+// Example: create signed upload URL (scoped by org)
+app.post('/api/storage/upload-url', requireAuth, csrfProtection(), async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    await withTenant(client, req.session.orgId, req.session.userId);
+
+    const schema = z.object({ contentType: z.string() });
+    const { contentType } = schema.parse(req.body);
+
+    const key = `${req.session.orgId}/${uuid()}`;
+    const url = await createUploadUrl(key, contentType);
+
+    // Record metadata row (RLS enforces org)
+    await client.query(
+      `INSERT INTO documents (org_id, owner_id, path, content_type) VALUES ($1,$2,$3,$4)`,
+      [req.session.orgId, req.session.userId, key, contentType]
+    );
+
+    res.json({ key, url, expiresIn: 300 });
+  } catch (e) { next(e); }
+  finally { client.release(); }
+});
+
+app.get('/api/storage/download-url/:docId', requireAuth, async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    await withTenant(client, req.session.orgId, req.session.userId);
+
+    const { rows } = await client.query(`SELECT path FROM documents WHERE id=$1`, [req.params.docId]);
+    if (!rows[0]) return res.status(404).json({ error: 'not_found' });
+
+    const url = await createDownloadUrl(rows[0].path);
+    res.json({ url, expiresIn: 300 });
+  } catch (e) { next(e); }
+  finally { client.release(); }
+});
+
+// Simple audit fetch for console (PRESIDENT only)
+app.get('/api/audit/recent', requireAuth, async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    await withTenant(client, req.session.orgId, req.session.userId);
+
+    if (req.session.role !== 'PRESIDENT') return res.status(403).json({ error: 'forbidden' });
+
+    const { rows } = await client.query(
+      `SELECT action, ip, user_agent, created_at FROM audit_logs
+       WHERE org_id = $1 ORDER BY created_at DESC LIMIT 100`,
+      [req.session.orgId]
+    );
+    res.json(rows);
+  } catch (e) { next(e); }
+  finally { client.release(); }
+});
+
+// Error handler leak-proof
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(400).json({ error: 'bad_request' });
+});
+
+app.listen(process.env.PORT || 3000, () =>
+  console.log(`API on ${process.env.PORT || 3000}`));
+
+10) What you get right now
+
+✅ Tenant isolation (RLS) – even a buggy query won’t cross orgs.
+
+✅ Strong auth (Argon2id + optional TOTP) & secure HttpOnly session cookies.
+
+✅ CSRF protection for state-changing routes.
+
+✅ Hardened headers + CSP via Helmet.
+
+✅ Rate-limit + Slowdown (basic DoS/brute force friction).
+
+✅ Signed S3/R2 URLs (no public buckets).
+
+✅ Audit log (with PRESIDENT console fetch).
+
+Next secure steps (quick wins)
+
+Passkeys (WebAuthn) as primary login (keep the password+TOTP fallback).
+
+Upload virus scan (queue + ClamAV container) before making docs visible.
+
+Device manager in user profile (list + revoke sessions).
+
+Key rotation job for per-org DEKs if you adopt envelope encryption in Phase 2.
+
+Hook your Console Status cards to:
+
+/health (app)
+
+a DB checker (SELECT 1 with timeout)
+
+S3 signed URL smoke test
+
+last audit log timestamp
