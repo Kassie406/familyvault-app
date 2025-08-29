@@ -314,18 +314,30 @@ section:nth-child(odd) {
   box-shadow: 0 4px 20px rgba(212, 175, 55, 0.15);
 }
 
-/* CTA Button Glow Effect */
+/* CTA Button - Always visible with proper contrast */
 .cta-button {
-  background: var(--primary-gold);
-  color: #000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 32px;
+  background: var(--brand);
+  color: var(--brand-ink);
   border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
   transition: all 0.3s ease;
+  
+  /* Ensure always visible */
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 .cta-button:hover {
   background: var(--brand-2);
-  color: var(--brand-ink); /* ensure text stays visible */
-  box-shadow: 0 0 15px var(--brand-2);
+  color: var(--brand-ink);
+  box-shadow: 0 10px 24px rgba(240,185,11,.18);
   transform: translateY(-2px);
 }
 
