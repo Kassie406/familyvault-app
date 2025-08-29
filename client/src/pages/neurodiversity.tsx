@@ -147,9 +147,9 @@ export default function Neurodiversity() {
                 <a 
                   href="/pricing"
                   data-testid="link-see-features"
-                  className="inline-flex items-center gap-2 border border-[rgba(255,255,255,0.16)] text-[#e9e9e9] bg-transparent px-6 py-3 rounded-full hover:border-[#f4c542] hover:text-[#f4c542] transition-colors min-h-[44px] focus:outline-none focus:ring-[0_0_0_1px_rgba(244,197,66,0.3),0_0_0_4px_rgba(244,197,66,0.12)]"
+                  className="text-[#D1D5DB] hover:text-[#F3F4F6] underline underline-offset-4 min-h-[44px] flex items-center"
                 >
-                  See neurodiversity features →
+                  See what's included →
                 </a>
               </div>
             </div>
