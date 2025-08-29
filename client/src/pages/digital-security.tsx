@@ -18,7 +18,7 @@ import {
   FileText,
   Link
 } from "lucide-react";
-import laptopSecurityImage from "@assets/image_1756094818120.png";
+import dataProtectionImage from "@assets/generated_images/Digital_security_data_protection_image_cd7e817b.png";
 import digitalSecurityImage from "@assets/image_1756094885841.png";
 import mobileAppImage from "@assets/image_1756094986045.png";
 import askExpertsImage from "@assets/image_1756095055472.png";
@@ -155,8 +155,8 @@ export default function DigitalSecurity() {
             <div className="lg:pl-12">
               <div className="bg-[#111111] border border-[rgba(255,217,61,0.2)] rounded-2xl p-8 h-96 overflow-hidden">
                 <img 
-                  src={laptopSecurityImage} 
-                  alt="Professional working on laptop with digital security lock overlays representing secure document management"
+                  src={dataProtectionImage} 
+                  alt="Digital security cloud storage with protective shields and document icons representing secure family data protection"
                   className="w-full h-full object-cover rounded-lg"
                 />
               </div>
