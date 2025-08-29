@@ -28,6 +28,9 @@ import houseKeysImage from "@assets/image_1756095984954.png";
 import digitalSecurityImage from "@assets/image_1756096227958.png";
 import mobileAppImage from "@assets/image_1756096292349.png";
 import askExpertsImage from "@assets/image_1756096343174.png";
+import robertProfileImage from "@assets/generated_images/Robert_home_buying_reviewer_headshot_806866b7.png";
+import jenniferProfileImage from "@assets/generated_images/Jennifer_home_buying_reviewer_headshot_b705e8d6.png";
+import davidProfileImage from "@assets/generated_images/David_home_buying_reviewer_headshot_1c3ebf6a.png";
 
 export default function HomeBuying() {
   const homeBuyingCards = [
@@ -134,9 +137,9 @@ export default function HomeBuying() {
   ];
 
   const testimonials = [
-    { name: "Robert K.", title: "Member since 2022", rating: 5, quote: "FamilyVault kept all our home buying documents organized. We closed two weeks early because everything was ready to go!" },
-    { name: "Jennifer M.", title: "Member since 2021", rating: 5, quote: "Being able to share our pre-approval documents securely with our realtor made the process so much smoother." },
-    { name: "David S.", title: "Member since 2023", rating: 5, quote: "The ability to compare different properties with all our notes and photos in one place was invaluable." }
+    { name: "Robert K.", title: "Member since 2022", rating: 5, quote: "FamilyVault kept all our home buying documents organized. We closed two weeks early because everything was ready to go!", image: robertProfileImage },
+    { name: "Jennifer M.", title: "Member since 2021", rating: 5, quote: "Being able to share our pre-approval documents securely with our realtor made the process so much smoother.", image: jenniferProfileImage },
+    { name: "David S.", title: "Member since 2023", rating: 5, quote: "The ability to compare different properties with all our notes and photos in one place was invaluable.", image: davidProfileImage }
   ];
 
   return (
@@ -523,8 +526,12 @@ export default function HomeBuying() {
                   ))}
                 </div>
                 <p className="text-[#b9b9b9] italic mb-4 text-sm">"{testimonial.quote}"</p>
-                <div className="w-16 h-16 bg-gradient-to-br from-[#d7b43e] to-[#c6a528] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#d7b43e]">
-                  <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
+                <div className="w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden border-2 border-[#d7b43e]">
+                  <img 
+                    src={testimonial.image} 
+                    alt={`${testimonial.name} profile`}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <footer className="text-xs text-[#b9b9b9]">
                   <div className="font-semibold text-[#eaeaea]">{testimonial.name}</div>
