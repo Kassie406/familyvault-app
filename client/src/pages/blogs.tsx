@@ -91,7 +91,7 @@ export default function Blogs() {
       <section className="bg-gradient-to-b from-[#121212] to-[#0E0E0E] pt-24 pb-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h1 className="text-5xl font-bold text-white mb-6">FamilyVault Blog</h1>
+            <h1 className="text-5xl font-bold text-white mb-6">FamilyCircle Secure Blog</h1>
             <p className="text-xl text-[#A5A5A5] leading-relaxed max-w-3xl mx-auto">
               Expert insights, practical tips, and guidance to help you organize, secure, and manage your family's most important information.
             </p>
@@ -259,7 +259,7 @@ export default function Blogs() {
             Ready to organize your family's information?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Start implementing these insights with FamilyVault's secure document management platform.
+            Start implementing these insights with FamilyCircle Secure's secure document management platform.
           </p>
           <a
             href="/pricing"

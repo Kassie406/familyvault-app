@@ -33,7 +33,7 @@ export default function InternationalTravel() {
       icon: FileText,
       title: "Replace Lost Passports & Other IDs",
       description: "You're on a trip when you reach for your passport — only to realize it's missing, and you have no idea what to do now.",
-      detail: "Store digital copies of passports, visas, and other IDs securely in FamilyVault for easy replacement."
+      detail: "Store digital copies of passports, visas, and other IDs securely in FamilyCircle Secure for easy replacement."
     },
     {
       icon: Heart,
@@ -45,7 +45,7 @@ export default function InternationalTravel() {
       icon: Users,
       title: "Manage and Share Travel Info",
       description: "You arrive at your hotel after a long flight, only to realize you can't find your reservation details or confirmation number.",
-      detail: "Store and share your travel documents anytime with FamilyVault's mobile app."
+      detail: "Store and share your travel documents anytime with FamilyCircle Secure's mobile app."
     },
     {
       icon: Bell,
@@ -65,7 +65,7 @@ export default function InternationalTravel() {
     },
     {
       icon: Smartphone, 
-      title: "Use FamilyVault on the Go",
+      title: "Use FamilyCircle Secure on the Go",
       description: "Access your information anywhere with our mobile app",
       image: mobileAppImage,
       imageAlt: "Mobile app interface showing family document categories and navigation"
@@ -113,8 +113,8 @@ export default function InternationalTravel() {
   ];
 
   const testimonials = [
-    { name: "Martin F.", title: "Member since 2023", rating: 5, quote: "FamilyVault made international travel so much easier — had everything I needed in one place.", image: martinProfileImage },
-    { name: "Emily G.", title: "Member since 2021", rating: 5, quote: "Lost my passport abroad, but having a digital copy in FamilyVault saved me hours of stress.", image: emilyProfileImage },
+    { name: "Martin F.", title: "Member since 2023", rating: 5, quote: "FamilyCircle Secure made international travel so much easier — had everything I needed in one place.", image: martinProfileImage },
+    { name: "Emily G.", title: "Member since 2021", rating: 5, quote: "Lost my passport abroad, but having a digital copy in FamilyCircle Secure saved me hours of stress.", image: emilyProfileImage },
     { name: "Oscar S.", title: "Member since 2023", rating: 5, quote: "Finally, a secure way to keep my travel documents organized and accessible.", image: oscarProfileImage }
   ];
 
@@ -131,10 +131,10 @@ export default function InternationalTravel() {
                 ✈️ International Travel
               </span>
               <h1 className="text-4xl md:text-5xl font-extrabold text-[#F5F5F5] tracking-tight">
-                FamilyVault for International Travel
+                FamilyCircle Secure for International Travel
               </h1>
               <p className="text-[#D1D5DB] max-w-[65ch] text-lg">
-                International travel is an adventure, but keeping track of your travel documents shouldn't be. FamilyVault ensures your passport and other docs are secure and accessible.
+                International travel is an adventure, but keeping track of your travel documents shouldn't be. FamilyCircle Secure ensures your passport and other docs are secure and accessible.
               </p>
               <div className="flex flex-wrap gap-4">
                 <a 
@@ -171,7 +171,7 @@ export default function InternationalTravel() {
             Travel Problems, Solved
           </h2>
           <p className="text-lg text-[#FFD700] font-medium max-w-3xl mx-auto">
-            Even the best travel plans can go sideways. Lost passport? Emergency? FamilyVault's got your back — keeping you prepared for whatever twist (or chaos) comes your way.
+            Even the best travel plans can go sideways. Lost passport? Emergency? FamilyCircle Secure's got your back — keeping you prepared for whatever twist (or chaos) comes your way.
           </p>
         </div>
       </section>
@@ -287,14 +287,14 @@ export default function InternationalTravel() {
         </div>
       </section>
 
-      {/* Meet FamilyVault */}
+      {/* Meet FamilyCircle Secure */}
       <section className="py-20 bg-[#141414]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-6">
-            Meet FamilyVault — Your Life, Organized
+            Meet FamilyCircle Secure — Your Life, Organized
           </h2>
           <p className="text-[#D1D5DB] text-lg mb-8 max-w-3xl mx-auto">
-            From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
+            From travel and finances to emergency planning, FamilyCircle Secure keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/pricing"
@@ -398,7 +398,7 @@ export default function InternationalTravel() {
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
-              What Travelers Say About FamilyVault
+              What Travelers Say About FamilyCircle Secure
             </h2>
           </div>
 
@@ -461,7 +461,7 @@ export default function InternationalTravel() {
                 <li>• Advanced security</li>
                 <li>• 12 items</li>
                 <li>• 50GB</li>
-                <li>• Autopilot™ by FamilyVault (beta)</li>
+                <li>• Autopilot™ by FamilyCircle Secure (beta)</li>
                 <li>• Tailored onboarding</li>
                 <li>• Unlimited collaborators</li>
               </ul>
@@ -482,10 +482,10 @@ export default function InternationalTravel() {
               <ul className="space-y-2 text-sm text-[#D1D5DB] flex-1">
                 <li>• Everything in Free plus:</li>
                 <li>• Unlimited items</li>
-                <li>• Autopilot™ by FamilyVault</li>
+                <li>• Autopilot™ by FamilyCircle Secure</li>
                 <li>• Liability support</li>
                 <li>• Priority customer expert</li>
-                <li>• The FamilyVault Marketplace</li>
+                <li>• The FamilyCircle Secure Marketplace</li>
               </ul>
             </div>
 

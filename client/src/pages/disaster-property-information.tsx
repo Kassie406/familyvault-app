@@ -292,7 +292,7 @@ export default function DisasterPropertyInformation() {
             Ready to document your property information?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your property documents, home inventory, and important records secure and organized with FamilyVault.
+            Keep all your property documents, home inventory, and important records secure and organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

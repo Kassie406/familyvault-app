@@ -387,7 +387,7 @@ export default function EstateAssetDocumentation() {
             Ready to document your assets?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your asset documentation, valuations, and ownership records secure and organized with FamilyVault.
+            Keep all your asset documentation, valuations, and ownership records secure and organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

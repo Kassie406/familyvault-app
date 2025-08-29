@@ -15,7 +15,7 @@ export default function Reviews() {
     {
       id: 1,
       category: "Emergency Readiness",
-      quote: "When our basement flooded, I was able to access our insurance documents instantly from my phone. FamilyVault saved us weeks of paperwork reconstruction and thousands in potential delays.",
+      quote: "When our basement flooded, I was able to access our insurance documents instantly from my phone. FamilyCircle Secure saved us weeks of paperwork reconstruction and thousands in potential delays.",
       author: "Sarah M.",
       memberSince: "Member since 2023",
       profileImage: sarahProfileImage
@@ -23,7 +23,7 @@ export default function Reviews() {
     {
       id: 2,
       category: "Family Coordination",
-      quote: "With three kids in different schools and activities, keeping track of medical forms, permission slips, and schedules was chaos. FamilyVault brought order to our family madness.",
+      quote: "With three kids in different schools and activities, keeping track of medical forms, permission slips, and schedules was chaos. FamilyCircle Secure brought order to our family madness.",
       author: "Marcus & Lisa T.",
       memberSince: "Member since 2024",
       profileImage: marcusLisaProfileImage
@@ -31,7 +31,7 @@ export default function Reviews() {
     {
       id: 3,
       category: "Peace of Mind",
-      quote: "After my father passed without any organized records, I promised my family wouldn't face the same struggle. FamilyVault ensures everything is documented and accessible.",
+      quote: "After my father passed without any organized records, I promised my family wouldn't face the same struggle. FamilyCircle Secure ensures everything is documented and accessible.",
       author: "Jennifer L.",
       memberSince: "Member since 2022",
       profileImage: jenniferProfileImage
@@ -39,7 +39,7 @@ export default function Reviews() {
     {
       id: 4,
       category: "Digital Organization",
-      quote: "We had documents scattered across email, cloud storage, and filing cabinets. FamilyVault consolidated everything into one secure, searchable system that actually makes sense.",
+      quote: "We had documents scattered across email, cloud storage, and filing cabinets. FamilyCircle Secure consolidated everything into one secure, searchable system that actually makes sense.",
       author: "David K.",
       memberSince: "Member since 2023",
       profileImage: davidProfileImage
@@ -47,7 +47,7 @@ export default function Reviews() {
     {
       id: 5,
       category: "Security & Privacy",
-      quote: "Unlike regular cloud storage, FamilyVault was built specifically for sensitive family information. The security features give me confidence that our data is truly protected.",
+      quote: "Unlike regular cloud storage, FamilyCircle Secure was built specifically for sensitive family information. The security features give me confidence that our data is truly protected.",
       author: "Dr. Amanda R.",
       memberSince: "Member since 2022",
       profileImage: amandaProfileImage
@@ -55,7 +55,7 @@ export default function Reviews() {
     {
       id: 6,
       category: "Time Savings",
-      quote: "Tax season used to take weeks of document hunting. Now everything is organized and ready. FamilyVault has given me my weekends back.",
+      quote: "Tax season used to take weeks of document hunting. Now everything is organized and ready. FamilyCircle Secure has given me my weekends back.",
       author: "Robert C.",
       memberSince: "Member since 2024",
       profileImage: robertProfileImage
@@ -66,7 +66,7 @@ export default function Reviews() {
     {
       name: "Michelle K.",
       rating: 5,
-      review: "Outstanding customer service and incredibly intuitive design. FamilyVault has transformed how our family manages important documents. The peace of mind is invaluable.",
+      review: "Outstanding customer service and incredibly intuitive design. FamilyCircle Secure has transformed how our family manages important documents. The peace of mind is invaluable.",
       date: "Dec 15, 2024",
       verified: true
     },
@@ -87,21 +87,21 @@ export default function Reviews() {
     {
       name: "Kevin & Tracy B.",
       rating: 5,
-      review: "We've tried other document storage solutions, but FamilyVault is specifically designed for families. The templates and organization tools are exactly what we needed.",
+      review: "We've tried other document storage solutions, but FamilyCircle Secure is specifically designed for families. The templates and organization tools are exactly what we needed.",
       date: "Oct 22, 2024",
       verified: true
     },
     {
       name: "Dr. Susan M.",
       rating: 5,
-      review: "As someone who values both convenience and security, FamilyVault delivers on both fronts. The encryption standards are medical-grade, and the interface is refreshingly simple.",
+      review: "As someone who values both convenience and security, FamilyCircle Secure delivers on both fronts. The encryption standards are medical-grade, and the interface is refreshingly simple.",
       date: "Oct 5, 2024",
       verified: true
     },
     {
       name: "Carlos R.",
       rating: 5,
-      review: "Moving to a new state was stressful enough. Having all our important documents organized and accessible through FamilyVault made the transition so much smoother.",
+      review: "Moving to a new state was stressful enough. Having all our important documents organized and accessible through FamilyCircle Secure made the transition so much smoother.",
       date: "Sep 18, 2024",
       verified: true
     }
@@ -122,10 +122,10 @@ export default function Reviews() {
       <section className="bg-gradient-to-b from-[#121212] to-[#0E0E0E] pt-24 pb-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-5xl font-bold text-white mb-6">
-            Why Families Choose FamilyVault
+            Why Families Choose FamilyCircle Secure
           </h1>
           <p className="text-xl text-[#A5A5A5] mb-8 leading-relaxed max-w-3xl mx-auto">
-            Discover how thousands of families use FamilyVault to organize, secure, and share their most important information. 
+            Discover how thousands of families use FamilyCircle Secure to organize, secure, and share their most important information. 
             Real stories from real families who've transformed their document management.
           </p>
           <button 
@@ -218,7 +218,7 @@ export default function Reviews() {
               What Families Are Saying
             </h2>
             <p className="text-xl text-[#A5A5A5] max-w-3xl mx-auto">
-              Join thousands of satisfied families who have found peace of mind with FamilyVault's secure document management.
+              Join thousands of satisfied families who have found peace of mind with FamilyCircle Secure's secure document management.
             </p>
           </div>
 
@@ -271,7 +271,7 @@ export default function Reviews() {
             Your story could inspire another family
           </h2>
           <p className="text-xl mb-8 text-[#A5A5A5] leading-relaxed">
-            Has FamilyVault made your life easier, safer, or more organized? Share your experience and help other families 
+            Has FamilyCircle Secure made your life easier, safer, or more organized? Share your experience and help other families 
             discover the peace of mind that comes with having their important information secure and accessible.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -301,7 +301,7 @@ export default function Reviews() {
                 More Family Success Stories
               </h2>
               <p className="text-lg text-[#A5A5A5]">
-                Every family has unique needs, and FamilyVault adapts to help them all stay organized and secure.
+                Every family has unique needs, and FamilyCircle Secure adapts to help them all stay organized and secure.
               </p>
             </div>
 
@@ -317,7 +317,7 @@ export default function Reviews() {
                     <span className="text-sm text-[#A5A5A5]">Elena R. • Dec 2024</span>
                   </div>
                   <p className="text-[#B9B9B9] leading-relaxed">
-                    "As a military family, we move frequently. FamilyVault ensures all our important documents travel with us digitally, 
+                    "As a military family, we move frequently. FamilyCircle Secure ensures all our important documents travel with us digitally, 
                     making relocations so much less stressful. No more lost paperwork during moves!"
                   </p>
                 </div>
@@ -332,7 +332,7 @@ export default function Reviews() {
                     <span className="text-sm text-[#A5A5A5]">Michael & Janet D. • Nov 2024</span>
                   </div>
                   <p className="text-[#B9B9B9] leading-relaxed">
-                    "We're caring for elderly parents while raising teenagers. FamilyVault helps us manage medical information, 
+                    "We're caring for elderly parents while raising teenagers. FamilyCircle Secure helps us manage medical information, 
                     school records, and financial documents for multiple generations in one secure place."
                   </p>
                 </div>
@@ -381,7 +381,7 @@ export default function Reviews() {
             Ready to secure your family's future?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Join thousands of families who trust FamilyVault to protect and organize their most important information.
+            Join thousands of families who trust FamilyCircle Secure to protect and organize their most important information.
           </p>
           <a
             href="/pricing"

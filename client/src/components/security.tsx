@@ -12,7 +12,7 @@ const securityFeatures = [
   {
     icon: Lock,
     title: "Multi-factor authentication",
-    description: "For enhanced account security, FamilyVault requires two-factor authentication to protect against unauthorized access and phishing attacks."
+    description: "For enhanced account security, FamilyCircle Secure requires two-factor authentication to protect against unauthorized access and phishing attacks."
   },
   {
     icon: Shield,
@@ -22,22 +22,22 @@ const securityFeatures = [
   {
     icon: AlertTriangle,
     title: "Stolen-password alerts",
-    description: "FamilyVault scans anonymized password data against dark web databases to detect breaches, then prompts you to change your account password."
+    description: "FamilyCircle Secure scans anonymized password data against dark web databases to detect breaches, then prompts you to change your account password."
   },
   {
     icon: Zap,
     title: "Threat detection",
-    description: "FamilyVault employs user entity behavior analytics to monitor anomalies and unusual activities."
+    description: "FamilyCircle Secure employs user entity behavior analytics to monitor anomalies and unusual activities."
   },
   {
     icon: Key,
     title: "Data encryption",
-    description: "FamilyVault data is encrypted in transit and at rest using 256-bit AES encryption keys."
+    description: "FamilyCircle Secure data is encrypted in transit and at rest using 256-bit AES encryption keys."
   },
   {
     icon: User,
     title: "Biometric authentication",
-    description: "FamilyVault employs facial recognition and fingerprint authentication on our mobile and desktop applications."
+    description: "FamilyCircle Secure employs facial recognition and fingerprint authentication on our mobile and desktop applications."
   }
 ];
 

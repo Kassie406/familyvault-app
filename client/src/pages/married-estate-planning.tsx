@@ -276,7 +276,7 @@ export default function MarriedEstateePlanning() {
             Ready to organize your estate planning documents?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your wills, power of attorney documents, and estate planning materials secure and organized with FamilyVault.
+            Keep all your wills, power of attorney documents, and estate planning materials secure and organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

@@ -83,7 +83,7 @@ export default function HomeBuying() {
       icon: FileText,
       title: "Get Pre-Approved Faster",
       description: "Your lender asks for three months of bank statements, but you can only find two — slowing down your pre-approval process.",
-      detail: "Store all your financial documents in FamilyVault so you can quickly provide everything your lender needs for pre-approval."
+      detail: "Store all your financial documents in FamilyCircle Secure so you can quickly provide everything your lender needs for pre-approval."
     },
     {
       icon: Calculator,
@@ -101,7 +101,7 @@ export default function HomeBuying() {
       icon: Shield,
       title: "Share Information Securely",
       description: "Your realtor needs your pre-approval letter, but you're concerned about emailing sensitive financial information.",
-      detail: "Use FamilyVault's secure sharing to provide access to the right documents without compromising your privacy."
+      detail: "Use FamilyCircle Secure's secure sharing to provide access to the right documents without compromising your privacy."
     }
   ];
 
@@ -137,7 +137,7 @@ export default function HomeBuying() {
   ];
 
   const testimonials = [
-    { name: "Robert K.", title: "Member since 2022", rating: 5, quote: "FamilyVault kept all our home buying documents organized. We closed two weeks early because everything was ready to go!", image: robertProfileImage },
+    { name: "Robert K.", title: "Member since 2022", rating: 5, quote: "FamilyCircle Secure kept all our home buying documents organized. We closed two weeks early because everything was ready to go!", image: robertProfileImage },
     { name: "Jennifer M.", title: "Member since 2021", rating: 5, quote: "Being able to share our pre-approval documents securely with our realtor made the process so much smoother.", image: jenniferProfileImage },
     { name: "David S.", title: "Member since 2023", rating: 5, quote: "The ability to compare different properties with all our notes and photos in one place was invaluable.", image: davidProfileImage }
   ];
@@ -155,7 +155,7 @@ export default function HomeBuying() {
                 🏠 Home Buying
               </span>
               <h1 className="text-4xl lg:text-5xl font-bold text-[#eaeaea] tracking-tight leading-tight">
-                FamilyVault for Home Buying
+                FamilyCircle Secure for Home Buying
               </h1>
               <p className="text-[#b9b9b9] max-w-[58ch] text-lg leading-relaxed">
                 From pre-approval to closing, keep documents, research, and contacts in one secure place—so you move faster and worry less.
@@ -199,7 +199,7 @@ export default function HomeBuying() {
         <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#eaeaea] mb-4">
-              How FamilyVault Supports Your Home Buying Journey
+              How FamilyCircle Secure Supports Your Home Buying Journey
             </h2>
             <p className="text-[#b9b9b9] text-lg max-w-2xl mx-auto">
               Keep your documents, research, and contacts organized throughout the entire home buying process.
@@ -395,14 +395,14 @@ export default function HomeBuying() {
         </div>
       </section>
 
-      {/* Meet FamilyVault */}
+      {/* Meet FamilyCircle Secure */}
       <section className="py-20 bg-[#0B0B0B]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-6">
-            Meet FamilyVault — Your Life, Organized
+            Meet FamilyCircle Secure — Your Life, Organized
           </h2>
           <p className="text-[#D1D5DB] text-lg mb-8 max-w-3xl mx-auto">
-            From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
+            From travel and finances to emergency planning, FamilyCircle Secure keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/pricing"
@@ -513,7 +513,7 @@ export default function HomeBuying() {
         <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#eaeaea] mb-4">
-              What Our Members Say About FamilyVault
+              What Our Members Say About FamilyCircle Secure
             </h2>
           </div>
 
@@ -572,7 +572,7 @@ export default function HomeBuying() {
                 <li>• Advanced security</li>
                 <li>• 12 items</li>
                 <li>• 50GB</li>
-                <li>• Autopilot™ by FamilyVault (beta)</li>
+                <li>• Autopilot™ by FamilyCircle Secure (beta)</li>
                 <li>• Tailored onboarding</li>
                 <li>• Unlimited collaborators</li>
               </ul>
@@ -593,10 +593,10 @@ export default function HomeBuying() {
               <ul className="space-y-2 text-sm text-[#D1D5DB] flex-1">
                 <li>• Everything in Free plus:</li>
                 <li>• Unlimited items</li>
-                <li>• Autopilot™ by FamilyVault</li>
+                <li>• Autopilot™ by FamilyCircle Secure</li>
                 <li>• Liability support</li>
                 <li>• Priority customer expert</li>
-                <li>• The FamilyVault Marketplace</li>
+                <li>• The FamilyCircle Secure Marketplace</li>
               </ul>
             </div>
 
@@ -639,7 +639,7 @@ export default function HomeBuying() {
             Ready to Simplify Your Home Buying Journey?
           </h2>
           <p className="text-[#b9b9b9] text-lg mb-8 max-w-2xl mx-auto">
-            Start organizing your documents, research, and contacts with FamilyVault today.
+            Start organizing your documents, research, and contacts with FamilyCircle Secure today.
           </p>
           <a
             href="/pricing"

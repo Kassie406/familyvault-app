@@ -445,7 +445,7 @@ export default function StartingFamilyChildcareInformation() {
             Ready to organize your childcare information?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your childcare provider information, emergency contacts, and care instructions organized with FamilyVault.
+            Keep all your childcare provider information, emergency contacts, and care instructions organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

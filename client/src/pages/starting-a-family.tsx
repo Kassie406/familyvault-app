@@ -82,13 +82,13 @@ export default function StartingAFamily() {
       icon: CreditCard,
       title: "Carry Insurance Details With You",
       description: "You're at a prenatal visit without your insurance information — now you're stuck paying the full bill upfront.",
-      detail: "Store your insurance cards and medical records with FamilyVault for doctor visits, ultrasounds, and maternity care."
+      detail: "Store your insurance cards and medical records with FamilyCircle Secure for doctor visits, ultrasounds, and maternity care."
     },
     {
       icon: Users,
       title: "Ensure the Sitter Knows What to Do",
       description: "Your baby is sick and your sitter can't reach you — and you didn't provide backup information about your backup contacts.",
-      detail: "Share emergency plans and additional contacts through a FamilyVault SecureLink®, so your sitter has what they need."
+      detail: "Share emergency plans and additional contacts through a FamilyCircle Secure SecureLink®, so your sitter has what they need."
     },
     {
       icon: Phone,
@@ -100,7 +100,7 @@ export default function StartingAFamily() {
       icon: Shield,
       title: "Prepare Guardians in Advance",
       description: "Your brother agreed to be your child's guardian — but he's unsure what it involves and has nothing to reference.",
-      detail: "With FamilyVault's collaboration feature, you can securely share guardianship details and instructions ahead of time."
+      detail: "With FamilyCircle Secure's collaboration feature, you can securely share guardianship details and instructions ahead of time."
     }
   ];
 
@@ -121,7 +121,7 @@ export default function StartingAFamily() {
     },
     {
       icon: Smartphone,
-      title: "Use FamilyVault on the Go", 
+      title: "Use FamilyCircle Secure on the Go", 
       description: "Access your information anywhere with our mobile app",
       image: mobileAppImage,
       imageAlt: "Mobile app interface showing browse screen with family document categories"
@@ -136,7 +136,7 @@ export default function StartingAFamily() {
   ];
 
   const testimonials = [
-    { name: "Maria S.", title: "Member since 2022", rating: 5, quote: "FamilyVault helped us stay organized throughout pregnancy and after our baby arrived. Everything we needed was right there!", image: mariaProfileImage },
+    { name: "Maria S.", title: "Member since 2022", rating: 5, quote: "FamilyCircle Secure helped us stay organized throughout pregnancy and after our baby arrived. Everything we needed was right there!", image: mariaProfileImage },
     { name: "James R.", title: "Member since 2021", rating: 5, quote: "Having all our baby's medical records and insurance info accessible made doctor visits so much smoother.", image: jamesProfileImage },
     { name: "Lisa K.", title: "Member since 2023", rating: 5, quote: "The babysitter instructions feature gave us peace of mind when leaving our newborn for the first time.", image: lisaProfileImage }
   ];
@@ -154,7 +154,7 @@ export default function StartingAFamily() {
                 👶 Starting a Family
               </span>
               <h1 className="text-4xl lg:text-5xl font-bold text-[#eaeaea] tracking-tight leading-tight">
-                FamilyVault for Starting a Family
+                FamilyCircle Secure for Starting a Family
               </h1>
               <p className="text-[#b9b9b9] text-lg leading-relaxed">
                 This chapter of your life changes everything — and the Family Operating System® keeps you organized, calm, and ready for what's next.
@@ -198,7 +198,7 @@ export default function StartingAFamily() {
         <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#eaeaea] mb-4">
-              How FamilyVault Helps, From Planning to Parenthood
+              How FamilyCircle Secure Helps, From Planning to Parenthood
             </h2>
             <p className="text-[#b9b9b9] text-lg max-w-2xl mx-auto">
               Keep your information safe, private, and manageable — before your baby arrives and long after.
@@ -397,14 +397,14 @@ export default function StartingAFamily() {
       {/* Section divider */}
       <div className="h-px bg-[rgba(255,255,255,0.06)] mx-4 sm:mx-6 lg:mx-8" aria-hidden="true"></div>
 
-      {/* Meet FamilyVault */}
+      {/* Meet FamilyCircle Secure */}
       <section className="py-20 bg-[#0f0f0f] border-t border-[rgba(255,255,255,0.06)]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-[#eaeaea] mb-6">
-            Meet FamilyVault — Your Life, Organized
+            Meet FamilyCircle Secure — Your Life, Organized
           </h2>
           <p className="text-[#b9b9b9] text-lg mb-8 max-w-3xl mx-auto">
-            From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
+            From travel and finances to emergency planning, FamilyCircle Secure keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/pricing"
@@ -528,7 +528,7 @@ export default function StartingAFamily() {
         <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#eaeaea] mb-4">
-              What Our Members Say About FamilyVault
+              What Our Members Say About FamilyCircle Secure
             </h2>
           </div>
 
@@ -587,7 +587,7 @@ export default function StartingAFamily() {
                 <li>• Advanced security</li>
                 <li>• 12 items</li>
                 <li>• 50GB</li>
-                <li>• Autopilot™ by FamilyVault (beta)</li>
+                <li>• Autopilot™ by FamilyCircle Secure (beta)</li>
                 <li>• Tailored onboarding</li>
                 <li>• Unlimited collaborators</li>
               </ul>
@@ -608,10 +608,10 @@ export default function StartingAFamily() {
               <ul className="space-y-2 text-sm text-[#D1D5DB] flex-1">
                 <li>• Everything in Free plus:</li>
                 <li>• Unlimited items</li>
-                <li>• Autopilot™ by FamilyVault</li>
+                <li>• Autopilot™ by FamilyCircle Secure</li>
                 <li>• Liability support</li>
                 <li>• Priority customer expert</li>
-                <li>• The FamilyVault Marketplace</li>
+                <li>• The FamilyCircle Secure Marketplace</li>
               </ul>
             </div>
 
@@ -654,7 +654,7 @@ export default function StartingAFamily() {
             Ready to Start Your Family Journey Organized?
           </h2>
           <p className="text-[#b9b9b9] text-lg mb-8 max-w-2xl mx-auto">
-            Begin organizing your family's important information with FamilyVault today.
+            Begin organizing your family's important information with FamilyCircle Secure today.
           </p>
           <a
             href="/pricing"

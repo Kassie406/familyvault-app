@@ -173,7 +173,7 @@ export default function ElderlyFinances() {
             Take Control of Financial Organization
           </h2>
           <p className="text-xl text-[#A5A5A5] mb-8 leading-relaxed">
-            Help your elderly parents stay financially organized and secure with FamilyVault's comprehensive platform.
+            Help your elderly parents stay financially organized and secure with FamilyCircle Secure's comprehensive platform.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

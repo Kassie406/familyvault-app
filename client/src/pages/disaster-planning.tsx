@@ -82,19 +82,19 @@ export default function DisasterPlanning() {
       icon: Phone,
       title: "Access Contact Information and IDs",
       description: "With only minutes to evacuate, you scramble to find your family's emergency contacts, but you can't remember where everything is.",
-      detail: "Store your contacts and IDs with FamilyVault, making it easy to grab what you need from your phone at any time."
+      detail: "Store your contacts and IDs with FamilyCircle Secure, making it easy to grab what you need from your phone at any time."
     },
     {
       icon: Heart,
       title: "Respond to Medical Emergencies",
       description: "A family member is injured during a disaster, and you're missing critical information about prescriptions or drug allergies.",
-      detail: "With FamilyVault, you can access family medical information and healthcare directives instantly, and share your own in advance."
+      detail: "With FamilyCircle Secure, you can access family medical information and healthcare directives instantly, and share your own in advance."
     },
     {
       icon: FileText,
       title: "File an Insurance Claim Quickly",
       description: "A storm damages your home, but your insurance claim is delayed because your policy details are lost in the wreckage.",
-      detail: "With your home, auto, and health insurance policies stored in FamilyVault's Family Operating System®, you can file a claim immediately."
+      detail: "With your home, auto, and health insurance policies stored in FamilyCircle Secure's Family Operating System®, you can file a claim immediately."
     },
     {
       icon: PawPrint,
@@ -121,7 +121,7 @@ export default function DisasterPlanning() {
     },
     {
       icon: Smartphone,
-      title: "Use FamilyVault on the Go", 
+      title: "Use FamilyCircle Secure on the Go", 
       description: "Access your information anywhere with our mobile app",
       image: mobileAppImage,
       imageAlt: "Mobile app interface showing family document categories and navigation"
@@ -136,9 +136,9 @@ export default function DisasterPlanning() {
   ];
 
   const testimonials = [
-    { name: "Jennifer M.", title: "Member since 2022", rating: 5, quote: "After Hurricane Laura hit, having all our documents in FamilyVault was a lifesaver for insurance claims.", image: jenniferProfileImage },
+    { name: "Jennifer M.", title: "Member since 2022", rating: 5, quote: "After Hurricane Laura hit, having all our documents in FamilyCircle Secure was a lifesaver for insurance claims.", image: jenniferProfileImage },
     { name: "Robert K.", title: "Member since 2021", rating: 5, quote: "When we had to evacuate for wildfires, I could access our family's medical info instantly from my phone.", image: robertProfileImage },
-    { name: "Maria S.", title: "Member since 2023", rating: 5, quote: "FamilyVault helped us get organized before disaster struck. Now we feel prepared for anything.", image: mariaProfileImage }
+    { name: "Maria S.", title: "Member since 2023", rating: 5, quote: "FamilyCircle Secure helped us get organized before disaster struck. Now we feel prepared for anything.", image: mariaProfileImage }
   ];
 
   return (
@@ -154,7 +154,7 @@ export default function DisasterPlanning() {
                 ⚠️ Disaster Planning
               </span>
               <h1 className="text-4xl md:text-5xl font-extrabold text-[#FFFFFF] tracking-tight">
-                FamilyVault for Disaster Planning
+                FamilyCircle Secure for Disaster Planning
               </h1>
               <p className="text-[#CCCCCC] max-w-[65ch] text-lg">
                 A natural disaster can turn life upside down in an instant — but being prepared can be the difference between order and chaos for you and your family.
@@ -191,10 +191,10 @@ export default function DisasterPlanning() {
       <section className="py-20 bg-[#0b0b0b]">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-[#FFFFFF] mb-4">
-            After the California Wildfires, FamilyVault Became a Family's Lifeline
+            After the California Wildfires, FamilyCircle Secure Became a Family's Lifeline
           </h2>
           <p className="text-[#CCCCCC] text-lg max-w-3xl mx-auto mb-12">
-            FamilyVault helped Jeremy W.'s family navigate the trauma of losing their home to the Alameda fire — and gave them the tools to start their recovery.
+            FamilyCircle Secure helped Jeremy W.'s family navigate the trauma of losing their home to the Alameda fire — and gave them the tools to start their recovery.
           </p>
           
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -205,10 +205,10 @@ export default function DisasterPlanning() {
                 </div>
                 <div className="text-[#FFFFFF] text-sm">
                   <div className="font-semibold">After the California Wildfires,</div>
-                  <div className="font-semibold">FamilyVault Became</div>
+                  <div className="font-semibold">FamilyCircle Secure Became</div>
                   <div className="font-semibold">a Lifeline</div>
                   <div className="text-xs text-[#CCCCCC] mt-2">
-                    How FamilyVault helped Jeremy W.'s<br />
+                    How FamilyCircle Secure helped Jeremy W.'s<br />
                     family through their loss
                   </div>
                 </div>
@@ -216,10 +216,10 @@ export default function DisasterPlanning() {
             </div>
             <div className="text-left">
               <p className="text-[#CCCCCC] italic mb-4 text-lg">
-                "3 years after a wildfire ran its devastating effects immediately without scrambling to replace paperwork or remember what we lost. As tragic as this situation was, FamilyVault made the process so much easier. It gave us a head start when we needed it the most."
+                "3 years after a wildfire ran its devastating effects immediately without scrambling to replace paperwork or remember what we lost. As tragic as this situation was, FamilyCircle Secure made the process so much easier. It gave us a head start when we needed it the most."
               </p>
               <div className="font-semibold text-[#FFFFFF]">Jeremy W.</div>
-              <div className="text-sm text-[#CCCCCC]">FamilyVault member since 2022</div>
+              <div className="text-sm text-[#CCCCCC]">FamilyCircle Secure member since 2022</div>
             </div>
           </div>
         </div>
@@ -230,10 +230,10 @@ export default function DisasterPlanning() {
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#FFFFFF] mb-4">
-              How FamilyVault Helps — Before and After a Disaster
+              How FamilyCircle Secure Helps — Before and After a Disaster
             </h2>
             <p className="text-[#CCCCCC] text-lg max-w-2xl mx-auto">
-              From securing family IDs to accessing vital insurance documents, FamilyVault ensures your most important information is safe and available when you need it.
+              From securing family IDs to accessing vital insurance documents, FamilyCircle Secure ensures your most important information is safe and available when you need it.
             </p>
           </div>
 
@@ -403,14 +403,14 @@ export default function DisasterPlanning() {
         </div>
       </section>
 
-      {/* Meet FamilyVault */}
+      {/* Meet FamilyCircle Secure */}
       <section className="py-20 bg-[#0b0b0b]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-[#FFFFFF] mb-6">
-            Meet FamilyVault — Your Life, Organized
+            Meet FamilyCircle Secure — Your Life, Organized
           </h2>
           <p className="text-[#CCCCCC] text-lg mb-8 max-w-3xl mx-auto">
-            From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
+            From travel and finances to emergency planning, FamilyCircle Secure keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/pricing"
@@ -521,7 +521,7 @@ export default function DisasterPlanning() {
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#FFFFFF] mb-4">
-              What Our Members Say About FamilyVault
+              What Our Members Say About FamilyCircle Secure
             </h2>
           </div>
 
@@ -578,7 +578,7 @@ export default function DisasterPlanning() {
                 <li>• Advanced security</li>
                 <li>• 12 items</li>
                 <li>• 50GB</li>
-                <li>• Autopilot™ by FamilyVault (beta)</li>
+                <li>• Autopilot™ by FamilyCircle Secure (beta)</li>
                 <li>• Tailored onboarding</li>
                 <li>• Unlimited collaborators</li>
               </ul>
@@ -599,10 +599,10 @@ export default function DisasterPlanning() {
               <ul className="space-y-2 text-sm text-[#D1D5DB] flex-1">
                 <li>• Everything in Free plus:</li>
                 <li>• Unlimited items</li>
-                <li>• Autopilot™ by FamilyVault</li>
+                <li>• Autopilot™ by FamilyCircle Secure</li>
                 <li>• Liability support</li>
                 <li>• Priority customer expert</li>
-                <li>• The FamilyVault Marketplace</li>
+                <li>• The FamilyCircle Secure Marketplace</li>
               </ul>
             </div>
 
@@ -645,7 +645,7 @@ export default function DisasterPlanning() {
             Be Ready for Anything Life Throws Your Way
           </h2>
           <p className="text-[#CCCCCC] text-lg mb-8 max-w-2xl mx-auto">
-            Don't wait for disaster to strike. Start organizing your family's critical information today with FamilyVault.
+            Don't wait for disaster to strike. Start organizing your family's critical information today with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

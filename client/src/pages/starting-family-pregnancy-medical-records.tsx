@@ -405,7 +405,7 @@ export default function StartingFamilyPregnancyMedicalRecords() {
             Ready to organize your pregnancy records?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your pregnancy and medical records secure and accessible with FamilyVault throughout your journey to parenthood.
+            Keep all your pregnancy and medical records secure and accessible with FamilyCircle Secure throughout your journey to parenthood.
           </p>
           <a
             href="/pricing"

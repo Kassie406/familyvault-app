@@ -32,7 +32,7 @@ export default function ChatSupport() {
           {/* Header */}
           <div className="flex justify-between items-center bg-[#0a0a0a] text-white px-4 py-3 rounded-t-lg">
             <div>
-              <h2 className="font-bold text-sm">Welcome to FamilyVault Support</h2>
+              <h2 className="font-bold text-sm">Welcome to FamilyCircle Secure Support</h2>
               <p className="text-xs text-gray-300">Instant answers + live support</p>
             </div>
             <button 
@@ -51,7 +51,7 @@ export default function ChatSupport() {
                 <span className="text-black text-sm font-bold">FV</span>
               </div>
               <div className="text-gray-700">
-                <p className="font-medium text-sm mb-1">FamilyVault Bot</p>
+                <p className="font-medium text-sm mb-1">FamilyCircle Secure Bot</p>
                 <p className="text-sm mb-2">👋 Hi! We're here to help!</p>
                 <p className="text-sm text-gray-600 mb-4">
                   Please select a topic below to get started:

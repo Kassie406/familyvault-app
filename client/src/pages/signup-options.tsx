@@ -9,7 +9,7 @@ export default function SignupOptions() {
         className="absolute top-6 left-6 text-2xl font-bold text-[#D4AF37] hover:text-[#FFD700] transition-colors"
         data-testid="logo-home-link"
       >
-        FamilyVault
+        FamilyCircle Secure
       </Link>
       
       <div className="bg-[#141414] border border-[#2A2B2E] rounded-3xl shadow-2xl p-8 w-full max-w-md">
@@ -74,7 +74,7 @@ export default function SignupOptions() {
             Already have an account? <Link href="/signin" className="text-[#D4AF37] hover:text-[#FFD700]">Sign in</Link>
           </p>
           <p className="text-xs text-[#A8A9AD]">
-            By creating a FamilyVault account, you agree to our{' '}
+            By creating a FamilyCircle Secure account, you agree to our{' '}
             <a href="#" className="text-[#D4AF37] hover:text-[#FFD700]">Terms and Conditions</a>{' '}
             and <a href="#" className="text-[#D4AF37] hover:text-[#FFD700]">Privacy Policy</a>
           </p>

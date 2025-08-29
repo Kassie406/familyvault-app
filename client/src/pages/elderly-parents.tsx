@@ -101,7 +101,7 @@ export default function ElderlyParents() {
       icon: DollarSign,
       title: "Monitor or Take Over Finances", 
       description: "Some of your parents' important bills went unpaid because you didn't have information about their finances.",
-      detail: "Collaborate with your parents to help manage their finances through FamilyVault, including bills, insurance policies, and taxes.",
+      detail: "Collaborate with your parents to help manage their finances through FamilyCircle Secure, including bills, insurance policies, and taxes.",
       image: financialAnalystImage,
       imageAlt: "Financial analyst reviewing financial data on computer and tablet showing charts and graphs"
     },
@@ -140,10 +140,10 @@ export default function ElderlyParents() {
     },
     {
       icon: Smartphone,
-      title: "Use FamilyVault on the Go", 
+      title: "Use FamilyCircle Secure on the Go", 
       description: "Access your information anywhere with our mobile app",
       image: mobileAppInterfaceImage,
-      imageAlt: "Mobile app interface showing FamilyVault browse screen with categories"
+      imageAlt: "Mobile app interface showing FamilyCircle Secure browse screen with categories"
     },
     {
       icon: Phone,
@@ -155,7 +155,7 @@ export default function ElderlyParents() {
   ];
 
   const testimonials = [
-    { name: "Margaret T.", title: "Member since 2022", rating: 5, quote: "FamilyVault helped me organize all my mother's medical records and legal documents in one secure place.", image: margaretProfileImage },
+    { name: "Margaret T.", title: "Member since 2022", rating: 5, quote: "FamilyCircle Secure helped me organize all my mother's medical records and legal documents in one secure place.", image: margaretProfileImage },
     { name: "Robert K.", title: "Member since 2021", rating: 5, quote: "Having my father's medications and doctor contacts organized has made caregiving so much easier.", image: robertProfileImage },
     { name: "Linda M.", title: "Member since 2023", rating: 5, quote: "When my parents needed emergency care, all their information was instantly accessible to the medical team.", image: lindaProfileImage }
   ];
@@ -191,7 +191,7 @@ export default function ElderlyParents() {
                 ❤️ Helping Elderly Parents
               </span>
               <h1 className="text-4xl md:text-5xl font-extrabold text-[#F3F4F6] tracking-tight">
-                FamilyVault for Helping Elderly Parents
+                FamilyCircle Secure for Helping Elderly Parents
               </h1>
               <p className="text-[#D1D5DB] max-w-[65ch] text-lg">
                 Caring for your aging parents doesn't have to be overwhelming — knowing when to act and what steps to take can make the journey less daunting.
@@ -233,7 +233,7 @@ export default function ElderlyParents() {
               Conquer the Challenges of Elder Care
             </h2>
             <p className="text-[#D1D5DB] text-lg max-w-2xl mx-auto">
-              FamilyVault helps you take charge of your parents' important information and make sure they get the care and support they deserve.
+              FamilyCircle Secure helps you take charge of your parents' important information and make sure they get the care and support they deserve.
             </p>
           </div>
 
@@ -413,14 +413,14 @@ export default function ElderlyParents() {
         </div>
       </section>
 
-      {/* Meet FamilyVault */}
+      {/* Meet FamilyCircle Secure */}
       <section className="py-20 bg-[#0B0B0B]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-6">
-            Meet FamilyVault — Your Life, Organized
+            Meet FamilyCircle Secure — Your Life, Organized
           </h2>
           <p className="text-[#D1D5DB] text-lg mb-8 max-w-3xl mx-auto">
-            From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
+            From travel and finances to emergency planning, FamilyCircle Secure keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/pricing"
@@ -531,7 +531,7 @@ export default function ElderlyParents() {
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
-              What Our Members Say About FamilyVault
+              What Our Members Say About FamilyCircle Secure
             </h2>
           </div>
 
@@ -596,7 +596,7 @@ export default function ElderlyParents() {
                 <li>• Advanced security</li>
                 <li>• 12 items</li>
                 <li>• 50GB</li>
-                <li>• Autopilot™ by FamilyVault (beta)</li>
+                <li>• Autopilot™ by FamilyCircle Secure (beta)</li>
                 <li>• Tailored onboarding</li>
                 <li>• Unlimited collaborators</li>
               </ul>
@@ -617,10 +617,10 @@ export default function ElderlyParents() {
               <ul className="space-y-2 text-sm text-[#D1D5DB] flex-1">
                 <li>• Everything in Free plus:</li>
                 <li>• Unlimited items</li>
-                <li>• Autopilot™ by FamilyVault</li>
+                <li>• Autopilot™ by FamilyCircle Secure</li>
                 <li>• Liability support</li>
                 <li>• Priority customer expert</li>
-                <li>• The FamilyVault Marketplace</li>
+                <li>• The FamilyCircle Secure Marketplace</li>
               </ul>
             </div>
 

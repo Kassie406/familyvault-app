@@ -77,7 +77,7 @@ export default function WhenSomeoneDies() {
       icon: Users,
       title: "Share Estate Information Securely",
       description: "Your siblings need access to your late father's estate documents, but sending important information via email feels unsafe.",
-      detail: "Store and share wills, living trust documents, financial records, and more in FamilyVault's Family Operating System®."
+      detail: "Store and share wills, living trust documents, financial records, and more in FamilyCircle Secure's Family Operating System®."
     },
     {
       icon: FileText,
@@ -95,7 +95,7 @@ export default function WhenSomeoneDies() {
       icon: Phone,
       title: "Notify Important Contacts",
       description: "Your mother had an extensive network of business partners who should be informed of her death, but you don't know their names.",
-      detail: "Encourage your loved ones to store and share their contacts with you through FamilyVault ahead of time, so you can be prepared."
+      detail: "Encourage your loved ones to store and share their contacts with you through FamilyCircle Secure ahead of time, so you can be prepared."
     }
   ];
 
@@ -131,9 +131,9 @@ export default function WhenSomeoneDies() {
   ];
 
   const testimonials = [
-    { name: "Michael B.", title: "Member since 2022", rating: 5, quote: "After losing my wife, FamilyVault made managing her estate so much easier. Everything was organized and accessible when I needed it most.", image: michaelProfileImage },
+    { name: "Michael B.", title: "Member since 2022", rating: 5, quote: "After losing my wife, FamilyCircle Secure made managing her estate so much easier. Everything was organized and accessible when I needed it most.", image: michaelProfileImage },
     { name: "Sarah K.", title: "Member since 2021", rating: 5, quote: "The document sharing features helped our family coordinate during a difficult time. We could focus on grieving instead of searching for paperwork.", image: sarahProfileImage },
-    { name: "David M.", title: "Member since 2023", rating: 5, quote: "Having all my father's financial information organized in FamilyVault saved us months of stress during probate.", image: davidProfileImage }
+    { name: "David M.", title: "Member since 2023", rating: 5, quote: "Having all my father's financial information organized in FamilyCircle Secure saved us months of stress during probate.", image: davidProfileImage }
   ];
 
   return (
@@ -149,10 +149,10 @@ export default function WhenSomeoneDies() {
                 🕊️ When Someone Dies
               </span>
               <h1 className="text-4xl md:text-5xl font-extrabold text-[#F3F4F6] tracking-tight">
-                FamilyVault for When Someone Dies
+                FamilyCircle Secure for When Someone Dies
               </h1>
               <p className="text-[#D1D5DB] max-w-[65ch] text-lg">
-                When you've lost someone close to you, grief can be overwhelming — but with FamilyVault's help, managing their estate doesn't have to be.
+                When you've lost someone close to you, grief can be overwhelming — but with FamilyCircle Secure's help, managing their estate doesn't have to be.
               </p>
               <div className="flex flex-wrap gap-4">
                 <a 
@@ -190,7 +190,7 @@ export default function WhenSomeoneDies() {
               Getting Organized After a Death in the Family
             </h2>
             <p className="text-[#D1D5DB] text-lg max-w-2xl mx-auto">
-              The to-do list after a loved one's passing can feel endless. Here's how FamilyVault helps you manage key tasks with clarity and support.
+              The to-do list after a loved one's passing can feel endless. Here's how FamilyCircle Secure helps you manage key tasks with clarity and support.
             </p>
           </div>
 
@@ -281,7 +281,7 @@ export default function WhenSomeoneDies() {
                                 <div className="text-[#9CA3AF] mt-1">Your siblings need access to your late father's estate documents, but sending important information via email feels unsafe.</div>
                               </div>
                             </div>
-                            <div className="text-xs text-[#D1D5DB] mt-2">Store and share wills, living trust documents, financial records, and more in FamilyVault's Family Operating System®.</div>
+                            <div className="text-xs text-[#D1D5DB] mt-2">Store and share wills, living trust documents, financial records, and more in FamilyCircle Secure's Family Operating System®.</div>
                           </div>
                         </div>
                       )}
@@ -390,7 +390,7 @@ export default function WhenSomeoneDies() {
                                 <span className="font-semibold text-[#F3F4F6]">Notify Important Contacts</span>
                               </div>
                               <div className="text-[#D1D5DB]">Your mother had an extensive network of business partners who should be informed of her death, but you don't know their names.</div>
-                              <div className="text-[#F3F4F6] mt-2">Encourage your loved ones to store and share their contacts with you through FamilyVault ahead of time, so you can be prepared.</div>
+                              <div className="text-[#F3F4F6] mt-2">Encourage your loved ones to store and share their contacts with you through FamilyCircle Secure ahead of time, so you can be prepared.</div>
                             </div>
                           </div>
                         </div>
@@ -418,14 +418,14 @@ export default function WhenSomeoneDies() {
         </div>
       </section>
 
-      {/* Meet FamilyVault */}
+      {/* Meet FamilyCircle Secure */}
       <section className="py-20 bg-[#0B0B0B]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-6">
-            Meet FamilyVault — Your Life, Organized
+            Meet FamilyCircle Secure — Your Life, Organized
           </h2>
           <p className="text-[#D1D5DB] text-lg mb-8 max-w-3xl mx-auto">
-            From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
+            From travel and finances to emergency planning, FamilyCircle Secure keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/pricing"
@@ -536,7 +536,7 @@ export default function WhenSomeoneDies() {
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
-              What Our Members Say About FamilyVault
+              What Our Members Say About FamilyCircle Secure
             </h2>
           </div>
 
@@ -593,7 +593,7 @@ export default function WhenSomeoneDies() {
                 <li>• Advanced security</li>
                 <li>• 12 items</li>
                 <li>• 50GB</li>
-                <li>• Autopilot™ by FamilyVault (beta)</li>
+                <li>• Autopilot™ by FamilyCircle Secure (beta)</li>
                 <li>• Tailored onboarding</li>
                 <li>• Unlimited collaborators</li>
               </ul>
@@ -614,10 +614,10 @@ export default function WhenSomeoneDies() {
               <ul className="space-y-2 text-sm text-[#D1D5DB] flex-1">
                 <li>• Everything in Free plus:</li>
                 <li>• Unlimited items</li>
-                <li>• Autopilot™ by FamilyVault</li>
+                <li>• Autopilot™ by FamilyCircle Secure</li>
                 <li>• Liability support</li>
                 <li>• Priority customer expert</li>
-                <li>• The FamilyVault Marketplace</li>
+                <li>• The FamilyCircle Secure Marketplace</li>
               </ul>
             </div>
 
@@ -660,7 +660,7 @@ export default function WhenSomeoneDies() {
             Organize important information before it's needed most.
           </h2>
           <p className="text-[#D1D5DB] mb-8 text-lg">
-            Begin organizing your family's estate information with FamilyVault today.
+            Begin organizing your family's estate information with FamilyCircle Secure today.
           </p>
           <a
             href="/pricing"

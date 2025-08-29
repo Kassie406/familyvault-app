@@ -21,8 +21,8 @@ export default function Security() {
 
   const faqItems = [
     {
-      question: "Will FamilyVault ever sell my personal data?",
-      answer: "Absolutely not. FamilyVault will never sell, trade, or monetize your personal information. Our business model is built on subscription fees from families who value secure document management, not on data sales."
+      question: "Will FamilyCircle Secure ever sell my personal data?",
+      answer: "Absolutely not. FamilyCircle Secure will never sell, trade, or monetize your personal information. Our business model is built on subscription fees from families who value secure document management, not on data sales."
     },
     {
       question: "What happens to my family's documents if I cancel my subscription?",
@@ -30,14 +30,14 @@ export default function Security() {
     },
     {
       question: "Can I access my documents if I'm offline?",
-      answer: "While FamilyVault is primarily cloud-based for maximum security and accessibility, you can download copies of your documents for offline access. We recommend keeping downloaded files in a secure location on your devices."
+      answer: "While FamilyCircle Secure is primarily cloud-based for maximum security and accessibility, you can download copies of your documents for offline access. We recommend keeping downloaded files in a secure location on your devices."
     },
     {
-      question: "How does FamilyVault handle family emergency situations?",
+      question: "How does FamilyCircle Secure handle family emergency situations?",
       answer: "We verify emergency contacts through a thorough identity verification process when you add them. This ensures that in critical situations, authorized family members can quickly access necessary documents without delays."
     },
     {
-      question: "Can FamilyVault employees view my personal documents?",
+      question: "Can FamilyCircle Secure employees view my personal documents?",
       answer: "No. We use advanced tokenization and encryption techniques that make your sensitive information completely invisible to our team. Even during system maintenance, your personal data remains encrypted and inaccessible to our employees."
     }
   ];
@@ -383,7 +383,7 @@ export default function Security() {
             </div>
             <div className="bg-[#121212] border border-[#2A2A2A] rounded-xl p-8">
               <p className="text-[#A5A5A5] mb-6 leading-relaxed">
-                FamilyVault encrypts all data both in transit and at rest using AES 256-bit encryption—the same standard 
+                FamilyCircle Secure encrypts all data both in transit and at rest using AES 256-bit encryption—the same standard 
                 required by government agencies for classified information. Your documents are protected with unique keys 
                 derived from your account information and device passcode, ensuring only you can access your data.
               </p>
@@ -407,7 +407,7 @@ export default function Security() {
             </div>
             <div className="bg-[#121212] border border-[#2A2A2A] rounded-xl p-8">
               <p className="text-[#A5A5A5] leading-relaxed">
-                FamilyVault employs state-of-the-art tokenization techniques to protect sensitive information. 
+                FamilyCircle Secure employs state-of-the-art tokenization techniques to protect sensitive information. 
                 This process removes actual sensitive data from our application databases and replaces it with secure tokens, 
                 keeping your personal information completely isolated and protected from your main account structure.
               </p>
@@ -422,7 +422,7 @@ export default function Security() {
             </div>
             <div className="bg-[#121212] border border-[#2A2A2A] rounded-xl p-8">
               <p className="text-[#A5A5A5] mb-6 leading-relaxed">
-                FamilyVault automatically obscures sensitive information like Social Security numbers and account details 
+                FamilyCircle Secure automatically obscures sensitive information like Social Security numbers and account details 
                 in the user interface, preventing unauthorized viewing of confidential data on your device screen.
               </p>
               <p className="text-[#A5A5A5] leading-relaxed">
@@ -441,7 +441,7 @@ export default function Security() {
             <div className="bg-[#121212] border border-[#2A2A2A] rounded-xl p-8">
               <div className="bg-[#0E0E0E] border border-[#FFD43B] rounded-lg p-6 mb-6">
                 <p className="text-[#FFD43B] font-semibold text-lg">
-                  FamilyVault never uses your personal data to train AI systems.
+                  FamilyCircle Secure never uses your personal data to train AI systems.
                 </p>
               </div>
               <p className="text-[#A5A5A5] mb-6 leading-relaxed">
@@ -450,7 +450,7 @@ export default function Security() {
                 ensuring your privacy remains intact.
               </p>
               <p className="text-[#A5A5A5] leading-relaxed">
-                When working with third-party AI services on our secure private cloud, FamilyVault maintains strict contractual 
+                When working with third-party AI services on our secure private cloud, FamilyCircle Secure maintains strict contractual 
                 agreements to guarantee robust data privacy and security protections for all our families.
               </p>
             </div>
@@ -473,7 +473,7 @@ export default function Security() {
             </div>
             <div className="bg-[#151515] border border-[#2A2A2A] rounded-xl p-8">
               <p className="text-[#A5A5A5] mb-6 leading-relaxed">
-                FamilyVault collaborates exclusively with security providers who maintain the highest industry standards 
+                FamilyCircle Secure collaborates exclusively with security providers who maintain the highest industry standards 
                 for data protection and privacy. Our partner network includes only organizations that meet our strict 
                 security requirements and undergo regular audits.
               </p>
@@ -488,11 +488,11 @@ export default function Security() {
           <div className="mb-16">
             <div className="flex items-center mb-6">
               <Shield className="w-8 h-8 text-[#FFD43B] mr-4" />
-              <h3 className="text-2xl font-semibold text-white">FamilyVault Team Security Standards</h3>
+              <h3 className="text-2xl font-semibold text-white">FamilyCircle Secure Team Security Standards</h3>
             </div>
             <div className="bg-[#151515] border border-[#2A2A2A] rounded-xl p-8">
               <p className="text-[#A5A5A5] mb-6 leading-relaxed">
-                Every FamilyVault team member undergoes comprehensive background checks and security clearance before joining our team, 
+                Every FamilyCircle Secure team member undergoes comprehensive background checks and security clearance before joining our team, 
                 followed by bi-annual security and privacy training to ensure they understand our unwavering commitment to protecting 
                 family information.
               </p>
@@ -501,7 +501,7 @@ export default function Security() {
                 allowing our security team to instantly revoke access and remotely secure or wipe devices when necessary.
               </p>
               <p className="text-[#A5A5A5] leading-relaxed">
-                Security isn't just a policy at FamilyVault—it's ingrained in our company culture. Every development process 
+                Security isn't just a policy at FamilyCircle Secure—it's ingrained in our company culture. Every development process 
                 incorporates privacy-first principles, ensuring customer information remains protected at every stage.
               </p>
             </div>
@@ -530,7 +530,7 @@ export default function Security() {
             </div>
             <div className="bg-[#151515] border border-[#2A2A2A] rounded-xl p-8">
               <p className="text-[#A5A5A5] leading-relaxed">
-                FamilyVault operates a comprehensive security research program to identify and address potential vulnerabilities 
+                FamilyCircle Secure operates a comprehensive security research program to identify and address potential vulnerabilities 
                 before they can be exploited. We welcome contributions from security researchers and ethical hackers who help 
                 strengthen our platform's defenses. Our dedicated Security Team investigates all reports and responds promptly 
                 to ensure continuous improvement of our security measures.
@@ -665,7 +665,7 @@ export default function Security() {
             Secure your family's future today
           </h2>
           <p className="text-xl mb-8 text-[#A5A5A5]">
-            Join thousands of families who trust FamilyVault to protect their most important documents and information.
+            Join thousands of families who trust FamilyCircle Secure to protect their most important documents and information.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a 

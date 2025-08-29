@@ -284,7 +284,7 @@ export default function DisasterMedicalInformation() {
             Ready to organize your medical information?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your critical medical information secure and accessible for emergencies with FamilyVault.
+            Keep all your critical medical information secure and accessible for emergencies with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

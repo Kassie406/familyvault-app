@@ -696,7 +696,7 @@ export default function WhenSomeoneDiesContactManagement() {
             Ready to organize your contact management?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all important family, advisor, and service provider contacts organized and accessible with FamilyVault.
+            Keep all important family, advisor, and service provider contacts organized and accessible with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

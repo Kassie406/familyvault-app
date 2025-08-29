@@ -223,7 +223,7 @@ export default function MarriedWeddingPlanning() {
             Ready to organize your wedding planning?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your wedding planning documents, vendor contracts, and important details secure and organized with FamilyVault.
+            Keep all your wedding planning documents, vendor contracts, and important details secure and organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

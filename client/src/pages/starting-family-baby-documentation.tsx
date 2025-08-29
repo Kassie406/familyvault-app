@@ -447,7 +447,7 @@ export default function StartingFamilyBabyDocumentation() {
             Ready to organize your baby's documents?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your baby's important documentation secure and organized with FamilyVault as they grow.
+            Keep all your baby's important documentation secure and organized with FamilyCircle Secure as they grow.
           </p>
           <a
             href="/pricing"

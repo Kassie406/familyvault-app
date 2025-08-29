@@ -389,7 +389,7 @@ export default function EstateProfessionalContacts() {
             Ready to organize your professional contacts?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your estate planning professional contact information secure and organized with FamilyVault.
+            Keep all your estate planning professional contact information secure and organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

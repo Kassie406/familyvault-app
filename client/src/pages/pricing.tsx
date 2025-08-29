@@ -29,7 +29,7 @@ const pricingPlans = [
       "Unlimited items",
       "Unlimited Autopilot™",
       "YubiKey support",
-      "FamilyVault Marketplace™ discounts",
+      "FamilyCircle Secure Marketplace™ discounts",
       "And more…"
     ],
     buttonText: "Get started",
@@ -63,7 +63,7 @@ const pricingPlans = [
       "Advisor portal",
       "Volume-based pricing",
       "Co-branding",
-      "FamilyVault Certified Expert™ training",
+      "FamilyCircle Secure Certified Expert™ training",
       "Dedicated account manager",
       "And more…"
     ],
@@ -84,7 +84,7 @@ export default function Pricing() {
             For every family, at every stage of life,
           </h1>
           <p className="text-2xl lg:text-3xl text-white">
-            FamilyVault has a plan for you.
+            FamilyCircle Secure has a plan for you.
           </p>
         </div>
       </section>
@@ -264,7 +264,7 @@ export default function Pricing() {
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
                 <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
-                  <td className="py-3 text-[#CCCCCC]">The FamilyVault Marketplace™</td>
+                  <td className="py-3 text-[#CCCCCC]">The FamilyCircle Secure Marketplace™</td>
                   <td className="text-center py-3 text-red-500">✗</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
@@ -295,7 +295,7 @@ export default function Pricing() {
                   <td className="text-center py-3 text-blue-500">✓</td>
                 </tr>
                 <tr className="border-b border-gray-800 odd:bg-[#2b2b1f]/20 even:bg-[#0a0a0a]">
-                  <td className="py-3 text-[#CCCCCC]">Access to FamilyVault Certified Experts™</td>
+                  <td className="py-3 text-[#CCCCCC]">Access to FamilyCircle Secure Certified Experts™</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
                   <td className="text-center py-3 text-blue-500">✓</td>
@@ -414,7 +414,7 @@ export default function Pricing() {
                   <span className="text-[#FFD700] text-xl">🔐</span>
                 </div>
                 <h4 className="font-semibold text-white mb-3">Multi-factor authentication</h4>
-                <p className="text-[#CCCCCC] text-sm">FamilyVault's multi-factor authentication protects against unauthorized access.</p>
+                <p className="text-[#CCCCCC] text-sm">FamilyCircle Secure's multi-factor authentication protects against unauthorized access.</p>
               </div>
               <div className="gold-card rounded-xl p-6 text-center">
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
@@ -428,14 +428,14 @@ export default function Pricing() {
                   <span className="text-blue-600 text-xl">👁️</span>
                 </div>
                 <h4 className="font-semibold text-white mb-3">Threat detection</h4>
-                <p className="text-[#CCCCCC] text-sm">FamilyVault uses behavior analytics to detect anomalies and unusual activities.</p>
+                <p className="text-[#CCCCCC] text-sm">FamilyCircle Secure uses behavior analytics to detect anomalies and unusual activities.</p>
               </div>
               <div className="gold-card rounded-xl p-6 text-center">
                 <div className="w-12 h-12 border-2 border-[#FFD700] rounded-lg flex items-center justify-center mx-auto mb-4 bg-transparent">
                   <span className="text-[#FFD700] text-xl">🔐</span>
                 </div>
                 <h4 className="font-semibold text-white mb-3">Data encryption</h4>
-                <p className="text-[#CCCCCC] text-sm">FamilyVault data is encrypted in transit and at rest using 256-bit AES encryption keys.</p>
+                <p className="text-[#CCCCCC] text-sm">FamilyCircle Secure data is encrypted in transit and at rest using 256-bit AES encryption keys.</p>
               </div>
               <div className="gold-card rounded-xl p-6 text-center">
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
@@ -463,7 +463,7 @@ export default function Pricing() {
                   <span className="text-blue-600 text-xl">🚨</span>
                 </div>
                 <h4 className="font-semibold text-white mb-3">Stolen-password alerts</h4>
-                <p className="text-[#CCCCCC] text-sm">FamilyVault scans passwords for breaches and prompts you to update compromised ones.</p>
+                <p className="text-[#CCCCCC] text-sm">FamilyCircle Secure scans passwords for breaches and prompts you to update compromised ones.</p>
               </div>
             </div>
           </div>
@@ -498,7 +498,7 @@ export default function Pricing() {
                   <span className="text-green-600 text-xl">📱</span>
                 </div>
                 <h4 className="font-semibold text-white mb-3">Desktop and mobile</h4>
-                <p className="text-[#CCCCCC] text-sm">Access FamilyVault on desktop or via our iOS and Android apps — wherever you happen to be.</p>
+                <p className="text-[#CCCCCC] text-sm">Access FamilyCircle Secure on desktop or via our iOS and Android apps — wherever you happen to be.</p>
               </div>
               <div className="gold-card rounded-xl p-6 text-center">
                 <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
@@ -575,7 +575,7 @@ export default function Pricing() {
                   <span className="text-purple-600 text-xl">🤖</span>
                 </div>
                 <h4 className="font-semibold text-white mb-3">Smart categorization</h4>
-                <p className="text-[#CCCCCC] text-sm">FamilyVault automatically organizes your documents using intelligent categorization.</p>
+                <p className="text-[#CCCCCC] text-sm">FamilyCircle Secure automatically organizes your documents using intelligent categorization.</p>
               </div>
             </div>
           </div>
@@ -613,7 +613,7 @@ export default function Pricing() {
                 </div>
               </div>
               <h3 className="text-xl font-bold text-[#FFD700] mb-2">Category</h3>
-              <p className="text-[#CCCCCC]">FamilyVault's digital vault is divided into sections like Finance, Family IDs, or Insurance.</p>
+              <p className="text-[#CCCCCC]">FamilyCircle Secure's digital vault is divided into sections like Finance, Family IDs, or Insurance.</p>
             </div>
 
             {/* Item */}
@@ -657,11 +657,11 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* Families Love FamilyVault */}
+      {/* Families Love FamilyCircle Secure */}
       <section className="bg-gradient-to-b from-[#121212] to-[#0a0a0a] py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl lg:text-4xl font-bold text-white text-center mb-16">
-            Families Love FamilyVault
+            Families Love FamilyCircle Secure
           </h2>
           
           <div className="flex justify-center space-x-4 overflow-hidden">
@@ -704,12 +704,12 @@ export default function Pricing() {
           <div className="space-y-6">
             <details className="group">
               <summary className="flex justify-between items-center w-full p-6 bg-[#121212] border border-[#FFD700]/20 rounded-lg cursor-pointer hover:bg-[#1a1a1a] transition-colors">
-                <span className="text-lg font-medium text-white">How long has FamilyVault been in business?</span>
+                <span className="text-lg font-medium text-white">How long has FamilyCircle Secure been in business?</span>
                 <span className="ml-6 flex-shrink-0 text-[#FFD700]">+</span>
               </summary>
               <div className="mt-4 p-6 bg-[#0a0a0a] border-l-4 border-[#FFD700] rounded-lg">
                 <p className="text-[#CCCCCC]">
-                  FamilyVault has helped thousands of families stay organized and secure since 2020, 
+                  FamilyCircle Secure has helped thousands of families stay organized and secure since 2020, 
                   ensuring they're prepared for all of life's important moments.
                 </p>
               </div>
@@ -717,7 +717,7 @@ export default function Pricing() {
 
             <details className="group">
               <summary className="flex justify-between items-center w-full p-6 bg-[#121212] border border-[#FFD700]/20 rounded-lg cursor-pointer hover:bg-[#1a1a1a] transition-colors">
-                <span className="text-lg font-medium text-white">What happens to my information if I stop subscribing to FamilyVault?</span>
+                <span className="text-lg font-medium text-white">What happens to my information if I stop subscribing to FamilyCircle Secure?</span>
                 <span className="ml-6 flex-shrink-0 text-[#FFD700]">+</span>
               </summary>
               <div className="mt-4 p-6 bg-[#0a0a0a] border-l-4 border-[#FFD700] rounded-lg">
@@ -729,7 +729,7 @@ export default function Pricing() {
 
             <details className="group">
               <summary className="flex justify-between items-center w-full p-6 bg-[#121212] border border-[#FFD700]/20 rounded-lg cursor-pointer hover:bg-[#1a1a1a] transition-colors">
-                <span className="text-lg font-medium text-white">How does FamilyVault's digital vault compare to other solutions?</span>
+                <span className="text-lg font-medium text-white">How does FamilyCircle Secure's digital vault compare to other solutions?</span>
                 <span className="ml-6 flex-shrink-0 text-[#FFD700]">+</span>
               </summary>
               <div className="mt-4 p-6 bg-[#0a0a0a] border-l-4 border-[#FFD700] rounded-lg">
@@ -760,14 +760,14 @@ export default function Pricing() {
 
             <details className="group">
               <summary className="flex justify-between items-center w-full p-6 bg-[#121212] border border-[#FFD700]/20 rounded-lg cursor-pointer hover:bg-[#1a1a1a] transition-colors">
-                <span className="text-lg font-medium text-white">Is FamilyVault secure?</span>
+                <span className="text-lg font-medium text-white">Is FamilyCircle Secure secure?</span>
                 <span className="ml-6 flex-shrink-0 text-[#FFD700]">+</span>
               </summary>
               <div className="mt-4 p-6 bg-[#0a0a0a] border-l-4 border-[#FFD700] rounded-lg">
                 <p className="text-[#CCCCCC]">
-                  FamilyVault deploys world-class security measures – data encryption, multi-factor authentication, 
+                  FamilyCircle Secure deploys world-class security measures – data encryption, multi-factor authentication, 
                   tokenization, threat detection, stolen-password alerts, and biometric authentication – to ensure your 
-                  family's information remains private and protected. In fact, your information is safer with FamilyVault 
+                  family's information remains private and protected. In fact, your information is safer with FamilyCircle Secure 
                   than in a filing cabinet at home, where documents may be vulnerable to loss, damage, or theft.
                 </p>
               </div>

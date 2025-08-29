@@ -80,19 +80,19 @@ export default function EstatePlanning() {
       icon: Shield,
       title: "Store and Share Estate Plans",
       description: "You're worried that your family won't know where to find your will and trust documents when they're needed.",
-      detail: "Store docs with FamilyVault and set up legacy access, ensuring your family will get your important information after your passing."
+      detail: "Store docs with FamilyCircle Secure and set up legacy access, ensuring your family will get your important information after your passing."
     },
     {
       icon: Heart,
       title: "Organize Medical Directives",
       description: "You don't know how to ensure doctors will follow your healthcare wishes if you can't speak for yourself during an emergency.",
-      detail: "Keep your living will and other advance directives with FamilyVault, and share them with your doctor, hospital, and family."
+      detail: "Keep your living will and other advance directives with FamilyCircle Secure, and share them with your doctor, hospital, and family."
     },
     {
       icon: Phone,
       title: "Manage Power of Attorney Documents",
       description: "You've named someone to handle your finances in an emergency, but they don't know where to find your important documents.",
-      detail: "FamilyVault's Family Operating System® ensures your financial and legal documents are secure, accessible, and shareable."
+      detail: "FamilyCircle Secure's Family Operating System® ensures your financial and legal documents are secure, accessible, and shareable."
     },
     {
       icon: Users,
@@ -119,7 +119,7 @@ export default function EstatePlanning() {
     },
     {
       icon: Smartphone,
-      title: "Use FamilyVault on the Go", 
+      title: "Use FamilyCircle Secure on the Go", 
       description: "Access your information anywhere with our mobile app",
       image: mobileAppImage,
       imageAlt: "Mobile app interface showing family document categories and navigation"
@@ -134,9 +134,9 @@ export default function EstatePlanning() {
   ];
 
   const testimonials = [
-    { name: "Patricia H.", title: "Member since 2022", rating: 5, quote: "Having all our estate documents organized in FamilyVault gives our family such peace of mind.", image: patriciaProfileImage },
+    { name: "Patricia H.", title: "Member since 2022", rating: 5, quote: "Having all our estate documents organized in FamilyCircle Secure gives our family such peace of mind.", image: patriciaProfileImage },
     { name: "Michael R.", title: "Member since 2021", rating: 5, quote: "The legacy access feature ensures our children will have what they need when the time comes.", image: michaelProfileImage },
-    { name: "Linda K.", title: "Member since 2023", rating: 5, quote: "FamilyVault made organizing our wills and trusts so much easier than keeping paper copies.", image: lindaProfileImage }
+    { name: "Linda K.", title: "Member since 2023", rating: 5, quote: "FamilyCircle Secure made organizing our wills and trusts so much easier than keeping paper copies.", image: lindaProfileImage }
   ];
 
   return (
@@ -152,7 +152,7 @@ export default function EstatePlanning() {
                 ⚖️ Estate Planning
               </span>
               <h1 className="text-4xl lg:text-5xl font-bold text-[#EDEDED] tracking-tight leading-tight">
-                FamilyVault for Estate Planning
+                FamilyCircle Secure for Estate Planning
               </h1>
               <p className="text-[#9BA3AF] max-w-[58ch] text-lg leading-relaxed">
                 Secure and organize your vital information so your loved ones have what they need, when they need it most.
@@ -194,7 +194,7 @@ export default function EstatePlanning() {
               Your Estate Planning, Simplified
             </h2>
             <p className="text-[#9BA3AF] text-lg max-w-2xl mx-auto">
-              FamilyVault's Family Operating System® helps you ensure your wishes are clear, your assets are protected, and your family has guidance for the future.
+              FamilyCircle Secure's Family Operating System® helps you ensure your wishes are clear, your assets are protected, and your family has guidance for the future.
             </p>
           </div>
 
@@ -363,14 +363,14 @@ export default function EstatePlanning() {
         </div>
       </section>
 
-      {/* Meet FamilyVault */}
+      {/* Meet FamilyCircle Secure */}
       <section className="py-20 bg-[#0F0F10]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-[#EDEDED] mb-6">
-            Meet FamilyVault — Your Life, Organized
+            Meet FamilyCircle Secure — Your Life, Organized
           </h2>
           <p className="text-[#9BA3AF] text-lg mb-8 max-w-3xl mx-auto">
-            From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
+            From travel and finances to emergency planning, FamilyCircle Secure keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/pricing"
@@ -482,7 +482,7 @@ export default function EstatePlanning() {
         <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#EDEDED] mb-4">
-              What Our Members Say About FamilyVault
+              What Our Members Say About FamilyCircle Secure
             </h2>
           </div>
 
@@ -539,7 +539,7 @@ export default function EstatePlanning() {
                 <li>• Advanced security</li>
                 <li>• 12 items</li>
                 <li>• 50GB</li>
-                <li>• Autopilot™ by FamilyVault (beta)</li>
+                <li>• Autopilot™ by FamilyCircle Secure (beta)</li>
                 <li>• Tailored onboarding</li>
                 <li>• Unlimited collaborators</li>
               </ul>
@@ -560,10 +560,10 @@ export default function EstatePlanning() {
               <ul className="space-y-2 text-sm text-[#D1D5DB] flex-1">
                 <li>• Everything in Free plus:</li>
                 <li>• Unlimited items</li>
-                <li>• Autopilot™ by FamilyVault</li>
+                <li>• Autopilot™ by FamilyCircle Secure</li>
                 <li>• Liability support</li>
                 <li>• Priority customer expert</li>
-                <li>• The FamilyVault Marketplace</li>
+                <li>• The FamilyCircle Secure Marketplace</li>
               </ul>
             </div>
 
@@ -606,7 +606,7 @@ export default function EstatePlanning() {
             Secure Your Family's Future Today
           </h2>
           <p className="text-[#9BA3AF] text-lg mb-8 max-w-2xl mx-auto">
-            Start organizing your estate planning documents with FamilyVault.
+            Start organizing your estate planning documents with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

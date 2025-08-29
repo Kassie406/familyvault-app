@@ -288,7 +288,7 @@ export default function DisasterEmergencyContacts() {
             Ready to organize your emergency contacts?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your emergency contact information secure and accessible when you need it most with FamilyVault.
+            Keep all your emergency contact information secure and accessible when you need it most with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

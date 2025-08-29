@@ -5,7 +5,7 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center">
           {/* Copyright */}
           <div className="mb-4 md:mb-0">
-            <p className="text-[var(--muted)]">&copy; 2024 FamilyVault. All rights reserved.</p>
+            <p className="text-[var(--muted)]">&copy; 2024 FamilyCircle Secure. All rights reserved.</p>
           </div>
 
           {/* Links */}

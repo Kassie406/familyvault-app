@@ -10,7 +10,7 @@ const pricingPlans = [
       "Advanced security",
       "12 items",
       "50GB",
-      "Autopilot™ by FamilyVault (beta)",
+      "Autopilot™ by FamilyCircle Secure (beta)",
       "Tailored onboarding",
       "Unlimited collaborators"
     ],
@@ -25,10 +25,10 @@ const pricingPlans = [
     features: [
       "Everything in Free plus:",
       "Unlimited items",
-      "Autopilot™ by FamilyVault",
+      "Autopilot™ by FamilyCircle Secure",
       "Liability support",
       "Priority customer expert",
-      "The FamilyVault Marketplace"
+      "The FamilyCircle Secure Marketplace"
     ],
     buttonText: "Get started",
     buttonLink: "/signup"

@@ -48,7 +48,7 @@ export default function ScheduleDemo() {
               </h1>
               
               <p className="text-xl text-[#A5A5A5] mb-8 leading-relaxed">
-                Thank you for your interest in FamilyVault. Our team will contact you within 24 hours to schedule your personalized demo.
+                Thank you for your interest in FamilyCircle Secure. Our team will contact you within 24 hours to schedule your personalized demo.
               </p>
               
               <div className="space-y-4 text-left bg-[#0E0E0E] border border-[#2A2A2A] rounded-xl p-6 mb-8">
@@ -56,7 +56,7 @@ export default function ScheduleDemo() {
                 <ul className="space-y-3 text-[#A5A5A5]">
                   <li className="flex items-start">
                     <div className="w-2 h-2 bg-[#FFD43B] rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                    Personalized walkthrough of FamilyVault's features
+                    Personalized walkthrough of FamilyCircle Secure's features
                   </li>
                   <li className="flex items-start">
                     <div className="w-2 h-2 bg-[#FFD43B] rounded-full mt-2 mr-3 flex-shrink-0"></div>
@@ -117,7 +117,7 @@ export default function ScheduleDemo() {
               </h1>
               
               <p className="text-xl text-[#A5A5A5] mb-8 leading-relaxed">
-                FamilyVault helps families, advisors, and professionals deliver a secure, collaborative, and integrated digital experience for organizing their most important information.
+                FamilyCircle Secure helps families, advisors, and professionals deliver a secure, collaborative, and integrated digital experience for organizing their most important information.
               </p>
               
               <div className="space-y-4">
@@ -326,10 +326,10 @@ export default function ScheduleDemo() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-4xl font-bold text-white mb-6">
-              Thousands of Families Trust FamilyVault
+              Thousands of Families Trust FamilyCircle Secure
             </h2>
             <p className="text-xl text-[#A5A5A5] max-w-3xl mx-auto">
-              Join the growing community of families and professionals who rely on FamilyVault to organize and secure their most important information.
+              Join the growing community of families and professionals who rely on FamilyCircle Secure to organize and secure their most important information.
             </p>
           </div>
           

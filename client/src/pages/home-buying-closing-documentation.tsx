@@ -410,7 +410,7 @@ export default function HomeBuyingClosingDocumentation() {
             Ready to organize your closing documents?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your closing paperwork, contracts, and settlement documents secure and organized with FamilyVault.
+            Keep all your closing paperwork, contracts, and settlement documents secure and organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

@@ -189,7 +189,7 @@ export default function ElderlyLegalDocuments() {
             Secure Your Parents' Legal Future
           </h2>
           <p className="text-xl text-[#A5A5A5] mb-8 leading-relaxed">
-            Organize and protect your elderly parents' legal documents with FamilyVault's secure platform.
+            Organize and protect your elderly parents' legal documents with FamilyCircle Secure's secure platform.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

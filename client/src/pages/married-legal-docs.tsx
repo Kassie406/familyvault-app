@@ -166,7 +166,7 @@ export default function MarriedLegalDocs() {
             Ready to organize your legal documents?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Start storing and managing all your marriage-related legal documents securely with FamilyVault.
+            Start storing and managing all your marriage-related legal documents securely with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

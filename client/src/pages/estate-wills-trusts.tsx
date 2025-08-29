@@ -284,7 +284,7 @@ export default function EstateWillsTrusts() {
             Ready to organize your wills and trusts?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your estate planning documents, wills, and trust information secure and organized with FamilyVault.
+            Keep all your estate planning documents, wills, and trust information secure and organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

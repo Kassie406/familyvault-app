@@ -339,7 +339,7 @@ export default function EstateBeneficiaryInformation() {
             Ready to organize your beneficiary information?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your beneficiary designations and related information secure and organized with FamilyVault.
+            Keep all your beneficiary designations and related information secure and organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

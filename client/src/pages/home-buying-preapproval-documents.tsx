@@ -337,7 +337,7 @@ export default function HomeBuyingPreapprovalDocuments() {
             Ready to organize your pre-approval documents?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your financial documents and pre-approval paperwork secure and organized with FamilyVault.
+            Keep all your financial documents and pre-approval paperwork secure and organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

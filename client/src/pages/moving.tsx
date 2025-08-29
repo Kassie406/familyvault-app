@@ -33,13 +33,13 @@ export default function Moving() {
       icon: Shield,
       title: "Protect Your Data While Moving",
       description: "Your laptop gets stolen from your car during the move — and the information is not backed up.",
-      detail: "FamilyVault secures sensitive documents with encryption and lets you manage who can access them."
+      detail: "FamilyCircle Secure secures sensitive documents with encryption and lets you manage who can access them."
     },
     {
       icon: FileText,
       title: "Keep Track of Moving Documents",
       description: "Your movers broke a lamp — but you can't file a claim until you find the contract, which is lost amid your boxes.",
-      detail: "Store the movers' contract and related receipts in FamilyVault's Family Operating System® so they're secure and easy to find."
+      detail: "Store the movers' contract and related receipts in FamilyCircle Secure's Family Operating System® so they're secure and easy to find."
     },
     {
       icon: Smartphone,
@@ -51,7 +51,7 @@ export default function Moving() {
       icon: Users,
       title: "Share New Details With Contacts",
       description: "Your babysitter can't get into your new backyard because she needs a gate access code and you can't be reached.",
-      detail: "Grant partial account access or use FamilyVault's SecureLinks™ to share information with family and professionals."
+      detail: "Grant partial account access or use FamilyCircle Secure's SecureLinks™ to share information with family and professionals."
     }
   ];
 
@@ -65,7 +65,7 @@ export default function Moving() {
     },
     {
       icon: Smartphone, 
-      title: "Use FamilyVault on the Go",
+      title: "Use FamilyCircle Secure on the Go",
       description: "Access your information anywhere with our mobile app",
       image: mobileAppImage,
       imageAlt: "Mobile app interface showing family document categories and navigation"
@@ -113,8 +113,8 @@ export default function Moving() {
   ];
 
   const testimonials = [
-    { name: "Jessica M.", title: "Member since 2022", rating: 5, quote: "FamilyVault made our cross-country move so much smoother — everything was organized and accessible.", image: jessicaProfileImage },
-    { name: "Michael K.", title: "Member since 2023", rating: 5, quote: "Lost our moving contract during the chaos, but having it in FamilyVault saved us from a huge headache.", image: michaelProfileImage },
+    { name: "Jessica M.", title: "Member since 2022", rating: 5, quote: "FamilyCircle Secure made our cross-country move so much smoother — everything was organized and accessible.", image: jessicaProfileImage },
+    { name: "Michael K.", title: "Member since 2023", rating: 5, quote: "Lost our moving contract during the chaos, but having it in FamilyCircle Secure saved us from a huge headache.", image: michaelProfileImage },
     { name: "Amanda R.", title: "Member since 2021", rating: 5, quote: "Being able to share documents with our family during the move was invaluable.", image: amandaProfileImage }
   ];
 
@@ -131,7 +131,7 @@ export default function Moving() {
                 📦 Moving
               </span>
               <h1 className="text-4xl md:text-5xl font-bold text-[#fff] mb-4 leading-tight">
-                FamilyVault for Moving to a New Home
+                FamilyCircle Secure for Moving to a New Home
               </h1>
               <p className="text-[#c9c9c9] mb-8 text-lg leading-relaxed">
                 A new home brings big changes — and the Family Operating System® keeps your essential information secure and accessible before, during, and after your move.
@@ -197,11 +197,11 @@ export default function Moving() {
         </div>
       </section>
 
-      {/* How FamilyVault Helps */}
+      {/* How FamilyCircle Secure Helps */}
       <section className="py-16 bg-[#0b0b0b]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl lg:text-4xl font-bold text-[#fff] mb-4">
-            How FamilyVault Helps — Through All Stages of Moving
+            How FamilyCircle Secure Helps — Through All Stages of Moving
           </h2>
           <p className="text-lg text-[#c9c9c9] max-w-3xl mx-auto">
             Whether you're confirming movers or settling into your new home, your important documents stay private, protected, and ready to use.
@@ -327,14 +327,14 @@ export default function Moving() {
         </div>
       </section>
 
-      {/* Meet FamilyVault - CTA Band */}
+      {/* Meet FamilyCircle Secure - CTA Band */}
       <section className="cta-band" style={{ padding: '56px 0', background: 'radial-gradient(1200px 300px at 50% 100%, rgba(241,194,50,.15) 0%, rgba(11,11,11,0) 70%), #0b0b0b' }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl lg:text-4xl font-bold text-[#fff] mb-6">
-            Meet FamilyVault — Your Life, Organized
+            Meet FamilyCircle Secure — Your Life, Organized
           </h2>
           <p className="text-lg text-[#c9c9c9] mb-8 max-w-3xl mx-auto">
-            From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
+            From travel and finances to emergency planning, FamilyCircle Secure keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/pricing"
@@ -438,7 +438,7 @@ export default function Moving() {
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-[#fff] mb-4">
-              What Our Members Say About FamilyVault
+              What Our Members Say About FamilyCircle Secure
             </h2>
           </div>
 
@@ -501,7 +501,7 @@ export default function Moving() {
                 <li>• Advanced security</li>
                 <li>• 12 items</li>
                 <li>• 50GB</li>
-                <li>• Autopilot™ by FamilyVault (beta)</li>
+                <li>• Autopilot™ by FamilyCircle Secure (beta)</li>
                 <li>• Tailored onboarding</li>
                 <li>• Unlimited collaborators</li>
               </ul>
@@ -522,10 +522,10 @@ export default function Moving() {
               <ul className="space-y-2 text-sm text-[#D1D5DB] flex-1">
                 <li>• Everything in Free plus:</li>
                 <li>• Unlimited items</li>
-                <li>• Autopilot™ by FamilyVault</li>
+                <li>• Autopilot™ by FamilyCircle Secure</li>
                 <li>• Liability support</li>
                 <li>• Priority customer expert</li>
-                <li>• The FamilyVault Marketplace</li>
+                <li>• The FamilyCircle Secure Marketplace</li>
               </ul>
             </div>
 

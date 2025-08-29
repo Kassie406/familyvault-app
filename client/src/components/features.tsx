@@ -13,15 +13,15 @@ const features = [
   },
   {
     title: "Back up your data easily",
-    description: "Export or print documents from FamilyVault whenever you need",
+    description: "Export or print documents from FamilyCircle Secure whenever you need",
     image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400",
     alt: "Cloud backup system showing document export and printing options"
   },
   {
-    title: "Use FamilyVault on the go",
+    title: "Use FamilyCircle Secure on the go",
     description: "Access and share important information from anywhere",
     image: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400",
-    alt: "Mobile device showing FamilyVault app with document access interface"
+    alt: "Mobile device showing FamilyCircle Secure app with document access interface"
   },
   {
     title: "Reminders save money, time",

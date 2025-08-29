@@ -534,7 +534,7 @@ export default function StartingFamilyInsuranceBenefits() {
             Ready to organize your insurance & benefits?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your insurance policies, benefit information, and coverage details organized with FamilyVault.
+            Keep all your insurance policies, benefit information, and coverage details organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

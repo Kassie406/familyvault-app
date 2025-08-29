@@ -447,7 +447,7 @@ export default function HomeBuyingProfessionalContacts() {
             Ready to organize your professional contacts?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your home buying professional contact information secure and organized with FamilyVault.
+            Keep all your home buying professional contact information secure and organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

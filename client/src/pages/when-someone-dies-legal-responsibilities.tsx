@@ -737,7 +737,7 @@ export default function WhenSomeoneDiesLegalResponsibilities() {
             Ready to organize legal responsibilities?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all legal requirements, deadlines, and documentation organized and manageable with FamilyVault.
+            Keep all legal requirements, deadlines, and documentation organized and manageable with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"
