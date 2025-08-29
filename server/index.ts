@@ -843,6 +843,57 @@ app.get('/api/admin/status/monitor', requireAuth('ADMIN'), async (req: Authentic
   }
 });
 
+// Marketing promotion endpoints
+app.get('/api/marketing/active-banner', async (req: Request, res: Response) => {
+  try {
+    // Sample promotional banner - in production, this would come from database
+    const activeBanner = {
+      id: 'winter-sale-2025',
+      title: '🎉 Winter Sale',
+      message: 'Get 50% off FamilyCircle Secure Enterprise for 3 months',
+      ctaText: 'Claim Offer',
+      ctaUrl: '/pricing',
+      promoCode: 'WINTER50',
+      bgColor: '#1e40af', // blue-800
+      textColor: '#ffffff',
+      icon: 'gift',
+      expiresAt: '2025-03-01T00:00:00Z',
+      isActive: true
+    };
+    
+    res.json(activeBanner);
+  } catch (error) {
+    console.error('Failed to get active banner:', error);
+    res.status(500).json({ error: 'Failed to get active banner' });
+  }
+});
+
+app.get('/api/marketing/active-popup', async (req: Request, res: Response) => {
+  try {
+    // Sample promotional popup - in production, this would come from database
+    const activePopup = {
+      id: 'enterprise-upgrade-2025',
+      title: 'Limited Time Offer!',
+      subtitle: 'Upgrade to Enterprise Today',
+      description: 'Unlock advanced security features, tamper-evident auditing, and enterprise-grade monitoring.',
+      promoCode: 'ENTERPRISE40',
+      discount: '40% OFF',
+      ctaText: 'Upgrade Now',
+      ctaUrl: '/pricing?plan=enterprise',
+      bgGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      showAfterSeconds: 5,
+      showOncePerSession: true,
+      expiresAt: '2025-03-01T00:00:00Z',
+      isActive: true
+    };
+    
+    res.json(activePopup);
+  } catch (error) {
+    console.error('Failed to get active popup:', error);
+    res.status(500).json({ error: 'Failed to get active popup' });
+  }
+});
+
 // Admin session management endpoints
 app.get('/api/admin/sessions', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {

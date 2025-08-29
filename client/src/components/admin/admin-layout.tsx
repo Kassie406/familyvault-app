@@ -6,7 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { 
   Shield, LogOut, User, Settings, LayoutDashboard, Users, CreditCard, 
   Ticket, FileText, ShieldCheck, Activity, Search, Filter, Bell, 
-  Flag, UserX, Webhook, Tag
+  Flag, UserX, Webhook, Tag, Megaphone
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
@@ -60,6 +60,7 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
     { id: 'advanced-webhooks', label: 'Advanced Webhooks', icon: Webhook, description: 'Enhanced webhook management' },
     { id: 'tamper-audit', label: 'Tamper-Evident Audit', icon: Shield, description: 'Cryptographic audit trail' },
     { id: 'advanced-coupons', label: 'Advanced Coupons', icon: Tag, description: 'Enterprise coupon management' },
+    { id: 'marketing-promotions', label: 'Marketing Promotions', icon: Megaphone, description: 'Banners & popup campaigns' },
     { id: 'impersonation', label: 'Impersonation', icon: UserX, description: 'Admin user support' },
     { id: 'compliance', label: 'Compliance', icon: ShieldCheck, description: 'GDPR & privacy' },
     { id: 'security', label: 'Security', icon: Activity, description: 'Audit & monitoring' },
