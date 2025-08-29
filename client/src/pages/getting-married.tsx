@@ -5,9 +5,9 @@ import digitalSecurityImage from "@assets/image_1756093873694.png";
 import mobileAppImage from "@assets/image_1756093955366.png";
 import askExpertsImage from "@assets/image_1756094014310.png";
 import securityShieldImage from "@assets/image_1756096044567.png";
-import sarahProfileImageMarried from "@assets/image_1756098580501.png";
-import jessicaProfileImageMarried from "@assets/image_1756098686586.png";
-import davidEmmaProfileImageMarried from "@assets/image_1756098755503.png";
+import sarahProfileImageMarried from "@assets/generated_images/Sarah_Mike_couple_headshot_831b85fb.png";
+import jessicaProfileImageMarried from "@assets/generated_images/Jessica_professional_headshot_76348cf5.png";
+import davidEmmaProfileImageMarried from "@assets/generated_images/David_Emma_couple_headshot_0912656a.png";
 import { 
   Heart,
   Users, 
