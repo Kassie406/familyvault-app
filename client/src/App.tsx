@@ -176,6 +176,18 @@ function Router() {
       <Route path="/when-someone-dies-bills-obligations" component={WhenSomeoneDiesBillsObligations} />
       <Route path="/when-someone-dies-legal-responsibilities" component={WhenSomeoneDiesLegalResponsibilities} />
       <Route path="/when-someone-dies-important-deadlines" component={WhenSomeoneDiesImportantDeadlines} />
+      
+      {/* Admin routes for easy access in development */}
+      <Route path="/admin" nest>
+        <AdminLayout>
+          <Switch>
+            <Route path="/" component={AdminDashboard} />
+            <Route component={NotFound} />
+          </Switch>
+        </AdminLayout>
+      </Route>
+      <Route path="/admin/login" component={AdminLogin} />
+      
       <Route component={NotFound} />
     </Switch>
   );
@@ -184,7 +196,7 @@ function Router() {
 function App() {
   // Check subdomain to determine interface type
   const subdomain = window.location.hostname.split('.')[0];
-  const isAdminDomain = subdomain === 'console';
+  const isAdminDomain = subdomain === 'console' || window.location.pathname.startsWith('/admin');
   const isPortalDomain = subdomain === 'portal';
   const isHubDomain = subdomain === 'hub';
   
