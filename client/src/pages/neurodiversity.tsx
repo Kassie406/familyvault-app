@@ -4,6 +4,9 @@ import thoughtfulWorkerImage from "@assets/image_1756096911806.png";
 import digitalSecurityImage from "@assets/image_1756096953729.png";
 import mobileAppImage from "@assets/image_1756097026485.png";
 import askExpertsImage from "@assets/image_1756097099598.png";
+import alexProfileImage from "@assets/generated_images/Alex_neurodiversity_reviewer_headshot_211e6daf.png";
+import jordanProfileImage from "@assets/generated_images/Jordan_neurodiversity_reviewer_headshot_7958dec7.png";
+import samProfileImage from "@assets/generated_images/Sam_neurodiversity_reviewer_headshot_fe081999.png";
 import { 
   Brain,
   Heart, 
@@ -113,9 +116,9 @@ export default function Neurodiversity() {
   ];
 
   const testimonials = [
-    { name: "Alex R.", title: "Member since 2022", rating: 5, quote: "FamilyVault has been a game-changer for managing my ADHD. Having everything organized in one place reduces my stress and helps me stay on top of important tasks." },
-    { name: "Jordan M.", title: "Member since 2021", rating: 5, quote: "As someone with autism, routine and organization are crucial for me. FamilyVault helps maintain my structure while keeping important information accessible." },
-    { name: "Sam K.", title: "Member since 2023", rating: 5, quote: "The document organization features help me during executive function challenges. I don't have to stress about finding important paperwork anymore." }
+    { name: "Alex R.", title: "Member since 2022", rating: 5, quote: "FamilyVault has been a game-changer for managing my ADHD. Having everything organized in one place reduces my stress and helps me stay on top of important tasks.", image: alexProfileImage },
+    { name: "Jordan M.", title: "Member since 2021", rating: 5, quote: "As someone with autism, routine and organization are crucial for me. FamilyVault helps maintain my structure while keeping important information accessible.", image: jordanProfileImage },
+    { name: "Sam K.", title: "Member since 2023", rating: 5, quote: "The document organization features help me during executive function challenges. I don't have to stress about finding important paperwork anymore.", image: samProfileImage }
   ];
 
   return (
@@ -551,8 +554,12 @@ export default function Neurodiversity() {
                   ))}
                 </div>
                 <p className="text-[#b3b3b3] italic mb-4 text-sm">"{testimonial.quote}"</p>
-                <div className="w-16 h-16 bg-gradient-to-br from-[#f4c542] to-[#d4aa2e] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#f4c542]">
-                  <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
+                <div className="w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden border-2 border-[#f4c542]">
+                  <img 
+                    src={testimonial.image} 
+                    alt={`${testimonial.name} profile`}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <footer className="text-xs text-[#b3b3b3]">
                   <div className="font-semibold text-[#e9e9e9]">{testimonial.name}</div>
