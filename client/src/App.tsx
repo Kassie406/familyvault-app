@@ -5,6 +5,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ChatSupport from "@/components/chat-support";
 import NotFound from "@/pages/not-found";
+import AdminLogin from "@/pages/admin/login";
+import AdminDashboard from "@/pages/admin/dashboard";
+import AdminLayout from "@/components/admin/admin-layout";
 import Home from "@/pages/home";
 import Security from "@/pages/security";
 import SecurityDocumentation from "@/pages/security-documentation";
@@ -78,6 +81,24 @@ import WhenSomeoneDiesContactManagement from "@/pages/when-someone-dies-contact-
 import WhenSomeoneDiesBillsObligations from "@/pages/when-someone-dies-bills-obligations";
 import WhenSomeoneDiesLegalResponsibilities from "@/pages/when-someone-dies-legal-responsibilities";
 import WhenSomeoneDiesImportantDeadlines from "@/pages/when-someone-dies-important-deadlines";
+
+function AdminRouter() {
+  return (
+    <Switch>
+      <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin" nest>
+        <AdminLayout>
+          <Switch>
+            <Route path="/" component={AdminDashboard} />
+            <Route component={NotFound} />
+          </Switch>
+        </AdminLayout>
+      </Route>
+      <Route path="/" component={() => <AdminLogin />} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
 
 function Router() {
   return (
@@ -173,12 +194,7 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
-          <div className="bg-red-600 text-white text-center py-2 px-4">
-            <p className="text-sm font-medium">
-              🔒 Admin Console - FamilyCircle Secure Management Interface
-            </p>
-          </div>
-          <Router />
+          <AdminRouter />
         </TooltipProvider>
       </QueryClientProvider>
     );
