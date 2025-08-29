@@ -190,31 +190,13 @@ export default function DigitalSecurity() {
                       <div className="text-center">
                         {index === 0 && (
                           <>
-                            <div className="bg-white rounded-lg p-4 shadow-lg max-w-xs mx-auto">
-                              <div className="bg-gray-800 rounded-t-lg p-3 mb-3">
-                                <div className="flex items-center justify-center">
-                                  <Smartphone className="w-8 h-8 text-white" />
+                            <div className="flex items-center justify-center">
+                              <div className="relative">
+                                <div className="w-32 h-32 bg-white rounded-lg border-4 border-red-500 flex items-center justify-center">
+                                  <Smartphone className="w-16 h-16 text-gray-800" />
                                 </div>
-                              </div>
-                              <div className="text-xs">
-                                <div className="font-medium mb-2">Browse</div>
-                                <div className="space-y-1">
-                                  <div className="flex justify-between">
-                                    <span>Family IDs</span>
-                                    <span>5</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span>Finance</span>
-                                    <span>12</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span>Property</span>
-                                    <span>8</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span>Insurance</span>
-                                    <span>4</span>
-                                  </div>
+                                <div className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                                  <span className="text-white text-lg font-bold">!</span>
                                 </div>
                               </div>
                             </div>
