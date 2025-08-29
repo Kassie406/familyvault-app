@@ -20,6 +20,8 @@ import TamperVerification from '@/components/admin/tamper-verification';
 import EnhancedCouponForm from '@/components/admin/enhanced-coupon-form';
 import FeatureFlagsManager from '@/components/admin/feature-flags-manager';
 import ImpersonationManager from '@/components/admin/impersonation-manager';
+import EnhancedFeatureFlags from '@/components/admin/enhanced-feature-flags';
+import WebhooksManager from '@/components/admin/webhooks-manager';
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -413,10 +415,17 @@ export default function AdminDashboard() {
       case 'feature-flags':
         return (
           <div className="space-y-6">
+            <EnhancedFeatureFlags />
+          </div>
+        );
+
+      case 'webhooks':
+        return (
+          <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Feature Flags Management</h2>
+              <h2 className="text-2xl font-bold">Webhooks Management</h2>
             </div>
-            <FeatureFlagsManager />
+            <WebhooksManager />
           </div>
         );
       

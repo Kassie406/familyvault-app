@@ -662,6 +662,113 @@ app.post('/api/admin/impersonation/stop', requireAuth('ADMIN'), async (req: Auth
   }
 });
 
+// Impersonation status endpoint for banner
+app.get('/api/admin/impersonation/status', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const sessionId = req.cookies?.impersonation;
+    if (!sessionId) {
+      return res.json({ active: false });
+    }
+    
+    // TODO: Query actual session from database
+    // For now, mock an active session
+    const mockSession = {
+      active: true,
+      sessionId,
+      targetId: 'user-12345',
+      targetEmail: 'customer@example.com',
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15 minutes from now
+    };
+    
+    res.json(mockSession);
+  } catch (error) {
+    console.error('Get impersonation status error:', error);
+    res.status(500).json({ error: 'Failed to get impersonation status' });
+  }
+});
+
+// Webhooks API endpoints
+app.get('/api/admin/webhooks', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // TODO: Get webhooks from database
+    const mockWebhooks = [
+      {
+        id: 'webhook-1',
+        url: 'https://api.partner.com/webhooks',
+        events: ['user.created', 'invoice.paid'],
+        active: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+    ];
+    
+    res.json({ items: mockWebhooks });
+  } catch (error) {
+    console.error('Get webhooks error:', error);
+    res.status(500).json({ error: 'Failed to fetch webhooks' });
+  }
+});
+
+app.post('/api/admin/webhooks', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { url, events, active, secret } = req.body;
+    
+    // TODO: Create webhook in database
+    const newWebhook = {
+      id: `webhook_${Date.now()}`,
+      url,
+      events: Array.isArray(events) ? events : [],
+      active: active !== false,
+      secret: secret || require('crypto').randomBytes(24).toString('hex'),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    // Log audit with tamper evidence
+    await AuditService.logAdminAction(
+      'webhook:created',
+      'webhook',
+      newWebhook.id,
+      null,
+      newWebhook,
+      getAuditContext(req)
+    );
+    
+    res.status(201).json(newWebhook);
+  } catch (error) {
+    console.error('Create webhook error:', error);
+    res.status(500).json({ error: 'Failed to create webhook' });
+  }
+});
+
+app.post('/api/admin/webhooks/:id/test', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    // TODO: Send test webhook
+    const testResult = {
+      success: true,
+      response: { status: 200, body: 'OK' },
+      timestamp: new Date().toISOString(),
+    };
+    
+    // Log audit with tamper evidence
+    await AuditService.logAdminAction(
+      'webhook:tested',
+      'webhook',
+      id,
+      null,
+      testResult,
+      getAuditContext(req)
+    );
+    
+    res.json(testResult);
+  } catch (error) {
+    console.error('Test webhook error:', error);
+    res.status(500).json({ error: 'Failed to test webhook' });
+  }
+});
+
 // Global search across all admin resources
 app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {

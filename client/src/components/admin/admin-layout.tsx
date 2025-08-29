@@ -6,12 +6,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { 
   Shield, LogOut, User, Settings, LayoutDashboard, Users, CreditCard, 
   Ticket, FileText, ShieldCheck, Activity, Search, Filter, Bell, 
-  Flag, UserX 
+  Flag, UserX, Webhook 
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
 import { Input } from '@/components/ui/input';
 import GlobalSearch, { useGlobalSearch } from './global-search';
+import ImpersonationBanner from './impersonation-banner';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -54,14 +55,19 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
     { id: 'coupons', label: 'Coupons', icon: Ticket, description: 'Promotional codes' },
     { id: 'content', label: 'Content', icon: FileText, description: 'CMS & articles' },
     { id: 'feature-flags', label: 'Feature Flags', icon: Flag, description: 'Rollouts & targeting' },
+    { id: 'webhooks', label: 'Webhooks', icon: Webhook, description: 'Outbound integrations' },
     { id: 'impersonation', label: 'Impersonation', icon: UserX, description: 'Admin user support' },
     { id: 'compliance', label: 'Compliance', icon: ShieldCheck, description: 'GDPR & privacy' },
     { id: 'security', label: 'Security', icon: Activity, description: 'Audit & monitoring' },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
-      {/* Dark Sidebar */}
+    <>
+      {/* Impersonation Banner */}
+      <ImpersonationBanner />
+      
+      <div className="min-h-screen bg-gray-100 flex">
+        {/* Dark Sidebar */}
       <div className="w-72 bg-gray-900 text-white flex flex-col">
         {/* Logo Header */}
         <div className="p-6 border-b border-gray-700">
@@ -191,6 +197,7 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
 
       {/* Global Search Modal */}
       <GlobalSearch isOpen={isSearchOpen} onOpenChange={setIsSearchOpen} />
-    </div>
+      </div>
+    </>
   );
 }
