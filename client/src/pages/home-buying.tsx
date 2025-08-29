@@ -161,7 +161,7 @@ export default function HomeBuying() {
                 <a 
                   href="/pricing"
                   data-testid="button-get-started-free"
-                  className="inline-flex items-center gap-2 bg-[#d7b43e] text-[#111] font-semibold px-6 py-3 rounded-full hover:bg-[#c6a528] transition-colors min-h-[44px] shadow-[0_6px_16px_rgba(215,180,62,0.35)] focus:outline-none focus:ring-[0_0_0_1px_rgba(215,180,62,0.3),0_0_0_4px_rgba(215,180,62,0.12)]"
+                  className="inline-flex items-center gap-2 bg-[var(--brand)] text-[var(--brand-ink)] font-semibold px-6 py-3 rounded-full hover:bg-[var(--brand-2)] transition-colors min-h-[44px] shadow-[0_6px_16px_rgba(246,195,61,0.35)] focus:outline-none focus:ring-[0_0_0_1px_rgba(246,195,61,0.3),0_0_0_4px_rgba(246,195,61,0.12)]"
                 >
                   Get started free
                 </a>
@@ -404,7 +404,7 @@ export default function HomeBuying() {
           <a
             href="/pricing"
             data-testid="button-get-started-cta"
-            className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
+            className="bg-[var(--brand)] hover:bg-[var(--brand-2)] text-[var(--brand-ink)] px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
           >
             Get started free
           </a>
@@ -557,7 +557,7 @@ export default function HomeBuying() {
               <div className="text-3xl font-bold mb-6 text-[#F3F4F6]">$0</div>
               <button
                 data-testid="button-get-started-free-plan"
-                className="w-full bg-[#D4AF37] text-black py-3 rounded-full font-semibold mb-6 hover:bg-[#C7A233] transition-colors"
+                className="w-full bg-[var(--brand)] text-[var(--brand-ink)] py-3 rounded-full font-semibold mb-6 hover:bg-[var(--brand-2)] transition-colors"
               >
                 Get started
               </button>
@@ -579,7 +579,7 @@ export default function HomeBuying() {
               <div className="text-3xl font-bold mb-6 text-[#F3F4F6]">$10</div>
               <button
                 data-testid="button-get-started-silver-plan"
-                className="w-full bg-[#D4AF37] text-black py-3 rounded-full font-semibold mb-6 hover:bg-[#C7A233] transition-colors"
+                className="w-full bg-[var(--brand)] text-[var(--brand-ink)] py-3 rounded-full font-semibold mb-6 hover:bg-[var(--brand-2)] transition-colors"
               >
                 Get started
               </button>
@@ -604,7 +604,7 @@ export default function HomeBuying() {
               <div className="text-3xl font-bold mb-6 text-[#F3F4F6]">$20</div>
               <button
                 data-testid="button-get-started-gold-plan"
-                className="w-full bg-[#D4AF37] text-black py-3 rounded-full font-semibold mb-6 hover:bg-[#C7A233] transition-colors"
+                className="w-full bg-[var(--brand)] text-[var(--brand-ink)] py-3 rounded-full font-semibold mb-6 hover:bg-[var(--brand-2)] transition-colors"
               >
                 Get started
               </button>
@@ -637,7 +637,7 @@ export default function HomeBuying() {
           <a
             href="/pricing"
             data-testid="button-final-cta"
-            className="inline-flex items-center gap-2 bg-[#d7b43e] text-[#111] font-semibold px-8 py-4 rounded-full hover:bg-[#c6a528] transition-colors shadow-[0_6px_16px_rgba(215,180,62,0.35)] focus:outline-none focus:ring-[0_0_0_1px_rgba(215,180,62,0.3),0_0_0_4px_rgba(215,180,62,0.12)] min-h-[44px]"
+            className="inline-flex items-center gap-2 bg-[var(--brand)] text-[var(--brand-ink)] font-semibold px-8 py-4 rounded-full hover:bg-[var(--brand-2)] transition-colors shadow-[0_6px_16px_rgba(246,195,61,0.35)] focus:outline-none focus:ring-[0_0_0_1px_rgba(246,195,61,0.3),0_0_0_4px_rgba(246,195,61,0.12)] min-h-[44px]"
           >
             Get started free
           </a>

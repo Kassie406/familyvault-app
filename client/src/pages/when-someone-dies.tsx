@@ -155,7 +155,7 @@ export default function WhenSomeoneDies() {
                 <a 
                   href="/pricing"
                   data-testid="button-get-started-free"
-                  className="bg-[#D4AF37] text-black font-semibold px-6 py-3 rounded-lg hover:bg-[#C7A233] transition-colors min-h-[44px] flex items-center"
+                  className="bg-[var(--brand)] text-[var(--brand-ink)] font-semibold px-6 py-3 rounded-lg hover:bg-[var(--brand-2)] transition-colors min-h-[44px] flex items-center"
                 >
                   Get started free
                 </a>

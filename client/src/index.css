@@ -12,8 +12,8 @@
   --muted: #a8a9ad;       /* secondary text */
   --line: #2a2b2e;        /* subtle borders */
   --brand: #f6c33d;       /* gold */
-  --brand-2: #f0b90b;     /* hover gold */
-  --brand-ink: #111;      /* text on gold */
+  --brand-2: #ffda44;     /* lighter hover gold for better contrast */
+  --brand-ink: #000;      /* pure black text on gold for maximum contrast */
   --focus: #ffe69070;     /* focus ring */
   
   /* Legacy compatibility - mapped to new system */
@@ -46,6 +46,19 @@
 }
 
 /* Standardized theme classes */
+
+/* Global button hover fix - override problematic hover states */
+.bg-\[#D4AF37\]:hover,
+.bg-\[#d7b43e\]:hover {
+  background-color: var(--brand-2) !important;
+  color: var(--brand-ink) !important;
+}
+
+.hover\:bg-\[#C7A233\]:hover,
+.hover\:bg-\[#c6a528\]:hover {
+  background-color: var(--brand-2) !important;
+  color: var(--brand-ink) !important;
+}
 .header { 
   background: var(--bg); 
 }
@@ -85,7 +98,8 @@
 }
 
 .btn-primary:hover { 
-  background: var(--brand-2); 
+  background: var(--brand-2);
+  color: var(--brand-ink); /* ensure text stays visible */
 }
 
 .btn-secondary {
@@ -95,7 +109,9 @@
 }
 
 .btn-secondary:hover { 
-  background: var(--surface-2); 
+  background: var(--surface-2);
+  color: var(--text); /* maintain text contrast on darker background */
+  border-color: var(--brand); /* add brand color border on hover */
 }
 
 .card {
@@ -210,6 +226,7 @@
 
 .btn-gold:hover {
   background: var(--brand-2);
+  color: var(--brand-ink); /* ensure text stays visible */
   box-shadow: 0 0 15px var(--brand-2);
   transform: translateY(-2px);
 }
@@ -263,8 +280,9 @@ section:nth-child(odd) {
 }
 
 .cta-button:hover {
-  background: var(--secondary-accent);
-  box-shadow: 0 0 15px var(--secondary-accent);
+  background: var(--brand-2);
+  color: var(--brand-ink); /* ensure text stays visible */
+  box-shadow: 0 0 15px var(--brand-2);
   transform: translateY(-2px);
 }
 
@@ -285,7 +303,7 @@ section:nth-child(odd) {
 }
 
 .nav-highlight:hover {
-  color: var(--secondary-accent);
+  color: var(--brand); /* use brand color for consistency */
 }
 
 /* Forever Files Dropdown Styles */
