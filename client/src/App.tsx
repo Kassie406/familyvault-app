@@ -161,15 +161,18 @@ function Router() {
 }
 
 function App() {
-  // Check if this is an admin request based on subdomain
-  const isAdminDomain = window.location.hostname.split('.')[0] === 'console';
+  // Check subdomain to determine interface type
+  const subdomain = window.location.hostname.split('.')[0];
+  const isAdminDomain = subdomain === 'console';
+  const isPortalDomain = subdomain === 'portal';
+  const isHubDomain = subdomain === 'hub';
   
+  // Admin Console Interface
   if (isAdminDomain) {
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
-          {/* Admin Header Banner */}
           <div className="bg-red-600 text-white text-center py-2 px-4">
             <p className="text-sm font-medium">
               🔒 Admin Console - FamilyCircle Secure Management Interface
@@ -180,7 +183,42 @@ function App() {
       </QueryClientProvider>
     );
   }
+  
+  // Portal Interface
+  if (isPortalDomain) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <div className="bg-blue-600 text-white text-center py-2 px-4">
+            <p className="text-sm font-medium">
+              🌐 Client Portal - FamilyCircle Secure Access Hub
+            </p>
+          </div>
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    );
+  }
+  
+  // Hub Interface
+  if (isHubDomain) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <div className="bg-green-600 text-white text-center py-2 px-4">
+            <p className="text-sm font-medium">
+              🏠 Family Hub - FamilyCircle Secure Central Command
+            </p>
+          </div>
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    );
+  }
 
+  // Main Website (familycirclesecure.com)
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

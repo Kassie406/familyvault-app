@@ -9,10 +9,13 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   const host = req.get('Host') || '';
   const subdomain = host.split('.')[0];
   
-  // Mark requests as admin if they come from console subdomain
+  // Mark requests based on subdomain
   (req as any).isAdminRequest = subdomain === 'console';
+  (req as any).isPortalRequest = subdomain === 'portal';
+  (req as any).isHubRequest = subdomain === 'hub';
+  (req as any).subdomain = subdomain;
   
-  log(`Request from host: ${host}, subdomain: ${subdomain}, isAdmin: ${(req as any).isAdminRequest}`);
+  log(`Request from host: ${host}, subdomain: ${subdomain}, type: ${subdomain}`);
   next();
 });
 app.use(express.json());
