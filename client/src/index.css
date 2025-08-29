@@ -76,10 +76,10 @@
 }
 
 .btn-primary:hover {
-  background: var(--brand-2);
+  background: var(--brand) !important;
   color: #000 !important;
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(240,185,11,.18);
+  box-shadow: 0 10px 24px rgba(246,195,61,.18);
 }
 
 .btn-primary:active {
@@ -122,7 +122,7 @@
 .bg-\[#d7b43e\]:hover,
 .hover\:bg-\[#C7A233\]:hover,
 .hover\:bg-\[#c6a528\]:hover {
-  background-color: var(--brand-2) !important;
+  background-color: var(--brand) !important;
   color: #000 !important;
 }
 
@@ -336,9 +336,9 @@ section:nth-child(odd) {
 }
 
 .cta-button:hover {
-  background: var(--brand-2) !important;
+  background: var(--brand) !important;
   color: #000 !important;
-  box-shadow: 0 10px 24px rgba(240,185,11,.18);
+  box-shadow: 0 10px 24px rgba(246,195,61,.18);
   transform: translateY(-2px);
 }
 
@@ -347,7 +347,7 @@ section:nth-child(odd) {
 a.cta-button:hover,
 [data-testid="button-get-started-hero"]:hover,
 section .cta-button:hover {
-  background: var(--brand-2) !important;
+  background: var(--brand) !important;
   color: #000000 !important;
   text-decoration: none !important;
 }
