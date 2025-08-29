@@ -16,6 +16,8 @@ import {
 import AdminLayout from '@/components/admin/admin-layout';
 import SecurityCenterCard from '@/components/admin/security-center-card';
 import SessionManagement from '@/components/admin/session-management';
+import TamperVerification from '@/components/admin/tamper-verification';
+import EnhancedCouponForm from '@/components/admin/enhanced-coupon-form';
 
 export default function AdminDashboard() {
   const { toast } = useToast();

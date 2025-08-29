@@ -403,6 +403,100 @@ app.post('/api/admin/sessions/revoke-multiple', requireAuth('ADMIN'), async (req
   }
 });
 
+// Enhanced Coupons v2 API endpoints
+app.get('/api/admin/coupons/enhanced', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // TODO: Get enhanced coupons from database with redemption counts
+    const enhancedCoupons = [
+      {
+        id: 'coupon-1',
+        code: 'SAVE20',
+        type: 'percentage',
+        value: '20.00',
+        allowStacking: false,
+        maxRedemptions: 1000,
+        perUserLimit: 1,
+        timesRedeemed: 42,
+        startsAt: new Date('2025-01-01').toISOString(),
+        endsAt: new Date('2025-12-31').toISOString(),
+        active: true,
+        archived: false,
+        createdAt: new Date().toISOString(),
+      }
+    ];
+    
+    res.json({ coupons: enhancedCoupons });
+  } catch (error) {
+    console.error('Get enhanced coupons error:', error);
+    res.status(500).json({ error: 'Failed to fetch enhanced coupons' });
+  }
+});
+
+app.post('/api/admin/coupons/enhanced', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const couponData = req.body;
+    
+    // TODO: Create enhanced coupon in database
+    const newCoupon = {
+      id: `coupon-${Date.now()}`,
+      ...couponData,
+      timesRedeemed: 0,
+      createdAt: new Date().toISOString(),
+    };
+    
+    // Log audit with tamper evidence
+    await AuditService.logAdminAction(
+      'coupon:enhanced_created',
+      'enhanced_coupon',
+      newCoupon.id,
+      null,
+      newCoupon,
+      getAuditContext(req)
+    );
+    
+    res.status(201).json(newCoupon);
+  } catch (error) {
+    console.error('Create enhanced coupon error:', error);
+    res.status(500).json({ error: 'Failed to create enhanced coupon' });
+  }
+});
+
+app.post('/api/admin/coupons/evaluate', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { code, planId, subtotalCents, userId } = req.body;
+    
+    // TODO: Use coupon validator to evaluate
+    const result = {
+      valid: true,
+      discountAmount: Math.round(subtotalCents * 0.2), // 20% mock discount
+      discountType: 'percentage',
+      message: 'Coupon is valid and ready to apply'
+    };
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Evaluate coupon error:', error);
+    res.status(500).json({ error: 'Failed to evaluate coupon' });
+  }
+});
+
+app.post('/api/admin/audit/verify-chain', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // TODO: Verify tamper-evident audit chain
+    const verification = {
+      valid: true,
+      totalEntries: 150,
+      lastVerified: new Date().toISOString(),
+      errors: []
+    };
+    
+    res.json(verification);
+  } catch (error) {
+    console.error('Verify audit chain error:', error);
+    res.status(500).json({ error: 'Failed to verify audit chain' });
+  }
+});
+
 // Global search across all admin resources
 app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {

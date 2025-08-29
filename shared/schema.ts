@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, boolean, json, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, boolean, json, pgEnum, decimal, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -39,18 +39,50 @@ export const plans = pgTable("plans", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Enhanced Coupons v2 Schema
+export const couponCampaigns = pgTable("coupon_campaigns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  startsAt: timestamp("starts_at"),
+  endsAt: timestamp("ends_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const coupons = pgTable("coupons", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   code: text("code").notNull().unique(),
-  percentOff: integer("percent_off"),
-  amountOff: integer("amount_off"),
-  validFrom: timestamp("valid_from"),
-  validTo: timestamp("valid_to"),
+  campaignId: varchar("campaign_id").references(() => couponCampaigns.id),
+  type: text("type").notNull(), // 'percentage', 'fixed_amount', 'free_trial_days'
+  value: decimal("value", { precision: 12, scale: 2 }).notNull(),
+  currency: text("currency"),
   maxRedemptions: integer("max_redemptions"),
+  perUserLimit: integer("per_user_limit").default(1),
+  allowStacking: boolean("allow_stacking").default(false),
+  minSubtotalCents: integer("min_subtotal_cents"),
+  allowedPlanIds: text("allowed_plan_ids").array(),
+  deniedPlanIds: text("denied_plan_ids").array(),
+  startsAt: timestamp("starts_at"),
+  endsAt: timestamp("ends_at"),
+  isRecurring: boolean("is_recurring").default(false),
+  metadata: json("metadata"),
   timesRedeemed: integer("times_redeemed").default(0).notNull(),
   active: boolean("active").default(true).notNull(),
+  archived: boolean("archived").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const couponRedemptions = pgTable("coupon_redemptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  couponId: varchar("coupon_id").notNull().references(() => coupons.id),
+  userId: varchar("user_id").notNull(),
+  orgId: varchar("org_id"),
+  planId: text("plan_id"),
+  orderId: text("order_id"),
+  redeemedAt: timestamp("redeemed_at").defaultNow().notNull(),
+  amountCents: integer("amount_cents"),
+}, (table) => ({
+  uniqueRedemption: unique().on(table.couponId, table.userId, table.orderId),
+}));
 
 export const articles = pgTable("articles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -76,11 +108,16 @@ export const consentEvents = pgTable("consent_events", {
 export const auditLogs = pgTable("audit_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   actorId: varchar("actor_id"),
+  actorEmail: text("actor_email"),
+  actorRole: text("actor_role"),
   action: text("action").notNull(),
   resource: text("resource"),
   resourceId: varchar("resource_id"),
   beforeState: json("before_state"), // Snapshot before change
   afterState: json("after_state"),   // Snapshot after change
+  reason: text("reason"), // Optional "why" for risky edits
+  tamperHash: text("tamper_hash").notNull(), // Hash chaining for immutability
+  prevTamperHash: text("prev_tamper_hash"), // Previous row's hash
   meta: json("meta"),
   ip: text("ip"),
   userAgent: text("user_agent"),
