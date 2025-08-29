@@ -425,7 +425,7 @@ export default function ElderlyParents() {
           <a
             href="/pricing"
             data-testid="button-get-started-cta"
-            className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
+            className="bg-[var(--brand)] hover:bg-[var(--brand-2)] text-[var(--brand-ink)] px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-block min-h-[44px]"
           >
             Get started free
           </a>
@@ -588,7 +588,7 @@ export default function ElderlyParents() {
               <div className="text-3xl font-bold mb-6 text-[#F3F4F6]">$0</div>
               <button
                 data-testid="button-get-started-free-plan"
-                className="w-full bg-[#D4AF37] text-black py-3 rounded-full font-semibold mb-6 hover:bg-[#C7A233] transition-colors"
+                className="w-full bg-[var(--brand)] text-[var(--brand-ink)] py-3 rounded-full font-semibold mb-6 hover:bg-[var(--brand-2)] transition-colors"
               >
                 Get started
               </button>
@@ -610,7 +610,7 @@ export default function ElderlyParents() {
               <div className="text-3xl font-bold mb-6 text-[#F3F4F6]">$10</div>
               <button
                 data-testid="button-get-started-silver-plan"
-                className="w-full bg-[#D4AF37] text-black py-3 rounded-full font-semibold mb-6 hover:bg-[#C7A233] transition-colors"
+                className="w-full bg-[var(--brand)] text-[var(--brand-ink)] py-3 rounded-full font-semibold mb-6 hover:bg-[var(--brand-2)] transition-colors"
               >
                 Get started
               </button>
@@ -635,7 +635,7 @@ export default function ElderlyParents() {
               <div className="text-3xl font-bold mb-6 text-[#F3F4F6]">$20</div>
               <button
                 data-testid="button-get-started-gold-plan"
-                className="w-full bg-[#D4AF37] text-black py-3 rounded-full font-semibold mb-6 hover:bg-[#C7A233] transition-colors"
+                className="w-full bg-[var(--brand)] text-[var(--brand-ink)] py-3 rounded-full font-semibold mb-6 hover:bg-[var(--brand-2)] transition-colors"
               >
                 Get started
               </button>
@@ -691,7 +691,7 @@ export default function ElderlyParents() {
                 <a
                   href="#"
                   data-testid="button-download-checklist"
-                  className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-6 py-3 rounded-lg font-semibold transition-colors inline-flex items-center min-h-[44px]"
+                  className="bg-[var(--brand)] hover:bg-[var(--brand-2)] text-[var(--brand-ink)] px-6 py-3 rounded-lg font-semibold transition-colors inline-flex items-center min-h-[44px]"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Download free checklist
@@ -741,7 +741,7 @@ export default function ElderlyParents() {
           <a
             href="/pricing"
             data-testid="button-final-cta"
-            className="bg-[#D4AF37] hover:bg-[#C7A233] text-black px-8 py-4 rounded-lg font-semibold text-lg transition-all inline-block min-h-[44px] hover:shadow-[0_0_20px_rgba(212,175,55,0.5)] hover:scale-105"
+            className="bg-[var(--brand)] hover:bg-[var(--brand-2)] text-[var(--brand-ink)] px-8 py-4 rounded-lg font-semibold text-lg transition-all inline-block min-h-[44px] hover:shadow-[0_0_20px_rgba(246,195,61,0.5)] hover:scale-105"
           >
             Get started free
           </a>
