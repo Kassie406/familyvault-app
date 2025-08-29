@@ -25,6 +25,9 @@ import estatePlanningImage from "@assets/image_1756095429229.png";
 import digitalSecurityImage from "@assets/image_1756095779424.png";
 import mobileAppImage from "@assets/image_1756095858406.png";
 import askExpertsImage from "@assets/image_1756095909223.png";
+import patriciaProfileImage from "@assets/generated_images/Patricia_estate_planning_reviewer_headshot_41438796.png";
+import michaelProfileImage from "@assets/generated_images/Michael_estate_planning_reviewer_headshot_de7c16fa.png";
+import lindaProfileImage from "@assets/generated_images/Linda_estate_planning_reviewer_headshot_ca4073a1.png";
 
 export default function EstatePlanning() {
   const estatePlanningCards = [
@@ -131,9 +134,9 @@ export default function EstatePlanning() {
   ];
 
   const testimonials = [
-    { name: "Patricia H.", title: "Member since 2022", rating: 5, quote: "Having all our estate documents organized in FamilyVault gives our family such peace of mind." },
-    { name: "Michael R.", title: "Member since 2021", rating: 5, quote: "The legacy access feature ensures our children will have what they need when the time comes." },
-    { name: "Linda K.", title: "Member since 2023", rating: 5, quote: "FamilyVault made organizing our wills and trusts so much easier than keeping paper copies." }
+    { name: "Patricia H.", title: "Member since 2022", rating: 5, quote: "Having all our estate documents organized in FamilyVault gives our family such peace of mind.", image: patriciaProfileImage },
+    { name: "Michael R.", title: "Member since 2021", rating: 5, quote: "The legacy access feature ensures our children will have what they need when the time comes.", image: michaelProfileImage },
+    { name: "Linda K.", title: "Member since 2023", rating: 5, quote: "FamilyVault made organizing our wills and trusts so much easier than keeping paper copies.", image: lindaProfileImage }
   ];
 
   return (
@@ -492,8 +495,12 @@ export default function EstatePlanning() {
                   ))}
                 </div>
                 <p className="text-[#9BA3AF] italic mb-4">"{testimonial.quote}"</p>
-                <div className="w-16 h-16 bg-gradient-to-br from-[#E7C74D] to-[#FFD700] rounded-full mx-auto mb-3 flex items-center justify-center border-2 border-[#E7C74D]">
-                  <span className="text-black text-xl font-bold">{testimonial.name.charAt(0)}</span>
+                <div className="w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden border-2 border-[#E7C74D]">
+                  <img 
+                    src={testimonial.image} 
+                    alt={`${testimonial.name} profile`}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <div className="font-semibold text-sm text-[#EDEDED]">{testimonial.name}</div>
                 <div className="text-xs text-[#9BA3AF]">{testimonial.title}</div>
