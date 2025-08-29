@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, ilike, or } from "drizzle-orm";
 import { 
   type User, type InsertUser,
   type Organization, type InsertOrganization,
@@ -9,12 +9,15 @@ import {
   type Article, type InsertArticle,
   type ConsentEvent, type InsertConsentEvent,
   type AuditLog, type InsertAuditLog,
-  users, organizations, plans, coupons, articles, consentEvents, auditLogs
+  type AdminSession, type InsertAdminSession,
+  type SecuritySetting, type InsertSecuritySetting,
+  users, organizations, plans, coupons, articles, consentEvents, auditLogs,
+  adminSessions, securitySettings
 } from "@shared/schema";
 
 // Database connection
-const sql = neon(process.env.DATABASE_URL!);
-const db = drizzle(sql);
+const neonClient = neon(process.env.DATABASE_URL!);
+const db = drizzle(neonClient);
 
 export interface IStorage {
   // User methods
@@ -59,9 +62,20 @@ export interface IStorage {
   createConsentEvent(consent: InsertConsentEvent): Promise<ConsentEvent>;
   getConsentEvents(limit?: number): Promise<ConsentEvent[]>;
   
-  // Audit log methods
+  // Enhanced audit log methods
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
   getAuditLogs(limit?: number): Promise<AuditLog[]>;
+  searchAuditLogs(query: string, limit?: number): Promise<AuditLog[]>;
+
+  // Admin session methods
+  createAdminSession(session: InsertAdminSession): Promise<AdminSession>;
+  getActiveSessions(userId?: string): Promise<AdminSession[]>;
+  updateSessionActivity(sessionToken: string): Promise<void>;
+  revokeSession(sessionToken: string): Promise<boolean>;
+
+  // Security settings methods
+  getSecuritySetting(key: string): Promise<SecuritySetting | undefined>;
+  setSecuritySetting(key: string, value: string, updatedBy: string): Promise<SecuritySetting>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -221,7 +235,7 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
   }
 
-  // Audit log methods
+  // Enhanced audit log methods
   async createAuditLog(log: InsertAuditLog): Promise<AuditLog> {
     const result = await db.insert(auditLogs).values(log).returning();
     return result[0];
@@ -231,6 +245,83 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(auditLogs)
       .orderBy(desc(auditLogs.createdAt))
       .limit(limit);
+  }
+
+  async searchAuditLogs(query: string, limit: number = 100): Promise<AuditLog[]> {
+    return await db.select().from(auditLogs)
+      .where(
+        or(
+          ilike(auditLogs.action, `%${query}%`),
+          ilike(auditLogs.resource, `%${query}%`),
+          ilike(auditLogs.actorId, `%${query}%`)
+        )
+      )
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(limit);
+  }
+
+  // Admin session methods
+  async createAdminSession(session: InsertAdminSession): Promise<AdminSession> {
+    const result = await db.insert(adminSessions).values(session).returning();
+    return result[0];
+  }
+
+  async getActiveSessions(userId?: string): Promise<AdminSession[]> {
+    if (userId) {
+      return await db.select().from(adminSessions)
+        .where(sql`${adminSessions.isActive} = true AND ${adminSessions.userId} = ${userId}`)
+        .orderBy(desc(adminSessions.lastActivity));
+    } else {
+      return await db.select().from(adminSessions)
+        .where(eq(adminSessions.isActive, true))
+        .orderBy(desc(adminSessions.lastActivity));
+    }
+  }
+
+  async updateSessionActivity(sessionToken: string): Promise<void> {
+    await db.update(adminSessions)
+      .set({ lastActivity: new Date() })
+      .where(eq(adminSessions.sessionToken, sessionToken));
+  }
+
+  async revokeSession(sessionToken: string): Promise<boolean> {
+    const result = await db.update(adminSessions)
+      .set({ isActive: false })
+      .where(eq(adminSessions.sessionToken, sessionToken));
+    return result.rowCount > 0;
+  }
+
+  // Security settings methods
+  async getSecuritySetting(key: string): Promise<SecuritySetting | undefined> {
+    const result = await db.select().from(securitySettings)
+      .where(eq(securitySettings.settingKey, key))
+      .limit(1);
+    return result[0];
+  }
+
+  async setSecuritySetting(key: string, value: string, updatedBy: string): Promise<SecuritySetting> {
+    const existing = await this.getSecuritySetting(key);
+    
+    if (existing) {
+      const result = await db.update(securitySettings)
+        .set({ 
+          settingValue: value, 
+          lastUpdated: new Date(),
+          updatedBy 
+        })
+        .where(eq(securitySettings.settingKey, key))
+        .returning();
+      return result[0];
+    } else {
+      const result = await db.insert(securitySettings)
+        .values({ 
+          settingKey: key, 
+          settingValue: value, 
+          updatedBy 
+        })
+        .returning();
+      return result[0];
+    }
   }
 }
 

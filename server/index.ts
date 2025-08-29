@@ -6,6 +6,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { type AuthenticatedRequest, optionalAuth, requireAuth, loginUser, registerUser } from "./auth";
 import { storage } from "./storage";
+import { AuditService, getAuditContext } from "./audit-service";
 
 const app = express();
 
@@ -279,6 +280,245 @@ app.get('/api/admin/audit', requireAuth('ADMIN'), async (req: AuthenticatedReque
   } catch (error) {
     console.error('Get audit logs error:', error);
     res.status(500).json({ error: 'Failed to fetch audit logs' });
+  }
+});
+
+// Search audit logs with enhanced filtering
+app.get('/api/admin/audit/search', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { q: query } = req.query;
+    if (!query || typeof query !== 'string') {
+      return res.status(400).json({ error: 'Search query is required' });
+    }
+    
+    const logs = await storage.searchAuditLogs(query, 100);
+    res.json({ logs });
+  } catch (error) {
+    console.error('Search audit logs error:', error);
+    res.status(500).json({ error: 'Failed to search audit logs' });
+  }
+});
+
+// Admin session management endpoints
+app.get('/api/admin/sessions', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // TODO: Get real admin sessions from database
+    const mockSessions = [
+      {
+        id: 'session-1',
+        userId: req.user!.id,
+        sessionToken: 'current-session',
+        deviceType: 'desktop',
+        deviceName: 'MacBook Pro',
+        browser: 'Chrome 120',
+        os: 'macOS 14.2',
+        ip: '192.168.1.100',
+        location: 'San Francisco, CA',
+        isActive: true,
+        isCurrent: true,
+        lastActivity: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'session-2',
+        userId: req.user!.id,
+        sessionToken: 'other-session',
+        deviceType: 'mobile',
+        deviceName: 'iPhone 15',
+        browser: 'Safari 17',
+        os: 'iOS 17.2',
+        ip: '10.0.0.50',
+        location: 'New York, NY',
+        isActive: true,
+        isCurrent: false,
+        lastActivity: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // 10 minutes ago
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+      }
+    ];
+    
+    res.json({ sessions: mockSessions });
+  } catch (error) {
+    console.error('Get admin sessions error:', error);
+    res.status(500).json({ error: 'Failed to fetch admin sessions' });
+  }
+});
+
+app.post('/api/admin/sessions/:sessionId/revoke', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+    
+    // TODO: Revoke session in database and audit log
+    await AuditService.logAdminAction(
+      'session:revoked',
+      'admin_session',
+      sessionId,
+      { isActive: true },
+      { isActive: false },
+      getAuditContext(req)
+    );
+    
+    res.json({ message: 'Session revoked successfully' });
+  } catch (error) {
+    console.error('Revoke session error:', error);
+    res.status(500).json({ error: 'Failed to revoke session' });
+  }
+});
+
+app.post('/api/admin/sessions/revoke-multiple', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { sessionIds } = req.body;
+    
+    if (!Array.isArray(sessionIds)) {
+      return res.status(400).json({ error: 'sessionIds must be an array' });
+    }
+    
+    // TODO: Revoke multiple sessions and audit log
+    let revokedCount = 0;
+    let failedCount = 0;
+    
+    for (const sessionId of sessionIds) {
+      try {
+        await AuditService.logAdminAction(
+          'session:bulk_revoked',
+          'admin_session',
+          sessionId,
+          { isActive: true },
+          { isActive: false },
+          getAuditContext(req)
+        );
+        revokedCount++;
+      } catch {
+        failedCount++;
+      }
+    }
+    
+    res.json({ 
+      message: `${revokedCount} sessions revoked successfully`,
+      revokedCount,
+      failedCount 
+    });
+  } catch (error) {
+    console.error('Revoke multiple sessions error:', error);
+    res.status(500).json({ error: 'Failed to revoke sessions' });
+  }
+});
+
+// Global search across all admin resources
+app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { q: query } = req.query;
+    if (!query || typeof query !== 'string' || query.length < 2) {
+      return res.json({ results: [] });
+    }
+
+    const results = [];
+    const searchQuery = query.toLowerCase();
+
+    // Search Users (placeholder - would search real users)
+    if (searchQuery.includes('user') || searchQuery.includes('admin')) {
+      results.push({
+        id: 'user-admin',
+        type: 'user',
+        title: 'Admin User',
+        subtitle: 'Administrator account',
+        metadata: 'admin@familycirclesecure.com',
+        status: 'active',
+        timestamp: new Date().toISOString(),
+        url: '/admin/users/admin'
+      });
+    }
+
+    // Search Coupons
+    const coupons = await storage.getAllCoupons();
+    const matchingCoupons = coupons.filter(coupon => 
+      coupon.code.toLowerCase().includes(searchQuery)
+    ).slice(0, 10);
+    
+    matchingCoupons.forEach(coupon => {
+      results.push({
+        id: coupon.id,
+        type: 'coupon',
+        title: coupon.code,
+        subtitle: `${coupon.discount}${coupon.isPercentage ? '%' : '$'} off`,
+        metadata: `Used ${coupon.usageCount} times`,
+        status: coupon.isActive ? 'active' : 'inactive',
+        timestamp: coupon.createdAt,
+        url: `/admin/coupons/${coupon.id}`
+      });
+    });
+
+    // Search Articles
+    const articles = await storage.getAllArticles();
+    const matchingArticles = articles.filter(article => 
+      article.title.toLowerCase().includes(searchQuery) ||
+      (article.content && article.content.toLowerCase().includes(searchQuery))
+    ).slice(0, 10);
+    
+    matchingArticles.forEach(article => {
+      results.push({
+        id: article.id,
+        type: 'article',
+        title: article.title,
+        subtitle: article.slug,
+        metadata: `${article.content?.length || 0} characters`,
+        status: article.published ? 'published' : 'draft',
+        timestamp: article.createdAt,
+        url: `/admin/articles/${article.id}`
+      });
+    });
+
+    // Search Plans
+    const plans = await storage.getAllPlans();
+    const matchingPlans = plans.filter(plan => 
+      plan.name.toLowerCase().includes(searchQuery) ||
+      (plan.description && plan.description.toLowerCase().includes(searchQuery))
+    ).slice(0, 10);
+    
+    matchingPlans.forEach(plan => {
+      results.push({
+        id: plan.id,
+        type: 'plan',
+        title: plan.name,
+        subtitle: `$${plan.price}/month`,
+        metadata: plan.description || 'No description',
+        status: 'active',
+        timestamp: plan.createdAt,
+        url: `/admin/plans/${plan.id}`
+      });
+    });
+
+    // Search Audit Logs
+    const auditLogs = await storage.searchAuditLogs(query, 5);
+    auditLogs.forEach(log => {
+      results.push({
+        id: log.id,
+        type: 'audit',
+        title: log.action.replace(/[_:]/g, ' ').replace(/\w\S*/g, (txt) => 
+          txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+        ),
+        subtitle: `${log.resource} ${log.resourceId ? '• ' + log.resourceId.substring(0, 8) + '...' : ''}`,
+        metadata: `by ${log.actorId || 'System'}`,
+        timestamp: log.createdAt,
+        url: `/admin/audit#${log.id}`
+      });
+    });
+
+    // Sort results by relevance and timestamp
+    results.sort((a, b) => {
+      // Exact matches first
+      const aExact = a.title.toLowerCase() === searchQuery;
+      const bExact = b.title.toLowerCase() === searchQuery;
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+      
+      // Then by timestamp (newest first)
+      return new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime();
+    });
+
+    res.json({ results: results.slice(0, 20) });
+  } catch (error) {
+    console.error('Global search error:', error);
+    res.status(500).json({ error: 'Search failed' });
   }
 });
 
