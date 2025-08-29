@@ -144,9 +144,9 @@ export default function Moving() {
                 <a 
                   href="/pricing"
                   data-testid="link-see-moving-features"
-                  className="text-[#f1c232] hover:underline font-medium inline-flex items-center min-h-[44px]"
+                  className="text-[#D1D5DB] hover:text-[#F3F4F6] underline underline-offset-4 min-h-[44px] flex items-center"
                 >
-                  See moving features →
+                  See what's included →
                 </a>
               </div>
             </div>
