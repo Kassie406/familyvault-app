@@ -79,10 +79,31 @@ export const auditLogs = pgTable("audit_logs", {
   action: text("action").notNull(),
   resource: text("resource"),
   resourceId: varchar("resource_id"),
+  beforeState: json("before_state"), // Snapshot before change
+  afterState: json("after_state"),   // Snapshot after change
   meta: json("meta"),
   ip: text("ip"),
   userAgent: text("user_agent"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const adminSessions = pgTable("admin_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  sessionToken: text("session_token").notNull().unique(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  lastActivity: timestamp("last_activity").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+});
+
+export const securitySettings = pgTable("security_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  settingKey: text("setting_key").notNull().unique(),
+  settingValue: text("setting_value"),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+  updatedBy: varchar("updated_by"),
 });
 
 // Insert schemas
@@ -142,9 +163,25 @@ export const insertAuditLogSchema = createInsertSchema(auditLogs).pick({
   action: true,
   resource: true,
   resourceId: true,
+  beforeState: true,
+  afterState: true,
   meta: true,
   ip: true,
   userAgent: true,
+});
+
+export const insertAdminSessionSchema = createInsertSchema(adminSessions).pick({
+  userId: true,
+  sessionToken: true,
+  ipAddress: true,
+  userAgent: true,
+  isActive: true,
+});
+
+export const insertSecuritySettingSchema = createInsertSchema(securitySettings).pick({
+  settingKey: true,
+  settingValue: true,
+  updatedBy: true,
 });
 
 // Types
@@ -168,3 +205,9 @@ export type ConsentEvent = typeof consentEvents.$inferSelect;
 
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type AuditLog = typeof auditLogs.$inferSelect;
+
+export type InsertAdminSession = z.infer<typeof insertAdminSessionSchema>;
+export type AdminSession = typeof adminSessions.$inferSelect;
+
+export type InsertSecuritySetting = z.infer<typeof insertSecuritySettingSchema>;
+export type SecuritySetting = typeof securitySettings.$inferSelect;
