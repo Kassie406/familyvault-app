@@ -20,9 +20,9 @@ import {
   Bell
 } from "lucide-react";
 import movingCoupleImage from "@assets/image_1756094383182.png";
-import digitalSecurityImage from "@assets/image_1756094591825.png";
-import mobileAppImage from "@assets/image_1756094660501.png";
-import askExpertsImage from "@assets/image_1756094723870.png";
+import digitalSecurityImage from "@assets/generated_images/Cloud_backup_security_illustration_01b8f657.png";
+import mobileAppImage from "@assets/generated_images/FamilyVault_mobile_app_interface_d4485332.png";
+import askExpertsImage from "@assets/generated_images/Ask_experts_blackboard_illustration_e21e4a7b.png";
 import jessicaProfileImage from "@assets/generated_images/Jessica_moving_reviewer_headshot_8e565bdd.png";
 import michaelProfileImage from "@assets/generated_images/Michael_moving_reviewer_headshot_367e0514.png";
 import amandaProfileImage from "@assets/generated_images/Amanda_moving_reviewer_headshot_63882a69.png";

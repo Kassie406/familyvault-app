@@ -24,9 +24,9 @@ import {
   PawPrint
 } from "lucide-react";
 import disasterSceneImage from "@assets/image_1756095132487.png";
-import digitalSecurityImage from "@assets/image_1756095170275.png";
-import mobileAppImage from "@assets/image_1756095280262.png";
-import askExpertsImage from "@assets/image_1756095363487.png";
+import digitalSecurityImage from "@assets/generated_images/Cloud_backup_security_illustration_01b8f657.png";
+import mobileAppImage from "@assets/generated_images/FamilyVault_mobile_app_interface_d4485332.png";
+import askExpertsImage from "@assets/generated_images/Ask_experts_blackboard_illustration_e21e4a7b.png";
 import jenniferProfileImage from "@assets/generated_images/Jennifer_disaster_planning_reviewer_headshot_2e2092c3.png";
 import robertProfileImage from "@assets/generated_images/Robert_disaster_planning_reviewer_headshot_acefd499.png";
 import mariaProfileImage from "@assets/generated_images/Maria_disaster_planning_reviewer_headshot_2bb05e36.png";
