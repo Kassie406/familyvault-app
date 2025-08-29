@@ -160,7 +160,7 @@ export default function StartingAFamily() {
                 <a 
                   href="/pricing"
                   data-testid="button-get-started-free"
-                  className="inline-flex items-center gap-2 bg-[#d7b43e] text-[#111] font-semibold px-6 py-3 rounded-full hover:bg-[#c6a528] transition-colors min-h-[44px] shadow-[0_6px_16px_rgba(215,180,62,0.35)] focus:outline-none focus:ring-[0_0_0_1px_rgba(215,180,62,0.3),0_0_0_4px_rgba(215,180,62,0.12)]"
+                  className="inline-flex items-center gap-2 bg-[var(--brand)] text-[var(--brand-ink)] font-semibold px-6 py-3 rounded-full hover:bg-[var(--brand-2)] transition-colors min-h-[44px] shadow-[0_6px_16px_rgba(246,195,61,0.35)] focus:outline-none focus:ring-[0_0_0_1px_rgba(246,195,61,0.3),0_0_0_4px_rgba(246,195,61,0.12)]"
                 >
                   Get started free
                 </a>
