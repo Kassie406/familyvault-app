@@ -446,28 +446,28 @@ export default function Neurodiversity() {
       </section>
 
       {/* Bottom Features */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-[#141414]">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8">
             {bottomFeatures.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <div key={index} className="text-center">
-                  <div className="bg-gray-100 rounded-2xl p-8 h-48 flex items-center justify-center mb-6">
+                  <div className="rounded-xl overflow-hidden border border-[rgba(212,175,55,0.25)] bg-[#0B0B0B] h-48 flex items-center justify-center mb-6">
                     {feature.image ? (
                       <img 
                         src={feature.image} 
                         alt={feature.imageAlt}
-                        className="w-full h-full object-cover rounded-lg"
+                        className="w-full h-full object-cover"
                       />
                     ) : (
-                      <IconComponent className="w-12 h-12 text-[#FFD700]" />
+                      <IconComponent className="w-12 h-12 text-[#D4AF37]" />
                     )}
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-[#F3F4F6] mb-2">
                     {feature.title}
                   </h3>
-                  <p className="text-gray-600">
+                  <p className="text-[#D1D5DB]">
                     {feature.description}
                   </p>
                 </div>
