@@ -6,7 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { 
   Shield, LogOut, User, Settings, LayoutDashboard, Users, CreditCard, 
   Ticket, FileText, ShieldCheck, Activity, Search, Filter, Bell, 
-  Flag, UserX, Webhook, Tag, Megaphone
+  Flag, UserX, Webhook, Tag, Megaphone, AlertTriangle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
@@ -49,7 +49,7 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
   }
 
   const navigationItems = [
-    { id: 'overview', label: 'Dashboard', icon: LayoutDashboard, description: 'Analytics & overview' },
+    { id: 'overview', label: 'Dashboard', icon: LayoutDashboard, description: 'Analytics & overview', href: '/admin/dashboard' },
     { id: 'users', label: 'Users', icon: Users, description: 'User management' },
     { id: 'plans', label: 'Subscription Plans', icon: CreditCard, description: 'Pricing & billing' },
     { id: 'coupons', label: 'Coupons', icon: Ticket, description: 'Promotional codes' },
@@ -64,6 +64,7 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
     { id: 'impersonation', label: 'Impersonation', icon: UserX, description: 'Admin user support' },
     { id: 'compliance', label: 'Compliance', icon: ShieldCheck, description: 'GDPR & privacy' },
     { id: 'security', label: 'Security', icon: Activity, description: 'Audit & monitoring' },
+    { id: 'incidents', label: 'Incidents', icon: AlertTriangle, description: 'Status incidents & escalation', href: '/admin/incidents' },
   ];
 
   return (
@@ -94,7 +95,13 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
               return (
                 <button
                   key={item.id}
-                  onClick={() => onSectionChange?.(item.id)}
+                  onClick={() => {
+                    if (item.href) {
+                      setLocation(item.href);
+                    } else {
+                      onSectionChange?.(item.id);
+                    }
+                  }}
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
                     isActive 
                       ? 'bg-red-600 text-white shadow-lg' 

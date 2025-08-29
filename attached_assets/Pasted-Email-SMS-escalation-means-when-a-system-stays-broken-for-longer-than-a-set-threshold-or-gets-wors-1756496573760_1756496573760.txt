@@ -1,0 +1,121 @@
+Email/SMS escalation means: when a system stays broken for longer than a set threshold (or gets worse), you automatically notify more urgent channels/people—e.g., start with Slack, then email on-call, then SMS/call the primary, then the backup—until someone acknowledges the incident.
+
+Here’s a simple way to think about it (and how we’d wire it into your console):
+
+What it does
+
+Detects persistence: “DB has been failing for 10+ minutes (or 3+ checks).”
+
+Escalates by tiers:
+Tier 0 → Slack (already done)
+Tier 1 → Email on-call list
+Tier 2 → SMS primary on-call
+Tier 3 → SMS backup / voice call (optional)
+
+Stops when Acknowledged: once an engineer clicks “Acknowledge” (or hits an API), further alerts stop.
+
+Recovers: sends a “Recovered” message when back to OK.
+
+The policy (you can customize)
+
+Severity S1 (critical): auth, db, payment outage
+
+T+0: Slack
+
+T+5 min (still failing): Email on-call
+
+T+10 min: SMS primary
+
+T+20 min: SMS backup (and/or voice call)
+
+Severity S2 (major): degraded but usable (e.g., webhook retries failing)
+
+T+0: Slack
+
+T+15 min: Email on-call
+
+T+30 min: SMS primary
+
+Quiet hours: only escalate via SMS for critical incidents (you already set quiet-hours / maintenance).
+
+The moving parts
+
+Incident records (DB table) to track open/acknowledged/closed incidents per component.
+
+Escalation worker that runs every minute:
+
+Looks at the latest status_checks; if a component has been FAIL for N minutes and there’s no open incident → open one and send Tier 0 (Slack).
+
+If an incident is open and age passes the next threshold, send the next tier unless acknowledged.
+
+Acknowledge endpoint + console button to mark the incident acknowledged (stops further paging).
+
+Email + SMS senders (you already have email; SMS can be Twilio or similar).
+
+Minimal data model (new tables)
+
+incidents(id, component, severity, opened_at, acknowledged_at, closed_at, status, last_escalation_tier)
+
+oncall_targets(tier, kind, to) e.g., (1,'email','oncall@…'), (2,'sms','+1…'), (3,'sms','+1…')
+
+Example escalation logic (pseudocode)
+// runs every minute
+for each component in ['db','auth','stripe','webhooks','smtp'] {
+  const failingFor = minutesSinceLastOK(component); // derive from status_checks
+  let inc = findOpenIncident(component);
+
+  if (!inc && failingFor >= 3) {
+    inc = openIncident(component, severityFor(component)); // create record
+    sendSlack("❌ " + component.toUpperCase() + " FAILED"); // Tier 0
+    setTier(inc, 0);
+  }
+
+  if (inc && !inc.acknowledged_at) {
+    const plan = thresholdsFor(inc.severity); // e.g., [5,10,20] minutes
+    const nextTier = inc.last_escalation_tier + 1;
+    if (nextTier < plan.length && failingFor >= plan[nextTier]) {
+      notifyTier(nextTier); // email or sms based on oncall_targets
+      setTier(inc, nextTier);
+    }
+  }
+
+  // recovery
+  if (inc && isOKNow(component)) {
+    closeIncident(inc);
+    sendSlack("✅ " + component.toUpperCase() + " RECOVERED");
+    sendEmail("Incident closed", …); // optional
+  }
+}
+
+How you (and family admins) will use it
+
+See a banner/toast when something flips to FAIL (already in place).
+
+If it persists, the on-call gets an email, then an SMS if still down.
+
+In the console Status → Incidents, there’s an Acknowledge button (records who/when, stops paging).
+
+When the component recovers, console shows Closed and sends a recovery notice.
+
+“Tell Replit what to do” (paste this)
+
+Add email/SMS escalation to the Status module:
+
+Create tables incidents(id, component, severity text, opened_at, acknowledged_at, acknowledged_by, closed_at, status text, last_escalation_tier int) and oncall_targets(tier int, kind text, to text). Seed oncall targets with: (1,'email','oncall@familycirclesecure.com
+'), (2,'sms','+15551234567'), (3,'sms','+15557654321').
+
+Implement src/workers/escalationWorker.js that runs every minute. Logic:
+
+If a component has been FAIL for ≥3 minutes and no open incident → open incident (severity from a simple map, e.g., auth/db/stripe = 'S1', others = 'S2'), send Slack (tier 0).
+
+If open and not acknowledged, escalate at thresholds: S1 → [5,10,20] minutes; S2 → [15,30] minutes. Look up oncall_targets to send Email (tier 1) or SMS (tier 2/3).
+
+Close incident when component returns to OK (send Slack recovery + optional email).
+
+Add POST /admin/incidents/:id/ack (RBAC: admin) to mark an incident acknowledged with acknowledged_by = req.user.id. Add a button on the Status page “Acknowledge” for open incidents.
+
+SMS sender: create src/notify/sms.js with Twilio (or provider) using env TWILIO_SID, TWILIO_TOKEN, TWILIO_FROM. Implement sendSMS(to, text). Use your existing mailer for emails.
+
+Respect existing suppression: before sending any alert, check global maintenance, per-component maintenance, quiet hours (critical flips can bypass if critical_only=true), and the cooldown/daily-cap gates.
+
+Console: add an “Incidents” table (open first) showing component, severity, opened, age, last tier, Ack button; and a “History” tab for closed incidents.
