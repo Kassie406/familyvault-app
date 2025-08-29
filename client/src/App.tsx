@@ -85,16 +85,13 @@ import WhenSomeoneDiesImportantDeadlines from "@/pages/when-someone-dies-importa
 function AdminRouter() {
   return (
     <Switch>
-      <Route path="/login" component={AdminLogin} />
-      <Route path="/dashboard" nest>
+      <Route path="/dashboard">
         <AdminLayout>
-          <Switch>
-            <Route path="/" component={AdminDashboard} />
-            <Route component={NotFound} />
-          </Switch>
+          <AdminDashboard />
         </AdminLayout>
       </Route>
-      {/* Default route for admin console - show login */}
+      <Route path="/login" component={AdminLogin} />
+      <Route path="/" component={AdminLogin} />
       <Route component={AdminLogin} />
     </Switch>
   );
@@ -198,22 +195,19 @@ function App() {
   const hostname = window.location.hostname;
   const pathname = window.location.pathname;
   
-  // Debug logging
-  console.log('Hostname:', hostname, 'Pathname:', pathname);
   
   const subdomain = hostname.split('.')[0];
   const isAdminDomain = subdomain === 'console' || 
                        hostname === 'console.familycirclesecure.com' || 
                        hostname.includes('console') ||
-                       pathname.startsWith('/admin');
+                       pathname.startsWith('/admin') ||
+                       pathname.startsWith('/login') ||
+                       pathname.startsWith('/dashboard');
   const isPortalDomain = subdomain === 'portal' || hostname === 'portal.familycirclesecure.com';
   const isHubDomain = subdomain === 'hub' || hostname === 'hub.familycirclesecure.com';
   
-  console.log('Admin domain check:', isAdminDomain, 'Subdomain:', subdomain);
-  
   // Admin Console Interface
   if (isAdminDomain) {
-    console.log('Rendering AdminRouter for admin domain');
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
