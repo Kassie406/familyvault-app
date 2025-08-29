@@ -1,0 +1,454 @@
+real admin console on the subdomain
+console.familycirclesecure.com where you (and only you/other admins) can manage:
+
+plans & pricing
+
+promotions/coupons
+
+members & roles
+
+agents/worker accounts
+
+cookie consent & analytics
+
+articles/pages (light CMS)
+
+audit logs / security
+
+Below is a drop-in blueprint for a Replit project using Node + Express + React with RBAC, Stripe, and consent-aware analytics. You can copy this structure directly and fill in the blanks.
+
+1) High-level architecture
+
+Main site and portal (members) = same web app.
+
+console subdomain = same codebase, but admin routes + admin React app.
+
+RBAC (roles): PRESIDENT, ADMIN, AGENT, MEMBER, FAMILY_ACCESSOR.
+
+Stripe for subscriptions, prices, coupons.
+
+Prisma + PostgreSQL (or Mongo) for users, orgs, promotions, articles, consents, audit logs.
+
+Consent-aware analytics (PostHog/Plausible) loaded only if user accepts.
+
+2) File/Folder layout
+/server
+  index.js
+  auth.js
+  rbac.js
+  subdomain.js
+  prisma.js
+  routes/
+    admin/
+      users.js
+      plans.js
+      coupons.js
+      articles.js
+      consents.js
+      audit.js
+    public.js
+/client
+  admin/          # React admin console
+    App.jsx
+    routes/*
+    components/*
+  web/            # marketing + portal UI
+    App.jsx
+    ...
+/shared
+  constants.js
+  schemas.ts
+.env
+
+3) Subdomain detection (Express)
+// /server/subdomain.js
+export function getSubdomain(req) {
+  // e.g. console.familycirclesecure.com -> ["console","familycirclesecure","com"]
+  const host = req.headers.host || '';
+  const parts = host.split(':')[0].split('.');
+  if (parts.length < 3) return null;
+  return parts[0]; // "console" | "portal" | etc.
+}
+
+4) Server bootstrap (Express)
+// /server/index.js
+import express from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import rateLimit from 'express-rate-limit';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { getSubdomain } from './subdomain.js';
+import { requireAuth, optionalAuth } from './auth.js';
+import adminUsers from './routes/admin/users.js';
+import adminPlans from './routes/admin/plans.js';
+import adminCoupons from './routes/admin/coupons.js';
+import adminArticles from './routes/admin/articles.js';
+import adminConsents from './routes/admin/consents.js';
+import adminAudit from './routes/admin/audit.js';
+import publicRoutes from './routes/public.js';
+
+const app = express();
+app.use(helmet());
+app.use(cors({ origin: [/^https?:\/\/.*familycirclesecure\.com$/], credentials: true }));
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 1000 }));
+app.use(express.json());
+app.use(cookieParser());
+
+// Log subdomain for audits
+app.use((req, _res, next) => {
+  req.subdomain = getSubdomain(req); // "console" | null
+  next();
+});
+
+// API routes
+app.use('/api/public', optionalAuth, publicRoutes);
+
+// Admin-only API on any subdomain, but RBAC enforces access
+app.use('/api/admin/users', requireAuth('ADMIN'), adminUsers);
+app.use('/api/admin/plans', requireAuth('ADMIN'), adminPlans);
+app.use('/api/admin/coupons', requireAuth('ADMIN'), adminCoupons);
+app.use('/api/admin/articles', requireAuth('ADMIN'), adminArticles);
+app.use('/api/admin/consents', requireAuth('ADMIN'), adminConsents);
+app.use('/api/admin/audit', requireAuth('ADMIN'), adminAudit);
+
+// Serve different SPA bundles based on subdomain
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const clientRoot = path.join(__dirname, '..', 'client');
+
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) return next();
+  const sub = req.subdomain;
+
+  if (sub === 'console') {
+    return res.sendFile(path.join(clientRoot, 'admin', 'index.html'));
+  }
+  // default -> marketing/portal
+  return res.sendFile(path.join(clientRoot, 'web', 'index.html'));
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`Server on :${port}`));
+
+5) Auth + RBAC (JWT or Auth provider)
+
+Use Clerk/Auth0/Supabase OR your own JWT with sessions.
+
+// /server/auth.js
+import jwt from 'jsonwebtoken';
+
+export function optionalAuth(req, _res, next) {
+  const token = req.cookies.token || (req.headers.authorization || '').replace('Bearer ', '');
+  if (!token) return next();
+  try { req.user = jwt.verify(token, process.env.JWT_SECRET); } catch {}
+  next();
+}
+
+export function requireAuth(requiredRole) {
+  return (req, res, next) => {
+    const token = req.cookies.token || (req.headers.authorization || '').replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'unauthenticated' });
+    try {
+      const user = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = user;
+      if (!hasRole(user.role, requiredRole)) return res.status(403).json({ error: 'forbidden' });
+      next();
+    } catch {
+      return res.status(401).json({ error: 'invalid token' });
+    }
+  };
+}
+
+function hasRole(role, required) {
+  const rank = { FAMILY_ACCESSOR: 1, MEMBER: 2, AGENT: 3, ADMIN: 4, PRESIDENT: 5 };
+  return rank[role] >= rank[required];
+}
+
+6) Database schema (Prisma example)
+// schema.prisma
+model User {
+  id        String @id @default(cuid())
+  email     String @unique
+  name      String?
+  role      Role   @default(MEMBER)
+  orgId     String?
+  org       Organization? @relation(fields: [orgId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Organization {
+  id        String @id @default(cuid())
+  name      String
+  ownerId   String
+  users     User[]
+  planId    String?
+  plan      Plan? @relation(fields: [planId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Plan {
+  id           String @id @default(cuid())
+  stripePrice  String // Stripe price id
+  name         String
+  amountCents  Int
+  interval     String // month/year
+  features     Json
+}
+
+model Coupon {
+  id           String @id @default(cuid())
+  code         String @unique
+  percentOff   Int?
+  amountOff    Int?
+  validFrom    DateTime?
+  validTo      DateTime?
+  maxRedemptions Int?
+  timesRedeemed Int @default(0)
+  active       Boolean @default(true)
+}
+
+model Article {
+  id        String @id @default(cuid())
+  slug      String @unique
+  title     String
+  bodyMd    String  // markdown
+  published Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ConsentEvent {
+  id        String @id @default(cuid())
+  userId    String?
+  orgId     String?
+  ip        String?
+  userAgent String?
+  consent   Json       // {analytics: true, marketing: false}
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String @id @default(cuid())
+  actorId   String?
+  action    String
+  resource  String?
+  meta      Json?
+  ip        String?
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  FAMILY_ACCESSOR
+  MEMBER
+  AGENT
+  ADMIN
+  PRESIDENT
+}
+
+7) Admin API examples
+Manage Coupons/Promotions
+// /server/routes/admin/coupons.js
+import { Router } from 'express';
+import { prisma } from '../../prisma.js';
+const r = Router();
+
+r.get('/', async (_req, res) => {
+  const coupons = await prisma.coupon.findMany({ orderBy: { createdAt: 'desc' }});
+  res.json(coupons);
+});
+
+r.post('/', async (req, res) => {
+  const { code, percentOff, amountOff, validFrom, validTo, maxRedemptions } = req.body;
+  const coupon = await prisma.coupon.create({ data: {
+    code, percentOff, amountOff, validFrom, validTo, maxRedemptions
+  }});
+  res.json(coupon);
+});
+
+r.patch('/:id', async (req, res) => {
+  const coupon = await prisma.coupon.update({
+    where: { id: req.params.id }, data: req.body
+  });
+  res.json(coupon);
+});
+
+r.post('/:id/deactivate', async (req, res) => {
+  const coupon = await prisma.coupon.update({
+    where: { id: req.params.id }, data: { active: false }
+  });
+  res.json(coupon);
+});
+
+export default r;
+
+Articles (Light CMS)
+// /server/routes/admin/articles.js
+import { Router } from 'express';
+import { prisma } from '../../prisma.js';
+const r = Router();
+
+r.get('/', async (_req, res) => {
+  res.json(await prisma.article.findMany({ orderBy: { createdAt: 'desc' }}));
+});
+r.post('/', async (req, res) => {
+  const { title, slug, bodyMd, published } = req.body;
+  res.json(await prisma.article.create({ data: { title, slug, bodyMd, published }}));
+});
+r.patch('/:id', async (req, res) => {
+  res.json(await prisma.article.update({ where: { id: req.params.id }, data: req.body }));
+});
+export default r;
+
+Consent log reporting
+// /server/routes/admin/consents.js
+import { Router } from 'express';
+import { prisma } from '../../prisma.js';
+const r = Router();
+
+r.get('/', async (req, res) => {
+  const rows = await prisma.consentEvent.findMany({ take: 500, orderBy: { createdAt: 'desc' }});
+  res.json(rows);
+});
+
+export default r;
+
+8) Admin UI (React)
+
+You can scaffold the admin using Vite + React + shadcn/ui quickly. Minimal route example:
+
+// /client/admin/App.jsx
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Coupons from './routes/Coupons.jsx';
+import Plans from './routes/Plans.jsx';
+import Users from './routes/Users.jsx';
+import Articles from './routes/Articles.jsx';
+import Consents from './routes/Consents.jsx';
+
+export default function App() {
+  return (
+    <BrowserRouter basename="/">
+      <Routes>
+        <Route path="/" element={<Navigate to="/coupons" />} />
+        <Route path="/coupons" element={<Coupons />} />
+        <Route path="/plans" element={<Plans />} />
+        <Route path="/users" element={<Users />} />
+        <Route path="/articles" element={<Articles />} />
+        <Route path="/consents" element={<Consents />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+
+To keep it discreet, add a small top banner only in console:
+
+/* /client/admin/admin.css */
+.admin-banner {
+  background:#8B0000;
+  color:#fff;
+  font: 600 13px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  padding:8px 12px;
+}
+
+9) Subscriptions, Prices, Coupons (Stripe)
+
+Configure Stripe products/prices (monthly/yearly).
+
+Use Stripe Coupons or map your own Coupon to Stripe promo codes.
+
+Add Stripe Webhooks to update Organization.planId and write AuditLog.
+
+// webhook skeleton
+app.post('/webhooks/stripe', express.raw({type:'application/json'}), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    return res.status(400).send(`Webhook error: ${err.message}`);
+  }
+  // handle checkout.session.completed, customer.subscription.updated, etc.
+  res.json({ received: true });
+});
+
+10) Cookie consent & analytics (consent-aware)
+
+On the public/portal bundle, show a small consent banner. If accepted, store a consent event and load analytics.
+
+<!-- /client/web/index.html -->
+<script>
+  (function(){
+    const key='fcs-consent';
+    const saved = localStorage.getItem(key);
+    if (!saved) {
+      // show your consent banner UI here, then:
+      // localStorage.setItem(key, JSON.stringify({analytics:true, marketing:false, at:Date.now()}));
+      // fetch('/api/public/consent', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({...})});
+    } else {
+      const c = JSON.parse(saved);
+      if (c.analytics) {
+        // Load PostHog or Plausible
+        (function(p,l,a,u,s,h){p._phl=p._phl||[];p._phl.push(['init', 'YOUR_KEY', {api_host:'https://eu.posthog.com'}]);})(window,document);
+      }
+    }
+  })();
+</script>
+
+
+On the server add /api/public/consent to save to ConsentEvent.
+
+11) Security essentials
+
+helmet + rate-limit (already added).
+
+CSRF for cookie-based sessions (use csurf if needed).
+
+All admin endpoints behind requireAuth('ADMIN') or PRESIDENT.
+
+Write to AuditLog on sensitive changes (plan, coupon, user role).
+
+For Replit: set secrets (JWT_SECRET, STRIPE_SECRET_KEY, DB URL).
+
+12) Replit specifics (what to do now)
+
+DNS
+
+Point console.familycirclesecure.com to your Replit IP (A record).
+
+Keep your main domain root pointing to the same IP.
+
+Replit
+
+In your server, keep the getSubdomain logic.
+
+Build two client bundles (client/admin and client/web) and copy index.html for each.
+
+Start command in replit.nix or package.json: node server/index.js
+
+Deploy using Autoscale.
+
+Secrets
+
+Add in Replit Secrets: JWT_SECRET, DATABASE_URL, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET.
+
+Try it
+
+Go to console.familycirclesecure.com → you should see the admin bundle.
+
+Go to familycirclesecure.com → public/portal bundle.
+
+13) What you’ll be able to do in the console
+
+Create/activate/deactivate coupons
+
+Edit plan names, features, pricing (writes to DB; Stripe changes go via Stripe dashboard or Stripe API)
+
+Manage members/roles and invite family-access users
+
+Write & publish articles/pages (Markdown)
+
+View cookie consents + export CSV
+
+See recent audit entries for changes (security trail)
