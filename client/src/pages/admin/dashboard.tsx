@@ -18,6 +18,8 @@ import SecurityCenterCard from '@/components/admin/security-center-card';
 import SessionManagement from '@/components/admin/session-management';
 import TamperVerification from '@/components/admin/tamper-verification';
 import EnhancedCouponForm from '@/components/admin/enhanced-coupon-form';
+import FeatureFlagsManager from '@/components/admin/feature-flags-manager';
+import ImpersonationManager from '@/components/admin/impersonation-manager';
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -408,6 +410,26 @@ export default function AdminDashboard() {
           </Card>
         );
       
+      case 'feature-flags':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Feature Flags Management</h2>
+            </div>
+            <FeatureFlagsManager />
+          </div>
+        );
+      
+      case 'impersonation':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Admin Impersonation</h2>
+            </div>
+            <ImpersonationManager />
+          </div>
+        );
+      
       case 'compliance':
         return (
           <Card>
@@ -427,37 +449,50 @@ export default function AdminDashboard() {
       
       case 'security':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Security Audit</CardTitle>
-              <CardDescription>Monitor system security and audit logs</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {auditLogs?.logs?.map((log: any, index: number) => (
-                  <div key={index} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{log.action}</p>
-                        <p className="text-muted-foreground text-sm">
-                          {new Date(log.createdAt).toLocaleString()}
-                        </p>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Security & Audit</h2>
+            </div>
+            
+            {/* Tamper-Evident Chain Verification */}
+            <TamperVerification />
+            
+            {/* Session Management */}
+            <SessionManagement />
+            
+            {/* Legacy Audit Logs */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Audit Logs</CardTitle>
+                <CardDescription>Monitor system security and admin actions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {auditLogs?.logs?.map((log: any, index: number) => (
+                    <div key={index} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{log.action}</p>
+                          <p className="text-muted-foreground text-sm">
+                            {new Date(log.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <Badge variant="secondary">
+                          {log.action === 'login' ? 'Authentication' : 'System'}
+                        </Badge>
                       </div>
-                      <Badge variant="secondary">
-                        {log.action === 'login' ? 'Authentication' : 'System'}
-                      </Badge>
                     </div>
-                  </div>
-                )) || (
-                  <div className="text-center py-12">
-                    <Activity className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <h3 className="mt-4 text-lg font-semibold">No Audit Logs</h3>
-                    <p className="text-muted-foreground">Security events will appear here</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  )) || (
+                    <div className="text-center py-12">
+                      <Activity className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <h3 className="mt-4 text-lg font-semibold">No Audit Logs</h3>
+                      <p className="text-muted-foreground">Security events will appear here</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         );
       
       default:

@@ -497,6 +497,171 @@ app.post('/api/admin/audit/verify-chain', requireAuth('ADMIN'), async (req: Auth
   }
 });
 
+// Feature Flags API endpoints
+app.get('/api/admin/feature-flags', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // TODO: Get feature flags from database
+    const mockFlags = [
+      {
+        id: 'flag-1',
+        key: 'new-billing-ui',
+        name: 'New Billing UI',
+        description: 'Enable the redesigned billing interface',
+        status: 'active',
+        forceOn: false,
+        forceOff: false,
+        targeting: {
+          percentage: 25,
+          allowDomains: ['@familycirclesecure.com'],
+          allowRoles: ['ADMIN', 'BETA_USER']
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+    ];
+    
+    res.json({ flags: mockFlags });
+  } catch (error) {
+    console.error('Get feature flags error:', error);
+    res.status(500).json({ error: 'Failed to fetch feature flags' });
+  }
+});
+
+app.post('/api/admin/feature-flags', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const flagData = req.body;
+    
+    // TODO: Create feature flag in database
+    const newFlag = {
+      id: `flag_${Date.now()}`,
+      ...flagData,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    // Log audit with tamper evidence
+    await AuditService.logAdminAction(
+      'feature_flag:created',
+      'feature_flag',
+      newFlag.id,
+      null,
+      newFlag,
+      getAuditContext(req)
+    );
+    
+    res.status(201).json(newFlag);
+  } catch (error) {
+    console.error('Create feature flag error:', error);
+    res.status(500).json({ error: 'Failed to create feature flag' });
+  }
+});
+
+app.patch('/api/admin/feature-flags/:id', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    // TODO: Update feature flag in database
+    const updatedFlag = {
+      id,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    // Log audit with tamper evidence
+    await AuditService.logAdminAction(
+      'feature_flag:updated',
+      'feature_flag',
+      id,
+      { id }, // before state
+      updatedFlag,
+      getAuditContext(req)
+    );
+    
+    res.json(updatedFlag);
+  } catch (error) {
+    console.error('Update feature flag error:', error);
+    res.status(500).json({ error: 'Failed to update feature flag' });
+  }
+});
+
+// Admin Impersonation API endpoints
+app.post('/api/admin/impersonation/start', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { userId, reason, ttlMinutes = 20 } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    // TODO: Use impersonation service
+    const session = {
+      id: `imp_${Date.now()}`,
+      adminId: req.user!.id,
+      targetId: userId,
+      reason,
+      startedAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + ttlMinutes * 60 * 1000).toISOString(),
+    };
+    
+    // Set impersonation cookie
+    res.cookie('impersonation', session.id, { 
+      httpOnly: true, 
+      sameSite: 'lax', 
+      secure: process.env.NODE_ENV === 'production' 
+    });
+    
+    // Log audit with tamper evidence
+    await AuditService.logAdminAction(
+      'impersonation:started',
+      'user',
+      userId,
+      null,
+      { reason, expiresAt: session.expiresAt, adminId: req.user!.id },
+      getAuditContext(req)
+    );
+    
+    res.json({ 
+      success: true, 
+      sessionId: session.id, 
+      expiresAt: session.expiresAt 
+    });
+  } catch (error) {
+    console.error('Start impersonation error:', error);
+    res.status(500).json({ error: 'Failed to start impersonation' });
+  }
+});
+
+app.post('/api/admin/impersonation/stop', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const sessionId = req.cookies.impersonation;
+    const { reason = 'ended-by-admin' } = req.body;
+    
+    if (sessionId) {
+      // TODO: Stop impersonation session
+      console.log('Stopping impersonation session:', sessionId);
+    }
+    
+    res.clearCookie('impersonation');
+    
+    // Log audit with tamper evidence
+    await AuditService.logAdminAction(
+      'impersonation:stopped',
+      'user',
+      req.user!.id,
+      null,
+      { reason, sessionId },
+      getAuditContext(req)
+    );
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Stop impersonation error:', error);
+    res.status(500).json({ error: 'Failed to stop impersonation' });
+  }
+});
+
 // Global search across all admin resources
 app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {
