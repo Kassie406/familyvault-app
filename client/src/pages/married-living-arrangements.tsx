@@ -233,7 +233,7 @@ export default function MarriedLivingArrangements() {
             Ready to organize your housing documents?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your rental, mortgage, and home-related documents secure and organized with FamilyVault.
+            Keep all your rental, mortgage, and home-related documents secure and organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

@@ -64,7 +64,7 @@ const pricingPlans = [
       "Unlimited items",
       "Unlimited Autopilot™",
       "YubiKey support",
-      "FamilyVault Marketplace™ discounts",
+      "FamilyCircle Secure Marketplace™ discounts",
       "And more…"
     ],
     buttonText: "Get started",
@@ -98,7 +98,7 @@ const pricingPlans = [
       "Advisor portal",
       "Volume-based pricing",
       "Co-branding",
-      "FamilyVault Certified Expert™ training",
+      "FamilyCircle Secure Certified Expert™ training",
       "Dedicated account manager",
       "And more…"
     ],
@@ -200,7 +200,7 @@ export default function ChildInformation() {
       name: "Sarah & Mike", 
       title: "Members since 2022", 
       rating: 5, 
-      quote: "FamilyVault made combining our finances and updating our documents after marriage stress-free.",
+      quote: "FamilyCircle Secure made combining our finances and updating our documents after marriage stress-free.",
       image: sarahProfileImageChild
     },
     { 
@@ -229,7 +229,7 @@ export default function ChildInformation() {
     },
     {
       icon: Smartphone,
-      title: "Use FamilyVault on the Go", 
+      title: "Use FamilyCircle Secure on the Go", 
       description: "Access your information anywhere with our mobile app",
       image: mobileAppImage,
       imageAlt: "Mobile app interface showing browse screen with family documents and categories"
@@ -256,7 +256,7 @@ export default function ChildInformation() {
                 👶 Child Information
               </span>
               <h1 className="text-4xl md:text-5xl font-extrabold text-[#F3F4F6] tracking-tight">
-                FamilyVault for Organizing Your Child's Information
+                FamilyCircle Secure for Organizing Your Child's Information
               </h1>
               <p className="text-[#D1D5DB] max-w-[65ch] text-lg">
                 Keep your child's important info secure, private, and accessible — ready for school, sports, a babysitter, or camp.
@@ -397,7 +397,7 @@ export default function ChildInformation() {
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
-              What Our Members Say About FamilyVault
+              What Our Members Say About FamilyCircle Secure
             </h2>
           </div>
 
@@ -441,7 +441,7 @@ export default function ChildInformation() {
               For every family, at every stage of life,
             </h2>
             <p className="text-2xl lg:text-3xl text-white">
-              FamilyVault has a plan for you.
+              FamilyCircle Secure has a plan for you.
             </p>
           </div>
           
@@ -501,14 +501,14 @@ export default function ChildInformation() {
         </div>
       </section>
 
-      {/* Meet FamilyVault */}
+      {/* Meet FamilyCircle Secure */}
       <section className="py-20 bg-[#141414]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl mb-6" style={{color: '#D4AF37', fontWeight: '700'}}>
-            Meet FamilyVault — Your Life, Organized
+            Meet FamilyCircle Secure — Your Life, Organized
           </h2>
           <p className="text-[#D1D5DB] text-lg mb-8 max-w-3xl mx-auto">
-            From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
+            From travel and finances to emergency planning, FamilyCircle Secure keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/pricing"
@@ -755,7 +755,7 @@ export default function ChildInformation() {
             Have everything ready for school, sports, or camp in minutes.
           </h2>
           <p className="text-[#D1D5DB] mb-8 text-lg">
-            Start organizing your child's information today with FamilyVault.
+            Start organizing your child's information today with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

@@ -397,7 +397,7 @@ export default function HomeBuyingPropertyResearch() {
             Ready to organize your property research?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your property research, market analysis, and neighborhood information organized with FamilyVault.
+            Keep all your property research, market analysis, and neighborhood information organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

@@ -612,7 +612,7 @@ export default function WhenSomeoneDiesFinancialAccounts() {
             Ready to organize financial accounts?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all bank accounts, investments, and financial information organized and accessible with FamilyVault.
+            Keep all bank accounts, investments, and financial information organized and accessible with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

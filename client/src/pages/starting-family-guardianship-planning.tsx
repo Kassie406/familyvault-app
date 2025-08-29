@@ -449,7 +449,7 @@ export default function StartingFamilyGuardianshipPlanning() {
             Ready to organize your guardianship planning?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your guardianship documents, care instructions, and planning information secure with FamilyVault.
+            Keep all your guardianship documents, care instructions, and planning information secure with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

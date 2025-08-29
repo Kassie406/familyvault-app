@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Menu, X, ChevronDown } from "lucide-react";
+import logoUrl from "../assets/familycircle-logo.png";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -115,8 +116,15 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <a href="/" className="text-2xl font-bold text-[#D4AF37] hover:opacity-80 transition-opacity">
-              FamilyVault
+            <a href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+              <img 
+                src={logoUrl} 
+                alt="FamilyCircle Secure" 
+                className="h-10 w-auto"
+              />
+              <span className="text-xl font-bold text-[#D4AF37] hidden sm:block">
+                FamilyCircle Secure
+              </span>
             </a>
           </div>
 

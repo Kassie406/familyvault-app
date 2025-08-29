@@ -12,7 +12,7 @@ export default function SecurityDocumentation() {
           <div className="text-center mb-12">
             <h1 className="text-5xl font-bold text-white mb-6">Security Documentation</h1>
             <p className="text-xl text-[#A5A5A5] leading-relaxed">
-              Complete technical documentation of FamilyVault's security architecture, 
+              Complete technical documentation of FamilyCircle Secure's security architecture, 
               compliance certifications, and data protection measures.
             </p>
           </div>
@@ -417,7 +417,7 @@ export default function SecurityDocumentation() {
             </div>
             <div className="bg-[#121212] border border-[#2A2A2A] rounded-xl p-8">
               <p className="text-[#A5A5A5] leading-relaxed mb-6">
-                FamilyVault operates a comprehensive security research program to proactively identify 
+                FamilyCircle Secure operates a comprehensive security research program to proactively identify 
                 and address potential vulnerabilities. We collaborate with ethical hackers and security 
                 researchers worldwide to strengthen our platform's defenses.
               </p>

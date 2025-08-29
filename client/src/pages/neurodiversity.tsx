@@ -36,25 +36,25 @@ export default function Neurodiversity() {
       icon: Stethoscope,
       title: "Managing Medical Information",
       description: "You're seeing a medical specialist and can't remember which prescriptions you've tried or when your symptoms started.",
-      detail: "FamilyVault centralizes your medical history, treatment notes, and symptom tracking, so you can quickly access what you need."
+      detail: "FamilyCircle Secure centralizes your medical history, treatment notes, and symptom tracking, so you can quickly access what you need."
     },
     {
       icon: Calendar,
       title: "Staying Organized During Executive Function Challenges",
       description: "It's tax season and you're overwhelmed trying to gather receipts, W-2s and bank statements while managing work deadlines and daily tasks.",
-      detail: "FamilyVault's automated organization helps you find important documents quickly, reducing cognitive load during stressful periods."
+      detail: "FamilyCircle Secure's automated organization helps you find important documents quickly, reducing cognitive load during stressful periods."
     },
     {
       icon: Phone,
       title: "Preparing for Life Transitions",
       description: "You need to provide background check documents for a new job, but gathering all that information is time-consuming and chaotic.",
-      detail: "FamilyVault keeps your professional documents organized and easily shareable, letting you focus on the transition."
+      detail: "FamilyCircle Secure keeps your professional documents organized and easily shareable, letting you focus on the transition."
     },
     {
       icon: Shield,
       title: "Protecting Your Routine and Information",
       description: "You lose your phone — and all access to passwords, phone numbers, and the digital copies of documents you'd kept on it.",
-      detail: "FamilyVault securely backs up your essential information and lets you access it from any device."
+      detail: "FamilyCircle Secure securely backs up your essential information and lets you access it from any device."
     }
   ];
 
@@ -68,7 +68,7 @@ export default function Neurodiversity() {
     },
     {
       icon: Smartphone, 
-      title: "Use FamilyVault on the Go",
+      title: "Use FamilyCircle Secure on the Go",
       description: "Access your information anywhere with our mobile app",
       image: mobileAppImage,
       imageAlt: "Mobile app interface showing organized family document categories and search functionality"
@@ -116,8 +116,8 @@ export default function Neurodiversity() {
   ];
 
   const testimonials = [
-    { name: "Alex R.", title: "Member since 2022", rating: 5, quote: "FamilyVault has been a game-changer for managing my ADHD. Having everything organized in one place reduces my stress and helps me stay on top of important tasks.", image: alexProfileImage },
-    { name: "Jordan M.", title: "Member since 2021", rating: 5, quote: "As someone with autism, routine and organization are crucial for me. FamilyVault helps maintain my structure while keeping important information accessible.", image: jordanProfileImage },
+    { name: "Alex R.", title: "Member since 2022", rating: 5, quote: "FamilyCircle Secure has been a game-changer for managing my ADHD. Having everything organized in one place reduces my stress and helps me stay on top of important tasks.", image: alexProfileImage },
+    { name: "Jordan M.", title: "Member since 2021", rating: 5, quote: "As someone with autism, routine and organization are crucial for me. FamilyCircle Secure helps maintain my structure while keeping important information accessible.", image: jordanProfileImage },
     { name: "Sam K.", title: "Member since 2023", rating: 5, quote: "The document organization features help me during executive function challenges. I don't have to stress about finding important paperwork anymore.", image: samProfileImage }
   ];
 
@@ -134,7 +134,7 @@ export default function Neurodiversity() {
                 🧠 Neurodiversity
               </span>
               <h1 className="text-4xl lg:text-5xl font-bold text-[#e9e9e9] tracking-tight leading-tight">
-                FamilyVault for Neurodivergent Individuals
+                FamilyCircle Secure for Neurodivergent Individuals
               </h1>
               <p className="text-[#b3b3b3] text-lg leading-relaxed">
                 Navigate life with confidence: The Family Operating System® keeps your essential information organized, accessible, and stress-free, supporting your own way of thinking and processing.
@@ -177,7 +177,7 @@ export default function Neurodiversity() {
       <section className="py-20 bg-[#0b0b0b] border-t border-[rgba(255,255,255,0.06)]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl lg:text-4xl font-bold text-[#e9e9e9] mb-4">
-            How FamilyVault Makes It Easier to Feel Prepared and in Control
+            How FamilyCircle Secure Makes It Easier to Feel Prepared and in Control
           </h2>
           <p className="text-lg text-[#b3b3b3] max-w-3xl mx-auto mb-12">
             Daniel J. and his partner live with autism and ADHD, and they know it can be hard to keep life organized when juggling documents, deadlines, and decisions.
@@ -187,9 +187,9 @@ export default function Neurodiversity() {
             <div className="grid lg:grid-cols-2 gap-8 items-center">
               <div className="text-left">
                 <h3 className="text-2xl font-bold text-[#e9e9e9] mb-4">Daniel J.</h3>
-                <h4 className="text-lg font-semibold text-[#b3b3b3] mb-4">Why FamilyVault?<br />The Family Operating System®</h4>
+                <h4 className="text-lg font-semibold text-[#b3b3b3] mb-4">Why FamilyCircle Secure?<br />The Family Operating System®</h4>
                 <div className="bg-[#f4c542] text-[#111] px-4 py-2 rounded text-sm inline-block mb-4 font-semibold">
-                  FamilyVault.
+                  FamilyCircle Secure.
                 </div>
                 <div className="absolute top-8 right-8 bg-[#f4c542] rounded-full p-4 shadow-lg">
                   <Play className="w-8 h-8 text-[#111]" />
@@ -202,11 +202,11 @@ export default function Neurodiversity() {
                   ))}
                 </div>
                 <blockquote className="text-[#b3b3b3] italic mb-4 text-sm">
-                  "I use FamilyVault on a daily basis. I found this app to be game-changing for me. And it's not just for me, but for my whole family."
+                  "I use FamilyCircle Secure on a daily basis. I found this app to be game-changing for me. And it's not just for me, but for my whole family."
                 </blockquote>
                 <footer className="text-xs text-[#b3b3b3] text-left">
                   <div className="font-semibold text-[#e9e9e9]">Daniel J.</div>
-                  <div>FamilyVault member since 2024</div>
+                  <div>FamilyCircle Secure member since 2024</div>
                 </footer>
               </div>
             </div>
@@ -217,14 +217,14 @@ export default function Neurodiversity() {
       {/* Section divider */}
       <div className="h-px bg-[rgba(255,255,255,0.06)] mx-4 sm:mx-6 lg:mx-8" aria-hidden="true"></div>
 
-      {/* How FamilyVault Helps */}
+      {/* How FamilyCircle Secure Helps */}
       <section id="features" className="py-20 bg-[#0b0b0b] border-t border-[rgba(255,255,255,0.06)]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl lg:text-4xl font-bold text-[#e9e9e9] mb-4">
-            How FamilyVault Helps — Supporting Your Neurodivergent Life
+            How FamilyCircle Secure Helps — Supporting Your Neurodivergent Life
           </h2>
           <p className="text-lg text-[#b3b3b3] max-w-3xl mx-auto">
-            From medical records to daily schedules, FamilyVault adapts to your cognitive style, reducing overwhelm and keeping your essential information exactly where you need it.
+            From medical records to daily schedules, FamilyCircle Secure adapts to your cognitive style, reducing overwhelm and keeping your essential information exactly where you need it.
           </p>
         </div>
       </section>
@@ -264,7 +264,7 @@ export default function Neurodiversity() {
                                 <div className="text-xs text-[#e9e9e9]">
                                   <div className="font-medium">Managing Medical Information</div>
                                   <div className="text-[#b3b3b3] mt-1">You're seeing a medical specialist and can't remember which prescriptions you've tried or when your symptoms started.</div>
-                                  <div className="text-[#e9e9e9] mt-2">FamilyVault centralizes your medical history, treatment notes, and symptom tracking, so you can quickly access what you need.</div>
+                                  <div className="text-[#e9e9e9] mt-2">FamilyCircle Secure centralizes your medical history, treatment notes, and symptom tracking, so you can quickly access what you need.</div>
                                 </div>
                               </div>
                             </div>
@@ -311,7 +311,7 @@ export default function Neurodiversity() {
                                     <span className="font-semibold text-[#e9e9e9]">Staying Organized During Executive Function Challenges</span>
                                   </div>
                                   <div className="text-[#b3b3b3]">It's tax season and you're overwhelmed trying to gather receipts, W-2s and bank statements while managing work deadlines and daily tasks.</div>
-                                  <div className="text-[#e9e9e9] mt-2">FamilyVault's automated organization helps you find important documents quickly, reducing cognitive load during stressful periods.</div>
+                                  <div className="text-[#e9e9e9] mt-2">FamilyCircle Secure's automated organization helps you find important documents quickly, reducing cognitive load during stressful periods.</div>
                                 </div>
                               </div>
                             </div>
@@ -359,7 +359,7 @@ export default function Neurodiversity() {
                                     <span className="font-semibold text-[#e9e9e9]">Preparing for Life Transitions</span>
                                   </div>
                                   <div className="text-[#b3b3b3]">You need to provide background check documents for a new job, but gathering all that information is time-consuming and chaotic.</div>
-                                  <div className="text-[#e9e9e9] mt-2">FamilyVault keeps your professional documents organized and easily shareable, letting you focus on the transition.</div>
+                                  <div className="text-[#e9e9e9] mt-2">FamilyCircle Secure keeps your professional documents organized and easily shareable, letting you focus on the transition.</div>
                                 </div>
                               </div>
                             </div>
@@ -396,7 +396,7 @@ export default function Neurodiversity() {
                                     <span className="font-semibold text-[#e9e9e9]">Protecting Your Routine and Information</span>
                                   </div>
                                   <div className="text-[#b3b3b3]">You lose your phone — and all access to passwords, phone numbers, and the digital copies of documents you'd kept on it.</div>
-                                  <div className="text-[#e9e9e9] mt-2">FamilyVault securely backs up your essential information and lets you access it from any device.</div>
+                                  <div className="text-[#e9e9e9] mt-2">FamilyCircle Secure securely backs up your essential information and lets you access it from any device.</div>
                                 </div>
                               </div>
                             </div>
@@ -426,14 +426,14 @@ export default function Neurodiversity() {
         </div>
       </section>
 
-      {/* Meet FamilyVault */}
+      {/* Meet FamilyCircle Secure */}
       <section className="py-20 bg-[#0b0b0b]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl lg:text-4xl font-bold text-[#e9e9e9] mb-6">
-            Meet FamilyVault — Your Life, Organized
+            Meet FamilyCircle Secure — Your Life, Organized
           </h2>
           <p className="text-lg text-[#b3b3b3] mb-8 max-w-3xl mx-auto">
-            From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
+            From travel and finances to emergency planning, FamilyCircle Secure keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/pricing"
@@ -541,7 +541,7 @@ export default function Neurodiversity() {
         <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-[#e9e9e9] mb-4">
-              What Our Members Say About FamilyVault
+              What Our Members Say About FamilyCircle Secure
             </h2>
           </div>
 
@@ -603,7 +603,7 @@ export default function Neurodiversity() {
                 <li>• Advanced security</li>
                 <li>• 12 items</li>
                 <li>• 50GB</li>
-                <li>• Autopilot™ by FamilyVault (beta)</li>
+                <li>• Autopilot™ by FamilyCircle Secure (beta)</li>
                 <li>• Tailored onboarding</li>
                 <li>• Unlimited collaborators</li>
               </ul>
@@ -624,10 +624,10 @@ export default function Neurodiversity() {
               <ul className="space-y-2 text-sm text-[#b3b3b3] flex-1">
                 <li>• Everything in Free plus:</li>
                 <li>• Unlimited items</li>
-                <li>• Autopilot™ by FamilyVault</li>
+                <li>• Autopilot™ by FamilyCircle Secure</li>
                 <li>• Liability support</li>
                 <li>• Priority customer expert</li>
-                <li>• The FamilyVault Marketplace</li>
+                <li>• The FamilyCircle Secure Marketplace</li>
               </ul>
             </div>
 
@@ -674,7 +674,7 @@ export default function Neurodiversity() {
               Essential Resources for Neurodivergent Support
             </h2>
             <p className="text-lg text-[#b3b3b3]">
-              FamilyVault offers structure you can count on — a calm, secure platform that does the heavy lifting for you.
+              FamilyCircle Secure offers structure you can count on — a calm, secure platform that does the heavy lifting for you.
             </p>
           </div>
 
@@ -714,7 +714,7 @@ export default function Neurodiversity() {
             Ready to Organize Your Neurodivergent Life?
           </h2>
           <p className="text-[#b3b3b3] text-lg mb-8 max-w-2xl mx-auto">
-            Begin organizing your life's important information with FamilyVault today.
+            Begin organizing your life's important information with FamilyCircle Secure today.
           </p>
           <a
             href="/pricing"

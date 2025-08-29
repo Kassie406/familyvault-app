@@ -323,7 +323,7 @@ export default function EstateHealthcareDirectives() {
             Ready to organize your healthcare directives?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your advance healthcare directives and medical preferences secure and organized with FamilyVault.
+            Keep all your advance healthcare directives and medical preferences secure and organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

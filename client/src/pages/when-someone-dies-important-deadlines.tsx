@@ -831,7 +831,7 @@ export default function WhenSomeoneDiesImportantDeadlines() {
             Ready to manage important deadlines?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep track of all critical deadlines and requirements with FamilyVault's organized deadline management system.
+            Keep track of all critical deadlines and requirements with FamilyCircle Secure's organized deadline management system.
           </p>
           <a
             href="/pricing"

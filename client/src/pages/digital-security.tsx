@@ -33,25 +33,25 @@ export default function DigitalSecurity() {
       icon: Shield,
       title: "Protect Against Data Loss",
       description: "Your laptop crashed, and all of the important documents you had stored in a computer folder are gone forever.",
-      detail: "With FamilyVault's digital vault, your documents are stored securely, and you can access them anytime, anywhere."
+      detail: "With FamilyCircle Secure's digital vault, your documents are stored securely, and you can access them anytime, anywhere."
     },
     {
       icon: Link,
       title: "Send Sensitive Information Safely",
       description: "You emailed your ID to rent a vacation home, and now you're worried it will remain in the homeowner's inbox forever.",
-      detail: "FamilyVault's SecureLinks™ ensure you control who has access to sensitive information — and for how long."
+      detail: "FamilyCircle Secure's SecureLinks™ ensure you control who has access to sensitive information — and for how long."
     },
     {
       icon: FileText,
       title: "Avoid Loss of Important Documents",
       description: "You've lost a thumb drive full of important family information, after it apparently slipped from your pocket on the bus.",
-      detail: "FamilyVault consolidates your family's most essential documents in a secure, private vault, with encryption built in."
+      detail: "FamilyCircle Secure consolidates your family's most essential documents in a secure, private vault, with encryption built in."
     },
     {
       icon: Upload,
       title: "Go Beyond Paper for Peace of Mind",
       description: "You kept important paper documents in a cabinet storage unit, but you lost everything when the building burned.",
-      detail: "Keep your documents safe by uploading them to FamilyVault's digital vault, even if you plan to keep some copies on paper."
+      detail: "Keep your documents safe by uploading them to FamilyCircle Secure's digital vault, even if you plan to keep some copies on paper."
     }
   ];
 
@@ -65,10 +65,10 @@ export default function DigitalSecurity() {
     },
     {
       icon: Smartphone, 
-      title: "Use FamilyVault on the Go",
+      title: "Use FamilyCircle Secure on the Go",
       description: "Access your information anywhere with our mobile app",
       image: mobileAppImage,
-      imageAlt: "Clean FamilyVault mobile app interface mockup showing family document categories"
+      imageAlt: "Clean FamilyCircle Secure mobile app interface mockup showing family document categories"
     },
     {
       icon: Phone,
@@ -113,9 +113,9 @@ export default function DigitalSecurity() {
   ];
 
   const testimonials = [
-    { name: "Marcus D.", title: "Member since 2022", rating: 5, quote: "FamilyVault's security features give me peace of mind knowing our family documents are protected.", image: marcusProfileImage },
+    { name: "Marcus D.", title: "Member since 2022", rating: 5, quote: "FamilyCircle Secure's security features give me peace of mind knowing our family documents are protected.", image: marcusProfileImage },
     { name: "Sarah L.", title: "Member since 2023", rating: 5, quote: "The SecureLinks feature is amazing - I can share documents safely without worrying about them being stored everywhere.", image: sarahProfileImage },
-    { name: "Kevin R.", title: "Member since 2021", rating: 5, quote: "Lost my computer in a break-in, but all our important documents were safe in FamilyVault's digital vault.", image: kevinProfileImage }
+    { name: "Kevin R.", title: "Member since 2021", rating: 5, quote: "Lost my computer in a break-in, but all our important documents were safe in FamilyCircle Secure's digital vault.", image: kevinProfileImage }
   ];
 
   return (
@@ -131,10 +131,10 @@ export default function DigitalSecurity() {
                 🔒 Digital Security
               </span>
               <h1 className="text-4xl lg:text-5xl font-bold text-[#FFFFFF] mb-6">
-                FamilyVault for Digital Security
+                FamilyCircle Secure for Digital Security
               </h1>
               <p className="text-lg text-[#CCCCCC] mb-8 leading-relaxed">
-                Keeping your documents safe shouldn't be complicated. FamilyVault helps families manage sensitive information with airtight security.
+                Keeping your documents safe shouldn't be complicated. FamilyCircle Secure helps families manage sensitive information with airtight security.
               </p>
               <div className="flex flex-wrap gap-4">
                 <a
@@ -173,7 +173,7 @@ export default function DigitalSecurity() {
             Protect Your Family's Information — and Their Future
           </h2>
           <p className="text-lg text-[#CCCCCC] max-w-3xl mx-auto">
-            A computer crash, a fire, a lost thumb drive — your family's important documents are too important to leave vulnerable. FamilyVault secures the information that matters.
+            A computer crash, a fire, a lost thumb drive — your family's important documents are too important to leave vulnerable. FamilyCircle Secure secures the information that matters.
           </p>
         </div>
       </section>
@@ -298,14 +298,14 @@ export default function DigitalSecurity() {
         </div>
       </section>
 
-      {/* Meet FamilyVault */}
+      {/* Meet FamilyCircle Secure */}
       <section className="py-20 bg-[#0b0b0b]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl lg:text-4xl font-bold text-[#FFFFFF] mb-6">
-            Meet FamilyVault — Your Life, Organized
+            Meet FamilyCircle Secure — Your Life, Organized
           </h2>
           <p className="text-lg text-[#CCCCCC] mb-8 max-w-3xl mx-auto">
-            From travel and finances to emergency planning, FamilyVault keeps your key information secure, organized, and within reach so you can focus on what matters.
+            From travel and finances to emergency planning, FamilyCircle Secure keeps your key information secure, organized, and within reach so you can focus on what matters.
           </p>
           <a
             href="/pricing"
@@ -409,7 +409,7 @@ export default function DigitalSecurity() {
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-[#FFFFFF] mb-4">
-              What Our Members Say About FamilyVault
+              What Our Members Say About FamilyCircle Secure
             </h2>
           </div>
 
@@ -472,7 +472,7 @@ export default function DigitalSecurity() {
                 <li>• Advanced security</li>
                 <li>• 12 items</li>
                 <li>• 50GB</li>
-                <li>• Autopilot™ by FamilyVault (beta)</li>
+                <li>• Autopilot™ by FamilyCircle Secure (beta)</li>
                 <li>• Tailored onboarding</li>
                 <li>• Unlimited collaborators</li>
               </ul>
@@ -493,10 +493,10 @@ export default function DigitalSecurity() {
               <ul className="space-y-2 text-sm text-[#D1D5DB] flex-1">
                 <li>• Everything in Free plus:</li>
                 <li>• Unlimited items</li>
-                <li>• Autopilot™ by FamilyVault</li>
+                <li>• Autopilot™ by FamilyCircle Secure</li>
                 <li>• Liability support</li>
                 <li>• Priority customer expert</li>
-                <li>• The FamilyVault Marketplace</li>
+                <li>• The FamilyCircle Secure Marketplace</li>
               </ul>
             </div>
 

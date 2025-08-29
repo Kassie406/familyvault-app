@@ -172,7 +172,7 @@ function App() {
           {/* Admin Header Banner */}
           <div className="bg-red-600 text-white text-center py-2 px-4">
             <p className="text-sm font-medium">
-              🔒 Admin Console - FamilyVault Management Interface
+              🔒 Admin Console - FamilyCircle Secure Management Interface
             </p>
           </div>
           <Router />

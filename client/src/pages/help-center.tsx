@@ -11,7 +11,7 @@ export default function HelpCenter() {
   const popularArticles = [
     {
       id: 1,
-      title: "Getting Started with FamilyVault",
+      title: "Getting Started with FamilyCircle Secure",
       description: "Complete walkthrough of setting up your account and uploading your first documents",
       category: "Getting Started",
       readTime: "5 min",
@@ -30,7 +30,7 @@ export default function HelpCenter() {
     {
       id: 3,
       title: "Understanding Document Categories",
-      description: "Learn how to organize your documents using FamilyVault's category system",
+      description: "Learn how to organize your documents using FamilyCircle Secure's category system",
       category: "Document Management",
       readTime: "7 min",
       helpful: 156,
@@ -49,13 +49,13 @@ export default function HelpCenter() {
 
   const faqItems = [
     {
-      question: "How do I upload documents to FamilyVault?",
+      question: "How do I upload documents to FamilyCircle Secure?",
       answer: "You can upload documents by clicking the 'Add Document' button in your dashboard, then either drag and drop files or browse to select them. We support PDF, JPG, PNG, and DOCX formats up to 25MB per file.",
       category: "Document Management"
     },
     {
       question: "Can I access my documents offline?",
-      answer: "While FamilyVault is cloud-based for maximum security, you can download individual documents for offline access. We recommend keeping copies of critical documents in a secure local backup as well.",
+      answer: "While FamilyCircle Secure is cloud-based for maximum security, you can download individual documents for offline access. We recommend keeping copies of critical documents in a secure local backup as well.",
       category: "Document Management"
     },
     {
@@ -132,7 +132,7 @@ export default function HelpCenter() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-5xl font-bold text-white mb-6">Help Center</h1>
           <p className="text-xl text-[#A5A5A5] leading-relaxed mb-8">
-            Find answers, get support, and learn how to make the most of FamilyVault for your family.
+            Find answers, get support, and learn how to make the most of FamilyCircle Secure for your family.
           </p>
           
           {/* Search */}
@@ -336,7 +336,7 @@ export default function HelpCenter() {
             Ready to get started?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Join thousands of families who trust FamilyVault to organize and secure their important information.
+            Join thousands of families who trust FamilyCircle Secure to organize and secure their important information.
           </p>
           <a
             href="/pricing"

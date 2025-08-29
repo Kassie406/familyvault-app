@@ -383,7 +383,7 @@ export default function HomeBuyingInspectionRecords() {
             Ready to organize your inspection records?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your home inspection reports, contractor estimates, and repair documentation organized with FamilyVault.
+            Keep all your home inspection reports, contractor estimates, and repair documentation organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

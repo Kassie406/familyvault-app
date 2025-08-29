@@ -559,7 +559,7 @@ export default function WhenSomeoneDiesEstateDocumentation() {
             Ready to organize estate documentation?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all essential wills, trust documents, and legal papers organized and accessible with FamilyVault.
+            Keep all essential wills, trust documents, and legal papers organized and accessible with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

@@ -361,7 +361,7 @@ export default function HomeBuyingBudgetAffordability() {
             Ready to plan your home buying budget?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your budget calculations, affordability analysis, and loan comparisons organized with FamilyVault.
+            Keep all your budget calculations, affordability analysis, and loan comparisons organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

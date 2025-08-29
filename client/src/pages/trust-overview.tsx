@@ -12,7 +12,7 @@ export default function TrustOverview() {
           <div className="text-center mb-8">
             <h1 className="text-5xl font-bold text-white mb-6">Trust Overview</h1>
             <p className="text-xl text-[#A5A5A5] leading-relaxed mb-8">
-              Comprehensive security, compliance, and privacy documentation for FamilyVault
+              Comprehensive security, compliance, and privacy documentation for FamilyCircle Secure
             </p>
             
             {/* Document Metadata */}
@@ -59,7 +59,7 @@ export default function TrustOverview() {
           
           <div className="bg-[#151515] border border-[#2A2A2A] rounded-xl p-8 mb-8">
             <p className="text-[#A5A5A5] leading-relaxed mb-6">
-              FamilyVault is committed to maintaining the highest standards of security, privacy, and compliance 
+              FamilyCircle Secure is committed to maintaining the highest standards of security, privacy, and compliance 
               to protect our customers' most sensitive family information. This Trust Overview provides transparency 
               into our security practices, compliance certifications, and operational procedures.
             </p>
@@ -152,7 +152,7 @@ export default function TrustOverview() {
                 <div className="bg-[#0E0E0E] border border-[#2A2A2A] rounded-lg p-4">
                   <Eye className="w-8 h-8 text-[#FFD43B] mb-3" />
                   <h4 className="text-white font-semibold mb-2">Zero-Knowledge</h4>
-                  <p className="text-[#A5A5A5] text-sm">FamilyVault employees cannot access user data even with administrative privileges</p>
+                  <p className="text-[#A5A5A5] text-sm">FamilyCircle Secure employees cannot access user data even with administrative privileges</p>
                 </div>
               </div>
             </div>

@@ -288,7 +288,7 @@ export default function MarriedFamilyInfo() {
             Ready to organize your family information?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your family contacts, medical information, and important details secure and organized with FamilyVault.
+            Keep all your family contacts, medical information, and important details secure and organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

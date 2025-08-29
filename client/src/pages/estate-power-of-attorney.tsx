@@ -323,7 +323,7 @@ export default function EstatePowerOfAttorney() {
             Ready to organize your power of attorney documents?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your power of attorney documents and agent information secure and organized with FamilyVault.
+            Keep all your power of attorney documents and agent information secure and organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

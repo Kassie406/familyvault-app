@@ -3,11 +3,11 @@ import familyOrganizingImage from "@assets/generated_images/Family_organizing_do
 const benefits = [
   {
     title: "Support for your family in case something happens to you",
-    description: "98% of FamilyVault members are the primary \"operational\" manager in the family."
+    description: "98% of FamilyCircle Secure members are the primary \"operational\" manager in the family."
   },
   {
     title: "Stress relief from managing multiple systems",
-    description: "71% of members juggled 3+ paper and digital management systems before joining FamilyVault."
+    description: "71% of members juggled 3+ paper and digital management systems before joining FamilyCircle Secure."
   },
   {
     title: "Smooth estate transitions for families with aging parents",
@@ -33,7 +33,7 @@ export default function Benefits() {
           {/* Right Column - Benefits */}
           <div>
             <h2 className="text-3xl lg:text-4xl font-bold text-white mb-8">
-              Life is Easier with FamilyVault
+              Life is Easier with FamilyCircle Secure
             </h2>
             
             <div className="space-y-6">

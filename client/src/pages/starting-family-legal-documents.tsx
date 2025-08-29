@@ -471,7 +471,7 @@ export default function StartingFamilyLegalDocuments() {
             Ready to organize your family legal documents?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your wills, custody papers, and family legal documentation secure and organized with FamilyVault.
+            Keep all your wills, custody papers, and family legal documentation secure and organized with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

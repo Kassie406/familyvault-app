@@ -331,7 +331,7 @@ export default function GuidesChecklists() {
             Turn these guides into your organized reality
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Use FamilyVault to store and organize all the documents mentioned in these guides securely.
+            Use FamilyCircle Secure to store and organize all the documents mentioned in these guides securely.
           </p>
           <a
             href="/pricing"

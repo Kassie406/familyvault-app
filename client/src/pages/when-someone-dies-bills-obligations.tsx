@@ -701,7 +701,7 @@ export default function WhenSomeoneDiesBillsObligations() {
             Ready to organize bills and obligations?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all financial obligations, bills, and debt information organized and manageable with FamilyVault.
+            Keep all financial obligations, bills, and debt information organized and manageable with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

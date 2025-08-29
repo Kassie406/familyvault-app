@@ -81,7 +81,7 @@ export default function GettingMarried() {
       icon: FileText,
       title: "Navigate Name Changes Smoothly",
       description: "You're trying to update your driver's license after marriage, but you need your marriage certificate and can't find it anywhere.",
-      detail: "Store your marriage certificate and name change documentation in FamilyVault so you can update all your records seamlessly."
+      detail: "Store your marriage certificate and name change documentation in FamilyCircle Secure so you can update all your records seamlessly."
     },
     {
       icon: CreditCard,
@@ -93,13 +93,13 @@ export default function GettingMarried() {
       icon: Shield,
       title: "Update Your Estate Plans",
       description: "Your spouse needs to be added as a beneficiary, but you can't remember which accounts and policies need to be updated.",
-      detail: "Track all your insurance policies and accounts in FamilyVault, so you can easily update beneficiaries and estate plans after marriage."
+      detail: "Track all your insurance policies and accounts in FamilyCircle Secure, so you can easily update beneficiaries and estate plans after marriage."
     },
     {
       icon: Users,
       title: "Share Important Information",
       description: "Your new spouse needs access to your emergency contacts and medical information, but it's spread across different apps and papers.",
-      detail: "Securely share your important personal information with your spouse through FamilyVault's controlled access features."
+      detail: "Securely share your important personal information with your spouse through FamilyCircle Secure's controlled access features."
     }
   ];
 
@@ -120,7 +120,7 @@ export default function GettingMarried() {
     },
     {
       icon: Smartphone, 
-      title: "Use FamilyVault on the Go",
+      title: "Use FamilyCircle Secure on the Go",
       description: "Access your information anywhere with our mobile app",
       image: mobileAppImage,
       imageAlt: "Mobile app interface showing family document categories and navigation"
@@ -168,7 +168,7 @@ export default function GettingMarried() {
   ];
 
   const testimonials = [
-    { name: "Sarah & Mike", title: "Members since 2022", rating: 5, quote: "FamilyVault made combining our finances and updating our documents after marriage stress-free.", image: sarahProfileImageMarried },
+    { name: "Sarah & Mike", title: "Members since 2022", rating: 5, quote: "FamilyCircle Secure made combining our finances and updating our documents after marriage stress-free.", image: sarahProfileImageMarried },
     { name: "Jessica L.", title: "Member since 2021", rating: 5, quote: "The name change process was seamless with everything stored in one place.", image: jessicaProfileImageMarried },
     { name: "David & Emma", title: "Members since 2023", rating: 5, quote: "Sharing documents securely gave us both peace of mind.", image: davidEmmaProfileImageMarried }
   ];
@@ -186,10 +186,10 @@ export default function GettingMarried() {
                 💍 Getting Married
               </span>
               <h1 className="text-4xl md:text-5xl font-extrabold text-[#F3F4F6] tracking-tight">
-                FamilyVault for Getting Married
+                FamilyCircle Secure for Getting Married
               </h1>
               <p className="text-[#D1D5DB] max-w-[65ch] text-lg">
-                From engagement to 'I do' and beyond, FamilyVault keeps your most important documents secure, organized, and ready when you need them.
+                From engagement to 'I do' and beyond, FamilyCircle Secure keeps your most important documents secure, organized, and ready when you need them.
               </p>
               <div className="flex flex-wrap gap-4">
                 <a 
@@ -224,7 +224,7 @@ export default function GettingMarried() {
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
-              How FamilyVault Supports Your Marriage Journey
+              How FamilyCircle Secure Supports Your Marriage Journey
             </h2>
             <p className="text-[#D1D5DB] text-lg max-w-2xl mx-auto">
               Keep your documents, finances, and important information organized as you build your new life together.
@@ -422,7 +422,7 @@ export default function GettingMarried() {
         </div>
       </section>
 
-      {/* Meet FamilyVault */}
+      {/* Meet FamilyCircle Secure */}
       <section className="py-20 bg-[#0B0B0B]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-6">
@@ -540,7 +540,7 @@ export default function GettingMarried() {
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-4">
-              What Our Members Say About FamilyVault
+              What Our Members Say About FamilyCircle Secure
             </h2>
           </div>
 
@@ -603,7 +603,7 @@ export default function GettingMarried() {
                 <li>• Advanced security</li>
                 <li>• 12 items</li>
                 <li>• 50GB</li>
-                <li>• Autopilot™ by FamilyVault (beta)</li>
+                <li>• Autopilot™ by FamilyCircle Secure (beta)</li>
                 <li>• Tailored onboarding</li>
                 <li>• Unlimited collaborators</li>
               </ul>
@@ -624,10 +624,10 @@ export default function GettingMarried() {
               <ul className="space-y-2 text-sm text-[#D1D5DB] flex-1">
                 <li>• Everything in Free plus:</li>
                 <li>• Unlimited items</li>
-                <li>• Autopilot™ by FamilyVault</li>
+                <li>• Autopilot™ by FamilyCircle Secure</li>
                 <li>• Liability support</li>
                 <li>• Priority customer expert</li>
-                <li>• The FamilyVault Marketplace</li>
+                <li>• The FamilyCircle Secure Marketplace</li>
               </ul>
             </div>
 
@@ -670,7 +670,7 @@ export default function GettingMarried() {
             Start your married life organized and prepared.
           </h2>
           <p className="text-[#D1D5DB] mb-8 text-lg">
-            Begin organizing your marriage documents and information with FamilyVault today.
+            Begin organizing your marriage documents and information with FamilyCircle Secure today.
           </p>
           <a
             href="/pricing"

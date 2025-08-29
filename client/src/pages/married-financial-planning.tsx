@@ -224,7 +224,7 @@ export default function MarriedFinancialPlanning() {
             Ready to organize your financial life?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your financial documents, accounts, and planning materials organized and secure with FamilyVault.
+            Keep all your financial documents, accounts, and planning materials organized and secure with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

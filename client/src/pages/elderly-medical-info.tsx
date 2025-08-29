@@ -189,7 +189,7 @@ export default function ElderlyMedicalInfo() {
             Start Managing Medical Information Today
           </h2>
           <p className="text-xl text-[#A5A5A5] mb-8 leading-relaxed">
-            Give your elderly parents the organized medical care they deserve with FamilyVault's secure platform.
+            Give your elderly parents the organized medical care they deserve with FamilyCircle Secure's secure platform.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

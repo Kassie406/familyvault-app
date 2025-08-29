@@ -327,7 +327,7 @@ export default function DisasterPetRecords() {
             Ready to organize your pet emergency records?
           </h2>
           <p className="text-lg text-[#A5A5A5] mb-8">
-            Keep all your pet medical records, identification, and emergency care information secure and accessible with FamilyVault.
+            Keep all your pet medical records, identification, and emergency care information secure and accessible with FamilyCircle Secure.
           </p>
           <a
             href="/pricing"

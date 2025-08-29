@@ -25,7 +25,7 @@ export default function Login() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <span className="text-3xl font-bold text-primary">FamilyVault</span>
+          <span className="text-3xl font-bold text-primary">FamilyCircle Secure</span>
         </div>
 
         <div className="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10 border border-gray-200">
