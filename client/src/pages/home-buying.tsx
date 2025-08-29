@@ -25,9 +25,9 @@ import {
   Search
 } from "lucide-react";
 import houseKeysImage from "@assets/image_1756095984954.png";
-import digitalSecurityImage from "@assets/image_1756096227958.png";
-import mobileAppImage from "@assets/image_1756096292349.png";
-import askExpertsImage from "@assets/image_1756096343174.png";
+import digitalSecurityImage from "@assets/generated_images/Cloud_backup_security_illustration_01b8f657.png";
+import mobileAppImage from "@assets/generated_images/FamilyVault_mobile_app_interface_d4485332.png";
+import askExpertsImage from "@assets/generated_images/Ask_experts_blackboard_illustration_e21e4a7b.png";
 import robertProfileImage from "@assets/generated_images/Robert_home_buying_reviewer_headshot_806866b7.png";
 import jenniferProfileImage from "@assets/generated_images/Jennifer_home_buying_reviewer_headshot_b705e8d6.png";
 import davidProfileImage from "@assets/generated_images/David_home_buying_reviewer_headshot_1c3ebf6a.png";

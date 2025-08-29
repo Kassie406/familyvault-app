@@ -22,9 +22,9 @@ import {
   Award
 } from "lucide-react";
 import estatePlanningImage from "@assets/image_1756095429229.png";
-import digitalSecurityImage from "@assets/image_1756095779424.png";
-import mobileAppImage from "@assets/image_1756095858406.png";
-import askExpertsImage from "@assets/image_1756095909223.png";
+import digitalSecurityImage from "@assets/generated_images/Cloud_backup_security_illustration_01b8f657.png";
+import mobileAppImage from "@assets/generated_images/FamilyVault_mobile_app_interface_d4485332.png";
+import askExpertsImage from "@assets/generated_images/Ask_experts_blackboard_illustration_e21e4a7b.png";
 import patriciaProfileImage from "@assets/generated_images/Patricia_estate_planning_reviewer_headshot_41438796.png";
 import michaelProfileImage from "@assets/generated_images/Michael_estate_planning_reviewer_headshot_de7c16fa.png";
 import lindaProfileImage from "@assets/generated_images/Linda_estate_planning_reviewer_headshot_ca4073a1.png";
