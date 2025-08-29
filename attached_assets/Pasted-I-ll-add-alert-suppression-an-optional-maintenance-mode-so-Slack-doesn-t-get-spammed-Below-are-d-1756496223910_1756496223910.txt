@@ -1,0 +1,488 @@
+I’ll add alert suppression + an optional maintenance mode so Slack doesn’t get spammed.
+
+Below are drop-in pieces (Node/Express + Postgres). They extend the Status module you already have.
+
+1) DB: track alert state & maintenance
+-- 013_status_alert_state.sql
+CREATE TABLE status_alert_state (
+  component TEXT PRIMARY KEY,        -- 'db','smtp','stripe',...
+  last_state BOOLEAN,                -- last ok/fail we alerted on
+  last_alert_at TIMESTAMPTZ,
+  cooldown_until TIMESTAMPTZ,        -- suppress until this time (per component)
+  daily_sent INT NOT NULL DEFAULT 0, -- counter for today
+  counter_date DATE NOT NULL DEFAULT CURRENT_DATE
+);
+
+-- single maintenance switch for status alerts
+CREATE TABLE status_maintenance (
+  id BOOLEAN PRIMARY KEY DEFAULT TRUE, -- always one row
+  enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  reason TEXT,
+  until TIMESTAMPTZ
+);
+INSERT INTO status_maintenance (id, enabled) VALUES (TRUE, FALSE) ON CONFLICT DO NOTHING;
+
+2) Server helpers (cooldown + daily cap + maintenance)
+
+File: src/status/alerts.js
+
+import db from '../db.js';
+
+const COOLDOWN_MINUTES = 20;           // per-component cooldown after a Slack alert
+const DAILY_CAP = 8;                    // per-component per-day max Slack messages
+
+export async function isMaintenanceOn() {
+  const { rows } = await db.query(`SELECT enabled, until FROM status_maintenance WHERE id=TRUE`);
+  if (!rows.length) return false;
+  const { enabled, until } = rows[0];
+  if (!enabled) return false;
+  if (until && new Date(until) < new Date()) {
+    await db.query(`UPDATE status_maintenance SET enabled=FALSE, until=NULL WHERE id=TRUE`);
+    return false;
+  }
+  return true;
+}
+
+export async function canAlert(component) {
+  // rotate counter if date changed
+  await db.query(`
+    INSERT INTO status_alert_state (component) VALUES ($1)
+    ON CONFLICT (component) DO NOTHING
+  `, [component]);
+
+  await db.query(`
+    UPDATE status_alert_state
+       SET daily_sent = CASE WHEN counter_date <> CURRENT_DATE THEN 0 ELSE daily_sent END,
+           counter_date = CASE WHEN counter_date <> CURRENT_DATE THEN CURRENT_DATE ELSE counter_date END
+     WHERE component=$1
+  `, [component]);
+
+  const { rows } = await db.query(
+    `SELECT cooldown_until, daily_sent FROM status_alert_state WHERE component=$1`,
+    [component]
+  );
+  if (!rows.length) return { allowed: true };
+  const { cooldown_until, daily_sent } = rows[0];
+
+  if (cooldown_until && new Date(cooldown_until) > new Date()) return { allowed: false, reason: 'cooldown' };
+  if (daily_sent >= DAILY_CAP) return { allowed: false, reason: 'daily_cap' };
+  return { allowed: true };
+}
+
+export async function markAlert(component) {
+  await db.query(`
+    UPDATE status_alert_state
+       SET daily_sent = daily_sent + 1,
+           last_alert_at = now(),
+           cooldown_until = now() + interval '${COOLDOWN_MINUTES} minutes'
+     WHERE component=$1
+  `, [component]);
+}
+
+export async function recordState(component, ok) {
+  await db.query(`
+    INSERT INTO status_alert_state (component, last_state)
+    VALUES ($1,$2)
+    ON CONFLICT (component) DO UPDATE SET last_state=EXCLUDED.last_state
+  `, [component, ok]);
+}
+
+3) Admin routes: toggle maintenance & view suppression state
+
+File: src/routes/admin/status-maintenance.js
+
+import express from 'express';
+import db from '../../db.js';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+
+const router = express.Router();
+
+router.get('/maintenance', requireAdmin, async (_req,res) => {
+  const { rows } = await db.query(`SELECT enabled, reason, until FROM status_maintenance WHERE id=TRUE`);
+  res.json(rows[0] || { enabled:false });
+});
+
+router.post('/maintenance', requireAdmin, async (req,res) => {
+  const { enabled, reason, minutes } = req.body;
+  const until = enabled && minutes ? `now() + interval '${Number(minutes)} minutes'` : 'NULL';
+  const { rows } = await db.query(`
+    UPDATE status_maintenance
+       SET enabled=$1, reason=$2, until=${until}
+     WHERE id=TRUE
+     RETURNING enabled, reason, until
+  `, [!!enabled, reason || null]);
+  res.json(rows[0]);
+});
+
+router.get('/alerts/state', requireAdmin, async (_req,res) => {
+  const { rows } = await db.query(`
+    SELECT component, last_state, last_alert_at, cooldown_until, daily_sent, counter_date
+      FROM status_alert_state ORDER BY component
+  `);
+  res.json({ items: rows });
+});
+
+export default router;
+
+
+Mount
+
+// app.js
+import statusMaintenance from './routes/admin/status-maintenance.js';
+app.use('/admin/status', statusMaintenance);
+
+4) Wire suppression into Slack alert logic
+
+In your existing router.post('/run', ...) (Status checks), change the part where you call slackNotify to respect maintenance, cooldown, and daily cap:
+
+import { slackNotify } from '../../notify/slack.js';
+import { isMaintenanceOn, canAlert, markAlert, recordState } from '../../status/alerts.js';
+
+// ... inside the for-loop after saveCheck(r)
+await recordState(r.component, r.ok);
+
+const maintenance = await isMaintenanceOn();
+if (!maintenance) {
+  // Flip detection
+  const lastTwo = await getLastTwoFor(r.component, db);
+  const flipToFail = lastTwo.length === 2 && lastTwo[1].ok === true && lastTwo[0].ok === false;
+  const flipToOk   = lastTwo.length === 2 && lastTwo[1].ok === false && lastTwo[0].ok === true;
+
+  if (flipToFail || flipToOk) {
+    const gate = await canAlert(r.component);
+    if (gate.allowed) {
+      await slackNotify(flipToFail
+        ? `❌ ${r.component.toUpperCase()} FAILED`
+        : `✅ ${r.component.toUpperCase()} RECOVERED`);
+      await markAlert(r.component);
+    }
+  }
+
+  // Consecutive fail escalation (3x)
+  if (r.ok === false) {
+    const streak = await consecutiveFailCount(r.component, db, 5);
+    if (streak === 3) {
+      const gate = await canAlert(r.component);
+      if (gate.allowed) {
+        await slackNotify(`🚨 ${r.component.toUpperCase()} failing 3x consecutively — please investigate.`);
+        await markAlert(r.component);
+      }
+    }
+  }
+}
+// else: maintenance enabled → suppress all Slack alerts
+
+5) Tiny Console UI: Maintenance toggle on Status page
+
+Add this to the top of your StatusPage.tsx:
+
+import React, { useEffect, useState } from 'react';
+
+function MaintenanceToggle() {
+  const [st, setSt] = useState<{enabled:boolean;reason?:string;until?:string}>({enabled:false});
+  const [minutes, setMinutes] = useState(60);
+  const [reason, setReason] = useState('');
+
+  async function load() {
+    const r = await fetch('/admin/status/maintenance', { credentials:'include' });
+    const j = await r.json(); setSt(j);
+  }
+  useEffect(()=>{ load(); }, []);
+
+  async function enable() {
+    const r = await fetch('/admin/status/maintenance', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ enabled:true, reason, minutes })
+    });
+    const j = await r.json(); setSt(j);
+  }
+  async function disable() {
+    const r = await fetch('/admin/status/maintenance', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ enabled:false })
+    });
+    const j = await r.json(); setSt(j);
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+        <strong>Maintenance mode</strong>
+        <span style={{ fontSize:12, opacity:.8 }}>
+          {st.enabled ? `ON ${st.until ? `(until ${new Date(st.until).toLocaleTimeString()})` : ''}` : 'OFF'}
+        </span>
+        <div style={{ marginLeft:'auto', display:'flex', gap:8 }}>
+          {!st.enabled ? (
+            <>
+              <input className="input" placeholder="Reason (optional)" value={reason} onChange={e=>setReason(e.target.value)} />
+              <input className="input" type="number" min={5} max={240} value={minutes} onChange={e=>setMinutes(Number(e.target.value))} style={{ width:100 }} />
+              <button className="btn btn-primary" onClick={enable}>Enable</button>
+            </>
+          ) : (
+            <button className="btn" onClick={disable}>Disable</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+Then render <MaintenanceToggle /> above your checks table.
+
+6) “Tell Replit what to do” (paste this)
+
+Prompt for Replit
+
+Create a Postgres table status_alert_state to track per-component alert cooldown, daily counts, and last state; and a status_maintenance table with a single row toggle (enabled, reason, optional until).
+
+Add src/status/alerts.js with helpers isMaintenanceOn(), canAlert(), markAlert(), recordState(). Use a 20-minute cooldown and a per-day cap of 8 alerts per component.
+
+Add admin routes under /admin/status:
+
+GET /maintenance (returns current state)
+
+POST /maintenance (enable/disable; accepts minutes and reason)
+
+GET /alerts/state (inspect suppression state)
+
+Modify /admin/status/run so Slack alerts are suppressed during maintenance and whenever canAlert() denies (cooldown/daily cap). On each send, call markAlert(). Continue to post flip and 3x-fail alerts otherwise.
+
+Update the console StatusPage.tsx to include a MaintenanceToggle card to enable/disable maintenance (with duration and reason). Keep the existing dark theme and gold accent (#E0B530). RBAC unchanged.
+
+That gives you:
+
+✅ Noisy components won’t spam Slack (cooldown + daily cap)
+
+✅ “Maintenance mode” one-click mute with auto-expiry
+
+✅ Simple admin UI to toggle and inspect
+
+If you’d like, I can add per-component maintenance (mute only Stripe, etc.) or quiet hours (e.g., suppress alerts overnight except for critical flips).
+
+You said:
+yes
+ChatGPT said:
+
+Got it—here’s a tight, paste-ready upgrade that adds per-component maintenance and quiet hours (with “critical-only” override so flips still alert).
+
+1) Database
+-- 014_status_per_component_maintenance.sql
+CREATE TABLE status_maintenance_components (
+  component TEXT PRIMARY KEY,
+  enabled   BOOLEAN NOT NULL DEFAULT FALSE,
+  reason    TEXT,
+  until     TIMESTAMPTZ
+);
+
+-- 015_status_quiet_hours.sql
+CREATE TABLE status_quiet_hours (
+  id BOOLEAN PRIMARY KEY DEFAULT TRUE,   -- single row
+  enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  tz       TEXT NOT NULL DEFAULT 'UTC',  -- IANA tz
+  start_min INT NOT NULL DEFAULT 1380,   -- minutes since 00:00 (e.g., 23:00 -> 1380)
+  end_min   INT NOT NULL DEFAULT 420,    -- e.g., 07:00 -> 420
+  critical_only BOOLEAN NOT NULL DEFAULT TRUE -- if true, only alert on flips during quiet hours
+);
+INSERT INTO status_quiet_hours (id, enabled) VALUES (TRUE, FALSE) ON CONFLICT DO NOTHING;
+
+2) Server helpers
+
+File: src/status/suppress.js
+
+import db from '../db.js';
+import { DateTime } from 'luxon'; // npm i luxon
+
+export async function isComponentMaintenanceOn(component) {
+  const { rows } = await db.query(
+    `SELECT enabled, until FROM status_maintenance_components WHERE component=$1`,
+    [component]
+  );
+  if (!rows.length) return false;
+  const { enabled, until } = rows[0];
+  if (!enabled) return false;
+  if (until && new Date(until) < new Date()) {
+    await db.query(`UPDATE status_maintenance_components SET enabled=FALSE, until=NULL WHERE component=$1`, [component]);
+    return false;
+  }
+  return true;
+}
+
+export async function quietHoursConfig() {
+  const { rows } = await db.query(`SELECT * FROM status_quiet_hours WHERE id=TRUE`);
+  return rows[0] || { enabled:false, tz:'UTC', start_min:0, end_min:0, critical_only:true };
+}
+
+export async function isQuietNow({ tz, start_min, end_min }) {
+  const now = DateTime.now().setZone(tz || 'UTC');
+  const minutes = now.hour * 60 + now.minute;
+  if (start_min === end_min) return false; // disabled window
+  // window may wrap midnight
+  return start_min < end_min
+    ? (minutes >= start_min && minutes < end_min)
+    : (minutes >= start_min || minutes < end_min);
+}
+
+/**
+ * Decide if we should send an alert right now.
+ * - Suppress if global maintenance (you already added earlier) OR per-component maintenance.
+ * - If within quiet hours and not critical, suppress (when critical_only=true).
+ */
+export async function shouldAlert({ component, isCriticalFlip }) {
+  // global maintenance handled earlier by isMaintenanceOn()
+  if (await isComponentMaintenanceOn(component)) {
+    return { allow:false, reason:'component_maintenance' };
+  }
+  const q = await quietHoursConfig();
+  if (q.enabled && await isQuietNow(q)) {
+    if (q.critical_only && !isCriticalFlip) {
+      return { allow:false, reason:'quiet_hours_non_critical' };
+    }
+  }
+  return { allow:true };
+}
+
+3) Admin routes
+
+File: src/routes/admin/status-per-component.js
+
+import express from 'express';
+import db from '../../db.js';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+
+const router = express.Router();
+
+// List component maintenance states
+router.get('/maintenance/components', requireAdmin, async (_req,res) => {
+  const { rows } = await db.query(`SELECT component, enabled, reason, until FROM status_maintenance_components ORDER BY component`);
+  res.json({ items: rows });
+});
+
+// Enable/disable component maintenance
+router.post('/maintenance/components', requireAdmin, async (req,res) => {
+  const { component, enabled, reason, minutes } = req.body;
+  if (!component) return res.status(400).json({ error:'component required' });
+  const untilExpr = enabled && minutes ? `now() + interval '${Number(minutes)} minutes'` : 'NULL';
+  const { rows } = await db.query(`
+    INSERT INTO status_maintenance_components (component, enabled, reason, until)
+    VALUES ($1,$2,$3, ${untilExpr})
+    ON CONFLICT (component)
+      DO UPDATE SET enabled=EXCLUDED.enabled, reason=EXCLUDED.reason, until=${untilExpr}
+    RETURNING component, enabled, reason, until
+  `, [component, !!enabled, reason || null]);
+  res.json(rows[0]);
+});
+
+// Quiet hours get/set
+router.get('/quiet-hours', requireAdmin, async (_req,res) => {
+  const { rows } = await db.query(`SELECT enabled, tz, start_min, end_min, critical_only FROM status_quiet_hours WHERE id=TRUE`);
+  res.json(rows[0] || { enabled:false, tz:'UTC', start_min:0, end_min:0, critical_only:true });
+});
+
+router.post('/quiet-hours', requireAdmin, async (req,res) => {
+  const { enabled, tz, start_min, end_min, critical_only } = req.body;
+  const { rows } = await db.query(`
+    UPDATE status_quiet_hours
+       SET enabled=$1, tz=$2, start_min=$3, end_min=$4, critical_only=$5
+     WHERE id=TRUE
+     RETURNING enabled, tz, start_min, end_min, critical_only
+  `, [!!enabled, tz || 'UTC', Number(start_min||0), Number(end_min||0), !!critical_only]);
+  res.json(rows[0]);
+});
+
+export default router;
+
+
+Mount:
+
+// app.js
+import statusPerComponent from './routes/admin/status-per-component.js';
+app.use('/admin/status', statusPerComponent);
+
+4) Hook suppression into Slack alerts
+
+In your Status run route (same loop where you check flips/streaks), after you compute flipToFail / flipToOk, decide critical vs non-critical and call shouldAlert(...). Keep existing cooldown/daily-cap checks in place.
+
+import { shouldAlert } from '../../status/suppress.js';
+
+// ... inside for-loop after saveCheck(r)
+const isCriticalFlip = flipToFail || flipToOk;
+
+if (!maintenance) {
+  // (1) flips
+  if (isCriticalFlip) {
+    const sup = await shouldAlert({ component: r.component, isCriticalFlip: true });
+    if (sup.allow) {
+      const gate = await canAlert(r.component);
+      if (gate.allowed) {
+        await slackNotify(flipToFail
+          ? `❌ ${r.component.toUpperCase()} FAILED`
+          : `✅ ${r.component.toUpperCase()} RECOVERED`);
+        await markAlert(r.component);
+      }
+    }
+  }
+
+  // (2) 3x consecutive fails (non-critical if not a flip right now)
+  if (r.ok === false) {
+    const streak = await consecutiveFailCount(r.component, db, 5);
+    if (streak === 3) {
+      const sup = await shouldAlert({ component: r.component, isCriticalFlip: false });
+      if (sup.allow) {
+        const gate = await canAlert(r.component);
+        if (gate.allowed) {
+          await slackNotify(`🚨 ${r.component.toUpperCase()} failing 3x consecutively — please investigate.`);
+          await markAlert(r.component);
+        }
+      }
+    }
+  }
+}
+
+5) Minimal console UI add-ons (optional but handy)
+
+On Status page, add a “Per-component maintenance” card:
+
+dropdown of known components (db, smtp, webhooks, auth, stripe)
+
+minutes + reason + Enable/Disable buttons
+
+small table listing current component mutes
+
+Quiet hours card:
+
+toggle enabled
+
+timezone (text input, e.g. America/Los_Angeles)
+
+start time + end time (convert to minutes behind the scenes)
+
+checkbox “Critical flips only during quiet hours”
+
+(You can reuse your existing .card, .input, .btn styles; convert times to minutes with a small helper.)
+
+6) “Tell Replit what to do” (copy/paste)
+
+Prompt for Replit
+
+Add per-component status maintenance and quiet hours: create tables status_maintenance_components and status_quiet_hours (single-row config).
+
+Add helper module src/status/suppress.js with isComponentMaintenanceOn(), quietHoursConfig(), isQuietNow(), and shouldAlert({ component, isCriticalFlip }) (uses Luxon for IANA TZ).
+
+Add admin routes under /admin/status:
+
+GET/POST /maintenance/components to list and set a maintenance window per component (minutes + reason, with auto-expiry).
+
+GET/POST /quiet-hours to configure quiet hours (tz, start_min, end_min, critical_only).
+
+Update /admin/status/run alert logic to:
+
+treat flips (OK↔FAIL) as critical; treat 3x consecutive fails as non-critical.
+
+call shouldAlert(...) and suppress Slack alerts during per-component maintenance and (if enabled) quiet hours for non-critical events.
+
+keep existing global maintenance, cooldown, and daily cap checks.
+
+(Optional) Add simple UI cards on the console Status page to manage per-component maintenance and quiet hours, using our dark theme and gold accent #E0B530.
