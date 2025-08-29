@@ -12,8 +12,8 @@
   --muted: #a8a9ad;       /* secondary text */
   --line: #2a2b2e;        /* subtle borders */
   --brand: #f6c33d;       /* gold */
-  --brand-2: #ffda44;     /* lighter hover gold for better contrast */
-  --brand-ink: #000;      /* pure black text on gold for maximum contrast */
+  --brand-2: #f0b90b;     /* hover gold */
+  --brand-ink: #111;      /* text on gold */
   --focus: #ffe69070;     /* focus ring */
   
   /* Legacy compatibility - mapped to new system */
@@ -45,20 +45,87 @@
   --visited: color-mix(in oklab, var(--brand) 80%, #9a7a00);
 }
 
-/* Standardized theme classes */
+/* Base button system - bulletproof visibility and contrast */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
 
-/* Global button hover fix - override problematic hover states */
-.bg-\[#D4AF37\]:hover,
-.bg-\[#d7b43e\]:hover {
-  background-color: var(--brand-2) !important;
-  color: var(--brand-ink) !important;
+  min-height: 52px;
+  padding: 0 24px;
+  border-radius: 999px;
+
+  font-weight: 600;
+  text-decoration: none;
+
+  border: 1px solid transparent;
+  transition: background .18s ease, transform .12s ease, box-shadow .18s ease, color .18s ease;
+
+  /* Never hidden by default */
+  opacity: 1;
+  visibility: visible;
 }
 
+/* Primary = always visible on dark */
+.btn-primary {
+  background: var(--brand);
+  color: var(--brand-ink);
+  border-color: transparent;
+  box-shadow: 0 0 0 0 rgba(0,0,0,.0);
+}
+
+.btn-primary:hover {
+  background: var(--brand-2);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(240,185,11,.18);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 12px rgba(240,185,11,.12);
+}
+
+/* Secondary (ghost) */
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.btn-secondary:hover {
+  background: #1a1b1c;
+}
+
+/* Focus states */
+.btn:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Hero-specific resets */
+.hero .cta,
+.hero .cta * {
+  mix-blend-mode: normal;
+  filter: none;
+}
+
+.hero .btn-primary {
+  opacity: 1 !important;
+  transform: none;
+  visibility: visible;
+}
+
+/* Legacy compatibility - override all problematic hover states */
+.bg-\[#D4AF37\]:hover,
+.bg-\[#d7b43e\]:hover,
 .hover\:bg-\[#C7A233\]:hover,
 .hover\:bg-\[#c6a528\]:hover {
   background-color: var(--brand-2) !important;
   color: var(--brand-ink) !important;
 }
+
+/* Header and navigation */
 .header { 
   background: var(--bg); 
 }
@@ -77,6 +144,7 @@
   border-bottom: 2px solid color-mix(in oklab, var(--brand) 70%, transparent); 
 }
 
+/* Hero section */
 .hero { 
   background: linear-gradient(var(--bg), var(--bg) 40%, var(--surface) 100%); 
 }
@@ -87,31 +155,6 @@
 
 .hero p { 
   color: var(--muted); 
-}
-
-.btn-primary {
-  background: var(--brand); 
-  color: var(--brand-ink); 
-  border: none;
-  min-height: 52px; 
-  border-radius: 999px;
-}
-
-.btn-primary:hover { 
-  background: var(--brand-2);
-  color: var(--brand-ink); /* ensure text stays visible */
-}
-
-.btn-secondary {
-  background: transparent; 
-  color: var(--text);
-  border: 1px solid var(--line);
-}
-
-.btn-secondary:hover { 
-  background: var(--surface-2);
-  color: var(--text); /* maintain text contrast on darker background */
-  border-color: var(--brand); /* add brand color border on hover */
 }
 
 .card {
