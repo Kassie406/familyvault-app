@@ -117,13 +117,13 @@
   visibility: visible;
 }
 
-/* Legacy compatibility - override all problematic hover states */
+/* Legacy compatibility - ensure text stays black on hover but preserve background colors */
 .bg-\[#D4AF37\]:hover,
 .bg-\[#d7b43e\]:hover,
 .hover\:bg-\[#C7A233\]:hover,
 .hover\:bg-\[#c6a528\]:hover {
-  background-color: var(--brand) !important;
   color: #000 !important;
+  /* Remove background override to preserve Tailwind's original color */
 }
 
 /* Header and navigation */
