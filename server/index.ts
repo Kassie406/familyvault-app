@@ -680,6 +680,169 @@ app.get('/api/admin/status/summary', requireAuth('ADMIN'), async (req: Authentic
   }
 });
 
+// Slack notification system
+const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
+
+async function sendSlackNotification(text: string, blocks?: any) {
+  if (!SLACK_WEBHOOK_URL) {
+    console.log('Slack webhook not configured, skipping notification:', text);
+    return;
+  }
+  
+  try {
+    const payload = {
+      text,
+      blocks: blocks || [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text
+          }
+        }
+      ]
+    };
+    
+    const response = await fetch(SLACK_WEBHOOK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      console.error('Failed to send Slack notification:', response.status, response.statusText);
+    }
+  } catch (error) {
+    console.error('Error sending Slack notification:', error);
+  }
+}
+
+// Failure tracking storage (in production, use Redis or database)
+const failureTracking = new Map<string, { count: number; lastFailure: Date; notified: boolean }>();
+
+// Enhanced status monitoring with failure tracking
+app.get('/api/admin/status/monitor', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const components = [];
+    const now = new Date();
+    
+    // Check each component and track failures
+    const checkComponent = async (name: string, checker: () => Promise<boolean>) => {
+      try {
+        const isOk = await checker();
+        
+        if (isOk) {
+          // Component is OK - check if it was previously failing
+          const tracking = failureTracking.get(name);
+          if (tracking && tracking.notified) {
+            // Send recovery notification
+            await sendSlackNotification(
+              `🟢 *${name.toUpperCase()} RECOVERED* - System component is back online`,
+              [
+                {
+                  type: 'section',
+                  text: {
+                    type: 'mrkdwn',
+                    text: `🟢 *${name.toUpperCase()} RECOVERED*\n\nThe system component is now operational after ${tracking.count} consecutive failures.`
+                  }
+                },
+                {
+                  type: 'context',
+                  elements: [
+                    {
+                      type: 'mrkdwn',
+                      text: `Recovery time: ${now.toISOString()}`
+                    }
+                  ]
+                }
+              ]
+            );
+          }
+          // Clear failure tracking
+          failureTracking.delete(name);
+        } else {
+          // Component is failing
+          const tracking = failureTracking.get(name) || { count: 0, lastFailure: now, notified: false };
+          tracking.count += 1;
+          tracking.lastFailure = now;
+          
+          // Send alert after 2 consecutive failures
+          if (tracking.count >= 2 && !tracking.notified) {
+            await sendSlackNotification(
+              `🔴 *${name.toUpperCase()} FAILURE* - System component needs immediate attention`,
+              [
+                {
+                  type: 'section',
+                  text: {
+                    type: 'mrkdwn',
+                    text: `🔴 *${name.toUpperCase()} FAILURE*\n\nSystem component has failed ${tracking.count} consecutive health checks.`
+                  }
+                },
+                {
+                  type: 'context',
+                  elements: [
+                    {
+                      type: 'mrkdwn',
+                      text: `First failure: ${tracking.lastFailure.toISOString()}`
+                    }
+                  ]
+                }
+              ]
+            );
+            tracking.notified = true;
+          }
+          
+          failureTracking.set(name, tracking);
+        }
+        
+        return isOk;
+      } catch (error) {
+        console.error(`Error checking component ${name}:`, error);
+        return false;
+      }
+    };
+    
+    // Database check
+    const dbOk = await checkComponent('database', async () => {
+      await storage.getUser('health-check');
+      return true;
+    });
+    
+    // Auth check
+    const authOk = await checkComponent('auth', async () => true); // Auth working if we got here
+    
+    // Other components (simplified for demo)
+    const webhooksOk = await checkComponent('webhooks', async () => true);
+    const smtpOk = await checkComponent('smtp', async () => true);
+    const stripeOk = await checkComponent('stripe', async () => true);
+    const storageOk = await checkComponent('storage', async () => true);
+    
+    res.json({ 
+      status: 'monitoring-active',
+      components: [
+        { name: 'database', ok: dbOk },
+        { name: 'auth', ok: authOk },
+        { name: 'webhooks', ok: webhooksOk },
+        { name: 'smtp', ok: smtpOk },
+        { name: 'stripe', ok: stripeOk },
+        { name: 'storage', ok: storageOk }
+      ],
+      failureTracking: Array.from(failureTracking.entries()).map(([name, tracking]) => ({
+        component: name,
+        failures: tracking.count,
+        lastFailure: tracking.lastFailure,
+        notified: tracking.notified
+      }))
+    });
+    
+  } catch (error) {
+    console.error('Status monitoring error:', error);
+    res.status(500).json({ error: 'Failed to perform status monitoring' });
+  }
+});
+
 // Admin session management endpoints
 app.get('/api/admin/sessions', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {
