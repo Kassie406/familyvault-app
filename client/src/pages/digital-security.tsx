@@ -25,6 +25,7 @@ import askExpertsImage from "@assets/image_1756095055472.png";
 import marcusProfileImage from "@assets/generated_images/Marcus_security_reviewer_headshot_48a71e8c.png";
 import sarahProfileImage from "@assets/generated_images/Sarah_security_reviewer_headshot_7297a04d.png";
 import kevinProfileImage from "@assets/generated_images/Kevin_security_reviewer_headshot_c79a848a.png";
+import dataProtectionImage from "@assets/generated_images/Secure_data_protection_vault_illustration_e93709c1.png";
 
 export default function DigitalSecurity() {
   const features = [
@@ -191,14 +192,11 @@ export default function DigitalSecurity() {
                         {index === 0 && (
                           <>
                             <div className="flex items-center justify-center">
-                              <div className="relative">
-                                <div className="w-32 h-32 bg-white rounded-lg border-4 border-red-500 flex items-center justify-center">
-                                  <Smartphone className="w-16 h-16 text-gray-800" />
-                                </div>
-                                <div className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-                                  <span className="text-white text-lg font-bold">!</span>
-                                </div>
-                              </div>
+                              <img 
+                                src={dataProtectionImage} 
+                                alt="Secure data protection vault with shield protecting family documents"
+                                className="max-w-full max-h-48 object-contain rounded-lg"
+                              />
                             </div>
                           </>
                         )}
