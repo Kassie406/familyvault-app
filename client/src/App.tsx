@@ -213,6 +213,7 @@ function App() {
   const subdomain = hostname.split('.')[0];
   const isAdminDomain = subdomain === 'console' || 
                        hostname === 'console.familycirclesecure.com' || 
+                       hostname.includes('console') ||
                        pathname.startsWith('/admin');
   const isPortalDomain = subdomain === 'portal' || hostname === 'portal.familycirclesecure.com';
   const isHubDomain = subdomain === 'hub' || hostname === 'hub.familycirclesecure.com';
@@ -221,10 +222,14 @@ function App() {
   
   // Admin Console Interface
   if (isAdminDomain) {
+    console.log('Rendering AdminRouter for admin domain');
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
+          <div style={{backgroundColor: 'red', padding: '10px', color: 'white', textAlign: 'center'}}>
+            DEBUG: Admin Console Mode Active - {hostname}
+          </div>
           <AdminRouter />
         </TooltipProvider>
       </QueryClientProvider>
