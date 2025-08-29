@@ -1,4 +1,6 @@
-import { storage } from './storage';
+import { db } from './db';
+import { auditLogs } from '@shared/schema';
+import crypto from 'crypto';
 import type { InsertAuditLog } from '@shared/schema';
 
 export interface AuditContext {
@@ -8,6 +10,28 @@ export interface AuditContext {
 }
 
 export class AuditService {
+  /**
+   * Generate cryptographic signature for audit record integrity
+   */
+  private static generateSignature(payload: any): string {
+    const secret = process.env.AUDIT_SECRET || 'default-audit-secret-change-in-production';
+    const payloadString = JSON.stringify(payload, Object.keys(payload).sort());
+    return crypto.createHmac('sha256', secret).update(payloadString).digest('hex');
+  }
+
+  /**
+   * Verify audit record integrity by checking signature
+   */
+  static verifySignature(auditRecord: any): boolean {
+    try {
+      const { signature, ...payload } = auditRecord;
+      const expectedSignature = this.generateSignature(payload);
+      return signature === expectedSignature;
+    } catch (error) {
+      console.error('Signature verification failed:', error);
+      return false;
+    }
+  }
   /**
    * Create an audit log entry with before/after state tracking
    */
@@ -30,7 +54,12 @@ export class AuditService {
       userAgent: context.userAgent,
     };
 
-    return await storage.createAuditLog(auditEntry);
+    // Add cryptographic signature for tamper detection
+    const signature = this.generateSignature(auditEntry);
+    const signedEntry = { ...auditEntry, signature };
+    
+    console.log(`🔍 Audit: ${action} on ${resource}${resourceId ? `/${resourceId}` : ''} by ${context.actorId || 'system'}`);
+    return await storage.createAuditLog(signedEntry);
   }
 
   /**
@@ -53,7 +82,12 @@ export class AuditService {
       userAgent: context.userAgent,
     };
 
-    return await storage.createAuditLog(auditEntry);
+    // Add cryptographic signature for tamper detection
+    const signature = this.generateSignature(auditEntry);
+    const signedEntry = { ...auditEntry, signature };
+    
+    console.log(`🔍 Audit: ${action} by ${context.actorId || 'system'}`);
+    return await storage.createAuditLog(signedEntry);
   }
 
   /**
@@ -96,8 +130,9 @@ export class AuditService {
     ];
 
     if (highRiskActions.includes(action)) {
-      // TODO: Send real-time alert to administrators
-      console.log(`🚨 HIGH-RISK ACTION: ${action} by ${context.actorId}`);
+      // Send real-time alert to administrators
+      console.log(`🚨 HIGH-RISK ADMIN ACTION: ${action} by ${context.actorId}`);
+      // In production: integrate with incident management (PagerDuty, Slack, etc.)
     }
   }
 

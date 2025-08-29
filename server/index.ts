@@ -6,6 +6,9 @@ import cookieParser from "cookie-parser";
 import crypto from "crypto";
 import { SecureStorageService } from "./storage-service";
 import { CSRFService } from "./csrf-service";
+import { RLSService } from "./rls-service";
+import { WebAuthnService } from "./webauthn-service";
+import { AuditService, getAuditContext } from "./audit-service";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { type AuthenticatedRequest, optionalAuth, requireAuth, loginUser, registerUser } from "./auth";
@@ -18,6 +21,9 @@ import { incidents, oncallTargets } from "@shared/schema";
 import { db as dbConnection } from "./db";
 
 const app = express();
+
+// Trust proxy for proper rate limiting and IP detection
+app.set('trust proxy', 1);
 
 // Enhanced security middleware with development support
 app.use(helmet({
@@ -84,6 +90,9 @@ app.use(cookieParser());
 // CSRF Protection (applied selectively to state-changing operations)
 const csrfProtection = CSRFService.createProtection();
 app.use(CSRFService.errorHandler());
+
+// Row-Level Security tenant isolation middleware (applies to all authenticated requests)
+app.use(RLSService.tenantMiddleware());
 
 // Enhanced subdomain detection middleware
 app.use((req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -271,6 +280,119 @@ app.post('/api/files/download-url', requireAuth, async (req: AuthenticatedReques
   } catch (error) {
     console.error('File download URL generation failed:', error);
     res.status(500).json({ error: 'Failed to generate download URL' });
+  }
+});
+
+// Initialize RLS endpoint (admin only - run once during deployment)
+app.post('/api/admin/security/initialize-rls', requireAuth, csrfProtection, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Only allow admin users to initialize RLS
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    await RLSService.initializeRLS();
+    res.json({ 
+      success: true, 
+      message: 'Row-Level Security policies initialized successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('RLS initialization failed:', error);
+    res.status(500).json({ error: 'Failed to initialize RLS' });
+  }
+});
+
+// WebAuthn Endpoints
+app.post('/api/auth/webauthn/register/begin', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const options = await WebAuthnService.generateRegistration(req.user!.id, req.user!.email);
+    res.json(options);
+  } catch (error) {
+    console.error('WebAuthn registration start failed:', error);
+    res.status(500).json({ error: 'Failed to start WebAuthn registration' });
+  }
+});
+
+app.post('/api/auth/webauthn/register/complete', requireAuth, csrfProtection, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { credential, expectedChallenge } = req.body;
+    const result = await WebAuthnService.verifyRegistration(
+      req.user!.id,
+      credential,
+      expectedChallenge
+    );
+    res.json(result);
+  } catch (error) {
+    console.error('WebAuthn registration completion failed:', error);
+    res.status(500).json({ error: 'Failed to complete WebAuthn registration' });
+  }
+});
+
+app.post('/api/auth/webauthn/authenticate/begin', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    const options = await WebAuthnService.generateAuthentication(email);
+    res.json(options);
+  } catch (error) {
+    console.error('WebAuthn authentication start failed:', error);
+    res.status(500).json({ error: 'Failed to start WebAuthn authentication' });
+  }
+});
+
+app.post('/api/auth/webauthn/authenticate/complete', async (req: Request, res: Response) => {
+  try {
+    const { credential, expectedChallenge } = req.body;
+    const result = await WebAuthnService.verifyAuthentication(
+      credential,
+      expectedChallenge
+    );
+    
+    if (result.verified) {
+      // Get user and create session
+      const user = await storage.getUser(result.userId!);
+      if (user) {
+        const token = generateToken(user);
+        res.cookie('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 30 * 60 * 1000, // 30 minutes for security
+          path: '/'
+        });
+        res.json({ success: true, user: { id: user.id, email: user.email, role: user.role } });
+      } else {
+        res.status(401).json({ error: 'User not found' });
+      }
+    } else {
+      res.status(401).json({ error: 'WebAuthn authentication failed' });
+    }
+  } catch (error) {
+    console.error('WebAuthn authentication completion failed:', error);
+    res.status(500).json({ error: 'Failed to complete WebAuthn authentication' });
+  }
+});
+
+// List user's WebAuthn credentials
+app.get('/api/auth/webauthn/credentials', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const credentials = await WebAuthnService.listUserAuthenticators(req.user!.id);
+    res.json({ credentials });
+  } catch (error) {
+    console.error('Failed to list WebAuthn credentials:', error);
+    res.status(500).json({ error: 'Failed to get WebAuthn credentials' });
+  }
+});
+
+// Remove WebAuthn credential
+app.delete('/api/auth/webauthn/credentials/:id', requireAuth, csrfProtection, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const success = await WebAuthnService.removeCredential(req.user!.id, id);
+    res.json({ success });
+  } catch (error) {
+    console.error('Failed to remove WebAuthn credential:', error);
+    res.status(500).json({ error: 'Failed to remove WebAuthn credential' });
   }
 });
 
