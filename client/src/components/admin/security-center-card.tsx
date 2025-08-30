@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ROUTES, navigate, trackAdminClick } from '@/lib/routes';
 import { 
   Shield, ShieldCheck, ShieldAlert, Users, Clock, Globe, 
   Key, AlertTriangle, CheckCircle2 
@@ -92,7 +93,14 @@ export default function SecurityCenterCard() {
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* 2FA Status */}
-          <div className="flex items-center justify-between p-3 border rounded-lg">
+          <div 
+            className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" 
+            onClick={() => {
+              trackAdminClick('security_center_2fa_status');
+              navigate(ROUTES.SECURITY_2FA);
+            }}
+            data-testid="chip-2fa-status"
+          >
             <div className="flex items-center">
               {metrics.twoFactorEnabled ? (
                 <ShieldCheck className="w-5 h-5 text-green-600 mr-2" />
@@ -110,7 +118,14 @@ export default function SecurityCenterCard() {
           </div>
 
           {/* Active Sessions */}
-          <div className="flex items-center justify-between p-3 border rounded-lg">
+          <div 
+            className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" 
+            onClick={() => {
+              trackAdminClick('security_center_active_sessions');
+              navigate(ROUTES.SECURITY_SESSIONS);
+            }}
+            data-testid="chip-active-sessions"
+          >
             <div className="flex items-center">
               <Users className="w-5 h-5 text-blue-600 mr-2" />
               <div>
@@ -124,7 +139,14 @@ export default function SecurityCenterCard() {
           </div>
 
           {/* IP Allowlist */}
-          <div className="flex items-center justify-between p-3 border rounded-lg">
+          <div 
+            className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" 
+            onClick={() => {
+              trackAdminClick('security_center_ip_allowlist');
+              navigate(ROUTES.SECURITY_ALLOWLIST);
+            }}
+            data-testid="chip-ip-allowlist"
+          >
             <div className="flex items-center">
               <Globe className="w-5 h-5 text-purple-600 mr-2" />
               <div>
@@ -138,7 +160,14 @@ export default function SecurityCenterCard() {
           </div>
 
           {/* Key Rotation */}
-          <div className="flex items-center justify-between p-3 border rounded-lg">
+          <div 
+            className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" 
+            onClick={() => {
+              trackAdminClick('security_center_key_rotation');
+              navigate(ROUTES.SECURITY_KEYS);
+            }}
+            data-testid="chip-key-rotation"
+          >
             <div className="flex items-center">
               <Key className="w-5 h-5 text-orange-600 mr-2" />
               <div>
@@ -165,7 +194,16 @@ export default function SecurityCenterCard() {
                   Enable 2FA for all admin accounts to improve security
                 </p>
               </div>
-              <Button size="sm" variant="outline" className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
+                onClick={() => {
+                  trackAdminClick('security_center_configure_2fa');
+                  navigate(ROUTES.SECURITY_2FA);
+                }}
+                data-testid="button-configure-2fa"
+              >
                 Configure 2FA
               </Button>
             </div>
@@ -182,7 +220,16 @@ export default function SecurityCenterCard() {
                   Consider restricting admin access to trusted IP addresses
                 </p>
               </div>
-              <Button size="sm" variant="outline" className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
+                onClick={() => {
+                  trackAdminClick('security_center_configure_ips');
+                  navigate(ROUTES.SECURITY_ALLOWLIST);
+                }}
+                data-testid="button-configure-ips"
+              >
                 Configure IPs
               </Button>
             </div>
@@ -199,7 +246,16 @@ export default function SecurityCenterCard() {
                   {metrics.failedLogins24h} failed login attempts in the last 24 hours
                 </p>
               </div>
-              <Button size="sm" variant="outline" className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
+                onClick={() => {
+                  trackAdminClick('security_center_view_logs');
+                  navigate(ROUTES.SECURITY_AUDIT);
+                }}
+                data-testid="button-view-logs"
+              >
                 View Logs
               </Button>
             </div>
@@ -222,15 +278,42 @@ export default function SecurityCenterCard() {
 
         {/* Quick Actions */}
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
+            onClick={() => {
+              trackAdminClick('security_center_view_session_history');
+              navigate(ROUTES.SECURITY_SESSIONS);
+            }}
+            data-testid="button-view-session-history"
+          >
             <Clock className="w-4 h-4 mr-1" />
             View Session History
           </Button>
-          <Button size="sm" variant="outline" className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
+            onClick={() => {
+              trackAdminClick('security_center_manage_admin_users');
+              navigate(ROUTES.USERS_ADMINS);
+            }}
+            data-testid="button-manage-admin-users"
+          >
             <Users className="w-4 h-4 mr-1" />
             Manage Admin Users
           </Button>
-          <Button size="sm" variant="outline" className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
+            onClick={() => {
+              trackAdminClick('security_center_rotate_api_keys');
+              navigate(ROUTES.SECURITY_KEYS);
+            }}
+            data-testid="button-rotate-api-keys"
+          >
             <Key className="w-4 h-4 mr-1" />
             Rotate API Keys
           </Button>

@@ -1,0 +1,98 @@
+a clean “wiring map” for every red-circled control on the Dashboard: what it should do, where it navigates, and—when relevant—the backend it calls. Use the exact paths below or rename to match your router; the idea is to deep-link right into the correct view/anchor so users land exactly where they expect.
+
+System Status row (top)
+Card / Button	What happens	Route (deep-link)	Backend (on open/refresh)
+Database	Opens service detail (health, latency, recent incidents).	/security?tab=status#service=database	GET /api/status/database
+Webhooks	Shows webhook delivery health & failure queue.	/webhooks?tab=deliveries	GET /api/webhooks/deliveries?limit=50
+Auth	Auth service health (login rate, error %, MFA stats).	/security?tab=status#service=auth	GET /api/status/auth
+Stripe	Billing integration status; link to sync.	/subscription-plans?tab=stripe	GET /api/billing/stripe/health
+SMTP	Email deliverability/queue; verify sender domain.	/security?tab=status#service=smtp	GET /api/status/smtp
+Storage	File store/backup status (S3, R2, etc.).	/security?tab=status#service=storage	GET /api/status/storage
+
+Tip: clicking the small refresh icon on any status pill should call its GET /api/status/{service} without navigating.
+
+KPI cards
+Card	What happens	Route (deep-link)	Backend
+Total Users	Opens Users list filtered to “All users”.	/users?filter=all	GET /api/users?status=active
+Active Plans	Opens Plans list (client plans tab).	/subscription-plans?audience=client	GET /api/billing/plans?audience=client
+Active Coupons	Opens Coupons list.	/coupons	GET /api/coupons
+Content Articles	Opens Content table filtered to Published.	/content?status=published	GET /api/content/articles?status=published
+Security Center (middle card)
+Top chips
+Chip	What happens	Route (anchor)	Backend
+2FA Status	Jumps to 2FA policy section.	/security#2fa-policy	GET /api/security/policy/2fa
+Active Sessions	Jumps to active admin sessions section.	/security#admin-sessions	GET /api/security/sessions
+IP Allowlist	Jumps to IP allowlist section.	/security#ip-allowlist	GET /api/security/policy/ip-allowlist
+Key Rotation	Jumps to API key rotation section.	/security#api-keys	GET /api/security/keys/status
+Notices / CTA buttons
+Button	What happens	Route	Backend action
+Configure 2FA	Opens the 2FA enforcement panel (drawer or section focus).	/security#2fa-policy	POST /api/security/policy/2fa { "enforce": true }
+Configure IPs	Opens the allowlist editor.	/security#ip-allowlist	PUT /api/security/policy/ip-allowlist
+Row actions
+Button	What happens	Route	Backend
+View Session History	Opens audit log filtered to session events.	/security/audit?event=session.*	GET /api/security/audit?event=session.*
+Manage Admin Users	Opens Users filtered to role=admin.	/users?role=admin	GET /api/users?role=admin
+Rotate API Keys	Confirms → rotates keys → shows result.	/security#api-keys	POST /api/security/keys/rotate (returns rotated_at, job id)
+Quick Actions (right card)
+Action	What happens	Route	Backend
+Create New Coupon	Opens “New Coupon” modal pre-focused; on save returns to Coupons.	/coupons/new (modal)	POST /api/coupons
+View All Users	Users list (no filters).	/users	GET /api/users
+Security Audit	Full audit viewer with filters.	/security/audit	GET /api/security/audit?limit=100
+GDPR Compliance	GDPR console (consents + DSAR).	/compliance	- Consents: GET /api/gdpr/consents/:user/effective - Requests: GET /api/gdpr/requests
+Suggested router constants (one place)
+export const ROUTES = {
+  DASHBOARD: '/dashboard',
+  USERS: '/users',
+  USERS_ADMINS: '/users?role=admin',
+  PLANS_CLIENT: '/subscription-plans?audience=client',
+  COUPONS: '/coupons',
+  COUPONS_NEW: '/coupons/new',
+  CONTENT_PUBLISHED: '/content?status=published',
+  SECURITY: '/security',
+  SECURITY_STATUS: (s: string) => `/security?tab=status#service=${encodeURIComponent(s)}`,
+  SECURITY_2FA: '/security#2fa-policy',
+  SECURITY_SESSIONS: '/security#admin-sessions',
+  SECURITY_ALLOWLIST: '/security#ip-allowlist',
+  SECURITY_KEYS: '/security#api-keys',
+  SECURITY_AUDIT: '/security/audit',
+  COMPLIANCE: '/compliance',
+};
+
+Minimal click handlers (frontend)
+import { ROUTES } from '@/routes';
+
+function nav(to: string){ window.location.assign(to); }
+
+document.querySelector('[data-kpi="users"]')
+  ?.addEventListener('click', ()=> nav(ROUTES.USERS));
+
+document.querySelector('[data-kpi="plans"]')
+  ?.addEventListener('click', ()=> nav(ROUTES.PLANS_CLIENT));
+
+document.querySelector('[data-chip="2fa"]')
+  ?.addEventListener('click', ()=> nav(ROUTES.SECURITY_2FA));
+
+document.querySelector('[data-action="rotate-keys"]')
+  ?.addEventListener('click', async ()=>{
+    if(!confirm('Rotate all admin API keys now? Existing keys will be revoked.')) return;
+    const r = await fetch('/api/security/keys/rotate',{method:'POST',headers:{'Idempotency-Key':crypto.randomUUID()}});
+    if(!r.ok){ alert('Rotation failed'); return; }
+    nav(ROUTES.SECURITY_KEYS);
+  });
+
+Anchors in the target pages
+
+Add IDs so deep-links land precisely, e.g.:
+
+<section id="2fa-policy">…</section>
+<section id="admin-sessions">…</section>
+<section id="ip-allowlist">…</section>
+<section id="api-keys">…</section>
+
+Tracking (optional)
+
+Fire a small analytic event per click to learn what admins use:
+
+function track(action:string, meta:any={}) {
+  navigator.sendBeacon('/api/analytics/admin-click', JSON.stringify({action, meta, ts:Date.now()}));
+}

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { ROUTES, navigate, trackAdminClick } from '@/lib/routes';
 import { 
   Users, CreditCard, Ticket, FileText, Shield, Activity, Plus, Eye, Edit, Trash2, 
   TrendingUp, BarChart3, PieChart, Server, ShieldCheck, Search, UserPlus, 
@@ -845,7 +846,14 @@ export default function AdminDashboard() {
 
   const EnhancedStatsCards = () => (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-      <Card className="bg-[#007BFF] text-white">
+      <Card 
+        className="bg-[#007BFF] text-white cursor-pointer hover:bg-blue-600 transition-colors" 
+        onClick={() => {
+          trackAdminClick('dashboard_kpi_users');
+          navigate(ROUTES.USERS);
+        }}
+        data-testid="card-total-users"
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-[#F8F9FA]">Total Users</CardTitle>
           <Users className="h-5 w-5 text-[#F8F9FA]" />
@@ -859,7 +867,14 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
       
-      <Card className="bg-[#28A745] text-white">
+      <Card 
+        className="bg-[#28A745] text-white cursor-pointer hover:bg-green-600 transition-colors" 
+        onClick={() => {
+          trackAdminClick('dashboard_kpi_plans');
+          navigate(ROUTES.PLANS_CLIENT);
+        }}
+        data-testid="card-active-plans"
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-[#F8F9FA]">Active Plans</CardTitle>
           <CreditCard className="h-5 w-5 text-[#F8F9FA]" />
@@ -873,7 +888,14 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
       
-      <Card className="bg-[#6C757D] text-white">
+      <Card 
+        className="bg-[#6C757D] text-white cursor-pointer hover:bg-gray-600 transition-colors" 
+        onClick={() => {
+          trackAdminClick('dashboard_kpi_coupons');
+          navigate(ROUTES.COUPONS);
+        }}
+        data-testid="card-active-coupons"
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-[#F8F9FA]">Active Coupons</CardTitle>
           <Ticket className="h-5 w-5 text-[#F8F9FA]" />
@@ -887,7 +909,14 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
       
-      <Card className="bg-[#FFC107] text-black">
+      <Card 
+        className="bg-[#FFC107] text-black cursor-pointer hover:bg-yellow-600 hover:text-white transition-colors" 
+        onClick={() => {
+          trackAdminClick('dashboard_kpi_content');
+          navigate(ROUTES.CONTENT_PUBLISHED);
+        }}
+        data-testid="card-content-articles"
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-black">Content Articles</CardTitle>
           <FileText className="h-5 w-5 text-black" />
@@ -950,7 +979,11 @@ export default function AdminDashboard() {
                   <Button 
                     variant="outline" 
                     className="w-full justify-start hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
-                    onClick={() => setActiveSection('coupons')}
+                    onClick={() => {
+                      trackAdminClick('dashboard_quick_action_create_coupon');
+                      navigate(ROUTES.COUPONS_NEW);
+                    }}
+                    data-testid="button-create-new-coupon"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Create New Coupon
@@ -958,7 +991,11 @@ export default function AdminDashboard() {
                   <Button 
                     variant="outline" 
                     className="w-full justify-start hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
-                    onClick={() => setActiveSection('users')}
+                    onClick={() => {
+                      trackAdminClick('dashboard_quick_action_view_users');
+                      navigate(ROUTES.USERS);
+                    }}
+                    data-testid="button-view-all-users"
                   >
                     <Users className="w-4 h-4 mr-2" />
                     View All Users
@@ -966,7 +1003,11 @@ export default function AdminDashboard() {
                   <Button 
                     variant="outline" 
                     className="w-full justify-start hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
-                    onClick={() => setActiveSection('security')}
+                    onClick={() => {
+                      trackAdminClick('dashboard_quick_action_security_audit');
+                      navigate(ROUTES.SECURITY_AUDIT);
+                    }}
+                    data-testid="button-security-audit"
                   >
                     <Shield className="w-4 h-4 mr-2" />
                     Security Audit
@@ -974,7 +1015,10 @@ export default function AdminDashboard() {
                   <Button 
                     variant="outline" 
                     className="w-full justify-start hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
-                    onClick={() => setActiveSection('gdpr')}
+                    onClick={() => {
+                      trackAdminClick('dashboard_quick_action_gdpr_compliance');
+                      navigate(ROUTES.COMPLIANCE);
+                    }}
                     data-testid="button-gdpr-compliance"
                   >
                     <ShieldCheck className="w-4 h-4 mr-2" />

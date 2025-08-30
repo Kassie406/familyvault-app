@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RefreshCw, ExternalLink } from 'lucide-react';
+import { ROUTES, navigate, trackAdminClick } from '@/lib/routes';
 
 type Component = { 
   component: string; 
@@ -110,14 +111,36 @@ export default function StatusWidget() {
   };
 
   const handleViewDetails = () => {
-    setLocation('/admin');
-    // Note: In a real app, this would navigate to a dedicated status page
-    // For now, we'll use the security section as a placeholder
+    trackAdminClick('system_status_view_details');
+    navigate(ROUTES.SECURITY);
   };
 
   const handleComponentClick = (component: string) => {
-    setLocation('/admin');
-    // Note: In a real app, this would navigate to component-specific details
+    trackAdminClick('system_status_component', { component });
+    
+    // Route to specific status pages based on component
+    switch (component) {
+      case 'database':
+        navigate(ROUTES.SECURITY_STATUS('database'));
+        break;
+      case 'webhooks':
+        navigate(ROUTES.WEBHOOKS_DELIVERIES);
+        break;
+      case 'auth':
+        navigate(ROUTES.SECURITY_STATUS('auth'));
+        break;
+      case 'stripe':
+        navigate(ROUTES.PLANS_STRIPE);
+        break;
+      case 'smtp':
+        navigate(ROUTES.SECURITY_STATUS('smtp'));
+        break;
+      case 'storage':
+        navigate(ROUTES.SECURITY_STATUS('storage'));
+        break;
+      default:
+        navigate(ROUTES.SECURITY);
+    }
   };
 
   const allSystemsOperational = components.length > 0 && components.every(c => c.ok);
