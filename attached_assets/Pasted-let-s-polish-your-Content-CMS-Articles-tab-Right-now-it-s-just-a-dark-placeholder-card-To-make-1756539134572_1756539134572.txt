@@ -1,0 +1,86 @@
+let’s polish your Content (CMS & Articles) tab. Right now it’s just a dark placeholder card. To make it as useful and polished as your Subscription Plans and Coupons sections, here’s how we can transform it:
+
+✅ Current Strengths
+
+Clear label: Content Management.
+
+Good empty state skeleton (icon, title, subtext).
+
+⚖️ Improvements
+1. Lighter Empty State
+
+Like we did for Coupons, switch from the black card to a light card with border/shadow. It’ll feel friendlier and more consistent.
+
+2. Explain Content Purpose
+
+Add a description that tells admins exactly what content they can manage here:
+
+Announcements (system updates)
+
+Knowledge base / help articles
+
+FamilyCircle Secure news & blog posts
+
+3. Empty State CTA
+
+Add a big “+ Create Article” button, centered in the empty state.
+Secondary button: “Import from Template” (for admins who want to pull starter content).
+
+4. Once Articles Exist → Table View
+
+Show a table, just like Plans/Coupons, with sortable columns:
+
+Title	Category	Author	Published	Status	Actions
+Welcome Guide	Onboarding	Admin	08/25/2025	Published	Edit / Archive
+System Outage FAQ	Support	Sarah M.	08/20/2025	Draft	Edit / Publish
+Billing Update	Announcements	Michael R.	08/10/2025	Published	Edit / Archive
+5. Create/Edit Article Modal
+
+Similar style to your other modals:
+
+Fields:
+
+Title (required)
+
+Category (Onboarding, Support, Announcements, Blog, Other)
+
+Content (rich text editor / Markdown)
+
+Status (Draft / Published)
+
+Publish date (optional future scheduling)
+
+6. Filtering & Bulk Actions
+
+At top, filters for:
+
+Category (dropdown)
+
+Status (Published / Draft)
+
+Search (by title or content snippet)
+
+Bulk actions: Publish, Unpublish, Archive, Export.
+
+🔑 Suggested Empty State Layout (HTML mockup)
+<div class="empty-state">
+  <div class="icon">📄</div>
+  <h3>No Content Yet</h3>
+  <p>Create and manage articles, announcements, or support docs for your users and team.</p>
+  <div class="actions">
+    <button class="btn primary">+ Create Article</button>
+    <button class="btn ghost">Import from Template</button>
+  </div>
+</div>
+
+⭐ Bonus Idea
+
+Add a Preview Mode toggle — so admins can see how the article will look for:
+
+Public Clients (familycirclesecure.com)
+
+Family Portal Users (portal.familycirclesecure.com)
+
+Staff / Agents (hub.familycirclesecure.com)
+
+This keeps your 3-group structure consistent across all content.

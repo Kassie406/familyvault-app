@@ -263,8 +263,8 @@ export default function AdminDashboard() {
 
       if (!table || !selectAll || !bulkBar) return;
 
-      const getRows = () => [...table.querySelectorAll('tbody tr[data-id]')];
-      const getChecks = () => [...table.querySelectorAll('tbody .row-check')];
+      const getRows = () => Array.from(table.querySelectorAll('tbody tr[data-id]')) as HTMLTableRowElement[];
+      const getChecks = () => Array.from(table.querySelectorAll('tbody .row-check')) as HTMLInputElement[];
 
       // Filter functionality
       const matchPlan = (rowVal: string, filterVal: string) => {
@@ -275,11 +275,11 @@ export default function AdminDashboard() {
       };
 
       const matchesFilters = (row: HTMLTableRowElement) => {
-        const statusOK = !fStatus?.value || fStatus.value === 'ALL' || row.dataset.status === fStatus.value;
-        const typeOK = !fType?.value || fType.value === 'ALL' || row.dataset.type === fType.value;
-        const planOK = !fPlan?.value || matchPlan(row.dataset.plans || '', fPlan.value);
+        const statusOK = !(fStatus as HTMLSelectElement)?.value || (fStatus as HTMLSelectElement).value === 'ALL' || row.dataset.status === (fStatus as HTMLSelectElement).value;
+        const typeOK = !(fType as HTMLSelectElement)?.value || (fType as HTMLSelectElement).value === 'ALL' || row.dataset.type === (fType as HTMLSelectElement).value;
+        const planOK = !(fPlan as HTMLSelectElement)?.value || matchPlan(row.dataset.plans || '', (fPlan as HTMLSelectElement).value);
         
-        const searchTerm = fSearch?.value?.trim().toLowerCase() || '';
+        const searchTerm = (fSearch as HTMLInputElement)?.value?.trim().toLowerCase() || '';
         const searchOK = !searchTerm || 
           (row.dataset.code || '').toLowerCase().includes(searchTerm) ||
           (row.dataset.value || '').toLowerCase().includes(searchTerm);
@@ -323,13 +323,13 @@ export default function AdminDashboard() {
         
         // Update select-all state
         const total = checks.length;
-        selectAll.indeterminate = count > 0 && count < total;
-        selectAll.checked = count === total && total > 0;
+        (selectAll as HTMLInputElement).indeterminate = count > 0 && count < total;
+        (selectAll as HTMLInputElement).checked = count === total && total > 0;
       };
 
       // Event listeners
       selectAll.addEventListener('change', () => {
-        const shouldCheck = selectAll.checked;
+        const shouldCheck = (selectAll as HTMLInputElement).checked;
         getChecks().forEach(check => {
           const row = check.closest('tr') as HTMLTableRowElement;
           if (row && row.style.display !== 'none') {
@@ -354,10 +354,10 @@ export default function AdminDashboard() {
       });
 
       fClear?.addEventListener('click', () => {
-        if (fStatus) fStatus.value = 'ALL';
-        if (fType) fType.value = 'ALL';
-        if (fPlan) fPlan.value = 'ALL';
-        if (fSearch) fSearch.value = '';
+        if (fStatus) (fStatus as HTMLSelectElement).value = 'ALL';
+        if (fType) (fType as HTMLSelectElement).value = 'ALL';
+        if (fPlan) (fPlan as HTMLSelectElement).value = 'ALL';
+        if (fSearch) (fSearch as HTMLInputElement).value = '';
         applyFilters();
       });
 
@@ -405,7 +405,7 @@ export default function AdminDashboard() {
         const csvRows = [headers.join(',')];
         
         ids.forEach(id => {
-          const row = table.querySelector(`tr[data-id="${id}"]`);
+          const row = table.querySelector(`tr[data-id="${id}"]`) as HTMLTableRowElement;
           if (row) {
             const code = (row.dataset.code || '').replace(/,/g, '');
             const type = row.dataset.type || '';
@@ -1344,7 +1344,11 @@ export default function AdminDashboard() {
               </div>
               <Dialog open={newCouponOpen} onOpenChange={setNewCouponOpen}>
                 <DialogTrigger asChild>
-                  <Button className="bg-yellow-500 hover:bg-yellow-600 text-black" data-testid="button-create-coupon">
+                  <Button 
+                    variant="outline" 
+                    className="border-yellow-500 text-yellow-600 hover:bg-yellow-50" 
+                    data-testid="button-create-coupon"
+                  >
                     <Plus className="mr-2 h-4 w-4" />
                     Create Coupon
                   </Button>
@@ -1697,7 +1701,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
             ) : coupons?.coupons?.length > 0 ? (
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden animate-in fade-in duration-300">
                 <table className="w-full" id="coupons-table">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
@@ -1965,11 +1969,11 @@ export default function AdminDashboard() {
             ) : (
               <div className="bg-white rounded-lg border border-gray-200 p-12">
                 <div className="text-center max-w-md mx-auto">
-                  <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Ticket className="h-8 w-8 text-yellow-600" />
+                  <div className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                    <Ticket className="h-12 w-12 text-white" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">No Coupons Yet</h3>
-                  <p className="text-gray-600 mb-6 leading-relaxed">
+                  <p className="text-gray-600 text-sm mb-6 leading-relaxed">
                     Coupons let you offer discounts on subscription plans. Apply them globally or restrict to specific plans. 
                     Set fixed or percentage discounts with optional expiration dates.
                   </p>
