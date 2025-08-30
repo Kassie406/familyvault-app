@@ -1,0 +1,132 @@
+This is a classic cascade/contrast bug: your filter buttons and their menus are inheriting a “make it black on hover” rule (likely global), so the bg goes near-black and the text goes dark too → looks blank.
+
+Here’s a bullet-proof fix that:
+
+locks in readable colors for :hover / :focus / [aria-expanded="true"]
+
+styles the dropdown panel + items so they’re never black/blank
+
+overrides any bad global rule (even with !important if needed)
+
+1) Fix the filter buttons
+/* Scope to your Content filters row to avoid side effects */
+.content-filters .filter-btn{
+  background:#111827;                 /* slate-900 */
+  color:#F9FAFB;                      /* white-ish */
+  border-radius:12px;
+  padding:10px 14px;
+  border:1px solid #1F2937;           /* slate-800 */
+  transition:background .2s,color .2s,box-shadow .2s;
+}
+
+/* Hover / focus / open (dropdown expanded) – stay readable */
+.content-filters .filter-btn:hover,
+.content-filters .filter-btn:focus,
+.content-filters .filter-btn[aria-expanded="true"]{
+  background:#1F2937;                 /* slate-800 (not black) */
+  color:#FFFFFF;
+  box-shadow:0 0 0 2px rgba(99,102,241,.25); /* subtle focus ring */
+}
+
+/* Keyboard focus ring for a11y */
+.content-filters .filter-btn:focus-visible{
+  outline:2px solid #60A5FA;
+  outline-offset:2px;
+}
+
+/* If your chevron is an SVG using fill */
+.content-filters .filter-btn svg{
+  color:currentColor; fill:currentColor; stroke:currentColor;
+}
+
+
+If you can’t change the HTML, add .filter-btn to those buttons via the container:
+
+.content-filters > button { /* same rules as .filter-btn */ }
+
+2) Style the dropdown menu so items aren’t “blank”
+/* The panel under the button */
+.content-filters .dropdown-menu{
+  background:#0B1220;                 /* deep navy, not pure black */
+  color:#F3F4F6;                      /* light text */
+  border:1px solid #1F2937;
+  border-radius:12px;
+  padding:6px;
+  min-width:220px;
+  box-shadow:0 12px 32px rgba(2,6,23,.28);
+  z-index:60;                         /* above the table */
+}
+
+/* Each option/item */
+.content-filters .dropdown-item{
+  display:flex; align-items:center; gap:8px;
+  padding:10px 12px; border-radius:10px;
+  color:#E5E7EB;
+}
+
+/* Hover / active for items */
+.content-filters .dropdown-item:hover,
+.content-filters .dropdown-item[aria-selected="true"]{
+  background:#1F2937;
+  color:#ffffff;
+}
+
+/* Dividers / headers if you use them */
+.content-filters .dropdown-sep{height:1px;background:#1F2937;margin:6px 4px}
+.content-filters .dropdown-label{padding:6px 10px;color:#9CA3AF;font-size:12px}
+
+3) Nuke the global “black on hover” rule (if present)
+
+Search your CSS for something like:
+
+button:hover { background:#000; color:#000; }        /* or */
+*[role="button"]:hover { background:#000; }          /* or */
+.dropdown-item:hover { color:#000; }
+
+
+Replace or override it locally:
+
+/* Hard override, last resort */
+.content-filters button:hover{
+  background:#1F2937 !important;
+  color:#fff !important;
+}
+
+4) Tailwind version (if you’re using it)
+
+For each button:
+
+<button
+  class="filter-btn bg-slate-900 text-slate-50 hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 border border-slate-800 rounded-xl px-4 py-2"
+  aria-expanded="false">
+  All Tenants
+  <svg class="ml-2 size-4 text-current">…</svg>
+</button>
+
+
+For the menu:
+
+<ul class="dropdown-menu bg-slate-950 text-slate-100 border border-slate-800 rounded-xl p-1 shadow-2xl z-50">
+  <li><button class="dropdown-item w-full text-left rounded-lg px-3 py-2 hover:bg-slate-800">Public</button></li>
+  …
+</ul>
+
+5) Two quick checks in DevTools
+
+Inspect a filter button while hovering:
+
+In Styles, look for any rule turning background to #000 or text to dark; note the selector and origin file.
+
+Inspect a dropdown item:
+
+Make sure computed color is light (rgb(229, 231, 235) etc.) and background is not black.
+
+If something still wins the cascade, keep my overrides later in the stylesheet, or add the scoped !important temporarily.
+
+6) Bonus: disabled and active states
+.content-filters .filter-btn[disabled]{
+  background:#111827; color:#9CA3AF; opacity:.7; cursor:not-allowed;
+}
+.content-filters .filter-btn.is-active{
+  background:#2563EB; color:#fff; border-color:#2563EB;
+}

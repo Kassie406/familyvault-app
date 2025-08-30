@@ -2418,62 +2418,62 @@ export default function AdminDashboard() {
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden fade-in">
                 <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <Select defaultValue="ALL">
                         <SelectTrigger className="w-[140px] bg-[#1E232A] text-white border-[#2B313A] hover:bg-[#374151] hover:text-white hover:border-[#4B5563] focus:bg-[#374151] focus:text-white" data-testid="filter-tenant">
                           <SelectValue placeholder="Tenant" />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ALL">All Tenants</SelectItem>
-                          <SelectItem value="PUBLIC">Public</SelectItem>
-                          <SelectItem value="FAMILY">Family</SelectItem>
-                          <SelectItem value="STAFF">Staff</SelectItem>
+                        <SelectContent className="bg-[#0F141A] border-[#2B313A] shadow-lg">
+                          <SelectItem value="ALL" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">All Tenants</SelectItem>
+                          <SelectItem value="PUBLIC" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Public</SelectItem>
+                          <SelectItem value="FAMILY" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Family</SelectItem>
+                          <SelectItem value="STAFF" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Staff</SelectItem>
                         </SelectContent>
                       </Select>
                       <Select defaultValue="ALL">
                         <SelectTrigger className="w-[180px] bg-[#1E232A] text-white border-[#2B313A] hover:bg-[#374151] hover:text-white hover:border-[#4B5563] focus:bg-[#374151] focus:text-white" data-testid="filter-menu-category">
                           <SelectValue placeholder="Menu Category" />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ALL">All Menu Categories</SelectItem>
-                          <SelectItem value="no-category">No Menu Category</SelectItem>
-                          <SelectItem value="Child Information">Child Information</SelectItem>
-                          <SelectItem value="Disaster Planning">Disaster Planning</SelectItem>
-                          <SelectItem value="Elderly Parents">Elderly Parents</SelectItem>
-                          <SelectItem value="Estate Planning">Estate Planning</SelectItem>
-                          <SelectItem value="Getting Married">Getting Married</SelectItem>
-                          <SelectItem value="Home Buying">Home Buying</SelectItem>
-                          <SelectItem value="International Travel">International Travel</SelectItem>
-                          <SelectItem value="Starting a Family">Starting a Family</SelectItem>
-                          <SelectItem value="Moving">Moving</SelectItem>
-                          <SelectItem value="When Someone Dies">When Someone Dies</SelectItem>
-                          <SelectItem value="Digital Security">Digital Security</SelectItem>
-                          <SelectItem value="Neurodiversity">Neurodiversity</SelectItem>
+                        <SelectContent className="bg-[#0F141A] border-[#2B313A] shadow-lg">
+                          <SelectItem value="ALL" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">All Menu Categories</SelectItem>
+                          <SelectItem value="no-category" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">No Menu Category</SelectItem>
+                          <SelectItem value="Child Information" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Child Information</SelectItem>
+                          <SelectItem value="Disaster Planning" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Disaster Planning</SelectItem>
+                          <SelectItem value="Elderly Parents" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Elderly Parents</SelectItem>
+                          <SelectItem value="Estate Planning" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Estate Planning</SelectItem>
+                          <SelectItem value="Getting Married" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Getting Married</SelectItem>
+                          <SelectItem value="Home Buying" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Home Buying</SelectItem>
+                          <SelectItem value="International Travel" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">International Travel</SelectItem>
+                          <SelectItem value="Starting a Family" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Starting a Family</SelectItem>
+                          <SelectItem value="Moving" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Moving</SelectItem>
+                          <SelectItem value="When Someone Dies" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">When Someone Dies</SelectItem>
+                          <SelectItem value="Digital Security" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Digital Security</SelectItem>
+                          <SelectItem value="Neurodiversity" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Neurodiversity</SelectItem>
                         </SelectContent>
                       </Select>
                       <Select defaultValue="all">
-                        <SelectTrigger className="w-[160px]" data-testid="filter-category">
+                        <SelectTrigger className="w-[160px] bg-[#1E232A] text-white border-[#2B313A] hover:bg-[#374151] hover:text-white hover:border-[#4B5563] focus:bg-[#374151] focus:text-white" data-testid="filter-category">
                           <SelectValue placeholder="Content Type" />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Types</SelectItem>
-                          <SelectItem value="announcements">Announcements</SelectItem>
-                          <SelectItem value="support">Support</SelectItem>
-                          <SelectItem value="onboarding">Onboarding</SelectItem>
-                          <SelectItem value="blog">Blog</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
+                        <SelectContent className="bg-[#0F141A] border-[#2B313A] shadow-lg">
+                          <SelectItem value="all" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">All Types</SelectItem>
+                          <SelectItem value="announcements" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Announcements</SelectItem>
+                          <SelectItem value="support" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Support</SelectItem>
+                          <SelectItem value="onboarding" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Onboarding</SelectItem>
+                          <SelectItem value="blog" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Blog</SelectItem>
+                          <SelectItem value="other" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Other</SelectItem>
                         </SelectContent>
                       </Select>
                       <Select defaultValue="all">
                         <SelectTrigger className="w-[130px] bg-[#1E232A] text-white border-[#2B313A] hover:bg-[#374151] hover:text-white hover:border-[#4B5563] focus:bg-[#374151] focus:text-white" data-testid="filter-status">
                           <SelectValue placeholder="Status" />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Status</SelectItem>
-                          <SelectItem value="published">Published</SelectItem>
-                          <SelectItem value="draft">Draft</SelectItem>
-                          <SelectItem value="scheduled">Scheduled</SelectItem>
-                          <SelectItem value="archived">Archived</SelectItem>
+                        <SelectContent className="bg-[#0F141A] border-[#2B313A] shadow-lg">
+                          <SelectItem value="all" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">All Status</SelectItem>
+                          <SelectItem value="published" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Published</SelectItem>
+                          <SelectItem value="draft" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Draft</SelectItem>
+                          <SelectItem value="scheduled" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Scheduled</SelectItem>
+                          <SelectItem value="archived" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Archived</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -2575,7 +2575,7 @@ export default function AdminDashboard() {
                       {articles.articles.map((article: any) => (
                         <tr 
                           key={article.id} 
-                          className={`hover:bg-gray-50 ${
+                          className={`hover:bg-[#F9FAFB] transition-colors duration-150 ${
                             selectedArticles.has(article.id) ? 'bg-blue-50' : ''
                           }`}
                         >
