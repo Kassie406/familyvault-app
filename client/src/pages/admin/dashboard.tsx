@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Users, CreditCard, Ticket, FileText, Shield, Activity, Plus, Eye, Edit, Trash2, 
@@ -1138,95 +1138,217 @@ export default function AdminDashboard() {
       
       case 'coupons':
         return (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+          <div className="coupons-section">
+            {/* Coupons Header */}
+            <div className="flex items-center justify-between mb-6">
               <div>
-                <CardTitle>Coupon Management</CardTitle>
-                <CardDescription>Create and manage promotional codes</CardDescription>
+                <h2 className="text-2xl font-bold text-gray-900">Coupons</h2>
+                <p className="text-gray-600 mt-1">Promotional codes & discounts</p>
               </div>
               <Dialog open={newCouponOpen} onOpenChange={setNewCouponOpen}>
                 <DialogTrigger asChild>
-                  <Button data-testid="button-create-coupon">
+                  <Button className="bg-yellow-500 hover:bg-yellow-600 text-black" data-testid="button-create-coupon">
                     <Plus className="mr-2 h-4 w-4" />
                     Create Coupon
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="sm:max-w-[500px]">
                   <DialogHeader>
                     <DialogTitle>Create New Coupon</DialogTitle>
+                    <DialogDescription>
+                      Create promotional codes to offer discounts on subscription plans
+                    </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleCreateCoupon} className="space-y-4">
                     <div>
                       <Label htmlFor="code">Coupon Code</Label>
-                      <Input id="code" name="code" placeholder="SAVE20" required />
+                      <Input id="code" name="code" placeholder="WELCOME10" required />
                     </div>
+                    
+                    <div>
+                      <Label htmlFor="discountType">Discount Type</Label>
+                      <Select name="discountType" required>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select discount type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percentage">Percentage Off</SelectItem>
+                          <SelectItem value="fixed">Fixed Amount</SelectItem>
+                          <SelectItem value="free_trial">Free Trial</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="percentOff">Percent Off</Label>
-                        <Input id="percentOff" name="percentOff" type="number" placeholder="20" />
+                        <Label htmlFor="percentOff">Discount Value</Label>
+                        <Input id="percentOff" name="percentOff" type="number" placeholder="10" />
                       </div>
                       <div>
-                        <Label htmlFor="amountOff">Amount Off ($)</Label>
-                        <Input id="amountOff" name="amountOff" type="number" placeholder="10" />
+                        <Label htmlFor="appliesTo">Applies To</Label>
+                        <Select name="appliesTo">
+                          <SelectTrigger>
+                            <SelectValue placeholder="All plans" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Plans</SelectItem>
+                            <SelectItem value="silver">Silver Only</SelectItem>
+                            <SelectItem value="gold">Gold Only</SelectItem>
+                            <SelectItem value="custom">Custom Plans</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
+                    
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="validFrom">Valid From</Label>
                         <Input id="validFrom" name="validFrom" type="date" />
                       </div>
                       <div>
-                        <Label htmlFor="validTo">Valid To</Label>
+                        <Label htmlFor="validTo">Expiration Date</Label>
                         <Input id="validTo" name="validTo" type="date" />
                       </div>
                     </div>
+                    
                     <div>
-                      <Label htmlFor="maxRedemptions">Max Redemptions</Label>
+                      <Label htmlFor="maxRedemptions">Max Uses (optional)</Label>
                       <Input id="maxRedemptions" name="maxRedemptions" type="number" placeholder="100" />
                     </div>
-                    <Button type="submit" className="w-full">Create Coupon</Button>
+                    
+                    <Button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-600 text-black">
+                      Create Coupon
+                    </Button>
                   </form>
                 </DialogContent>
               </Dialog>
-            </CardHeader>
-            <CardContent>
-              {couponsLoading ? (
-                <p>Loading coupons...</p>
-              ) : coupons?.coupons?.length > 0 ? (
-                <div className="space-y-4">
-                  {coupons.coupons.map((coupon: any) => (
-                    <div key={coupon.id} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold">{coupon.code}</h3>
-                          <p className="text-muted-foreground">
-                            {coupon.percentOff ? `${coupon.percentOff}% off` : `$${coupon.amountOff} off`}
-                          </p>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+            </div>
+
+            {/* Coupons Content */}
+            {couponsLoading ? (
+              <div className="bg-white rounded-lg border border-gray-200 p-8">
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full"></div>
+                  <span className="ml-2 text-gray-600">Loading coupons...</span>
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Ticket className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <h3 className="mt-4 text-lg font-semibold">No Coupons Yet</h3>
-                  <p className="text-muted-foreground">Create your first promotional coupon</p>
+              </div>
+            ) : coupons?.coupons?.length > 0 ? (
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Code</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Discount</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Applies To</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Expiration</th>
+                      <th className="text-right py-3 px-4 font-semibold text-gray-900">Uses</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Status</th>
+                      <th className="text-right py-3 px-4 font-semibold text-gray-900">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {coupons.coupons.map((coupon: any, index: number) => (
+                      <tr key={coupon.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td className="py-4 px-4">
+                          <div className="flex items-center space-x-2">
+                            <div className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
+                              {coupon.code}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center space-x-2">
+                            {coupon.percentOff && (
+                              <>
+                                <span className="text-blue-600 text-sm">%</span>
+                                <span className="font-semibold text-gray-900">{coupon.percentOff}% off</span>
+                              </>
+                            )}
+                            {coupon.amountOff && (
+                              <>
+                                <span className="text-green-600 text-sm">$</span>
+                                <span className="font-semibold text-gray-900">${coupon.amountOff} off</span>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-gray-700">All Plans</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-gray-700">
+                            {coupon.validTo ? new Date(coupon.validTo).toLocaleDateString() : 'No expiration'}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          <span className="font-semibold text-gray-900">
+                            {coupon.redemptions || 0}
+                            {coupon.maxRedemptions && (
+                              <span className="text-gray-500 text-sm">/{coupon.maxRedemptions}</span>
+                            )}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Active
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          <div className="flex items-center justify-end space-x-1">
+                            <button 
+                              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                              title="View coupon details"
+                              data-testid="button-view-coupon"
+                            >
+                              <Eye className="h-4 w-4 text-gray-600" />
+                            </button>
+                            <button 
+                              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                              title="Edit coupon"
+                              data-testid="button-edit-coupon"
+                            >
+                              <Edit className="h-4 w-4 text-gray-600" />
+                            </button>
+                            <button 
+                              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                              title="Disable coupon"
+                              data-testid="button-disable-coupon"
+                            >
+                              <Trash2 className="h-4 w-4 text-gray-600" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
+                  Showing {coupons.coupons.length} coupons
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-gray-200 p-12">
+                <div className="text-center max-w-md mx-auto">
+                  <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Ticket className="h-8 w-8 text-yellow-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No Coupons Yet</h3>
+                  <p className="text-gray-600 mb-6 leading-relaxed">
+                    Coupons let you offer discounts on subscription plans. Apply them globally or restrict to specific plans. 
+                    Set fixed or percentage discounts with optional expiration dates.
+                  </p>
+                  <Dialog open={newCouponOpen} onOpenChange={setNewCouponOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="bg-yellow-500 hover:bg-yellow-600 text-black" data-testid="button-create-first-coupon">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create Your First Coupon
+                      </Button>
+                    </DialogTrigger>
+                  </Dialog>
+                </div>
+              </div>
+            )}
+          </div>
         );
       
       case 'content':
