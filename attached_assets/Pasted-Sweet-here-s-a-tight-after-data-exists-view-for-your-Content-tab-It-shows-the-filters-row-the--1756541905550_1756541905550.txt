@@ -1,0 +1,176 @@
+Sweet — here’s a tight “after data exists” view for your Content tab. It shows the filters row, the bulk actions bar, and a table with sample articles (Menu Category, Tenant, Status, Actions). Drop-in markup + light CSS.
+
+Filters + Table (populated state)
+<!-- Filters -->
+<div class="content-filters">
+  <div class="left">
+    <select id="f-tenant">
+      <option value="ALL" selected>Tenant: All</option>
+      <option value="PUBLIC">Public</option>
+      <option value="FAMILY">Family</option>
+      <option value="STAFF">Staff</option>
+    </select>
+    <select id="f-category">
+      <option value="ALL" selected>Menu: All</option>
+      <option>Disaster Planning</option>
+      <option>Home Buying</option>
+      <option>Digital Security</option>
+      <option>Child Information</option>
+    </select>
+    <select id="f-status">
+      <option value="ALL" selected>Status: All</option>
+      <option value="published">Published</option>
+      <option value="scheduled">Scheduled</option>
+      <option value="draft">Draft</option>
+      <option value="archived">Archived</option>
+    </select>
+  </div>
+  <div class="right">
+    <input id="f-search" type="search" placeholder="Search title or author…" />
+    <button class="btn ghost" id="f-clear">Clear</button>
+    <button class="btn primary" id="open-article-modal">+ Create Article</button>
+  </div>
+</div>
+
+<!-- Bulk bar (appears when items selected) -->
+<div id="articles-bulkbar" class="bulk-bar" hidden>
+  <div class="bulk-left"><strong id="articles-bulkcount">0 selected</strong></div>
+  <div class="bulk-right">
+    <button class="btn ghost" id="bulk-publish">Publish</button>
+    <button class="btn ghost" id="bulk-unpublish">Unpublish</button>
+    <button class="btn ghost danger" id="bulk-archive">Archive</button>
+    <div class="divider"></div>
+    <button class="btn ghost" id="bulk-export">Export CSV</button>
+    <button class="btn ghost" id="bulk-clear">Clear</button>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+  <table class="table" id="articles-table">
+    <thead>
+      <tr>
+        <th style="width:36px">
+          <input type="checkbox" id="articles-selectall" aria-label="Select all">
+        </th>
+        <th>Title</th>
+        <th>Menu Category</th>
+        <th>Tenant</th>
+        <th>Author</th>
+        <th>Published</th>
+        <th>Status</th>
+        <th class="col-actions">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Published -->
+      <tr data-id="a_101" data-tenant="PUBLIC" data-category="Disaster Planning" data-status="published"
+          data-title="Family Evacuation Checklist" data-author="Sarah Martinez">
+        <td><input type="checkbox" class="row-check" aria-label="Select Family Evacuation Checklist"></td>
+        <td><strong>Family Evacuation Checklist</strong></td>
+        <td><span class="badge badge-menu">Disaster Planning</span></td>
+        <td><span class="badge badge-tenant-public">Public</span></td>
+        <td>Sarah Martinez</td>
+        <td>2025-08-20 10:00</td>
+        <td><span class="badge badge-status-published">Published</span></td>
+        <td class="col-actions">
+          <div class="row-actions">
+            <button aria-label="Edit" data-tip="Edit">✏️</button>
+            <button aria-label="Preview" data-tip="Preview">👁️</button>
+            <button aria-label="Unpublish" data-tip="Unpublish">🚫</button>
+            <button aria-label="Archive" data-tip="Archive">📦</button>
+          </div>
+        </td>
+      </tr>
+
+      <!-- Draft -->
+      <tr data-id="a_102" data-tenant="PUBLIC" data-category="Home Buying" data-status="draft"
+          data-title="Home Document Binder" data-author="John Doe">
+        <td><input type="checkbox" class="row-check" aria-label="Select Home Document Binder"></td>
+        <td><strong>Home Document Binder</strong></td>
+        <td><span class="badge badge-menu">Home Buying</span></td>
+        <td><span class="badge badge-tenant-public">Public</span></td>
+        <td>John Doe</td>
+        <td>—</td>
+        <td><span class="badge badge-status-draft">Draft</span></td>
+        <td class="col-actions">
+          <div class="row-actions">
+            <button aria-label="Edit" data-tip="Edit">✏️</button>
+            <button aria-label="Preview" data-tip="Preview">👁️</button>
+            <button aria-label="Schedule" data-tip="Schedule">⏰</button>
+            <button aria-label="Archive" data-tip="Archive">📦</button>
+          </div>
+        </td>
+      </tr>
+
+      <!-- Scheduled -->
+      <tr data-id="a_103" data-tenant="STAFF" data-category="Digital Security" data-status="scheduled"
+          data-title="SOC Playbook Update" data-author="Emily Chen">
+        <td><input type="checkbox" class="row-check" aria-label="Select SOC Playbook Update"></td>
+        <td><strong>SOC Playbook Update</strong></td>
+        <td><span class="badge badge-menu">Digital Security</span></td>
+        <td><span class="badge badge-tenant-staff">Staff</span></td>
+        <td>Emily Chen</td>
+        <td>2025-09-01 09:00</td>
+        <td><span class="badge badge-status-scheduled">Scheduled</span></td>
+        <td class="col-actions">
+          <div class="row-actions">
+            <button aria-label="Edit" data-tip="Edit">✏️</button>
+            <button aria-label="Preview" data-tip="Preview">👁️</button>
+            <button aria-label="Unschedule" data-tip="Unschedule">🗓️</button>
+            <button aria-label="Archive" data-tip="Archive">📦</button>
+          </div>
+        </td>
+      </tr>
+
+      <!-- Family portal -->
+      <tr data-id="a_104" data-tenant="FAMILY" data-category="Child Information" data-status="published"
+          data-title="Pediatric Records Checklist" data-author="Michael Rodriguez">
+        <td><input type="checkbox" class="row-check" aria-label="Select Pediatric Records Checklist"></td>
+        <td><strong>Pediatric Records Checklist</strong></td>
+        <td><span class="badge badge-menu">Child Information</span></td>
+        <td><span class="badge badge-tenant-family">Family</span></td>
+        <td>Michael Rodriguez</td>
+        <td>2025-08-10 14:20</td>
+        <td><span class="badge badge-status-published">Published</span></td>
+        <td class="col-actions">
+          <div class="row-actions">
+            <button aria-label="Edit" data-tip="Edit">✏️</button>
+            <button aria-label="Preview" data-tip="Preview">👁️</button>
+            <button aria-label="Unpublish" data-tip="Unpublish">🚫</button>
+            <button aria-label="Archive" data-tip="Archive">📦</button>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="table-foot">Showing 4 articles</div>
+</div>
+
+Minimal style (if you need it)
+.content-filters{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:8px 0 12px}
+.content-filters .left,.content-filters .right{display:flex;gap:10px;align-items:center}
+.content-filters select,.content-filters input{border:1px solid #D7DEE8;border-radius:10px;padding:10px 12px}
+.table{width:100%;border-collapse:separate;border-spacing:0}
+.table thead th{padding:12px 16px;border-bottom:1px solid #E5EAF2;background:#F9FAFB;font-weight:600;color:#111827}
+.table td{padding:12px 16px;border-bottom:1px solid #F0F3F8;color:#1F2937}
+.table tbody tr:hover{background:#F7FAFF}
+.col-actions{width:210px;text-align:right;white-space:nowrap}
+.row-actions button{padding:6px;border-radius:8px;background:transparent;border:0;color:#667085;margin-left:6px;cursor:pointer}
+.row-actions button:hover{background:#EEF3FF;color:#1F6FEB}
+.badge{padding:3px 8px;border-radius:9999px;font-size:12px;font-weight:600;display:inline-block}
+.badge-menu{background:#EEF1F5;color:#374151}
+.badge-tenant-public{background:#E9F2FF;color:#0D6EFD}
+.badge-tenant-family{background:#F0E9FF;color:#6F42C1}
+.badge-tenant-staff{background:#E6F5EC;color:#1B7F3B}
+.badge-status-published{background:#E8F6EE;color:#1B7F3B}
+.badge-status-scheduled{background:#FFF4E5;color:#AD7A00}
+.badge-status-draft{background:#E5E7EB;color:#374151}
+
+Behavior wiring
+
+Use the filters script and bulk actions script I gave earlier (they read data-* attributes on each row).
+
+Clicking Preview can open /preview/:id or a side drawer with rendered Markdown.
+
+Publishing should trigger your ISR/revalidate or cache purge webhook so the public site updates quickly.
