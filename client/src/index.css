@@ -632,13 +632,37 @@ tbody tr:not(:hover) .row-actions button {
   font-size: 14px;
 }
 
+.table {
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table th {
+  background: #F9FAFB;
+  font-weight: 600;
+  color: #111827;
+  padding: 12px 16px;
+}
+
+.table td {
+  color: #1F2937;
+  font-weight: 500;
+  padding: 12px 16px;
+}
+
 .table tbody tr {
   transition: background-color 0.15s ease;
+  border-bottom: 1px solid #F3F4F6;
 }
 
 .table tbody tr:hover {
-  background: #F7FAFF;
+  background: #F9FAFB;
   cursor: pointer;
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
 }
 
 .mono {
@@ -666,6 +690,11 @@ tbody tr:not(:hover) .row-actions button {
 .badge-status-active {
   background: #E8F6EE;
   color: #1B7F3B;
+  font-weight: 600;
+}
+
+.table td span.badge {
+  font-weight: 600;
 }
 
 .card {
@@ -755,6 +784,37 @@ tbody tr:not(:hover) .row-actions button {
   cursor: pointer;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   font-size: 13px;
+  font-weight: 600;
+}
+
+/* Table content styling for better contrast */
+.table td.price,
+.table td.users {
+  text-align: right;
+  font-weight: 600;
+  color: #111827;
+}
+
+.table td .plan-name {
+  color: #111827;
+  font-weight: 600;
+}
+
+.table td .plan-description {
+  color: #6B7280;
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+.table td .interval-main {
+  color: #374151;
+  font-weight: 500;
+}
+
+.table td .interval-sub {
+  color: #6B7280;
+  font-size: 0.85em;
+  font-weight: 400;
 }
 
 .stripe-link:hover {
