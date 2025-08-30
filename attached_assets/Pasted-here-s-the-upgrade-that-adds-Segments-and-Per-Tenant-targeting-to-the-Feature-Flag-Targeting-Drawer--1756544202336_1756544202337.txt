@@ -1,0 +1,277 @@
+here’s the upgrade that adds Segments and Per-Tenant targeting to the Feature Flag Targeting Drawer you already pasted. I’m giving you delta-style additions so you can drop them right in.
+
+1) HTML additions
+A) Tenant chips (just below “Targeting rules” section)
+
+Put this block above the rules table:
+
+<!-- Tenants gate -->
+<section class="section">
+  <div class="section-title">Tenants</div>
+  <div id="ff-tenants" class="tenant-chips" role="group" aria-label="Tenant targeting">
+    <button data-tenant="Public" class="chip is-on">Public</button>
+    <button data-tenant="Family" class="chip is-on">Family</button>
+    <button data-tenant="Staff"  class="chip is-on">Staff</button>
+  </div>
+  <div class="muted mt-6">Only users from the selected tenants can receive this flag.</div>
+</section>
+
+B) Rules table header (tiny change)
+
+Replace your rules-table header row with a Type column:
+
+<table class="rules-table">
+  <thead>
+    <tr>
+      <th style="width:16%">Type</th>
+      <th style="width:22%">Attribute / Segment</th>
+      <th style="width:20%">Operator</th>
+      <th>Value</th>
+      <th style="width:60px"></th>
+    </tr>
+  </thead>
+  <tbody id="ff-rules"></tbody>
+</table>
+
+
+We’ll support two types: segment and attribute.
+
+2) CSS additions
+/* Tenant chips */
+.tenant-chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid #D7DEE8;border-radius:999px;padding:8px 12px;background:#fff;color:#344054;cursor:pointer}
+.chip.is-on{background:#E9F2FF;border-color:#BFD3FF;color:#0D6EFD}
+.chip:hover{background:#F6F8FB}
+
+/* Rules “Type” selector looks like the other selects */
+.rules-table select, .rules-table input{border:1px solid #D7DEE8;border-radius:10px;padding:8px 10px;width:100%}
+
+3) JS updates
+
+Add the new fields to your in-memory model and extend the logic. Paste the changed/added parts below into the drawer script I gave you.
+
+A) Extend the in-memory model (add tenants and segmentsCache)
+let model = {
+  prod:    { active:true,  updatedAt:new Date().toISOString(), rules:[], rollout:25, rolloutKey:'user.id', schedule:{start:null,end:null}, tenants:['Public','Family','Staff'] },
+  staging: { active:true,  updatedAt:null,                    rules:[], rollout:0,  rolloutKey:'user.id', schedule:{start:null,end:null}, tenants:['Public','Family','Staff'] },
+  dev:     { active:true,  updatedAt:null,                    rules:[], rollout:0,  rolloutKey:'user.id', schedule:{start:null,end:null}, tenants:['Public','Family','Staff'] }
+};
+
+// Optional cache — replace with your GET /api/segments result
+const segmentsCache = [
+  { id:'beta_testers',    name:'Beta Testers' },
+  { id:'internal_staff',  name:'Internal Staff' },
+  { id:'family_portal',   name:'Family Portal Users' },
+  { id:'high_value',      name:'High Value Clients' }
+];
+
+B) Paint tenants + toggle behavior
+const tenantWrap = document.getElementById('ff-tenants');
+
+function paintTenants(){
+  const s = model[env];
+  tenantWrap.querySelectorAll('.chip').forEach(ch => {
+    const t = ch.dataset.tenant;
+    ch.classList.toggle('is-on', s.tenants.includes(t));
+  });
+}
+
+tenantWrap.addEventListener('click', e=>{
+  const btn = e.target.closest('.chip'); if(!btn) return;
+  const t = btn.dataset.tenant;
+  const arr = model[env].tenants;
+  const i = arr.indexOf(t);
+  if(i>=0){ arr.splice(i,1); } else { arr.push(t); }
+  if(arr.length===0){ arr.push(t); } // prevent empty — must have at least one tenant
+  paintTenants();
+});
+
+C) Rule row supports Type: segment | attribute
+
+Replace your ruleRow function with this version:
+
+function ruleRow(index, r){
+  // default shape
+  r.type = r.type || 'attribute'; // 'segment' | 'attribute'
+
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>
+      <select class="rule-type">
+        <option value="attribute" ${r.type==='attribute'?'selected':''}>Attribute</option>
+        <option value="segment"   ${r.type==='segment'?'selected':''}>Segment</option>
+      </select>
+    </td>
+
+    <td class="cell-attr">
+      <select class="rule-attr ${r.type==='segment'?'is-hidden':''}">
+        <option ${r.attr==='user.email'?'selected':''}>user.email</option>
+        <option ${r.attr==='user.id'?'selected':''}>user.id</option>
+        <option ${r.attr==='user.tenant'?'selected':''}>user.tenant</option>
+        <option ${r.attr==='user.role'?'selected':''}>user.role</option>
+      </select>
+      <select class="rule-segment ${r.type==='segment'?'':'is-hidden'}">
+        ${segmentsCache.map(s=>`<option value="${s.id}" ${r.segmentId===s.id?'selected':''}>${s.name}</option>`).join('')}
+      </select>
+    </td>
+
+    <td>
+      <select class="rule-op ${r.type==='segment'?'is-hidden':''}">
+        <option ${r.op==='equals'?'selected':''}>equals</option>
+        <option ${r.op==='notEquals'?'selected':''}>notEquals</option>
+        <option ${r.op==='contains'?'selected':''}>contains</option>
+        <option ${r.op==='endsWith'?'selected':''}>endsWith</option>
+        <option ${r.op==='startsWith'?'selected':''}>startsWith</option>
+        <option ${r.op==='in'?'selected':''}>in</option>
+      </select>
+    </td>
+
+    <td>
+      <input class="rule-val ${r.type==='segment'?'is-hidden':''}" value="${r.val??''}" placeholder="${r.type==='segment'?'(n/a)':'Value…'}">
+    </td>
+
+    <td><button class="rm" aria-label="Remove rule">✖</button></td>
+  `;
+
+  // helpers
+  const showSegmentUI = (on)=>{
+    tr.querySelector('.rule-attr').classList.toggle('is-hidden', on);
+    tr.querySelector('.rule-op').classList.toggle('is-hidden', on);
+    tr.querySelector('.rule-val').classList.toggle('is-hidden', on);
+    tr.querySelector('.rule-segment').classList.toggle('is-hidden', !on);
+  };
+
+  tr.querySelector('.rule-type').addEventListener('input', e=>{
+    r.type = e.target.value;
+    if(r.type==='segment'){ r.segmentId = r.segmentId || segmentsCache[0]?.id; }
+    showSegmentUI(r.type==='segment');
+  });
+
+  const attrSel = tr.querySelector('.rule-attr');
+  const opSel   = tr.querySelector('.rule-op');
+  const valInp  = tr.querySelector('.rule-val');
+  const segSel  = tr.querySelector('.rule-segment');
+
+  attrSel?.addEventListener('input', e=>{ r.attr = e.target.value; });
+  opSel?.addEventListener('input',   e=>{ r.op   = e.target.value; });
+  valInp?.addEventListener('input',  e=>{ r.val  = e.target.value; });
+  segSel?.addEventListener('input',  e=>{ r.segmentId = e.target.value; });
+
+  tr.querySelector('.rm').addEventListener('click', ()=>{ model[env].rules.splice(index,1); paint(); });
+  return tr;
+}
+
+
+(CSS helper)
+
+.is-hidden{display:none}
+
+D) Update paint() to also call paintTenants()
+
+Add one line:
+
+function paint(){
+  const s = model[env];
+  // ...existing code...
+  s.rules.length || s.rules.push({type:'attribute',attr:'user.email',op:'endsWith',val:'@familycirclesecure.com'});
+  s.rules.forEach((r,i)=> rulesTbody.appendChild(ruleRow(i,r)));
+
+  paintTenants(); // <-- add this
+  // ...existing rollout/schedule/test reset...
+}
+
+E) Evaluator changes: enforce tenant gate + segments
+
+Update your evalUser helpers:
+
+function userInSegments(u){
+  // Replace this stub with a server call if segments are dynamic
+  // Example logic: map segmentId to a predicate
+  const map = {
+    beta_testers:   (u)=> (u.user?.email||'').endsWith('@familycirclesecure.com'),
+    internal_staff: (u)=> (u.user?.role||'') === 'Staff',
+    family_portal:  (u)=> (u.user?.tenant||'') === 'Family',
+    high_value:     (u)=> (u.user?.tier||'') === 'Gold'
+  };
+  return (segId)=> (map[segId]?.(u) ?? false);
+}
+
+function matchesRule(u, r){
+  if(r.type==='segment'){
+    return userInSegments(u)(r.segmentId);
+  }
+  const v = r.attr.split('.').reduce((o,k)=>o?.[k], u) ?? '';
+  switch(r.op){
+    case 'equals':      return v==r.val;
+    case 'notEquals':   return v!=r.val;
+    case 'contains':    return (v+'').includes(r.val);
+    case 'endsWith':    return (v+'').endsWith(r.val);
+    case 'startsWith':  return (v+'').startsWith(r.val);
+    case 'in':          return (r.val||'').split(',').map(s=>s.trim()).includes(v+'');
+    default:            return false;
+  }
+}
+
+function evalUser(u){
+  const s = model[env];
+  if(!s.active) return false;
+
+  // Tenant gate first
+  const t = (u.user?.tenant || 'Public');
+  if(!s.tenants.includes(t)) return false;
+
+  // Schedule
+  if(s.schedule.start && new Date() < new Date(s.schedule.start)) return false;
+  if(s.schedule.end   && new Date() > new Date(s.schedule.end))   return false;
+
+  // Rules (all must pass)
+  if(s.rules.length && !s.rules.every(r=>matchesRule(u,r))) return false;
+
+  // Percentage rollout
+  const key = (s.rolloutKey||'user.id').split('.').reduce((o,k)=>o?.[k], u) ?? '';
+  if(!s.rollout || !key) return s.rules.length>0; // if 0% rollout, rules alone can enable
+  const pct = (function hashStr(s){ let h=0; for(let i=0;i<s.length;i++) h=(h*31 + s.charCodeAt(i))>>>0; return h>>>0; })(String(key)) % 100;
+  return pct < s.rollout;
+}
+
+F) Save payload (include tenants and segment rules)
+
+Your btnSave handler will now send tenants and rule objects that can be either:
+
+{ "type":"segment", "segmentId":"beta_testers" }
+
+
+or
+
+{ "type":"attribute", "attr":"user.email", "op":"endsWith", "val":"@familycirclesecure.com" }
+
+4) Backend shape (quick)
+
+GET /api/feature-flags/:key/env/:env →
+{ active, updatedAt, tenants: ["Public","Family"], rules: [ /* segment or attribute shape */ ], rollout, rolloutKey, schedule }
+
+PATCH /api/feature-flags/:key/env/:env →
+accepts same payload, audit trail: actor, env, before→after, timestamp.
+
+GET /api/segments →
+[{ id, name, description? }]
+
+Evaluator parity: The server should implement the same logic (tenant gate → schedule → rules → rollout). The client tester is only for UX.
+
+5) UX tips
+
+Prevent zero tenants (I did that in the toggle handler).
+
+Segment descriptions: show a tooltip on the segment select with a short description from /api/segments.
+
+Prod guard: require a confirmation modal + role Approver to enable in Prod.
+
+Kill switch: your ⛔ button already calls active=false; log it loudly.
+
+That’s it. With these deltas:
+
+You can flip tenants on/off quickly.
+
+You can target by segments without authoring raw rules.
+
+Evaluator + tester respect both features.

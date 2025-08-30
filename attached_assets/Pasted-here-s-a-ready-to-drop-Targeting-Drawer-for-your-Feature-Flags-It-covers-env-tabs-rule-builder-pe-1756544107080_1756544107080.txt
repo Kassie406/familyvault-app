@@ -1,0 +1,357 @@
+here’s a ready-to-drop Targeting Drawer for your Feature Flags. It covers env tabs, rule builder, percentage rollout, user tester, scheduling, and a kill switch. It matches the button/hover fixes we’ve been using.
+
+🧪 Feature Flag Targeting Drawer
+HTML
+<!-- Drawer backdrop -->
+<div id="ff-backdrop" class="drawer-backdrop" hidden></div>
+
+<!-- Drawer -->
+<aside id="ff-drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="ff-title" hidden>
+  <header class="drawer-header">
+    <div>
+      <div class="eyebrow">Feature flag</div>
+      <h3 id="ff-title">new-billing-ui</h3>
+    </div>
+    <button id="ff-close" class="icon-btn" aria-label="Close">✖</button>
+  </header>
+
+  <div class="drawer-tabs" role="tablist" aria-label="Environments">
+    <button class="tab is-active" role="tab" aria-selected="true" data-env="prod">Prod</button>
+    <button class="tab" role="tab" aria-selected="false" data-env="staging">Staging</button>
+    <button class="tab" role="tab" aria-selected="false" data-env="dev">Dev</button>
+  </div>
+
+  <div class="drawer-body">
+    <!-- Status + kill switch -->
+    <section class="section">
+      <div class="row between center">
+        <div class="row center gap-8">
+          <span id="ff-status" class="badge badge-status-active">Active</span>
+          <span class="muted">Updated <time id="ff-updated" datetime=""></time></span>
+        </div>
+        <div class="row gap-8">
+          <button id="ff-disable" class="btn ghost danger">⛔ Disable in this env</button>
+          <button id="ff-enable" class="btn primary" hidden>Enable</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Rules -->
+    <section class="section">
+      <div class="section-title">Targeting rules</div>
+      <table class="rules-table">
+        <thead>
+          <tr>
+            <th style="width:26%">Attribute</th>
+            <th style="width:22%">Operator</th>
+            <th>Value</th>
+            <th style="width:60px"></th>
+          </tr>
+        </thead>
+        <tbody id="ff-rules">
+          <!-- rows injected by JS -->
+        </tbody>
+      </table>
+      <div class="row gap-8 mt-8">
+        <button id="ff-add-rule" class="btn ghost">+ Add rule</button>
+      </div>
+    </section>
+
+    <!-- Rollout -->
+    <section class="section">
+      <div class="section-title">Percentage rollout</div>
+      <div class="row center gap-12">
+        <input id="ff-rollout" type="range" min="0" max="100" value="25">
+        <span id="ff-rollout-pct" class="badge badge-neutral">25%</span>
+        <span class="muted">Hash by</span>
+        <select id="ff-rollout-key">
+          <option value="user.id">user.id</option>
+          <option value="user.email">user.email</option>
+          <option value="session.id">session.id</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Schedule -->
+    <section class="section">
+      <div class="section-title">Schedule</div>
+      <div class="grid-2">
+        <div>
+          <label class="lbl">Start</label>
+          <input id="ff-start" type="datetime-local">
+        </div>
+        <div>
+          <label class="lbl">End (optional)</label>
+          <input id="ff-end" type="datetime-local">
+        </div>
+      </div>
+    </section>
+
+    <!-- Tester -->
+    <section class="section">
+      <div class="section-title">Preview tester</div>
+      <div class="grid-2">
+        <div>
+          <label class="lbl">User ID / Email</label>
+          <input id="ff-test-input" placeholder="e.g. alex@company.com">
+        </div>
+        <div class="row center gap-8">
+          <button id="ff-test-btn" class="btn ghost">Test</button>
+          <span id="ff-test-result" class="badge badge-neutral">Unknown</span>
+        </div>
+      </div>
+      <div class="muted mt-6">The tester runs your rules + rollout hash for the selected environment.</div>
+    </section>
+  </div>
+
+  <footer class="drawer-footer">
+    <div class="left muted">All changes are logged in the audit trail.</div>
+    <div class="right">
+      <button id="ff-cancel" class="btn ghost">Cancel</button>
+      <button id="ff-save" class="btn primary">Save changes</button>
+    </div>
+  </footer>
+</aside>
+
+CSS (matches your console + fixes dark hover)
+/* Backdrop + drawer shell */
+.drawer-backdrop{position:fixed;inset:0;background:rgba(3,7,18,.48);z-index:60}
+.drawer{position:fixed;top:0;right:0;height:100vh;width:min(980px,96vw);background:#fff;border-left:1px solid #E5EAF2;
+  box-shadow:-16px 0 48px rgba(16,24,40,.16);border-top-left-radius:14px;border-bottom-left-radius:14px;
+  display:flex;flex-direction:column;transform:translateX(100%);opacity:0;transition:.22s ease;z-index:70}
+.drawer.open{transform:translateX(0);opacity:1}
+.drawer-header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #EEF1F5}
+.eyebrow{font-size:12px;color:#6B7280}
+.icon-btn{background:transparent;border:0;color:#667085;cursor:pointer}
+.icon-btn:hover{color:#1F6FEB}
+
+/* Tabs */
+.drawer-tabs{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid #EEF1F5}
+.tab{background:#111827;color:#F9FAFB;border:1px solid #1F2937;border-radius:10px;padding:8px 12px}
+.tab:hover,.tab:focus{background:#1F2937;color:#fff}
+.tab.is-active{background:#2563EB;border-color:#2563EB;color:#fff}
+
+/* Body */
+.drawer-body{padding:12px 16px;overflow:auto}
+.section{border:1px solid #E5EAF2;border-radius:12px;padding:12px 12px;margin-bottom:12px;background:#fff}
+.section-title{font-weight:600;margin-bottom:8px}
+.row{display:flex;gap:10px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.center{align-items:center}
+.between{justify-content:space-between}
+.gap-8{gap:8px}.gap-12{gap:12px}.mt-6{margin-top:6px}.mt-8{margin-top:8px}
+.lbl{display:block;margin-bottom:6px;color:#374151}
+input[type="text"],input[type="datetime-local"],select{border:1px solid #D7DEE8;border-radius:10px;padding:10px 12px;width:100%}
+input[type="range"]{width:220px}
+.muted{color:#6B7280}
+
+/* Badges */
+.badge{padding:3px 8px;border-radius:999px;font-size:12px;font-weight:600;display:inline-block}
+.badge-status-active{background:#E8F6EE;color:#1B7F3B}
+.badge-neutral{background:#EEF1F5;color:#374151}
+
+/* Buttons */
+.btn{border-radius:10px;padding:10px 14px;border:1px solid #CBD2E0;background:#fff;color:#344054;cursor:pointer}
+.btn:hover{background:#F6F8FB}
+.btn.primary{background:#1F6FEB;color:#fff;border-color:transparent}
+.btn.primary:hover{background:#195BD2}
+.btn.ghost.danger:hover{background:#FEECEC;border-color:#F3C3C3;color:#B42318}
+
+/* Rules table */
+.rules-table{width:100%;border-collapse:separate;border-spacing:0}
+.rules-table th{background:#F9FAFB;border-bottom:1px solid #E5EAF2;padding:10px 12px;text-align:left}
+.rules-table td{border-bottom:1px solid #F2F4F8;padding:10px 12px}
+.rules-table .rm{background:#fff;border:1px solid #D7DEE8;border-radius:8px;padding:6px 10px}
+
+JS (open/close, env tabs, rules, rollout, tester, save)
+<script>
+(function(){
+  const backdrop = document.getElementById('ff-backdrop');
+  const drawer = document.getElementById('ff-drawer');
+  const btnClose = document.getElementById('ff-close');
+  const btnCancel = document.getElementById('ff-cancel');
+  const btnSave = document.getElementById('ff-save');
+  const btnDisable = document.getElementById('ff-disable');
+  const btnEnable = document.getElementById('ff-enable');
+  const statusBadge = document.getElementById('ff-status');
+  const updatedEl = document.getElementById('ff-updated');
+  const tabs = [...document.querySelectorAll('.drawer-tabs .tab')];
+
+  const rulesTbody = document.getElementById('ff-rules');
+  const addRuleBtn = document.getElementById('ff-add-rule');
+
+  const rolloutRange = document.getElementById('ff-rollout');
+  const rolloutPct = document.getElementById('ff-rollout-pct');
+  const rolloutKey = document.getElementById('ff-rollout-key');
+
+  const testInput = document.getElementById('ff-test-input');
+  const testBtn = document.getElementById('ff-test-btn');
+  const testResult = document.getElementById('ff-test-result');
+
+  let env = 'prod';
+  let flagKey = 'new-billing-ui';
+  let model = {
+    prod: { active:true, updatedAt:new Date().toISOString(), rules:[], rollout:25, rolloutKey:'user.id', schedule:{start:null,end:null}},
+    staging: { active:true, updatedAt:null, rules:[], rollout:0, rolloutKey:'user.id', schedule:{start:null,end:null}},
+    dev: { active:true, updatedAt:null, rules:[], rollout:0, rolloutKey:'user.id', schedule:{start:null,end:null}}
+  };
+
+  function openDrawer(){ backdrop.hidden=false; drawer.hidden=false; requestAnimationFrame(()=>drawer.classList.add('open')); }
+  function closeDrawer(){ drawer.classList.remove('open'); setTimeout(()=>{backdrop.hidden=true; drawer.hidden=true;},200); }
+
+  backdrop.addEventListener('click', closeDrawer);
+  btnClose.addEventListener('click', closeDrawer);
+  btnCancel.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', e=>{ if(!drawer.hidden && e.key==='Escape') closeDrawer(); });
+
+  // Tab switching
+  tabs.forEach(t=>t.addEventListener('click', ()=>{
+    tabs.forEach(x=>x.classList.remove('is-active')); t.classList.add('is-active');
+    env = t.dataset.env; paint();
+  }));
+
+  // Paint UI from model[env]
+  function paint(){
+    const s = model[env];
+    // status
+    statusBadge.textContent = s.active ? 'Active' : 'Disabled';
+    statusBadge.className = 'badge ' + (s.active ? 'badge-status-active' : 'badge-neutral');
+    btnDisable.hidden = !s.active;
+    btnEnable.hidden = s.active;
+    // updated
+    if(s.updatedAt){
+      updatedEl.dateTime = s.updatedAt;
+      updatedEl.textContent = new Date(s.updatedAt).toLocaleString();
+    } else {
+      updatedEl.dateTime = '';
+      updatedEl.textContent = '—';
+    }
+    // rules
+    rulesTbody.innerHTML = '';
+    if(!s.rules.length){ s.rules.push({attr:'user.email',op:'endsWith',val:'@familycirclesecure.com'}); }
+    s.rules.forEach((r,i)=> rulesTbody.appendChild(ruleRow(i,r)));
+    // rollout
+    rolloutRange.value = s.rollout;
+    rolloutPct.textContent = s.rollout + '%';
+    rolloutKey.value = s.rolloutKey || 'user.id';
+    // schedule
+    document.getElementById('ff-start').value = s.schedule.start || '';
+    document.getElementById('ff-end').value   = s.schedule.end || '';
+    testResult.textContent = 'Unknown';
+    testResult.className = 'badge badge-neutral';
+  }
+
+  function ruleRow(index, r){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>
+        <select class="rule-attr">
+          <option ${r.attr==='user.email'?'selected':''}>user.email</option>
+          <option ${r.attr==='user.id'?'selected':''}>user.id</option>
+          <option ${r.attr==='user.tenant'?'selected':''}>user.tenant</option>
+          <option ${r.attr==='user.role'?'selected':''}>user.role</option>
+        </select>
+      </td>
+      <td>
+        <select class="rule-op">
+          <option ${r.op==='equals'?'selected':''}>equals</option>
+          <option ${r.op==='notEquals'?'selected':''}>notEquals</option>
+          <option ${r.op==='contains'?'selected':''}>contains</option>
+          <option ${r.op==='endsWith'?'selected':''}>endsWith</option>
+          <option ${r.op==='startsWith'?'selected':''}>startsWith</option>
+          <option ${r.op==='in'?'selected':''}>in</option>
+        </select>
+      </td>
+      <td><input class="rule-val" value="${r.val??''}" placeholder="Value…"></td>
+      <td><button class="rm" aria-label="Remove rule">✖</button></td>
+    `;
+    // wire
+    tr.querySelector('.rule-attr').addEventListener('input', e=>{ model[env].rules[index].attr = e.target.value; });
+    tr.querySelector('.rule-op').addEventListener('input', e=>{ model[env].rules[index].op = e.target.value; });
+    tr.querySelector('.rule-val').addEventListener('input', e=>{ model[env].rules[index].val = e.target.value; });
+    tr.querySelector('.rm').addEventListener('click', ()=>{ model[env].rules.splice(index,1); paint(); });
+    return tr;
+  }
+
+  addRuleBtn.addEventListener('click', ()=>{
+    model[env].rules.push({attr:'user.tenant',op:'equals',val:'Family'});
+    paint();
+  });
+
+  rolloutRange.addEventListener('input', ()=>{ model[env].rollout = Number(rolloutRange.value); rolloutPct.textContent = model[env].rollout + '%'; });
+  rolloutKey.addEventListener('input', ()=>{ model[env].rolloutKey = rolloutKey.value; });
+
+  document.getElementById('ff-start').addEventListener('input', e=>{ model[env].schedule.start = e.target.value || null; });
+  document.getElementById('ff-end').addEventListener('input', e=>{ model[env].schedule.end = e.target.value || null; });
+
+  // Enable/Disable
+  btnDisable.addEventListener('click', ()=>{ if(confirm('Disable in this environment?')){ model[env].active=false; paint(); }});
+  btnEnable.addEventListener('click', ()=>{ model[env].active=true; paint(); });
+
+  // Tester (very simple: check rules then rollout hash)
+  function hashStr(s){ let h=0; for(let i=0;i<s.length;i++) h=(h*31 + s.charCodeAt(i))>>>0; return h>>>0; }
+  function matchesRule(u, r){
+    const v = r.attr.split('.').reduce((o,k)=>o?.[k], u) ?? '';
+    switch(r.op){
+      case 'equals': return v==r.val;
+      case 'notEquals': return v!=r.val;
+      case 'contains': return (v+'').includes(r.val);
+      case 'endsWith': return (v+'').endsWith(r.val);
+      case 'startsWith': return (v+'').startsWith(r.val);
+      case 'in': return (r.val||'').split(',').map(s=>s.trim()).includes(v+'');
+      default: return false;
+    }
+  }
+  function evalUser(u){
+    const s = model[env];
+    if(!s.active) return false;
+    if(s.schedule.start && new Date() < new Date(s.schedule.start)) return false;
+    if(s.schedule.end && new Date() > new Date(s.schedule.end)) return false;
+    if(s.rules.length && !s.rules.every(r=>matchesRule(u,r))) return false;
+    const key = (s.rolloutKey||'user.id').split('.').reduce((o,k)=>o?.[k], u) ?? '';
+    if(!s.rollout || !key) return s.rules.length>0; // if no rollout, rules alone decide
+    const pct = hashStr(String(key)) % 100;
+    return pct < s.rollout;
+  }
+
+  testBtn.addEventListener('click', ()=>{
+    const input = (testInput.value||'').trim();
+    const u = input.includes('@') ? { user:{ email:input, id:input, tenant:'Public' } } : { user:{ id:input, email:'', tenant:'Public' } };
+    const on = evalUser(u);
+    testResult.textContent = on ? 'ON' : 'OFF';
+    testResult.className = 'badge ' + (on ? 'badge-status-active' : 'badge-neutral');
+  });
+
+  // Save
+  btnSave.addEventListener('click', async ()=>{
+    // TODO: send to API
+    // await fetch(`/api/feature-flags/${flagKey}/env/${env}`, {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(model[env])});
+    alert('Saved (stub). Wire to your API next.');
+    closeDrawer();
+  });
+
+  // Public open method (call when user clicks 🎯)
+  window.openFeatureFlagDrawer = function({ key='new-billing-ui', data=model }={}){
+    flagKey = key;
+    // optionally replace model with server data here
+    paint();
+    openDrawer();
+  };
+})();
+</script>
+
+How to use it
+
+Include the HTML/CSS/JS on your Feature Flags page once.
+
+On your row’s 🎯 Targeting button: onclick="openFeatureFlagDrawer({ key: 'new-billing-ui', data: serverData })"
+
+Replace the model with your server payload on open; wire Save/Disable/Enable to your real endpoints.
+
+Quick API notes
+
+GET /api/feature-flags/:key/env/:env → returns { active, updatedAt, rules[], rollout, rolloutKey, schedule }
+
+PATCH /api/feature-flags/:key/env/:env → accepts the same payload, logs to tamper-evident audit.
+
+Consider role guard: only Approver can toggle Prod.
