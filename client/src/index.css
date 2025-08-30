@@ -632,8 +632,13 @@ tbody tr:not(:hover) .row-actions button {
   font-size: 14px;
 }
 
+.table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
 .table tbody tr:hover {
   background: #F7FAFF;
+  cursor: pointer;
 }
 
 .mono {
@@ -702,9 +707,87 @@ tbody tr:not(:hover) .row-actions button {
   line-height: 1;
 }
 
+.row-actions button {
+  position: relative;
+}
+
 .row-actions button:hover {
   background: #EEF3FF;
   color: #1F6FEB;
+}
+
+.row-actions button:focus {
+  outline: 2px solid #1F6FEB;
+  outline-offset: 2px;
+}
+
+/* Tooltip styling */
+.tooltip {
+  position: relative;
+}
+
+.tooltip::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1F2937;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 1000;
+}
+
+.tooltip:hover::after {
+  opacity: 1;
+}
+
+/* Clickable Stripe IDs */
+.stripe-link {
+  color: #1F6FEB;
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+}
+
+.stripe-link:hover {
+  color: #195BD2;
+  background: #F0F6FF;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+/* Enhanced status badges */
+.badge-status-archived {
+  background: #F3F4F6;
+  color: #6B7280;
+}
+
+.badge-status-draft {
+  background: #FEF3C7;
+  color: #D97706;
+}
+
+/* Trend indicators */
+.trend-indicator {
+  font-size: 11px;
+  margin-left: 4px;
+  opacity: 0.8;
+}
+
+.trend-up {
+  color: #059669;
+}
+
+.trend-down {
+  color: #DC2626;
 }
 
 /* Plan Modal Styling */
@@ -870,5 +953,20 @@ legend {
 @media (max-width: 820px) {
   .grid-2, .grid-3 {
     grid-template-columns: 1fr;
+  }
+  
+  .modal {
+    width: 95vw;
+    margin: 10px;
+  }
+  
+  .row-actions {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  
+  .col-actions {
+    width: auto;
+    min-width: 180px;
   }
 }
