@@ -954,6 +954,60 @@ app.get('/api/admin/audit-v2/verify', requireAuth('ADMIN'), async (req: Authenti
   }
 });
 
+// Create sample audit data for demonstration
+app.post('/api/admin/audit-v2/seed', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { auditService, attachAuditContext } = await import('./audit-service-v2.js');
+    
+    // Sample audit entries for demonstration
+    const sampleEntries = [
+      {
+        action: 'user.create',
+        objectType: 'user',
+        objectId: 'u_123',
+        before: null,
+        after: { id: 'u_123', email: 'john@example.com', role: 'USER' },
+        reason: 'New user registration'
+      },
+      {
+        action: 'feature_flag.update',
+        objectType: 'flag',
+        objectId: 'ff_456',
+        before: { enabled: false, percentage: 0 },
+        after: { enabled: true, percentage: 25 },
+        reason: 'Gradual rollout to 25% of users'
+      },
+      {
+        action: 'coupon.delete',
+        objectType: 'coupon',
+        objectId: 'cp_789',
+        before: { code: 'SAVE20', discount: 20, active: true },
+        after: null,
+        reason: 'Expired promotional campaign'
+      }
+    ];
+
+    // Attach audit context
+    attachAuditContext(req, res, () => {});
+    
+    if (!req.auditCtx) {
+      return res.status(500).json({ error: 'Audit context not available' });
+    }
+
+    // Create entries with proper hash chaining
+    for (const entry of sampleEntries) {
+      await auditService.writeAudit(req.auditCtx, entry);
+      // Small delay to ensure different timestamps
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    res.json({ message: 'Sample audit data created', count: sampleEntries.length });
+  } catch (error) {
+    console.error('Create sample audit data error:', error);
+    res.status(500).json({ error: 'Failed to create sample data' });
+  }
+});
+
 // Enhanced coupons v2 endpoints
 app.get('/api/admin/coupons-v2', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {
