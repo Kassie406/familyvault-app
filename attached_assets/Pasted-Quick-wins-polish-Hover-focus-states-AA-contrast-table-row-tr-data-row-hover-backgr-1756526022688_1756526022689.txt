@@ -1,0 +1,66 @@
+Quick wins (polish)
+
+Hover & focus states (AA contrast)
+
+/* table row */
+tr[data-row]:hover { background:#F6F8FB; }
+tr[data-row]:focus-within { outline:2px solid #1F6FEB33; border-radius:10px; }
+
+/* action icons */
+.row-actions button:hover { background:#EEF3FF; }
+.row-actions button:focus-visible { outline:2px solid #1F6FEB; border-radius:8px; }
+
+
+Sticky header + compact density (large lists)
+
+.table thead th { position:sticky; top:0; background:#FFF; z-index:2; }
+.table td, .table th { padding:12px 16px; }         /* use 12px for compact */
+
+
+Consistent badge system
+
+.badge { padding:4px 10px; border-radius:9999px; font-weight:600; }
+.badge-tenant-staff   { background:#24A1481a; color:#1B7F3B; }  /* green */
+.badge-tenant-family  { background:#6F42C11a; color:#6F42C1; }  /* purple */
+.badge-tenant-public  { background:#0D6EFD1a; color:#0D6EFD; }  /* blue */
+.badge-status-active  { background:#34C7591a; color:#2E9950; }
+.badge-status-pending { background:#FFC1071a; color:#AD7A00; }
+.badge-status-susp    { background:#DC35451a; color:#B02A37; }
+.badge-mfa-enabled    { background:#34C7591a; color:#2E9950; }
+.badge-mfa-disabled   { background:#DC35451a; color:#B02A37; }
+
+
+Tenant filter menu (counts + no role leakage)
+
+// assumes <tr data-tenant="PUBLIC|FAMILY|STAFF">
+const rows=[...document.querySelectorAll('tbody tr[data-tenant]')];
+const counts=rows.reduce((a,r)=>((a[r.dataset.tenant]=(a[r.dataset.tenant]||0)+1),a),{});
+['ALL','PUBLIC','FAMILY','STAFF'].forEach(k=>{
+  const el=document.querySelector(`.tenant-menu [data-tenant="${k}"]`);
+  if(el){ el.querySelector('.count').textContent = k==='ALL' ? rows.length : (counts[k]||0); }
+});
+
+
+Keyboard/Screen-reader
+
+Add aria-expanded to the tenant button; role="menu" + role="menuitemradio" with aria-checked on options.
+
+Add aria-label to each row action: “Edit user”, “Suspend user”, “Reset password”, etc.
+
+Empty-result state (after filtering)
+
+<tr class="empty" hidden>
+  <td colspan="7" class="tc muted">No users in this tenant yet.</td>
+</tr>
+
+const emptyRow=document.querySelector('tr.empty');
+function refreshEmpty(){ emptyRow.hidden = rows.some(r=>!r.hidden); }
+
+
+Data hygiene helpers
+
+Show email domain dimmed (@company.com) to improve scan.
+
+Add “Last login” column (sortable).
+
+Add bulk select (checkbox in header) for Suspend/Delete/Export.
