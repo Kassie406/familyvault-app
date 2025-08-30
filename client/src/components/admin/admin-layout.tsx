@@ -76,14 +76,14 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
       
       <div className="min-h-screen bg-gray-100 flex">
         {/* Dark Sidebar */}
-      <div className="w-72 bg-gray-900 text-white flex flex-col">
+      <div className="w-72 bg-[#1C1C1C] text-[#F8F9FA] flex flex-col">
         {/* Logo Header */}
-        <div className="p-6 border-b border-gray-700">
+        <div className="p-6 border-b border-[#2C2C2C]">
           <div className="flex items-center space-x-3">
-            <Shield className="w-8 h-8 text-red-400" />
+            <Shield className="w-8 h-8 text-[#007BFF]" />
             <div>
               <h1 className="text-lg font-bold">FamilyCircle Secure</h1>
-              <p className="text-sm text-gray-400">Management Console</p>
+              <p className="text-sm text-[#CED4DA]">Management Console</p>
             </div>
           </div>
         </div>
@@ -106,8 +106,8 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
                   }}
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
                     isActive 
-                      ? 'bg-red-600 text-white shadow-lg' 
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                      ? 'bg-[#007BFF] text-white shadow-lg' 
+                      : 'text-[#CED4DA] hover:bg-[#2C2C2C] hover:text-white'
                   }`}
                   data-testid={`nav-${item.id}`}
                 >
@@ -123,18 +123,18 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
         </div>
 
         {/* Admin User Info */}
-        <div className="p-4 border-t border-gray-700">
+        <div className="p-4 border-t border-[#2C2C2C]">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 transition-colors">
+              <button className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-[#2C2C2C] transition-colors">
                 <Avatar className="h-10 w-10">
-                  <AvatarFallback className="bg-red-600 text-white">
+                  <AvatarFallback className="bg-[#007BFF] text-white">
                     {(user.user.name || user.user.username).charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="text-left">
                   <div className="font-medium">{user.user.name || user.user.username}</div>
-                  <div className="text-xs text-gray-400">{user.user.role}</div>
+                  <div className="text-xs text-[#CED4DA]">{user.user.role}</div>
                 </div>
               </button>
             </DropdownMenuTrigger>
