@@ -94,56 +94,56 @@ export default function AdminDashboard() {
 
   const EnhancedStatsCards = () => (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-      <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+      <Card className="bg-[#007BFF] text-white">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-blue-100">Total Users</CardTitle>
-          <Users className="h-5 w-5 text-blue-200" />
+          <CardTitle className="text-sm font-medium text-[#F8F9FA]">Total Users</CardTitle>
+          <Users className="h-5 w-5 text-[#F8F9FA]" />
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold">1,247</div>
-          <div className="flex items-center text-xs text-blue-100 mt-1">
+          <div className="flex items-center text-xs text-[#F8F9FA] mt-1">
             <TrendingUp className="w-3 h-3 mr-1" />
             +12% from last month
           </div>
         </CardContent>
       </Card>
       
-      <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
+      <Card className="bg-[#28A745] text-white">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-green-100">Active Plans</CardTitle>
-          <CreditCard className="h-5 w-5 text-green-200" />
+          <CardTitle className="text-sm font-medium text-[#F8F9FA]">Active Plans</CardTitle>
+          <CreditCard className="h-5 w-5 text-[#F8F9FA]" />
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold">{plans?.plans?.length || 3}</div>
-          <div className="flex items-center text-xs text-green-100 mt-1">
+          <div className="flex items-center text-xs text-[#F8F9FA] mt-1">
             <BarChart3 className="w-3 h-3 mr-1" />
             All plans operational
           </div>
         </CardContent>
       </Card>
       
-      <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+      <Card className="bg-[#6C757D] text-white">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-purple-100">Active Coupons</CardTitle>
-          <Ticket className="h-5 w-5 text-purple-200" />
+          <CardTitle className="text-sm font-medium text-[#F8F9FA]">Active Coupons</CardTitle>
+          <Ticket className="h-5 w-5 text-[#F8F9FA]" />
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold">{coupons?.coupons?.length || 8}</div>
-          <div className="flex items-center text-xs text-purple-100 mt-1">
+          <div className="flex items-center text-xs text-[#F8F9FA] mt-1">
             <PieChart className="w-3 h-3 mr-1" />
             85% redemption rate
           </div>
         </CardContent>
       </Card>
       
-      <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+      <Card className="bg-[#FFC107] text-black">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-orange-100">Content Articles</CardTitle>
-          <FileText className="h-5 w-5 text-orange-200" />
+          <CardTitle className="text-sm font-medium text-black">Content Articles</CardTitle>
+          <FileText className="h-5 w-5 text-black" />
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold">{articles?.articles?.length || 24}</div>
-          <div className="flex items-center text-xs text-orange-100 mt-1">
+          <div className="flex items-center text-xs text-black mt-1">
             <Activity className="w-3 h-3 mr-1" />
             3 published today
           </div>
