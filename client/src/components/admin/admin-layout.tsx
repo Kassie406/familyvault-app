@@ -123,9 +123,9 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
       {/* Impersonation Banner */}
       <ImpersonationBanner />
       
-      <div className="min-h-screen bg-[#F8F9FA] flex">
+      <div className="app-shell">
         {/* Dark Sidebar */}
-      <div className="w-72 bg-[#1C1C1C] text-[#F8F9FA] flex flex-col">
+        <div className="sidebar">
         {/* Logo Header */}
         <div className="p-6 border-b border-[#2C2C2C]">
           <div className="flex items-center space-x-3">
@@ -194,62 +194,63 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
             </div>
           </button>
 
-          {/* Improved Admin Menu Portal */}
-          {isMenuOpen && (
-            <div 
-              ref={menuRef}
-              className="admin-menu-portal"
-              role="menu" 
-              aria-label="Admin menu"
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  setIsMenuOpen(false);
-                  triggerRef.current?.focus();
-                }
-              }}
-            >
-              <div className="adm-header">
-                <div className="adm-name">{user.user.name || user.user.username}</div>
-                <div className="adm-sub">{user.user.email || `${user.user.role}@familycirclesecure.com`}</div>
-              </div>
-              
-              <button 
-                className="adm-item" 
-                role="menuitem" 
-                onClick={() => { setIsMenuOpen(false); /* Handle profile navigation */ }}
-                data-testid="menu-profile"
-              >
-                <span>Profile</span>
-                <small>Account settings</small>
-              </button>
-              
-              <button 
-                className="adm-item" 
-                role="menuitem" 
-                onClick={() => { setIsMenuOpen(false); /* Handle settings navigation */ }}
-                data-testid="menu-settings"
-              >
-                <span>Settings</span>
-                <small>Preferences</small>
-              </button>
-
-              <div className="adm-sep" role="separator"></div>
-
-              <button 
-                className="adm-item danger" 
-                role="menuitem" 
-                onClick={handleLogout}
-                data-testid="menu-logout"
-              >
-                <span>Log out</span>
-              </button>
-            </div>
-          )}
         </div>
-      </div>
+        </div>
+
+        {/* Improved Admin Menu Portal - Portal to body to avoid clipping */}
+        {isMenuOpen && (
+          <div 
+            ref={menuRef}
+            className="admin-menu-portal"
+            role="menu" 
+            aria-label="Admin menu"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setIsMenuOpen(false);
+                triggerRef.current?.focus();
+              }
+            }}
+          >
+            <div className="adm-header">
+              <div className="adm-name">{user.user.name || user.user.username}</div>
+              <div className="adm-sub">{user.user.email || `${user.user.role}@familycirclesecure.com`}</div>
+            </div>
+            
+            <button 
+              className="adm-item" 
+              role="menuitem" 
+              onClick={() => { setIsMenuOpen(false); /* Handle profile navigation */ }}
+              data-testid="menu-profile"
+            >
+              <span>Profile</span>
+              <small>Account settings</small>
+            </button>
+            
+            <button 
+              className="adm-item" 
+              role="menuitem" 
+              onClick={() => { setIsMenuOpen(false); /* Handle settings navigation */ }}
+              data-testid="menu-settings"
+            >
+              <span>Settings</span>
+              <small>Preferences</small>
+            </button>
+
+            <div className="adm-sep" role="separator"></div>
+
+            <button 
+              className="adm-item danger" 
+              role="menuitem" 
+              onClick={handleLogout}
+              data-testid="menu-logout"
+            >
+              <span>Log out</span>
+            </button>
+          </div>
+        )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="main">
         {/* Top Bar */}
         <header className="bg-white border-b border-gray-200 shadow-sm">
           <div className="px-6 py-4">
@@ -290,14 +291,14 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 p-6 bg-gray-50 overflow-auto">
+        <main className="flex-1 p-6 bg-gray-50">
           {children}
         </main>
+      </div>
       </div>
 
       {/* Global Search Modal */}
       <GlobalSearch isOpen={isSearchOpen} onOpenChange={setIsSearchOpen} />
-      </div>
     </>
   );
 }
