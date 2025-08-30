@@ -1,0 +1,232 @@
+here’s a drop-in Bulk Select + Actions setup for your Content (Articles) list, matching the style you used for Coupons.
+
+✅ What you get
+
+Header “select all” checkbox + per-row checkboxes
+
+Smart bulk toolbar that appears when items are selected
+
+Actions: Publish, Unpublish, Archive, Export CSV
+
+Row highlighting, tri-state header checkbox, and ARIA labels
+
+1) HTML — add a checkbox column + bulk bar
+
+Update your table header and each row (add the first <th> and <td>). Keep your existing columns/actions as-is.
+
+<!-- Bulk toolbar (place above the table) -->
+<div id="articles-bulkbar" class="bulk-bar" hidden>
+  <div class="bulk-left"><strong id="articles-bulkcount">0 selected</strong></div>
+  <div class="bulk-right">
+    <button class="btn ghost" id="bulk-publish">Publish</button>
+    <button class="btn ghost" id="bulk-unpublish">Unpublish</button>
+    <button class="btn ghost danger" id="bulk-archive">Archive</button>
+    <div class="divider"></div>
+    <button class="btn ghost" id="bulk-export">Export CSV</button>
+    <button class="btn ghost" id="bulk-clear">Clear</button>
+  </div>
+</div>
+
+<!-- Table (add the first column for checkboxes) -->
+<table class="table" id="articles-table">
+  <thead>
+    <tr>
+      <th style="width:36px">
+        <input type="checkbox" id="articles-selectall" aria-label="Select all articles">
+      </th>
+      <th>Title</th>
+      <th>Menu Category</th>
+      <th>Tenant</th>
+      <th>Author</th>
+      <th>Published</th>
+      <th>Status</th>
+      <th class="col-actions">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Example row (add data-id and first cell) -->
+    <tr
+      data-id="a_001"
+      data-tenant="PUBLIC"
+      data-category="Disaster Planning"
+      data-status="published"
+      data-title="Family Evacuation Checklist"
+      data-author="Sarah Martinez"
+    >
+      <td><input type="checkbox" class="row-check" aria-label="Select ‘Family Evacuation Checklist’"></td>
+      <td><strong>Family Evacuation Checklist</strong></td>
+      <td><span class="badge badge-menu">Disaster Planning</span></td>
+      <td><span class="badge badge-tenant-public">Public</span></td>
+      <td>Sarah Martinez</td>
+      <td>2025-08-20 10:00</td>
+      <td><span class="badge badge-status-published">Published</span></td>
+      <td class="col-actions"> … your row actions … </td>
+    </tr>
+    <!-- Repeat for other rows… -->
+  </tbody>
+</table>
+
+2) CSS — toolbar + selection styling
+/* Checkboxes */
+#articles-table input[type="checkbox"]{ width:16px; height:16px; cursor:pointer }
+
+/* Bulk bar */
+.bulk-bar{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  background:#fff; border:1px solid #E5EAF2; border-radius:12px; padding:10px 12px; margin:10px 0;
+  box-shadow:0 2px 10px rgba(16,24,40,.06)
+}
+.bulk-right{ display:flex; gap:8px; align-items:center }
+.bulk-right .divider{ width:1px; height:20px; background:#E5EAF2 }
+.btn.danger{ border-color:#F3C3C3; color:#B42318 } .btn.danger:hover{ background:#FEECEC }
+
+/* Selected row highlight */
+tr.is-selected{ background:#F7FAFF }
+
+3) JS — selection, tri-state, bulk actions
+<script>
+(function(){
+  const table = document.getElementById('articles-table');
+  const selectAll = document.getElementById('articles-selectall');
+  const bulkBar = document.getElementById('articles-bulkbar');
+  const bulkCount = document.getElementById('articles-bulkcount');
+
+  const btnPublish   = document.getElementById('bulk-publish');
+  const btnUnpublish = document.getElementById('bulk-unpublish');
+  const btnArchive   = document.getElementById('bulk-archive');
+  const btnExport    = document.getElementById('bulk-export');
+  const btnClear     = document.getElementById('bulk-clear');
+
+  const checks = () => [...table.querySelectorAll('tbody .row-check')];
+  const rows   = () => [...table.querySelectorAll('tbody tr[data-id]')];
+
+  function updateUI(){
+    const selected = checks().filter(c => c.checked).map(c => c.closest('tr'));
+    const n = selected.length;
+    bulkBar.hidden = (n === 0);
+    bulkCount.textContent = `${n} selected`;
+
+    rows().forEach(r => r.classList.toggle('is-selected', r.querySelector('.row-check')?.checked));
+
+    const total = checks().length, checked = n;
+    selectAll.indeterminate = (checked > 0 && checked < total);
+    selectAll.checked = (checked === total && total > 0);
+  }
+
+  // Master checkbox
+  selectAll.addEventListener('input', () => {
+    const val = selectAll.checked;
+    checks().forEach(c => c.checked = val);
+    updateUI();
+  });
+
+  // Per-row
+  table.addEventListener('input', (e)=>{
+    if (e.target.classList.contains('row-check')) updateUI();
+  });
+
+  // Clear
+  btnClear.addEventListener('click', ()=>{
+    checks().forEach(c => c.checked = false);
+    updateUI();
+  });
+
+  // Helpers
+  const selectedIds = () => checks().filter(c=>c.checked).map(c=>c.closest('tr').dataset.id);
+
+  async function confirmAndApply(label, api, mutate){
+    const ids = selectedIds();
+    if (!ids.length) return;
+    if (!confirm(`${label} ${ids.length} article(s)?`)) return;
+
+    // Call your API (replace with real endpoints)
+    // await fetch(api, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ids }) });
+
+    // Mutate UI (client-side demo)
+    mutate(ids);
+
+    checks().forEach(c=>c.checked=false);
+    updateUI();
+  }
+
+  // Mutators
+  function setRowStatus(id, statusText, badgeClass, publishedAt){
+    const r = table.querySelector(`tr[data-id="${id}"]`);
+    if(!r) return;
+    r.dataset.status = statusText.toLowerCase();
+    const statusCell = r.children[r.children.length-2]; // second from end
+    const badge = statusCell.querySelector('.badge') || document.createElement('span');
+    badge.className = `badge ${badgeClass}`;
+    badge.textContent = statusText;
+    if(!statusCell.contains(badge)) statusCell.appendChild(badge);
+    // Published datetime column (index depends on your table; here it’s the 6th col)
+    const pubCell = r.children[5];
+    pubCell.textContent = publishedAt ?? (statusText==='Published' ? new Date().toISOString().slice(0,16).replace('T',' ') : '—');
+  }
+
+  // Wire buttons
+  btnPublish.addEventListener('click', ()=>confirmAndApply(
+    'Publish',
+    '/api/admin/content/bulk-publish',
+    (ids)=>ids.forEach(id=>setRowStatus(id,'Published','badge-status-published'))
+  ));
+
+  btnUnpublish.addEventListener('click', ()=>confirmAndApply(
+    'Unpublish',
+    '/api/admin/content/bulk-unpublish',
+    (ids)=>ids.forEach(id=>setRowStatus(id,'Draft','badge-status-draft','—'))
+  ));
+
+  btnArchive.addEventListener('click', ()=>confirmAndApply(
+    'Archive',
+    '/api/admin/content/bulk-archive',
+    (ids)=>ids.forEach(id=>{
+      const r = table.querySelector(`tr[data-id="${id}"]`);
+      if(r) r.remove();
+    })
+  ));
+
+  // Export CSV of selected
+  btnExport.addEventListener('click', ()=>{
+    const ids = selectedIds();
+    if(!ids.length) return;
+    const headers = ['id','title','menu_category','tenant','author','published_at','status'];
+    const csvRows = [headers.join(',')];
+    ids.forEach(id=>{
+      const r = table.querySelector(`tr[data-id="${id}"]`);
+      const title = (r.dataset.title||'').replace(/,/g,'');
+      const category = (r.dataset.category||'').replace(/,/g,'');
+      const tenant = r.dataset.tenant||'';
+      const author = (r.dataset.author||'').replace(/,/g,'');
+      const publishedAt = r.children[5].textContent.trim();
+      const status = r.dataset.status||'';
+      csvRows.push([id,title,category,tenant,author,publishedAt,status].join(','));
+    });
+    const blob = new Blob([csvRows.join('\n')], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `articles_export_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  });
+
+  updateUI();
+})();
+</script>
+
+4) Suggested backend endpoints
+
+POST /api/admin/content/bulk-publish { ids: string[] }
+
+POST /api/admin/content/bulk-unpublish { ids: string[] }
+
+POST /api/admin/content/bulk-archive { ids: string[] }
+
+Return per-ID results so you can reflect failures gracefully (e.g., permission or validation).
+
+5) Quick legal/ops touches
+
+Audit each bulk action (actor, ids, before→after status, timestamp).
+
+Honor scheduled items: if you bulk-publish an article with publish_at in the future, set it to scheduled instead of published.
+
+For PUBLIC tenant, publishing should trigger a cache purge / revalidate (if you’re using ISR/CF).

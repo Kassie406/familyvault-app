@@ -576,6 +576,89 @@ app.get('/api/public/menu-categories', async (req: Request, res: Response) => {
   }
 });
 
+// Bulk content operations endpoints
+app.post('/api/admin/content/bulk-publish', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'Invalid or empty article IDs array' });
+    }
+
+    const results = [];
+    for (const id of ids) {
+      try {
+        const updated = await storage.updateArticle(id, { 
+          published: true, 
+          status: 'published',
+          publishAt: new Date()
+        });
+        results.push({ id, success: !!updated });
+      } catch (error) {
+        results.push({ id, success: false, error: error.message });
+      }
+    }
+
+    res.json({ results, totalProcessed: ids.length });
+  } catch (error) {
+    console.error('Bulk publish error:', error);
+    res.status(500).json({ error: 'Failed to bulk publish articles' });
+  }
+});
+
+app.post('/api/admin/content/bulk-unpublish', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'Invalid or empty article IDs array' });
+    }
+
+    const results = [];
+    for (const id of ids) {
+      try {
+        const updated = await storage.updateArticle(id, { 
+          published: false, 
+          status: 'draft'
+        });
+        results.push({ id, success: !!updated });
+      } catch (error) {
+        results.push({ id, success: false, error: error.message });
+      }
+    }
+
+    res.json({ results, totalProcessed: ids.length });
+  } catch (error) {
+    console.error('Bulk unpublish error:', error);
+    res.status(500).json({ error: 'Failed to bulk unpublish articles' });
+  }
+});
+
+app.post('/api/admin/content/bulk-archive', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'Invalid or empty article IDs array' });
+    }
+
+    const results = [];
+    for (const id of ids) {
+      try {
+        const updated = await storage.updateArticle(id, { 
+          status: 'archived',
+          published: false
+        });
+        results.push({ id, success: !!updated });
+      } catch (error) {
+        results.push({ id, success: false, error: error.message });
+      }
+    }
+
+    res.json({ results, totalProcessed: ids.length });
+  } catch (error) {
+    console.error('Bulk archive error:', error);
+    res.status(500).json({ error: 'Failed to bulk archive articles' });
+  }
+});
+
 app.get('/api/admin/users', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     // TODO: Add pagination and filtering
