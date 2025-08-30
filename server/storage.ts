@@ -11,8 +11,9 @@ import {
   type AuditLog, type InsertAuditLog,
   type AdminSession, type InsertAdminSession,
   type SecuritySetting, type InsertSecuritySetting,
+  type ImpersonationSession, type InsertImpersonationSession,
   users, organizations, plans, coupons, articles, consentEvents, auditLogs,
-  adminSessions, securitySettings
+  adminSessions, securitySettings, impersonationSessions
 } from "@shared/schema";
 
 // Database connection
@@ -81,6 +82,15 @@ export interface IStorage {
   // Security settings methods
   getSecuritySetting(key: string): Promise<SecuritySetting | undefined>;
   setSecuritySetting(key: string, value: string, updatedBy: string): Promise<SecuritySetting>;
+
+  // Impersonation methods
+  getUserById(id: string): Promise<User | undefined>;
+  getActiveImpersonationSession(actorId: string): Promise<ImpersonationSession | undefined>;
+  createImpersonationSession(session: InsertImpersonationSession): Promise<ImpersonationSession>;
+  getImpersonationSession(sessionId: string): Promise<ImpersonationSession | undefined>;
+  endImpersonationSession(sessionId: string, status: string, endReason: string): Promise<void>;
+  getRecentImpersonationSessions(limit: number): Promise<ImpersonationSession[]>;
+  getExpiredImpersonationSessions(): Promise<ImpersonationSession[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -359,6 +369,51 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return result[0];
     }
+  }
+
+  // Impersonation methods
+  async getUserById(id: string): Promise<User | undefined> {
+    return this.getUser(id); // Use existing getUser method
+  }
+
+  async getActiveImpersonationSession(actorId: string): Promise<ImpersonationSession | undefined> {
+    const result = await db.select().from(impersonationSessions)
+      .where(sql`${impersonationSessions.actorId} = ${actorId} AND ${impersonationSessions.status} = 'active'`)
+      .limit(1);
+    return result[0];
+  }
+
+  async createImpersonationSession(session: InsertImpersonationSession): Promise<ImpersonationSession> {
+    const result = await db.insert(impersonationSessions).values(session).returning();
+    return result[0];
+  }
+
+  async getImpersonationSession(sessionId: string): Promise<ImpersonationSession | undefined> {
+    const result = await db.select().from(impersonationSessions)
+      .where(eq(impersonationSessions.id, sessionId))
+      .limit(1);
+    return result[0];
+  }
+
+  async endImpersonationSession(sessionId: string, status: string, endReason: string): Promise<void> {
+    await db.update(impersonationSessions)
+      .set({ 
+        status: status as any,
+        endedAt: new Date(),
+        endReason 
+      })
+      .where(eq(impersonationSessions.id, sessionId));
+  }
+
+  async getRecentImpersonationSessions(limit: number): Promise<ImpersonationSession[]> {
+    return await db.select().from(impersonationSessions)
+      .orderBy(desc(impersonationSessions.createdAt))
+      .limit(limit);
+  }
+
+  async getExpiredImpersonationSessions(): Promise<ImpersonationSession[]> {
+    return await db.select().from(impersonationSessions)
+      .where(sql`${impersonationSessions.status} = 'active' AND ${impersonationSessions.expiresAt} < NOW()`);
   }
 }
 

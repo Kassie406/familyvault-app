@@ -76,7 +76,8 @@ export default function MarketingPromotions() {
     queryFn: async () => {
       const response = await fetch('/api/admin/promotions');
       if (!response.ok) throw new Error('Failed to fetch promotions');
-      return response.json();
+      const data = await response.json();
+      return data.promotions || [];
     }
   });
 

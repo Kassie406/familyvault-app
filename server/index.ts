@@ -25,6 +25,7 @@ import { smsService } from "./sms-service";
 import { eq, desc, and } from "drizzle-orm";
 import { incidents, oncallTargets } from "@shared/schema";
 import { db as dbConnection } from "./db";
+import { startImpersonation, endImpersonation, getImpersonationStatus, getRecentImpersonationSessions, parseImpersonationJWT, enforceImpersonationDenylist } from "./impersonation";
 
 const app = express();
 
@@ -102,6 +103,10 @@ app.use(CSRFService.errorHandler());
 
 // Row-Level Security tenant isolation middleware (applies to all authenticated requests)
 app.use(RLSService.tenantMiddleware());
+
+// Impersonation JWT parsing and denylist enforcement middleware
+app.use(parseImpersonationJWT);
+app.use(enforceImpersonationDenylist);
 
 // Enhanced subdomain detection middleware
 app.use((req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -1909,103 +1914,21 @@ app.patch('/api/admin/feature-flags/:id', requireAuth('ADMIN'), async (req: Auth
 
 // Admin Impersonation API endpoints
 app.post('/api/admin/impersonation/start', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { userId, reason, ttlMinutes = 20 } = req.body;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-    
-    // TODO: Use impersonation service
-    const session = {
-      id: `imp_${Date.now()}`,
-      adminId: req.user!.id,
-      targetId: userId,
-      reason,
-      startedAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + ttlMinutes * 60 * 1000).toISOString(),
-    };
-    
-    // Set impersonation cookie
-    res.cookie('impersonation', session.id, { 
-      httpOnly: true, 
-      sameSite: 'lax', 
-      secure: process.env.NODE_ENV === 'production' 
-    });
-    
-    // Log audit with tamper evidence
-    await AuditService.logAdminAction(
-      'impersonation:started',
-      'user',
-      userId,
-      null,
-      { reason, expiresAt: session.expiresAt, adminId: req.user!.id },
-      getAuditContext(req)
-    );
-    
-    res.json({ 
-      success: true, 
-      sessionId: session.id, 
-      expiresAt: session.expiresAt 
-    });
-  } catch (error) {
-    console.error('Start impersonation error:', error);
-    res.status(500).json({ error: 'Failed to start impersonation' });
-  }
+  await startImpersonation(req, res);
 });
 
 app.post('/api/admin/impersonation/stop', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const sessionId = req.cookies.impersonation;
-    const { reason = 'ended-by-admin' } = req.body;
-    
-    if (sessionId) {
-      // TODO: Stop impersonation session
-      console.log('Stopping impersonation session:', sessionId);
-    }
-    
-    res.clearCookie('impersonation');
-    
-    // Log audit with tamper evidence
-    await AuditService.logAdminAction(
-      'impersonation:stopped',
-      'user',
-      req.user!.id,
-      null,
-      { reason, sessionId },
-      getAuditContext(req)
-    );
-    
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Stop impersonation error:', error);
-    res.status(500).json({ error: 'Failed to stop impersonation' });
-  }
+  await endImpersonation(req, res);
 });
 
 // Impersonation status endpoint for banner
 app.get('/api/admin/impersonation/status', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const sessionId = req.cookies?.impersonation;
-    if (!sessionId) {
-      return res.json({ active: false });
-    }
-    
-    // TODO: Query actual session from database
-    // For now, mock an active session
-    const mockSession = {
-      active: true,
-      sessionId,
-      targetId: 'user-12345',
-      targetEmail: 'customer@example.com',
-      expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15 minutes from now
-    };
-    
-    res.json(mockSession);
-  } catch (error) {
-    console.error('Get impersonation status error:', error);
-    res.status(500).json({ error: 'Failed to get impersonation status' });
-  }
+  await getImpersonationStatus(req, res);
+});
+
+// Recent impersonation sessions for audit
+app.get('/api/admin/impersonation/sessions', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  await getRecentImpersonationSessions(req, res);
 });
 
 // Webhooks API endpoints

@@ -2023,3 +2023,132 @@ legend {
 .muted {
   color: #64748b;
 }
+
+/* Admin Impersonation Manager Component Styling */
+#impersonation-manager {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  max-width: 800px;
+}
+
+#impersonation-manager .component-root {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+#impersonation-manager .session-alert {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+#impersonation-manager .security-notice {
+  background: #dbeafe;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+#impersonation-manager .form-section {
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+#impersonation-manager .session-item {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 12px;
+  transition: all 0.2s ease;
+}
+
+#impersonation-manager .session-item:hover {
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+}
+
+#impersonation-manager .guardrail-section {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 16px;
+}
+
+#impersonation-manager .protection-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  color: #065f46;
+}
+
+#impersonation-manager .blocked-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  color: #991b1b;
+}
+
+#impersonation-manager .status-active {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+#impersonation-manager .status-completed {
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+#impersonation-manager .status-expired {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+#impersonation-manager .technical-detail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  color: #374151;
+  font-size: 12px;
+}
+
+#impersonation-manager .footer-info {
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  padding: 12px 16px;
+  border-radius: 0 0 6px 6px;
+}
+
+#impersonation-manager .duration-selector button {
+  transition: all 0.2s ease;
+}
+
+#impersonation-manager .start-button {
+  background: #d97706 !important;
+  color: #ffffff !important;
+  transition: all 0.2s ease;
+}
+
+#impersonation-manager .start-button:hover:not(:disabled) {
+  background: #b45309 !important;
+}
+
+#impersonation-manager .stop-button {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  transition: all 0.2s ease;
+}
+
+#impersonation-manager .stop-button:hover:not(:disabled) {
+  background: #b91c1c !important;
+}

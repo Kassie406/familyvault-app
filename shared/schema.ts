@@ -302,6 +302,25 @@ export const marketingPromotions = pgTable("marketing_promotions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Admin Impersonation Sessions - Security-sensitive table for tracking user impersonation
+export const impersonationStatusEnum = pgEnum("impersonation_status", ["active", "completed", "expired", "terminated"]);
+
+export const impersonationSessions = pgTable("impersonation_sessions", {
+  id: varchar("id").primaryKey(), // Will be 'imp_' + UUID
+  actorId: varchar("actor_id").notNull(), // Admin who started the session
+  targetId: varchar("target_id").notNull(), // User being impersonated
+  businessReason: text("business_reason").notNull(), // Required justification
+  status: impersonationStatusEnum("status").default("active").notNull(),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  endedAt: timestamp("ended_at"),
+  ip: text("ip"), // Actor's IP address
+  deny: json("deny").default([]).notNull(), // Blocked operations
+  meta: json("meta"), // Additional context (e.g., ticket_id)
+  endReason: text("end_reason"), // manual, expired, terminated
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -423,6 +442,20 @@ export const insertMarketingPromotionSchema = createInsertSchema(marketingPromot
   createdBy: true,
 });
 
+export const insertImpersonationSessionSchema = createInsertSchema(impersonationSessions).pick({
+  id: true,
+  actorId: true,
+  targetId: true,
+  businessReason: true,
+  status: true,
+  expiresAt: true,
+  endedAt: true,
+  ip: true,
+  deny: true,
+  meta: true,
+  endReason: true,
+});
+
 // Security schema inserts
 export const insertUserDeviceSchema = createInsertSchema(userDevices).pick({
   userId: true,
@@ -533,3 +566,6 @@ export type FileSignature = typeof fileSignatures.$inferSelect;
 
 export type InsertMarketingPromotion = z.infer<typeof insertMarketingPromotionSchema>;
 export type MarketingPromotion = typeof marketingPromotions.$inferSelect;
+
+export type InsertImpersonationSession = z.infer<typeof insertImpersonationSessionSchema>;
+export type ImpersonationSession = typeof impersonationSessions.$inferSelect;
