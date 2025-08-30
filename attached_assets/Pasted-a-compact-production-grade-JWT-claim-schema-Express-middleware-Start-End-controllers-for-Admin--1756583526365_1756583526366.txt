@@ -1,0 +1,307 @@
+a compact, production-grade JWT claim schema + Express middleware + Start/End controllers for Admin Impersonation. It’s written in plain Node/Express with jsonwebtoken; storage calls are sketched so you can wire to your DB/Redis.
+
+0) Install
+npm i express jsonwebtoken uuid zod
+# (optional) redis, date-fns, etc.
+
+1) Claim schema (JWT carried by the impersonated session)
+// impersonation.claims.ts
+export type ImpClaims = {
+  /** subject being impersonated (the target user id) */
+  sub: string;
+  /** fixed flag to indicate impersonation JWT */
+  imp: true;
+  /** admin (actor) who started the session */
+  act: string;
+  /** stable id of the impersonation session */
+  sid: string;
+  /** deny list of operation codes enforced server-side */
+  deny: string[];
+  /** issued-at / expiry handled by JWT (iat, exp) */
+};
+
+
+Recommended JWT header/alg: HS256 (or RS256 if you have a KMS/HSM).
+Token lifetime = duration minutes (10/20/30). Never refresh.
+
+2) Config & helpers
+// config.ts
+export const IMP_SECRET = process.env.IMP_SECRET!; // keep in KMS/secret store
+export const IMP_MAX_MINUTES = 30;
+export const IMP_DEFAULT_MINUTES = 10;
+export const DENY_DEFAULT = [
+  'password.change','mfa.reset','user.delete','role.update','payment.method.update'
+];
+
+// A single place to map routes -> operation codes
+export const opMap: Array<{ test: (req: any) => boolean; op: string }> = [
+  { test: req => req.method==='POST' && /^\/api\/users\/[^/]+\/password$/.test(req.path), op: 'password.change' },
+  { test: req => req.method==='POST' && /^\/api\/users\/[^/]+\/mfa\/reset$/.test(req.path), op: 'mfa.reset' },
+  { test: req => req.method==='DELETE' && /^\/api\/users\/[^/]+$/.test(req.path), op: 'user.delete' },
+  { test: req => req.method==='PATCH' && /^\/api\/users\/[^/]+\/role$/.test(req.path), op: 'role.update' },
+  { test: req => req.method==='POST' && /^\/api\/billing\/payment-methods$/.test(req.path), op: 'payment.method.update' },
+  // add more as needed…
+];
+export function classifyOp(req: any): string | null {
+  const hit = opMap.find(m => m.test(req));
+  return hit ? hit.op : null;
+}
+
+3) Storage ports (you implement)
+// ports.ts (pseudocode signatures; implement with DB/Redis)
+export type ImpRow = {
+  id: string, actorId: string, targetId: string, reason: string,
+  status: 'active'|'completed'|'expired'|'terminated',
+  startedAt: Date, expiresAt: Date, endedAt?: Date, ip: string,
+  deny: string[], meta?: Record<string,unknown>,
+};
+
+export const ImpDB = {
+  create: async (row: Omit<ImpRow,'status'|'startedAt'> & {expiresAt: Date}) => {/*...*/},
+  get:    async (id: string): Promise<ImpRow|null> => {/*...*/},
+  end:    async (id: string, status: ImpRow['status'], endedAt: Date) => {/*...*/},
+};
+
+export const TokenBlocklist = {
+  /** block sid until exp (store TTL) */
+  put: async (sid: string, expUnix: number) => {/*...*/},
+  has: async (sid: string) => {/*...*/},
+};
+
+4) Start/End controllers
+// impersonation.controllers.ts
+import { z } from 'zod';
+import jwt from 'jsonwebtoken';
+import { randomUUID } from 'crypto';
+import { IMP_SECRET, IMP_MAX_MINUTES, DENY_DEFAULT } from './config';
+import { ImpDB, TokenBlocklist } from './ports';
+
+const StartSchema = z.object({
+  target_user_id: z.string().min(1),
+  business_reason: z.string().min(20),   // force meaningful reason
+  duration_minutes: z.number().int().min(5).max(IMP_MAX_MINUTES)
+});
+
+export async function startImpersonation(req: any, res: any) {
+  // 1) Require admin auth & permission (replace with your RBAC)
+  const admin = req.user; // from your normal admin auth middleware
+  if (!admin || !admin.permissions?.includes('support.impersonate'))
+    return res.status(403).send('Forbidden');
+
+  // 2) Validate body
+  const parse = StartSchema.safeParse(req.body);
+  if (!parse.success) return res.status(400).json(parse.error.flatten());
+
+  const { target_user_id, business_reason, duration_minutes } = parse.data;
+
+  // Optional: prevent impersonating super-admins / staff / self
+  if (target_user_id === admin.id) return res.status(400).send('Cannot impersonate yourself');
+
+  // 3) Prepare session row
+  const sid = 'imp_' + randomUUID();
+  const now = new Date();
+  const exp = new Date(now.getTime() + duration_minutes * 60_000);
+
+  const row = await ImpDB.create({
+    id: sid,
+    actorId: admin.id,
+    targetId: target_user_id,
+    reason: business_reason,
+    status: 'active',
+    startedAt: now,
+    expiresAt: exp,
+    ip: req.ip,
+    deny: DENY_DEFAULT
+  });
+
+  // 4) Sign impersonation JWT
+  const token = jwt.sign(
+    {
+      sub: target_user_id,
+      imp: true,
+      act: admin.id,
+      sid,
+      deny: DENY_DEFAULT
+    },
+    IMP_SECRET,
+    { algorithm: 'HS256', expiresIn: `${duration_minutes}m` }
+  );
+
+  // 5) Audit event (pseudo)
+  req.audit?.log('impersonation.started', {
+    sid, actor: admin.id, target: target_user_id, reason: business_reason, duration: duration_minutes
+  });
+
+  return res.status(201).json({
+    session_id: sid,
+    token,
+    expires_at: exp.toISOString(),
+    deny: DENY_DEFAULT
+  });
+}
+
+export async function endImpersonation(req: any, res: any) {
+  const admin = req.user;
+  if (!admin) return res.status(403).send('Forbidden');
+
+  const sid = String(req.body?.session_id || '');
+  if (!sid) return res.status(400).send('Missing session_id');
+
+  const row = await ImpDB.get(sid);
+  if (!row) return res.status(404).send('Not found');
+  if (row.status !== 'active') return res.status(200).json({ ok: true });
+
+  // block tokens for this sid until original expiry
+  const expUnix = Math.floor(row.expiresAt.getTime() / 1000);
+  await TokenBlocklist.put(sid, expUnix);
+
+  await ImpDB.end(sid, 'completed', new Date());
+
+  req.audit?.log('impersonation.ended', { sid, by: admin.id, reason: req.body?.reason || 'manual' });
+
+  return res.json({ ok: true });
+}
+
+5) Middleware
+a) Parse impersonation token (for user-facing APIs while impersonating)
+// impersonation.middleware.ts
+import jwt from 'jsonwebtoken';
+import { IMP_SECRET } from './config';
+import { TokenBlocklist } from './ports';
+
+export async function parseImpersonationJWT(req: any, res: any, next: any) {
+  const hdr = req.headers.authorization || '';
+  if (!hdr.startsWith('Bearer ')) return next(); // not impersonating
+  const token = hdr.slice(7);
+
+  try {
+    const claims = jwt.verify(token, IMP_SECRET) as any;
+
+    // must be impersonation token
+    if (!claims?.imp || !claims?.sid || !claims?.sub) return res.status(401).send('Invalid');
+
+    // sid not blocked / expired early
+    if (await TokenBlocklist.has(claims.sid)) return res.status(401).send('Ended');
+
+    // attach context for downstream handlers
+    req.impersonation = {
+      sid: claims.sid as string,
+      actorId: claims.act as string,
+      targetId: claims.sub as string,
+      deny: (claims.deny as string[]) || [],
+      exp: claims.exp as number
+    };
+
+    // Set "currentUser" to the **target** (the app should treat as that user)
+    req.currentUser = { id: claims.sub, impersonated: true };
+
+    return next();
+  } catch (e) {
+    return res.status(401).send('Invalid/expired');
+  }
+}
+
+b) Enforce denylist for dangerous ops (server-side gate)
+import { classifyOp } from './config';
+
+export function enforceImpersonationDenylist(req: any, res: any, next: any) {
+  if (!req.impersonation) return next();
+
+  const op = classifyOp(req);
+  if (op && req.impersonation.deny.includes(op)) {
+    // Audit the blocked attempt
+    req.audit?.log('impersonation.request', {
+      sid: req.impersonation.sid, op, allowed: false, path: req.path, method: req.method
+    });
+    return res.status(403).json({ error: 'IMPERSONATION_BLOCKED', op });
+  }
+
+  // Log allowed request (optional noise control; sample at <5%)
+  req.audit?.log('impersonation.request', {
+    sid: req.impersonation.sid, op: op || 'other', allowed: true, path: req.path, method: req.method
+  });
+
+  next();
+}
+
+
+Place parseImpersonationJWT before your app routes, and enforceImpersonationDenylist before the handlers you want protected (ideally global).
+
+6) Wiring in Express
+import express from 'express';
+import { startImpersonation, endImpersonation } from './impersonation.controllers';
+import { parseImpersonationJWT, enforceImpersonationDenylist } from './impersonation.middleware';
+
+const app = express();
+app.use(express.json());
+
+// your normal admin auth middleware
+app.use('/api/impersonation', requireAdminAuth);
+
+// start/end endpoints
+app.post('/api/impersonation/start', startImpersonation);
+app.post('/api/impersonation/end', endImpersonation);
+
+// For *all* user-facing APIs that could be called during impersonation:
+app.use(parseImpersonationJWT);
+app.use(enforceImpersonationDenylist);
+
+// …your API routes (they can now read req.currentUser & req.impersonation)
+
+7) Minimal SQL (or NoSQL) model
+CREATE TABLE impersonation_sessions (
+  id           varchar(64) PRIMARY KEY,
+  actor_id     varchar(64) NOT NULL,
+  target_id    varchar(64) NOT NULL,
+  business_reason text      NOT NULL,
+  status       varchar(16)  NOT NULL, -- active|completed|expired|terminated
+  started_at   timestamptz  NOT NULL,
+  expires_at   timestamptz  NOT NULL,
+  ended_at     timestamptz,
+  ip           inet,
+  deny         jsonb        NOT NULL DEFAULT '[]'::jsonb,
+  meta         jsonb
+);
+CREATE INDEX ON impersonation_sessions (actor_id);
+CREATE INDEX ON impersonation_sessions (target_id);
+CREATE INDEX ON impersonation_sessions (status);
+
+
+A Redis SETEX sid ttl works well for the blocklist.
+
+8) cURL sanity checks
+
+Start
+
+curl -X POST https://console.familycirclesecure.com/api/impersonation/start \
+  -H "Authorization: Bearer <ADMIN_SESSION_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"target_user_id":"user-12345","business_reason":"Customer support ticket #12345 - unable to access billing","duration_minutes":10}'
+
+
+Use token
+
+curl https://console.familycirclesecure.com/api/users/me \
+  -H "Authorization: Bearer <IMPERSONATION_JWT>"
+
+
+End
+
+curl -X POST https://console.familycirclesecure.com/api/impersonation/end \
+  -H "Authorization: Bearer <ADMIN_SESSION_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"session_id":"imp_01H...","reason":"manual"}'
+
+9) Security & audit checklist (quick)
+
+Store token in memory on the client (never localStorage).
+
+Put sid into every audit record for correlation.
+
+Auto-expire: background job marks sessions expired and blocklists sid.
+
+Optional 2nd-approver for staff/VIP targets.
+
+Notify target user (email) that a support session viewed their account (optional; good for transparency).
+
+Display sticky banner during impersonation and on every page that reads the token.

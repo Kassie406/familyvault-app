@@ -1496,6 +1496,130 @@ app.get('/api/marketing/active-popup', async (req: Request, res: Response) => {
   }
 });
 
+// Admin promotion management endpoints
+app.get('/api/admin/promotions', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Sample promotions data - in production, this would come from database
+    const promotions = [
+      {
+        id: 'promo-1',
+        type: 'banner',
+        title: 'Winter Security Sale',
+        content: {
+          headline: 'Get 50% off Enterprise Security',
+          sub: 'Limited time offer - ends March 1st',
+          cta: { label: 'Claim Discount', href: '/pricing?promo=WINTER50' }
+        },
+        couponCode: 'WINTER50',
+        targets: {
+          tenants: ['PUBLIC', 'FAMILY'],
+          pages: ['/pricing', '/features'],
+          segments: ['enterprise-prospects', 'existing-customers']
+        },
+        schedule: {
+          start: '2025-01-15T00:00:00Z',
+          end: '2025-03-01T23:59:59Z',
+          tz: 'America/New_York'
+        },
+        status: 'active',
+        paused: false,
+        variants: [
+          { id: 'A', weight: 50, content: { headline: 'Get 50% off Enterprise Security' } },
+          { id: 'B', weight: 50, content: { headline: 'Save 50% on Enterprise Plans' } }
+        ],
+        metrics: {
+          impressions: 15420,
+          clicks: 892,
+          conversions: 47,
+          updatedAt: '2025-01-29T18:30:00Z'
+        },
+        createdBy: req.user!.id,
+        createdAt: '2025-01-15T10:00:00Z',
+        updatedAt: '2025-01-29T18:30:00Z'
+      },
+      {
+        id: 'promo-2',
+        type: 'popup',
+        title: 'Family Security Assessment',
+        content: {
+          headline: 'Free Security Assessment',
+          sub: 'See how secure your family documents are',
+          cta: { label: 'Start Assessment', href: '/assessment' }
+        },
+        couponCode: null,
+        targets: {
+          tenants: ['PUBLIC'],
+          pages: ['/'],
+          segments: ['new-visitors']
+        },
+        schedule: {
+          start: '2025-02-01T00:00:00Z',
+          end: '2025-12-31T23:59:59Z',
+          tz: 'UTC'
+        },
+        status: 'scheduled',
+        paused: false,
+        variants: [],
+        metrics: {
+          impressions: 0,
+          clicks: 0,
+          conversions: 0,
+          updatedAt: null
+        },
+        createdBy: req.user!.id,
+        createdAt: '2025-01-25T14:00:00Z',
+        updatedAt: '2025-01-25T14:00:00Z'
+      }
+    ];
+    
+    res.json({ promotions });
+  } catch (error) {
+    console.error('Failed to get promotions:', error);
+    res.status(500).json({ error: 'Failed to get promotions' });
+  }
+});
+
+app.post('/api/admin/promotions', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const promotionData = {
+      ...req.body,
+      createdBy: req.user!.id,
+      id: crypto.randomUUID()
+    };
+    
+    // TODO: Store in database using storage.createPromotion(promotionData)
+    res.json({ promotion: promotionData, message: 'Promotion created successfully' });
+  } catch (error) {
+    console.error('Failed to create promotion:', error);
+    res.status(500).json({ error: 'Failed to create promotion' });
+  }
+});
+
+app.patch('/api/admin/promotions/:id', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    // TODO: Update in database using storage.updatePromotion(id, updates)
+    res.json({ promotion: { id, ...updates }, message: 'Promotion updated successfully' });
+  } catch (error) {
+    console.error('Failed to update promotion:', error);
+    res.status(500).json({ error: 'Failed to update promotion' });
+  }
+});
+
+app.delete('/api/admin/promotions/:id', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    // TODO: Delete from database using storage.deletePromotion(id)
+    res.json({ message: 'Promotion deleted successfully' });
+  } catch (error) {
+    console.error('Failed to delete promotion:', error);
+    res.status(500).json({ error: 'Failed to delete promotion' });
+  }
+});
+
 // Admin session management endpoints
 app.get('/api/admin/sessions', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {
