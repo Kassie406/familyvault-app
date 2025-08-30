@@ -107,7 +107,7 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
                     isActive 
                       ? 'bg-[#007BFF] text-white shadow-lg' 
-                      : 'text-[#CED4DA] hover:bg-[#2C2C2C] hover:text-white'
+                      : 'text-[#CED4DA] hover:bg-[#1F6FEB] hover:text-white'
                   }`}
                   data-testid={`nav-${item.id}`}
                 >
@@ -126,7 +126,7 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
         <div className="p-4 border-t border-[#2C2C2C]">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-[#2C2C2C] transition-colors">
+              <button className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-[#1F6FEB] transition-colors">
                 <Avatar className="h-10 w-10">
                   <AvatarFallback className="bg-[#007BFF] text-white">
                     {(user.user.name || user.user.username).charAt(0).toUpperCase()}
