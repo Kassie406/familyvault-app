@@ -59,7 +59,6 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
     { id: 'webhooks', label: 'Webhooks', icon: Webhook, description: 'Outbound integrations' },
     { id: 'advanced-webhooks', label: 'Advanced Webhooks', icon: Webhook, description: 'Enhanced webhook management' },
     { id: 'tamper-audit', label: 'Tamper-Evident Audit', icon: Shield, description: 'Cryptographic audit trail' },
-    { id: 'advanced-coupons', label: 'Advanced Coupons', icon: Tag, description: 'Enterprise coupon management' },
     { id: 'marketing-promotions', label: 'Marketing Promotions', icon: Megaphone, description: 'Banners & popup campaigns' },
     { id: 'impersonation', label: 'Impersonation', icon: UserX, description: 'Admin user support' },
     { id: 'compliance', label: 'Compliance', icon: ShieldCheck, description: 'GDPR & privacy' },
