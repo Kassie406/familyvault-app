@@ -18,8 +18,15 @@ import type {
 
 type TabType = 'overview' | 'consents' | 'requests' | 'retention' | 'suppression';
 
+interface DrawerState {
+  type: 'consent' | 'dsar' | null;
+  userId?: string;
+  requestId?: string;
+}
+
 export function GdprCompliance() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [drawerState, setDrawerState] = useState<DrawerState>({ type: null });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -161,6 +168,19 @@ export function GdprCompliance() {
     });
   };
 
+  // Drawer helper functions
+  const openConsentDrawer = (userId: string) => {
+    setDrawerState({ type: 'consent', userId });
+  };
+
+  const openDsarDrawer = (requestId: string) => {
+    setDrawerState({ type: 'dsar', requestId });
+  };
+
+  const closeDrawer = () => {
+    setDrawerState({ type: null });
+  };
+
   return (
     <div id="gdpr-root" className="space-y-6">
       <div className="card">
@@ -292,7 +312,15 @@ export function GdprCompliance() {
                 <tbody>
                   {consents?.events?.map((event: GdprConsentEvent) => (
                     <tr key={event.id}>
-                      <td>{event.userId || 'Unknown'}</td>
+                      <td>
+                        <button 
+                          className="text-blue-600 hover:text-blue-800 underline bg-transparent border-none cursor-pointer p-0"
+                          onClick={() => openConsentDrawer(event.userId)}
+                          data-testid={`button-consent-${event.userId}`}
+                        >
+                          {event.userId || 'Unknown'}
+                        </button>
+                      </td>
                       <td>
                         <Badge variant="outline">{event.purpose}</Badge>
                       </td>
@@ -380,7 +408,12 @@ export function GdprCompliance() {
                       <td>{formatDate(request.dueAt)}</td>
                       <td>
                         <div className="flex gap-1">
-                          <Button size="sm" variant="outline" data-testid={`button-view-${request.id}`}>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => openDsarDrawer(request.id)}
+                            data-testid={`button-view-${request.id}`}
+                          >
                             View
                           </Button>
                           {request.status === 'open' && (
@@ -571,6 +604,255 @@ export function GdprCompliance() {
           </div>
         )}
       </div>
+
+      {/* Drawer Components */}
+      {drawerState.type === 'consent' && drawerState.userId && (
+        <ConsentHistoryDrawer userId={drawerState.userId} onClose={closeDrawer} />
+      )}
+      {drawerState.type === 'dsar' && drawerState.requestId && (
+        <DsarDetailsDrawer requestId={drawerState.requestId} onClose={closeDrawer} />
+      )}
     </div>
   );
 }
+
+// Consent History Drawer Component
+const ConsentHistoryDrawer = ({ userId, onClose }: { userId: string; onClose: () => void }) => {
+  const { data: events } = useQuery({
+    queryKey: ['/api/gdpr/consents', userId, 'events'],
+    enabled: !!userId,
+  });
+
+  const { data: effective } = useQuery({
+    queryKey: ['/api/gdpr/consents', userId, 'effective'],
+    enabled: !!userId,
+  });
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  return (
+    <>
+      <div className="gdpr-backdrop" onClick={onClose} />
+      <div className="gdpr-drawer open">
+        <div className="gdpr-head">
+          <div>
+            <div className="eyebrow">Consent History</div>
+            <h2>User ID: {userId}</h2>
+            <div className="subtle">Complete consent ledger and effective status</div>
+          </div>
+          <button className="icon-x" onClick={onClose}>×</button>
+        </div>
+        
+        <div className="gdpr-body">
+          <div className="grid-3">
+            <div className="kpi-box">
+              <div className="kpi-title">Marketing</div>
+              <span className={`badge ${effective?.consents?.marketing ? 'badge-ok' : 'badge-no'}`}>
+                {effective?.consents?.marketing ? 'Granted' : 'Denied'}
+              </span>
+            </div>
+            <div className="kpi-box">
+              <div className="kpi-title">Analytics</div>
+              <span className={`badge ${effective?.consents?.analytics ? 'badge-ok' : 'badge-no'}`}>
+                {effective?.consents?.analytics ? 'Granted' : 'Denied'}
+              </span>
+            </div>
+            <div className="kpi-box">
+              <div className="kpi-title">Functional</div>
+              <span className={`badge ${effective?.consents?.functional ? 'badge-ok' : 'badge-no'}`}>
+                {effective?.consents?.functional ? 'Granted' : 'Denied'}
+              </span>
+            </div>
+          </div>
+          
+          <div className="mt-10">
+            <h3>Consent Events Timeline</h3>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Legal Basis</th>
+                  <th>Method</th>
+                </tr>
+              </thead>
+              <tbody>
+                {events?.map((event: GdprConsentEvent) => (
+                  <tr key={event.id}>
+                    <td className="muted">{formatDate(event.occurredAt)}</td>
+                    <td>{event.category}</td>
+                    <td>
+                      <span className={`badge ${event.status === 'granted' ? 'badge-ok' : 'badge-no'}`}>
+                        {event.status}
+                      </span>
+                    </td>
+                    <td className="muted">{event.legalBasis}</td>
+                    <td className="muted">{event.processingMethod}</td>
+                  </tr>
+                )) || (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center' }}>No consent events found</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div className="gdpr-foot">
+          <span className="muted">Last updated: {new Date().toLocaleString()}</span>
+          <button className="btn ghost" onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// DSAR Details Drawer Component
+const DsarDetailsDrawer = ({ requestId, onClose }: { requestId: string; onClose: () => void }) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const { data: request } = useQuery({
+    queryKey: ['/api/gdpr/requests', requestId],
+    enabled: !!requestId,
+  });
+
+  const { data: timeline } = useQuery({
+    queryKey: ['/api/gdpr/requests', requestId, 'timeline'],
+    enabled: !!requestId,
+  });
+
+  const verifyMutation = useMutation({
+    mutationFn: () => apiRequest('POST', `/api/gdpr/requests/${requestId}/verify`),
+    onSuccess: () => {
+      toast({ title: 'Verification link sent' });
+      queryClient.invalidateQueries({ queryKey: ['/api/gdpr/requests', requestId, 'timeline'] });
+    },
+  });
+
+  const exportMutation = useMutation({
+    mutationFn: () => apiRequest('POST', `/api/gdpr/requests/${requestId}/export`),
+    onSuccess: () => {
+      toast({ title: 'Export generation started' });
+      queryClient.invalidateQueries({ queryKey: ['/api/gdpr/requests', requestId, 'timeline'] });
+    },
+  });
+
+  const completeMutation = useMutation({
+    mutationFn: () => apiRequest('POST', `/api/gdpr/requests/${requestId}/complete`),
+    onSuccess: () => {
+      toast({ title: 'DSAR request completed' });
+      queryClient.invalidateQueries({ queryKey: ['/api/gdpr/requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/gdpr/requests', requestId] });
+      onClose();
+    },
+  });
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  if (!request) return null;
+
+  return (
+    <>
+      <div className="gdpr-backdrop" onClick={onClose} />
+      <div className="gdpr-drawer open">
+        <div className="gdpr-head">
+          <div>
+            <div className="eyebrow">DSAR Request</div>
+            <h2>{request.type.toUpperCase()} - {request.subjectEmail}</h2>
+            <div className="subtle">Request ID: {request.id}</div>
+          </div>
+          <button className="icon-x" onClick={onClose}>×</button>
+        </div>
+        
+        <div className="gdpr-body">
+          <div className="grid-3">
+            <div className="kpi-box">
+              <div className="kpi-title">Status</div>
+              <span className={`badge badge-${request.status}`}>
+                {request.status.replace('_', ' ').toUpperCase()}
+              </span>
+            </div>
+            <div className="kpi-box">
+              <div className="kpi-title">Days Remaining</div>
+              <strong>{Math.max(0, Math.ceil((new Date(request.dueAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))}</strong>
+            </div>
+            <div className="kpi-box">
+              <div className="kpi-title">Legal Basis</div>
+              <span className="muted">{request.legalBasis}</span>
+            </div>
+          </div>
+          
+          <hr className="sep" />
+          
+          <div>
+            <h3>Actions</h3>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+              <button 
+                className="btn primary" 
+                onClick={() => verifyMutation.mutate()}
+                disabled={verifyMutation.isPending}
+              >
+                Send Verification
+              </button>
+              <button 
+                className="btn" 
+                onClick={() => exportMutation.mutate()}
+                disabled={exportMutation.isPending}
+              >
+                Generate Export
+              </button>
+              <button 
+                className="btn" 
+                onClick={() => completeMutation.mutate()}
+                disabled={completeMutation.isPending || request.status === 'completed'}
+              >
+                Mark Complete
+              </button>
+            </div>
+          </div>
+          
+          <hr className="sep" />
+          
+          <div>
+            <h3>Timeline</h3>
+            <ul className="timeline">
+              {timeline?.map((event: any, index: number) => (
+                <li key={index}>
+                  <div className="time">{formatDate(event.at)}</div>
+                  <div className="ev">{event.event}</div>
+                  <div className="meta">
+                    {event.actor && `by ${event.actor}`} {event.note && `- ${event.note}`}
+                  </div>
+                </li>
+              )) || (
+                <li>
+                  <div className="ev">No timeline events</div>
+                </li>
+              )}
+            </ul>
+          </div>
+        </div>
+        
+        <div className="gdpr-foot">
+          <span className="muted">Due: {formatDate(request.dueAt)}</span>
+          <button className="btn ghost" onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </>
+  );
+};

@@ -2414,3 +2414,271 @@ legend {
   border-color: #1F6FEB;
   box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.1);
 }
+
+/* GDPR Drawer Styles */
+.gdpr-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9998;
+  backdrop-filter: blur(2px);
+}
+
+.gdpr-drawer {
+  position: fixed;
+  top: 0;
+  right: -600px;
+  width: 600px;
+  height: 100%;
+  background: white;
+  z-index: 9999;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  transition: right 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.gdpr-drawer.open {
+  right: 0;
+}
+
+.gdpr-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px;
+  border-bottom: 1px solid #E5EAF2;
+  background: #F9FAFB;
+}
+
+.gdpr-body {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background: white;
+}
+
+.gdpr-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-top: 1px solid #E5EAF2;
+  background: #F9FAFB;
+}
+
+.eyebrow {
+  font-size: 12px;
+  color: #667085;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.subtle {
+  font-size: 14px;
+  color: #667085;
+  margin-top: 4px;
+}
+
+.icon-x {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #667085;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.icon-x:hover {
+  background: #E5EAF2;
+  color: #374151;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.kpi-box {
+  border: 1px solid #E5EAF2;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fff;
+  text-align: center;
+}
+
+.kpi-title {
+  font-size: 12px;
+  color: #667085;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.badge-ok {
+  background: #E8F6EE;
+  color: #1B7F3B;
+}
+
+.badge-no {
+  background: #FEECEC;
+  color: #B42318;
+}
+
+.badge-na {
+  background: #F2F4F7;
+  color: #475467;
+}
+
+.mt-10 {
+  margin-top: 24px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  background: white;
+}
+
+.table th {
+  background: #F9FAFB;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #E5EAF2;
+  font-size: 12px;
+}
+
+.table td {
+  padding: 12px;
+  border-bottom: 1px solid #E5EAF2;
+  font-size: 13px;
+  color: #111827;
+  background: white;
+}
+
+.muted {
+  color: #667085;
+  font-size: 12px;
+}
+
+.right {
+  margin-left: auto;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn:hover {
+  background: #F9FAFB;
+  border-color: #9CA3AF;
+}
+
+.btn.ghost {
+  background: transparent;
+  border: none;
+  color: #667085;
+}
+
+.btn.ghost:hover {
+  background: #F3F4F6;
+  color: #374151;
+}
+
+.btn.primary {
+  background: #1F6FEB;
+  border-color: #1F6FEB;
+  color: white;
+}
+
+.btn.primary:hover {
+  background: #1960D6;
+  border-color: #1960D6;
+}
+
+.lbl {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.sep {
+  border: none;
+  border-top: 1px solid #E5EAF2;
+  margin: 20px 0;
+}
+
+.flex-end {
+  display: flex;
+  align-items: end;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-left: 2px solid #E5EAF2;
+  margin-left: 10px;
+}
+
+.timeline li {
+  position: relative;
+  padding: 8px 12px 8px 18px;
+}
+
+.timeline li::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 14px;
+  width: 10px;
+  height: 10px;
+  background: #1F6FEB;
+  border-radius: 50%;
+}
+
+.timeline .time {
+  color: #667085;
+  font-size: 12px;
+}
+
+.timeline .ev {
+  color: #111827;
+  font-weight: 600;
+}
+
+.timeline .meta {
+  color: #475467;
+}

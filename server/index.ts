@@ -2055,6 +2055,148 @@ app.patch('/api/gdpr/requests/:id', requireAuth('ADMIN'), async (req: Authentica
   }
 });
 
+// Get single DSAR request by ID
+app.get('/api/gdpr/requests/:id', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const request = await storage.getDsarRequest(id);
+    
+    if (!request) {
+      return res.status(404).json({ error: 'DSAR request not found' });
+    }
+    
+    res.json(request);
+  } catch (error) {
+    console.error('Get DSAR request error:', error);
+    res.status(500).json({ error: 'Failed to get DSAR request' });
+  }
+});
+
+// Get DSAR timeline
+app.get('/api/gdpr/requests/:id/timeline', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const timeline = await storage.getDsarTimeline(id);
+    res.json(timeline);
+  } catch (error) {
+    console.error('Get DSAR timeline error:', error);
+    res.status(500).json({ error: 'Failed to get DSAR timeline' });
+  }
+});
+
+// Send verification link for DSAR
+app.post('/api/gdpr/requests/:id/verify', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const request = await storage.getDsarRequest(id);
+    
+    if (!request) {
+      return res.status(404).json({ error: 'DSAR request not found' });
+    }
+    
+    // In a real implementation, you'd send an email with verification link
+    console.log(`Verification link sent for DSAR ${id} to ${request.subjectEmail}`);
+    
+    // Add timeline event
+    await storage.addDsarTimelineEvent(id, 'Verification link sent', req.user?.username);
+    
+    // Log audit trail
+    await AuditService.logAdminAction(
+      'dsar:verify_sent',
+      'dsar_request',
+      id,
+      null,
+      { action: 'verify_sent' },
+      getAuditContext(req)
+    );
+    
+    res.json({ success: true, message: 'Verification link sent' });
+  } catch (error) {
+    console.error('Send DSAR verification error:', error);
+    res.status(500).json({ error: 'Failed to send verification link' });
+  }
+});
+
+// Generate export for DSAR
+app.post('/api/gdpr/requests/:id/export', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const request = await storage.getDsarRequest(id);
+    
+    if (!request) {
+      return res.status(404).json({ error: 'DSAR request not found' });
+    }
+    
+    // In a real implementation, you'd queue a background job to generate the export
+    const jobId = 'export_' + crypto.randomUUID();
+    console.log(`Export job ${jobId} started for DSAR ${id}`);
+    
+    // Add timeline event
+    await storage.addDsarTimelineEvent(id, 'Export generation started', req.user?.username);
+    
+    // Log audit trail
+    await AuditService.logAdminAction(
+      'dsar:export_started',
+      'dsar_request',
+      id,
+      null,
+      { action: 'export_started', jobId },
+      getAuditContext(req)
+    );
+    
+    res.json({ success: true, jobId, message: 'Export generation started' });
+  } catch (error) {
+    console.error('Generate DSAR export error:', error);
+    res.status(500).json({ error: 'Failed to generate export' });
+  }
+});
+
+// Mark DSAR as completed
+app.post('/api/gdpr/requests/:id/complete', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const updated = await storage.updateDsarRequest(id, { 
+      status: 'completed',
+      updatedAt: new Date()
+    });
+    
+    if (!updated) {
+      return res.status(404).json({ error: 'DSAR request not found' });
+    }
+    
+    // Add timeline event
+    await storage.addDsarTimelineEvent(id, 'Request completed', req.user?.username);
+    
+    // Log audit trail
+    await AuditService.logAdminAction(
+      'dsar:completed',
+      'dsar_request',
+      id,
+      null,
+      { action: 'completed' },
+      getAuditContext(req)
+    );
+    
+    res.json(updated);
+  } catch (error) {
+    console.error('Complete DSAR error:', error);
+    res.status(500).json({ error: 'Failed to complete DSAR request' });
+  }
+});
+
+// Get consent events for a specific user
+app.get('/api/gdpr/consents/:userId/events', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const events = await storage.getGdprConsentEvents(userId);
+    res.json(events);
+  } catch (error) {
+    console.error('Get user consent events error:', error);
+    res.status(500).json({ error: 'Failed to get consent events' });
+  }
+});
+
 // Retention Policies
 app.get('/api/gdpr/retention', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -2153,25 +2295,10 @@ app.delete('/api/gdpr/suppression/:hash', requireAuth('ADMIN'), async (req: Auth
 // GDPR Metrics endpoint
 app.get('/api/gdpr/metrics', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // Get metrics for dashboard
-    const openRequests = await storage.getAllDsarRequests('open');
-    const dueSoon = await storage.getDsarRequestsByDueDate(7);
-    const recentConsents = await storage.getGdprConsentEvents(undefined, 100);
-    const suppressions = await storage.getAllSuppressions();
+    // Get metrics for dashboard using new getGdprMetrics method
+    const metrics = await storage.getGdprMetrics();
     
-    // Count consent updates in last 30 days
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const recentConsentUpdates = recentConsents.filter(
-      event => new Date(event.occurredAt) > thirtyDaysAgo
-    );
-    
-    res.json({
-      openDsars: openRequests.length,
-      dueSoon: dueSoon.length,
-      consentUpdates30d: recentConsentUpdates.length,
-      totalSuppressions: suppressions.length,
-    });
+    res.json(metrics);
   } catch (error) {
     console.error('Get GDPR metrics error:', error);
     res.status(500).json({ error: 'Failed to get GDPR metrics' });

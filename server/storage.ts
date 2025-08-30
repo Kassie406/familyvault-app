@@ -109,6 +109,13 @@ export interface IStorage {
   getDsarRequest(id: string): Promise<DsarRequest | undefined>;
   updateDsarRequest(id: string, updates: Partial<InsertDsarRequest>): Promise<DsarRequest | undefined>;
   getDsarRequestsByDueDate(daysFromNow: number): Promise<DsarRequest[]>;
+  getDsarTimeline(id: string): Promise<Array<{
+    at: Date;
+    event: string;
+    actor?: string;
+    note?: string;
+  }>>;
+  addDsarTimelineEvent(dsarId: string, event: string, actor?: string, note?: string): Promise<void>;
   
   // Retention Policies
   getAllRetentionPolicies(): Promise<RetentionPolicy[]>;
@@ -121,6 +128,14 @@ export interface IStorage {
   addSuppression(suppression: InsertSuppression): Promise<Suppression>;
   removeSuppression(emailHash: string): Promise<boolean>;
   isEmailSuppressed(emailHash: string): Promise<boolean>;
+
+  // GDPR Metrics
+  getGdprMetrics(): Promise<{
+    openDsars: number;
+    dueSoon: number;
+    consentUpdates30d: number;
+    totalSuppressions: number;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -572,6 +587,77 @@ export class DatabaseStorage implements IStorage {
       .where(eq(suppressionList.emailHash, emailHash))
       .limit(1);
     return result.length > 0;
+  }
+
+  // DSAR Timeline methods
+  async getDsarTimeline(id: string): Promise<Array<{
+    at: Date;
+    event: string;
+    actor?: string;
+    note?: string;
+  }>> {
+    // For now, we'll create a simple timeline based on the DSAR status changes
+    // In a real implementation, you'd have a separate timeline table
+    const dsar = await this.getDsarRequest(id);
+    if (!dsar) return [];
+
+    const timeline = [
+      {
+        at: dsar.openedAt,
+        event: 'Request opened',
+        actor: 'System',
+        note: `Type: ${dsar.type}`
+      }
+    ];
+
+    if (dsar.status !== 'open') {
+      timeline.push({
+        at: dsar.updatedAt,
+        event: `Status changed to ${dsar.status}`,
+        actor: 'Admin',
+        note: dsar.notes || undefined
+      });
+    }
+
+    return timeline.sort((a, b) => b.at.getTime() - a.at.getTime());
+  }
+
+  async addDsarTimelineEvent(dsarId: string, event: string, actor?: string, note?: string): Promise<void> {
+    // For now, this is a no-op since we don't have a timeline table
+    // In a real implementation, you'd insert into a timeline table
+    console.log(`Timeline event for ${dsarId}: ${event} by ${actor || 'System'} - ${note || ''}`);
+  }
+
+  // GDPR Metrics
+  async getGdprMetrics(): Promise<{
+    openDsars: number;
+    dueSoon: number;
+    consentUpdates30d: number;
+    totalSuppressions: number;
+  }> {
+    const [openDsars, dueSoon, consentUpdates30d, totalSuppressions] = await Promise.all([
+      // Open DSARs
+      db.select({ count: sql<number>`count(*)` }).from(dsarRequests)
+        .where(sql`${dsarRequests.status} != 'completed' AND ${dsarRequests.status} != 'rejected'`),
+      
+      // Due soon (next 7 days)
+      db.select({ count: sql<number>`count(*)` }).from(dsarRequests)
+        .where(sql`${dsarRequests.dueAt} <= NOW() + INTERVAL '7 days' AND ${dsarRequests.status} != 'completed' AND ${dsarRequests.status} != 'rejected'`),
+      
+      // Consent updates in last 30 days
+      db.select({ count: sql<number>`count(*)` }).from(gdprConsentEvents)
+        .where(sql`${gdprConsentEvents.occurredAt} >= NOW() - INTERVAL '30 days'`),
+      
+      // Total suppressions
+      db.select({ count: sql<number>`count(*)` }).from(suppressionList)
+    ]);
+
+    return {
+      openDsars: openDsars[0]?.count || 0,
+      dueSoon: dueSoon[0]?.count || 0,
+      consentUpdates30d: consentUpdates30d[0]?.count || 0,
+      totalSuppressions: totalSuppressions[0]?.count || 0,
+    };
   }
 }
 
