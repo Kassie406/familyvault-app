@@ -2152,3 +2152,109 @@ legend {
 #impersonation-manager .stop-button:hover:not(:disabled) {
   background: #b91c1c !important;
 }
+
+/* ===== Impersonation hover/readability fixes ===== */
+/* Scope to impersonation container to avoid global side effects */
+#impersonation-manager,
+.impersonation-card {
+}
+
+/* Duration pills (5m / 10m / 15m / 20m) */
+#impersonation-manager .duration-pills button,
+.impersonation-card .duration-pills button,
+#impersonation-manager .pill,
+.impersonation-card .pill {
+  background: #F2F4F7 !important;           /* soft gray, never black */
+  color: #111827 !important;
+  border: 1px solid #D7DEE8 !important;
+  border-radius: 999px;
+  padding: 8px 12px;
+  line-height: 1;
+  transition: background .15s ease, color .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+
+#impersonation-manager .duration-pills button:hover,
+.impersonation-card .duration-pills button:hover,
+#impersonation-manager .pill:hover,
+.impersonation-card .pill:hover {
+  background: #EEF3FF !important; /* light indigo hover */
+  border-color: #BFD3FF !important;
+  color: #0F3D91 !important;
+  box-shadow: inset 0 0 0 1px #BFD3FF;
+}
+
+#impersonation-manager .duration-pills button.is-active,
+.impersonation-card .duration-pills button.is-active,
+#impersonation-manager .pill.is-active,
+.impersonation-card .pill.is-active {
+  background: #1F6FEB !important; /* brand/indigo active */
+  border-color: #1F6FEB !important;
+  color: #fff !important;
+}
+
+#impersonation-manager .duration-pills button.is-active:hover,
+.impersonation-card .duration-pills button.is-active:hover,
+#impersonation-manager .pill.is-active:hover,
+.impersonation-card .pill.is-active:hover {
+  background: #155EEF !important; /* slightly darker on hover, never black */
+}
+
+/* Keyboard focus ring */
+#impersonation-manager .duration-pills button:focus-visible,
+.impersonation-card .duration-pills button:focus-visible {
+  outline: 2px solid #84A9FF;
+  outline-offset: 2px;
+  border-color: #84A9FF;
+}
+
+/* "Show Details" (ghost link/button) */
+#impersonation-manager .audit-toggle,
+.impersonation-card .audit-toggle,
+#impersonation-manager .btn-ghost.audit,
+.impersonation-card .btn-ghost.audit {
+  background: transparent !important;
+  color: #475467 !important;
+  border: 1px solid transparent !important;
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
+#impersonation-manager .audit-toggle:hover,
+.impersonation-card .audit-toggle:hover,
+#impersonation-manager .btn-ghost.audit:hover,
+.impersonation-card .btn-ghost.audit:hover {
+  background: #F6F8FB !important;  /* light hover surface */
+  color: #1F6FEB !important;
+  border-color: #E5EAF2 !important;
+}
+
+#impersonation-manager .audit-toggle:active,
+.impersonation-card .audit-toggle:active {
+  background: #EEF2FF !important;
+}
+
+/* Dark theme support without black-on-black hovers */
+@media (prefers-color-scheme: dark) {
+  #impersonation-manager .duration-pills button,
+  .impersonation-card .duration-pills button,
+  #impersonation-manager .pill,
+  .impersonation-card .pill {
+    background: #1F2937 !important;
+    border-color: #2A3646 !important;
+    color: #E5E7EB !important;
+  }
+  #impersonation-manager .duration-pills button:hover,
+  .impersonation-card .duration-pills button:hover,
+  #impersonation-manager .pill:hover,
+  .impersonation-card .pill:hover {
+    background: #22314A !important;   /* muted navy, not black */
+    border-color: #3B4F6B !important;
+    color: #E8EEFF !important;
+  }
+  #impersonation-manager .audit-toggle:hover,
+  .impersonation-card .audit-toggle:hover {
+    background: #1F2937 !important;
+    color: #AFC8FF !important;
+    border-color: #2A3646 !important;
+  }
+}
