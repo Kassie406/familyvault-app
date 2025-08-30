@@ -281,6 +281,27 @@ export const oncallTargets = pgTable("oncall_targets", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Marketing promotions table
+export const promotionTypeEnum = pgEnum("promotion_type", ["banner", "popup", "ribbon", "inline"]);
+export const promotionStatusEnum = pgEnum("promotion_status", ["active", "scheduled", "expired", "paused"]);
+
+export const marketingPromotions = pgTable("marketing_promotions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: promotionTypeEnum("type").notNull(),
+  title: text("title").notNull(),
+  content: json("content").notNull(), // {headline, sub, cta: {label, href}}
+  couponCode: text("coupon_code"),
+  targets: json("targets").notNull(), // {tenants: [], pages: [], segments: []}
+  schedule: json("schedule").notNull(), // {start, end, tz}
+  status: promotionStatusEnum("status").default("paused").notNull(),
+  paused: boolean("paused").default(false).notNull(),
+  variants: json("variants").default([]).notNull(), // Array of A/B test variants
+  metrics: json("metrics").default({impressions: 0, clicks: 0, conversions: 0, updatedAt: null}).notNull(),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -387,6 +408,19 @@ export const insertOncallTargetSchema = createInsertSchema(oncallTargets).pick({
   to: true,
   name: true,
   active: true,
+});
+
+export const insertMarketingPromotionSchema = createInsertSchema(marketingPromotions).pick({
+  type: true,
+  title: true,
+  content: true,
+  couponCode: true,
+  targets: true,
+  schedule: true,
+  status: true,
+  paused: true,
+  variants: true,
+  createdBy: true,
 });
 
 // Security schema inserts
@@ -496,3 +530,6 @@ export type SecureSession = typeof secureSessionStore.$inferSelect;
 
 export type InsertFileSignature = z.infer<typeof insertFileSignatureSchema>;
 export type FileSignature = typeof fileSignatures.$inferSelect;
+
+export type InsertMarketingPromotion = z.infer<typeof insertMarketingPromotionSchema>;
+export type MarketingPromotion = typeof marketingPromotions.$inferSelect;

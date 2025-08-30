@@ -1,0 +1,244 @@
+security-sensitive, so let’s make it bulletproof, readable (no pitch-black cards), and fully auditable.
+
+Visual fixes (scope + readable light surface)
+
+Wrap the page:
+
+<div id="impersonation-root">
+  <!-- your Impersonation UI -->
+</div>
+
+
+Drop these at the end of your CSS (scoped; won’t disturb other tabs):
+
+#impersonation-root .card{background:#fff;border:1px solid #E5EAF2;border-radius:14px;box-shadow:0 2px 12px rgba(16,24,40,.06)}
+#impersonation-root .card-header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #EEF1F5}
+#impersonation-root .notice{background:#FFF7E6;border:1px solid #FFE3A3;color:#7A4E00;border-radius:12px;padding:10px 12px}
+#impersonation-root input, #impersonation-root textarea{border:1px solid #D7DEE8;border-radius:10px;padding:10px 12px;width:100%;background:#fff;color:#111827}
+#impersonation-root .seg{display:inline-flex;border:1px solid #D7DEE8;border-radius:999px;overflow:hidden}
+#impersonation-root .seg button{padding:8px 12px;background:#fff;border:0;color:#344054}
+#impersonation-root .seg button.is-active{background:#111827;color:#F9FAFB}
+#impersonation-root .btn{border:1px solid #CBD2E0;background:#fff;color:#344054;border-radius:12px;padding:10px 14px;cursor:pointer}
+#impersonation-root .btn.primary{background:#F4B400;color:#111827;border-color:transparent}
+#impersonation-root .btn:hover{background:#F6F8FB}
+#impersonation-root .guard-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+#impersonation-root .guard{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #EEF1F5;border-radius:10px;background:#FBFCFE}
+#impersonation-root .guard.ok{background:#E8F6EE;border-color:#D2F0E0;color:#1B7F3B}
+#impersonation-root .guard.block{background:#FEECEC;border-color:#F8C7C3;color:#B42318}
+#impersonation-root .list{margin-top:10px;border-top:1px solid #EEF1F5}
+#impersonation-root .list .row{display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #F2F4F8}
+#impersonation-root .danger{color:#B42318}
+
+UX recommendations (tight but safe)
+
+Explicit prerequisites: Target User ID and Business Reason required; session duration segmented (10/20/30 min, default 10).
+
+Prominent security notice (already there) + who you are impersonating once session starts (persistent banner).
+
+Guardrails list with ✅ allowed / ❌ blocked (password changes, 2FA, payment methods, deletion, role changes).
+
+Start button disabled until fields valid; show countdown timer once active; End session button and auto-timeout.
+
+Recent sessions with status (Completed/Expired/Force-ended), actor, target, reason, duration, and a link to full audit.
+
+Server flow (secure pattern)
+
+Never reuse the user’s credentials. Use a one-time, short-lived impersonation token signed by your server.
+
+1) Start request (Admin → API)
+
+POST /api/impersonation/start
+
+Body:
+
+{
+  "target_user_id": "user-12345",
+  "business_reason": "Customer support ticket #12345 - billing access",
+  "duration_minutes": 10
+}
+
+
+Server does:
+
+RBAC check: actor has support.impersonate AND not impersonating already.
+
+Policy checks: target allowed (e.g., not super-admin), duration ≤ max (e.g., 30m), reason length ≥ 20 chars.
+
+Create DB record (see model below) with status active, expires_at = now + duration.
+
+Create signed Impersonation JWT (sub=target, imp=true, act=<admin_id>, sid=<imp_session_id>, exp).
+
+Return token + limited capability set (denylist of operations) to the UI.
+
+Response:
+
+{
+  "session_id": "imp_01H...",
+  "token": "eyJhbGciOiJI... (short-lived)",
+  "expires_at": "2025-08-22T02:14:10Z",
+  "deny": ["password.change","mfa.reset","user.delete","role.update","payment.method.update"]
+}
+
+2) Frontend session
+
+Store token in memory only (not localStorage).
+
+Add a colored top banner:
+
+“Impersonating user-12345 • ends in 09:57 • Admin: kassandra@… — End session”
+
+3) Backend request gating
+
+Middleware reads JWT claim imp=true.
+
+Enforce denylist/allowlist server-side. If blocked, return 403 IMPERSONATION_BLOCKED:<op> and log.
+
+4) End session
+
+Timer auto-expires; or admin clicks End → POST /api/impersonation/end { session_id }.
+
+Backend invalidates token (add sid to a denylist cache until exp) and marks session completed/expired.
+
+Data model (lean)
+{
+  "id": "imp_01H...",
+  "actor_id": "admin_09",
+  "target_user_id": "user-12345",
+  "business_reason": "…",
+  "status": "active|completed|expired|terminated",
+  "started_at": "2025-08-22T02:04:10Z",
+  "expires_at": "2025-08-22T02:14:10Z",
+  "ended_at": null,
+  "ip": "203.0.113.7",
+  "deny": ["password.change","mfa.reset","user.delete","role.update","payment.method.update"],
+  "meta": { "ticket_id": "12345" }
+}
+
+
+Every request during impersonation should include sid (JWT claim) and be written to your tamper-evident audit (see earlier work).
+
+Audit events (must-have)
+
+impersonation.started (actor, target, reason, duration, sid)
+
+impersonation.request (sid, method, path, op_classification, allowed|blocked)
+
+impersonation.ended (who ended, reason: completed/expired/manual)
+
+Hash chain: as we implemented in Tamper-Evident Audit.
+
+Frontend validation (snippets)
+const startBtn = document.getElementById('start-imp');
+const targetInp = document.getElementById('target-id');
+const reasonArea = document.getElementById('reason');
+const durBtns = document.querySelectorAll('[data-dur]');
+
+let duration = 10;
+durBtns.forEach(b => b.addEventListener('click', ()=>{
+  durBtns.forEach(x=>x.classList.remove('is-active'));
+  b.classList.add('is-active'); duration = Number(b.dataset.dur);
+}));
+
+function isValid(){
+  const idOk = !!targetInp.value.trim();
+  const reasonOk = (reasonArea.value.trim().length >= 20);
+  startBtn.disabled = !(idOk && reasonOk);
+}
+targetInp.addEventListener('input', isValid);
+reasonArea.addEventListener('input', isValid);
+isValid();
+
+async function startImpersonation(){
+  const res = await fetch('/api/impersonation/start', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      target_user_id: targetInp.value.trim(),
+      business_reason: reasonArea.value.trim(),
+      duration_minutes: duration
+    })
+  });
+  if(!res.ok){ const t = await res.text(); return alert('Cannot start: '+t); }
+  const data = await res.json();
+  window.__imp = data; // keep in memory
+  renderBanner(data);
+}
+startBtn.addEventListener('click', startImpersonation);
+
+
+Top banner example (always visible while active):
+
+<div id="imp-banner" style="display:none;position:sticky;top:0;z-index:50;background:#FFF7E6;border-bottom:1px solid #FFE3A3;padding:8px 12px">
+  <strong>Impersonating <span id="imp-user"></span></strong>
+  • Ends in <span id="imp-count">10:00</span>
+  • Admin: <span id="imp-admin">you</span>
+  <button id="imp-end" class="btn danger" style="float:right">End session</button>
+</div>
+
+function renderBanner({ session_id, expires_at }){
+  const bn = document.getElementById('imp-banner');
+  document.getElementById('imp-user').textContent = targetInp.value.trim();
+  bn.style.display='block';
+  let until = new Date(expires_at).getTime();
+  const lbl = document.getElementById('imp-count');
+  const timer = setInterval(()=>{
+    const rem = Math.max(0, Math.floor((until-Date.now())/1000));
+    const m = String(Math.floor(rem/60)).padStart(2,'0');
+    const s = String(rem%60).padStart(2,'0');
+    lbl.textContent = `${m}:${s}`;
+    if(rem<=0){ clearInterval(timer); endSession('expired'); }
+  }, 1000);
+  document.getElementById('imp-end').onclick = ()=>{ clearInterval(timer); endSession('manual'); };
+}
+async function endSession(reason){
+  const sid = window.__imp?.session_id;
+  await fetch('/api/impersonation/end', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ session_id: sid, reason }) });
+  document.getElementById('imp-banner').style.display='none';
+  window.__imp=null;
+}
+
+Operation classification (denylist)
+
+On the server, classify each route into an “op” string and enforce:
+
+// pseudo
+const deny = new Set(sess.deny);
+switch (op) {
+  case 'password.change':
+  case 'mfa.reset':
+  case 'user.delete':
+  case 'role.update':
+  case 'payment.method.update':
+    if (impersonating && deny.has(op)) denyRequest();
+}
+
+
+Keep the list in one place (config) and expose to the UI as shown.
+
+Anti-abuse & controls
+
+Just-in-time approval (optional): require second approver for high-risk targets (staff, VIP).
+
+Geo/IP constraints: allow only from corporate IPs or VPN ranges.
+
+Rate limit: max N impersonations/day per admin; cool-down after failures.
+
+Session isolation: separate session cookie or subdomain; never mix with the admin’s own account.
+
+User notification (optional): email the target “A support session viewed your account at hh:mm UTC”.
+
+Legal banner: short line below Start button: “Use only for legitimate customer support. Misuse may result in disciplinary action.”
+
+Recent sessions list
+
+Show target • reason (truncated) • duration • status • ended by • link to audit.
+
+Row click → drawer with:
+
+session id, actor, target, reason
+
+start/end/expiry
+
+denylist for the session
+
+timeline of impersonation requests (from audit), highlighting any blocked attempts

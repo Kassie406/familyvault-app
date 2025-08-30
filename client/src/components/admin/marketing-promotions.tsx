@@ -1,591 +1,740 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Edit, Trash2, Copy, Eye, EyeOff } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 
 interface Promotion {
   id: string;
-  type: 'banner' | 'popup';
+  type: 'banner' | 'popup' | 'ribbon' | 'inline';
   title: string;
-  message?: string;
-  description?: string;
-  promoCode: string;
-  discount?: string;
-  ctaText: string;
-  ctaUrl?: string;
-  bgColor?: string;
-  bgGradient?: string;
-  textColor?: string;
-  icon?: string;
-  targetDomains?: string[];
-  showAfterSeconds?: number;
-  showOncePerSession?: boolean;
-  expiresAt?: string;
-  isActive: boolean;
-  createdAt: string;
+  content: {
+    headline: string;
+    sub: string;
+    cta: {
+      label: string;
+      href: string;
+    };
+  };
+  couponCode?: string;
+  targets: {
+    tenants: string[];
+    pages: Array<{ op: string; path: string }>;
+    segments: string[];
+  };
+  schedule: {
+    start: string | null;
+    end: string | null;
+    tz: string;
+  };
+  status: 'active' | 'scheduled' | 'expired' | 'paused';
+  paused: boolean;
+  variants: Array<{
+    key: string;
+    label: string;
+    weight: number;
+    content: {
+      headline: string;
+      sub: string;
+      cta: {
+        label: string;
+        href: string;
+      };
+    };
+  }>;
+  metrics: {
+    impressions: number;
+    clicks: number;
+    conversions: number;
+    updatedAt: string;
+  };
+  createdBy: string;
+  updatedAt: string;
 }
 
 export default function MarketingPromotions() {
   const { toast } = useToast();
-  const [promotions, setPromotions] = useState<Promotion[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('basics');
   const [editingPromo, setEditingPromo] = useState<Promotion | null>(null);
-  const [newPromoType, setNewPromoType] = useState<'banner' | 'popup'>('banner');
 
-  const [formData, setFormData] = useState({
-    type: 'banner' as 'banner' | 'popup',
+  const [model, setModel] = useState({
+    id: null,
+    type: 'banner',
     title: '',
-    message: '',
-    description: '',
-    promoCode: '',
-    discount: '',
-    ctaText: 'Learn More',
-    ctaUrl: '',
-    bgColor: '#1e40af',
-    bgGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    textColor: '#ffffff',
-    icon: 'gift',
-    targetDomains: ['familycirclesecure.com'],
-    showAfterSeconds: 5,
-    showOncePerSession: true,
-    expiresAt: '',
-    isActive: true
+    content: { headline: '', sub: '', cta: { label: '', href: '' } },
+    couponCode: '',
+    targets: { tenants: ['Public', 'Family', 'Staff'], pages: [], segments: [] },
+    schedule: { start: null, end: null, tz: 'UTC' },
+    variants: [],
+    publish: false,
+    exclusive: false
   });
 
-  const AVAILABLE_DOMAINS = [
-    { id: 'familycirclesecure.com', label: 'Main Website', description: 'familycirclesecure.com' },
-    { id: 'portal.familycirclesecure.com', label: 'Family Portal', description: 'portal.familycirclesecure.com' },
-    { id: 'hub.familycirclesecure.com', label: 'Professional Hub', description: 'hub.familycirclesecure.com' }
-  ];
-
-  const generatePromoCode = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < 8; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
+  const { data: promotions = [], isLoading } = useQuery({
+    queryKey: ['/api/admin/promotions'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/promotions');
+      if (!response.ok) throw new Error('Failed to fetch promotions');
+      return response.json();
     }
-    setFormData(prev => ({ ...prev, promoCode: result }));
-  };
+  });
 
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch('/api/admin/promotions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error('Failed to create promotion');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/promotions'] });
+      setIsDrawerOpen(false);
+      resetModel();
+      toast({ title: 'Promotion created successfully' });
+    }
+  });
 
-  const handleDomainToggle = (domainId: string) => {
-    setFormData(prev => {
-      const currentDomains = prev.targetDomains || [];
-      const isSelected = currentDomains.includes(domainId);
-      
-      let newDomains;
-      if (isSelected) {
-        newDomains = currentDomains.filter(d => d !== domainId);
-      } else {
-        newDomains = [...currentDomains, domainId];
-      }
-      
-      return { ...prev, targetDomains: newDomains };
-    });
-  };
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await fetch(`/api/admin/promotions/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error('Failed to update promotion');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/promotions'] });
+      setIsDrawerOpen(false);
+      resetModel();
+      toast({ title: 'Promotion updated successfully' });
+    }
+  });
 
-  const resetForm = () => {
-    setFormData({
-      type: newPromoType,
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/admin/promotions/${id}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete promotion');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/promotions'] });
+      toast({ title: 'Promotion deleted successfully' });
+    }
+  });
+
+  const resetModel = () => {
+    setModel({
+      id: null,
+      type: 'banner',
       title: '',
-      message: '',
-      description: '',
-      promoCode: '',
-      discount: '',
-      ctaText: 'Learn More',
-      ctaUrl: '',
-      bgColor: '#1e40af',
-      bgGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      textColor: '#ffffff',
-      icon: 'gift',
-      targetDomains: ['familycirclesecure.com'],
-      showAfterSeconds: 5,
-      showOncePerSession: true,
-      expiresAt: '',
-      isActive: true
+      content: { headline: '', sub: '', cta: { label: '', href: '' } },
+      couponCode: '',
+      targets: { tenants: ['Public', 'Family', 'Staff'], pages: [], segments: [] },
+      schedule: { start: null, end: null, tz: 'UTC' },
+      variants: [],
+      publish: false,
+      exclusive: false
     });
     setEditingPromo(null);
   };
 
-  const handleSave = async () => {
-    try {
-      if (!formData.title || !formData.promoCode) {
-        toast({
-          title: 'Validation Error',
-          description: 'Title and promo code are required',
-          variant: 'destructive'
-        });
-        return;
-      }
-
-      if (!formData.targetDomains || formData.targetDomains.length === 0) {
-        toast({
-          title: 'Validation Error',
-          description: 'Please select at least one website to target',
-          variant: 'destructive'
-        });
-        return;
-      }
-
-      const promotion: Promotion = {
-        id: editingPromo?.id || crypto.randomUUID(),
-        ...formData,
-        createdAt: editingPromo?.createdAt || new Date().toISOString()
-      };
-
-      // Simulate API call - in production, this would save to database
-      const existingIndex = promotions.findIndex(p => p.id === promotion.id);
-      if (existingIndex >= 0) {
-        const updated = [...promotions];
-        updated[existingIndex] = promotion;
-        setPromotions(updated);
-      } else {
-        setPromotions(prev => [promotion, ...prev]);
-      }
-
-      toast({
-        title: 'Success',
-        description: `Promotion ${editingPromo ? 'updated' : 'created'} successfully`
+  const openDrawer = (promo?: Promotion) => {
+    if (promo) {
+      setEditingPromo(promo);
+      setModel({
+        id: promo.id,
+        type: promo.type,
+        title: promo.title,
+        content: promo.content,
+        couponCode: promo.couponCode || '',
+        targets: promo.targets,
+        schedule: promo.schedule,
+        variants: promo.variants || [],
+        publish: promo.status === 'active',
+        exclusive: false
       });
+    } else {
+      resetModel();
+    }
+    setIsDrawerOpen(true);
+    setActiveTab('basics');
+  };
 
-      resetForm();
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to save promotion',
-        variant: 'destructive'
-      });
+  const handleSave = () => {
+    if (!model.title || !model.content.headline) {
+      toast({ title: 'Please fill in required fields', variant: 'destructive' });
+      return;
+    }
+
+    const promoData = {
+      type: model.type,
+      title: model.title,
+      content: model.content,
+      couponCode: model.couponCode,
+      targets: model.targets,
+      schedule: model.schedule,
+      variants: model.variants,
+      status: model.publish ? 'active' : 'paused',
+      paused: !model.publish
+    };
+
+    if (editingPromo) {
+      updateMutation.mutate({ id: editingPromo.id, data: promoData });
+    } else {
+      createMutation.mutate(promoData);
     }
   };
 
-  const handleEdit = (promo: Promotion) => {
-    setFormData({
-      type: promo.type,
-      title: promo.title,
-      message: promo.message || '',
-      description: promo.description || '',
-      promoCode: promo.promoCode,
-      discount: promo.discount || '',
-      ctaText: promo.ctaText,
-      ctaUrl: promo.ctaUrl || '',
-      bgColor: promo.bgColor || '#1e40af',
-      bgGradient: promo.bgGradient || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      textColor: promo.textColor || '#ffffff',
-      icon: promo.icon || 'gift',
-      targetDomains: promo.targetDomains || ['familycirclesecure.com'],
-      showAfterSeconds: promo.showAfterSeconds || 5,
-      showOncePerSession: promo.showOncePerSession !== false,
-      expiresAt: promo.expiresAt || '',
-      isActive: promo.isActive
-    });
-    setEditingPromo(promo);
-  };
-
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this promotion?')) {
-      setPromotions(prev => prev.filter(p => p.id !== id));
-      toast({
-        title: 'Success',
-        description: 'Promotion deleted successfully'
-      });
+      deleteMutation.mutate(id);
     }
   };
 
-  const handleToggleActive = async (id: string) => {
-    setPromotions(prev => 
-      prev.map(p => 
-        p.id === id ? { ...p, isActive: !p.isActive } : p
-      )
-    );
+  const getStatusBadge = (promo: Promotion) => {
+    if (promo.paused) return { class: 'badge-paused', text: 'Paused' };
+    if (promo.status === 'expired') return { class: 'badge-expired', text: 'Expired' };
+    if (promo.status === 'scheduled') return { class: 'badge-warn', text: 'Scheduled' };
+    return { class: 'badge-active', text: 'Active' };
   };
 
-  const copyPromoCode = async (code: string) => {
-    try {
-      await navigator.clipboard.writeText(code);
-      toast({
-        title: 'Copied',
-        description: 'Promo code copied to clipboard'
-      });
-    } catch (error) {
-      console.error('Failed to copy:', error);
-    }
+  const filteredPromotions = promotions.filter((promo: Promotion) => {
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'active') return promo.status === 'active' && !promo.paused;
+    if (activeFilter === 'scheduled') return promo.status === 'scheduled';
+    if (activeFilter === 'expired') return promo.status === 'expired';
+    if (activeFilter === 'paused') return promo.paused;
+    return true;
+  });
+
+  const formatMetrics = (metrics: Promotion['metrics']) => {
+    const ctr = metrics.impressions > 0 ? ((metrics.clicks / metrics.impressions) * 100).toFixed(1) : '0.0';
+    const convRate = metrics.clicks > 0 ? ((metrics.conversions / metrics.clicks) * 100).toFixed(1) : '0.0';
+    return `Impr ${metrics.impressions.toLocaleString()} • Clicks ${metrics.clicks.toLocaleString()} (${ctr}%) • Conv ${metrics.conversions} (${convRate}%)`;
   };
 
   useEffect(() => {
-    // Load sample promotions
-    const samplePromotions: Promotion[] = [
-      {
-        id: 'winter-sale-2025',
-        type: 'banner',
-        title: '🎉 Winter Sale',
-        message: 'Get 50% off FamilyCircle Secure Enterprise for 3 months',
-        promoCode: 'WINTER50',
-        ctaText: 'Claim Offer',
-        ctaUrl: '/pricing',
-        bgColor: '#1e40af',
-        textColor: '#ffffff',
-        icon: 'gift',
-        targetDomains: ['familycirclesecure.com', 'portal.familycirclesecure.com'],
-        expiresAt: '2025-03-01',
-        isActive: true,
-        createdAt: '2025-01-15T00:00:00Z'
-      },
-      {
-        id: 'enterprise-upgrade-2025',
-        type: 'popup',
-        title: 'Limited Time Offer!',
-        description: 'Unlock advanced security features, tamper-evident auditing, and enterprise-grade monitoring.',
-        promoCode: 'ENTERPRISE40',
-        discount: '40% OFF',
-        ctaText: 'Upgrade Now',
-        ctaUrl: '/pricing?plan=enterprise',
-        bgGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        targetDomains: ['familycirclesecure.com'],
-        showAfterSeconds: 5,
-        showOncePerSession: true,
-        expiresAt: '2025-03-01',
-        isActive: true,
-        createdAt: '2025-01-10T00:00:00Z'
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isDrawerOpen) {
+        setIsDrawerOpen(false);
       }
-    ];
+    };
     
-    setPromotions(samplePromotions);
-    setLoading(false);
-  }, []);
-
-  if (loading) {
-    return <div className="flex items-center justify-center p-8">Loading promotions...</div>;
-  }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isDrawerOpen]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div id="promos-root" data-testid="marketing-promotions">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h2 className="text-2xl font-bold">Marketing Promotions</h2>
-          <p className="text-muted-foreground">
-            Manage promotional banners and popups to drive conversions
-          </p>
+          <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', margin: 0 }}>Marketing Promotions</h3>
+          <p style={{ color: '#6B7280', margin: '4px 0 0 0' }}>Manage banners, popups, and promotional campaigns</p>
         </div>
-        <Button onClick={() => setNewPromoType('banner')} data-testid="new-promotion">
-          <Plus className="w-4 h-4 mr-2" />
-          New Promotion
-        </Button>
+        <button 
+          className="btn primary"
+          onClick={() => openDrawer()}
+          data-testid="button-new-promotion"
+        >
+          + New Promotion
+        </button>
       </div>
 
-      <Tabs defaultValue="list" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="list">Active Promotions</TabsTrigger>
-          <TabsTrigger value="create">
-            {editingPromo ? 'Edit Promotion' : 'Create Promotion'}
-          </TabsTrigger>
-        </TabsList>
+      {/* Segmented Filter Tabs */}
+      <div className="seg" style={{ marginBottom: '24px' }}>
+        {['all', 'active', 'scheduled', 'expired', 'paused'].map(filter => (
+          <button
+            key={filter}
+            className={activeFilter === filter ? 'is-active' : ''}
+            onClick={() => setActiveFilter(filter)}
+            data-testid={`filter-${filter}`}
+          >
+            {filter.charAt(0).toUpperCase() + filter.slice(1)}
+          </button>
+        ))}
+      </div>
 
-        <TabsContent value="list" className="space-y-4">
-          {promotions.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <p className="text-muted-foreground">No promotions created yet</p>
-                <Button className="mt-4" onClick={() => setNewPromoType('banner')}>
-                  Create Your First Promotion
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {promotions.map(promo => (
-                <Card key={promo.id} className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <Badge variant={promo.type === 'banner' ? 'default' : 'secondary'}>
-                          {promo.type}
-                        </Badge>
-                        <h3 className="font-semibold">{promo.title}</h3>
-                        {promo.isActive ? (
-                          <Badge variant="success" className="bg-green-100 text-green-800">
-                            <Eye className="w-3 h-3 mr-1" />
-                            Active
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">
-                            <EyeOff className="w-3 h-3 mr-1" />
-                            Inactive
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {promo.message || promo.description}
-                      </p>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                        <span>Code: {promo.promoCode}</span>
-                        {promo.expiresAt && (
-                          <span>Expires: {new Date(promo.expiresAt).toLocaleDateString()}</span>
-                        )}
-                      </div>
-                      {promo.targetDomains && promo.targetDomains.length > 0 && (
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="text-xs text-muted-foreground">Targets:</span>
-                          <div className="flex gap-1">
-                            {promo.targetDomains.map(domain => {
-                              const domainInfo = AVAILABLE_DOMAINS.find(d => d.id === domain);
-                              return domainInfo ? (
-                                <Badge key={domain} variant="outline" className="text-xs">
-                                  {domainInfo.label}
-                                </Badge>
-                              ) : null;
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => copyPromoCode(promo.promoCode)}
-                      >
-                        <Copy className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleToggleActive(promo.id)}
-                      >
-                        {promo.isActive ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(promo)}
-                      >
-                        <Edit className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDelete(promo.id)}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
+      {/* Promotions List */}
+      {isLoading ? (
+        <div style={{ textAlign: 'center', padding: '48px 16px', color: '#6B7280' }}>
+          <div style={{ fontSize: '24px', marginBottom: '8px' }}>⏳</div>
+          <p>Loading promotions...</p>
+        </div>
+      ) : filteredPromotions.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '48px 16px', color: '#6B7280' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>📢</div>
+          <h4 style={{ margin: '0 0 8px 0' }}>No promotions found</h4>
+          <p style={{ margin: '0 0 16px 0' }}>Create your first promotional campaign to drive conversions</p>
+          <button className="btn primary" onClick={() => openDrawer()}>
+            Create Promotion
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {filteredPromotions.map((promo: Promotion) => {
+            const badge = getStatusBadge(promo);
+            return (
+              <div key={promo.id} className="promo-card" data-testid={`promo-card-${promo.id}`}>
+                <div className="promo-head">
+                  <div className="promo-left">
+                    <span className="badge badge-type">{promo.type}</span>
+                    <div className="promo-title">{promo.title}</div>
+                    <span className={`badge ${badge.class}`}>{badge.text}</span>
                   </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="create" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                {editingPromo ? 'Edit Promotion' : 'Create New Promotion'}
-              </CardTitle>
-              <CardDescription>
-                Configure your promotional campaign settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Promotion Type */}
-              <div className="space-y-2">
-                <Label>Promotion Type</Label>
-                <Select 
-                  value={formData.type} 
-                  onValueChange={(value: 'banner' | 'popup') => handleInputChange('type', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="banner">Banner (Top of Page)</SelectItem>
-                    <SelectItem value="popup">Popup Modal</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Basic Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Title</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => handleInputChange('title', e.target.value)}
-                    placeholder="Winter Sale"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="ctaText">CTA Text</Label>
-                  <Input
-                    id="ctaText"
-                    value={formData.ctaText}
-                    onChange={(e) => handleInputChange('ctaText', e.target.value)}
-                    placeholder="Learn More"
-                  />
-                </div>
-              </div>
-
-              {/* Message/Description */}
-              {formData.type === 'banner' ? (
-                <div className="space-y-2">
-                  <Label htmlFor="message">Message</Label>
-                  <Input
-                    id="message"
-                    value={formData.message}
-                    onChange={(e) => handleInputChange('message', e.target.value)}
-                    placeholder="Get 50% off for limited time"
-                  />
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                    placeholder="Detailed description of the offer"
-                  />
-                </div>
-              )}
-
-              {/* Promo Code */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="promoCode">Promo Code</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="promoCode"
-                      value={formData.promoCode}
-                      onChange={(e) => handleInputChange('promoCode', e.target.value)}
-                      placeholder="SAVE50"
-                    />
-                    <Button type="button" variant="outline" onClick={generatePromoCode}>
-                      Generate
-                    </Button>
+                  <div className="actions">
+                    <button title="Duplicate" data-testid={`button-duplicate-${promo.id}`}>⧉</button>
+                    <button title="Preview" data-testid={`button-preview-${promo.id}`}>👁️</button>
+                    <button title="Edit" onClick={() => openDrawer(promo)} data-testid={`button-edit-${promo.id}`}>✏️</button>
+                    <button title="Delete" onClick={() => handleDelete(promo.id)} data-testid={`button-delete-${promo.id}`}>🗑️</button>
                   </div>
                 </div>
-                {formData.type === 'popup' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="discount">Discount Display</Label>
-                    <Input
-                      id="discount"
-                      value={formData.discount}
-                      onChange={(e) => handleInputChange('discount', e.target.value)}
-                      placeholder="50% OFF"
-                    />
+
+                <div className="promo-meta">
+                  {promo.content.headline}
+                  {promo.content.sub && <><br />{promo.content.sub}</>}
+                  <br />
+                  <strong>Code:</strong> {promo.couponCode || '—'} 
+                  {promo.schedule.end && (
+                    <> &nbsp;•&nbsp; <strong>Expires:</strong> {new Date(promo.schedule.end).toLocaleDateString()}</>
+                  )}
+                </div>
+
+                <div className="targets" style={{ marginTop: '8px' }}>
+                  <strong>Targets:</strong>
+                  {promo.targets.tenants.map(tenant => (
+                    <span key={tenant} className="chip">{tenant}</span>
+                  ))}
+                </div>
+
+                {promo.metrics && (
+                  <div style={{ marginTop: '8px', fontSize: '12px', color: '#6B7280' }}>
+                    {formatMetrics(promo.metrics)}
                   </div>
                 )}
               </div>
+            );
+          })}
+        </div>
+      )}
 
-              {/* Target Domains */}
-              <div className="space-y-2">
-                <Label>Target Websites</Label>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Choose which websites this promotion should appear on
-                </p>
-                <div className="space-y-3">
-                  {AVAILABLE_DOMAINS.map(domain => (
-                    <div key={domain.id} className="flex items-center space-x-3">
-                      <input
-                        type="checkbox"
-                        id={`domain-${domain.id}`}
-                        checked={(formData.targetDomains || []).includes(domain.id)}
-                        onChange={() => handleDomainToggle(domain.id)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <Label htmlFor={`domain-${domain.id}`} className="flex-1 cursor-pointer">
-                        <div className="font-medium">{domain.label}</div>
-                        <div className="text-sm text-muted-foreground">{domain.description}</div>
-                      </Label>
+      {/* Backdrop */}
+      {isDrawerOpen && (
+        <div
+          id="promo-backdrop"
+          className="prm-backdrop"
+          onClick={() => setIsDrawerOpen(false)}
+        />
+      )}
+
+      {/* Drawer */}
+      {isDrawerOpen && (
+        <aside
+          id="promo-drawer"
+          className={`prm-drawer ${isDrawerOpen ? 'open' : ''}`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="prm-title"
+          data-testid="promotion-drawer"
+        >
+          <header className="prm-head">
+            <div>
+              <div className="eyebrow">Marketing Promotion</div>
+              <h3 id="prm-title">{editingPromo ? 'Edit Promotion' : 'New Promotion'}</h3>
+            </div>
+            <button
+              id="prm-close"
+              className="icon-x"
+              aria-label="Close"
+              onClick={() => setIsDrawerOpen(false)}
+              data-testid="button-close-drawer"
+            >
+              ✖
+            </button>
+          </header>
+
+          <div className="prm-tabs" role="tablist" aria-label="Sections">
+            {['basics', 'targeting', 'variants', 'schedule'].map(tab => (
+              <button
+                key={tab}
+                className={`tab ${activeTab === tab ? 'is-active' : ''}`}
+                data-tab={tab}
+                role="tab"
+                aria-selected={activeTab === tab}
+                onClick={() => setActiveTab(tab)}
+                data-testid={`tab-${tab}`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {tab === 'variants' && ' / A-B'}
+              </button>
+            ))}
+          </div>
+
+          <div className="prm-body">
+            {/* BASICS */}
+            {activeTab === 'basics' && (
+              <section className="pane is-active">
+                <div className="grid-2">
+                  <div>
+                    <label className="lbl">Type</label>
+                    <select
+                      value={model.type}
+                      onChange={(e) => setModel(prev => ({ ...prev, type: e.target.value as any }))}
+                      data-testid="select-type"
+                    >
+                      <option value="banner">Banner</option>
+                      <option value="popup">Popup</option>
+                      <option value="ribbon">Ribbon</option>
+                      <option value="inline">Inline</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="lbl">Internal Title</label>
+                    <input
+                      value={model.title}
+                      onChange={(e) => setModel(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Winter Sale"
+                      data-testid="input-title"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid-2">
+                  <div>
+                    <label className="lbl">Headline</label>
+                    <input
+                      value={model.content.headline}
+                      onChange={(e) => setModel(prev => ({ 
+                        ...prev, 
+                        content: { ...prev.content, headline: e.target.value }
+                      }))}
+                      placeholder="Get 50% off Enterprise for 3 months"
+                      data-testid="input-headline"
+                    />
+                  </div>
+                  <div>
+                    <label className="lbl">Subtext</label>
+                    <input
+                      value={model.content.sub}
+                      onChange={(e) => setModel(prev => ({ 
+                        ...prev, 
+                        content: { ...prev.content, sub: e.target.value }
+                      }))}
+                      placeholder="Limited time only"
+                      data-testid="input-subtext"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid-2">
+                  <div>
+                    <label className="lbl">CTA Label</label>
+                    <input
+                      value={model.content.cta.label}
+                      onChange={(e) => setModel(prev => ({ 
+                        ...prev, 
+                        content: { ...prev.content, cta: { ...prev.content.cta, label: e.target.value }}
+                      }))}
+                      placeholder="Upgrade"
+                      data-testid="input-cta-label"
+                    />
+                  </div>
+                  <div>
+                    <label className="lbl">CTA Link</label>
+                    <input
+                      value={model.content.cta.href}
+                      onChange={(e) => setModel(prev => ({ 
+                        ...prev, 
+                        content: { ...prev.content, cta: { ...prev.content.cta, href: e.target.value }}
+                      }))}
+                      placeholder="/pricing"
+                      data-testid="input-cta-href"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid-2">
+                  <div>
+                    <label className="lbl">Coupon Code (optional)</label>
+                    <input
+                      value={model.couponCode}
+                      onChange={(e) => setModel(prev => ({ ...prev, couponCode: e.target.value }))}
+                      placeholder="WINTER50"
+                      data-testid="input-coupon-code"
+                    />
+                  </div>
+                  <div>
+                    <label className="lbl">Link to Coupon</label>
+                    <button className="btn ghost" type="button" data-testid="button-open-coupons">
+                      Open Coupons
+                    </button>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* TARGETING */}
+            {activeTab === 'targeting' && (
+              <section className="pane is-active">
+                <label className="lbl">Tenants</label>
+                <div className="chips">
+                  {['Public', 'Family', 'Staff'].map(tenant => (
+                    <button
+                      key={tenant}
+                      className={`chip ${model.targets.tenants.includes(tenant) ? 'is-on' : ''}`}
+                      onClick={() => {
+                        setModel(prev => ({
+                          ...prev,
+                          targets: {
+                            ...prev.targets,
+                            tenants: prev.targets.tenants.includes(tenant)
+                              ? prev.targets.tenants.filter(t => t !== tenant)
+                              : [...prev.targets.tenants, tenant]
+                          }
+                        }));
+                      }}
+                      data-testid={`chip-tenant-${tenant.toLowerCase()}`}
+                    >
+                      {tenant}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid-2 mt-10">
+                  <div>
+                    <label className="lbl">Page Rules (one per line)</label>
+                    <textarea
+                      rows={5}
+                      placeholder="/, /pricing, contains:/blog"
+                      value={model.targets.pages.map(p => `${p.op}:${p.path}`).join('\n')}
+                      onChange={(e) => {
+                        const lines = e.target.value.split('\n').filter(line => line.trim());
+                        const pages = lines.map(line => {
+                          const [op, path] = line.split(':');
+                          return { op: op || 'exact', path: path || line };
+                        });
+                        setModel(prev => ({
+                          ...prev,
+                          targets: { ...prev.targets, pages }
+                        }));
+                      }}
+                      data-testid="textarea-page-rules"
+                    />
+                    <div className="hint">Supported: <code>/path</code>, <code>contains:...</code>, <code>regex:/^\/docs\/.+/</code></div>
+                  </div>
+                  <div>
+                    <label className="lbl">Segments</label>
+                    <select multiple size={5} data-testid="select-segments">
+                      <option value="first_visit">First visit</option>
+                      <option value="returning">Returning users</option>
+                      <option value="abandoned_checkout">Abandoned checkout</option>
+                      <option value="high_value">High value clients</option>
+                    </select>
+                    <div className="hint">Hold Ctrl/Cmd to select multiple</div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* VARIANTS */}
+            {activeTab === 'variants' && (
+              <section className="pane is-active">
+                <div id="prm-variants">
+                  {model.variants.map((variant, index) => (
+                    <div key={index} className="variant" data-testid={`variant-${index}`}>
+                      <div className="row">
+                        <span className="badge badge-variant">Variant {variant.key}</span>
+                        <label>Label 
+                          <input 
+                            value={variant.label}
+                            onChange={(e) => {
+                              const newVariants = [...model.variants];
+                              newVariants[index].label = e.target.value;
+                              setModel(prev => ({ ...prev, variants: newVariants }));
+                            }}
+                            style={{ width: '160px' }}
+                          />
+                        </label>
+                        <label>Weight 
+                          <input 
+                            type="number" 
+                            min="0" 
+                            max="100" 
+                            value={variant.weight}
+                            onChange={(e) => {
+                              const newVariants = [...model.variants];
+                              newVariants[index].weight = Number(e.target.value);
+                              setModel(prev => ({ ...prev, variants: newVariants }));
+                            }}
+                            style={{ width: '100px' }}
+                          />
+                        </label>
+                        <button 
+                          className="btn ghost" 
+                          onClick={() => {
+                            setModel(prev => ({
+                              ...prev,
+                              variants: prev.variants.filter((_, i) => i !== index)
+                            }));
+                          }}
+                          style={{ marginLeft: 'auto' }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <div className="grid-2 mt-6">
+                        <div>
+                          <label className="lbl">Headline</label>
+                          <input 
+                            value={variant.content.headline}
+                            onChange={(e) => {
+                              const newVariants = [...model.variants];
+                              newVariants[index].content.headline = e.target.value;
+                              setModel(prev => ({ ...prev, variants: newVariants }));
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label className="lbl">Subtext</label>
+                          <input 
+                            value={variant.content.sub}
+                            onChange={(e) => {
+                              const newVariants = [...model.variants];
+                              newVariants[index].content.sub = e.target.value;
+                              setModel(prev => ({ ...prev, variants: newVariants }));
+                            }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
-                {(!formData.targetDomains || formData.targetDomains.length === 0) && (
-                  <p className="text-sm text-red-600 mt-2">
-                    Please select at least one website to target
-                  </p>
-                )}
-              </div>
+                <button 
+                  className="btn ghost" 
+                  type="button"
+                  onClick={() => {
+                    const newVariant = {
+                      key: String.fromCharCode(65 + model.variants.length),
+                      label: 'Variant',
+                      weight: 0,
+                      content: { headline: '', sub: '', cta: { label: '', href: '' } }
+                    };
+                    setModel(prev => ({ ...prev, variants: [...prev.variants, newVariant] }));
+                  }}
+                  data-testid="button-add-variant"
+                >
+                  + Add variant
+                </button>
+                <div className="hint mt-6">Weights must total 100%. Empty = single-variant.</div>
+              </section>
+            )}
 
-              {/* URLs and Expiry */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="ctaUrl">CTA URL</Label>
-                  <Input
-                    id="ctaUrl"
-                    value={formData.ctaUrl}
-                    onChange={(e) => handleInputChange('ctaUrl', e.target.value)}
-                    placeholder="/pricing"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="expiresAt">Expires At</Label>
-                  <Input
-                    id="expiresAt"
-                    type="date"
-                    value={formData.expiresAt}
-                    onChange={(e) => handleInputChange('expiresAt', e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Popup Specific Settings */}
-              {formData.type === 'popup' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="showAfterSeconds">Show After (seconds)</Label>
-                    <Input
-                      id="showAfterSeconds"
-                      type="number"
-                      value={formData.showAfterSeconds}
-                      onChange={(e) => handleInputChange('showAfterSeconds', parseInt(e.target.value))}
+            {/* SCHEDULE */}
+            {activeTab === 'schedule' && (
+              <section className="pane is-active">
+                <div className="grid-3">
+                  <div>
+                    <label className="lbl">Start</label>
+                    <input
+                      type="datetime-local"
+                      value={model.schedule.start || ''}
+                      onChange={(e) => setModel(prev => ({
+                        ...prev,
+                        schedule: { ...prev.schedule, start: e.target.value }
+                      }))}
+                      data-testid="input-start-date"
                     />
                   </div>
-                  <div className="flex items-center space-x-2 pt-6">
-                    <Switch
-                      id="showOncePerSession"
-                      checked={formData.showOncePerSession}
-                      onCheckedChange={(checked) => handleInputChange('showOncePerSession', checked)}
+                  <div>
+                    <label className="lbl">End (optional)</label>
+                    <input
+                      type="datetime-local"
+                      value={model.schedule.end || ''}
+                      onChange={(e) => setModel(prev => ({
+                        ...prev,
+                        schedule: { ...prev.schedule, end: e.target.value }
+                      }))}
+                      data-testid="input-end-date"
                     />
-                    <Label htmlFor="showOncePerSession">Show once per session</Label>
+                  </div>
+                  <div>
+                    <label className="lbl">Timezone</label>
+                    <select
+                      value={model.schedule.tz}
+                      onChange={(e) => setModel(prev => ({
+                        ...prev,
+                        schedule: { ...prev.schedule, tz: e.target.value }
+                      }))}
+                      data-testid="select-timezone"
+                    >
+                      <option value="UTC">UTC</option>
+                      <option value="America/New_York">America/New_York</option>
+                      <option value="America/Chicago">America/Chicago</option>
+                      <option value="America/Denver">America/Denver</option>
+                      <option value="America/Los_Angeles">America/Los_Angeles</option>
+                    </select>
                   </div>
                 </div>
-              )}
 
-              {/* Active Toggle */}
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="isActive"
-                  checked={formData.isActive}
-                  onCheckedChange={(checked) => handleInputChange('isActive', checked)}
-                />
-                <Label htmlFor="isActive">Active</Label>
-              </div>
+                <label className="lbl mt-10">Publish state</label>
+                <div className="row gap-8">
+                  <label>
+                    <input 
+                      type="checkbox" 
+                      checked={model.publish}
+                      onChange={(e) => setModel(prev => ({ ...prev, publish: e.target.checked }))}
+                      data-testid="checkbox-publish"
+                    /> 
+                    Publish on save
+                  </label>
+                  <label>
+                    <input 
+                      type="checkbox" 
+                      checked={model.exclusive}
+                      onChange={(e) => setModel(prev => ({ ...prev, exclusive: e.target.checked }))}
+                      data-testid="checkbox-exclusive"
+                    /> 
+                    Prevent overlapping banners in same slot
+                  </label>
+                </div>
+              </section>
+            )}
+          </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-4">
-                <Button onClick={handleSave}>
-                  {editingPromo ? 'Update Promotion' : 'Create Promotion'}
-                </Button>
-                <Button variant="outline" onClick={resetForm}>
-                  Cancel
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          <footer className="prm-foot">
+            <div className="left muted">All changes are logged in the audit trail.</div>
+            <div className="right">
+              <button className="btn ghost" type="button" data-testid="button-preview">
+                Preview
+              </button>
+              <button 
+                className="btn ghost" 
+                type="button" 
+                onClick={() => setIsDrawerOpen(false)}
+                data-testid="button-cancel"
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn primary" 
+                type="button" 
+                onClick={handleSave}
+                disabled={createMutation.isPending || updateMutation.isPending}
+                data-testid="button-save"
+              >
+                {createMutation.isPending || updateMutation.isPending ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </footer>
+        </aside>
+      )}
     </div>
   );
 }
