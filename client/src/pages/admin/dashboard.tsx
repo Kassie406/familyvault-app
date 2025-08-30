@@ -171,17 +171,20 @@ export default function AdminDashboard() {
         const pricingType = pricingTypeSelect.value;
         const isBillable = !noBillingTenant && pricingType === 'fixed';
         
-        billableElements.forEach((element: HTMLElement) => {
-          const inputs = element.querySelectorAll('input, select');
+        billableElements.forEach((element) => {
+          const htmlElement = element as HTMLElement;
+          const inputs = htmlElement.querySelectorAll('input, select');
           if (isBillable) {
-            element.style.opacity = '1';
-            inputs.forEach((input: HTMLInputElement | HTMLSelectElement) => {
-              input.disabled = false;
+            htmlElement.style.opacity = '1';
+            inputs.forEach((input) => {
+              const formInput = input as HTMLInputElement | HTMLSelectElement;
+              formInput.disabled = false;
             });
           } else {
-            element.style.opacity = '0.5';
-            inputs.forEach((input: HTMLInputElement | HTMLSelectElement) => {
-              input.disabled = true;
+            htmlElement.style.opacity = '0.5';
+            inputs.forEach((input) => {
+              const formInput = input as HTMLInputElement | HTMLSelectElement;
+              formInput.disabled = true;
             });
           }
         });
@@ -886,15 +889,57 @@ export default function AdminDashboard() {
                     </td>
                     <td>$0</td>
                     <td>Forever</td>
-                    <td>128</td>
+                    <td>128 <span className="trend-indicator trend-up">▲12%</span></td>
                     <td><span className="badge badge-status-active">Active</span></td>
-                    <td className="mono">price_free</td>
+                    <td>
+                      <button 
+                        className="stripe-link"
+                        onClick={() => window.open('https://dashboard.stripe.com/products/prod_free', '_blank')}
+                        title="Open in Stripe Dashboard"
+                        data-testid="link-stripe-free"
+                      >
+                        price_free
+                      </button>
+                    </td>
                     <td className="col-actions">
                       <div className="row-actions" role="group" aria-label="Plan actions">
-                        <button aria-label="Edit plan" data-tip="Edit" data-testid="button-edit-free">✏️</button>
-                        <button aria-label="Duplicate plan" data-tip="Duplicate" data-testid="button-duplicate-free">🧬</button>
-                        <button aria-label="Archive plan" data-tip="Archive" data-testid="button-archive-free">📦</button>
-                        <button aria-label="Open in Stripe" data-tip="Open in Stripe" data-testid="button-stripe-free">🔗</button>
+                        <button 
+                          className="tooltip" 
+                          title="Edit plan"
+                          tabIndex={0}
+                          aria-label="Edit plan" 
+                          data-testid="button-edit-free"
+                        >
+                          ✏️
+                        </button>
+                        <button 
+                          className="tooltip" 
+                          title="Duplicate plan"
+                          tabIndex={0}
+                          aria-label="Duplicate plan" 
+                          data-testid="button-duplicate-free"
+                        >
+                          🧬
+                        </button>
+                        <button 
+                          className="tooltip" 
+                          title="Archive plan"
+                          tabIndex={0}
+                          aria-label="Archive plan" 
+                          data-testid="button-archive-free"
+                        >
+                          📦
+                        </button>
+                        <button 
+                          className="tooltip" 
+                          title="Open in Stripe Dashboard"
+                          tabIndex={0}
+                          onClick={() => window.open('https://dashboard.stripe.com/products/prod_free', '_blank')}
+                          aria-label="Open in Stripe" 
+                          data-testid="button-stripe-free"
+                        >
+                          🔗
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -907,15 +952,57 @@ export default function AdminDashboard() {
                     </td>
                     <td>$10</td>
                     <td>Monthly (annual billing)</td>
-                    <td>43</td>
+                    <td>43 <span className="trend-indicator trend-up">▲8%</span></td>
                     <td><span className="badge badge-status-active">Active</span></td>
-                    <td className="mono">price_silver_10</td>
+                    <td>
+                      <button 
+                        className="stripe-link"
+                        onClick={() => window.open('https://dashboard.stripe.com/products/prod_silver', '_blank')}
+                        title="Open in Stripe Dashboard"
+                        data-testid="link-stripe-silver"
+                      >
+                        price_silver_10
+                      </button>
+                    </td>
                     <td className="col-actions">
                       <div className="row-actions" role="group" aria-label="Plan actions">
-                        <button aria-label="Edit plan" data-tip="Edit" data-testid="button-edit-silver">✏️</button>
-                        <button aria-label="Duplicate plan" data-tip="Duplicate" data-testid="button-duplicate-silver">🧬</button>
-                        <button aria-label="Archive plan" data-tip="Archive" data-testid="button-archive-silver">📦</button>
-                        <button aria-label="Open in Stripe" data-tip="Open in Stripe" data-testid="button-stripe-silver">🔗</button>
+                        <button 
+                          className="tooltip" 
+                          title="Edit plan"
+                          tabIndex={0}
+                          aria-label="Edit plan" 
+                          data-testid="button-edit-silver"
+                        >
+                          ✏️
+                        </button>
+                        <button 
+                          className="tooltip" 
+                          title="Duplicate plan"
+                          tabIndex={0}
+                          aria-label="Duplicate plan" 
+                          data-testid="button-duplicate-silver"
+                        >
+                          🧬
+                        </button>
+                        <button 
+                          className="tooltip" 
+                          title="Archive plan"
+                          tabIndex={0}
+                          aria-label="Archive plan" 
+                          data-testid="button-archive-silver"
+                        >
+                          📦
+                        </button>
+                        <button 
+                          className="tooltip" 
+                          title="Open in Stripe Dashboard"
+                          tabIndex={0}
+                          onClick={() => window.open('https://dashboard.stripe.com/products/prod_silver', '_blank')}
+                          aria-label="Open in Stripe" 
+                          data-testid="button-stripe-silver"
+                        >
+                          🔗
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -927,15 +1014,57 @@ export default function AdminDashboard() {
                     </td>
                     <td>$20</td>
                     <td>Monthly (annual billing)</td>
-                    <td>25</td>
+                    <td>25 <span className="trend-indicator trend-up">▲5%</span></td>
                     <td><span className="badge badge-status-active">Active</span></td>
-                    <td className="mono">price_gold_20</td>
+                    <td>
+                      <button 
+                        className="stripe-link"
+                        onClick={() => window.open('https://dashboard.stripe.com/products/prod_gold', '_blank')}
+                        title="Open in Stripe Dashboard"
+                        data-testid="link-stripe-gold"
+                      >
+                        price_gold_20
+                      </button>
+                    </td>
                     <td className="col-actions">
                       <div className="row-actions" role="group" aria-label="Plan actions">
-                        <button aria-label="Edit plan" data-tip="Edit" data-testid="button-edit-gold">✏️</button>
-                        <button aria-label="Duplicate plan" data-tip="Duplicate" data-testid="button-duplicate-gold">🧬</button>
-                        <button aria-label="Archive plan" data-tip="Archive" data-testid="button-archive-gold">📦</button>
-                        <button aria-label="Open in Stripe" data-tip="Open in Stripe" data-testid="button-stripe-gold">🔗</button>
+                        <button 
+                          className="tooltip" 
+                          title="Edit plan"
+                          tabIndex={0}
+                          aria-label="Edit plan" 
+                          data-testid="button-edit-gold"
+                        >
+                          ✏️
+                        </button>
+                        <button 
+                          className="tooltip" 
+                          title="Duplicate plan"
+                          tabIndex={0}
+                          aria-label="Duplicate plan" 
+                          data-testid="button-duplicate-gold"
+                        >
+                          🧬
+                        </button>
+                        <button 
+                          className="tooltip" 
+                          title="Archive plan"
+                          tabIndex={0}
+                          aria-label="Archive plan" 
+                          data-testid="button-archive-gold"
+                        >
+                          📦
+                        </button>
+                        <button 
+                          className="tooltip" 
+                          title="Open in Stripe Dashboard"
+                          tabIndex={0}
+                          onClick={() => window.open('https://dashboard.stripe.com/products/prod_gold', '_blank')}
+                          aria-label="Open in Stripe" 
+                          data-testid="button-stripe-gold"
+                        >
+                          🔗
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -948,15 +1077,53 @@ export default function AdminDashboard() {
                     </td>
                     <td>Custom</td>
                     <td>Custom</td>
-                    <td>8</td>
-                    <td><span className="badge badge-status-active">Active</span></td>
-                    <td className="mono">price_custom_quote</td>
+                    <td>8 <span className="trend-indicator trend-down">▼2%</span></td>
+                    <td><span className="badge badge-status-draft">Draft</span></td>
+                    <td>
+                      <span className="mono" title="Custom pricing - no Stripe ID">
+                        custom_quote
+                      </span>
+                    </td>
                     <td className="col-actions">
                       <div className="row-actions" role="group" aria-label="Plan actions">
-                        <button aria-label="Edit plan" data-tip="Edit" data-testid="button-edit-custom">✏️</button>
-                        <button aria-label="Duplicate plan" data-tip="Duplicate" data-testid="button-duplicate-custom">🧬</button>
-                        <button aria-label="Archive plan" data-tip="Archive" data-testid="button-archive-custom">📦</button>
-                        <button aria-label="Open in Stripe" data-tip="Open in Stripe" data-testid="button-stripe-custom">🔗</button>
+                        <button 
+                          className="tooltip" 
+                          title="Edit plan"
+                          tabIndex={0}
+                          aria-label="Edit plan" 
+                          data-testid="button-edit-custom"
+                        >
+                          ✏️
+                        </button>
+                        <button 
+                          className="tooltip" 
+                          title="Duplicate plan"
+                          tabIndex={0}
+                          aria-label="Duplicate plan" 
+                          data-testid="button-duplicate-custom"
+                        >
+                          🧬
+                        </button>
+                        <button 
+                          className="tooltip" 
+                          title="Make active"
+                          tabIndex={0}
+                          aria-label="Activate plan" 
+                          data-testid="button-activate-custom"
+                        >
+                          ✅
+                        </button>
+                        <button 
+                          className="tooltip" 
+                          title="No Stripe integration (custom pricing)"
+                          tabIndex={0}
+                          disabled
+                          aria-label="No Stripe integration" 
+                          data-testid="button-stripe-disabled-custom"
+                          style={{opacity: 0.3, cursor: 'not-allowed'}}
+                        >
+                          🔗
+                        </button>
                       </div>
                     </td>
                   </tr>
