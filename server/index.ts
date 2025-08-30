@@ -534,6 +534,92 @@ app.get('/api/admin/security/metrics', requireAuth('ADMIN'), async (req: Authent
   }
 });
 
+// Feature flags management
+app.get('/api/admin/flags', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Sample feature flags data
+    const flags = [
+      {
+        id: 'flag-1',
+        key: 'new-billing-ui',
+        name: 'New Billing UI',
+        description: 'Enables the redesigned billing interface',
+        status: 'active',
+        force_on: false,
+        force_off: false,
+        targeting: {
+          percentage: 25,
+          allowDomains: ['@familycirclesecure.com'],
+          allowUserIds: [],
+          blockUserIds: []
+        },
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: 'flag-2', 
+        key: 'admin-v2-dashboard',
+        name: 'Admin V2 Dashboard',
+        description: 'New admin dashboard with enhanced analytics',
+        status: 'active',
+        force_on: false,
+        force_off: false,
+        targeting: {
+          percentage: 50,
+          allowDomains: [],
+          allowUserIds: [],
+          blockUserIds: []
+        },
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: 'flag-3',
+        key: 'mobile-app-v3',
+        name: 'Mobile App V3',
+        description: 'Third generation mobile application',
+        status: 'archived',
+        force_on: true,
+        force_off: false,
+        targeting: {
+          percentage: 100,
+          allowDomains: [],
+          allowUserIds: [],
+          blockUserIds: []
+        },
+        updated_at: new Date().toISOString()
+      }
+    ];
+    res.json({ flags });
+  } catch (error) {
+    console.error('Get feature flags error:', error);
+    res.status(500).json({ error: 'Failed to fetch feature flags' });
+  }
+});
+
+app.post('/api/admin/flags', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const flagData = req.body;
+    // TODO: Implement actual flag creation in database
+    console.log('Creating feature flag:', flagData);
+    res.json({ success: true, id: `flag-${Date.now()}` });
+  } catch (error) {
+    console.error('Create feature flag error:', error);
+    res.status(500).json({ error: 'Failed to create feature flag' });
+  }
+});
+
+app.patch('/api/admin/flags/:id', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    // TODO: Implement actual flag update in database
+    console.log('Updating feature flag:', id, updates);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Update feature flag error:', error);
+    res.status(500).json({ error: 'Failed to update feature flag' });
+  }
+});
+
 // Public API endpoints (no authentication required)
 app.get('/api/public/menu-categories', async (req: Request, res: Response) => {
   try {
