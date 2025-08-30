@@ -19,6 +19,7 @@ import AdminLayout from '@/components/admin/admin-layout';
 import SecurityCenterCard from '@/components/admin/security-center-card';
 import SessionManagement from '@/components/admin/session-management';
 import TamperVerification from '@/components/admin/tamper-verification';
+import SecurityPostureSummary from '@/components/admin/security-posture-summary';
 import EnhancedCouponForm from '@/components/admin/enhanced-coupon-form';
 import FeatureFlagsManager from '@/components/admin/feature-flags-manager';
 import ImpersonationManager from '@/components/admin/impersonation-manager';
@@ -3322,6 +3323,9 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold">Security & Audit</h2>
             </div>
+            
+            {/* Security Posture Summary */}
+            <SecurityPostureSummary />
             
             {/* Tamper-Evident Chain Verification */}
             <TamperVerification />

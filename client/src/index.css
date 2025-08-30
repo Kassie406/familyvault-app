@@ -2954,3 +2954,120 @@ legend {
     color: #D1D5DB;
   }
 }
+
+/* Security Posture Summary */
+#sec-posture.card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 16px;
+}
+
+.posture-left {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.posture .title {
+  font-weight: 700;
+  color: #111827;
+}
+
+.posture .subtle {
+  color: #667085;
+  font-size: 14px;
+}
+
+.score-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.score-ring .score-num {
+  position: absolute;
+  font-weight: 800;
+  color: #111827;
+  font-size: 16px;
+}
+
+.ring-bg {
+  fill: none;
+  stroke: #E5EAF2;
+  stroke-width: 6;
+}
+
+.ring-val {
+  fill: none;
+  stroke: #1F6FEB;
+  stroke-linecap: round;
+  stroke-width: 6;
+  transform: rotate(-90deg);
+  transform-origin: 50%;
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+.posture-issues {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.issue {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #E5EAF2;
+  background: #F8FAFF;
+  color: #344054;
+}
+
+.issue.bad {
+  background: #FEECEC;
+  border-color: #F9C2C0;
+  color: #B42318;
+}
+
+.issue.warn {
+  background: #FFF4E5;
+  border-color: #FAD7AA;
+  color: #B54708;
+}
+
+.issue.ok {
+  background: #E8F6EE;
+  border-color: #CBEEDD;
+  color: #067647;
+}
+
+.posture-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (prefers-color-scheme: dark) {
+  .posture .title {
+    color: #E5E7EB;
+  }
+
+  .score-ring .score-num {
+    color: #E5E7EB;
+  }
+
+  .ring-bg {
+    stroke: #1E293B;
+  }
+
+  .issue {
+    background: #0B1220;
+    border-color: #1E293B;
+    color: #E5E7EB;
+  }
+}
