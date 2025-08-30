@@ -240,9 +240,9 @@ export default function AdminDashboard() {
 
         const getTenantBadge = (tenant: string) => {
           const styles = {
-            PUBLIC: "bg-[#007BFF] text-white",
-            FAMILY: "bg-purple-600 text-white", 
-            STAFF: "bg-[#28A745] text-white"
+            PUBLIC: "badge-tenant-public bg-[#0D6EFD1a] text-[#0D6EFD]",
+            FAMILY: "badge-tenant-family bg-[#6F42C11a] text-[#6F42C1]", 
+            STAFF: "badge-tenant-staff bg-[#24A1481a] text-[#1B7F3B]"
           };
           const labels = {
             PUBLIC: "Public",
@@ -250,7 +250,7 @@ export default function AdminDashboard() {
             STAFF: "Staff"
           };
           return (
-            <span className={`px-2 py-1 rounded-md text-xs font-medium ${styles[tenant as keyof typeof styles] || styles.PUBLIC}`}>
+            <span className={`badge px-2 py-1 rounded-full text-xs font-semibold ${styles[tenant as keyof typeof styles] || styles.PUBLIC}`}>
               {labels[tenant as keyof typeof labels] || tenant}
             </span>
           );
@@ -290,14 +290,20 @@ export default function AdminDashboard() {
 
         const getStatusIndicator = (status: string) => {
           const styles = {
-            Active: { color: "text-[#28A745]", icon: "✅", bg: "bg-green-100" },
-            Pending: { color: "text-[#FFC107]", icon: "⏳", bg: "bg-yellow-100" },
-            Suspended: { color: "text-[#DC3545]", icon: "🚫", bg: "bg-red-100" }
+            Active: "badge-status-active bg-[#34C7591a] text-[#2E9950]",
+            Pending: "badge-status-pending bg-[#FFC1071a] text-[#AD7A00]",
+            Suspended: "badge-status-susp bg-[#DC35451a] text-[#B02A37]"
+          };
+          const icons = {
+            Active: "✓",
+            Pending: "⏳", 
+            Suspended: "⚠"
           };
           const config = styles[status as keyof typeof styles] || styles.Active;
+          const icon = icons[status as keyof typeof icons] || icons.Active;
           return (
-            <span className={`px-2 py-1 rounded-md text-xs font-medium ${config.bg} ${config.color}`}>
-              {config.icon} {status}
+            <span className={`badge px-2 py-1 rounded-full text-xs font-semibold ${config}`}>
+              {icon} {status}
             </span>
           );
         };
@@ -318,6 +324,7 @@ export default function AdminDashboard() {
                     <SelectTrigger 
                       className="w-full sm:w-40 tenant-filter bg-[#1E232A] text-[#E8EEF7] border-[#2B313A] hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors duration-200 rounded-full shadow-sm !bg-[#1E232A] hover:!bg-[#1F6FEB] focus:!bg-[#1F6FEB]" 
                       data-testid="select-tenant-filter"
+                      aria-label="Filter users by tenant"
                       style={{
                         background: '#1E232A',
                         color: '#E8EEF7',
@@ -327,11 +334,19 @@ export default function AdminDashboard() {
                       <Filter className="w-4 h-4 mr-2" />
                       <SelectValue placeholder="All Tenants" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#0F141A] border-[#2B313A] shadow-lg">
-                      <SelectItem value="all" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">All Tenants</SelectItem>
-                      <SelectItem value="PUBLIC" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Public Clients</SelectItem>
-                      <SelectItem value="FAMILY" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Family Portal</SelectItem>
-                      <SelectItem value="STAFF" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Staff Hub</SelectItem>
+                    <SelectContent className="bg-[#0F141A] border-[#2B313A] shadow-lg" role="menu">
+                      <SelectItem value="all" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white" role="menuitemradio" aria-checked="true">
+                        All Tenants <span className="text-gray-400 ml-1">(6)</span>
+                      </SelectItem>
+                      <SelectItem value="PUBLIC" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white" role="menuitemradio">
+                        Public Clients <span className="text-gray-400 ml-1">(2)</span>
+                      </SelectItem>
+                      <SelectItem value="FAMILY" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white" role="menuitemradio">
+                        Family Portal <span className="text-gray-400 ml-1">(2)</span>
+                      </SelectItem>
+                      <SelectItem value="STAFF" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white" role="menuitemradio">
+                        Staff Hub <span className="text-gray-400 ml-1">(2)</span>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   
@@ -360,24 +375,26 @@ export default function AdminDashboard() {
             
             <CardContent className="p-0">
               {/* Desktop Table */}
-              <div className="hidden md:block">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
+              <div className="hidden md:block overflow-hidden" style={{maxHeight: '60vh'}}>
+                <div className="overflow-auto" style={{maxHeight: '60vh'}}>
+                  <table className="w-full table-auto">
+                  <thead className="bg-white sticky top-0 z-10 border-b border-gray-200">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tenant</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MFA</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tenant</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MFA</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
                     {sampleUsers.map((user: any) => (
-                      <tr key={user.id} className="hover:bg-[#f6f8fa] transition-colors duration-150 group">
+                      <tr key={user.id} data-tenant={user.tenant} data-row className="hover:bg-[#F6F8FB] focus-within:outline focus-within:outline-2 focus-within:outline-[#1F6FEB33] focus-within:rounded-lg transition-all duration-150 group">
                         {/* Name with Avatar */}
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="w-8 h-8 bg-[#007BFF] bg-opacity-10 rounded-full flex items-center justify-center mr-3">
                               <span className="text-[#007BFF] font-medium text-sm">{user.name.charAt(0)}</span>
@@ -389,64 +406,80 @@ export default function AdminDashboard() {
                         </td>
                         
                         {/* Email */}
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <button 
-                            className="text-sm text-[#007BFF] hover:text-[#0056d6] hover:underline flex items-center gap-1 transition-colors"
+                            className="text-sm text-[#007BFF] hover:text-[#0056d6] hover:underline flex items-center gap-1 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:rounded"
                             onClick={() => {
                               navigator.clipboard.writeText(user.email);
                               toast({ title: 'Email copied to clipboard!' });
                             }}
                             data-testid={`button-copy-email-${user.id}`}
+                            aria-label={`Copy email ${user.email}`}
                           >
                             <Mail className="w-3 h-3" />
-                            {user.email}
+                            <span>
+                              {user.email.split('@')[0]}
+                              <span className="text-gray-400">@{user.email.split('@')[1]}</span>
+                            </span>
                           </button>
                         </td>
                         
                         {/* Tenant Badge */}
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <div data-testid={`badge-tenant-${user.id}`}>
                             {getTenantBadge(user.tenant)}
                           </div>
                         </td>
                         
                         {/* Role Badge */}
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <div data-testid={`badge-role-${user.id}`}>
                             {getRoleBadge(user.role, user.tenant)}
                           </div>
                         </td>
                         
                         {/* Status */}
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <div data-testid={`status-${user.id}`}>
                             {getStatusIndicator(user.status)}
                           </div>
                         </td>
                         
                         {/* MFA Status */}
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <div data-testid={`mfa-status-${user.id}`}>
                             {user.mfaEnabled ? (
-                              <span className="px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700">
+                              <span className="badge badge-mfa-enabled px-2 py-1 rounded-full text-xs font-semibold bg-[#34C7591a] text-[#2E9950]">
                                 ✓ Enabled
                               </span>
                             ) : (
-                              <span className="px-2 py-1 rounded-md text-xs font-medium bg-red-100 text-red-700">
+                              <span className="badge badge-mfa-disabled px-2 py-1 rounded-full text-xs font-semibold bg-[#DC35451a] text-[#B02A37]">
                                 ⚠ Disabled
                               </span>
                             )}
                           </div>
                         </td>
                         
+                        {/* Last Login */}
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="text-sm text-gray-600" data-testid={`last-login-${user.id}`}>
+                            {user.lastLogin ? (
+                              <span>{new Date(user.lastLogin).toLocaleDateString()}</span>
+                            ) : (
+                              <span className="text-gray-400 italic">Never</span>
+                            )}
+                          </div>
+                        </td>
+                        
                         {/* Actions */}
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-1">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="row-actions flex items-center gap-1">
                             <Button 
                               variant="ghost" 
                               size="sm" 
-                              className="h-8 w-8 p-0 hover:bg-[#007BFF] hover:text-white transition-colors"
+                              className="h-8 w-8 p-0 hover:bg-[#EEF3FF] hover:text-[#007BFF] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:rounded-lg"
                               data-testid={`button-edit-${user.id}`}
+                              aria-label={`Edit user ${user.name}`}
                             >
                               <Edit className="w-3 h-3" />
                             </Button>
@@ -455,8 +488,9 @@ export default function AdminDashboard() {
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                className="h-8 w-8 p-0 hover:bg-[#28A745] hover:text-white transition-colors"
+                                className="h-8 w-8 p-0 hover:bg-[#EEF3FF] hover:text-[#28A745] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:rounded-lg"
                                 data-testid={`button-reactivate-${user.id}`}
+                                aria-label={`Reactivate user ${user.name}`}
                               >
                                 <Power className="w-3 h-3" />
                               </Button>
@@ -464,8 +498,9 @@ export default function AdminDashboard() {
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                className="h-8 w-8 p-0 hover:bg-[#FFC107] hover:text-white transition-colors"
+                                className="h-8 w-8 p-0 hover:bg-[#EEF3FF] hover:text-[#FFC107] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:rounded-lg"
                                 data-testid={`button-resend-${user.id}`}
+                                aria-label={`Resend invitation to ${user.name}`}
                               >
                                 <RotateCcw className="w-3 h-3" />
                               </Button>
@@ -473,8 +508,9 @@ export default function AdminDashboard() {
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                className="h-8 w-8 p-0 hover:bg-[#DC3545] hover:text-white transition-colors"
+                                className="h-8 w-8 p-0 hover:bg-[#EEF3FF] hover:text-[#DC3545] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:rounded-lg"
                                 data-testid={`button-suspend-${user.id}`}
+                                aria-label={`Suspend user ${user.name}`}
                               >
                                 <Power className="w-3 h-3" />
                               </Button>
@@ -483,8 +519,9 @@ export default function AdminDashboard() {
                             <Button 
                               variant="ghost" 
                               size="sm" 
-                              className="h-8 w-8 p-0 hover:bg-[#DC3545] hover:text-white transition-colors"
+                              className="h-8 w-8 p-0 hover:bg-[#EEF3FF] hover:text-[#DC3545] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:rounded-lg"
                               data-testid={`button-remove-${user.id}`}
+                              aria-label={`Remove user ${user.name}`}
                             >
                               <X className="w-3 h-3" />
                             </Button>
@@ -492,8 +529,17 @@ export default function AdminDashboard() {
                         </td>
                       </tr>
                     ))}
+                    {/* Empty State Row */}
+                    <tr className="empty-row hidden" id="empty-users-row">
+                      <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
+                        <Users className="mx-auto h-8 w-8 text-gray-400 mb-3" />
+                        <p className="text-sm font-medium">No users found</p>
+                        <p className="text-xs text-gray-400 mt-1">Try adjusting your search or filter criteria</p>
+                      </td>
+                    </tr>
                   </tbody>
-                </table>
+                  </table>
+                </div>
               </div>
               
               {/* Mobile Card Layout */}
@@ -518,7 +564,16 @@ export default function AdminDashboard() {
                     
                     <div className="text-sm text-[#007BFF] mb-3 flex items-center gap-1">
                       <Mail className="w-3 h-3" />
-                      {user.email}
+                      <span>
+                        {user.email.split('@')[0]}
+                        <span className="text-gray-400">@{user.email.split('@')[1]}</span>
+                      </span>
+                    </div>
+                    
+                    {/* Last Login - Mobile */}
+                    <div className="text-xs text-gray-500 mb-3 flex items-center gap-1">
+                      <Activity className="w-3 h-3" />
+                      <span>Last login: {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}</span>
                     </div>
                     
                     <div className="flex gap-2">
@@ -545,7 +600,23 @@ export default function AdminDashboard() {
               
               {/* Table Footer */}
               <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 text-sm text-gray-500 rounded-b-2xl">
-                Showing {sampleUsers.length} users
+                <div className="flex items-center justify-between">
+                  <span>Showing {sampleUsers.length} users</span>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-[#0D6EFD1a] border border-[#0D6EFD]" />
+                      Public ({sampleUsers.filter(u => u.tenant === 'PUBLIC').length})
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-[#6F42C11a] border border-[#6F42C1]" />
+                      Family ({sampleUsers.filter(u => u.tenant === 'FAMILY').length})
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-[#24A1481a] border border-[#1B7F3B]" />
+                      Staff ({sampleUsers.filter(u => u.tenant === 'STAFF').length})
+                    </span>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
