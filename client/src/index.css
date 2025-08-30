@@ -2682,3 +2682,94 @@ legend {
 .timeline .meta {
   color: #475467;
 }
+
+/* GDPR Status Legend */
+.gdpr-legend {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid #E5EAF2;
+  border-radius: 12px;
+  background: #fff;
+  color: #475467;
+  width: max-content;
+  margin: 8px 0;
+}
+
+.gdpr-legend .dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  margin-right: 6px;
+}
+
+.gdpr-legend .ok {
+  background: #12B76A;
+}
+
+.gdpr-legend .warn {
+  background: #FDB022;
+}
+
+.gdpr-legend .due {
+  background: #F97066;
+}
+
+.gdpr-legend .bad {
+  background: #D92D20;
+}
+
+/* Table Action Buttons */
+.tbl-action {
+  border: 1px solid #CBD2E0;
+  background: #fff;
+  color: #374151;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  margin-right: 4px;
+}
+
+.tbl-action:hover {
+  background: #F6F8FB;
+}
+
+.tbl-link {
+  color: #1F6FEB;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.tbl-link:hover {
+  text-decoration: underline;
+}
+
+/* Status Pills */
+.status-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.status-open,
+.status-pending,
+.status-in_progress,
+.status-awaiting_subject {
+  background: #FFF4E5;
+  color: #B54708;
+}
+
+.status-completed {
+  background: #E8F6EE;
+  color: #067647;
+}
+
+.status-rejected {
+  background: #FEECEC;
+  color: #B42318;
+}

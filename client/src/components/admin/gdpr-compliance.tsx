@@ -146,18 +146,18 @@ export function GdprCompliance() {
 
   const getStatusBadge = (status: string, dueAt?: string) => {
     if (status === 'completed') {
-      return <Badge className="badge-ok">Completed</Badge>;
+      return <span className="status-pill status-completed">completed</span>;
     }
     if (status === 'rejected') {
-      return <Badge variant="destructive">Rejected</Badge>;
+      return <span className="status-pill status-rejected">rejected</span>;
     }
     if (dueAt && new Date(dueAt) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)) {
-      return <Badge className="badge-due">Due Soon</Badge>;
+      return <span className="status-pill status-open">due soon</span>;
     }
     if (status === 'open' || status === 'in_progress') {
-      return <Badge className="badge-open">In Progress</Badge>;
+      return <span className={`status-pill status-${status}`}>{status.replace('_', ' ')}</span>;
     }
-    return <Badge variant="secondary">{status}</Badge>;
+    return <span className="status-pill status-open">{status}</span>;
   };
 
   const formatDate = (dateStr: string) => {
@@ -307,6 +307,7 @@ export function GdprCompliance() {
                     <th>Method</th>
                     <th>Date</th>
                     <th>Source</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -334,10 +335,19 @@ export function GdprCompliance() {
                       <td>{event.method}</td>
                       <td>{formatDate(event.occurredAt)}</td>
                       <td>{event.source}</td>
+                      <td>
+                        <button 
+                          className="tbl-action"
+                          onClick={() => openConsentDrawer(event.userId)}
+                          data-testid={`button-history-${event.userId}`}
+                        >
+                          History
+                        </button>
+                      </td>
                     </tr>
                   )) || (
                     <tr>
-                      <td colSpan={6} className="text-center text-gray-500 py-4">
+                      <td colSpan={7} className="text-center text-gray-500 py-4">
                         No consent events found
                       </td>
                     </tr>
@@ -353,6 +363,14 @@ export function GdprCompliance() {
           <div className="p-4">
             <div className="card-header mb-4">
               <h4 className="font-medium">Data Subject Requests</h4>
+              
+              {/* Status Legend */}
+              <div className="gdpr-legend">
+                <span><span className="dot ok"></span>Completed</span>
+                <span><span className="dot warn"></span>Open / In progress</span>
+                <span><span className="dot due"></span>Due ≤ 7 days</span>
+                <span><span className="dot bad"></span>Rejected / Overdue</span>
+              </div>
               <div className="flex gap-2">
                 <Button 
                   variant="outline" 
@@ -395,9 +413,13 @@ export function GdprCompliance() {
                   {requests?.requests?.map((request: DsarRequest) => (
                     <tr key={request.id}>
                       <td>
-                        <code className="text-xs bg-gray-100 px-1 rounded">
+                        <button 
+                          className="tbl-link text-xs bg-gray-100 px-1 rounded border-none cursor-pointer"
+                          onClick={() => openDsarDrawer(request.id)}
+                          data-testid={`button-dsar-id-${request.id}`}
+                        >
                           {request.id}
-                        </code>
+                        </button>
                       </td>
                       <td>
                         <Badge variant="outline">{request.type}</Badge>
