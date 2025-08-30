@@ -116,31 +116,15 @@ export default function StatusWidget() {
   };
 
   const handleComponentClick = (component: string) => {
+    console.log('System status component clicked:', component);
     trackAdminClick('system_status_component', { component });
     
-    // Route to specific status pages based on component
-    switch (component) {
-      case 'database':
-        setLocation(ROUTES.SECURITY_STATUS('database'));
-        break;
-      case 'webhooks':
-        setLocation(ROUTES.WEBHOOKS_DELIVERIES);
-        break;
-      case 'auth':
-        setLocation(ROUTES.SECURITY_STATUS('auth'));
-        break;
-      case 'stripe':
-        setLocation(ROUTES.PLANS_STRIPE);
-        break;
-      case 'smtp':
-        setLocation(ROUTES.SECURITY_STATUS('smtp'));
-        break;
-      case 'storage':
-        setLocation(ROUTES.SECURITY_STATUS('storage'));
-        break;
-      default:
-        setLocation(ROUTES.SECURITY);
-    }
+    // For now, just navigate to security-settings to test if navigation works
+    console.log('Navigating to:', ROUTES.SECURITY);
+    setLocation(ROUTES.SECURITY);
+    
+    // Also test with alert to make sure clicks are registering
+    alert(`Clicked on ${component} - should navigate to Security Settings`);
   };
 
   const allSystemsOperational = components.length > 0 && components.every(c => c.ok);
