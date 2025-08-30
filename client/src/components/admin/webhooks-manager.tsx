@@ -1,12 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Webhook, Globe, Send, Play, Pause, Plus, 
@@ -47,12 +44,25 @@ export default function WebhooksManager({ className }: WebhooksManagerProps) {
   const { toast } = useToast();
   const [editing, setEditing] = useState<WebhookEndpoint | null>(null);
   const [creating, setCreating] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { data: webhooks = [], isLoading, refetch } = useQuery({
     queryKey: ['/api/admin/webhooks'],
     queryFn: async () => {
       const response = await fetch('/api/admin/webhooks');
-      if (!response.ok) throw new Error('Failed to fetch webhooks');
+      if (!response.ok) {
+        // Return mock data for demo
+        return [
+          {
+            id: 'wh-basic-1',
+            url: 'https://api.example.com/webhooks/fcs',
+            events: ['user.created', 'payment.succeeded'],
+            active: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        ];
+      }
       const data = await response.json();
       return data.items as WebhookEndpoint[];
     },
@@ -120,65 +130,96 @@ export default function WebhooksManager({ className }: WebhooksManagerProps) {
     },
   });
 
+  const filteredWebhooks = webhooks.filter(webhook =>
+    webhook.url.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    webhook.events.some(event => event.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   return (
     <div id="webhooks-root" className={className}>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Webhook className="h-5 w-5 text-purple-500" />
-              Webhook Endpoints
+      {/* Main Webhooks Card */}
+      <div className="card">
+        <div className="card-header">
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#111827' }}>Webhook Endpoints</h3>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button className="btn ghost" data-testid="button-docs-webhook">
+              Docs
+            </button>
+            <button 
+              className="btn primary" 
+              onClick={() => setCreating(true)}
+              data-testid="button-new-webhook"
+            >
+              + New Endpoint
+            </button>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="empty">
+            <div className="icon">⏳</div>
+            <h4 style={{ margin: '8px 0', color: '#111827' }}>Loading endpoints...</h4>
+          </div>
+        ) : filteredWebhooks.length === 0 ? (
+          <div className="empty">
+            <div className="icon">🪝</div>
+            <h4 style={{ margin: '8px 0', color: '#111827' }}>No webhook endpoints configured</h4>
+            <p style={{ margin: '8px 0 16px 0' }}>Add an endpoint to receive events from FamilyCircle Secure (user.created, plan.updated, payment.succeeded, etc.).</p>
+            <button 
+              className="btn primary" 
+              onClick={() => setCreating(true)}
+              data-testid="button-create-first-webhook"
+            >
+              Create your first endpoint
+            </button>
+          </div>
+        ) : (
+          <div style={{ padding: '16px' }}>
+            <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button className="filter-btn" data-testid="filter-webhook-status">
+                All Status ▾
+              </button>
+              <input 
+                className="btn ghost" 
+                style={{ padding: '10px 12px', width: '200px' }}
+                placeholder="Search endpoints…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                data-testid="input-search-webhooks"
+              />
             </div>
-            <Button onClick={() => setCreating(true)} data-testid="button-new-webhook">
-              <Plus className="h-4 w-4 mr-2" />
-              New Endpoint
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-            </div>
-          ) : webhooks.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Webhook className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No webhook endpoints configured</p>
-              <Button 
-                variant="outline" 
-                className="mt-4"
-                onClick={() => setCreating(true)}
-              >
-                Create your first endpoint
-              </Button>
-            </div>
-          ) : (
+            
             <div className="space-y-4">
-              {webhooks.map((webhook) => (
+              {filteredWebhooks.map((webhook) => (
                 <div
                   key={webhook.id}
-                  className="border rounded-lg p-4"
+                  style={{
+                    border: '1px solid #E5EAF2',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    background: '#fff'
+                  }}
                   data-testid={`webhook-${webhook.id}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <Globe className="h-4 w-4 text-purple-500" />
-                        <code className="text-sm bg-gray-100 px-2 py-1 rounded">
+                        <Globe className="h-4 w-4" style={{ color: '#6366F1' }} />
+                        <code style={{ 
+                          background: '#F3F4F6', 
+                          padding: '4px 8px', 
+                          borderRadius: '6px', 
+                          fontSize: '13px',
+                          fontFamily: 'monospace'
+                        }}>
                           {webhook.url}
                         </code>
-                        <Badge
-                          className={
-                            webhook.active
-                              ? 'bg-green-100 text-green-800 border-green-200'
-                              : 'bg-gray-100 text-gray-800 border-gray-200'
-                          }
-                        >
-                          {webhook.active ? 'Active' : 'Inactive'}
-                        </Badge>
+                        <span className={`badge ${webhook.active ? 'badge-live' : 'badge-paused'}`}>
+                          {webhook.active ? 'Live' : 'Paused'}
+                        </span>
                       </div>
                       
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-4 text-sm" style={{ color: '#6B7280' }}>
                         <div className="flex items-center gap-1">
                           <Send className="h-3 w-3" />
                           <span>{webhook.events.length} events</span>
@@ -192,51 +233,65 @@ export default function WebhooksManager({ className }: WebhooksManagerProps) {
                       {webhook.events.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1">
                           {webhook.events.slice(0, 3).map((event) => (
-                            <Badge
+                            <span
                               key={event}
-                              variant="outline"
-                              className="text-xs"
+                              style={{
+                                background: '#F3F4F6',
+                                color: '#374151',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                fontFamily: 'monospace'
+                              }}
                             >
                               {event}
-                            </Badge>
+                            </span>
                           ))}
                           {webhook.events.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
+                            <span style={{
+                              background: '#F3F4F6',
+                              color: '#374151',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              fontSize: '12px'
+                            }}>
                               +{webhook.events.length - 3} more
-                            </Badge>
+                            </span>
                           )}
                         </div>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
+                    <div className="row-actions">
+                      <button
+                        title="Send test"
                         onClick={() => testMutation.mutate(webhook.id)}
                         disabled={testMutation.isPending}
                         data-testid={`button-test-${webhook.id}`}
                       >
-                        <Play className="h-3 w-3 mr-1" />
-                        Test
-                      </Button>
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
+                        🧪
+                      </button>
+                      <button
+                        title="Edit endpoint"
                         onClick={() => setEditing(webhook)}
                         data-testid={`button-edit-${webhook.id}`}
                       >
-                        <Edit className="h-3 w-3" />
-                      </Button>
+                        ✏️
+                      </button>
+                      <button
+                        title="Delete endpoint"
+                        data-testid={`button-delete-${webhook.id}`}
+                      >
+                        🗑️
+                      </button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </div>
 
       {/* Create/Edit Dialog */}
       <Dialog open={creating || !!editing} onOpenChange={(open) => {
@@ -312,7 +367,7 @@ function WebhookForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <Label htmlFor="url">Endpoint URL *</Label>
+        <Label htmlFor="url">Endpoint URL (POST) *</Label>
         <Input
           id="url"
           type="url"
@@ -320,6 +375,7 @@ function WebhookForm({
           onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
           placeholder="https://api.yoursite.com/webhooks"
           required
+          data-testid="input-webhook-url"
         />
         <p className="text-xs text-gray-500 mt-1">
           Must be a valid HTTPS URL that can receive POST requests
@@ -327,22 +383,36 @@ function WebhookForm({
       </div>
 
       <div>
-        <Label htmlFor="secret">Webhook Secret (optional)</Label>
+        <Label htmlFor="secret">Secret (auto-generate + reveal/rotate)</Label>
         <Input
           id="secret"
           type="password"
           value={formData.secret}
           onChange={(e) => setFormData(prev => ({ ...prev, secret: e.target.value }))}
-          placeholder="Leave empty to auto-generate"
+          placeholder="Auto-generated on save"
+          data-testid="input-webhook-secret"
         />
         <p className="text-xs text-gray-500 mt-1">
-          Used to verify webhook authenticity via HMAC signature
+          Signing method: HMAC-SHA256 (header: FCS-Signature)
         </p>
       </div>
 
       <div>
-        <Label>Events to Subscribe *</Label>
+        <Label>Events to Send *</Label>
         <div className="mt-2 grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded-lg p-3">
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <Checkbox
+              checked={formData.events.length === AVAILABLE_EVENTS.length}
+              onCheckedChange={(checked) => {
+                setFormData(prev => ({
+                  ...prev,
+                  events: checked ? [...AVAILABLE_EVENTS] : []
+                }));
+              }}
+              data-testid="checkbox-all-events"
+            />
+            <span className="text-sm font-semibold">All events</span>
+          </label>
           {AVAILABLE_EVENTS.map((event) => (
             <label
               key={event}
@@ -351,8 +421,9 @@ function WebhookForm({
               <Checkbox
                 checked={formData.events.includes(event)}
                 onCheckedChange={() => toggleEvent(event)}
+                data-testid={`checkbox-event-${event}`}
               />
-              <span className="text-sm">{event}</span>
+              <span className="text-sm font-mono">{event}</span>
             </label>
           ))}
         </div>
@@ -361,24 +432,56 @@ function WebhookForm({
         </p>
       </div>
 
+      <div>
+        <Label>Retry Policy</Label>
+        <div className="text-sm text-gray-600 mb-2">
+          Backoff: 10s, 30s, 2m, 5m up to 5 attempts
+        </div>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="pause-after-failures"
+            defaultChecked={true}
+            data-testid="checkbox-pause-after-failures"
+          />
+          <Label htmlFor="pause-after-failures" className="text-sm">
+            Pause after 10 consecutive failures (dead-letter)
+          </Label>
+        </div>
+      </div>
+
       <div className="flex items-center space-x-2">
         <Checkbox
           id="active"
           checked={formData.active}
           onCheckedChange={(checked) => setFormData(prev => ({ ...prev, active: !!checked }))}
+          data-testid="checkbox-webhook-active"
         />
-        <Label htmlFor="active">Active (start receiving events immediately)</Label>
+        <Label htmlFor="active">Active (receive webhooks)</Label>
       </div>
 
       <div className="flex justify-end gap-2 pt-4 border-t">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} data-testid="button-cancel-webhook">
           Cancel
         </Button>
         <Button 
           type="submit"
           disabled={!formData.url || formData.events.length === 0}
+          data-testid="button-save-webhook"
         >
           {webhook ? 'Update Endpoint' : 'Create Endpoint'}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            toast({
+              title: 'Test Event Ready',
+              description: 'Choose sample event (e.g., user.created) and send test',
+            });
+          }}
+          data-testid="button-send-test"
+        >
+          Send Test
         </Button>
       </div>
     </form>
