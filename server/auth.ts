@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { storage } from './storage';
 import { type User } from '@shared/schema';
+import { maybeSendNewDeviceEmail } from './new-device-alerts';
 
 // JWT secret from environment
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-development';
@@ -185,7 +186,7 @@ export async function logAction(
 }
 
 // Authentication routes
-export async function loginUser(username: string, password: string): Promise<{ user: User; token: string } | null> {
+export async function loginUser(username: string, password: string, req?: Request): Promise<{ user: User; token: string } | null> {
   try {
     const user = await storage.getUserByUsername(username);
     if (!user) {
@@ -201,6 +202,15 @@ export async function loginUser(username: string, password: string): Promise<{ u
     
     // Log successful login
     await logAction(user.id, 'login', 'user', user.id);
+
+    // Send new device email alert if request context is available
+    if (req && user.email) {
+      await maybeSendNewDeviceEmail(
+        { id: user.id, email: user.email, orgId: user.orgId },
+        req.get('user-agent'),
+        req.ip
+      );
+    }
 
     return { user, token };
   } catch (error) {

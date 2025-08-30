@@ -111,6 +111,26 @@ export const securitySettings = pgTable("security_settings", {
   updatedBy: varchar("updated_by"),
 });
 
+// Session tracking for device management and security
+export const authSessions = pgTable("auth_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sid: text("sid").notNull().unique(), // express-session SID
+  userId: varchar("user_id").notNull(),
+  orgId: varchar("org_id"),
+  ip: text("ip"), // INET stored as text for compatibility
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastSeenAt: timestamp("last_seen_at").defaultNow().notNull(),
+});
+
+// Organization-level security settings
+export const orgSecuritySettings = pgTable("org_security_settings", {
+  orgId: varchar("org_id").primaryKey(),
+  requireMfaForDownloads: boolean("require_mfa_for_downloads").default(true).notNull(),
+  requireMfaForShares: boolean("require_mfa_for_shares").default(true).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Status monitoring and alerting tables
 export const statusAlertState = pgTable("status_alert_state", {
   component: text("component").primaryKey(),

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, Shield, Key } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Trash2, Shield, Key, Monitor, Smartphone, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface PasskeyCredential {
@@ -19,16 +20,35 @@ interface WebAuthnConfig {
   enabled: boolean;
 }
 
+interface SessionData {
+  sid: string;
+  ip: string;
+  userAgent: string;
+  rawUserAgent: string | null;
+  createdAt: string;
+  lastSeenAt: string;
+  current: boolean;
+}
+
+interface SessionsResponse {
+  sessions: SessionData[];
+  totalCount: number;
+  currentSessionId: string;
+}
+
 export default function Settings() {
   const [passkeys, setPasskeys] = useState<PasskeyCredential[]>([]);
+  const [sessions, setSessions] = useState<SessionData[]>([]);
   const [loading, setLoading] = useState(false);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
   const [config, setConfig] = useState<WebAuthnConfig | null>(null);
   const { toast } = useToast();
 
-  // Fetch WebAuthn configuration
+  // Fetch WebAuthn configuration and sessions
   useEffect(() => {
     fetchConfig();
     loadPasskeys();
+    loadSessions();
   }, []);
 
   const fetchConfig = async () => {
@@ -62,6 +82,105 @@ export default function Settings() {
         variant: 'destructive'
       });
     }
+  };
+
+  const loadSessions = async () => {
+    try {
+      setSessionsLoading(true);
+      const response = await fetch('/api/security/sessions', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data: SessionsResponse = await response.json();
+        setSessions(data.sessions);
+      } else {
+        console.error('Failed to load sessions');
+      }
+    } catch (error) {
+      console.error('Failed to load sessions:', error);
+    } finally {
+      setSessionsLoading(false);
+    }
+  };
+
+  const revokeSession = async (sessionId: string) => {
+    try {
+      const response = await fetch('/api/security/sessions/revoke', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ sid: sessionId })
+      });
+
+      if (response.ok) {
+        setSessions(sessions.filter(s => s.sid !== sessionId));
+        toast({
+          title: 'Session revoked',
+          description: 'The session has been successfully terminated.'
+        });
+      } else {
+        throw new Error('Failed to revoke session');
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to revoke session. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const revokeOtherSessions = async () => {
+    try {
+      const response = await fetch('/api/security/sessions/revoke-others', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Keep only the current session
+        const currentSession = sessions.find(s => s.current);
+        setSessions(currentSession ? [currentSession] : []);
+        toast({
+          title: 'Sessions revoked',
+          description: `Successfully revoked ${data.revokedCount} other sessions.`
+        });
+      } else {
+        throw new Error('Failed to revoke other sessions');
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to revoke other sessions. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const formatLastSeen = (lastSeen: string) => {
+    const date = new Date(lastSeen);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minutes ago`;
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString();
+  };
+
+  const getDeviceIcon = (userAgent: string) => {
+    if (userAgent.toLowerCase().includes('mobile')) return <Smartphone className="h-4 w-4" />;
+    return <Monitor className="h-4 w-4" />;
   };
 
   const addPasskey = async () => {
@@ -270,6 +389,86 @@ export default function Settings() {
                 <h4 className="font-medium text-[#E7E7EA]">Backup & Sync</h4>
                 <p className="text-sm">Passkeys can sync across your devices or stay device-specific for maximum security.</p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Active Sessions Section */}
+        <Card className="bg-[#141414] border-[#2A2B2E]">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-[#E7E7EA]">
+              <Monitor className="h-5 w-5" />
+              Active Sessions
+            </CardTitle>
+            <CardDescription className="text-[#A8A9AD]">
+              Manage your active login sessions and devices. You can revoke sessions to sign out from other devices.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {sessionsLoading ? (
+                <div className="text-center py-4 text-[#A8A9AD]">Loading sessions...</div>
+              ) : sessions.length === 0 ? (
+                <div className="text-center py-4 text-[#A8A9AD]">
+                  No active sessions found
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    {sessions.map((session) => (
+                      <div
+                        key={session.sid}
+                        className="flex items-center justify-between p-4 bg-[#1A1B1C] border border-[#2A2B2E] rounded-lg"
+                        data-testid={`session-${session.sid}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {getDeviceIcon(session.userAgent)}
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-[#E7E7EA]">{session.userAgent}</span>
+                              {session.current && (
+                                <Badge variant="secondary" className="text-xs bg-[#D4AF37] text-black">
+                                  Current
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-sm text-[#A8A9AD] flex items-center gap-1">
+                              <Globe className="h-3 w-3" />
+                              {session.ip} • {formatLastSeen(session.lastSeenAt)}
+                            </div>
+                          </div>
+                        </div>
+                        {!session.current && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => revokeSession(session.sid)}
+                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                            data-testid={`revoke-session-${session.sid}`}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Revoke
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {sessions.some(s => !s.current) && (
+                    <div className="pt-4 border-t border-[#2A2B2E]">
+                      <Button
+                        variant="ghost"
+                        onClick={revokeOtherSessions}
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        data-testid="revoke-all-other-sessions"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Revoke All Other Sessions
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </CardContent>
         </Card>

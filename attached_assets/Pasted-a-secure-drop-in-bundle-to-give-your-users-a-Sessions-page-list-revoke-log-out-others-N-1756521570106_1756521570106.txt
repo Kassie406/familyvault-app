@@ -1,0 +1,359 @@
+a secure, drop-in bundle to give your users:
+
+a Sessions page (list + revoke + “log out others”),
+
+New-device email alerts, and
+
+Org Security Settings (require MFA for downloads/shares) with enforcement.
+
+All snippets match the Node/Express + Postgres baseline we already set up.
+
+1) Database
+-- 017_auth_sessions_and_org_security.sql
+CREATE TABLE IF NOT EXISTS auth_sessions (
+  id BIGSERIAL PRIMARY KEY,
+  sid TEXT UNIQUE NOT NULL,               -- express-session SID
+  user_id UUID NOT NULL,
+  org_id  UUID NOT NULL,
+  ip INET,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS auth_sessions_user_idx ON auth_sessions(user_id, last_seen_at DESC);
+
+CREATE TABLE IF NOT EXISTS org_security_settings (
+  org_id UUID PRIMARY KEY,
+  require_mfa_for_downloads BOOLEAN NOT NULL DEFAULT TRUE,
+  require_mfa_for_shares    BOOLEAN NOT NULL DEFAULT TRUE,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- seed rows for existing orgs
+INSERT INTO org_security_settings (org_id)
+SELECT o.id FROM orgs o
+LEFT JOIN org_security_settings s ON s.org_id = o.id
+WHERE s.org_id IS NULL;
+
+-- Helpful functional index to query express-session store by userId inside sess JSON (connect-pg-simple default table name = "session")
+-- (If your session table/schema name differs, adjust below.)
+CREATE INDEX IF NOT EXISTS session_user_extract_idx
+ON "session" (( (sess->>'userId') ));
+
+
+auth_sessions tracks devices/sessions for UI + alerts.
+org_security_settings lets the PRESIDENT require step-up MFA for sensitive actions.
+
+2) Request tracker middleware (updates auth_sessions)
+// middleware/requestTracker.js
+const { pool } = require('../db');
+
+async function touchAuthSession(req, _res, next) {
+  try {
+    if (!req.session?.userId || !req.session?.orgId || !req.sessionID) return next();
+    await pool.query(
+      `INSERT INTO auth_sessions (sid, user_id, org_id, ip, user_agent)
+       VALUES ($1,$2,$3,$4,$5)
+       ON CONFLICT (sid) DO UPDATE SET last_seen_at = now(), ip = EXCLUDED.ip, user_agent = EXCLUDED.user_agent`,
+      [req.sessionID, req.session.userId, req.session.orgId, req.ip, req.get('user-agent') || null]
+    );
+  } catch (e) {
+    // don’t block user on tracking failure
+  } finally {
+    next();
+  }
+}
+module.exports = { touchAuthSession };
+
+
+Wire it in app.js (after session middleware):
+
+const { touchAuthSession } = require('./middleware/requestTracker');
+app.use(touchAuthSession);
+
+3) New-device email alert (on successful login)
+
+Add this in your password or passkey login success path (right after you set req.session.* and audit login). It compares the current UA/IP to the last 30 days; if unseen → email the user.
+
+// in auth.js (after successful login + withTenant)
+const { sendMail } = require('./email/mailer'); // you already have this
+
+async function maybeSendNewDeviceEmail(client, userId, email, orgId, ua, ip) {
+  // seen in last 30 days?
+  const { rows } = await client.query(
+    `SELECT 1 FROM auth_sessions
+      WHERE user_id=$1
+        AND (user_agent = $2 OR ip = $3)
+        AND last_seen_at > now() - interval '30 days'
+      LIMIT 1`,
+    [userId, ua || null, ip || null]
+  );
+  if (rows.length) return;
+
+  await sendMail({
+    to: email,
+    subject: 'New device signed in to FamilyCircle Secure',
+    text: `A new device just signed in.\nIP: ${ip}\nAgent: ${ua}\nIf this wasn’t you, revoke sessions and change your password.`,
+    html: `
+      <p>A new device just signed in to <b>FamilyCircle Secure</b>.</p>
+      <p><b>IP</b>: ${ip || 'N/A'}<br/><b>Agent</b>: ${ua || 'N/A'}</p>
+      <p>If this wasn’t you, <a href="${process.env.APP_URL}/settings/security">revoke sessions</a> and change your password.</p>
+    `
+  });
+}
+module.exports = { maybeSendNewDeviceEmail };
+
+
+Call it from your login success (password and passkey flows):
+
+// after setting req.session.*, withTenant(), and audit 'login' or 'webauthn_login'
+const { maybeSendNewDeviceEmail } = require('./auth'); // if in same file, just call
+await maybeSendNewDeviceEmail(client, req.session.userId, email /* or loaded user.email */, req.session.orgId, req.get('user-agent'), req.ip);
+
+4) Org Security Settings + enforcement
+
+Service helpers:
+
+// securitySettings.js
+const { pool } = require('./db');
+
+async function getOrgSecuritySettings(orgId) {
+  const { rows } = await pool.query(`SELECT * FROM org_security_settings WHERE org_id=$1`, [orgId]);
+  return rows[0];
+}
+async function setOrgSecuritySettings(orgId, patch) {
+  const fields = ['require_mfa_for_downloads','require_mfa_for_shares'];
+  const sets = [];
+  const vals = [orgId];
+  fields.forEach((k,i)=> {
+    if (patch[k] !== undefined) { sets.push(`${k}=$${vals.length+1}`); vals.push(!!patch[k]); }
+  });
+  sets.push(`updated_at=now()`);
+  const sql = `UPDATE org_security_settings SET ${sets.join(',')} WHERE org_id=$1 RETURNING *`;
+  const { rows } = await pool.query(sql, vals);
+  return rows[0];
+}
+module.exports = { getOrgSecuritySettings, setOrgSecuritySettings };
+
+
+Middleware to enforce “require MFA/step-up” for sensitive actions:
+
+// middleware/sensitiveGuard.js
+const { getOrgSecuritySettings } = require('../securitySettings');
+const { requireRecentReauth } = require('../highrisk'); // from earlier step-up snippet
+
+function guardFor(action /* 'download' | 'share' */) {
+  return async (req, res, next) => {
+    const st = await getOrgSecuritySettings(req.session.orgId);
+    const need = (action === 'download') ? st.require_mfa_for_downloads
+              : (action === 'share')    ? st.require_mfa_for_shares
+              : false;
+    if (!need) return next();
+    // require recent step-up (passkey/TOTP within 30m)
+    return requireRecentReauth(req, res, next);
+  };
+}
+module.exports = { guardFor };
+
+
+Admin routes to view/update org settings (PRESIDENT only):
+
+// routes/admin/securitySettings.js
+const express = require('express');
+const { requireAuth } = require('../../auth');
+const { getOrgSecuritySettings, setOrgSecuritySettings } = require('../../securitySettings');
+
+const router = express.Router();
+
+router.get('/org-security', requireAuth, async (req,res) => {
+  if (req.session.role !== 'PRESIDENT') return res.status(403).json({ error:'forbidden' });
+  const st = await getOrgSecuritySettings(req.session.orgId);
+  res.json(st);
+});
+
+router.post('/org-security', requireAuth, async (req,res) => {
+  if (req.session.role !== 'PRESIDENT') return res.status(403).json({ error:'forbidden' });
+  const st = await setOrgSecuritySettings(req.session.orgId, {
+    require_mfa_for_downloads: req.body.require_mfa_for_downloads,
+    require_mfa_for_shares: req.body.require_mfa_for_shares
+  });
+  res.json(st);
+});
+
+module.exports = router;
+
+
+Mount in app.js:
+
+const securitySettingsAdmin = require('./routes/admin/securitySettings');
+app.use('/admin/security', securitySettingsAdmin);
+
+
+Use the guard on sensitive endpoints (examples):
+
+const { guardFor } = require('./middleware/sensitiveGuard');
+
+app.get('/api/storage/download-url/:docId',
+  requireAuth,
+  guardFor('download'),   // ⟵ requires recent step-up if org says so
+  async (req,res,next)=>{ /* existing handler */ }
+);
+
+app.post('/api/shares/create',
+  requireAuth,
+  guardFor('share'),      // ⟵ step-up required if enabled
+  async (req,res,next)=>{ /* create share link */ }
+);
+
+5) Sessions API (list / revoke / revoke others)
+// routes/security/sessions.js
+const express = require('express');
+const { requireAuth } = require('../../auth');
+const { pool } = require('../../db');
+const csrf = require('csurf');
+
+const router = express.Router();
+const csrfProtection = csrf({ cookie: { httpOnly:true, secure:true, sameSite:'strict', domain: process.env.COOKIE_DOMAIN } });
+
+router.get('/', requireAuth, async (req,res) => {
+  // List sessions for current user from auth_sessions + highlight current
+  const { rows } = await pool.query(
+    `SELECT s.sid, s.ip, s.user_agent, s.created_at, s.last_seen_at,
+            (s.sid = $2) AS current
+       FROM auth_sessions s
+      WHERE s.user_id = $1
+      ORDER BY s.last_seen_at DESC
+      LIMIT 50`,
+    [req.session.userId, req.sessionID]
+  );
+  res.json({ items: rows });
+});
+
+router.post('/revoke', requireAuth, csrfProtection, async (req,res) => {
+  const { sid } = req.body || {};
+  if (!sid) return res.status(400).json({ error:'sid_required' });
+
+  // make sure this session belongs to the user
+  const { rows } = await pool.query(
+    `SELECT 1 FROM auth_sessions WHERE sid=$1 AND user_id=$2`, [sid, req.session.userId]
+  );
+  if (!rows.length) return res.status(404).json({ error:'not_found' });
+
+  // delete from express-session store and our tracker
+  await pool.query(`DELETE FROM "session" WHERE sid=$1`, [sid]);
+  await pool.query(`DELETE FROM auth_sessions WHERE sid=$1`, [sid]);
+
+  res.json({ ok:true });
+});
+
+router.post('/revoke-others', requireAuth, csrfProtection, async (req,res) => {
+  // delete all sessions for this user except current
+  await pool.query(`DELETE FROM "session" WHERE (sess->>'userId') = $1 AND sid <> $2`, [String(req.session.userId), req.sessionID]);
+  await pool.query(`DELETE FROM auth_sessions WHERE user_id=$1 AND sid <> $2`, [req.session.userId, req.sessionID]);
+  res.json({ ok:true });
+});
+
+module.exports = router;
+
+
+Mount it:
+
+const sessionsRouter = require('./routes/security/sessions');
+app.use('/api/security/sessions', sessionsRouter);
+
+6) Minimal Sessions UI (Settings → Sessions)
+<section class="card bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+  <header class="flex items-center justify-between mb-4">
+    <div>
+      <h2 class="text-xl font-semibold text-neutral-100">Active Sessions</h2>
+      <p class="text-sm text-neutral-400">Manage devices signed in to your account.</p>
+    </div>
+    <button id="btn-revoke-others" class="btn btn-ghost">Log out other devices</button>
+  </header>
+
+  <ul id="sess-list" class="divide-y divide-neutral-800"></ul>
+
+  <template id="tpl-sess">
+    <li class="py-3 flex items-center justify-between">
+      <div class="space-y-1">
+        <div class="text-neutral-200 font-medium">
+          <span class="ua"></span>
+          <span class="ml-2 text-xs text-neutral-500 ip"></span>
+        </div>
+        <div class="text-xs text-neutral-500">
+          Started <span class="created"></span> · Last seen <span class="seen"></span>
+        </div>
+      </div>
+      <button class="btn btn-ghost text-red-400 hover:text-red-300 revoke">Revoke</button>
+    </li>
+  </template>
+</section>
+
+<script type="module">
+  async function j(url, opt={}){ const r=await fetch(url,{credentials:'include',...opt}); if(!r.ok) throw new Error(await r.text()); return r.json(); }
+  const $list = document.querySelector('#sess-list');
+  const $tpl = document.querySelector('#tpl-sess');
+
+  async function load() {
+    const { items } = await j('/api/security/sessions');
+    $list.innerHTML = '';
+    for (const s of items) {
+      const n = $tpl.content.cloneNode(true);
+      n.querySelector('.ua').textContent = s.current ? `This device` : (s.user_agent || 'Unknown device');
+      if (s.ip) n.querySelector('.ip').textContent = `(${s.ip})`;
+      n.querySelector('.created').textContent = new Date(s.created_at).toLocaleString();
+      n.querySelector('.seen').textContent = new Date(s.last_seen_at).toLocaleString();
+      const btn = n.querySelector('.revoke');
+      if (s.current) btn.disabled = true, btn.textContent='Current';
+      else btn.addEventListener('click', async () => {
+        await j('/api/security/sessions/revoke', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ sid: s.sid }),
+          credentials:'include'
+        });
+        load();
+      });
+      $list.appendChild(n);
+    }
+  }
+
+  document.querySelector('#btn-revoke-others')
+    .addEventListener('click', async ()=> {
+      if (!confirm('Log out all other devices?')) return;
+      await j('/api/security/sessions/revoke-others', { method:'POST', credentials:'include' });
+      load();
+    });
+
+  load();
+</script>
+
+<style>
+  .btn{ padding:.55rem .9rem; border-radius:.75rem; font-weight:600; }
+  .btn-ghost{ background:transparent; }
+</style>
+
+7) “Tell Replit what to do” (paste this)
+
+Implement Sessions, New-Device Alerts, and Org Security Settings
+
+Run SQL in 017_auth_sessions_and_org_security.sql to create auth_sessions and org_security_settings, and add an index on the "session" table (connect-pg-simple default) extracting userId from sess JSON.
+
+Add middleware middleware/requestTracker.js and mount it after session middleware to upsert into auth_sessions each request.
+
+On successful login (password and passkey), call maybeSendNewDeviceEmail(...) with the user’s email, UA, and IP to notify on unseen device; ensure sendMail is configured.
+
+Add securitySettings.js and routes/admin/securitySettings.js; mount at /admin/security. Only PRESIDENT can read/write.
+
+Add middleware/sensitiveGuard.js and apply guardFor('download') to download routes and guardFor('share') to share-link creation routes. This enforces recent step-up MFA when the org setting is true.
+
+Add routes/security/sessions.js and mount at /api/security/sessions to list sessions, revoke a session by SID, and “revoke others.”
+
+Insert the provided Sessions section HTML/JS into the Settings → Security page. Keep dark theme + gold accent.
+
+After deploy, verify:
+
+Log in from another browser → receive new device email.
+
+Sessions page lists both sessions, “Log out others” works.
+
+Toggle org setting to require MFA for downloads; downloading a doc should return re_auth_required unless user recently completed passkey/TOTP.

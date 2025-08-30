@@ -14,6 +14,10 @@ import { setupVite, serveStatic, log } from "./vite";
 import { type AuthenticatedRequest, optionalAuth, requireAuth, loginUser, registerUser } from "./auth";
 import { storage } from "./storage";
 import { requireRecentReauth, markStrongAuth } from "./reauth-middleware";
+import { touchAuthSession } from "./request-tracker";
+import { maybeSendNewDeviceEmail } from "./new-device-alerts";
+import { getOrgSecuritySettings, setOrgSecuritySettings, guardFor, canModifyOrgSecurity } from "./org-security-service";
+import sessionsRouter from "./sessions-api";
 import { escalationWorker } from "./escalation-worker";
 import { smsService } from "./sms-service";
 import { eq, desc, and } from "drizzle-orm";
@@ -87,6 +91,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
+// Session tracking middleware (after cookie parsing)
+app.use(touchAuthSession);
+
 // CSRF Protection (applied selectively to state-changing operations)
 const csrfProtection = CSRFService.createProtection();
 app.use(CSRFService.errorHandler());
@@ -148,7 +155,7 @@ app.post('/api/auth/login', async (req: AuthenticatedRequest, res: Response) => 
       return res.status(400).json({ error: 'Username and password required' });
     }
 
-    const result = await loginUser(username, password);
+    const result = await loginUser(username, password, req);
     if (!result) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -370,6 +377,13 @@ app.post('/api/auth/webauthn/authenticate/complete', async (req: Request, res: R
         // Mark strong authentication event for passkey login
         markStrongAuth(req);
         
+        // Check for new device and send alert if needed
+        await maybeSendNewDeviceEmail(
+          { id: user.id, email: user.email, orgId: user.orgId },
+          req.get('user-agent'),
+          req.ip
+        );
+        
         res.json({ success: true, user: { id: user.id, email: user.email, role: user.role } });
       } else {
         res.status(401).json({ error: 'User not found' });
@@ -418,6 +432,59 @@ app.get('/api/auth/webauthn/config', (req: Request, res: Response) => {
     origins: origins,
     enabled: true // Always enabled since we have WebAuthn service
   });
+});
+
+// Sessions management API
+app.use('/api/security/sessions', requireAuth, sessionsRouter);
+
+// Organization security settings API
+app.get('/api/admin/org-security', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!canModifyOrgSecurity(req.user?.role)) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+    
+    const orgId = req.user?.orgId;
+    if (!orgId) {
+      return res.status(400).json({ error: 'Organization ID required' });
+    }
+
+    const settings = await getOrgSecuritySettings(orgId);
+    res.json(settings || {
+      orgId,
+      requireMfaForDownloads: true,
+      requireMfaForShares: true,
+      updatedAt: new Date()
+    });
+  } catch (error) {
+    console.error('Failed to get org security settings:', error);
+    res.status(500).json({ error: 'Failed to retrieve security settings' });
+  }
+});
+
+app.post('/api/admin/org-security', requireAuth, csrfProtection, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!canModifyOrgSecurity(req.user?.role)) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+    
+    const orgId = req.user?.orgId;
+    if (!orgId) {
+      return res.status(400).json({ error: 'Organization ID required' });
+    }
+
+    const { requireMfaForDownloads, requireMfaForShares } = req.body;
+    
+    const settings = await setOrgSecuritySettings(orgId, {
+      requireMfaForDownloads,
+      requireMfaForShares
+    });
+
+    res.json(settings);
+  } catch (error) {
+    console.error('Failed to update org security settings:', error);
+    res.status(500).json({ error: 'Failed to update security settings' });
+  }
 });
 
 app.get('/api/auth/me', optionalAuth, async (req: AuthenticatedRequest, res: Response) => {
