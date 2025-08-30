@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Users, CreditCard, Ticket, FileText, Shield, Activity, Plus, Eye, Edit, Trash2, 
   TrendingUp, BarChart3, PieChart, Server, ShieldCheck, Search, UserPlus, 
-  MoreHorizontal, Mail, Power, RotateCcw, X
+  MoreHorizontal, Mail, Power, RotateCcw, X, Filter
 } from 'lucide-react';
 import AdminLayout from '@/components/admin/admin-layout';
 import SecurityCenterCard from '@/components/admin/security-center-card';
@@ -228,23 +228,62 @@ export default function AdminDashboard() {
         );
       
       case 'users':
-        // Sample users for demonstration
+        // Multi-tenant sample users for demonstration
         const sampleUsers = [
-          { id: 1, name: "John Doe", email: "john@company.com", role: "Admin", status: "Active" },
-          { id: 2, name: "Sarah Martinez", email: "sarah@company.com", role: "Manager", status: "Pending" },
-          { id: 3, name: "Alex Johnson", email: "alex@company.com", role: "User", status: "Suspended" },
-          { id: 4, name: "Emily Chen", email: "emily@company.com", role: "User", status: "Active" },
+          { id: 1, name: "John Doe", email: "john@company.com", tenant: "STAFF", role: "admin", status: "Active", mfaEnabled: true, lastLogin: "2024-01-28" },
+          { id: 2, name: "Sarah Martinez", email: "sarah@familycirclesecure.com", tenant: "FAMILY", role: "family_admin", status: "Active", mfaEnabled: true, lastLogin: "2024-01-27" },
+          { id: 3, name: "Alex Johnson", email: "alex.client@gmail.com", tenant: "PUBLIC", role: "client_plus", status: "Active", mfaEnabled: false, lastLogin: "2024-01-26" },
+          { id: 4, name: "Emily Chen", email: "emily@familycirclesecure.com", tenant: "FAMILY", role: "family_member", status: "Pending", mfaEnabled: false, lastLogin: null },
+          { id: 5, name: "Michael Rodriguez", email: "mrodriguez@company.com", tenant: "STAFF", role: "agent", status: "Active", mfaEnabled: true, lastLogin: "2024-01-28" },
+          { id: 6, name: "Lisa Wang", email: "lisa.client@outlook.com", tenant: "PUBLIC", role: "client", status: "Suspended", mfaEnabled: false, lastLogin: "2024-01-20" },
         ];
 
-        const getRoleBadge = (role: string) => {
+        const getTenantBadge = (tenant: string) => {
           const styles = {
-            Admin: "bg-[#F85149] text-white",
-            Manager: "bg-[#1F6FEB] text-white", 
-            User: "bg-[#6C757D] text-white"
+            PUBLIC: "bg-[#007BFF] text-white",
+            FAMILY: "bg-purple-600 text-white", 
+            STAFF: "bg-[#28A745] text-white"
+          };
+          const labels = {
+            PUBLIC: "Public",
+            FAMILY: "Family",
+            STAFF: "Staff"
           };
           return (
-            <span className={`px-2 py-1 rounded-md text-xs font-medium ${styles[role as keyof typeof styles] || styles.User}`}>
-              {role}
+            <span className={`px-2 py-1 rounded-md text-xs font-medium ${styles[tenant as keyof typeof styles] || styles.PUBLIC}`}>
+              {labels[tenant as keyof typeof labels] || tenant}
+            </span>
+          );
+        };
+
+        const getRoleBadge = (role: string, tenant: string) => {
+          const roleLabels: Record<string, string> = {
+            // Staff roles
+            admin: "Admin",
+            manager: "Manager", 
+            agent: "Agent",
+            security_officer: "Security",
+            // Family roles
+            family_admin: "Family Admin",
+            family_member: "Member",
+            // Public roles
+            client: "Client",
+            client_plus: "Client+",
+            support_view: "Support"
+          };
+          
+          const getStyleByTenant = (tenant: string) => {
+            switch(tenant) {
+              case 'STAFF': return "bg-gray-100 text-gray-700 border border-gray-300";
+              case 'FAMILY': return "bg-purple-100 text-purple-700 border border-purple-300";
+              case 'PUBLIC': return "bg-blue-100 text-blue-700 border border-blue-300";
+              default: return "bg-gray-100 text-gray-700 border border-gray-300";
+            }
+          };
+          
+          return (
+            <span className={`px-2 py-1 rounded-md text-xs font-medium ${getStyleByTenant(tenant)}`}>
+              {roleLabels[role] || role}
             </span>
           );
         };
@@ -274,6 +313,20 @@ export default function AdminDashboard() {
                 </div>
                 
                 <div className="flex flex-col sm:flex-row gap-3">
+                  {/* Tenant Filter */}
+                  <Select defaultValue="all">
+                    <SelectTrigger className="w-full sm:w-40" data-testid="select-tenant-filter">
+                      <Filter className="w-4 h-4 mr-2" />
+                      <SelectValue placeholder="All Tenants" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Tenants</SelectItem>
+                      <SelectItem value="PUBLIC">Public Clients</SelectItem>
+                      <SelectItem value="FAMILY">Family Portal</SelectItem>
+                      <SelectItem value="STAFF">Staff Hub</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
                   {/* Search Bar */}
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -305,8 +358,10 @@ export default function AdminDashboard() {
                     <tr>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tenant</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MFA</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
@@ -340,10 +395,17 @@ export default function AdminDashboard() {
                           </button>
                         </td>
                         
+                        {/* Tenant Badge */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div data-testid={`badge-tenant-${user.id}`}>
+                            {getTenantBadge(user.tenant)}
+                          </div>
+                        </td>
+                        
                         {/* Role Badge */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div data-testid={`badge-role-${user.id}`}>
-                            {getRoleBadge(user.role)}
+                            {getRoleBadge(user.role, user.tenant)}
                           </div>
                         </td>
                         
@@ -351,6 +413,21 @@ export default function AdminDashboard() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div data-testid={`status-${user.id}`}>
                             {getStatusIndicator(user.status)}
+                          </div>
+                        </td>
+                        
+                        {/* MFA Status */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div data-testid={`mfa-status-${user.id}`}>
+                            {user.mfaEnabled ? (
+                              <span className="px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700">
+                                ✓ Enabled
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 rounded-md text-xs font-medium bg-red-100 text-red-700">
+                                ⚠ Disabled
+                              </span>
+                            )}
                           </div>
                         </td>
                         
@@ -423,7 +500,8 @@ export default function AdminDashboard() {
                         <div>
                           <div className="font-medium text-gray-900" data-testid={`mobile-user-name-${user.id}`}>{user.name}</div>
                           <div className="flex items-center gap-2 mt-1">
-                            {getRoleBadge(user.role)}
+                            {getTenantBadge(user.tenant)}
+                            {getRoleBadge(user.role, user.tenant)}
                             {getStatusIndicator(user.status)}
                           </div>
                         </div>
