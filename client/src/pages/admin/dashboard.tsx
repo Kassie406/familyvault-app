@@ -315,15 +315,23 @@ export default function AdminDashboard() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   {/* Tenant Filter */}
                   <Select defaultValue="all">
-                    <SelectTrigger className="w-full sm:w-40" data-testid="select-tenant-filter">
+                    <SelectTrigger 
+                      className="w-full sm:w-40 tenant-filter bg-[#1E232A] text-[#E8EEF7] border-[#2B313A] hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors duration-200 rounded-full shadow-sm !bg-[#1E232A] hover:!bg-[#1F6FEB] focus:!bg-[#1F6FEB]" 
+                      data-testid="select-tenant-filter"
+                      style={{
+                        background: '#1E232A',
+                        color: '#E8EEF7',
+                        borderColor: '#2B313A'
+                      }}
+                    >
                       <Filter className="w-4 h-4 mr-2" />
                       <SelectValue placeholder="All Tenants" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Tenants</SelectItem>
-                      <SelectItem value="PUBLIC">Public Clients</SelectItem>
-                      <SelectItem value="FAMILY">Family Portal</SelectItem>
-                      <SelectItem value="STAFF">Staff Hub</SelectItem>
+                    <SelectContent className="bg-[#0F141A] border-[#2B313A] shadow-lg">
+                      <SelectItem value="all" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">All Tenants</SelectItem>
+                      <SelectItem value="PUBLIC" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Public Clients</SelectItem>
+                      <SelectItem value="FAMILY" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Family Portal</SelectItem>
+                      <SelectItem value="STAFF" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white">Staff Hub</SelectItem>
                     </SelectContent>
                   </Select>
                   
