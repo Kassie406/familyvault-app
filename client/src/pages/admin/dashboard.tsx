@@ -228,16 +228,37 @@ export default function AdminDashboard() {
       
       case 'users':
         return (
-          <Card>
+          <Card className="shadow-lg rounded-2xl bg-white border-gray-100">
             <CardHeader>
               <CardTitle>User Management</CardTitle>
-              <CardDescription>Manage user accounts and permissions</CardDescription>
+              <CardDescription>Create, update, and manage user access & roles securely</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-12">
-                <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">No Users Yet</h3>
-                <p className="text-muted-foreground">Users will appear here once they register</p>
+              <div className="text-center py-16">
+                {/* Friendly avatar group illustration */}
+                <div className="mx-auto w-20 h-20 mb-6 relative">
+                  <div className="absolute inset-0 bg-[#007BFF] bg-opacity-10 rounded-full flex items-center justify-center">
+                    <div className="flex space-x-1">
+                      <div className="w-3 h-3 bg-[#CED4DA] rounded-full opacity-60"></div>
+                      <div className="w-4 h-4 bg-[#6C757D] rounded-full opacity-80"></div>
+                      <div className="w-3 h-3 bg-[#CED4DA] rounded-full opacity-60"></div>
+                    </div>
+                  </div>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Users Yet</h3>
+                <p className="text-[#6C757D] mb-6">Users will appear here once they register or you add them manually.</p>
+                
+                {/* Call-to-action button */}
+                <Button 
+                  className="bg-[#007BFF] hover:bg-[#1F6FEB] text-white px-6 py-3 rounded-lg transition-colors"
+                  onClick={() => {
+                    // TODO: Add user creation modal/flow
+                    toast({ title: 'Add User feature coming soon', description: 'User creation will be available in the next update' });
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add First User
+                </Button>
               </div>
             </CardContent>
           </Card>
