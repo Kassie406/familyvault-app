@@ -173,7 +173,7 @@ export default function EnhancedFeatureFlags({ className }: EnhancedFeatureFlags
                 </thead>
                 <tbody>
                   {filtered.map(flag => (
-                    <tr key={flag.id} className="border-b hover:bg-[#F7FAFF] transition-colors duration-150">
+                    <tr key={flag.id} className="border-b">
                       <td className="py-3 px-4">
                         <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono text-gray-800">
                           {flag.key}
