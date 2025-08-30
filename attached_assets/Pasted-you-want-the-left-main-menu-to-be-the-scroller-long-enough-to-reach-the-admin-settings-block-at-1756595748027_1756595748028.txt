@@ -1,0 +1,122 @@
+you want the left main menu to be the scroller, long enough to reach the “admin / settings” block at the bottom (no floating popover), and the content area should not affect that scroll.
+
+Here’s a clean, battle-tested layout you can paste in. It keeps the sidebar full-height, independently scrollable, with the admin block anchored at the bottom but still part of the same scroll.
+
+HTML structure (minimal changes)
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar__scroll">
+      <div class="sidebar__nav">
+        <!-- your existing nav groups/items go here -->
+        <!-- e.g. Dashboard, Users, Subscription Plans, ... -->
+      </div>
+
+      <!-- pushes admin block to the bottom but keeps it in the same scroll -->
+      <div class="sidebar__spacer"></div>
+
+      <div class="sidebar__admin">
+        <div class="admin-card">
+          <div class="admin-id">
+            <span class="avatar">A</span>
+            <div>
+              <div class="name">admin</div>
+              <div class="role">ADMIN</div>
+            </div>
+          </div>
+          <nav class="admin-links">
+            <a href="/profile">Profile</a>
+            <a href="/settings">Settings</a>
+            <button type="button" class="logout">Log out</button>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+    <!-- your pages (Dashboard, Security, etc.) -->
+  </main>
+</div>
+
+CSS (makes the sidebar the scroller; extends to very bottom)
+/* ---- layout ---- */
+.app-shell{
+  display:grid;
+  grid-template-columns: 264px 1fr;   /* sidebar width + content */
+  min-height: 100dvh;                 /* safe viewport height */
+}
+
+/* Sidebar column is not the scroller itself; its child is. */
+.sidebar{
+  background:#0f1420;                /* your existing dark */
+  color:#e5e7eb;
+  border-right:1px solid #1e293b;
+}
+
+/* The actual scroller */
+.sidebar__scroll{
+  position: sticky;
+  top: 0;
+  height: 100dvh;                    /* full viewport height */
+  overflow-y: auto;                  /* THIS is the scroll */
+  -webkit-overflow-scrolling: touch;
+  display:flex;
+  flex-direction:column;
+  scrollbar-gutter: stable;          /* avoid layout shift with scrollbar */
+}
+
+/* nav occupies top; spacer grows; admin stays at bottom */
+.sidebar__nav{ padding: 12px 10px 8px 10px; }
+.sidebar__spacer{ flex: 1 1 auto; }
+.sidebar__admin{ padding: 10px; }
+
+/* Admin card at the bottom */
+.admin-card{
+  background:#0b1220;
+  border:1px solid #1e293b;
+  border-radius:12px;
+  padding:10px;
+}
+.admin-id{ display:flex; gap:10px; align-items:center; margin-bottom:8px }
+.avatar{ width:28px; height:28px; border-radius:999px; display:grid; place-items:center;
+  background:#1F6FEB; color:#fff; font-weight:800 }
+.name{ font-weight:800 }
+.role{ font-size:12px; color:#94a3b8 }
+
+.admin-links{ display:flex; flex-direction:column; gap:6px }
+.admin-links a,
+.admin-links .logout{
+  text-align:left; border:0; background:transparent; color:#e5e7eb; padding:6px 6px; border-radius:8px; cursor:pointer
+}
+.admin-links a:hover,
+.admin-links .logout:hover{ background:#141d2e }
+
+/* ---- main content ---- */
+.main{ min-height:100%; overflow:visible; background:#0b0f17; }
+
+/* Optional: slim scrollbar style */
+.sidebar__scroll::-webkit-scrollbar{ width:10px }
+.sidebar__scroll::-webkit-scrollbar-thumb{ background:#2b3446; border-radius:8px }
+.sidebar__scroll::-webkit-scrollbar-track{ background:transparent }
+
+/* If any wrapper was clipping popovers/menus, neutralize it */
+#app, .page, .content-wrap, .main { overflow: visible !important; transform: none !important; contain: none !important; }
+html, body { height:auto; overflow:auto; }
+
+One-line alternative (if you prefer a fixed sidebar)
+
+If you don’t want position: sticky, use a classic fixed sidebar and give the content a left margin:
+
+/* Choose ONE approach (fixed OR grid) */
+.sidebar{ position:fixed; top:0; bottom:0; left:0; width:264px; overflow-y:auto; }
+.main{ margin-left:264px; }
+
+Why this fixes your screenshot
+
+The left bar becomes the only vertical scroller for the menu, so you can naturally scroll down to the “admin / settings” block at the bottom (no popover needed).
+
+The content area scroll no longer hides/clips the menu: we removed hidden overflow/transform traps and made the sidebar independent.
+
+The right gutter artifact disappears because global scroll stays on the page, not inside a nested container.
+
+If your sidebar uses different class names, apply these rules to the right selectors (or tell me your exact HTML snippet; I’ll rewrite the CSS with your classes).
