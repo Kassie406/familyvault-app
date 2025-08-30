@@ -1,0 +1,178 @@
+Looks good as a starting point. Let’s turn Tamper-Evident Audit into something clean, readable, and truly verifiable—plus fix the dark/hover issues you’re seeing.
+
+1) Visual polish (and kill the pitch-black surfaces)
+
+Wrap the page and drop these styles at the end of your CSS:
+
+<div id="audit-root">
+  <!-- your Tamper-Evident Audit UI goes here -->
+</div>
+
+/* Light, readable surface */
+#audit-root .card{background:#fff;border:1px solid #E5EAF2;border-radius:14px;box-shadow:0 2px 12px rgba(16,24,40,.06)}
+#audit-root .card-header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #EEF1F5}
+
+/* Buttons */
+#audit-root .btn{border-radius:12px;padding:10px 14px;border:1px solid #CBD2E0;background:#fff;color:#344054}
+#audit-root .btn:hover{background:#F6F8FB}
+#audit-root .btn.primary{background:#1F6FEB;color:#fff;border-color:transparent}
+#audit-root .btn.ghost{background:#fff;border:1px solid #CBD2E0}
+
+/* Kill any global “hover → black” just on this page */
+#audit-root button:hover,[role="button"]:hover{background:#1F2937;color:#fff}
+
+/* Table */
+#audit-root table{width:100%;border-collapse:separate;border-spacing:0}
+#audit-root thead th{background:#F9FAFB;border-bottom:1px solid #E5EAF2;padding:12px 16px;color:#111827}
+#audit-root tbody td{padding:12px 16px;border-bottom:1px solid #F2F4F8;color:#1F2937}
+#audit-root tbody tr:hover{background:#F7FAFF}
+
+/* Badges */
+.badge{padding:3px 8px;border-radius:999px;font-size:12px;font-weight:600;display:inline-block}
+.badge-ok{background:#E8F6EE;color:#1B7F3B}
+.badge-warn{background:#FFF4E5;color:#AD7A00}
+.badge-fail{background:#FEECEC;color:#B42318}
+
+2) Page structure that works
+<div class="card">
+  <div class="card-header">
+    <h3>Tamper-Evident Audit Log</h3>
+    <div>
+      <button id="verifyBtn" class="btn primary">Verify Integrity</button>
+      <button id="refreshBtn" class="btn ghost">Refresh</button>
+    </div>
+  </div>
+
+  <!-- Integrity summary -->
+  <div style="display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid #EEF1F5">
+    <span class="badge badge-ok" id="integrityStatus">Verified</span>
+    <span>Last anchor: <strong id="anchorAt">—</strong></span>
+    <span>Chain length: <strong id="chainLen">0</strong></span>
+  </div>
+
+  <!-- Empty state (shown when no rows) -->
+  <div id="emptyState" style="text-align:center;padding:32px 16px;color:#6B7280;display:none">
+    <div style="font-size:40px;margin-bottom:8px">🛡️</div>
+    <h4>No audit entries found</h4>
+    <p>All admin actions will appear here and are protected by cryptographic verification.</p>
+  </div>
+
+  <!-- Table -->
+  <table id="auditTable">
+    <thead>
+      <tr>
+        <th>Time (UTC)</th>
+        <th>Actor</th>
+        <th>Action</th>
+        <th>Target</th>
+        <th>Hash</th>
+        <th>Prev</th>
+      </tr>
+    </thead>
+    <tbody><!-- rows via JS --></tbody>
+  </table>
+</div>
+
+
+Empty state shows/hides based on data; the summary gives instant assurance.
+
+3) What to store per log record (minimal, court-ready)
+{
+  "id": "al_000123",
+  "ts": "2025-08-21T04:12:10Z",
+  "actor": {"id":"u_98","email":"admin@familycirclesecure.com","ip":"203.0.113.7"},
+  "action": "user.role_changed",
+  "target": {"type":"user","id":"u_12"},
+  "meta_hash": "SHA256(hex) of the normalized metadata JSON",
+  "prev_hash": "chain tip before this record",
+  "hash": "SHA256(prev_hash || ts || actor.id || action || target.id || meta_hash)"
+}
+
+
+Keep raw metadata separately; store only meta_hash here to reduce PII in the chain.
+
+Write logs to WORM (e.g., S3 Object Lock) and to your DB for fast reads.
+
+4) Integrity verification (client-side demo + server-side real)
+Client—quick verifier (JS)
+
+Recomputes the chain and checks the latest Merkle/anchor if you return it from the API.
+
+async function verifyAudit() {
+  const res = await fetch('/api/audit/log?limit=10000'); // newest last
+  const { entries, merkleRoot, anchoredAt } = await res.json();
+
+  document.getElementById('chainLen').textContent = entries.length;
+  document.getElementById('anchorAt').textContent = anchoredAt || '—';
+
+  const enc = new TextEncoder();
+  const sha256 = async (buf) => {
+    const d = await crypto.subtle.digest('SHA-256', buf);
+    return [...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  };
+
+  let ok = true;
+  for (let i = 0; i < entries.length; i++) {
+    const e = entries[i];
+    // recompute hash
+    const payload = `${e.prev_hash}|${e.ts}|${e.actor.id}|${e.action}|${e.target.id}|${e.meta_hash}`;
+    const calc = await sha256(enc.encode(payload));
+    if (calc !== e.hash) { ok = false; break; }
+    if (i > 0 && entries[i-1].hash !== e.prev_hash) { ok = false; break; }
+  }
+
+  // optional: recompute Merkle root of e.hash values and compare to server merkleRoot
+  // (server should also anchor merkleRoot periodically)
+
+  const badge = document.getElementById('integrityStatus');
+  if (ok) { badge.textContent='Verified'; badge.className='badge badge-ok'; }
+  else    { badge.textContent='Failed';   badge.className='badge badge-fail'; }
+}
+document.getElementById('verifyBtn')?.addEventListener('click', verifyAudit);
+
+Server—append & hash (Node)
+import crypto from 'crypto';
+function h(s){return crypto.createHash('sha256').update(s).digest('hex');}
+
+function appendAudit(prevHash, entry){
+  const metaHash = h(JSON.stringify(entry.meta || {}));
+  const payload  = [prevHash, entry.ts, entry.actor.id, entry.action, entry.target.id, metaHash].join('|');
+  const hash     = h(payload);
+  return { ...entry, meta_hash: metaHash, prev_hash: prevHash, hash };
+}
+
+Server—Merkle + anchor
+
+Every N minutes, compute Merkle root of the new hashes since last anchor; store root + anchor proof (e.g., hash written to an L2/L1, or RFC-3161 TSA token).
+
+Return { merkleRoot, anchoredAt } for the last anchored batch.
+
+5) Product touches
+
+Filters: date range, actor, action, target, status (Verified/Failed).
+
+Export: CSV/JSON + signed manifest (manifest = SHA256 of file + time + your signing key; attach signature).
+
+Drill-down: row click → side drawer with full metadata, previous/next links, signature material, and “Copy proof”.
+
+Alerts: if verification fails → banner + email/pager (high severity).
+
+Performance: paginate on server; verification can stream or chunk.
+
+6) Compliance & evidentiary notes (keeping this lawyer-tight)
+
+Immutability: store the canonical log in WORM (e.g., S3 Object Lock, legal hold when needed).
+
+Chain of custody: every export gets a signed manifest; record who exported, when, and the hash.
+
+PII minimization: chain contains meta_hash only; display joins the full meta for authorized viewers.
+
+Access control: RBAC so only Security/Compliance can export; Admins can view but cannot delete.
+
+Right to deletion: when you must delete user data, delete from meta store but keep the audit record + meta_hash (non-reversible) to preserve integrity.
+
+Time source: prefer trusted time (e.g., RFC-3161 TSA) for ts or anchor times to avoid clock disputes.
+
+Key management: keep any signing/anchoring keys in KMS/HSM; rotate with audit events logged.
+
+Disclosure: surface a one-click Integrity Report summarizing algorithm (SHA-256), anchor cadence, last proof, and verification results—useful for regulators and opposing counsel.

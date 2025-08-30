@@ -1332,3 +1332,224 @@ legend {
 #webhooks-root .table tbody tr:hover {
   background: #F7FAFF;
 }
+
+/* Tamper-Evident Audit Styles - Clean, readable surface */
+#audit-root .card {
+  background: #fff;
+  border: 1px solid #E5EAF2;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(16,24,40,.06);
+}
+
+#audit-root .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid #EEF1F5;
+}
+
+/* Buttons */
+#audit-root .btn {
+  border-radius: 12px;
+  padding: 10px 14px;
+  border: 1px solid #CBD2E0;
+  background: #fff;
+  color: #344054;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+#audit-root .btn:hover {
+  background: #F6F8FB;
+}
+
+#audit-root .btn.primary {
+  background: #1F6FEB;
+  color: #fff;
+  border-color: transparent;
+}
+
+#audit-root .btn.primary:hover {
+  background: #1862E3;
+}
+
+#audit-root .btn.ghost {
+  background: #fff;
+  border: 1px solid #CBD2E0;
+}
+
+/* Kill any global "hover → black" just on this page */
+#audit-root button:hover, 
+#audit-root [role="button"]:hover {
+  background: #F6F8FB !important;
+  color: #344054 !important;
+}
+
+#audit-root .btn.primary:hover {
+  background: #1862E3 !important;
+  color: #fff !important;
+}
+
+/* Table */
+#audit-root table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+#audit-root thead th {
+  background: #F9FAFB;
+  border-bottom: 1px solid #E5EAF2;
+  padding: 12px 16px;
+  color: #111827;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+#audit-root tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #F2F4F8;
+  color: #1F2937;
+  vertical-align: top;
+}
+
+#audit-root tbody tr:hover {
+  background: #F7FAFF;
+}
+
+/* Badges */
+.badge {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.badge-ok {
+  background: #E8F6EE;
+  color: #1B7F3B;
+}
+
+.badge-warn {
+  background: #FFF4E5;
+  color: #AD7A00;
+}
+
+.badge-fail {
+  background: #FEECEC;
+  color: #B42318;
+}
+
+/* Modal styles */
+.av-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(3,7,18,.48);
+  z-index: 90;
+}
+
+.av-modal {
+  position: fixed;
+  inset: 10% auto auto 50%;
+  transform: translateX(-50%);
+  width: min(960px,96vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #E5EAF2;
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(16,24,40,.2);
+  z-index: 100;
+}
+
+.av-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #EEF1F5;
+}
+
+.av-x {
+  background: transparent;
+  border: 0;
+  color: #667085;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.av-x:hover {
+  color: #1F6FEB;
+  background: #F6F8FB;
+}
+
+.av-body {
+  padding: 12px 16px;
+  overflow: auto;
+}
+
+.av-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #EEF1F5;
+}
+
+.av-summary {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.av-ok {
+  background: #E8F6EE;
+  color: #1B7F3B;
+  border: 1px solid #D2F0E0;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.av-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.av-table thead th {
+  background: #F9FAFB;
+  border-bottom: 1px solid #E5EAF2;
+  padding: 10px 12px;
+  color: #111827;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.av-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #F2F4F8;
+  color: #1F2937;
+  vertical-align: top;
+}
+
+.av-table code {
+  word-break: break-all;
+  background: #F9FAFB;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 11px;
+}

@@ -1,0 +1,467 @@
+ready-to-drop Create/Edit Promotion drawer that matches the look/feel of the rest of your console (light surface, rounded corners, no pitch-black hovers). It supports: type, content, coupon link, schedule, targeting (tenants/pages/segments), variants (A/B), preview, publish, and validation.
+
+1) HTML (place once near the end of your page)
+<!-- Backdrop -->
+<div id="promo-backdrop" class="prm-backdrop" hidden></div>
+
+<!-- Drawer -->
+<aside id="promo-drawer" class="prm-drawer" role="dialog" aria-modal="true" aria-labelledby="prm-title" hidden>
+  <header class="prm-head">
+    <div>
+      <div class="eyebrow">Marketing Promotion</div>
+      <h3 id="prm-title">New Promotion</h3>
+    </div>
+    <button id="prm-close" class="icon-x" aria-label="Close">✖</button>
+  </header>
+
+  <div class="prm-tabs" role="tablist" aria-label="Sections">
+    <button class="tab is-active" data-tab="basics" role="tab" aria-selected="true">Basics</button>
+    <button class="tab" data-tab="targeting" role="tab" aria-selected="false">Targeting</button>
+    <button class="tab" data-tab="variants" role="tab" aria-selected="false">Variants / A-B</button>
+    <button class="tab" data-tab="schedule" role="tab" aria-selected="false">Schedule</button>
+  </div>
+
+  <div class="prm-body">
+    <!-- BASICS -->
+    <section data-pane="basics" class="pane is-active">
+      <div class="grid-2">
+        <div>
+          <label class="lbl">Type</label>
+          <select id="prm-type">
+            <option value="banner">Banner</option>
+            <option value="popup">Popup</option>
+            <option value="ribbon">Ribbon</option>
+            <option value="inline">Inline</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Internal Title</label>
+          <input id="prm-title-internal" placeholder="Winter Sale">
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <label class="lbl">Headline</label>
+          <input id="prm-headline" placeholder="Get 50% off Enterprise for 3 months">
+        </div>
+        <div>
+          <label class="lbl">Subtext</label>
+          <input id="prm-subtext" placeholder="Limited time only">
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <label class="lbl">CTA Label</label>
+          <input id="prm-cta-label" placeholder="Upgrade">
+        </div>
+        <div>
+          <label class="lbl">CTA Link</label>
+          <input id="prm-cta-href" placeholder="/pricing">
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <label class="lbl">Coupon Code (optional)</label>
+          <input id="prm-coupon" placeholder="WINTER50">
+        </div>
+        <div>
+          <label class="lbl">Link to Coupon</label>
+          <button id="prm-open-coupons" class="btn ghost" type="button">Open Coupons</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TARGETING -->
+    <section data-pane="targeting" class="pane">
+      <label class="lbl">Tenants</label>
+      <div id="prm-tenants" class="chips">
+        <button class="chip is-on" data-tenant="Public">Public</button>
+        <button class="chip is-on" data-tenant="Family">Family</button>
+        <button class="chip is-on" data-tenant="Staff">Staff</button>
+      </div>
+
+      <div class="grid-2 mt-10">
+        <div>
+          <label class="lbl">Page Rules (one per line)</label>
+          <textarea id="prm-pages" rows="5" placeholder="/, /pricing, contains:/blog"></textarea>
+          <div class="hint">Supported: <code>/path</code>, <code>contains:...</code>, <code>regex:/^\/docs\/.+/</code></div>
+        </div>
+        <div>
+          <label class="lbl">Segments</label>
+          <select id="prm-segments" multiple size="5">
+            <!-- fill via JS / API -->
+          </select>
+          <div class="hint">Hold Ctrl/Cmd to select multiple</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VARIANTS -->
+    <section data-pane="variants" class="pane">
+      <div id="prm-variants">
+        <!-- rows injected -->
+      </div>
+      <button id="prm-add-variant" class="btn ghost" type="button">+ Add variant</button>
+      <div class="hint mt-6">Weights must total 100%. Empty = single-variant.</div>
+    </section>
+
+    <!-- SCHEDULE -->
+    <section data-pane="schedule" class="pane">
+      <div class="grid-3">
+        <div>
+          <label class="lbl">Start</label>
+          <input id="prm-start" type="datetime-local">
+        </div>
+        <div>
+          <label class="lbl">End (optional)</label>
+          <input id="prm-end" type="datetime-local">
+        </div>
+        <div>
+          <label class="lbl">Timezone</label>
+          <select id="prm-tz">
+            <option value="UTC">UTC</option>
+            <option value="America/New_York">America/New_York</option>
+            <option value="America/Chicago">America/Chicago</option>
+            <option value="America/Denver">America/Denver</option>
+            <option value="America/Los_Angeles">America/Los_Angeles</option>
+          </select>
+        </div>
+      </div>
+
+      <label class="lbl mt-10">Publish state</label>
+      <div class="row gap-8">
+        <label><input type="checkbox" id="prm-publish"> Publish on save</label>
+        <label><input type="checkbox" id="prm-exclusive"> Prevent overlapping banners in same slot</label>
+      </div>
+    </section>
+  </div>
+
+  <footer class="prm-foot">
+    <div class="left muted">All changes are logged in the audit trail.</div>
+    <div class="right">
+      <button id="prm-preview" class="btn ghost" type="button">Preview</button>
+      <button id="prm-cancel" class="btn ghost" type="button">Cancel</button>
+      <button id="prm-save" class="btn primary" type="button">Save</button>
+    </div>
+  </footer>
+</aside>
+
+2) CSS (append once; matches your console)
+/* Backdrop & drawer */
+.prm-backdrop{position:fixed;inset:0;background:rgba(3,7,18,.48);z-index:60}
+.prm-drawer{position:fixed;top:0;right:0;height:100vh;width:min(980px,96vw);background:#fff;border-left:1px solid #E5EAF2;
+  box-shadow:-16px 0 48px rgba(16,24,40,.16);border-top-left-radius:14px;border-bottom-left-radius:14px;
+  display:flex;flex-direction:column;transform:translateX(100%);opacity:0;transition:.22s ease;z-index:70}
+.prm-drawer.open{transform:translateX(0);opacity:1}
+.prm-head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #EEF1F5}
+.eyebrow{font-size:12px;color:#6B7280}
+.icon-x{background:transparent;border:0;color:#667085;cursor:pointer}
+.icon-x:hover{color:#1F6FEB}
+
+/* Tabs */
+.prm-tabs{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid #EEF1F5}
+.prm-tabs .tab{background:#111827;color:#F9FAFB;border:1px solid #1F2937;border-radius:10px;padding:8px 12px;cursor:pointer}
+.prm-tabs .tab:hover{background:#1F2937}
+.prm-tabs .tab.is-active{background:#2563EB;border-color:#2563EB;color:#fff}
+
+/* Body */
+.prm-body{padding:12px 16px;overflow:auto}
+.pane{display:none}
+.pane.is-active{display:block}
+.lbl{display:block;margin-bottom:6px;color:#374151}
+input,select,textarea{border:1px solid #D7DEE8;border-radius:10px;padding:10px 12px;width:100%}
+textarea{resize:vertical}
+.row{display:flex;align-items:center}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.mt-6{margin-top:6px}.mt-10{margin-top:10px}
+.muted{color:#6B7280}.hint{color:#6B7280;font-size:12px}
+
+/* Chips */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.chip{border:1px solid #D7DEE8;border-radius:999px;padding:8px 12px;background:#fff;color:#344054;cursor:pointer}
+.chip.is-on{background:#E9F2FF;border-color:#BFD3FF;color:#0D6EFD}
+
+/* Variants */
+.variant{border:1px solid #E5EAF2;border-radius:12px;padding:10px;margin-bottom:10px;background:#fff}
+.variant .row{gap:10px}
+.badge{padding:3px 8px;border-radius:999px;font-size:12px;font-weight:600;display:inline-block}
+.badge-variant{background:#EEF1F5;color:#374151}
+
+/* Footer & buttons */
+.prm-foot{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid #EEF1F5}
+.btn{border-radius:10px;padding:10px 14px;border:1px solid #CBD2E0;background:#fff;color:#344054;cursor:pointer}
+.btn:hover{background:#F6F8FB}
+.btn.primary{background:#1F6FEB;color:#fff;border-color:transparent}
+.btn.ghost.danger:hover{background:#FEECEC;border-color:#F3C3C3;color:#B42318}
+
+3) JS (open/close, tabs, variants, validation, payload, hooks)
+<script>
+(function(){
+  // Elements
+  const bd = document.getElementById('promo-backdrop');
+  const dr = document.getElementById('promo-drawer');
+  const closeBtn = document.getElementById('prm-close');
+  const cancelBtn= document.getElementById('prm-cancel');
+  const saveBtn  = document.getElementById('prm-save');
+  const preview  = document.getElementById('prm-preview');
+
+  // Tabs
+  document.querySelectorAll('.prm-tabs .tab').forEach(t=>{
+    t.addEventListener('click', ()=>{
+      document.querySelectorAll('.prm-tabs .tab').forEach(x=>x.classList.remove('is-active'));
+      document.querySelectorAll('.pane').forEach(x=>x.classList.remove('is-active'));
+      t.classList.add('is-active');
+      document.querySelector(`[data-pane="${t.dataset.tab}"]`).classList.add('is-active');
+    });
+  });
+
+  // Form inputs
+  const el = (id)=>document.getElementById(id);
+  const model = {
+    id:null,
+    type:'banner',
+    title:'',
+    content:{ headline:'', sub:'', cta:{ label:'', href:'' } },
+    couponCode:'',
+    targets:{ tenants:['Public','Family','Staff'], pages:[], segments:[] },
+    schedule:{ start:null, end:null, tz:'UTC' },
+    variants:[], // {key,label,weight,content{headline,sub,cta{label,href}}}
+    publish:false,
+    exclusive:false
+  };
+
+  // Tenants
+  const tenantWrap = document.getElementById('prm-tenants');
+  tenantWrap.addEventListener('click', e=>{
+    const b = e.target.closest('.chip'); if(!b) return;
+    const t = b.dataset.tenant;
+    const idx = model.targets.tenants.indexOf(t);
+    if(idx>=0) model.targets.tenants.splice(idx,1); else model.targets.tenants.push(t);
+    if(model.targets.tenants.length===0) model.targets.tenants.push(t); // must have ≥1
+    paintTenants();
+  });
+  function paintTenants(){
+    tenantWrap.querySelectorAll('.chip').forEach(ch=>{
+      ch.classList.toggle('is-on', model.targets.tenants.includes(ch.dataset.tenant));
+    });
+  }
+
+  // Segments (demo list — replace with API)
+  const segments = [
+    {id:'first_visit', name:'First visit'},
+    {id:'returning', name:'Returning users'},
+    {id:'abandoned_checkout', name:'Abandoned checkout'},
+    {id:'high_value', name:'High value clients'}
+  ];
+  const segSel = el('prm-segments');
+  segSel.innerHTML = segments.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+
+  // Variants
+  const variantsRoot = document.getElementById('prm-variants');
+  const addVariantBtn = document.getElementById('prm-add-variant');
+  addVariantBtn.addEventListener('click', ()=> addVariant());
+  function addVariant(v = { key:String.fromCharCode(65+(model.variants.length||0)), label:'Variant', weight:0, content:{headline:'',sub:'',cta:{label:'',href:''}} }){
+    model.variants.push(v);
+    renderVariants();
+  }
+  function renderVariants(){
+    variantsRoot.innerHTML = '';
+    model.variants.forEach((v, i)=>{
+      const div = document.createElement('div');
+      div.className = 'variant';
+      div.innerHTML = `
+        <div class="row">
+          <span class="badge badge-variant">Variant ${v.key}</span>
+          <label>Label <input data-k="label" value="${v.label||''}" style="width:160px"></label>
+          <label>Weight <input data-k="weight" type="number" min="0" max="100" value="${v.weight||0}" style="width:100px"></label>
+          <button class="btn ghost" data-action="rm" style="margin-left:auto">Remove</button>
+        </div>
+        <div class="grid-2 mt-6">
+          <div><label class="lbl">Headline</label><input data-k="headline" value="${v.content.headline||''}"></div>
+          <div><label class="lbl">Subtext</label><input data-k="sub" value="${v.content.sub||''}"></div>
+        </div>
+        <div class="grid-2 mt-6">
+          <div><label class="lbl">CTA Label</label><input data-k="ctaLabel" value="${v.content.cta?.label||''}"></div>
+          <div><label class="lbl">CTA Link</label><input data-k="ctaHref" value="${v.content.cta?.href||''}"></div>
+        </div>
+      `;
+      // wire changes
+      div.querySelectorAll('input').forEach(inp=>{
+        inp.addEventListener('input', (e)=>{
+          const k = e.target.dataset.k;
+          if(k==='label') v.label = e.target.value;
+          else if(k==='weight') v.weight = Number(e.target.value||0);
+          else if(k==='headline') v.content.headline = e.target.value;
+          else if(k==='sub') v.content.sub = e.target.value;
+          else if(k==='ctaLabel') (v.content.cta=v.content.cta||{}, v.content.cta.label=e.target.value);
+          else if(k==='ctaHref')  (v.content.cta=v.content.cta||{}, v.content.cta.href=e.target.value);
+        });
+      });
+      div.querySelector('[data-action="rm"]').addEventListener('click', ()=>{
+        model.variants.splice(i,1); renderVariants();
+      });
+      variantsRoot.appendChild(div);
+    });
+  }
+
+  // Basic inputs mapping
+  function syncBasics(){
+    model.type = el('prm-type').value;
+    model.title = el('prm-title-internal').value.trim();
+    model.content.headline = el('prm-headline').value.trim();
+    model.content.sub = el('prm-subtext').value.trim();
+    model.content.cta = { label: el('prm-cta-label').value.trim(), href: el('prm-cta-href').value.trim() };
+    model.couponCode = el('prm-coupon').value.trim();
+  }
+
+  // Targeting mapping
+  function syncTargeting(){
+    // pages
+    const lines = el('prm-pages').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    model.targets.pages = lines.map(raw=>{
+      if(raw.startsWith('contains:')) return {op:'contains', path:raw.slice(9)};
+      if(raw.startsWith('regex:')) return {op:'regex', pattern:raw.slice(6)};
+      return {op:'equals', path:raw};
+    });
+    // segments
+    model.targets.segments = [...segSel.selectedOptions].map(o=>o.value);
+  }
+
+  // Schedule mapping
+  function syncSchedule(){
+    model.schedule.start = el('prm-start').value || null;
+    model.schedule.end   = el('prm-end').value || null;
+    model.schedule.tz    = el('prm-tz').value || 'UTC';
+    model.publish   = el('prm-publish').checked;
+    model.exclusive = el('prm-exclusive').checked;
+  }
+
+  // Validation
+  function validate(){
+    const errs = [];
+    if(!model.title) errs.push('Title is required.');
+    if(!model.content.headline) errs.push('Headline is required.');
+    const w = model.variants.reduce((s,v)=>s+(Number(v.weight)||0),0);
+    if(model.variants.length && w!==100) errs.push('Variant weights must total 100%.');
+    if(model.schedule.start && model.schedule.end && new Date(model.schedule.end) < new Date(model.schedule.start)){
+      errs.push('End must be after Start.');
+    }
+    return errs;
+  }
+
+  // Open / Close
+  function openDrawer(promo=null){
+    // reset
+    Object.assign(model, {
+      id: promo?.id || null,
+      type: promo?.type || 'banner',
+      title: promo?.title || '',
+      content: promo?.content || {headline:'',sub:'',cta:{label:'',href:''}},
+      couponCode: promo?.couponCode || '',
+      targets: promo?.targets || {tenants:['Public','Family','Staff'], pages:[], segments:[]},
+      schedule: promo?.schedule || {start:null,end:null,tz:'UTC'},
+      variants: promo?.variants ? JSON.parse(JSON.stringify(promo.variants)) : [],
+      publish: false, exclusive: false
+    });
+
+    // paint UI
+    el('prm-type').value = model.type;
+    el('prm-title-internal').value = model.title;
+    el('prm-headline').value = model.content.headline || '';
+    el('prm-subtext').value = model.content.sub || '';
+    el('prm-cta-label').value = model.content.cta?.label || '';
+    el('prm-cta-href').value = model.content.cta?.href || '';
+    el('prm-coupon').value = model.couponCode || '';
+    el('prm-pages').value = (model.targets.pages||[]).map(r=>{
+      if(r.op==='contains') return 'contains:'+r.path;
+      if(r.op==='regex') return 'regex:'+r.pattern;
+      return r.path || '';
+    }).filter(Boolean).join('\n');
+    [...segSel.options].forEach(o=>o.selected = (model.targets.segments||[]).includes(o.value));
+    el('prm-start').value = model.schedule.start || '';
+    el('prm-end').value   = model.schedule.end   || '';
+    el('prm-tz').value    = model.schedule.tz    || 'UTC';
+    el('prm-publish').checked = false;
+    el('prm-exclusive').checked = false;
+
+    paintTenants();
+    renderVariants();
+
+    bd.hidden=false; dr.hidden=false; requestAnimationFrame(()=>dr.classList.add('open'));
+  }
+  function closeDrawer(){ dr.classList.remove('open'); setTimeout(()=>{bd.hidden=true; dr.hidden=true;},200); }
+
+  // Public open function (use from “New Promotion” or “Edit”)
+  window.openPromotionDrawer = openDrawer;
+
+  // Wires
+  bd.addEventListener('click', closeDrawer);
+  closeBtn.addEventListener('click', closeDrawer);
+  cancelBtn.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', e=>{ if(!dr.hidden && e.key==='Escape') closeDrawer(); });
+
+  saveBtn.addEventListener('click', async ()=>{
+    syncBasics(); syncTargeting(); syncSchedule();
+    const errs = validate();
+    if(errs.length){ alert('Please fix:\n• ' + errs.join('\n• ')); return; }
+
+    const payload = JSON.parse(JSON.stringify(model));
+    // TODO: replace with your API call
+    // const res = await fetch(model.id ? `/api/promos/${model.id}` : '/api/promos', {
+    //   method: model.id ? 'PATCH' : 'POST',
+    //   headers:{'Content-Type':'application/json'},
+    //   body: JSON.stringify(payload)
+    // });
+    // if(!res.ok) return alert('Save failed');
+    console.log('PROMO_PAYLOAD', payload);
+    alert('Saved (demo). Wire to your API next.');
+    closeDrawer();
+  });
+
+  preview.addEventListener('click', ()=>{
+    syncBasics(); // minimal
+    const id = model.id || 'preview';
+    const url = `${location.origin}/?fcs_promo=${encodeURIComponent(id)}&force=1`;
+    window.open(url, '_blank');
+  });
+
+  // Optional: tie to your "New Promotion" button
+  // document.getElementById('new-promo-btn')?.addEventListener('click', ()=>openPromotionDrawer());
+})();
+</script>
+
+4) Expected backend shape
+{
+  "id": "mp_abc",
+  "type": "banner|popup|ribbon|inline",
+  "title": "Winter Sale",
+  "content": { "headline":"", "sub":"", "cta": { "label":"","href":"" } },
+  "couponCode": "WINTER50",
+  "targets": {
+    "tenants": ["Public","Family"],
+    "pages": [ { "op":"equals","path":"/" }, { "op":"contains","path":"pricing" } ],
+    "segments": ["first_visit","high_value"]
+  },
+  "schedule": { "start":"2025-02-01T00:00:00Z", "end":"2025-02-28T23:59:59Z", "tz":"America/New_York" },
+  "variants": [ { "key":"A", "label":"A", "weight":70, "content":{...} }, { "key":"B", "label":"B", "weight":30, "content":{...} } ],
+  "publish": true,
+  "exclusive": true
+}
+
+5) Notes & guardrails
+
+Weights total 100% when you have ≥1 variants; otherwise leave variants empty for single version.
+
+Exclusive banners: enforce server-side (reject overlapping banners targeting same slot/time).
+
+Preview: your site should render when ?fcs_promo=<id>&force=1 is present, bypassing normal targeting.
+
+Audit: log create/edit/publish/unpublish to the tamper-evident log.
+
+Compliance: ensure banners with pricing/claims link to T&Cs; enforce coupon expiry server-side.
+
+Plug this in, wire two API endpoints (create/update), and your Marketing team will have a smooth flow end-to-end.

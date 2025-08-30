@@ -1,0 +1,171 @@
+You’ve got the right objects (card per promo, status chip, code, targets, actions). Let’s make it readable, consistent, and powerful.
+
+Quick visual fixes (kills the pitch-black cards)
+
+Wrap the page:
+
+<div id="promos-root">
+  <!-- Marketing Promotions UI -->
+</div>
+
+
+Drop these at the end of your CSS:
+
+#promos-root .promo-card{
+  background:#fff;
+  border:1px solid #E5EAF2;
+  border-radius:16px;
+  box-shadow:0 2px 12px rgba(16,24,40,.06);
+  padding:14px 16px;
+}
+
+/* Header row: badge + title + status + actions */
+#promos-root .promo-head{display:flex;justify-content:space-between;gap:12px;align-items:center}
+#promos-root .promo-left{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#promos-root .promo-title{font-weight:700;color:#111827}
+
+/* Badges */
+.badge{padding:3px 8px;border-radius:999px;font-size:12px;font-weight:600;display:inline-block}
+.badge-type{background:#EEF1F5;color:#374151}
+.badge-active{background:#E8F6EE;color:#1B7F3B}
+.badge-paused{background:#FFF4E5;color:#AD7A00}
+.badge-expired{background:#FEECEC;color:#B42318}
+
+/* Meta */
+#promos-root .promo-meta{color:#4B5563;margin-top:6px}
+#promos-root .targets .chip{border:1px solid #D7DEE8;border-radius:999px;padding:4px 8px;background:#fff;color:#344054;margin-right:6px}
+
+/* Action buttons visible on light bg */
+#promos-root .actions button{
+  background:#fff;border:1px solid #D7DEE8;color:#344054;border-radius:10px;padding:8px;margin-left:6px;cursor:pointer
+}
+#promos-root .actions button:hover{background:#EEF3FF;border-color:#BFD3FF;color:#1F6FEB}
+
+/* Filter/segmented control */
+#promos-root .seg{display:inline-flex;border:1px solid #D7DEE8;border-radius:999px;overflow:hidden}
+#promos-root .seg button{padding:8px 14px;background:#fff;border:0;color:#344054}
+#promos-root .seg button.is-active{background:#111827;color:#F9FAFB}
+
+Card layout (example)
+<div class="promo-card">
+  <div class="promo-head">
+    <div class="promo-left">
+      <span class="badge badge-type">banner</span>
+      <div class="promo-title">🎉 Winter Sale</div>
+      <span class="badge badge-active">Active</span>
+    </div>
+    <div class="actions">
+      <button title="Duplicate">⧉</button>
+      <button title="Preview">👁️</button>
+      <button title="Edit">✏️</button>
+      <button title="Delete">🗑️</button>
+    </div>
+  </div>
+
+  <div class="promo-meta">
+    Get 50% off FamilyCircle Secure Enterprise for 3 months<br>
+    <strong>Code:</strong> WINTER50 &nbsp;•&nbsp; <strong>Expires:</strong> 2/28/2025
+  </div>
+
+  <div class="targets" style="margin-top:8px">
+    <strong>Targets:</strong>
+    <span class="chip">Main Website</span>
+    <span class="chip">Family Portal</span>
+  </div>
+</div>
+
+Functionality upgrades (high-impact)
+
+Segmented tabs
+All | Active | Scheduled | Expired | Paused (use the .seg control above). Keeps long lists manageable.
+
+Scheduling
+Each promo has startsAt, endsAt, timezone—auto flips Scheduled ➜ Active ➜ Expired. Validate end ≥ start; warn 7 days before expiry.
+
+Targeting
+Support tenants (Public / Family / Staff), pages (path rules), and user segments (e.g., first_visit, abandoned_checkout). Same pattern as the Feature Flags drawer.
+
+A/B testing (optional, easy win)
+Per promo: variants with weight (A 70% / B 30%), unique content, auto compute CTR and conversion lift.
+
+Preview
+“Preview” opens the site with ?fcs_promo=<id>&force=1 to render even if targeting wouldn’t normally match.
+
+Analytics
+Track impressions, clicks, CTR, conversions. Show small strip on each card:
+
+Impr 12,430   Clicks 1,106 (8.9%)   Conv 142 (12.8%)
+
+
+Add a “View report” action → chart in a drawer.
+
+Safety
+
+Confirm on delete.
+
+Prevent overlapping exclusive banners on the same slot/time window (warn/resolve).
+
+RBAC: only marketers can publish; audit trail logs create/edit/publish/unpublish.
+
+Create / Edit drawer (fields you need)
+
+Type: banner | popup | ribbon | inline
+
+Title (internal)
+
+Content:
+
+banner: headline, subtext, CTA text + link
+
+popup: rich text or template select
+
+Coupon code (optional, link to Coupons tab)
+
+Schedule: start, end, timezone
+
+Targeting: tenants, pages (URL match, contains, regex), segments
+
+Placement (for banners): top, bottom, sticky?
+
+Dismissal (for popups): “Don’t show again for X days”
+
+A/B variants: add variant, weight slider
+
+Preview & Save & Publish
+
+Data model (lean)
+{
+  "id": "mp_abc",
+  "type": "banner",
+  "title": "Winter Sale",
+  "content": {
+    "headline": "Get 50% off FamilyCircle Secure Enterprise",
+    "sub": "For 3 months",
+    "cta": { "label": "Upgrade", "href": "/pricing" }
+  },
+  "couponCode": "WINTER50",
+  "targets": {
+    "tenants": ["Public", "Family"],
+    "pages": [{ "op":"contains", "path":"/" }],
+    "segments": ["first_visit"]
+  },
+  "schedule": { "start": "2025-01-05T00:00:00Z", "end": "2025-02-28T23:59:59Z", "tz": "America/New_York" },
+  "status": "active",          // derived from schedule + paused flag
+  "paused": false,
+  "variants": [
+    { "key":"A", "weight":70, "content": { /* … */ } },
+    { "key":"B", "weight":30, "content": { /* … */ } }
+  ],
+  "metrics": { "impressions":12430, "clicks":1106, "conversions":142, "updatedAt":"…" },
+  "createdBy":"u_1", "updatedAt":"2025-08-22T12:20:00Z"
+}
+
+Legal/compliance touches
+
+Truth-in-advertising: Clearly state terms (duration, eligibility). Link to promo T&Cs from the banner/popup.
+
+Coupon governance: prevent stacking unintended codes; expiry enforced server-side.
+
+Consent: for popups that collect data, ensure consent text matches your privacy policy; region-based targeting if needed (GDPR/CCPA).
+
+Audit: write create/edit/publish/unpublish to your tamper-evident log.
