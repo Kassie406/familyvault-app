@@ -948,6 +948,51 @@ app.get('/api/admin/audit-v2', requireAuth('ADMIN'), async (req: AuthenticatedRe
   }
 });
 
+// Security Posture Summary API
+app.get('/api/admin/security/posture', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Mock security posture data
+    const mockPosture = {
+      score: 75,
+      subtitle: "3 critical issues need attention",
+      issues: [
+        { type: 'bad', text: '2FA disabled' },
+        { type: 'warn', text: 'Audit chain stale' },
+        { type: 'warn', text: 'Keys 90+ days old' }
+      ],
+      actions: [
+        { id: 'enable_2fa', text: 'Enable Admin 2FA', primary: true, handler: 'enable_2fa' },
+        { id: 'verify_chain', text: 'Verify Audit Chain', primary: false, handler: 'verify_chain' },
+        { id: 'rotate_keys', text: 'Rotate API Keys', primary: false, handler: 'rotate_keys' },
+        { id: 'configure_ip', text: 'Configure IP Allowlist', primary: false, handler: 'configure_ip' }
+      ]
+    };
+    
+    res.json(mockPosture);
+  } catch (error) {
+    console.error('Get security posture error:', error);
+    res.status(500).json({ error: 'Failed to fetch security posture' });
+  }
+});
+
+app.post('/api/admin/security/actions/:actionId', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { actionId } = req.params;
+    
+    // Mock action execution
+    console.log(`Executing security action: ${actionId}`);
+    
+    res.json({ 
+      success: true, 
+      message: `Security action ${actionId} executed successfully`,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Execute security action error:', error);
+    res.status(500).json({ error: 'Failed to execute security action' });
+  }
+});
+
 app.get('/api/admin/audit-v2/verify', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { auditService } = await import('./audit-service-v2.js');
