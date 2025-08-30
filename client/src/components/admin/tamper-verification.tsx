@@ -5,8 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
-  Shield, ShieldCheck, ShieldAlert, RefreshCw, 
-  CheckCircle, AlertTriangle, Clock, Hash
+  Shield, RefreshCw
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
@@ -60,143 +59,102 @@ export default function TamperVerification({ className }: TamperVerificationProp
     setIsVerifying(false);
   };
 
-  const getStatusIcon = () => {
-    if (isLoading || isVerifying) {
-      return <RefreshCw className="h-5 w-5 animate-spin text-blue-500" />;
-    }
-    
-    if (verification?.valid) {
-      return <ShieldCheck className="h-5 w-5 text-green-500" />;
-    }
-    
-    return <ShieldAlert className="h-5 w-5 text-red-500" />;
+  const getChainState = () => {
+    if (isLoading || isVerifying) return 'warn';
+    if (verification?.valid) return 'ok';
+    return 'bad';
   };
 
-  const getStatusBadge = () => {
-    if (isLoading || isVerifying) {
-      return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Verifying...</Badge>;
-    }
-    
-    if (verification?.valid) {
-      return <Badge className="bg-green-100 text-green-800 border-green-200">Verified</Badge>;
-    }
-    
-    return <Badge className="bg-red-100 text-red-800 border-red-200">Compromised</Badge>;
+  const getStatusText = () => {
+    if (isLoading || isVerifying) return 'Verifying...';
+    if (verification?.valid) return 'Verified';
+    return 'Compromised';
+  };
+
+  const getTotalEntries = () => {
+    return verification?.totalEntries || 0;
+  };
+
+  const getLastVerified = () => {
+    if (!verification?.lastVerified) return 'Never';
+    return new Date(verification.lastVerified).toLocaleString();
   };
 
   return (
     <div className={className}>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {getStatusIcon()}
-              Tamper-Evident Audit Chain
-            </div>
-            {getStatusBadge()}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-            </div>
-          ) : (
-            <>
-              {/* Chain Status */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-2">
-                  <Hash className="h-4 w-4 text-gray-500" />
-                  <div>
-                    <div className="text-sm font-medium">Total Entries</div>
-                    <div className="text-lg font-bold">{verification?.totalEntries || 0}</div>
-                  </div>
+      <div className="card" id="card-chain">
+        <div className="card-header">
+          <div className="kpi">
+            <h3 style={{margin: 0}}>Tamper-Evident Audit Chain</h3>
+            <span className={`pill pill-${getChainState()}`} id="chain-state">
+              {getStatusText()}
+            </span>
+          </div>
+          <div style={{display: 'flex', gap: '8px'}}>
+            <button 
+              id="btn-chain-verify" 
+              className="btn primary"
+              onClick={handleVerify}
+              disabled={isVerifying || verifyChainMutation.isPending}
+              data-testid="button-verify-chain"
+            >
+              {isVerifying ? 'Verifying...' : 'Verify Chain Now'}
+            </button>
+            <button 
+              id="btn-chain-refresh" 
+              className="btn"
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/admin/audit/verify-chain'] })}
+              data-testid="button-refresh-status"
+            >
+              Refresh Status
+            </button>
+          </div>
+        </div>
+        
+        <div style={{padding: '12px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
+          <div>Total Entries: <strong id="chain-count">{getTotalEntries()}</strong></div>
+          <div>Last Verified: <strong id="chain-last">{getLastVerified()}</strong></div>
+        </div>
+        
+        {verification?.errors?.length > 0 && (
+          <div 
+            id="chain-alert" 
+            style={{
+              padding: '0 16px 14px 16px', 
+              color: '#B42318',
+              display: 'block'
+            }}
+          >
+            Suspicious divergence detected. Run verification and investigate last blocks.
+          </div>
+        )}
+        
+        {verification?.errors?.length > 0 && (
+          <div style={{padding: '0 16px 16px 16px'}}>
+            <h4 style={{margin: '0 0 8px 0', color: '#B42318', fontSize: '14px', fontWeight: 600}}>
+              Integrity Violations:
+            </h4>
+            <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+              {verification.errors.slice(0, 3).map((error: string, index: number) => (
+                <div key={index} style={{
+                  fontSize: '12px', 
+                  color: '#B42318', 
+                  background: '#FEECEC', 
+                  padding: '6px 8px', 
+                  borderRadius: '6px'
+                }}>
+                  {error}
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-gray-500" />
-                  <div>
-                    <div className="text-sm font-medium">Last Verified</div>
-                    <div className="text-sm text-gray-600">
-                      {verification?.lastVerified 
-                        ? new Date(verification.lastVerified).toLocaleString()
-                        : 'Never'
-                      }
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Verification Status */}
-              {verification?.valid ? (
-                <Alert className="border-green-200 bg-green-50">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <AlertDescription className="text-green-800">
-                    <strong>Chain Integrity Verified</strong><br />
-                    All audit entries are properly signed and tamper-evident. No unauthorized modifications detected.
-                  </AlertDescription>
-                </Alert>
-              ) : verification?.errors?.length > 0 ? (
-                <Alert className="border-red-200 bg-red-50">
-                  <AlertTriangle className="h-4 w-4 text-red-600" />
-                  <AlertDescription className="text-red-800">
-                    <strong>Chain Integrity Compromised</strong><br />
-                    {verification.errors.length} integrity violation(s) detected. 
-                    This may indicate unauthorized tampering with audit records.
-                  </AlertDescription>
-                </Alert>
-              ) : null}
-
-              {/* Error Details */}
-              {verification?.errors?.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="font-medium text-red-800">Integrity Violations:</h4>
-                  <div className="space-y-1">
-                    {verification.errors.slice(0, 5).map((error: string, index: number) => (
-                      <div key={index} className="text-sm text-red-700 bg-red-50 p-2 rounded">
-                        {error}
-                      </div>
-                    ))}
-                    {verification.errors.length > 5 && (
-                      <div className="text-sm text-red-600">
-                        ... and {verification.errors.length - 5} more errors
-                      </div>
-                    )}
-                  </div>
+              ))}
+              {verification.errors.length > 3 && (
+                <div style={{fontSize: '12px', color: '#B42318'}}>
+                  ... and {verification.errors.length - 3} more errors
                 </div>
               )}
-
-              {/* Actions */}
-              <div className="flex gap-2 pt-4 border-t">
-                <Button 
-                  onClick={handleVerify}
-                  disabled={isVerifying || verifyChainMutation.isPending}
-                  data-testid="button-verify-chain"
-                >
-                  <Shield className="h-4 w-4 mr-2" />
-                  {isVerifying ? 'Verifying...' : 'Verify Chain Now'}
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/admin/audit/verify-chain'] })}
-                  data-testid="button-refresh-status"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh Status
-                </Button>
-              </div>
-
-              {/* Security Notice */}
-              <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
-                <strong>About Tamper-Evident Auditing:</strong> This system uses cryptographic hash chaining 
-                to ensure audit log integrity. Each entry is linked to the previous one, making unauthorized 
-                modifications detectable. Regular verification helps maintain compliance and security standards.
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

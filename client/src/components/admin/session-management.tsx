@@ -97,24 +97,31 @@ export default function SessionManagement({ className }: SessionManagementProps)
     }
   };
 
-  const getStatusBadge = (session: AdminSession) => {
+  const getSessionStatusBadge = (session: AdminSession) => {
     if (session.isCurrent) {
-      return <Badge className="bg-green-100 text-green-800 border-green-200">Current</Badge>;
+      return 'Current';
     }
     if (session.isActive) {
       const lastActivity = new Date(session.lastActivity);
       const now = new Date();
       const minutesAgo = Math.floor((now.getTime() - lastActivity.getTime()) / (1000 * 60));
       
-      if (minutesAgo < 5) {
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>;
-      } else if (minutesAgo < 30) {
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Recent</Badge>;
+      if (minutesAgo < 30) {
+        return 'Recent';
       } else {
-        return <Badge className="bg-gray-100 text-gray-800 border-gray-200">Idle</Badge>;
+        return 'Idle';
       }
     }
-    return <Badge className="bg-red-100 text-red-800 border-red-200">Inactive</Badge>;
+    return 'Inactive';
+  };
+
+  const handleRevokeSession = async (sessionId: string) => {
+    await revokeSessionMutation.mutateAsync(sessionId);
+  };
+
+  const handleRevokeMultiple = async () => {
+    if (selectedSessions.length === 0) return;
+    await revokeMultipleSessionsMutation.mutateAsync(selectedSessions);
   };
 
   const handleSessionSelect = (sessionId: string) => {
@@ -142,170 +149,120 @@ export default function SessionManagement({ className }: SessionManagementProps)
 
   return (
     <div className={className}>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-blue-500" />
-            Active Admin Sessions
-          </CardTitle>
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-600">
-              Monitor and manage active administrator sessions
-            </p>
-            <div className="flex gap-2">
-              {selectedSessions.length > 0 && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => revokeMultipleSessionsMutation.mutate(selectedSessions)}
-                  disabled={revokeMultipleSessionsMutation.isPending}
-                  data-testid="button-revoke-multiple"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Revoke {selectedSessions.length} Sessions
-                </Button>
-              )}
-              <Button onClick={() => refetch()} variant="outline" size="sm" data-testid="button-refresh-sessions">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </Button>
-            </div>
+      <div className="card" id="card-sessions">
+        <div className="card-header">
+          <h3 style={{margin: 0}}>Active Admin Sessions</h3>
+          <div style={{display: 'flex', gap: '8px'}}>
+            <button 
+              id="btn-sess-refresh" 
+              className="btn"
+              onClick={() => refetch()}
+              disabled={isLoading}
+              data-testid="button-refresh-sessions"
+            >
+              Refresh
+            </button>
+            {selectedSessions.length > 0 && (
+              <button 
+                id="btn-sess-terminate" 
+                className="btn danger"
+                onClick={() => handleRevokeMultiple()}
+                disabled={revokeMultipleSessionsMutation.isPending}
+                data-testid="button-revoke-multiple"
+              >
+                Terminate Selected ({selectedSessions.length})
+              </button>
+            )}
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+
+        <div id="sess-list" style={{padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '10px'}}>
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <div style={{textAlign: 'center', padding: '32px', color: '#6B7280'}}>
+              Loading sessions...
             </div>
           ) : sessions.length === 0 ? (
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>No admin sessions found.</AlertDescription>
-            </Alert>
+            <div style={{textAlign: 'center', padding: '32px', color: '#6B7280'}}>
+              No active admin sessions
+            </div>
           ) : (
-            <div className="space-y-6">
-              {/* Active Sessions */}
-              {activeSessions.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-medium flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      Active Sessions ({activeSessions.length})
-                    </h3>
-                    {activeSessions.filter(s => !s.isCurrent).length > 0 && (
-                      <Button variant="outline" size="sm" onClick={handleSelectAll}>
-                        {selectedSessions.length === activeSessions.filter(s => !s.isCurrent).length 
-                          ? 'Deselect All' 
-                          : 'Select All'
+            sessions.filter(s => s.isActive).map((session) => (
+              <div
+                key={session.id}
+                className={`session ${session.isCurrent ? 'current' : ''}`}
+                data-testid={`session-${session.id}`}
+              >
+                <div style={{display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center'}}>
+                  <div>
+                    <div style={{fontWeight: 700}}>
+                      {getDeviceIcon(session.deviceType)} {session.deviceName || `${session.deviceType} Device`}
+                      {' '}
+                      <span className={`pill ${session.isCurrent ? 'pill-ok' : 'pill-neutral'}`}>
+                        {session.isCurrent ? 'Current' : getSessionStatusBadge(session)}
+                      </span>
+                    </div>
+                    <div style={{color: '#475467', fontSize: '14px', marginTop: '2px'}}>
+                      {session.browser || 'Unknown Browser'} • {session.os || 'Unknown OS'}
+                    </div>
+                    <div style={{color: '#475467', fontSize: '14px', marginTop: '2px'}}>
+                      <span className="ip" data-ip={session.ip}>•••.•••.•••.•••</span>
+                      {session.location && <span> • {session.location}</span>}
+                      <span style={{color: '#667085'}}>
+                        {' • Last active: '}
+                        {format(new Date(session.lastActivity), 'MMM d, h:mm a')}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+                    {!session.isCurrent && (
+                      <input 
+                        type="checkbox" 
+                        className="sess-chk" 
+                        data-id={session.id}
+                        checked={selectedSessions.includes(session.id)}
+                        onChange={() => handleSessionSelect(session.id)}
+                        data-testid={`checkbox-session-${session.id}`}
+                      />
+                    )}
+                    <button 
+                      className="icon-btn" 
+                      title="Reveal IP" 
+                      data-reveal={session.id}
+                      onClick={(e) => {
+                        const target = e.currentTarget;
+                        const sessionEl = target.closest('.session');
+                        const ipEl = sessionEl?.querySelector('.ip') as HTMLElement;
+                        if (ipEl) {
+                          ipEl.textContent = ipEl.dataset.ip || session.ip;
                         }
-                      </Button>
+                      }}
+                      data-testid={`button-view-session-${session.id}`}
+                    >
+                      👁
+                    </button>
+                    {!session.isCurrent && (
+                      <button 
+                        className="icon-btn danger" 
+                        title="Terminate" 
+                        data-kill={session.id}
+                        onClick={() => {
+                          if (confirm('Terminate this session?')) {
+                            handleRevokeSession(session.id);
+                          }
+                        }}
+                        disabled={revokeSessionMutation.isPending}
+                        data-testid={`button-revoke-session-${session.id}`}
+                      >
+                        ✖
+                      </button>
                     )}
                   </div>
-                  <div className="space-y-3">
-                    {activeSessions.map((session) => (
-                      <div
-                        key={session.id}
-                        className={`p-4 border rounded-lg transition-colors ${
-                          session.isCurrent 
-                            ? 'bg-green-50 border-green-200' 
-                            : selectedSessions.includes(session.id)
-                            ? 'bg-blue-50 border-blue-200'
-                            : 'hover:bg-gray-50'
-                        }`}
-                        data-testid={`session-${session.id}`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            {!session.isCurrent && (
-                              <input
-                                type="checkbox"
-                                checked={selectedSessions.includes(session.id)}
-                                onChange={() => handleSessionSelect(session.id)}
-                                className="rounded border-gray-300"
-                                data-testid={`checkbox-session-${session.id}`}
-                              />
-                            )}
-                            {getDeviceIcon(session.deviceType)}
-                            <div>
-                              <div className="font-medium flex items-center gap-2">
-                                {session.deviceName || `${session.deviceType} Device`}
-                                {getStatusBadge(session)}
-                              </div>
-                              <div className="text-sm text-gray-600 space-y-1">
-                                <div>{session.browser} on {session.os}</div>
-                                <div className="flex items-center gap-4">
-                                  <span className="flex items-center gap-1">
-                                    <MapPin className="h-3 w-3" />
-                                    {session.ip} {session.location && `• ${session.location}`}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    Last active: {format(new Date(session.lastActivity), 'MMM dd, HH:mm')}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" data-testid={`button-view-session-${session.id}`}>
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            {!session.isCurrent && (
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => revokeSessionMutation.mutate(session.id)}
-                                disabled={revokeSessionMutation.isPending}
-                                data-testid={`button-revoke-session-${session.id}`}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
-              )}
-
-              {/* Inactive Sessions */}
-              {inactiveSessions.length > 0 && (
-                <div>
-                  <h3 className="font-medium flex items-center gap-2 mb-4">
-                    <X className="h-4 w-4 text-red-500" />
-                    Recently Revoked Sessions ({inactiveSessions.length})
-                  </h3>
-                  <div className="space-y-2">
-                    {inactiveSessions.slice(0, 5).map((session) => (
-                      <div
-                        key={session.id}
-                        className="p-3 border rounded-lg bg-gray-50 opacity-75"
-                        data-testid={`inactive-session-${session.id}`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            {getDeviceIcon(session.deviceType)}
-                            <div>
-                              <div className="font-medium text-sm text-gray-700">
-                                {session.deviceName || `${session.deviceType} Device`}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                Revoked {format(new Date(session.lastActivity), 'MMM dd, HH:mm')}
-                              </div>
-                            </div>
-                          </div>
-                          <Badge className="bg-red-100 text-red-800 border-red-200">Revoked</Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
+            ))
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
