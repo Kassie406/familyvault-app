@@ -139,12 +139,31 @@ export default function StatusWidget() {
   };
 
   const handleComponentClick = (component: string) => {
-    console.log('System status component clicked:', component);
     trackAdminClick('system_status_component', { component });
     
-    // Navigate to security-settings to test navigation
-    console.log('Navigating to:', ROUTES.SECURITY);
-    setLocation(ROUTES.SECURITY);
+    // Route to specific status pages based on component
+    switch (component) {
+      case 'database':
+        setLocation(ROUTES.SECURITY_STATUS('database'));
+        break;
+      case 'webhooks':
+        setLocation(ROUTES.WEBHOOKS_DELIVERIES);
+        break;
+      case 'auth':
+        setLocation(ROUTES.SECURITY_STATUS('auth'));
+        break;
+      case 'stripe':
+        setLocation(ROUTES.PLANS_STRIPE);
+        break;
+      case 'smtp':
+        setLocation(ROUTES.SECURITY_STATUS('smtp'));
+        break;
+      case 'storage':
+        setLocation(ROUTES.SECURITY_STATUS('storage'));
+        break;
+      default:
+        setLocation(ROUTES.SECURITY);
+    }
   };
 
   const allSystemsOperational = components.length > 0 && components.every(c => c.ok);
