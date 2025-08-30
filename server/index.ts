@@ -18,6 +18,8 @@ import { touchAuthSession } from "./request-tracker";
 import { maybeSendNewDeviceEmail } from "./new-device-alerts";
 import { getOrgSecuritySettings, setOrgSecuritySettings, guardFor, canModifyOrgSecurity } from "./org-security-service";
 import sessionsRouter from "./sessions-api";
+import stepupRouter from "./stepup-routes";
+import testStepupRouter from "./test-stepup-routes";
 import { escalationWorker } from "./escalation-worker";
 import { smsService } from "./sms-service";
 import { eq, desc, and } from "drizzle-orm";
@@ -436,6 +438,12 @@ app.get('/api/auth/webauthn/config', (req: Request, res: Response) => {
 
 // Sessions management API
 app.use('/api/security/sessions', requireAuth, sessionsRouter);
+
+// Step-up authentication API
+app.use('/api/stepup', requireAuth, stepupRouter);
+
+// Test step-up authentication endpoints
+app.use('/api/test-stepup', requireAuth, testStepupRouter);
 
 // Organization security settings API
 app.get('/api/admin/org-security', requireAuth, async (req: AuthenticatedRequest, res: Response) => {

@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { StepUpProvider } from "@/components/StepUpProvider";
 import ChatSupport from "@/components/chat-support";
 import NotFound from "@/pages/not-found";
 import AdminLogin from "@/pages/admin/login";
@@ -43,6 +44,7 @@ import SportsActivities from "@/pages/sports-activities";
 import EmergencyContacts from "@/pages/emergency-contacts";
 import Immunizations from "@/pages/immunizations";
 import CaregiverAccess from "@/pages/caregiver-access";
+import TestStepUp from "@/pages/test-stepup";
 import ElderlyMedicalInfo from "@/pages/elderly-medical-info";
 import ElderlyFinances from "@/pages/elderly-finances";
 import ElderlyEmergencyContacts from "@/pages/elderly-emergency-contacts";
@@ -112,6 +114,7 @@ function Router() {
       <Route path="/signup" component={Signup} />
       <Route path="/signup-options" component={SignupOptions} />
       <Route path="/settings" component={Settings} />
+      <Route path="/test-stepup" component={TestStepUp} />
       <Route path="/child-information" component={ChildInformation} />
       <Route path="/disaster-planning" component={DisasterPlanning} />
       <Route path="/elderly-parents" component={ElderlyParents} />
