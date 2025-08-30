@@ -3318,7 +3318,7 @@ export default function AdminDashboard() {
       
       case 'security':
         return (
-          <div className="space-y-6">
+          <div id="security-root" className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold">Security & Audit</h2>
             </div>
@@ -3329,38 +3329,50 @@ export default function AdminDashboard() {
             {/* Session Management */}
             <SessionManagement />
             
-            {/* Legacy Audit Logs */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Audit Logs</CardTitle>
-                <CardDescription>Monitor system security and admin actions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+            {/* Recent Audit Logs */}
+            <div className="card">
+              <div className="card-header">
+                <h3 style={{margin: 0}}>Recent Audit Logs</h3>
+                <button 
+                  id="audit-refresh" 
+                  className="btn"
+                  onClick={() => {
+                    // Refetch audit logs
+                    queryClient.invalidateQueries({ queryKey: ['/api/admin/audit'] });
+                  }}
+                >
+                  Refresh
+                </button>
+              </div>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Actor</th>
+                    <th>Event</th>
+                    <th>Resource</th>
+                    <th>Result</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {auditLogs?.logs?.map((log: any, index: number) => (
-                    <div key={index} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{log.action}</p>
-                          <p className="text-muted-foreground text-sm">
-                            {new Date(log.createdAt).toLocaleString()}
-                          </p>
-                        </div>
-                        <Badge variant="secondary">
-                          {log.action === 'login' ? 'Authentication' : 'System'}
-                        </Badge>
-                      </div>
-                    </div>
+                    <tr key={index}>
+                      <td>{new Date(log.createdAt).toLocaleString()}</td>
+                      <td>{log.admin?.username || '-'}</td>
+                      <td>{log.action}</td>
+                      <td>{log.targetType || '-'}</td>
+                      <td>ok</td>
+                    </tr>
                   )) || (
-                    <div className="text-center py-12">
-                      <Activity className="mx-auto h-12 w-12 text-muted-foreground" />
-                      <h3 className="mt-4 text-lg font-semibold">No Audit Logs</h3>
-                      <p className="text-muted-foreground">Security events will appear here</p>
-                    </div>
+                    <tr>
+                      <td colSpan={5} style={{textAlign: 'center', padding: '24px'}}>
+                        No audit logs yet
+                      </td>
+                    </tr>
                   )}
-                </div>
-              </CardContent>
-            </Card>
+                </tbody>
+              </table>
+            </div>
           </div>
         );
       

@@ -1,0 +1,269 @@
+Security” area already has the right sections. Here’s a tight set of UI fixes + drop-in styles + handlers so it’s readable (no pitch-black hovers), clearly communicates risk, and feels responsive.
+
+Quick wins (visual & UX)
+
+Status chips
+Use consistent colors:
+
+Compromised → red, Verified → green, Never/Stale → amber.
+
+Current session → green; Recent → gray.
+
+Hover/readability
+Cards, pills, and icon buttons should never go black on hover. Use soft surfaces.
+
+Action clarity
+
+“Verify Chain Now” should show progress, then the result (OK / failed) and update “Last Verified”.
+
+In “Active Sessions”, show Reveal (eye) with tooltip; Terminate with confirm.
+
+Empty & error states
+
+If zero entries or no sessions: show an illustration + a short explainer + a CTA (e.g., “Enable audit logging”).
+
+On verify failure, keep the card visible but show a red inline alert.
+
+Drop-in CSS (scoped; fixes dark hovers)
+/* ===== Security page polish ===== */
+#security-root .card{background:#fff;border:1px solid #E5EAF2;border-radius:14px;
+  box-shadow:0 2px 12px rgba(16,24,40,.06)}
+#security-root .card-header{display:flex;justify-content:space-between;align-items:center;
+  padding:14px 16px;border-bottom:1px solid #EEF1F5}
+#security-root .btn{border:1px solid #CBD2E0;background:#fff;color:#344054;border-radius:12px;padding:10px 14px;cursor:pointer}
+#security-root .btn.primary{background:#1F6FEB;color:#fff;border-color:transparent}
+#security-root .btn:hover{background:#F6F8FB}
+#security-root .btn.icon{padding:8px 10px;border-radius:10px}
+#security-root .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:700;font-size:12px}
+.pill-ok{background:#E8F6EE;color:#067647}
+.pill-warn{background:#FFF4E5;color:#B54708}
+.pill-bad{background:#FEECEC;color:#B42318}
+.pill-neutral{background:#F2F4F7;color:#475467}
+
+#security-root .session{border:1px solid #E5EAF2;border-radius:12px;background:#fff;padding:10px 12px}
+#security-root .session.current{background:#ECFDF3;border-color:#CFF2DD} /* soft green, not black */
+
+#security-root .icon-btn{background:#fff;border:1px solid #CBD2E0;border-radius:10px;cursor:pointer}
+#security-root .icon-btn:hover{background:#F6F8FB}
+#security-root .danger{color:#B42318;border-color:#F3C3C3}
+#security-root .danger:hover{background:#FEECEC}
+
+#security-root .kpi{display:flex;gap:10px;align-items:center;color:#475467}
+#security-root .kpi strong{color:#111827}
+
+@media (prefers-color-scheme: dark){
+  #security-root .card{background:#0F172A;border-color:#1E293B;box-shadow:none}
+  #security-root .btn{background:#0B1220;color:#E5E7EB;border-color:#263244}
+  #security-root .btn:hover{background:#141D2E}
+  #security-root .session{background:#0B1220;border-color:#1E293B}
+  #security-root .session.current{background:#0E1A12;border-color:#1C2E24}
+}
+
+
+Wrap the page content with:
+
+<div id="security-root">
+  <!-- security cards here -->
+</div>
+
+Tamper-Evident Audit Chain card
+Suggested header layout
+
+Left: title + “Total Entries” KPI + “Last Verified” with a status pill.
+
+Right: primary Verify Chain Now and secondary Refresh Status.
+
+Example HTML
+<div class="card" id="card-chain">
+  <div class="card-header">
+    <div class="kpi">
+      <h3 style="margin:0">Tamper-Evident Audit Chain</h3>
+      <span class="pill pill-bad" id="chain-state">Compromised</span>
+    </div>
+    <div>
+      <button id="btn-chain-verify" class="btn primary">Verify Chain Now</button>
+      <button id="btn-chain-refresh" class="btn">Refresh Status</button>
+    </div>
+  </div>
+  <div style="padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div>Total Entries: <strong id="chain-count">0</strong></div>
+    <div>Last Verified: <strong id="chain-last">Never</strong></div>
+  </div>
+  <div id="chain-alert" style="padding:0 16px 14px 16px;color:#B42318;display:none">
+    Suspicious divergence detected. Run verification and investigate last blocks.
+  </div>
+</div>
+
+Handlers (wire to your endpoints)
+<script>
+(async function(){
+  const $ = id => document.getElementById(id);
+  function setState(state){ // ok|warn|bad
+    const pill = $('chain-state');
+    if(state==='ok'){ pill.className='pill pill-ok'; pill.textContent='Verified'; }
+    else if(state==='warn'){ pill.className='pill pill-warn'; pill.textContent='Stale'; }
+    else { pill.className='pill pill-bad'; pill.textContent='Compromised'; }
+  }
+
+  async function loadChain(){
+    const r = await fetch('/api/security/audit-chain/status');
+    const d = await r.json();
+    $('chain-count').textContent = d.total || 0;
+    $('chain-last').textContent = d.last_verified || 'Never';
+    setState(d.state || 'warn');
+    $('chain-alert').style.display = d.state==='bad' ? 'block':'none';
+  }
+
+  async function verifyChain(){
+    const btn = $('btn-chain-verify');
+    const old = btn.textContent; btn.disabled = true; btn.textContent = 'Verifying…';
+    try{
+      const r = await fetch('/api/security/audit-chain/verify', { method:'POST' });
+      const d = await r.json();
+      $('chain-last').textContent = d.verified_at;
+      setState(d.ok ? 'ok' : 'bad');
+      $('chain-alert').style.display = d.ok ? 'none':'block';
+    }catch(e){ alert('Verify failed: '+e.message); }
+    finally{ btn.disabled = false; btn.textContent = old; }
+  }
+
+  $('btn-chain-refresh').addEventListener('click', loadChain);
+  $('btn-chain-verify').addEventListener('click', verifyChain);
+  loadChain();
+})();
+</script>
+
+Active Admin Sessions
+Structure
+
+Each session tile shows device, agent, IP + city, last active.
+
+Actions: Reveal IP (eye), Terminate (x), Select (checkbox) for bulk terminate.
+
+Example HTML (one row)
+<div class="card" id="card-sessions">
+  <div class="card-header">
+    <h3 style="margin:0">Active Admin Sessions</h3>
+    <div>
+      <button id="btn-sess-refresh" class="btn">Refresh</button>
+      <button id="btn-sess-terminate" class="btn danger">Terminate Selected</button>
+    </div>
+  </div>
+
+  <div id="sess-list" style="padding:12px 16px;display:flex;flex-direction:column;gap:10px"></div>
+</div>
+
+JS renderer
+<script>
+(function(){
+  const wrap = document.getElementById('sess-list');
+  const sel = new Set();
+
+  function row(s){
+    const div = document.createElement('div');
+    div.className = 'session' + (s.is_current ? ' current':'');
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+        <div>
+          <div style="font-weight:700">${s.device} <span class="pill ${s.is_current?'pill-ok':'pill-neutral'}">${s.is_current?'Current':'Recent'}</span></div>
+          <div style="color:#475467">${s.ua}</div>
+          <div style="color:#475467"><span class="ip" data-ip="${s.ip}">•••.•••.•••.•••</span> • ${s.city || ''} <span style="color:#667085">• Last active: ${s.last_active}</span></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="checkbox" class="sess-chk" data-id="${s.id}">
+          <button class="icon-btn" title="Reveal IP" data-reveal="${s.id}">👁</button>
+          <button class="icon-btn danger" title="Terminate" data-kill="${s.id}">✖</button>
+        </div>
+      </div>`;
+    return div;
+  }
+
+  async function load(){
+    const r = await fetch('/api/security/sessions');
+    const data = await r.json();
+    wrap.innerHTML = '';
+    data.forEach(s => wrap.appendChild(row(s)));
+  }
+
+  // Delegated actions
+  wrap.addEventListener('click', async e=>{
+    const t = e.target;
+    if (t.dataset.reveal){
+      const ipEl = t.closest('.session').querySelector('.ip');
+      ipEl.textContent = ipEl.dataset.ip;
+    }
+    if (t.dataset.kill){
+      const id = t.dataset.kill;
+      if(confirm('Terminate this session?')){
+        await fetch(`/api/security/sessions/${id}`, { method:'DELETE' });
+        load();
+      }
+    }
+  });
+
+  wrap.addEventListener('change', e=>{
+    if (e.target.classList.contains('sess-chk')){
+      const id = e.target.dataset.id;
+      e.target.checked ? sel.add(id) : sel.delete(id);
+    }
+  });
+
+  document.getElementById('btn-sess-refresh').addEventListener('click', load);
+  document.getElementById('btn-sess-terminate').addEventListener('click', async ()=>{
+    if(!sel.size) return alert('No sessions selected.');
+    if(!confirm(`Terminate ${sel.size} session(s)?`)) return;
+    await fetch('/api/security/sessions/bulk', { method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ids:[...sel] })});
+    sel.clear(); load();
+  });
+
+  load();
+})();
+</script>
+
+Recent Audit Logs
+
+Keep it simple: a table with time, actor, event, resource, result. Support live refresh.
+
+<div class="card">
+  <div class="card-header"><h3 style="margin:0">Recent Audit Logs</h3>
+    <button id="audit-refresh" class="btn">Refresh</button>
+  </div>
+  <table class="table" id="audit-table">
+    <thead>
+      <tr><th>Time</th><th>Actor</th><th>Event</th><th>Resource</th><th>Result</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+(function(){
+  const tb = document.getElementById('audit-table').querySelector('tbody');
+  async function load(){
+    const r = await fetch('/api/security/audit-logs?limit=50');
+    const rows = await r.json();
+    tb.innerHTML = '';
+    rows.forEach(x=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${new Date(x.at).toLocaleString()}</td>
+                      <td>${x.actor||'-'}</td><td>${x.event}</td>
+                      <td>${x.resource||'-'}</td>
+                      <td>${x.result||'ok'}</td>`;
+      tb.appendChild(tr);
+    });
+  }
+  document.getElementById('audit-refresh').addEventListener('click', load);
+  load();
+})();
+</script>
+
+Security best-practice toggles (nice to add)
+
+Force 2FA for admins: expose a toggle + status indicator.
+
+IP allowlist: chip showing mode (Open / Restricted); link to manage.
+
+Key rotation: show last rotation time + “Rotate now” button.
+
+Export audit: button to export the last 30 days as signed CSV/JSON.
