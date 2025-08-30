@@ -1,0 +1,117 @@
+want to manage their linked articles directly from your console (Content tab), instead of hardcoding them.
+
+Here’s how you can hook it up:
+
+🔗 Linking Console Articles to Your Mega Menu
+1. Add a “Menu Category” field to your Content modal
+
+When creating/editing an article in the console, add:
+
+Menu Category (dropdown):
+
+Child Information
+
+Disaster Planning
+
+Elderly Parents
+
+Estate Planning
+
+Getting Married
+
+Home Buying
+
+International Travel
+
+Starting a Family
+
+Moving
+
+When Someone Dies
+
+Digital Security
+
+Neurodiversity
+
+(You can maintain these categories in a small table so you can add/remove in the future.)
+
+👉 This way, every article can be mapped to exactly one menu category.
+
+2. Expose a category API
+
+In your console backend:
+
+GET /api/public/menu-categories
+Returns each category with articles linked to it.
+
+Example:
+
+[
+  {
+    "category": "Child Information",
+    "slug": "child-info",
+    "icon": "👶",
+    "articles": [
+      { "title": "Keeping Kids’ Docs Safe", "url": "/articles/kids-docs" },
+      { "title": "School Records Storage", "url": "/articles/school-records" }
+    ]
+  },
+  {
+    "category": "Disaster Planning",
+    "slug": "disaster-planning",
+    "icon": "⚠️",
+    "articles": [
+      { "title": "Family Evacuation Checklist", "url": "/articles/evacuation" }
+    ]
+  }
+]
+
+3. Render the mega menu dynamically
+
+On your website (familycirclesecure.com), instead of hardcoding the links, load them from the API:
+
+async function loadMenu(){
+  const res = await fetch('https://console.familycirclesecure.com/api/public/menu-categories');
+  const cats = await res.json();
+
+  const menu = document.querySelector('#forever-menu');
+  menu.innerHTML = '';
+
+  cats.forEach(c => {
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <span class="icon">${c.icon}</span>
+      <span class="label">${c.category}</span>
+    `;
+    // Example: link category to a landing page, or show dropdown with articles
+    const sub = document.createElement('ul');
+    c.articles.forEach(a => {
+      const subLi = document.createElement('li');
+      subLi.innerHTML = `<a href="${a.url}">${a.title}</a>`;
+      sub.appendChild(subLi);
+    });
+    li.appendChild(sub);
+    menu.appendChild(li);
+  });
+}
+loadMenu();
+
+4. Optional: Category Landing Pages
+
+If you want each category (e.g., Disaster Planning) to open its own page:
+
+Create a category landing route (/forever-files/disaster-planning)
+
+Auto-populate it with the articles assigned to that category.
+
+You can style it like a blog index but scoped to that category.
+
+5. How it connects to your Console
+
+In Content tab, admin creates an article.
+
+Picks Tenant: PUBLIC + Menu Category: Disaster Planning.
+
+Once saved & published → instantly appears in mega menu and/or category landing page.
+
+✅ This way, your Content console becomes a mini CMS powering both your site containers (flex slots) and your top-level menus. No hardcoding, just config.

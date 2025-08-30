@@ -42,6 +42,12 @@ export default function AdminDashboard() {
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
   const [editingArticle, setEditingArticle] = useState(null);
+  const [articleTitle, setArticleTitle] = useState('');
+  const [articleSlug, setArticleSlug] = useState('');
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [articleStatus, setArticleStatus] = useState('draft');
+  const [markdownContent, setMarkdownContent] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
 
   // Fetch admin data
   const { data: plans, isLoading: plansLoading } = useQuery({
@@ -2196,156 +2202,330 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* Create Article Modal */}
-            <Dialog open={newArticleOpen} onOpenChange={setNewArticleOpen}>
-              <DialogContent className="max-w-2xl">
+            {/* Enhanced Create Article Modal */}
+            <Dialog open={newArticleOpen} onOpenChange={(open) => {
+              setNewArticleOpen(open);
+              if (!open) {
+                setEditingArticle(null);
+                setArticleTitle('');
+                setArticleSlug('');
+                setSlugTouched(false);
+                setArticleStatus('draft');
+                setMarkdownContent('');
+                setShowPreview(false);
+              }
+            }}>
+              <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
                 <DialogHeader>
                   <DialogTitle>
                     {editingArticle ? 'Edit Article' : 'Create New Article'}
                   </DialogTitle>
                   <DialogDescription>
-                    {editingArticle ? 'Update the article details below.' : 'Create a new article for your content management system.'}
+                    {editingArticle ? 'Update the article details below.' : 'Create content for your multi-tenant platform.'}
                   </DialogDescription>
                 </DialogHeader>
-                <form className="space-y-4">
-                  <div>
-                    <Label htmlFor="title">Title *</Label>
-                    <Input 
-                      id="title"
-                      name="title"
-                      placeholder="Enter article title"
-                      defaultValue={editingArticle?.title || ''}
-                      required
-                      data-testid="input-article-title"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="category">Category *</Label>
-                    <Select name="category" defaultValue={editingArticle?.category || 'onboarding'}>
-                      <SelectTrigger data-testid="select-article-category">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="onboarding">Onboarding</SelectItem>
-                        <SelectItem value="support">Support</SelectItem>
-                        <SelectItem value="announcements">Announcements</SelectItem>
-                        <SelectItem value="blog">Blog</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="content">Content *</Label>
-                    <Textarea 
-                      id="content"
-                      name="content"
-                      placeholder="Write your article content here..."
-                      className="min-h-[200px]"
-                      defaultValue={editingArticle?.content || ''}
-                      required
-                      data-testid="textarea-article-content"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="status">Status</Label>
-                      <Select name="status" defaultValue={editingArticle?.status || 'draft'}>
-                        <SelectTrigger data-testid="select-article-status">
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="draft">Draft</SelectItem>
-                          <SelectItem value="published">Published</SelectItem>
-                          <SelectItem value="archived">Archived</SelectItem>
-                        </SelectContent>
-                      </Select>
+                
+                <div className="flex-1 overflow-y-auto">
+                  <form className="space-y-6 p-1">
+                    {/* Meta Information Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="title">Title *</Label>
+                        <Input 
+                          id="title"
+                          name="title"
+                          placeholder="Welcome to FamilyCircle Secure"
+                          value={articleTitle}
+                          onChange={(e) => {
+                            const title = e.target.value;
+                            setArticleTitle(title);
+                            // Auto-generate slug if not manually edited
+                            if (!slugTouched) {
+                              const slug = title.trim().toLowerCase()
+                                .replace(/[^a-z0-9]+/g, '-')
+                                .replace(/(^-|-$)/g, '');
+                              setArticleSlug(slug);
+                            }
+                          }}
+                          required
+                          data-testid="input-article-title"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="slug">Slug (URL)</Label>
+                        <Input 
+                          id="slug"
+                          name="slug"
+                          placeholder="welcome-to-familycircle-secure"
+                          value={articleSlug}
+                          onChange={(e) => {
+                            setArticleSlug(e.target.value);
+                            setSlugTouched(true);
+                          }}
+                          data-testid="input-article-slug"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Autofilled from title; change if needed.</p>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="category">Category *</Label>
+                        <Select name="category" defaultValue={editingArticle?.category || 'announcements'}>
+                          <SelectTrigger data-testid="select-article-category">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="announcements">Announcements</SelectItem>
+                            <SelectItem value="support">Support</SelectItem>
+                            <SelectItem value="onboarding">Onboarding</SelectItem>
+                            <SelectItem value="blog">Blog</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
 
+                    {/* Audience & Status Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="tenant">Audience / Tenant *</Label>
+                        <Select name="tenant" defaultValue={editingArticle?.tenant || 'PUBLIC'}>
+                          <SelectTrigger data-testid="select-article-tenant">
+                            <SelectValue placeholder="Select audience" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="PUBLIC">Public (clients)</SelectItem>
+                            <SelectItem value="FAMILY">Family portal</SelectItem>
+                            <SelectItem value="STAFF">Staff hub</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="status">Status</Label>
+                        <Select 
+                          name="status" 
+                          value={articleStatus}
+                          onValueChange={setArticleStatus}
+                        >
+                          <SelectTrigger data-testid="select-article-status">
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="published">Publish now</SelectItem>
+                            <SelectItem value="scheduled">Schedule</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {articleStatus === 'scheduled' && (
+                        <div>
+                          <Label htmlFor="publishAt">Publish at</Label>
+                          <Input 
+                            id="publishAt"
+                            name="publishAt"
+                            type="datetime-local"
+                            defaultValue={editingArticle?.publishAt || ''}
+                            data-testid="input-publish-at"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">UTC or convert on server to your timezone.</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Meta Fields Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="tags">Tags (comma-separated)</Label>
+                        <Input 
+                          id="tags"
+                          name="tags"
+                          placeholder="security, onboarding, billing"
+                          defaultValue={editingArticle?.tags?.join(', ') || ''}
+                          data-testid="input-article-tags"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="image">Feature image (URL)</Label>
+                        <Input 
+                          id="image"
+                          name="image"
+                          placeholder="https://..."
+                          defaultValue={editingArticle?.image || ''}
+                          data-testid="input-article-image"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="seo">SEO Description</Label>
+                        <Input 
+                          id="seo"
+                          name="seo"
+                          placeholder="Short summary used in previews and meta tags."
+                          maxLength={160}
+                          defaultValue={editingArticle?.seo || ''}
+                          data-testid="input-article-seo"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Author Field */}
                     <div>
-                      <Label htmlFor="publishDate">Publish Date (Optional)</Label>
+                      <Label htmlFor="author">Author</Label>
                       <Input 
-                        id="publishDate"
-                        name="publishDate"
-                        type="datetime-local"
-                        defaultValue={editingArticle?.publishDate || ''}
-                        data-testid="input-publish-date"
+                        id="author"
+                        name="author"
+                        placeholder="Enter author name"
+                        defaultValue={editingArticle?.author || 'Admin'}
+                        data-testid="input-article-author"
                       />
                     </div>
-                  </div>
 
-                  <div>
-                    <Label htmlFor="author">Author</Label>
-                    <Input 
-                      id="author"
-                      name="author"
-                      placeholder="Enter author name"
-                      defaultValue={editingArticle?.author || 'Admin'}
-                      data-testid="input-article-author"
-                    />
-                  </div>
+                    {/* Content Editor with Preview */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label htmlFor="content">Content *</Label>
+                        <div className="flex items-center gap-2">
+                          <input 
+                            type="checkbox" 
+                            id="preview-toggle"
+                            checked={showPreview}
+                            onChange={(e) => setShowPreview(e.target.checked)}
+                            className="rounded"
+                          />
+                          <Label htmlFor="preview-toggle" className="text-sm cursor-pointer">Live Preview</Label>
+                        </div>
+                      </div>
+                      
+                      <div className={`grid gap-4 ${showPreview ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
+                        <div>
+                          <Textarea 
+                            id="content"
+                            name="content"
+                            placeholder="Write in Markdown...\n\n# Getting Started\n- Enable 2FA\n- Invite family\n- Configure backups"
+                            className="min-h-[300px] font-mono text-sm"
+                            value={markdownContent}
+                            onChange={(e) => setMarkdownContent(e.target.value)}
+                            required
+                            data-testid="textarea-article-content"
+                          />
+                        </div>
+                        
+                        {showPreview && (
+                          <div>
+                            <div className="border border-gray-200 rounded-lg p-4 min-h-[300px] bg-gray-50 overflow-auto">
+                              <div 
+                                className="prose prose-sm max-w-none"
+                                dangerouslySetInnerHTML={{
+                                  __html: markdownContent
+                                    .replace(/^### (.*)$/gm, '<h3>$1</h3>')
+                                    .replace(/^## (.*)$/gm, '<h2>$1</h2>')
+                                    .replace(/^# (.*)$/gm, '<h1>$1</h1>')
+                                    .replace(/^\s*[-*] (.*)$/gm, '<li>$1</li>')
+                                    .replace(/(<li>.*<\/li>)(?!\n<li>)/gs, '<ul>$1</ul>')
+                                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                                    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                                    .replace(/`([^`]+)`/g, '<code>$1</code>')
+                                    .replace(/\[(.+?)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+                                    .replace(/\n{2,}/g, '<br/><br/>') || '<span class="text-gray-400">Preview is empty.</span>'
+                                }}
+                                data-testid="markdown-preview"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-                  {/* Preview Mode Toggle */}
-                  <div className="border-t border-gray-200 pt-4">
-                    <Label className="text-sm font-medium text-gray-700 mb-3 block">Preview Mode</Label>
-                    <p className="text-sm text-gray-500 mb-4">Preview how this article will appear to different audiences</p>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                        data-testid="preview-public"
+                    {/* Advanced Options */}
+                    <div className="border-t border-gray-200 pt-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-6">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              id="pin"
+                              name="pin"
+                              defaultChecked={editingArticle?.pin || false}
+                              className="rounded"
+                              data-testid="checkbox-pin-article"
+                            />
+                            <span className="text-sm">Pin to top</span>
+                          </label>
+                          
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              id="allowComments"
+                              name="allowComments"
+                              defaultChecked={editingArticle?.allowComments || false}
+                              className="rounded"
+                              data-testid="checkbox-allow-comments"
+                            />
+                            <span className="text-sm">Allow comments (PUBLIC only)</span>
+                          </label>
+                        </div>
+                        
+                        {/* Audience Preview Buttons */}
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                            data-testid="preview-public"
+                          >
+                            <Eye className="mr-1 h-3 w-3" />
+                            Public
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                            data-testid="preview-family"
+                          >
+                            <Eye className="mr-1 h-3 w-3" />
+                            Family
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-amber-600 border-amber-200 hover:bg-amber-50"
+                            data-testid="preview-staff"
+                          >
+                            <Eye className="mr-1 h-3 w-3" />
+                            Staff
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => {
+                          setNewArticleOpen(false);
+                          setEditingArticle(null);
+                        }}
+                        data-testid="button-cancel-article"
                       >
-                        <Eye className="mr-2 h-3 w-3" />
-                        Public Clients
+                        Cancel
                       </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-                        data-testid="preview-family"
+                      <Button 
+                        type="submit"
+                        className="bg-emerald-500 hover:bg-emerald-600"
+                        data-testid="button-save-article"
                       >
-                        <Eye className="mr-2 h-3 w-3" />
-                        Family Portal
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="text-amber-600 border-amber-200 hover:bg-amber-50"
-                        data-testid="preview-staff"
-                      >
-                        <Eye className="mr-2 h-3 w-3" />
-                        Staff/Agents
+                        {editingArticle ? 'Update Article' : 'Save Article'}
                       </Button>
                     </div>
-                  </div>
-
-                  <div className="flex justify-end gap-3 pt-4">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => {
-                        setNewArticleOpen(false);
-                        setEditingArticle(null);
-                      }}
-                      data-testid="button-cancel-article"
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      type="submit"
-                      className="bg-emerald-500 hover:bg-emerald-600"
-                      data-testid="button-save-article"
-                    >
-                      {editingArticle ? 'Update Article' : 'Create Article'}
-                    </Button>
-                  </div>
-                </form>
+                  </form>
+                </div>
               </DialogContent>
             </Dialog>
           </div>
