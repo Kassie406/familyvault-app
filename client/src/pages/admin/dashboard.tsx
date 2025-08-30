@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from '@/hooks/use-toast';
 import { 
   Users, CreditCard, Ticket, FileText, Shield, Activity, Plus, Eye, Edit, Trash2, 
-  TrendingUp, BarChart3, PieChart, Server, ShieldCheck 
+  TrendingUp, BarChart3, PieChart, Server, ShieldCheck, Search, UserPlus, 
+  MoreHorizontal, Mail, Power, RotateCcw, X
 } from 'lucide-react';
 import AdminLayout from '@/components/admin/admin-layout';
 import SecurityCenterCard from '@/components/admin/security-center-card';
@@ -227,42 +228,238 @@ export default function AdminDashboard() {
         );
       
       case 'users':
+        // Sample users for demonstration
+        const sampleUsers = [
+          { id: 1, name: "John Doe", email: "john@company.com", role: "Admin", status: "Active" },
+          { id: 2, name: "Sarah Martinez", email: "sarah@company.com", role: "Manager", status: "Pending" },
+          { id: 3, name: "Alex Johnson", email: "alex@company.com", role: "User", status: "Suspended" },
+          { id: 4, name: "Emily Chen", email: "emily@company.com", role: "User", status: "Active" },
+        ];
+
+        const getRoleBadge = (role: string) => {
+          const styles = {
+            Admin: "bg-[#F85149] text-white",
+            Manager: "bg-[#1F6FEB] text-white", 
+            User: "bg-[#6C757D] text-white"
+          };
+          return (
+            <span className={`px-2 py-1 rounded-md text-xs font-medium ${styles[role as keyof typeof styles] || styles.User}`}>
+              {role}
+            </span>
+          );
+        };
+
+        const getStatusIndicator = (status: string) => {
+          const styles = {
+            Active: { color: "text-[#28A745]", icon: "✅", bg: "bg-green-100" },
+            Pending: { color: "text-[#FFC107]", icon: "⏳", bg: "bg-yellow-100" },
+            Suspended: { color: "text-[#DC3545]", icon: "🚫", bg: "bg-red-100" }
+          };
+          const config = styles[status as keyof typeof styles] || styles.Active;
+          return (
+            <span className={`px-2 py-1 rounded-md text-xs font-medium ${config.bg} ${config.color}`}>
+              {config.icon} {status}
+            </span>
+          );
+        };
+
         return (
           <Card className="shadow-lg rounded-2xl bg-white border-gray-100" style={{ borderRadius: '16px' }}>
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
-              <CardDescription>Create, update, and manage user access & roles securely</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-16">
-                {/* Modern line art user-group icon */}
-                <div className="mx-auto w-20 h-20 mb-6 relative">
-                  <div className="absolute inset-0 bg-[#007BFF] bg-opacity-10 rounded-full flex items-center justify-center">
-                    <svg 
-                      className="w-8 h-8 text-[#007BFF]" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24" 
-                      strokeWidth={1.5}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-                    </svg>
-                  </div>
+            {/* Header Section */}
+            <CardHeader className="border-b border-gray-100 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <CardTitle className="text-xl font-semibold text-gray-900">User Management</CardTitle>
+                  <CardDescription className="text-[#6C757D] mt-1">Manage team members, roles and access permissions</CardDescription>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Users Yet</h3>
-                <p className="text-[#6C757D] mb-6">No users yet. Invite team members or add them manually to get started.</p>
                 
-                {/* Enhanced call-to-action button */}
-                <Button 
-                  className="bg-[#007BFF] hover:bg-[#0056d6] text-white px-6 py-3 rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-black/20 transform hover:scale-[1.02]"
-                  onClick={() => {
-                    // TODO: Add user creation modal/flow
-                    toast({ title: 'Add User feature coming soon', description: 'User creation will be available in the next update' });
-                  }}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add First User
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {/* Search Bar */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input 
+                      type="text" 
+                      placeholder="Search users..." 
+                      className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#007BFF] focus:border-transparent outline-none w-full sm:w-64"
+                      data-testid="input-user-search"
+                    />
+                  </div>
+                  
+                  {/* Invite User Button */}
+                  <Button 
+                    className="bg-[#007BFF] hover:bg-[#0056d6] text-white px-4 py-2 rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-black/20 whitespace-nowrap"
+                    data-testid="button-invite-user"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Invite User
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="p-0">
+              {/* Desktop Table */}
+              <div className="hidden md:block">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {sampleUsers.map((user: any) => (
+                      <tr key={user.id} className="hover:bg-[#f6f8fa] transition-colors duration-150 group">
+                        {/* Name with Avatar */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="w-8 h-8 bg-[#007BFF] bg-opacity-10 rounded-full flex items-center justify-center mr-3">
+                              <span className="text-[#007BFF] font-medium text-sm">{user.name.charAt(0)}</span>
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-gray-900" data-testid={`text-user-name-${user.id}`}>{user.name}</div>
+                            </div>
+                          </div>
+                        </td>
+                        
+                        {/* Email */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button 
+                            className="text-sm text-[#007BFF] hover:text-[#0056d6] hover:underline flex items-center gap-1 transition-colors"
+                            onClick={() => {
+                              navigator.clipboard.writeText(user.email);
+                              toast({ title: 'Email copied to clipboard!' });
+                            }}
+                            data-testid={`button-copy-email-${user.id}`}
+                          >
+                            <Mail className="w-3 h-3" />
+                            {user.email}
+                          </button>
+                        </td>
+                        
+                        {/* Role Badge */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div data-testid={`badge-role-${user.id}`}>
+                            {getRoleBadge(user.role)}
+                          </div>
+                        </td>
+                        
+                        {/* Status */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div data-testid={`status-${user.id}`}>
+                            {getStatusIndicator(user.status)}
+                          </div>
+                        </td>
+                        
+                        {/* Actions */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0 hover:bg-[#007BFF] hover:text-white transition-colors"
+                              data-testid={`button-edit-${user.id}`}
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            
+                            {user.status === 'Suspended' ? (
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 w-8 p-0 hover:bg-[#28A745] hover:text-white transition-colors"
+                                data-testid={`button-reactivate-${user.id}`}
+                              >
+                                <Power className="w-3 h-3" />
+                              </Button>
+                            ) : user.status === 'Pending' ? (
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 w-8 p-0 hover:bg-[#FFC107] hover:text-white transition-colors"
+                                data-testid={`button-resend-${user.id}`}
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                              </Button>
+                            ) : (
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 w-8 p-0 hover:bg-[#DC3545] hover:text-white transition-colors"
+                                data-testid={`button-suspend-${user.id}`}
+                              >
+                                <Power className="w-3 h-3" />
+                              </Button>
+                            )}
+                            
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0 hover:bg-[#DC3545] hover:text-white transition-colors"
+                              data-testid={`button-remove-${user.id}`}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Mobile Card Layout */}
+              <div className="md:hidden">
+                {sampleUsers.map((user: any) => (
+                  <div key={user.id} className="p-4 border-b border-gray-100 hover:bg-[#f6f8fa] transition-colors">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 bg-[#007BFF] bg-opacity-10 rounded-full flex items-center justify-center mr-3">
+                          <span className="text-[#007BFF] font-medium">{user.name.charAt(0)}</span>
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900" data-testid={`mobile-user-name-${user.id}`}>{user.name}</div>
+                          <div className="flex items-center gap-2 mt-1">
+                            {getRoleBadge(user.role)}
+                            {getStatusIndicator(user.status)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="text-sm text-[#007BFF] mb-3 flex items-center gap-1">
+                      <Mail className="w-3 h-3" />
+                      {user.email}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        data-testid={`mobile-button-edit-${user.id}`}
+                      >
+                        <Edit className="w-3 h-3 mr-1" /> Edit
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        data-testid={`mobile-button-action-${user.id}`}
+                      >
+                        {user.status === 'Suspended' ? 'Reactivate' : user.status === 'Pending' ? 'Resend' : 'Suspend'}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Table Footer */}
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 text-sm text-gray-500 rounded-b-2xl">
+                Showing {sampleUsers.length} users
               </div>
             </CardContent>
           </Card>
