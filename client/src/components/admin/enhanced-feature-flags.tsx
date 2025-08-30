@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
+import { TargetingDrawer } from './targeting-drawer';
 
 interface Flag {
   id: string;
@@ -43,11 +44,12 @@ export default function EnhancedFeatureFlags({ className }: EnhancedFeatureFlags
   const [editing, setEditing] = useState<Flag | null>(null);
   const [creating, setCreating] = useState(false);
   const [query, setQuery] = useState('');
+  const [targetingFlag, setTargetingFlag] = useState<Flag | null>(null);
 
   const { data: items = [], isLoading, refetch } = useQuery({
-    queryKey: ['/api/admin/feature-flags'],
+    queryKey: ['/api/admin/flags'],
     queryFn: async () => {
-      const response = await fetch('/api/admin/feature-flags');
+      const response = await fetch('/api/admin/flags');
       if (!response.ok) throw new Error('Failed to fetch feature flags');
       const data = await response.json();
       return data.flags as Flag[];
@@ -65,7 +67,7 @@ export default function EnhancedFeatureFlags({ className }: EnhancedFeatureFlags
 
   const createMutation = useMutation({
     mutationFn: async (flagData: Partial<Flag>) => {
-      const response = await fetch('/api/admin/feature-flags', {
+      const response = await fetch('/api/admin/flags', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(flagData),
@@ -85,7 +87,7 @@ export default function EnhancedFeatureFlags({ className }: EnhancedFeatureFlags
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Flag> & { id: string }) => {
-      const response = await fetch(`/api/admin/feature-flags/${id}`, {
+      const response = await fetch(`/api/admin/flags/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
@@ -104,90 +106,117 @@ export default function EnhancedFeatureFlags({ className }: EnhancedFeatureFlags
   });
 
   return (
-    <div className={className}>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Enhanced Feature Flags</h2>
+          <p className="text-gray-600 dark:text-gray-400">Manage feature rollouts with advanced targeting and preview</p>
+        </div>
+        <Button onClick={() => setCreating(true)} className="flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          New Flag
+        </Button>
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <div className="flex justify-between items-center gap-4">
             <div className="flex items-center gap-2">
-              <Flag className="h-5 w-5 text-blue-500" />
-              Enhanced Feature Flags
+              <Button variant="outline" className="bg-[#111827] text-white border-[#1F2937] hover:bg-[#1F2937] hover:text-white">
+                All Envs ▾
+              </Button>
+              <Button variant="outline" className="bg-[#111827] text-white border-[#1F2937] hover:bg-[#1F2937] hover:text-white">
+                All Status ▾
+              </Button>
+              <Button variant="outline" className="bg-[#111827] text-white border-[#1F2937] hover:bg-[#1F2937] hover:text-white">
+                All Owners ▾
+              </Button>
             </div>
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   placeholder="Search flags..."
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="pl-10 w-64"
+                  onChange={e => setQuery(e.target.value)}
+                  className="pl-10 w-64 border-gray-300"
+                  data-testid="input-search-flags"
                 />
               </div>
-              <Button onClick={() => setCreating(true)} data-testid="button-new-flag">
+              <Button 
+                onClick={() => setCreating(true)} 
+                className="bg-[#F4B400] text-black hover:bg-[#E6A200] border-0"
+                data-testid="button-new-flag"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 New Flag
               </Button>
             </div>
-          </CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-            </div>
+            <div className="text-center py-8 text-gray-500">Loading flags...</div>
           ) : (
-            <div className="space-y-4">
-              {/* Flags Table */}
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="text-left p-3 font-medium">Key</th>
-                      <th className="text-left p-3 font-medium">Name</th>
-                      <th className="text-left p-3 font-medium">Rollout</th>
-                      <th className="text-left p-3 font-medium">Force</th>
-                      <th className="text-left p-3 font-medium">Status</th>
-                      <th className="text-left p-3 font-medium">Updated</th>
-                      <th className="text-left p-3 font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((flag) => (
-                      <tr key={flag.id} className="border-b hover:bg-gray-50">
-                        <td className="p-3">
-                          <code className="bg-gray-100 px-2 py-1 rounded text-sm">
-                            {flag.key}
-                          </code>
-                        </td>
-                        <td className="p-3">{flag.name}</td>
-                        <td className="p-3">
-                          <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-[#F9FAFB] border-b border-[#E5EAF2]">
+                    <th className="text-left py-3 px-4 font-medium text-[#111827]">Key</th>
+                    <th className="text-left py-3 px-4 font-medium text-[#111827]">Name</th>
+                    <th className="text-left py-3 px-4 font-medium text-[#111827]">Rollout</th>
+                    <th className="text-left py-3 px-4 font-medium text-[#111827]">Force</th>
+                    <th className="text-left py-3 px-4 font-medium text-[#111827]">Status</th>
+                    <th className="text-left py-3 px-4 font-medium text-[#111827]">Updated</th>
+                    <th className="text-left py-3 px-4 font-medium text-[#111827]">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(flag => (
+                    <tr key={flag.id} className="border-b hover:bg-[#F7FAFF] transition-colors duration-150">
+                      <td className="py-3 px-4">
+                        <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono text-gray-800">
+                          {flag.key}
+                        </code>
+                      </td>
+                      <td className="py-3 px-4 font-medium">{flag.name}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                             {flag.targeting?.percentage ?? 0}%
                           </Badge>
-                        </td>
-                        <td className="p-3">
-                          {flag.force_on ? (
-                            <Badge className="bg-green-100 text-green-800 border-green-200">ON</Badge>
-                          ) : flag.force_off ? (
-                            <Badge className="bg-red-100 text-red-800 border-red-200">OFF</Badge>
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </td>
-                        <td className="p-3">
-                          <Badge 
-                            className={
-                              flag.status === 'active' 
-                                ? 'bg-green-100 text-green-800 border-green-200'
-                                : 'bg-gray-100 text-gray-800 border-gray-200'
-                            }
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        {flag.force_on ? (
+                          <Badge variant="secondary" className="bg-green-100 text-green-800">ON</Badge>
+                        ) : flag.force_off ? (
+                          <Badge variant="secondary" className="bg-red-100 text-red-800">OFF</Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-gray-100 text-gray-600">Off</Badge>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        {flag.status === 'active' 
+                          ? <Badge className="bg-green-100 text-green-800">Active</Badge>
+                          : <Badge variant="secondary">Archived</Badge>
+                        }
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-500">
+                        {new Date(flag.updated_at).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setTargetingFlag(flag)}
+                            className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:border-green-300"
+                            data-testid={`button-target-${flag.key}`}
                           >
-                            {flag.status}
-                          </Badge>
-                        </td>
-                        <td className="p-3 text-sm text-gray-600">
-                          {new Date(flag.updated_at).toLocaleString()}
-                        </td>
-                        <td className="p-3">
+                            <Target className="h-3 w-3 mr-1" />
+                            Target
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
@@ -196,19 +225,19 @@ export default function EnhancedFeatureFlags({ className }: EnhancedFeatureFlags
                           >
                             <Edit className="h-3 w-3" />
                           </Button>
-                        </td>
-                      </tr>
-                    ))}
-                    {filtered.length === 0 && (
-                      <tr>
-                        <td colSpan={7} className="text-center py-12 text-gray-500">
-                          {query ? `No flags match "${query}"` : 'No feature flags created yet'}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filtered.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="text-center py-12 text-gray-500">
+                        {query ? `No flags match "${query}"` : 'No feature flags created yet'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           )}
         </CardContent>
@@ -243,6 +272,14 @@ export default function EnhancedFeatureFlags({ className }: EnhancedFeatureFlags
           />
         </DialogContent>
       </Dialog>
+
+      {/* Targeting Drawer */}
+      <TargetingDrawer
+        isOpen={!!targetingFlag}
+        onClose={() => setTargetingFlag(null)}
+        flagKey={targetingFlag?.key || ''}
+        flagName={targetingFlag?.name || ''}
+      />
     </div>
   );
 }
