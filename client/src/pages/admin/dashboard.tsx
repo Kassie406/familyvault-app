@@ -660,10 +660,41 @@ export default function AdminDashboard() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <CreditCard className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <h3 className="mt-4 text-lg font-semibold">No Plans Configured</h3>
-                  <p className="text-muted-foreground">Set up Stripe integration to manage subscription plans</p>
+                <div className="empty-state-container flex flex-col items-center justify-center py-16 px-6">
+                  <div className="empty-state-card bg-white rounded-2xl shadow-sm border border-gray-100 p-12 max-w-lg text-center">
+                    {/* Friendly billing illustration */}
+                    <div className="empty-state-icon mb-6">
+                      <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl">
+                        <svg className="w-10 h-10 text-[#1F6FEB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4" />
+                        </svg>
+                      </div>
+                    </div>
+                    
+                    {/* Improved copy */}
+                    <h3 className="text-xl font-semibold text-gray-900 mb-3">No Plans Configured</h3>
+                    <p className="text-gray-600 mb-8 leading-relaxed">
+                      Connect Stripe and create your first subscription plan to start billing clients.
+                    </p>
+                    
+                    {/* Clear call-to-action */}
+                    <button 
+                      className="inline-flex items-center gap-2 bg-[#1F6FEB] text-white px-6 py-3 rounded-xl font-medium hover:bg-[#1557C7] transition-all duration-200 shadow-sm hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:outline-offset-2"
+                      data-testid="button-connect-stripe"
+                      aria-label="Connect Stripe to manage subscription plans"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      Connect Stripe
+                    </button>
+                    
+                    {/* Helper text */}
+                    <p className="text-sm text-gray-500 mt-4">
+                      Set up billing in just a few minutes
+                    </p>
+                  </div>
                 </div>
               )}
             </CardContent>
