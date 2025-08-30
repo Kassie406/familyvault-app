@@ -2436,7 +2436,7 @@ export default function AdminDashboard() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="ALL">All Menu Categories</SelectItem>
-                          <SelectItem value="">No Menu Category</SelectItem>
+                          <SelectItem value="no-category">No Menu Category</SelectItem>
                           <SelectItem value="Child Information">Child Information</SelectItem>
                           <SelectItem value="Disaster Planning">Disaster Planning</SelectItem>
                           <SelectItem value="Elderly Parents">Elderly Parents</SelectItem>
@@ -2952,12 +2952,12 @@ export default function AdminDashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <Label htmlFor="menuCategory">Menu Category</Label>
-                        <Select name="menuCategory" defaultValue={editingArticle?.menuCategory || ''}>
+                        <Select name="menuCategory" defaultValue={editingArticle?.menuCategory || 'no-category'}>
                           <SelectTrigger data-testid="select-article-menu-category">
                             <SelectValue placeholder="Select menu category (optional)" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">No Menu Category</SelectItem>
+                            <SelectItem value="no-category">No Menu Category</SelectItem>
                             <SelectItem value="Child Information">Child Information</SelectItem>
                             <SelectItem value="Disaster Planning">Disaster Planning</SelectItem>
                             <SelectItem value="Elderly Parents">Elderly Parents</SelectItem>
