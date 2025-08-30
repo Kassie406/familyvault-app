@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Users, CreditCard, Ticket, FileText, Shield, Activity, Plus, Eye, Edit, Trash2, 
@@ -35,10 +36,12 @@ import MarketingPromotions from '@/components/admin/marketing-promotions';
 export default function AdminDashboard() {
   const { toast } = useToast();
   const [newCouponOpen, setNewCouponOpen] = useState(false);
+  const [newArticleOpen, setNewArticleOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('overview');
   const [planScope, setPlanScope] = useState('PUBLIC');
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
+  const [editingArticle, setEditingArticle] = useState(null);
 
   // Fetch admin data
   const { data: plans, isLoading: plansLoading } = useQuery({
@@ -1993,19 +1996,359 @@ export default function AdminDashboard() {
       
       case 'content':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Content Management</CardTitle>
-              <CardDescription>Manage articles and CMS content</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">Content Management</h3>
-                <p className="text-muted-foreground">Manage your website content and articles</p>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Content Management</h2>
+                <p className="text-gray-600">Manage articles, announcements, and CMS content</p>
               </div>
-            </CardContent>
-          </Card>
+              {articles?.articles?.length > 0 && (
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => setNewArticleOpen(true)}
+                    className="bg-emerald-500 hover:bg-emerald-600"
+                    data-testid="button-create-article"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Article
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {articles?.articles?.length > 0 ? (
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden fade-in">
+                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <Select defaultValue="all">
+                        <SelectTrigger className="w-[180px]" data-testid="filter-category">
+                          <SelectValue placeholder="Filter by category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Categories</SelectItem>
+                          <SelectItem value="onboarding">Onboarding</SelectItem>
+                          <SelectItem value="support">Support</SelectItem>
+                          <SelectItem value="announcements">Announcements</SelectItem>
+                          <SelectItem value="blog">Blog</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select defaultValue="all">
+                        <SelectTrigger className="w-[140px]" data-testid="filter-status">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status</SelectItem>
+                          <SelectItem value="published">Published</SelectItem>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="archived">Archived</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <Input 
+                          placeholder="Search articles..." 
+                          className="pl-10 w-64"
+                          data-testid="input-search-articles"
+                        />
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" data-testid="button-bulk-actions">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem data-testid="bulk-action-publish">
+                            Publish Selected
+                          </DropdownMenuItem>
+                          <DropdownMenuItem data-testid="bulk-action-unpublish">
+                            Unpublish Selected
+                          </DropdownMenuItem>
+                          <DropdownMenuItem data-testid="bulk-action-archive">
+                            Archive Selected
+                          </DropdownMenuItem>
+                          <DropdownMenuItem data-testid="bulk-action-export">
+                            Export Selected
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <input type="checkbox" className="rounded" data-testid="checkbox-select-all" />
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Author</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Published</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {articles.articles.map((article: any) => (
+                        <tr key={article.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <input type="checkbox" className="rounded" data-testid={`checkbox-article-${article.id}`} />
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900" data-testid={`text-article-title-${article.id}`}>
+                              {article.title}
+                            </div>
+                            <div className="text-sm text-gray-500 truncate max-w-xs" data-testid={`text-article-content-${article.id}`}>
+                              {article.content?.substring(0, 60)}...
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant="outline" data-testid={`badge-category-${article.id}`}>
+                              {article.category}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-testid={`text-author-${article.id}`}>
+                            {article.author || 'Admin'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-testid={`text-published-${article.id}`}>
+                            {article.publishDate ? new Date(article.publishDate).toLocaleDateString() : 'N/A'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge 
+                              variant={article.status === 'published' ? 'default' : article.status === 'draft' ? 'secondary' : 'destructive'}
+                              data-testid={`badge-status-${article.id}`}
+                            >
+                              {article.status}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => {
+                                  setEditingArticle(article);
+                                  setNewArticleOpen(true);
+                                }}
+                                data-testid={`button-edit-${article.id}`}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                data-testid={`button-preview-${article.id}`}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-red-600 hover:text-red-700"
+                                data-testid={`button-delete-${article.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
+                  Showing {articles.articles.length} articles
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-gray-200 p-12">
+                <div className="text-center max-w-md mx-auto">
+                  <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                    <FileText className="h-12 w-12 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No Content Yet</h3>
+                  <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+                    Create and manage articles, announcements, and support docs for your users and team.
+                    <br />
+                    Perfect for system updates, knowledge base articles, and blog posts.
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Dialog open={newArticleOpen} onOpenChange={setNewArticleOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="bg-emerald-500 hover:bg-emerald-600 text-white" data-testid="button-create-first-article">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Create Your First Article
+                        </Button>
+                      </DialogTrigger>
+                    </Dialog>
+                    <Button variant="ghost" className="border border-emerald-200 text-emerald-700 hover:bg-emerald-50" data-testid="button-import-template">
+                      Import from Template
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Create Article Modal */}
+            <Dialog open={newArticleOpen} onOpenChange={setNewArticleOpen}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingArticle ? 'Edit Article' : 'Create New Article'}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {editingArticle ? 'Update the article details below.' : 'Create a new article for your content management system.'}
+                  </DialogDescription>
+                </DialogHeader>
+                <form className="space-y-4">
+                  <div>
+                    <Label htmlFor="title">Title *</Label>
+                    <Input 
+                      id="title"
+                      name="title"
+                      placeholder="Enter article title"
+                      defaultValue={editingArticle?.title || ''}
+                      required
+                      data-testid="input-article-title"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="category">Category *</Label>
+                    <Select name="category" defaultValue={editingArticle?.category || 'onboarding'}>
+                      <SelectTrigger data-testid="select-article-category">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="onboarding">Onboarding</SelectItem>
+                        <SelectItem value="support">Support</SelectItem>
+                        <SelectItem value="announcements">Announcements</SelectItem>
+                        <SelectItem value="blog">Blog</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="content">Content *</Label>
+                    <Textarea 
+                      id="content"
+                      name="content"
+                      placeholder="Write your article content here..."
+                      className="min-h-[200px]"
+                      defaultValue={editingArticle?.content || ''}
+                      required
+                      data-testid="textarea-article-content"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="status">Status</Label>
+                      <Select name="status" defaultValue={editingArticle?.status || 'draft'}>
+                        <SelectTrigger data-testid="select-article-status">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="published">Published</SelectItem>
+                          <SelectItem value="archived">Archived</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="publishDate">Publish Date (Optional)</Label>
+                      <Input 
+                        id="publishDate"
+                        name="publishDate"
+                        type="datetime-local"
+                        defaultValue={editingArticle?.publishDate || ''}
+                        data-testid="input-publish-date"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="author">Author</Label>
+                    <Input 
+                      id="author"
+                      name="author"
+                      placeholder="Enter author name"
+                      defaultValue={editingArticle?.author || 'Admin'}
+                      data-testid="input-article-author"
+                    />
+                  </div>
+
+                  {/* Preview Mode Toggle */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <Label className="text-sm font-medium text-gray-700 mb-3 block">Preview Mode</Label>
+                    <p className="text-sm text-gray-500 mb-4">Preview how this article will appear to different audiences</p>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                        data-testid="preview-public"
+                      >
+                        <Eye className="mr-2 h-3 w-3" />
+                        Public Clients
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                        data-testid="preview-family"
+                      >
+                        <Eye className="mr-2 h-3 w-3" />
+                        Family Portal
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-amber-600 border-amber-200 hover:bg-amber-50"
+                        data-testid="preview-staff"
+                      >
+                        <Eye className="mr-2 h-3 w-3" />
+                        Staff/Agents
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => {
+                        setNewArticleOpen(false);
+                        setEditingArticle(null);
+                      }}
+                      data-testid="button-cancel-article"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit"
+                      className="bg-emerald-500 hover:bg-emerald-600"
+                      data-testid="button-save-article"
+                    >
+                      {editingArticle ? 'Update Article' : 'Create Article'}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         );
       
       case 'feature-flags':
