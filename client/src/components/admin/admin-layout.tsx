@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { useState, useRef, useEffect } from 'react';
 import { 
   Shield, LogOut, User, Settings, LayoutDashboard, Users, CreditCard, 
   Ticket, FileText, ShieldCheck, Activity, Search, Filter, Bell, 
@@ -24,6 +24,9 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { isOpen: isSearchOpen, setIsOpen: setIsSearchOpen } = useGlobalSearch();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const { data: user } = useQuery({
     queryKey: ['/api/auth/me'],
@@ -40,7 +43,57 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
     } catch (error) {
       toast({ title: 'Logout failed', variant: 'destructive' });
     }
+    setIsMenuOpen(false);
   };
+
+  // Position dropdown menu
+  useEffect(() => {
+    if (isMenuOpen && menuRef.current && triggerRef.current) {
+      const trigger = triggerRef.current.getBoundingClientRect();
+      const menu = menuRef.current;
+      const gap = 8;
+      
+      menu.style.left = Math.min(window.innerWidth - menu.offsetWidth - 8, trigger.left) + 'px';
+      menu.style.top = (trigger.bottom + gap) + 'px';
+    }
+  }, [isMenuOpen]);
+
+  // Handle outside clicks
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (isMenuOpen && 
+          menuRef.current && 
+          !menuRef.current.contains(event.target as Node) &&
+          triggerRef.current &&
+          !triggerRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleResize = () => {
+      if (isMenuOpen) {
+        const trigger = triggerRef.current?.getBoundingClientRect();
+        const menu = menuRef.current;
+        if (trigger && menu) {
+          const gap = 8;
+          menu.style.left = Math.min(window.innerWidth - menu.offsetWidth - 8, trigger.left) + 'px';
+          menu.style.top = (trigger.bottom + gap) + 'px';
+        }
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('click', handleOutsideClick);
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('scroll', handleResize, true);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleOutsideClick);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleResize, true);
+    };
+  }, [isMenuOpen]);
 
   // Redirect to login if not authenticated or not admin
   if (!user?.user || !['ADMIN', 'PRESIDENT'].includes(user.user.role)) {
@@ -120,41 +173,78 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
 
         {/* Admin User Info */}
         <div className="p-4 border-t border-[#2C2C2C]">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-[#1F6FEB] transition-colors">
-                <Avatar className="h-10 w-10">
-                  <AvatarFallback className="bg-[#007BFF] text-white">
-                    {(user.user.name || user.user.username).charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="text-left">
-                  <div className="font-medium">{user.user.name || user.user.username}</div>
-                  <div className="text-xs text-[#CED4DA]">{user.user.role}</div>
-                </div>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuItem className="flex-col items-start">
-                <div className="font-medium">{user.user.name || user.user.username}</div>
-                <div className="text-xs text-muted-foreground">{user.user.email}</div>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem data-testid="menu-profile">
-                <User className="mr-2 h-4 w-4" />
+          <button 
+            ref={triggerRef}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMenuOpen(!isMenuOpen);
+            }}
+            className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-[#1F6FEB] transition-colors"
+            aria-haspopup="menu"
+            aria-expanded={isMenuOpen}
+          >
+            <Avatar className="h-10 w-10">
+              <AvatarFallback className="bg-[#007BFF] text-white">
+                {(user.user.name || user.user.username).charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="text-left">
+              <div className="font-medium">{user.user.name || user.user.username}</div>
+              <div className="text-xs text-[#CED4DA]">{user.user.role}</div>
+            </div>
+          </button>
+
+          {/* Improved Admin Menu Portal */}
+          {isMenuOpen && (
+            <div 
+              ref={menuRef}
+              className="admin-menu-portal"
+              role="menu" 
+              aria-label="Admin menu"
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setIsMenuOpen(false);
+                  triggerRef.current?.focus();
+                }
+              }}
+            >
+              <div className="adm-header">
+                <div className="adm-name">{user.user.name || user.user.username}</div>
+                <div className="adm-sub">{user.user.email || `${user.user.role}@familycirclesecure.com`}</div>
+              </div>
+              
+              <button 
+                className="adm-item" 
+                role="menuitem" 
+                onClick={() => { setIsMenuOpen(false); /* Handle profile navigation */ }}
+                data-testid="menu-profile"
+              >
                 <span>Profile</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem data-testid="menu-settings">
-                <Settings className="mr-2 h-4 w-4" />
+                <small>Account settings</small>
+              </button>
+              
+              <button 
+                className="adm-item" 
+                role="menuitem" 
+                onClick={() => { setIsMenuOpen(false); /* Handle settings navigation */ }}
+                data-testid="menu-settings"
+              >
                 <span>Settings</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} data-testid="menu-logout">
-                <LogOut className="mr-2 h-4 w-4" />
+                <small>Preferences</small>
+              </button>
+
+              <div className="adm-sep" role="separator"></div>
+
+              <button 
+                className="adm-item danger" 
+                role="menuitem" 
+                onClick={handleLogout}
+                data-testid="menu-logout"
+              >
                 <span>Log out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
