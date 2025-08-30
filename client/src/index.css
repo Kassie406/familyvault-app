@@ -3,10 +3,54 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =========== Admin Layout Fixes =========== */
+/* Grid-based layout to prevent clipping issues */
+.app-shell {
+  display: grid;
+  grid-template-columns: 288px 1fr; /* 72 * 4 = 288px for w-72 */
+  min-height: 100dvh;
+}
+
+/* Sidebar: full-height, independent scroll */
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  background: #1C1C1C;
+  color: #F8F9FA;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure sidebar background reaches bottom */
+.sidebar::after {
+  content: "";
+  display: block;
+  height: 24px;
+}
+
+/* Main content: no clipping overflow */
+.main {
+  min-height: 100%;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Remove overflow restrictions that clip dropdowns */
+.page, .main, .content-wrap, #app {
+  overflow: visible !important;
+  contain: none !important;
+  transform: none !important;
+}
+
 /* =========== Improved Admin Menu =========== */
 .admin-menu-portal {
   position: fixed;
-  z-index: 10040;
+  z-index: 12000; /* Higher to ensure it's above everything */
   min-width: 240px; 
   max-width: 320px;
   background: #fff;
@@ -15,6 +59,7 @@
   border-radius: 12px;
   box-shadow: 0 12px 28px rgba(16,24,40,.22), 0 2px 6px rgba(16,24,40,.08);
   padding: 8px;
+  will-change: transform;
 }
 
 .adm-header {
@@ -130,6 +175,18 @@
   }
 }
 
+/* Global layout fixes to prevent scroll issues */
+html, body {
+  height: auto;
+  overflow: auto;
+}
+
+#root, .app-root {
+  height: auto;
+  overflow: visible;
+}
+
+/* Force light color scheme throughout the admin interface */
 :root {
   /* Core palette - standardized theme */
   --bg: #0b0b0c;          /* page background */
