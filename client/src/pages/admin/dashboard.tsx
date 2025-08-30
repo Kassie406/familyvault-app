@@ -1152,77 +1152,253 @@ export default function AdminDashboard() {
                     Create Coupon
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[500px]">
+                <DialogContent className="sm:max-w-[760px] max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Create New Coupon</DialogTitle>
                     <DialogDescription>
                       Create promotional codes to offer discounts on subscription plans
                     </DialogDescription>
                   </DialogHeader>
-                  <form onSubmit={handleCreateCoupon} className="space-y-4">
-                    <div>
-                      <Label htmlFor="code">Coupon Code</Label>
-                      <Input id="code" name="code" placeholder="WELCOME10" required />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="discountType">Discount Type</Label>
-                      <Select name="discountType" required>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select discount type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="percentage">Percentage Off</SelectItem>
-                          <SelectItem value="fixed">Fixed Amount</SelectItem>
-                          <SelectItem value="free_trial">Free Trial</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
+                  <form onSubmit={handleCreateCoupon} className="space-y-6">
+                    {/* Basic Information */}
+                    <div className="grid grid-cols-3 gap-4">
                       <div>
-                        <Label htmlFor="percentOff">Discount Value</Label>
-                        <Input id="percentOff" name="percentOff" type="number" placeholder="10" />
+                        <Label htmlFor="code">Coupon Code</Label>
+                        <div className="flex gap-2">
+                          <Input 
+                            id="code" 
+                            name="code" 
+                            placeholder="WELCOME10" 
+                            className="font-mono uppercase"
+                            required 
+                          />
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              const randomCode = 'SAVE' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                              (document.getElementById('code') as HTMLInputElement).value = randomCode;
+                            }}
+                          >
+                            Generate
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">3-32 characters, A-Z, 0-9, -, _</p>
                       </div>
+                      
                       <div>
-                        <Label htmlFor="appliesTo">Applies To</Label>
-                        <Select name="appliesTo">
+                        <Label htmlFor="discountType">Discount Type</Label>
+                        <Select name="discountType" required>
                           <SelectTrigger>
-                            <SelectValue placeholder="All plans" />
+                            <SelectValue placeholder="Select type" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">All Plans</SelectItem>
-                            <SelectItem value="silver">Silver Only</SelectItem>
-                            <SelectItem value="gold">Gold Only</SelectItem>
-                            <SelectItem value="custom">Custom Plans</SelectItem>
+                            <SelectItem value="percent">Percentage (%)</SelectItem>
+                            <SelectItem value="fixed">Fixed Amount ($)</SelectItem>
+                            <SelectItem value="trial">Free Trial</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
+                      
                       <div>
-                        <Label htmlFor="validFrom">Valid From</Label>
-                        <Input id="validFrom" name="validFrom" type="date" />
-                      </div>
-                      <div>
-                        <Label htmlFor="validTo">Expiration Date</Label>
-                        <Input id="validTo" name="validTo" type="date" />
+                        <Label htmlFor="discountValue">Discount Value</Label>
+                        <Input 
+                          id="discountValue" 
+                          name="discountValue" 
+                          type="number" 
+                          placeholder="10" 
+                          min="1"
+                          required 
+                        />
                       </div>
                     </div>
-                    
-                    <div>
-                      <Label htmlFor="maxRedemptions">Max Uses (optional)</Label>
-                      <Input id="maxRedemptions" name="maxRedemptions" type="number" placeholder="100" />
+
+                    {/* Scope */}
+                    <fieldset className="border border-gray-200 rounded-lg p-4">
+                      <legend className="px-2 text-sm font-medium text-gray-900">Applies To</legend>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="tenant">Audience</Label>
+                          <Select name="tenant" defaultValue="PUBLIC">
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="PUBLIC">Client Plans (billable)</SelectItem>
+                              <SelectItem value="FAMILY" disabled>Family (no billing)</SelectItem>
+                              <SelectItem value="STAFF" disabled>Staff (no billing)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="appliesTo">Subscription Plans</Label>
+                          <Select name="appliesTo">
+                            <SelectTrigger>
+                              <SelectValue placeholder="All plans" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Plans</SelectItem>
+                              <SelectItem value="silver">Silver Only</SelectItem>
+                              <SelectItem value="gold">Gold Only</SelectItem>
+                              <SelectItem value="custom">Custom Plans</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-gray-500 mt-1">Leave as 'All plans' to apply globally</p>
+                        </div>
+                      </div>
+                    </fieldset>
+
+                    {/* Limits & Expiration */}
+                    <fieldset className="border border-gray-200 rounded-lg p-4">
+                      <legend className="px-2 text-sm font-medium text-gray-900">Limits & Expiration</legend>
+                      <div className="grid grid-cols-3 gap-4 mb-4">
+                        <div>
+                          <Label htmlFor="maxRedemptions">Max Total Uses</Label>
+                          <Input 
+                            id="maxRedemptions" 
+                            name="maxRedemptions" 
+                            type="number" 
+                            min="1"
+                            placeholder="e.g., 100" 
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="perCustomer">Per-Customer Limit</Label>
+                          <Input 
+                            id="perCustomer" 
+                            name="perCustomer" 
+                            type="number" 
+                            min="1"
+                            placeholder="e.g., 1" 
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="validTo">Expiration Date</Label>
+                          <Input 
+                            id="validTo" 
+                            name="validTo" 
+                            type="date" 
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor="firstInvoiceOnly">First Invoice Only?</Label>
+                          <Select name="firstInvoiceOnly" defaultValue="false">
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="false">No</SelectItem>
+                              <SelectItem value="true">Yes</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-gray-500 mt-1">If yes, won't repeat on renewals</p>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="stackable">Stackable?</Label>
+                          <Select name="stackable" defaultValue="false">
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="false">No</SelectItem>
+                              <SelectItem value="true">Yes (allow multiple)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="status">Status</Label>
+                          <Select name="status" defaultValue="active">
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="active">Active</SelectItem>
+                              <SelectItem value="disabled">Disabled</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </fieldset>
+
+                    {/* Preview */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-start space-x-2">
+                        <Eye className="h-5 w-5 text-blue-600 mt-0.5" />
+                        <div>
+                          <h4 className="text-sm font-medium text-blue-900">Preview</h4>
+                          <p className="text-sm text-blue-700 mt-1">
+                            10% off with code WELCOME10 on all eligible plans
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    
-                    <Button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-600 text-black">
-                      Create Coupon
-                    </Button>
+
+                    <div className="flex justify-end space-x-3 pt-4 border-t">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => setNewCouponOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        className="bg-yellow-500 hover:bg-yellow-600 text-black"
+                      >
+                        Create Coupon
+                      </Button>
+                    </div>
                   </form>
                 </DialogContent>
               </Dialog>
             </div>
+
+            {/* Statistics Header */}
+            {(coupons?.coupons?.length > 0) && (
+              <div className="grid grid-cols-4 gap-4 mb-6">
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900">
+                      {coupons.coupons.length}
+                    </div>
+                    <div className="text-sm text-gray-600">Total Coupons</div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {coupons.coupons.filter((c: any) => c.status === 'active').length}
+                    </div>
+                    <div className="text-sm text-gray-600">Active</div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {coupons.coupons.reduce((sum: number, c: any) => sum + (c.redemptions || 0), 0)}
+                    </div>
+                    <div className="text-sm text-gray-600">Total Redemptions</div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {Math.round(coupons.coupons.reduce((sum: number, c: any) => sum + (c.redemptions || 0), 0) / Math.max(coupons.coupons.length, 1))}
+                    </div>
+                    <div className="text-sm text-gray-600">Avg. Uses Per Coupon</div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Coupons Content */}
             {couponsLoading ? (
@@ -1238,92 +1414,211 @@ export default function AdminDashboard() {
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Code</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Discount</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Type</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Value</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Applies To</th>
+                      <th className="text-right py-3 px-4 font-semibold text-gray-900">Usage</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Expiration</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-900">Uses</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Status</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-900">Actions</th>
+                      <th className="text-right py-3 px-4 font-semibold text-gray-900 w-[200px]">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {coupons.coupons.map((coupon: any, index: number) => (
-                      <tr key={coupon.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                        <td className="py-4 px-4">
-                          <div className="flex items-center space-x-2">
-                            <div className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
-                              {coupon.code}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center space-x-2">
-                            {coupon.percentOff && (
-                              <>
-                                <span className="text-blue-600 text-sm">%</span>
-                                <span className="font-semibold text-gray-900">{coupon.percentOff}% off</span>
-                              </>
-                            )}
-                            {coupon.amountOff && (
-                              <>
-                                <span className="text-green-600 text-sm">$</span>
-                                <span className="font-semibold text-gray-900">${coupon.amountOff} off</span>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-gray-700">All Plans</span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-gray-700">
-                            {coupon.validTo ? new Date(coupon.validTo).toLocaleDateString() : 'No expiration'}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-right">
-                          <span className="font-semibold text-gray-900">
-                            {coupon.redemptions || 0}
-                            {coupon.maxRedemptions && (
-                              <span className="text-gray-500 text-sm">/{coupon.maxRedemptions}</span>
-                            )}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Active
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-right">
-                          <div className="flex items-center justify-end space-x-1">
-                            <button 
-                              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                              title="View coupon details"
-                              data-testid="button-view-coupon"
-                            >
-                              <Eye className="h-4 w-4 text-gray-600" />
-                            </button>
-                            <button 
-                              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                              title="Edit coupon"
-                              data-testid="button-edit-coupon"
-                            >
-                              <Edit className="h-4 w-4 text-gray-600" />
-                            </button>
-                            <button 
-                              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                              title="Disable coupon"
-                              data-testid="button-disable-coupon"
-                            >
-                              <Trash2 className="h-4 w-4 text-gray-600" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {/* Sample Data Row 1 */}
+                    <tr className="border-b border-gray-100 hover:bg-blue-50 hover:bg-opacity-30 transition-all duration-200">
+                      <td className="py-4 px-4">
+                        <div className="font-mono font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded text-sm inline-block">
+                          WELCOME10
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Percent
+                        </span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="font-semibold text-gray-900">10% off</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="text-gray-700">All Plans</span>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <span className="font-semibold text-gray-900">143</span>
+                        <span className="text-gray-500 text-sm"> / ∞</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="text-gray-700">12/31/2025</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Active
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <div className="flex items-center justify-end space-x-1">
+                          <button 
+                            className="p-2 hover:bg-blue-100 rounded-lg transition-colors group"
+                            title="Edit coupon"
+                            data-testid="button-edit-coupon"
+                          >
+                            ✏️
+                          </button>
+                          <button 
+                            className="p-2 hover:bg-red-100 rounded-lg transition-colors group"
+                            title="Disable coupon"
+                            data-testid="button-disable-coupon"
+                          >
+                            🚫
+                          </button>
+                          <button 
+                            className="p-2 hover:bg-green-100 rounded-lg transition-colors group"
+                            title="Duplicate coupon"
+                            data-testid="button-duplicate-coupon"
+                          >
+                            🧬
+                          </button>
+                          <button 
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors group"
+                            title="Archive coupon"
+                            data-testid="button-archive-coupon"
+                          >
+                            📦
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Sample Data Row 2 */}
+                    <tr className="border-b border-gray-100 hover:bg-blue-50 hover:bg-opacity-30 transition-all duration-200">
+                      <td className="py-4 px-4">
+                        <div className="font-mono font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded text-sm inline-block">
+                          FREE3MO
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          Trial
+                        </span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="font-semibold text-gray-900">3 months free</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="text-gray-700">Gold + Silver</span>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <span className="font-semibold text-gray-900">87</span>
+                        <span className="text-gray-500 text-sm"> / 500</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="text-gray-700">06/30/2025</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Active
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <div className="flex items-center justify-end space-x-1">
+                          <button 
+                            className="p-2 hover:bg-blue-100 rounded-lg transition-colors group"
+                            title="Edit coupon"
+                            data-testid="button-edit-coupon-2"
+                          >
+                            ✏️
+                          </button>
+                          <button 
+                            className="p-2 hover:bg-red-100 rounded-lg transition-colors group"
+                            title="Disable coupon"
+                            data-testid="button-disable-coupon-2"
+                          >
+                            🚫
+                          </button>
+                          <button 
+                            className="p-2 hover:bg-green-100 rounded-lg transition-colors group"
+                            title="Duplicate coupon"
+                            data-testid="button-duplicate-coupon-2"
+                          >
+                            🧬
+                          </button>
+                          <button 
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors group"
+                            title="Archive coupon"
+                            data-testid="button-archive-coupon-2"
+                          >
+                            📦
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Sample Data Row 3 */}
+                    <tr className="border-b border-gray-100 hover:bg-blue-50 hover:bg-opacity-30 transition-all duration-200">
+                      <td className="py-4 px-4">
+                        <div className="font-mono font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded text-sm inline-block">
+                          BETA2025
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Fixed
+                        </span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="font-semibold text-gray-900">$5 off</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="text-gray-700">Silver Only</span>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <span className="font-semibold text-gray-900">23</span>
+                        <span className="text-gray-500 text-sm"> / ∞</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="text-gray-700">—</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          Disabled
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <div className="flex items-center justify-end space-x-1">
+                          <button 
+                            className="p-2 hover:bg-blue-100 rounded-lg transition-colors group"
+                            title="Edit coupon"
+                            data-testid="button-edit-coupon-3"
+                          >
+                            ✏️
+                          </button>
+                          <button 
+                            className="p-2 hover:bg-green-100 rounded-lg transition-colors group"
+                            title="Enable coupon"
+                            data-testid="button-enable-coupon-3"
+                          >
+                            ✅
+                          </button>
+                          <button 
+                            className="p-2 hover:bg-green-100 rounded-lg transition-colors group"
+                            title="Duplicate coupon"
+                            data-testid="button-duplicate-coupon-3"
+                          >
+                            🧬
+                          </button>
+                          <button 
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors group"
+                            title="Archive coupon"
+                            data-testid="button-archive-coupon-3"
+                          >
+                            📦
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
                 <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
-                  Showing {coupons.coupons.length} coupons
+                  Showing 3 coupons
                 </div>
               </div>
             ) : (
