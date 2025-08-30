@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   name: text("name"),
   role: roleEnum("role").default("MEMBER").notNull(),
   orgId: varchar("org_id"),
+  // mfaSecret: text("mfa_secret"), // TOTP secret for two-factor authentication - TODO: Add back after DB migration
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
