@@ -53,13 +53,46 @@ export const coupons = pgTable("coupons", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Create enum for menu categories
+export const menuCategoryEnum = pgEnum("menu_category", [
+  "Child Information",
+  "Disaster Planning", 
+  "Elderly Parents",
+  "Estate Planning",
+  "Getting Married",
+  "Home Buying",
+  "International Travel",
+  "Starting a Family",
+  "Moving",
+  "When Someone Dies",
+  "Digital Security",
+  "Neurodiversity"
+]);
+
+// Create enum for tenant types
+export const tenantEnum = pgEnum("tenant", ["PUBLIC", "FAMILY", "STAFF"]);
+
+// Create enum for article status
+export const articleStatusEnum = pgEnum("article_status", ["draft", "published", "scheduled", "archived"]);
+
 export const articles = pgTable("articles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   slug: text("slug").notNull().unique(),
   title: text("title").notNull(),
   bodyMd: text("body_md").notNull(),
+  category: text("category").notNull().default("announcements"),
+  menuCategory: menuCategoryEnum("menu_category"),
+  tenant: tenantEnum("tenant").notNull().default("PUBLIC"),
+  status: articleStatusEnum("status").notNull().default("draft"),
+  publishAt: timestamp("publish_at"),
+  tags: text("tags").array(),
+  seoDescription: text("seo_description"),
+  featureImage: text("feature_image"),
+  pinToTop: boolean("pin_to_top").default(false).notNull(),
+  allowComments: boolean("allow_comments").default(true).notNull(),
   published: boolean("published").default(false).notNull(),
   authorId: varchar("author_id"),
+  authorName: text("author_name"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -288,8 +321,19 @@ export const insertArticleSchema = createInsertSchema(articles).pick({
   slug: true,
   title: true,
   bodyMd: true,
+  category: true,
+  menuCategory: true,
+  tenant: true,
+  status: true,
+  publishAt: true,
+  tags: true,
+  seoDescription: true,
+  featureImage: true,
+  pinToTop: true,
+  allowComments: true,
   published: true,
   authorId: true,
+  authorName: true,
 });
 
 export const insertConsentEventSchema = createInsertSchema(consentEvents).pick({

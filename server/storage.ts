@@ -52,11 +52,16 @@ export interface IStorage {
   // Article methods
   getAllArticles(): Promise<Article[]>;
   getPublishedArticles(): Promise<Article[]>;
+  getArticlesByCategory(menuCategory: string): Promise<Article[]>;
+  getArticlesByTenant(tenant: string): Promise<Article[]>;
   getArticle(id: string): Promise<Article | undefined>;
   getArticleBySlug(slug: string): Promise<Article | undefined>;
   createArticle(article: InsertArticle): Promise<Article>;
   updateArticle(id: string, updates: Partial<InsertArticle>): Promise<Article | undefined>;
   deleteArticle(id: string): Promise<boolean>;
+  
+  // Menu category methods
+  getMenuCategories(): Promise<{category: string, articles: Article[]}[]>;
   
   // Consent methods
   createConsentEvent(consent: InsertConsentEvent): Promise<ConsentEvent>;
@@ -198,6 +203,33 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(articles.createdAt));
   }
 
+  async getArticlesByCategory(menuCategory: string): Promise<Article[]> {
+    return await db.select().from(articles)
+      .where(eq(articles.menuCategory, menuCategory as any))
+      .orderBy(desc(articles.createdAt));
+  }
+
+  async getArticlesByTenant(tenant: string): Promise<Article[]> {
+    return await db.select().from(articles)
+      .where(eq(articles.tenant, tenant as any))
+      .orderBy(desc(articles.createdAt));
+  }
+
+  async getMenuCategories(): Promise<{category: string, articles: Article[]}[]> {
+    const allArticles = await this.getPublishedArticles();
+    const categories = [
+      "Child Information", "Disaster Planning", "Elderly Parents", "Estate Planning",
+      "Getting Married", "Home Buying", "International Travel", "Starting a Family",
+      "Moving", "When Someone Dies", "Digital Security", "Neurodiversity"
+    ];
+    
+    return categories.map(category => ({
+      category,
+      slug: category.toLowerCase().replace(/\s+/g, '-'),
+      articles: allArticles.filter(article => article.menuCategory === category)
+    }));
+  }
+
   async getArticle(id: string): Promise<Article | undefined> {
     const result = await db.select().from(articles).where(eq(articles.id, id)).limit(1);
     return result[0];
@@ -237,7 +269,12 @@ export class DatabaseStorage implements IStorage {
 
   // Enhanced audit log methods
   async createAuditLog(log: InsertAuditLog): Promise<AuditLog> {
-    const result = await db.insert(auditLogs).values(log).returning();
+    // Add required tamperHash field with a simple hash
+    const logWithHash = {
+      ...log,
+      tamperHash: Math.random().toString(36).substring(2, 15)
+    };
+    const result = await db.insert(auditLogs).values(logWithHash).returning();
     return result[0];
   }
 

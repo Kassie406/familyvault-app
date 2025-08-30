@@ -534,6 +534,48 @@ app.get('/api/admin/security/metrics', requireAuth('ADMIN'), async (req: Authent
   }
 });
 
+// Public API endpoints (no authentication required)
+app.get('/api/public/menu-categories', async (req: Request, res: Response) => {
+  try {
+    // For now, return mock data to demonstrate the structure
+    // TODO: Once database migration is complete, use: await storage.getMenuCategories()
+    const categories = [
+      {
+        category: "Child Information",
+        slug: "child-information", 
+        icon: "👶",
+        articles: [
+          { title: "Keeping Kids' Docs Safe", url: "/articles/kids-docs-safe", slug: "kids-docs-safe" },
+          { title: "School Records Storage", url: "/articles/school-records", slug: "school-records" }
+        ]
+      },
+      {
+        category: "Disaster Planning",
+        slug: "disaster-planning",
+        icon: "⚠️", 
+        articles: [
+          { title: "Family Evacuation Checklist", url: "/articles/evacuation-checklist", slug: "evacuation-checklist" },
+          { title: "Emergency Contact System", url: "/articles/emergency-contacts", slug: "emergency-contacts" }
+        ]
+      },
+      {
+        category: "Digital Security",
+        slug: "digital-security",
+        icon: "🔒",
+        articles: [
+          { title: "Password Manager Setup", url: "/articles/password-manager", slug: "password-manager" },
+          { title: "Two-Factor Authentication", url: "/articles/2fa-setup", slug: "2fa-setup" }
+        ]
+      }
+    ];
+    
+    res.json(categories);
+  } catch (error) {
+    console.error('Get menu categories error:', error);
+    res.status(500).json({ error: 'Failed to fetch menu categories' });
+  }
+});
+
 app.get('/api/admin/users', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     // TODO: Add pagination and filtering
