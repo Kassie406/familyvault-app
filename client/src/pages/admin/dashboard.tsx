@@ -36,6 +36,7 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const [newCouponOpen, setNewCouponOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('overview');
+  const [planScope, setPlanScope] = useState('PUBLIC');
 
   // Fetch admin data
   const { data: plans, isLoading: plansLoading } = useQuery({
@@ -634,74 +635,187 @@ export default function AdminDashboard() {
       
       case 'plans':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Client Plans</CardTitle>
-              <CardDescription>Manage subscription pricing for public website users (familycirclesecure.com)</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {plansLoading ? (
-                <p>Loading plans...</p>
-              ) : plans?.plans?.length > 0 ? (
-                // TODO: Replace with table layout showing plan adoption metrics:
-                // Columns: Plan Name | Price | Interval | Users on Plan | Status | Actions (Edit/Disable)
-                // This will help admins see which plans are most popular and manage accordingly
-                <div className="space-y-4">
-                  {plans.plans.map((plan: any) => (
-                    <div key={plan.id} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold">{plan.name}</h3>
-                          <p className="text-muted-foreground">{plan.description}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-lg font-bold">${plan.price}</p>
-                          <p className="text-muted-foreground text-sm">{plan.interval}</p>
-                        </div>
+          <div className="plans-section">
+            {/* Plans Header */}
+            <div className="plans-header">
+              <h2 className="text-2xl font-bold">Subscription Plans</h2>
+              
+              {/* Segmented Tabs */}
+              <div className="segmented">
+                <button 
+                  className={`seg ${planScope === 'PUBLIC' ? 'is-active' : ''}`}
+                  onClick={() => setPlanScope('PUBLIC')}
+                  data-scope="PUBLIC"
+                  data-testid="tab-client-plans"
+                >
+                  Client Plans
+                </button>
+                <button 
+                  className={`seg ${planScope === 'FAMILY' ? 'is-active' : ''}`}
+                  onClick={() => setPlanScope('FAMILY')}
+                  data-scope="FAMILY"
+                  data-testid="tab-family-plans"
+                >
+                  Family (no billing)
+                </button>
+                <button 
+                  className={`seg ${planScope === 'STAFF' ? 'is-active' : ''}`}
+                  onClick={() => setPlanScope('STAFF')}
+                  data-scope="STAFF"
+                  data-testid="tab-staff-plans"
+                >
+                  Staff (no billing)
+                </button>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="actions">
+                <button 
+                  className="btn ghost"
+                  data-testid="button-sync-stripe"
+                >
+                  Sync Stripe
+                </button>
+                <button 
+                  className="btn primary"
+                  data-testid="button-new-plan"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Plan
+                </button>
+              </div>
+            </div>
+
+            {/* Dynamic Empty State */}
+            {planScope !== 'PUBLIC' && (
+              <div className="empty-state">
+                <div className="icon">💳</div>
+                <h3>
+                  {planScope === 'FAMILY' ? 'Family plans do not use billing' : 'Staff plans do not use billing'}
+                </h3>
+                <p>Access is role-based only. Manage roles and permissions in Users.</p>
+              </div>
+            )}
+            
+            {/* Stripe Empty State (for future Stripe disconnected state) */}
+            {planScope === 'PUBLIC' && false && ( // Set to true when Stripe is disconnected
+              <div className="empty-state">
+                <div className="icon">💳</div>
+                <h3>Stripe not connected</h3>
+                <p>Connect Stripe to create and manage Client subscription plans.</p>
+                <button 
+                  className="btn primary" 
+                  data-testid="button-connect-stripe-empty"
+                >
+                  Connect Stripe
+                </button>
+              </div>
+            )}
+
+            {/* Plans Table - only show for PUBLIC scope */}
+            {planScope === 'PUBLIC' && (
+              <div className="card" id="plans-table-container">
+              <table className="table" id="plans-table">
+                <thead>
+                  <tr>
+                    <th>Plan</th>
+                    <th>Price</th>
+                    <th>Interval</th>
+                    <th>Users</th>
+                    <th>Status</th>
+                    <th>Stripe ID</th>
+                    <th className="col-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Free Plan */}
+                  <tr data-tenant="PUBLIC">
+                    <td>
+                      <strong>Free</strong> 
+                      <span className="badge badge-muted">Most basic</span>
+                    </td>
+                    <td>$0</td>
+                    <td>Forever</td>
+                    <td>128</td>
+                    <td><span className="badge badge-status-active">Active</span></td>
+                    <td className="mono">price_free</td>
+                    <td className="col-actions">
+                      <div className="row-actions" role="group" aria-label="Plan actions">
+                        <button aria-label="Edit plan" data-tip="Edit" data-testid="button-edit-free">✏️</button>
+                        <button aria-label="Duplicate plan" data-tip="Duplicate" data-testid="button-duplicate-free">🧬</button>
+                        <button aria-label="Archive plan" data-tip="Archive" data-testid="button-archive-free">📦</button>
+                        <button aria-label="Open in Stripe" data-tip="Open in Stripe" data-testid="button-stripe-free">🔗</button>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-state-container flex flex-col items-center justify-center py-16 px-6">
-                  <div className="empty-state-card bg-white rounded-2xl shadow-sm border border-gray-100 p-12 max-w-lg text-center">
-                    {/* Friendly billing illustration */}
-                    <div className="empty-state-icon mb-6">
-                      <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl">
-                        <svg className="w-10 h-10 text-[#1F6FEB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4" />
-                        </svg>
+                    </td>
+                  </tr>
+
+                  {/* Silver Plan */}
+                  <tr data-tenant="PUBLIC">
+                    <td>
+                      <strong>Silver</strong> 
+                      <span className="badge">Popular</span>
+                    </td>
+                    <td>$10</td>
+                    <td>Monthly (annual billing)</td>
+                    <td>43</td>
+                    <td><span className="badge badge-status-active">Active</span></td>
+                    <td className="mono">price_silver_10</td>
+                    <td className="col-actions">
+                      <div className="row-actions" role="group" aria-label="Plan actions">
+                        <button aria-label="Edit plan" data-tip="Edit" data-testid="button-edit-silver">✏️</button>
+                        <button aria-label="Duplicate plan" data-tip="Duplicate" data-testid="button-duplicate-silver">🧬</button>
+                        <button aria-label="Archive plan" data-tip="Archive" data-testid="button-archive-silver">📦</button>
+                        <button aria-label="Open in Stripe" data-tip="Open in Stripe" data-testid="button-stripe-silver">🔗</button>
                       </div>
-                    </div>
-                    
-                    {/* Improved copy */}
-                    <h3 className="text-xl font-semibold text-gray-900 mb-3">No Client Plans Configured</h3>
-                    <p className="text-gray-600 mb-8 leading-relaxed">
-                      Connect Stripe and import your Free, Silver, Gold, and Custom tiers.
-                    </p>
-                    
-                    {/* Clear call-to-action */}
-                    <button 
-                      className="inline-flex items-center gap-2 bg-[#1F6FEB] text-white px-6 py-3 rounded-xl font-medium hover:bg-[#1557C7] transition-all duration-200 shadow-sm hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:outline-offset-2"
-                      data-testid="button-connect-stripe"
-                      aria-label="Connect Stripe to manage subscription plans"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      Connect Stripe
-                    </button>
-                    
-                    {/* Helper text */}
-                    <p className="text-sm text-gray-500 mt-4">
-                      Set up billing in just a few minutes
-                    </p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    </td>
+                  </tr>
+
+                  {/* Gold Plan */}
+                  <tr data-tenant="PUBLIC">
+                    <td>
+                      <strong>Gold</strong>
+                    </td>
+                    <td>$20</td>
+                    <td>Monthly (annual billing)</td>
+                    <td>25</td>
+                    <td><span className="badge badge-status-active">Active</span></td>
+                    <td className="mono">price_gold_20</td>
+                    <td className="col-actions">
+                      <div className="row-actions" role="group" aria-label="Plan actions">
+                        <button aria-label="Edit plan" data-tip="Edit" data-testid="button-edit-gold">✏️</button>
+                        <button aria-label="Duplicate plan" data-tip="Duplicate" data-testid="button-duplicate-gold">🧬</button>
+                        <button aria-label="Archive plan" data-tip="Archive" data-testid="button-archive-gold">📦</button>
+                        <button aria-label="Open in Stripe" data-tip="Open in Stripe" data-testid="button-stripe-gold">🔗</button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* Custom Plan */}
+                  <tr data-tenant="PUBLIC">
+                    <td>
+                      <strong>Custom (Advisors)</strong> 
+                      <span className="badge badge-muted">By quote</span>
+                    </td>
+                    <td>Custom</td>
+                    <td>Custom</td>
+                    <td>8</td>
+                    <td><span className="badge badge-status-active">Active</span></td>
+                    <td className="mono">price_custom_quote</td>
+                    <td className="col-actions">
+                      <div className="row-actions" role="group" aria-label="Plan actions">
+                        <button aria-label="Edit plan" data-tip="Edit" data-testid="button-edit-custom">✏️</button>
+                        <button aria-label="Duplicate plan" data-tip="Duplicate" data-testid="button-duplicate-custom">🧬</button>
+                        <button aria-label="Archive plan" data-tip="Archive" data-testid="button-archive-custom">📦</button>
+                        <button aria-label="Open in Stripe" data-tip="Open in Stripe" data-testid="button-stripe-custom">🔗</button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div className="table-foot">Showing 4 plans</div>
+              </div>
+            )}
+          </div>
         );
       
       case 'coupons':
