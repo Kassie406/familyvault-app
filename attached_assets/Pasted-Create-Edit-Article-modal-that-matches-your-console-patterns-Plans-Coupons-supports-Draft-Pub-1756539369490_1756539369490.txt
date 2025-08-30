@@ -1,0 +1,263 @@
+Create / Edit Article modal that matches your console patterns (Plans/Coupons), supports Draft / Publish / Schedule, tenant visibility (Public / Family / Staff), tags, and Markdown content with live preview.
+
+📝 Create / Edit Article (CMS)
+HTML
+<!-- Trigger -->
+<button class="btn primary" id="open-article-modal">+ Create Article</button>
+
+<!-- MODAL -->
+<div class="modal-backdrop" id="article-modal" hidden>
+  <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="articleTitle">
+    <header class="modal-header">
+      <h3 id="articleTitle">Create Article</h3>
+      <button class="icon-btn" id="article-close" aria-label="Close">✖</button>
+    </header>
+
+    <form id="article-form" novalidate>
+      <!-- Meta row -->
+      <div class="grid-3">
+        <div class="field">
+          <label>Title</label>
+          <input id="a_title" name="title" required placeholder="Welcome to FamilyCircle Secure" />
+        </div>
+        <div class="field">
+          <label>Slug (URL)</label>
+          <input id="a_slug" name="slug" placeholder="welcome-to-familycircle-secure" />
+          <small class="hint">Autofilled from title; change if needed.</small>
+        </div>
+        <div class="field">
+          <label>Category</label>
+          <select id="a_category" name="category">
+            <option>Announcements</option>
+            <option>Support</option>
+            <option>Onboarding</option>
+            <option>Blog</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Audience / status -->
+      <div class="grid-3">
+        <div class="field">
+          <label>Audience / Tenant</label>
+          <select id="a_tenant" name="tenant" required>
+            <option value="PUBLIC">Public (clients)</option>
+            <option value="FAMILY">Family portal</option>
+            <option value="STAFF">Staff hub</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select id="a_status" name="status">
+            <option value="draft" selected>Draft</option>
+            <option value="published">Publish now</option>
+            <option value="scheduled">Schedule</option>
+          </select>
+        </div>
+        <div class="field schedule-only" hidden>
+          <label>Publish at</label>
+          <input id="a_publish_at" type="datetime-local" />
+          <small class="hint">UTC or convert on server to your timezone.</small>
+        </div>
+      </div>
+
+      <!-- Tags / image -->
+      <div class="grid-3">
+        <div class="field">
+          <label>Tags (comma-separated)</label>
+          <input id="a_tags" name="tags" placeholder="security, onboarding, billing" />
+        </div>
+        <div class="field">
+          <label>Feature image (URL)</label>
+          <input id="a_image" name="image" placeholder="https://…" />
+        </div>
+        <div class="field">
+          <label>SEO Description</label>
+          <input id="a_seo" name="seo" maxlength="160" placeholder="Short summary used in previews and meta tags." />
+        </div>
+      </div>
+
+      <!-- Editor -->
+      <fieldset>
+        <legend>Content</legend>
+        <div class="editor-wrap">
+          <textarea id="a_content" name="content" placeholder="Write in Markdown…"></textarea>
+          <div class="editor-side">
+            <div class="editor-toolbar">
+              <label><input type="checkbox" id="a_preview"> Live Preview</label>
+            </div>
+            <div id="a_preview_panel" class="preview-area" aria-live="polite">Preview is empty.</div>
+          </div>
+        </div>
+      </fieldset>
+
+      <footer class="modal-footer">
+        <div class="left">
+          <label class="inline">
+            <input type="checkbox" id="a_pin"> Pin to top
+          </label>
+          <label class="inline">
+            <input type="checkbox" id="a_allow_comments"> Allow comments (PUBLIC only)
+          </label>
+        </div>
+        <div class="right">
+          <button type="button" class="btn ghost" id="article-cancel">Cancel</button>
+          <button type="submit" class="btn primary">Save Article</button>
+        </div>
+      </footer>
+    </form>
+  </div>
+</div>
+
+CSS (uses your existing modal styles)
+.modal.wide{width:min(1040px,94vw)}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field input, .field select, textarea{border:1px solid #D7DEE8;border-radius:10px;padding:10px 12px}
+textarea{min-height:260px;resize:vertical;font-family:ui-monospace,Consolas,monospace}
+.hint{color:#6B7280}
+.inline{display:flex;gap:8px;align-items:center}
+
+.editor-wrap{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.editor-side{display:flex;flex-direction:column;gap:8px}
+.editor-toolbar{display:flex;justify-content:flex-end}
+.preview-area{border:1px solid #E5EAF2;border-radius:10px;padding:12px;min-height:260px;background:#F8FAFF;overflow:auto}
+.modal-footer{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-top:1px solid #EEF1F5}
+.left .inline{margin-right:16px}
+
+@media (max-width:960px){
+  .grid-3{grid-template-columns:1fr}
+  .editor-wrap{grid-template-columns:1fr}
+  .editor-side{order:2}
+}
+
+JS (open/close, status logic, slug, preview, payload)
+<script>
+// open/close
+const artModal = document.getElementById('article-modal');
+const openArt  = document.getElementById('open-article-modal');
+const closeBtns = [document.getElementById('article-close'), document.getElementById('article-cancel')];
+const form = document.getElementById('article-form');
+
+function openModal(){ artModal.hidden=false; document.body.style.overflow='hidden'; document.getElementById('a_title').focus(); }
+function closeModal(){ artModal.hidden=true; document.body.style.overflow=''; }
+
+openArt?.addEventListener('click', openModal);
+closeBtns.forEach(b=>b?.addEventListener('click', closeModal));
+artModal.addEventListener('click', e=>{ if(e.target===artModal) closeModal(); });
+document.addEventListener('keydown', e=>{ if(!artModal.hidden && e.key==='Escape') closeModal(); });
+
+// status -> schedule
+const statusSel = document.getElementById('a_status');
+const schedWrap  = document.querySelector('.schedule-only');
+function syncSchedule(){ schedWrap.hidden = (statusSel.value !== 'scheduled'); }
+statusSel.addEventListener('change', syncSchedule); syncSchedule();
+
+// slug autofill from title (only if user hasn't typed a custom slug)
+const titleInput = document.getElementById('a_title');
+const slugInput  = document.getElementById('a_slug');
+let slugTouched = false;
+slugInput.addEventListener('input', ()=> slugTouched = true);
+titleInput.addEventListener('input', ()=>{
+  if (slugTouched) return;
+  const v = titleInput.value.trim().toLowerCase()
+     .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g,'');
+  slugInput.value = v;
+});
+
+// markdown preview (very light sanitizer/renderer for headings, lists, bold/italic, links)
+const contentEl = document.getElementById('a_content');
+const previewChk = document.getElementById('a_preview');
+const previewPanel = document.getElementById('a_preview_panel');
+
+function mdRender(md=""){
+  const esc = s => s.replace(/[&<>]/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m]));
+  let html = esc(md)
+    .replace(/^### (.*)$/gm,'<h3>$1</h3>')
+    .replace(/^## (.*)$/gm,'<h2>$1</h2>')
+    .replace(/^# (.*)$/gm,'<h1>$1</h1>')
+    .replace(/^\s*[-*] (.*)$/gm,'<li>$1</li>')
+    .replace(/(<li>.*<\/li>)(?!\n<li>)/gs,'<ul>$1</ul>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\[(.+?)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/\n{2,}/g,'<br/><br/>');
+  return html || '<span class="muted">Preview is empty.</span>';
+}
+
+function updatePreview(){
+  if (!previewChk.checked){ previewPanel.innerHTML = 'Preview is off.'; return; }
+  previewPanel.innerHTML = mdRender(contentEl.value);
+}
+previewChk.addEventListener('change', updatePreview);
+contentEl.addEventListener('input', updatePreview);
+
+// submit -> payload
+form.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const title = titleInput.value.trim();
+  if (!title){ alert('Title is required.'); return; }
+
+  const payload = {
+    title,
+    slug: slugInput.value.trim() || null,
+    category: document.getElementById('a_category').value,
+    tenant: document.getElementById('a_tenant').value,        // PUBLIC|FAMILY|STAFF
+    status: document.getElementById('a_status').value,        // draft|published|scheduled
+    publish_at: document.getElementById('a_publish_at').value || null,
+    tags: document.getElementById('a_tags').value.split(',').map(t=>t.trim()).filter(Boolean),
+    image: document.getElementById('a_image').value || null,
+    seo: document.getElementById('a_seo').value || null,
+    pin: document.getElementById('a_pin').checked,
+    allow_comments: document.getElementById('a_allow_comments').checked,
+    content_md: contentEl.value
+  };
+
+  // quick logic: comments only for PUBLIC
+  if (payload.tenant !== 'PUBLIC') payload.allow_comments = false;
+
+  // TODO: POST to your API
+  // await fetch('/api/admin/content', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+
+  console.log('Article payload →', payload);
+  closeModal();
+});
+</script>
+
+Example API Contract
+
+POST /api/admin/content
+
+{
+  "title": "Welcome to FamilyCircle Secure",
+  "slug": "welcome-to-familycircle-secure",
+  "category": "Onboarding",
+  "tenant": "PUBLIC",
+  "status": "scheduled",
+  "publish_at": "2025-09-15T14:00",
+  "tags": ["security","onboarding"],
+  "image": "https://cdn.example.com/img/welcome.png",
+  "seo": "Getting started safely with FamilyCircle Secure.",
+  "pin": true,
+  "allow_comments": true,
+  "content_md": "# Getting Started\n- Enable 2FA\n- Invite family\n- Configure backups"
+}
+
+
+Server tips:
+
+Generate id, author_id from the session; store both Markdown and rendered HTML.
+
+Validate unique slug per tenant; auto-append -2 if conflict.
+
+On scheduled, enqueue publish job; write to tamper-evident audit (who created/edited/published and when).
+
+Lawyer hat (quick governance)
+
+Keep separate visibility per tenant; prevent cross-tenant reads (e.g., Staff notes never leak to Public).
+
+For comments (if you later enable), show a monitoring notice and moderate logs.
+
+Retention policy: define archival period for Announcements and Support content and document it.
