@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, Edit } from 'lucide-react';
+import { Search, Plus, Edit, Target } from 'lucide-react';
 import AdvancedFlagEditor from './advanced-flag-editor';
+import { TargetingDrawer } from './targeting-drawer';
 
 type Flag = {
   id: string;
@@ -28,6 +29,7 @@ export default function AdvancedFeatureFlags() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Flag | null>(null);
   const [creating, setCreating] = useState(false);
+  const [targeting, setTargeting] = useState<Flag | null>(null);
   const [query, setQuery] = useState('');
 
   const filtered = useMemo(() => {
@@ -165,6 +167,15 @@ export default function AdvancedFeatureFlags() {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => setTargeting(flag)}
+                            className="bg-white border-gray-300 hover:bg-green-50 hover:border-green-300 text-gray-700 hover:text-green-700"
+                            data-testid={`button-target-flag-${flag.key}`}
+                          >
+                            <Target className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => setEditing(flag)}
                             className="bg-white border-gray-300 hover:bg-blue-50 hover:border-blue-300 text-gray-700 hover:text-blue-700"
                             data-testid={`button-edit-flag-${flag.key}`}
@@ -194,6 +205,15 @@ export default function AdvancedFeatureFlags() {
           initial={editing || undefined}
           onClose={() => { setCreating(false); setEditing(null); }}
           onSaved={() => { setCreating(false); setEditing(null); load(); }}
+        />
+      )}
+
+      {targeting && (
+        <TargetingDrawer
+          isOpen={!!targeting}
+          onClose={() => setTargeting(null)}
+          flagKey={targeting.key}
+          flagName={targeting.name}
         />
       )}
     </div>
