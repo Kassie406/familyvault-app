@@ -6,7 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { 
   Shield, LogOut, User, Settings, LayoutDashboard, Users, CreditCard, 
   Ticket, FileText, ShieldCheck, Activity, Search, Filter, Bell, 
-  Flag, UserX, Webhook, Tag, Megaphone, AlertTriangle
+  Flag, UserX, Webhook, Tag, Megaphone, AlertTriangle, Key, Lock
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
@@ -64,6 +64,8 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
     { id: 'impersonation', label: 'Impersonation', icon: UserX, description: 'Admin user support' },
     { id: 'compliance', label: 'Compliance', icon: ShieldCheck, description: 'GDPR & privacy' },
     { id: 'security', label: 'Security', icon: Activity, description: 'Audit & monitoring' },
+    { id: 'security-settings', label: 'Security Settings', icon: Key, description: 'Authentication & security', href: '/admin/security-settings' },
+    { id: 'stepup-test', label: 'Step-Up Authentication', icon: Lock, description: 'Test step-up security flow', href: '/admin/stepup-test' },
     { id: 'incidents', label: 'Incidents', icon: AlertTriangle, description: 'Status incidents & escalation', href: '/admin/incidents' },
   ];
 
