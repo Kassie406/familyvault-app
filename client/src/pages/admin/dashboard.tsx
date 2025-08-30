@@ -3298,19 +3298,12 @@ export default function AdminDashboard() {
       
       case 'compliance':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>GDPR Compliance</CardTitle>
-              <CardDescription>Privacy settings and data management</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <ShieldCheck className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">GDPR Compliance</h3>
-                <p className="text-muted-foreground">Manage privacy consents and data requests</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">GDPR Compliance</h2>
+            </div>
+            <GdprCompliance />
+          </div>
         );
 
       case 'gdpr':
