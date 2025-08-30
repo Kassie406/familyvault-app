@@ -1067,3 +1067,41 @@ legend {
 .btn.primary{background:#1F6FEB;color:#fff;border-color:transparent}
 .btn.primary:hover{background:#195BD2}
 @media (max-width:920px){.drawer{width:100vw}}
+
+/* Filter Dropdown Button Styles - Fix for pitch black hover bug */
+.filter-btn,
+[data-testid="filter-tenant"] button,
+[data-testid="filter-menu-category"] button,
+[data-testid="filter-type"] button,
+[data-testid="filter-status"] button {
+  background: #111827 !important;   /* Dark navy base */
+  color: #fff !important;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 500;
+  border: 1px solid #374151;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+/* Hover state - lighter navy, not pitch black */
+.filter-btn:hover,
+.filter-btn:focus,
+[data-testid="filter-tenant"] button:hover,
+[data-testid="filter-menu-category"] button:hover,
+[data-testid="filter-type"] button:hover,
+[data-testid="filter-status"] button:hover {
+  background: #1F2937 !important;   /* Lighter navy, not black */
+  color: #F9FAFB !important;
+  border-color: #4B5563;
+}
+
+/* Active/selected state */
+.filter-btn.active,
+[data-testid="filter-tenant"] button[aria-expanded="true"],
+[data-testid="filter-menu-category"] button[aria-expanded="true"],
+[data-testid="filter-type"] button[aria-expanded="true"],
+[data-testid="filter-status"] button[aria-expanded="true"] {
+  background: #2563EB !important;   /* Brand blue */
+  color: #fff !important;
+  border-color: #3B82F6;
+}
