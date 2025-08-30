@@ -302,6 +302,68 @@ export const marketingPromotions = pgTable("marketing_promotions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// GDPR Compliance Tables
+export const consentPurposeEnum = pgEnum("consent_purpose", ["marketing", "analytics", "required"]);
+export const consentStatusEnum = pgEnum("consent_status", ["granted", "denied"]);
+export const consentMethodEnum = pgEnum("consent_method", ["banner", "settings", "api", "import"]);
+export const consentSourceEnum = pgEnum("consent_source", ["web", "mobile", "admin"]);
+
+export const dsarTypeEnum = pgEnum("dsar_type", ["access", "erasure", "rectification", "portability", "restriction", "objection"]);
+export const dsarStatusEnum = pgEnum("dsar_status", ["open", "id_pending", "in_progress", "awaiting_subject", "completed", "rejected"]);
+
+export const retentionDispositionEnum = pgEnum("retention_disposition", ["delete", "anonymize"]);
+
+// GDPR Consent Events (immutable ledger)
+export const gdprConsentEvents = pgTable("gdpr_consent_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  purpose: consentPurposeEnum("purpose").notNull(),
+  status: consentStatusEnum("status").notNull(),
+  method: consentMethodEnum("method").notNull(),
+  source: consentSourceEnum("source").notNull(),
+  ip: text("ip"),
+  userAgent: text("user_agent"),
+  occurredAt: timestamp("occurred_at").defaultNow().notNull(),
+  meta: json("meta"), // banner_version, etc.
+});
+
+// Data Subject Access Requests
+export const dsarRequests = pgTable("dsar_requests", {
+  id: varchar("id").primaryKey(), // Will be 'dsr_' + UUID
+  type: dsarTypeEnum("type").notNull(),
+  subjectUserId: varchar("subject_user_id"),
+  subjectEmail: text("subject_email"),
+  status: dsarStatusEnum("status").default("open").notNull(),
+  openedAt: timestamp("opened_at").defaultNow().notNull(),
+  dueAt: timestamp("due_at").notNull(),
+  closedAt: timestamp("closed_at"),
+  legalBasis: text("legal_basis"),
+  notes: text("notes"),
+  verifiedAt: timestamp("verified_at"),
+  exportedAt: timestamp("exported_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Retention Policies
+export const retentionPolicies = pgTable("retention_policies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  dataset: text("dataset").notNull(),
+  basis: text("basis").notNull(),
+  ttlDays: integer("ttl_days").notNull(),
+  disposition: retentionDispositionEnum("disposition").notNull(),
+  enabled: boolean("enabled").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Suppression List (hashed emails)
+export const suppressionList = pgTable("suppression_list", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  emailHash: text("email_hash").notNull().unique(), // SHA-256 hex
+  reason: text("reason").notNull(),
+  addedAt: timestamp("added_at").defaultNow().notNull(),
+});
+
 // Admin Impersonation Sessions - Security-sensitive table for tracking user impersonation
 export const impersonationStatusEnum = pgEnum("impersonation_status", ["active", "completed", "expired", "terminated"]);
 
@@ -456,6 +518,42 @@ export const insertImpersonationSessionSchema = createInsertSchema(impersonation
   endReason: true,
 });
 
+// GDPR Insert Schemas
+export const insertGdprConsentEventSchema = createInsertSchema(gdprConsentEvents).pick({
+  userId: true,
+  purpose: true,
+  status: true,
+  method: true,
+  source: true,
+  ip: true,
+  userAgent: true,
+  meta: true,
+});
+
+export const insertDsarRequestSchema = createInsertSchema(dsarRequests).pick({
+  id: true,
+  type: true,
+  subjectUserId: true,
+  subjectEmail: true,
+  status: true,
+  dueAt: true,
+  legalBasis: true,
+  notes: true,
+});
+
+export const insertRetentionPolicySchema = createInsertSchema(retentionPolicies).pick({
+  dataset: true,
+  basis: true,
+  ttlDays: true,
+  disposition: true,
+  enabled: true,
+});
+
+export const insertSuppressionSchema = createInsertSchema(suppressionList).pick({
+  emailHash: true,
+  reason: true,
+});
+
 // Security schema inserts
 export const insertUserDeviceSchema = createInsertSchema(userDevices).pick({
   userId: true,
@@ -569,3 +667,16 @@ export type MarketingPromotion = typeof marketingPromotions.$inferSelect;
 
 export type InsertImpersonationSession = z.infer<typeof insertImpersonationSessionSchema>;
 export type ImpersonationSession = typeof impersonationSessions.$inferSelect;
+
+// GDPR Types
+export type InsertGdprConsentEvent = z.infer<typeof insertGdprConsentEventSchema>;
+export type GdprConsentEvent = typeof gdprConsentEvents.$inferSelect;
+
+export type InsertDsarRequest = z.infer<typeof insertDsarRequestSchema>;
+export type DsarRequest = typeof dsarRequests.$inferSelect;
+
+export type InsertRetentionPolicy = z.infer<typeof insertRetentionPolicySchema>;
+export type RetentionPolicy = typeof retentionPolicies.$inferSelect;
+
+export type InsertSuppression = z.infer<typeof insertSuppressionSchema>;
+export type Suppression = typeof suppressionList.$inferSelect;

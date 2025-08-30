@@ -32,6 +32,7 @@ import StatusWidget from '@/components/admin/status-widget';
 import ToastHost from '@/components/admin/toast-host';
 import StatusWatcher from '@/components/admin/status-watcher';
 import MarketingPromotions from '@/components/admin/marketing-promotions';
+import { GdprCompliance } from '@/components/admin/gdpr-compliance';
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -968,6 +969,15 @@ export default function AdminDashboard() {
                   >
                     <Shield className="w-4 h-4 mr-2" />
                     Security Audit
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
+                    onClick={() => setActiveSection('gdpr')}
+                    data-testid="button-gdpr-compliance"
+                  >
+                    <ShieldCheck className="w-4 h-4 mr-2" />
+                    GDPR Compliance
                   </Button>
                 </CardContent>
               </Card>
@@ -3301,6 +3311,16 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
+        );
+
+      case 'gdpr':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">GDPR Compliance</h2>
+            </div>
+            <GdprCompliance />
+          </div>
         );
       
       case 'security':
