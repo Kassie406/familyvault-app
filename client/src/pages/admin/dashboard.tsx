@@ -787,7 +787,7 @@ export default function AdminDashboard() {
           <div className="plans-section">
             {/* Plans Header */}
             <div className="plans-header">
-              <h2 className="text-2xl font-bold">Subscription Plans</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Subscription Plans</h2>
               
               {/* Segmented Tabs */}
               <div className="segmented">
