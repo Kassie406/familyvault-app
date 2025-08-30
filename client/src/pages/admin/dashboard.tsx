@@ -16,8 +16,6 @@ import {
   MoreHorizontal, Mail, Power, RotateCcw, X, Filter, Edit3
 } from 'lucide-react';
 import AdminLayout from '@/components/admin/admin-layout';
-import AdminStepUpTest from './stepup-test';
-import AdminIncidents from './incidents';
 import SecurityCenterCard from '@/components/admin/security-center-card';
 import SessionManagement from '@/components/admin/session-management';
 import TamperVerification from '@/components/admin/tamper-verification';
@@ -3382,25 +3380,6 @@ export default function AdminDashboard() {
           </div>
         );
       
-      case 'stepup-test':
-        return (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">Step-Up Authentication Testing</h2>
-            </div>
-            <AdminStepUpTest />
-          </div>
-        );
-
-      case 'incidents':
-        return (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">Security Incidents Management</h2>
-            </div>
-            <AdminIncidents />
-          </div>
-        );
 
       default:
         return (
