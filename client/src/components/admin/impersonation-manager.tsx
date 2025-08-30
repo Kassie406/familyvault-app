@@ -257,13 +257,14 @@ export default function ImpersonationManager({ className }: ImpersonationManager
                     data-testid="input-duration-minutes"
                   />
                   <span className="text-sm text-gray-600">minutes</span>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 duration-pills">
                     {[5, 10, 15, 20].map((mins) => (
                       <Button
                         key={mins}
                         variant={durationMinutes === mins ? "default" : "outline"}
                         size="sm"
                         onClick={() => setDurationMinutes(mins)}
+                        className={`pill ${durationMinutes === mins ? 'is-active' : ''}`}
                         data-testid={`button-duration-${mins}`}
                       >
                         {mins}m
@@ -354,6 +355,7 @@ export default function ImpersonationManager({ className }: ImpersonationManager
                 variant="outline"
                 size="sm"
                 onClick={() => setShowAdvanced(!showAdvanced)}
+                className="audit-toggle"
                 data-testid="button-toggle-advanced"
               >
                 <Eye className="h-3 w-3 mr-1" />
