@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ROUTES, navigate, trackAdminClick } from '@/lib/routes';
+import { ROUTES, trackAdminClick } from '@/lib/routes';
 import { 
   Shield, ShieldCheck, ShieldAlert, Users, Clock, Globe, 
   Key, AlertTriangle, CheckCircle2 
@@ -19,6 +20,7 @@ interface SecurityMetrics {
 }
 
 export default function SecurityCenterCard() {
+  const [, setLocation] = useLocation();
   const { data: securityMetrics, isLoading } = useQuery({
     queryKey: ['/api/admin/security/metrics'],
     queryFn: () => fetch('/api/admin/security/metrics').then(res => res.json()),
@@ -97,7 +99,7 @@ export default function SecurityCenterCard() {
             className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" 
             onClick={() => {
               trackAdminClick('security_center_2fa_status');
-              navigate(ROUTES.SECURITY_2FA);
+              setLocation(ROUTES.SECURITY_2FA);
             }}
             data-testid="chip-2fa-status"
           >
@@ -122,7 +124,7 @@ export default function SecurityCenterCard() {
             className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" 
             onClick={() => {
               trackAdminClick('security_center_active_sessions');
-              navigate(ROUTES.SECURITY_SESSIONS);
+              setLocation(ROUTES.SECURITY_SESSIONS);
             }}
             data-testid="chip-active-sessions"
           >
@@ -143,7 +145,7 @@ export default function SecurityCenterCard() {
             className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" 
             onClick={() => {
               trackAdminClick('security_center_ip_allowlist');
-              navigate(ROUTES.SECURITY_ALLOWLIST);
+              setLocation(ROUTES.SECURITY_ALLOWLIST);
             }}
             data-testid="chip-ip-allowlist"
           >
@@ -164,7 +166,7 @@ export default function SecurityCenterCard() {
             className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" 
             onClick={() => {
               trackAdminClick('security_center_key_rotation');
-              navigate(ROUTES.SECURITY_KEYS);
+              setLocation(ROUTES.SECURITY_KEYS);
             }}
             data-testid="chip-key-rotation"
           >
@@ -200,7 +202,7 @@ export default function SecurityCenterCard() {
                 className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
                 onClick={() => {
                   trackAdminClick('security_center_configure_2fa');
-                  navigate(ROUTES.SECURITY_2FA);
+                  setLocation(ROUTES.SECURITY_2FA);
                 }}
                 data-testid="button-configure-2fa"
               >
@@ -226,7 +228,7 @@ export default function SecurityCenterCard() {
                 className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
                 onClick={() => {
                   trackAdminClick('security_center_configure_ips');
-                  navigate(ROUTES.SECURITY_ALLOWLIST);
+                  setLocation(ROUTES.SECURITY_ALLOWLIST);
                 }}
                 data-testid="button-configure-ips"
               >
@@ -252,7 +254,7 @@ export default function SecurityCenterCard() {
                 className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
                 onClick={() => {
                   trackAdminClick('security_center_view_logs');
-                  navigate(ROUTES.SECURITY_AUDIT);
+                  setLocation(ROUTES.SECURITY_AUDIT);
                 }}
                 data-testid="button-view-logs"
               >
@@ -284,7 +286,7 @@ export default function SecurityCenterCard() {
             className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
             onClick={() => {
               trackAdminClick('security_center_view_session_history');
-              navigate(ROUTES.SECURITY_SESSIONS);
+              setLocation(ROUTES.SECURITY_SESSIONS);
             }}
             data-testid="button-view-session-history"
           >
@@ -297,7 +299,7 @@ export default function SecurityCenterCard() {
             className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
             onClick={() => {
               trackAdminClick('security_center_manage_admin_users');
-              navigate(ROUTES.USERS_ADMINS);
+              setLocation(ROUTES.USERS_ADMINS);
             }}
             data-testid="button-manage-admin-users"
           >
@@ -310,7 +312,7 @@ export default function SecurityCenterCard() {
             className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
             onClick={() => {
               trackAdminClick('security_center_rotate_api_keys');
-              navigate(ROUTES.SECURITY_KEYS);
+              setLocation(ROUTES.SECURITY_KEYS);
             }}
             data-testid="button-rotate-api-keys"
           >

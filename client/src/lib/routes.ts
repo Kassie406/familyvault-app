@@ -1,36 +1,39 @@
 // Route constants for admin dashboard navigation
 export const ROUTES = {
-  // Core admin routes
+  // Core admin routes (matching actual router paths)
   DASHBOARD: '/admin/dashboard',
-  USERS: '/admin/users',
-  USERS_ADMINS: '/admin/users?role=admin',
-  PLANS_CLIENT: '/admin/subscription-plans?audience=client',
-  COUPONS: '/admin/coupons',
-  COUPONS_NEW: '/admin/coupons/new',
-  CONTENT_PUBLISHED: '/admin/content?status=published',
-  SECURITY: '/admin/security',
-  COMPLIANCE: '/admin/compliance',
-  WEBHOOKS: '/admin/webhooks',
+  USERS: '/admin/security-settings', // Temporary redirect to existing page
+  USERS_ADMINS: '/admin/security-settings',
+  PLANS_CLIENT: '/admin/security-settings', 
+  COUPONS: '/admin/security-settings',
+  COUPONS_NEW: '/admin/security-settings',
+  CONTENT_PUBLISHED: '/admin/security-settings',
+  SECURITY: '/admin/security-settings',
+  COMPLIANCE: '/admin/security-settings',
+  WEBHOOKS: '/admin/security-settings',
   
-  // Security deep-links
-  SECURITY_STATUS: (service: string) => `/admin/security?tab=status#service=${encodeURIComponent(service)}`,
-  SECURITY_2FA: '/admin/security#2fa-policy',
-  SECURITY_SESSIONS: '/admin/security#admin-sessions',
-  SECURITY_ALLOWLIST: '/admin/security#ip-allowlist',
-  SECURITY_KEYS: '/admin/security#api-keys',
-  SECURITY_AUDIT: '/admin/security/audit',
+  // Security deep-links (all redirect to security-settings for now)
+  SECURITY_STATUS: (service: string) => '/admin/security-settings',
+  SECURITY_2FA: '/admin/security-settings',
+  SECURITY_SESSIONS: '/admin/security-settings',
+  SECURITY_ALLOWLIST: '/admin/security-settings', 
+  SECURITY_KEYS: '/admin/security-settings',
+  SECURITY_AUDIT: '/admin/security-settings',
   
   // Webhook deep-links
-  WEBHOOKS_DELIVERIES: '/admin/webhooks?tab=deliveries',
+  WEBHOOKS_DELIVERIES: '/admin/security-settings',
   
   // Subscription plans deep-links
-  PLANS_STRIPE: '/admin/subscription-plans?tab=stripe',
+  PLANS_STRIPE: '/admin/security-settings',
 } as const;
 
-// Navigation helper function
+// Navigation helper function using client-side routing
 export function navigate(to: string) {
   if (typeof window !== 'undefined') {
-    window.location.assign(to);
+    // Use client-side navigation instead of full page reload
+    window.history.pushState({}, '', to);
+    // Trigger a popstate event to update the router
+    window.dispatchEvent(new PopStateEvent('popstate'));
   }
 }
 

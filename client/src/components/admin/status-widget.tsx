@@ -112,7 +112,7 @@ export default function StatusWidget() {
 
   const handleViewDetails = () => {
     trackAdminClick('system_status_view_details');
-    navigate(ROUTES.SECURITY);
+    setLocation(ROUTES.SECURITY);
   };
 
   const handleComponentClick = (component: string) => {
@@ -121,25 +121,25 @@ export default function StatusWidget() {
     // Route to specific status pages based on component
     switch (component) {
       case 'database':
-        navigate(ROUTES.SECURITY_STATUS('database'));
+        setLocation(ROUTES.SECURITY_STATUS('database'));
         break;
       case 'webhooks':
-        navigate(ROUTES.WEBHOOKS_DELIVERIES);
+        setLocation(ROUTES.WEBHOOKS_DELIVERIES);
         break;
       case 'auth':
-        navigate(ROUTES.SECURITY_STATUS('auth'));
+        setLocation(ROUTES.SECURITY_STATUS('auth'));
         break;
       case 'stripe':
-        navigate(ROUTES.PLANS_STRIPE);
+        setLocation(ROUTES.PLANS_STRIPE);
         break;
       case 'smtp':
-        navigate(ROUTES.SECURITY_STATUS('smtp'));
+        setLocation(ROUTES.SECURITY_STATUS('smtp'));
         break;
       case 'storage':
-        navigate(ROUTES.SECURITY_STATUS('storage'));
+        setLocation(ROUTES.SECURITY_STATUS('storage'));
         break;
       default:
-        navigate(ROUTES.SECURITY);
+        setLocation(ROUTES.SECURITY);
     }
   };
 
