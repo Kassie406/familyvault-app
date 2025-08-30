@@ -121,7 +121,7 @@ export default function WebhooksManager({ className }: WebhooksManagerProps) {
   });
 
   return (
-    <div className={className}>
+    <div id="webhooks-root" className={className}>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -157,7 +157,7 @@ export default function WebhooksManager({ className }: WebhooksManagerProps) {
               {webhooks.map((webhook) => (
                 <div
                   key={webhook.id}
-                  className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                  className="border rounded-lg p-4"
                   data-testid={`webhook-${webhook.id}`}
                 >
                   <div className="flex items-center justify-between">
