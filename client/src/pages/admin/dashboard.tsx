@@ -190,6 +190,67 @@ export default function AdminDashboard() {
   const { data: articles, isLoading: articlesLoading } = useQuery({
     queryKey: ['/api/admin/articles'],
     queryFn: () => fetch('/api/admin/articles').then(res => res.json()),
+    // Fallback to sample data if API fails (for demo purposes)
+    placeholderData: {
+      articles: [
+        {
+          id: 'a_101',
+          title: 'Family Evacuation Checklist',
+          slug: 'family-evacuation-checklist',
+          category: 'announcements',
+          menuCategory: 'Disaster Planning',
+          tenant: 'PUBLIC',
+          status: 'published',
+          published: true,
+          publishAt: '2025-08-20T10:00:00Z',
+          authorName: 'Sarah Martinez',
+          createdAt: '2025-08-20T10:00:00Z',
+          updatedAt: '2025-08-20T10:00:00Z'
+        },
+        {
+          id: 'a_102',
+          title: 'Home Document Binder',
+          slug: 'home-document-binder',
+          category: 'support',
+          menuCategory: 'Home Buying',
+          tenant: 'PUBLIC',
+          status: 'draft',
+          published: false,
+          publishAt: null,
+          authorName: 'John Doe',
+          createdAt: '2025-08-15T14:20:00Z',
+          updatedAt: '2025-08-15T14:20:00Z'
+        },
+        {
+          id: 'a_103',
+          title: 'SOC Playbook Update',
+          slug: 'soc-playbook-update',
+          category: 'onboarding',
+          menuCategory: 'Digital Security',
+          tenant: 'STAFF',
+          status: 'scheduled',
+          published: false,
+          publishAt: '2025-09-01T09:00:00Z',
+          authorName: 'Emily Chen',
+          createdAt: '2025-08-25T16:30:00Z',
+          updatedAt: '2025-08-25T16:30:00Z'
+        },
+        {
+          id: 'a_104',
+          title: 'Pediatric Records Checklist',
+          slug: 'pediatric-records-checklist',
+          category: 'blog',
+          menuCategory: 'Child Information',
+          tenant: 'FAMILY',
+          status: 'published',
+          published: true,
+          publishAt: '2025-08-10T14:20:00Z',
+          authorName: 'Michael Rodriguez',
+          createdAt: '2025-08-10T14:20:00Z',
+          updatedAt: '2025-08-10T14:20:00Z'
+        }
+      ]
+    }
   });
 
   const { data: consents, isLoading: consentsLoading } = useQuery({
@@ -2299,11 +2360,11 @@ export default function AdminDashboard() {
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Menu Category</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tenant</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Author</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Published</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -2327,40 +2388,53 @@ export default function AdminDashboard() {
                             <div className="text-sm font-medium text-gray-900" data-testid={`text-article-title-${article.id}`}>
                               {article.title}
                             </div>
-                            <div className="text-sm text-gray-500 truncate max-w-xs" data-testid={`text-article-content-${article.id}`}>
-                              {article.content?.substring(0, 60)}...
+                            <div className="text-sm text-gray-500 truncate max-w-xs" data-testid={`text-article-slug-${article.id}`}>
+                              {article.slug}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <Badge 
                               variant="secondary" 
-                              className="bg-emerald-50 text-emerald-700 border-emerald-200"
+                              className="bg-gray-100 text-gray-700"
                               data-testid={`badge-menu-category-${article.id}`}
                             >
                               {article.menuCategory || '—'}
                             </Badge>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge variant="outline" data-testid={`badge-category-${article.id}`}>
-                              {article.category}
+                            <Badge 
+                              variant={article.tenant === 'PUBLIC' ? 'default' : article.tenant === 'FAMILY' ? 'secondary' : 'outline'}
+                              className={article.tenant === 'PUBLIC' ? 'bg-blue-100 text-blue-700' : article.tenant === 'FAMILY' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'}
+                              data-testid={`badge-tenant-${article.id}`}
+                            >
+                              {article.tenant === 'PUBLIC' ? 'Public' : article.tenant === 'FAMILY' ? 'Family' : 'Staff'}
                             </Badge>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-testid={`text-author-${article.id}`}>
-                            {article.author || 'Admin'}
+                            {article.authorName || 'Admin'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-testid={`text-published-${article.id}`}>
-                            {article.publishDate ? new Date(article.publishDate).toLocaleDateString() : 'N/A'}
+                            {article.publishAt ? new Date(article.publishAt).toLocaleDateString() : '—'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <Badge 
-                              variant={article.status === 'published' ? 'default' : article.status === 'draft' ? 'secondary' : 'destructive'}
+                              variant="secondary"
+                              className={
+                                article.status === 'published' ? 'bg-green-100 text-green-700' :
+                                article.status === 'scheduled' ? 'bg-amber-100 text-amber-700' :
+                                article.status === 'draft' ? 'bg-blue-100 text-blue-700' :
+                                'bg-gray-100 text-gray-700'
+                              }
                               data-testid={`badge-status-${article.id}`}
                             >
-                              {article.status}
+                              {article.status === 'published' ? 'Published' :
+                               article.status === 'scheduled' ? 'Scheduled' :
+                               article.status === 'draft' ? 'Draft' :
+                               'Archived'}
                             </Badge>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
                               <Button 
                                 variant="ghost" 
                                 size="sm"
@@ -2368,6 +2442,7 @@ export default function AdminDashboard() {
                                   setEditingArticle(article);
                                   setNewArticleOpen(true);
                                 }}
+                                className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
                                 data-testid={`button-edit-${article.id}`}
                               >
                                 <Edit className="h-4 w-4" />
@@ -2375,6 +2450,7 @@ export default function AdminDashboard() {
                               <Button 
                                 variant="ghost" 
                                 size="sm"
+                                className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
                                 data-testid={`button-preview-${article.id}`}
                               >
                                 <Eye className="h-4 w-4" />
@@ -2382,7 +2458,7 @@ export default function AdminDashboard() {
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                className="text-red-600 hover:text-red-700"
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                 data-testid={`button-delete-${article.id}`}
                               >
                                 <Trash2 className="h-4 w-4" />

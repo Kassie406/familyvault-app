@@ -1,0 +1,263 @@
+accessible Side Drawer Preview you can drop into the Content tab. It shows a tenant banner, menu category, metadata, rendered Markdown, and inline actions (Publish / Unpublish / Edit). It follows your console’s look-and-feel and supports keyboard + ESC to close.
+
+🧩 Side Drawer Preview (Articles)
+HTML
+<!-- Trigger example (row action) -->
+<!-- <button class="row-preview-btn" data-article-id="a_101">👁️</button> -->
+
+<!-- DRAWER BACKDROP -->
+<div id="article-drawer-backdrop" class="drawer-backdrop" hidden></div>
+
+<!-- DRAWER -->
+<aside id="article-drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" hidden>
+  <header class="drawer-header">
+    <div class="drawer-title-wrap">
+      <div id="tenant-badge" class="tenant-badge">PUBLIC</div>
+      <h3 id="drawer-title">Preview</h3>
+      <div id="menu-badge" class="menu-badge">Disaster Planning</div>
+    </div>
+    <button id="drawer-close" class="icon-btn" aria-label="Close">✖</button>
+  </header>
+
+  <div id="drawer-scroll" class="drawer-body" tabindex="0">
+    <!-- LOADING -->
+    <div id="drawer-loading" class="drawer-loading">
+      <div class="spinner" aria-hidden="true"></div>
+      <div>Loading preview…</div>
+    </div>
+
+    <!-- ERROR -->
+    <div id="drawer-error" class="drawer-error" hidden>
+      <strong>Unable to load.</strong>
+      <div id="drawer-error-msg" class="muted">Please try again.</div>
+    </div>
+
+    <!-- CONTENT -->
+    <article id="drawer-article" class="drawer-article" hidden>
+      <h1 id="drawer-article-title" class="drawer-article-title"></h1>
+      <div class="meta">
+        <span id="drawer-author" class="muted"></span>
+        <span>•</span>
+        <span id="drawer-published" class="muted"></span>
+        <span id="drawer-status" class="badge badge-status">Published</span>
+      </div>
+
+      <img id="drawer-image" class="feature-image" alt="" hidden>
+
+      <div id="drawer-html" class="content-html"></div>
+    </article>
+  </div>
+
+  <footer class="drawer-footer">
+    <div class="left">
+      <a id="drawer-view-live" class="btn ghost" href="#" target="_blank" rel="noopener">Open Live</a>
+      <a id="drawer-view-preview" class="btn ghost" href="#" target="_blank" rel="noopener">Open Preview</a>
+    </div>
+    <div class="right">
+      <button id="drawer-unpublish" class="btn ghost" hidden>Unpublish</button>
+      <button id="drawer-publish" class="btn primary" hidden>Publish</button>
+      <button id="drawer-edit" class="btn ghost">Edit</button>
+    </div>
+  </footer>
+</aside>
+
+CSS
+.drawer-backdrop{position:fixed;inset:0;background:rgba(3,7,18,.48);z-index:60}
+.drawer{
+  position:fixed;top:0;right:0;height:100vh;width:min(880px,94vw);background:#fff;z-index:70;
+  display:flex;flex-direction:column;border-left:1px solid #E5EAF2;box-shadow:-16px 0 48px rgba(16,24,40,.16);
+  transform:translateX(100%);opacity:0;transition:transform .22s ease, opacity .22s ease;border-top-left-radius:12px;border-bottom-left-radius:12px
+}
+.drawer.open{transform:translateX(0);opacity:1}
+.drawer-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #EEF1F5}
+.drawer-title-wrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tenant-badge,.menu-badge{padding:4px 8px;border-radius:999px;font-size:12px;font-weight:600}
+.tenant-badge{background:#E9F2FF;color:#0D6EFD}
+.menu-badge{background:#EEF1F5;color:#374151}
+.icon-btn{background:transparent;border:0;color:#667085;cursor:pointer;font-size:16px}
+.icon-btn:hover{color:#1F6FEB}
+.drawer-body{padding:16px 16px 0;overflow:auto;outline:none}
+.drawer-loading,.drawer-error{display:flex;align-items:center;gap:10px;padding:20px}
+.spinner{width:18px;height:18px;border-radius:50%;border:3px solid #E5EAF2;border-left-color:#1F6FEB;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.muted{color:#6B7280}
+.drawer-article-title{margin:8px 0 4px 0}
+.meta{display:flex;gap:8px;align-items:center;margin-bottom:12px;color:#6B7280}
+.feature-image{width:100%;height:auto;border-radius:10px;border:1px solid #E5EAF2;margin:8px 0 12px}
+.content-html{line-height:1.6;color:#1F2937}
+.content-html h1,.content-html h2,.content-html h3{margin:14px 0 8px}
+.content-html ul{margin:8px 0 8px 18px}
+.content-html code{background:#F3F4F6;border-radius:6px;padding:2px 6px}
+.badge-status{background:#E8F6EE;color:#1B7F3B;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:600}
+.badge-status.draft{background:#E5E7EB;color:#374151}
+.badge-status.scheduled{background:#FFF4E5;color:#AD7A00}
+.drawer-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-top:1px solid #EEF1F5;background:#fff}
+.btn{border-radius:10px;padding:10px 14px;border:1px solid #CBD2E0;background:#fff;color:#344054;cursor:pointer}
+.btn:hover{background:#F6F8FB}
+.btn.primary{background:#1F6FEB;color:#fff;border-color:transparent}
+.btn.primary:hover{background:#195BD2}
+@media (max-width:920px){.drawer{width:100vw}}
+
+JS (open/close, fetch, sanitize, actions)
+<script>
+// Minimal sanitizer (blocks scripts & inline handlers)
+function sanitizeHTML(html=''){
+  const div = document.createElement('div'); div.innerHTML = html;
+  // remove <script> and event handlers
+  div.querySelectorAll('script, iframe[sandbox="allow-scripts"]').forEach(n=>n.remove());
+  div.querySelectorAll('*').forEach(el=>{
+    [...el.attributes].forEach(a=>{
+      if(/^on/i.test(a.name)) el.removeAttribute(a.name);
+      if(a.name==='style' && /expression|url\(/i.test(a.value)) el.removeAttribute('style');
+    });
+  });
+  return div.innerHTML;
+}
+
+// Drawer elements
+const drawer = document.getElementById('article-drawer');
+const backdrop = document.getElementById('article-drawer-backdrop');
+const closeBtn = document.getElementById('drawer-close');
+const bodyEl = document.getElementById('drawer-scroll');
+
+const loading = document.getElementById('drawer-loading');
+const errorBox = document.getElementById('drawer-error');
+const errorMsg = document.getElementById('drawer-error-msg');
+const articleWrap = document.getElementById('drawer-article');
+
+const titleEl = document.getElementById('drawer-article-title');
+const authorEl = document.getElementById('drawer-author');
+const publishedEl = document.getElementById('drawer-published');
+const statusBadge = document.getElementById('drawer-status');
+const imageEl = document.getElementById('drawer-image');
+const htmlEl = document.getElementById('drawer-html');
+
+const tenantBadge = document.getElementById('tenant-badge');
+const menuBadge = document.getElementById('menu-badge');
+
+const btnPublish = document.getElementById('drawer-publish');
+const btnUnpublish = document.getElementById('drawer-unpublish');
+const btnEdit = document.getElementById('drawer-edit');
+const linkLive = document.getElementById('drawer-view-live');
+const linkPreview = document.getElementById('drawer-view-preview');
+
+let lastFocus = null;
+let currentId = null;
+
+// Open/Close
+function openDrawer(){ backdrop.hidden=false; drawer.hidden=false; requestAnimationFrame(()=>drawer.classList.add('open')); bodyEl.focus(); }
+function closeDrawer(){ drawer.classList.remove('open'); setTimeout(()=>{backdrop.hidden=true; drawer.hidden=true;}, 200); if(lastFocus) lastFocus.focus(); }
+
+backdrop.addEventListener('click', closeDrawer);
+closeBtn.addEventListener('click', closeDrawer);
+document.addEventListener('keydown', (e)=>{ if(!drawer.hidden && e.key==='Escape') closeDrawer(); });
+
+// Attach to preview buttons (delegate)
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('.row-actions button, .row-preview-btn');
+  if(!btn) return;
+  if(btn.getAttribute('aria-label')?.toLowerCase().includes('preview') || btn.classList.contains('row-preview-btn')){
+    const tr = btn.closest('tr');
+    if(!tr) return;
+    lastFocus = btn;
+    loadPreview(tr.dataset.id);
+  }
+});
+
+async function loadPreview(id){
+  currentId = id;
+  // Reset UI
+  loading.hidden=false; errorBox.hidden=true; articleWrap.hidden=true;
+  tenantBadge.textContent=''; menuBadge.textContent='';
+  titleEl.textContent=''; authorEl.textContent=''; publishedEl.textContent='';
+  statusBadge.className='badge badge-status'; statusBadge.textContent='';
+  imageEl.hidden=true; imageEl.src='';
+  htmlEl.innerHTML='';
+
+  openDrawer();
+
+  try{
+    // Replace with your real API endpoint:
+    // const res = await fetch(`/api/admin/content/${id}/preview`);
+    // const data = await res.json();
+
+    // Demo payload (remove in production)
+    const data = window.__ARTICLE_DEMO__?.[id] || {
+      id, tenant:'PUBLIC', menu_category:'Disaster Planning', title:'Example Title',
+      status:'published', author:'Admin', published_at:'2025-08-20 10:00',
+      url:'/articles/example', preview_url:`/preview/${id}?token=XYZ`,
+      image:null,
+      html:'<h2>Intro</h2><p>This is a preview block. <strong>All sanitised.</strong></p><ul><li>One</li><li>Two</li></ul>'
+    };
+
+    tenantBadge.textContent = data.tenant || 'PUBLIC';
+    menuBadge.textContent = data.menu_category || '—';
+
+    titleEl.textContent = data.title || '(Untitled)';
+    authorEl.textContent = data.author ? `By ${data.author}` : '—';
+    publishedEl.textContent = data.published_at || 'Not published';
+    statusBadge.textContent = (data.status||'').charAt(0).toUpperCase()+ (data.status||'').slice(1);
+    statusBadge.classList.toggle('draft', data.status==='draft');
+    statusBadge.classList.toggle('scheduled', data.status==='scheduled');
+
+    if(data.image){ imageEl.src = data.image; imageEl.hidden=false; }
+    htmlEl.innerHTML = sanitizeHTML(data.html || '');
+
+    linkLive.href = data.url || '#';
+    linkPreview.href = data.preview_url || '#';
+
+    btnPublish.hidden = !(data.status==='draft' || data.status==='scheduled');
+    btnUnpublish.hidden = !(data.status==='published');
+    btnEdit.onclick = ()=> { /* open edit modal with id */ document.getElementById('open-article-modal')?.click(); };
+
+    loading.hidden=true; articleWrap.hidden=false;
+  }catch(err){
+    loading.hidden=true; errorBox.hidden=false;
+    errorMsg.textContent = err?.message || 'Unknown error';
+  }
+}
+
+// Actions (Publish / Unpublish)
+btnPublish.addEventListener('click', async ()=>{
+  if(!currentId) return;
+  // await fetch(`/api/admin/content/${currentId}/publish`, {method:'POST'});
+  statusBadge.textContent='Published';
+  statusBadge.classList.remove('draft','scheduled');
+  btnPublish.hidden=true; btnUnpublish.hidden=false;
+  publishedEl.textContent = new Date().toISOString().slice(0,16).replace('T',' ');
+  // Optional: update row in table
+  const row = document.querySelector(`tr[data-id="${currentId}"]`);
+  if(row){ row.dataset.status='published'; row.children[6].querySelector('.badge').className='badge badge-status-published'; row.children[6].querySelector('.badge').textContent='Published'; row.children[5].textContent=publishedEl.textContent; }
+});
+
+btnUnpublish.addEventListener('click', async ()=>{
+  if(!currentId) return;
+  // await fetch(`/api/admin/content/${currentId}/unpublish`, {method:'POST'});
+  statusBadge.textContent='Draft';
+  statusBadge.classList.add('draft'); statusBadge.classList.remove('scheduled');
+  btnPublish.hidden=false; btnUnpublish.hidden=true;
+  publishedEl.textContent = '—';
+  const row = document.querySelector(`tr[data-id="${currentId}"]`);
+  if(row){ row.dataset.status='draft'; row.children[6].querySelector('.badge').className='badge badge-status-draft'; row.children[6].querySelector('.badge').textContent='Draft'; row.children[5].textContent='—'; }
+});
+</script>
+
+How to wire it
+
+Add the drawer HTML/CSS/JS once to your Content page.
+
+Ensure your Preview buttons in the table have an accessible label (e.g., aria-label="Preview"), or add the helper class .row-preview-btn.
+
+Implement an endpoint like GET /api/admin/content/:id/preview returning:
+
+tenant, menu_category, title, status (draft|scheduled|published), author, published_at, url, preview_url, image, html (pre-rendered Markdown, already sanitized server-side if possible).
+
+Optional: set window.__ARTICLE_DEMO__ = { a_101: { … } } during development to see the drawer without a backend.
+
+Brief legal/ops notes (keeping my lawyer hat on)
+
+Preview vs Live: make preview URLs tokenized and short-lived; never leak drafts publicly.
+
+Sanitization: you’re stripping scripts/handlers client-side; also sanitize on the server before storing or returning HTML. Defense-in-depth.
+
+Audit trail: record publish/unpublish actions initiated from this drawer (who, when, from which IP).
