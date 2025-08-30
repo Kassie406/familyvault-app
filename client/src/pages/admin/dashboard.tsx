@@ -2420,7 +2420,7 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Select defaultValue="ALL">
-                        <SelectTrigger className="w-[140px] bg-[#1E232A] text-[#E8EEF7] border-[#2B313A] hover:bg-[#1F2937] hover:text-white hover:border-[#4B5563] focus:bg-[#1F2937] focus:text-white" data-testid="filter-tenant">
+                        <SelectTrigger className="w-[140px] bg-[#1E232A] text-white border-[#2B313A] hover:bg-[#374151] hover:text-white hover:border-[#4B5563] focus:bg-[#374151] focus:text-white" data-testid="filter-tenant">
                           <SelectValue placeholder="Tenant" />
                         </SelectTrigger>
                         <SelectContent>
@@ -2431,7 +2431,7 @@ export default function AdminDashboard() {
                         </SelectContent>
                       </Select>
                       <Select defaultValue="ALL">
-                        <SelectTrigger className="w-[180px] bg-[#1E232A] text-[#E8EEF7] border-[#2B313A] hover:bg-[#1F2937] hover:text-white hover:border-[#4B5563] focus:bg-[#1F2937] focus:text-white" data-testid="filter-menu-category">
+                        <SelectTrigger className="w-[180px] bg-[#1E232A] text-white border-[#2B313A] hover:bg-[#374151] hover:text-white hover:border-[#4B5563] focus:bg-[#374151] focus:text-white" data-testid="filter-menu-category">
                           <SelectValue placeholder="Menu Category" />
                         </SelectTrigger>
                         <SelectContent>
@@ -2465,7 +2465,7 @@ export default function AdminDashboard() {
                         </SelectContent>
                       </Select>
                       <Select defaultValue="all">
-                        <SelectTrigger className="w-[130px] bg-[#1E232A] text-[#E8EEF7] border-[#2B313A] hover:bg-[#1F2937] hover:text-white hover:border-[#4B5563] focus:bg-[#1F2937] focus:text-white" data-testid="filter-status">
+                        <SelectTrigger className="w-[130px] bg-[#1E232A] text-white border-[#2B313A] hover:bg-[#374151] hover:text-white hover:border-[#4B5563] focus:bg-[#374151] focus:text-white" data-testid="filter-status">
                           <SelectValue placeholder="Status" />
                         </SelectTrigger>
                         <SelectContent>
