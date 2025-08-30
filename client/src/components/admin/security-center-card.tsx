@@ -165,7 +165,7 @@ export default function SecurityCenterCard() {
                   Enable 2FA for all admin accounts to improve security
                 </p>
               </div>
-              <Button size="sm" variant="outline">
+              <Button size="sm" variant="outline" className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors">
                 Configure 2FA
               </Button>
             </div>
@@ -182,7 +182,7 @@ export default function SecurityCenterCard() {
                   Consider restricting admin access to trusted IP addresses
                 </p>
               </div>
-              <Button size="sm" variant="outline">
+              <Button size="sm" variant="outline" className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors">
                 Configure IPs
               </Button>
             </div>
@@ -199,7 +199,7 @@ export default function SecurityCenterCard() {
                   {metrics.failedLogins24h} failed login attempts in the last 24 hours
                 </p>
               </div>
-              <Button size="sm" variant="outline">
+              <Button size="sm" variant="outline" className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors">
                 View Logs
               </Button>
             </div>
@@ -222,15 +222,15 @@ export default function SecurityCenterCard() {
 
         {/* Quick Actions */}
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button size="sm" variant="outline">
+          <Button size="sm" variant="outline" className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors">
             <Clock className="w-4 h-4 mr-1" />
             View Session History
           </Button>
-          <Button size="sm" variant="outline">
+          <Button size="sm" variant="outline" className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors">
             <Users className="w-4 h-4 mr-1" />
             Manage Admin Users
           </Button>
-          <Button size="sm" variant="outline">
+          <Button size="sm" variant="outline" className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors">
             <Key className="w-4 h-4 mr-1" />
             Rotate API Keys
           </Button>
