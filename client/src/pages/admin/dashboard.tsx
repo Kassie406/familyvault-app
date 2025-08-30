@@ -2026,28 +2026,61 @@ export default function AdminDashboard() {
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden fade-in">
                 <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <Select defaultValue="all">
-                        <SelectTrigger className="w-[180px]" data-testid="filter-category">
-                          <SelectValue placeholder="Filter by category" />
+                    <div className="flex items-center gap-3">
+                      <Select defaultValue="ALL">
+                        <SelectTrigger className="w-[140px]" data-testid="filter-tenant">
+                          <SelectValue placeholder="Tenant" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">All Categories</SelectItem>
-                          <SelectItem value="onboarding">Onboarding</SelectItem>
-                          <SelectItem value="support">Support</SelectItem>
+                          <SelectItem value="ALL">All Tenants</SelectItem>
+                          <SelectItem value="PUBLIC">Public</SelectItem>
+                          <SelectItem value="FAMILY">Family</SelectItem>
+                          <SelectItem value="STAFF">Staff</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select defaultValue="ALL">
+                        <SelectTrigger className="w-[180px]" data-testid="filter-menu-category">
+                          <SelectValue placeholder="Menu Category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ALL">All Menu Categories</SelectItem>
+                          <SelectItem value="">No Menu Category</SelectItem>
+                          <SelectItem value="Child Information">Child Information</SelectItem>
+                          <SelectItem value="Disaster Planning">Disaster Planning</SelectItem>
+                          <SelectItem value="Elderly Parents">Elderly Parents</SelectItem>
+                          <SelectItem value="Estate Planning">Estate Planning</SelectItem>
+                          <SelectItem value="Getting Married">Getting Married</SelectItem>
+                          <SelectItem value="Home Buying">Home Buying</SelectItem>
+                          <SelectItem value="International Travel">International Travel</SelectItem>
+                          <SelectItem value="Starting a Family">Starting a Family</SelectItem>
+                          <SelectItem value="Moving">Moving</SelectItem>
+                          <SelectItem value="When Someone Dies">When Someone Dies</SelectItem>
+                          <SelectItem value="Digital Security">Digital Security</SelectItem>
+                          <SelectItem value="Neurodiversity">Neurodiversity</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select defaultValue="all">
+                        <SelectTrigger className="w-[160px]" data-testid="filter-category">
+                          <SelectValue placeholder="Content Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Types</SelectItem>
                           <SelectItem value="announcements">Announcements</SelectItem>
+                          <SelectItem value="support">Support</SelectItem>
+                          <SelectItem value="onboarding">Onboarding</SelectItem>
                           <SelectItem value="blog">Blog</SelectItem>
                           <SelectItem value="other">Other</SelectItem>
                         </SelectContent>
                       </Select>
                       <Select defaultValue="all">
-                        <SelectTrigger className="w-[140px]" data-testid="filter-status">
+                        <SelectTrigger className="w-[130px]" data-testid="filter-status">
                           <SelectValue placeholder="Status" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Status</SelectItem>
                           <SelectItem value="published">Published</SelectItem>
                           <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="scheduled">Scheduled</SelectItem>
                           <SelectItem value="archived">Archived</SelectItem>
                         </SelectContent>
                       </Select>
@@ -2094,6 +2127,7 @@ export default function AdminDashboard() {
                           <input type="checkbox" className="rounded" data-testid="checkbox-select-all" />
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Menu Category</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Author</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Published</th>
@@ -2114,6 +2148,15 @@ export default function AdminDashboard() {
                             <div className="text-sm text-gray-500 truncate max-w-xs" data-testid={`text-article-content-${article.id}`}>
                               {article.content?.substring(0, 60)}...
                             </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge 
+                              variant="secondary" 
+                              className="bg-emerald-50 text-emerald-700 border-emerald-200"
+                              data-testid={`badge-menu-category-${article.id}`}
+                            >
+                              {article.menuCategory || '—'}
+                            </Badge>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <Badge variant="outline" data-testid={`badge-category-${article.id}`}>
@@ -2283,6 +2326,37 @@ export default function AdminDashboard() {
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+
+                    {/* Menu Category Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="menuCategory">Menu Category</Label>
+                        <Select name="menuCategory" defaultValue={editingArticle?.menuCategory || ''}>
+                          <SelectTrigger data-testid="select-article-menu-category">
+                            <SelectValue placeholder="Select menu category (optional)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">No Menu Category</SelectItem>
+                            <SelectItem value="Child Information">Child Information</SelectItem>
+                            <SelectItem value="Disaster Planning">Disaster Planning</SelectItem>
+                            <SelectItem value="Elderly Parents">Elderly Parents</SelectItem>
+                            <SelectItem value="Estate Planning">Estate Planning</SelectItem>
+                            <SelectItem value="Getting Married">Getting Married</SelectItem>
+                            <SelectItem value="Home Buying">Home Buying</SelectItem>
+                            <SelectItem value="International Travel">International Travel</SelectItem>
+                            <SelectItem value="Starting a Family">Starting a Family</SelectItem>
+                            <SelectItem value="Moving">Moving</SelectItem>
+                            <SelectItem value="When Someone Dies">When Someone Dies</SelectItem>
+                            <SelectItem value="Digital Security">Digital Security</SelectItem>
+                            <SelectItem value="Neurodiversity">Neurodiversity</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Link this article to your website's mega menu navigation.
+                        </p>
+                      </div>
+                      <div className="md:col-span-2"></div>
                     </div>
 
                     {/* Audience & Status Row */}
