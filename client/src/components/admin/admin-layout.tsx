@@ -74,7 +74,7 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
       {/* Impersonation Banner */}
       <ImpersonationBanner />
       
-      <div className="min-h-screen bg-gray-100 flex">
+      <div className="min-h-screen bg-[#F8F9FA] flex">
         {/* Dark Sidebar */}
       <div className="w-72 bg-[#1C1C1C] text-[#F8F9FA] flex flex-col">
         {/* Logo Header */}
