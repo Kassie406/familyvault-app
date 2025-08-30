@@ -1,0 +1,147 @@
+to take Feature Flags from “works” to clear + reliable (and fix the visual issues you’re seeing).
+
+What I notice (from your screenshot)
+
+The whole card is dark-on-dark; labels like Key / Name / Rollout / Force / Status / Updated are low-contrast.
+
+Hover likely has the same “pitch-black” bug we fixed elsewhere.
+
+“Invalid Date” in Updated suggests you’re feeding a null/undefined/invalid timestamp.
+
+The Force column shows a “—” (unclear). If it’s Off, say Off; if overridden, show On, User, Group, etc., not a dash.
+
+Action icon (✏️) sits in a dark circle → low discoverability.
+
+UI/UX structure that works well
+A) Light container + clear table
+<div class="card flags">
+  <div class="flags-header">
+    <div class="filters">
+      <button class="filter-btn">All Envs ▾</button>
+      <button class="filter-btn">All Status ▾</button>
+      <button class="filter-btn">All Owners ▾</button>
+    </div>
+    <div class="actions">
+      <input class="search" placeholder="Search flags…">
+      <button class="btn primary">+ New Flag</button>
+    </div>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Key</th>
+        <th>Name</th>
+        <th>Rollout</th>
+        <th>Force</th>
+        <th>Status</th>
+        <th>Updated</th>
+        <th class="col-actions">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr data-id="ff_new_billing_ui">
+        <td><code>new-billing-ui</code></td>
+        <td>New Billing UI</td>
+        <td>
+          <input type="range" min="0" max="100" value="25" class="rollout">
+          <span class="pct">25%</span>
+        </td>
+        <td><span class="badge badge-force">Off</span></td>
+        <td><span class="badge badge-status-active">Active</span></td>
+        <td><time datetime="2025-08-19T22:15:00Z" title="2025-08-19 22:15 UTC">2d ago</time></td>
+        <td class="col-actions">
+          <button class="icon" aria-label="Targeting rules">🎯</button>
+          <button class="icon" aria-label="Edit flag">✏️</button>
+          <button class="icon danger" aria-label="Kill switch">⛔</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+B) Styles (fix the “pitch-black” hover + contrast)
+/* Container */
+.card.flags{background:#fff;border:1px solid #E5EAF2;border-radius:14px;padding:12px;box-shadow:0 2px 12px rgba(16,24,40,.06)}
+
+/* Filters */
+.flags-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}
+.filters{display:flex;gap:8px}
+.filter-btn{background:#111827;color:#F9FAFB;border:1px solid #1F2937;border-radius:12px;padding:10px 14px}
+.filter-btn:hover,.filter-btn:focus,.filter-btn[aria-expanded="true"]{background:#1F2937;color:#fff}
+
+/* Search + New Flag */
+.search{border:1px solid #D7DEE8;border-radius:12px;padding:10px 12px;width:260px}
+.btn.primary{background:#F4B400;color:#111;border:0;border-radius:12px;padding:10px 14px}
+
+/* Table */
+.table thead th{background:#F9FAFB;border-bottom:1px solid #E5EAF2;padding:12px 16px;color:#111827}
+.table td{padding:12px 16px;border-bottom:1px solid #F2F4F8;color:#1F2937}
+.table tbody tr:hover{background:#F7FAFF}
+
+/* Badges */
+.badge{padding:3px 8px;border-radius:999px;font-size:12px;font-weight:600;display:inline-block}
+.badge-status-active{background:#E8F6EE;color:#1B7F3B}
+.badge-status-paused{background:#FFF4E5;color:#AD7A00}
+.badge-status-archived{background:#E5E7EB;color:#374151}
+.badge-force{background:#EEF1F5;color:#374151}
+
+/* Actions */
+.col-actions{width:180px;text-align:right;white-space:nowrap}
+.icon{background:#fff;border:1px solid #D7DEE8;border-radius:10px;padding:8px;margin-left:6px;cursor:pointer}
+.icon:hover{background:#EEF3FF;border-color:#BFD3FF}
+.icon.danger:hover{background:#FEECEC;border-color:#F3C3C3}
+
+Targeting Drawer (what opens on 🎯)
+
+Environments tabs: Prod / Staging / Dev.
+
+Rules builder:
+
+IF user.email endsWith @familycirclesecure.com → On
+
+IF user.tenant = Family → On
+
+else → Percentage rollout 25% (hash by user.id)
+
+Preview tester: paste a user ID/email, see on/off.
+
+Schedule: start/stop times, timebox a test.
+
+Kill switch: big red Disable in Prod button.
+
+Data / API quick wins
+
+“Invalid Date”: ensure you always return ISO 8601 from API.
+
+If updatedAt is null, show — and set <time hidden>.
+
+Rollout slider: debounce update → PATCH /feature-flags/:id { rollout: 25 }.
+
+Status values: active | paused | archived. Avoid dashes.
+
+Force values: Off | On | User | Group | Env. If User/Group, show a count tooltip.
+
+Governance (lawyer hat on, short + practical)
+
+Audit trail (tamper-evident): who changed rollout/targeting, before→after, timestamp, env.
+
+RBAC: only Approvers can toggle in Prod; Editors can modify rules in Staging/Dev.
+
+Kill switch in prod must be one click, logged, and not rate-limited.
+
+PII in rules: if you target by email or household attributes, document purpose + retention; prefer opaque traits (user.segment=family) over raw PII where possible.
+
+Bug-fix snippets
+1) Guard the Updated column
+function fmtUpdated(dt){
+  if(!dt) return '—';
+  const d = new Date(dt);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
+}
+
+2) Stop global “black hover” from leaking in
+/* Scoped hard override just for the dark pills */
+.flags .filter-btn:hover{background:#1F2937 !important;color:#fff !important}
+.flags .dropdown-menu{background:#0B1220;color:#F3F4F6;border:1px solid #1F2937;border-radius:12px}
+.flags .dropdown-item:hover{background:#1F2937;color:#fff}
