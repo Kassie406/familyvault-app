@@ -1,0 +1,118 @@
+let’s add the Coupons Table so once you create coupons via the modal, admins see and manage them easily. This will match your Subscription Plans table style.
+
+🎟️ Coupons Table (Admin View)
+HTML
+<section class="coupons">
+  <div class="card">
+    <table class="table" id="coupons-table">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Type</th>
+          <th>Value</th>
+          <th>Applies To</th>
+          <th>Usage</th>
+          <th>Expiration</th>
+          <th>Status</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Example Row 1 -->
+        <tr>
+          <td><strong>WELCOME10</strong></td>
+          <td><span class="badge">Percent</span></td>
+          <td>10% off</td>
+          <td>All Plans</td>
+          <td>143 / ∞</td>
+          <td>12/31/2025</td>
+          <td><span class="badge badge-status-active">Active</span></td>
+          <td class="col-actions">
+            <div class="row-actions">
+              <button aria-label="Edit" data-tip="Edit">✏️</button>
+              <button aria-label="Disable" data-tip="Disable">🚫</button>
+              <button aria-label="Duplicate" data-tip="Duplicate">🧬</button>
+              <button aria-label="Archive" data-tip="Archive">📦</button>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Example Row 2 -->
+        <tr>
+          <td><strong>FREE3MO</strong></td>
+          <td><span class="badge">Trial</span></td>
+          <td>3 months free</td>
+          <td>Gold + Silver</td>
+          <td>87 / 500</td>
+          <td>06/30/2025</td>
+          <td><span class="badge badge-status-active">Active</span></td>
+          <td class="col-actions">
+            <div class="row-actions">
+              <button aria-label="Edit" data-tip="Edit">✏️</button>
+              <button aria-label="Disable" data-tip="Disable">🚫</button>
+              <button aria-label="Duplicate" data-tip="Duplicate">🧬</button>
+              <button aria-label="Archive" data-tip="Archive">📦</button>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Example Row 3 -->
+        <tr>
+          <td><strong>BETA2025</strong></td>
+          <td><span class="badge">Fixed</span></td>
+          <td>$5 off</td>
+          <td>Silver Only</td>
+          <td>23 / ∞</td>
+          <td>—</td>
+          <td><span class="badge badge-status-disabled">Disabled</span></td>
+          <td class="col-actions">
+            <div class="row-actions">
+              <button aria-label="Edit" data-tip="Edit">✏️</button>
+              <button aria-label="Enable" data-tip="Enable">✅</button>
+              <button aria-label="Duplicate" data-tip="Duplicate">🧬</button>
+              <button aria-label="Archive" data-tip="Archive">📦</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="table-foot">Showing 3 coupons</div>
+  </div>
+</section>
+
+CSS (reusing your table styles)
+.table{width:100%;border-collapse:separate;border-spacing:0}
+.table thead th{padding:12px 16px;text-align:left;border-bottom:1px solid #E5EAF2;background:#F9FAFB;font-weight:600;color:#111827}
+.table td{padding:12px 16px;border-bottom:1px solid #F0F3F8;color:#1F2937}
+.table tbody tr:hover{background:#F7FAFF}
+.table-foot{padding:10px 16px;color:#6B7280}
+
+.badge{padding:3px 8px;border-radius:9999px;font-size:12px;font-weight:600;display:inline-block}
+.badge-status-active{background:#E8F6EE;color:#1B7F3B}
+.badge-status-disabled{background:#FEE2E2;color:#991B1B}
+.badge-status-expired{background:#E5E7EB;color:#374151}
+
+.col-actions{width:200px;text-align:right;white-space:nowrap}
+.row-actions button{padding:6px;border-radius:8px;background:transparent;border:0;color:#667085;margin-left:6px;cursor:pointer;transition:.15s}
+.row-actions button:hover{background:#EEF3FF;color:#1F6FEB}
+.row-actions button[data-tip]{position:relative}
+.row-actions button[data-tip]::after{
+  content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);right:0;background:#111827;color:#fff;
+  font-size:12px;padding:6px 8px;border-radius:6px;white-space:nowrap;opacity:0;transform:translateY(4px);
+  pointer-events:none;transition:opacity .15s, transform .15s}
+.row-actions button:hover[data-tip]::after{opacity:1;transform:translateY(0)}
+
+Features you get
+
+Coupon Types: Percent, Fixed, Trial → color-coded badges.
+
+Usage column: shows redemptions (used / max).
+
+Expiration: displays date or — if none.
+
+Status badges: Active (green), Disabled (red), Expired (gray).
+
+Actions: Edit, Disable/Enable, Duplicate, Archive → always visible, hover highlights, tooltips.
+
+✅ This table + your modal = full coupon lifecycle management.
+Next step could be to add quick filters (Active / Expired / Disabled) at the top, just like you did with “Client / Family / Staff” for plans.

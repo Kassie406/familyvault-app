@@ -1,0 +1,82 @@
+, let’s polish your Coupons tab 🚀
+
+Right now, you’ve got a black card with “No Coupons Yet” and a Create Coupon button. It’s consistent with the other tabs, but it feels a bit empty and doesn’t give admins much context. Here’s how we can improve:
+
+✅ What’s Good
+
+Consistent empty state structure.
+
+Bright Create Coupon button (yellow stands out nicely).
+
+Clear CTA: “Create your first promotional coupon.”
+
+⚖️ Improvements
+1. Lighten Empty State
+
+Right now, the dark background looks disconnected from your other polished sections (like Users & Subscription Plans).
+
+Suggestion: use a white or light card with subtle border/shadow (like in Subscription Plans table).
+
+Keep the icon (🎟️ ticket) but center it in a softer style.
+
+2. Explain Coupon Use
+
+Add a short explainer for admins so they know what coupons can do. For example:
+
+“Coupons let you offer discounts on subscription plans. Apply them globally or restrict to specific plans. Set fixed or percentage discounts with optional expiration dates.”
+
+This educates new admins.
+
+3. Coupon Table (Once Coupons Exist)
+
+When coupons are created, show them in a structured table:
+
+Code	Discount	Applies To	Expiration	Uses	Status	Actions
+WELCOME10	10% off	All plans	12/31/2025	143	Active	Edit / Disable
+FREE3MO	Free 3 mo	Gold & Silver	06/30/2025	87	Active	Edit / Disable
+BETA2025	$5 off	Silver only	No expiration	23	Expired	Archive
+4. Create Coupon Modal
+
+When you click + Create Coupon, open a modal with fields:
+
+Code (auto-generate option)
+
+Type: Percentage | Fixed amount | Free trial
+
+Value: (10%, $5, 1 month free)
+
+Applies To: All Plans | Specific Plans (multi-select)
+
+Max Uses: (optional)
+
+Expiration Date: (optional)
+
+Status: Active / Inactive
+
+⚡ This mirrors Stripe’s coupon structure and keeps you flexible.
+
+5. Visuals for Coupons
+
+Add badges for discount type:
+
+% for percentage
+
+$ for fixed amount
+
+🎁 for free trial
+
+Color-code status:
+
+Active → Green
+
+Expired → Gray
+
+Disabled → Red
+
+🔑 Suggested Empty-State Layout
+<div class="empty-state">
+  <div class="icon">🎟️</div>
+  <h3>No Coupons Yet</h3>
+  <p>Coupons help you offer discounts and promotions on subscription plans. Create one to get started.</p>
+  <button class="btn primary">+ Create Coupon</button>
+</div>
