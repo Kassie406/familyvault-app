@@ -1,0 +1,107 @@
+1) Hover turns pitch-black on the Tenant filter
+
+Diagnosis: that chip/button is inheriting a global .btn:hover { background:#000; } (or a darkening mixin/utility). Override it with a specific class.
+
+Fix (plain CSS)
+/* The chip/button itself */
+.tenant-filter {
+  background:#1E232A;           /* base dark slate */
+  color:#E8EEF7;
+  border:1px solid #2B313A;
+  box-shadow: 0 2px 6px rgba(0,0,0,.15);
+  transition: background .2s, color .2s, border-color .2s;
+  border-radius: 9999px;         /* pill */
+}
+
+/* Hover – do NOT darken to black */
+.tenant-filter:hover,
+.tenant-filter:focus-visible {
+  background:#1F6FEB;            /* electric blue (or your primary) */
+  color:#FFF;
+  border-color:#1F6FEB;
+}
+
+/* When menu is open */
+.tenant-filter[aria-expanded="true"] {
+  background:#1F6FEB;
+  color:#FFF;
+  border-color:#1F6FEB;
+}
+
+/* If a global .btn:hover is forcing black, neutralize it here */
+.btn.tenant-filter:hover { background:#1F6FEB !important; color:#FFF !important; }
+
+Dropdown panel + items (avoid black on hover)
+.tenant-menu {
+  background:#0F141A;            /* dark panel */
+  border:1px solid #2B313A;
+  box-shadow: 0 8px 24px rgba(0,0,0,.32);
+}
+.tenant-menu .menu-item {
+  color:#D5DDE7;
+}
+.tenant-menu .menu-item:hover,
+.tenant-menu .menu-item[aria-selected="true"] {
+  background:#1E2A3A;            /* soft blue-gray, not black */
+  color:#FFFFFF;
+}
+
+
+If you’re using Tailwind, give that chip a unique class and add !bg-[#1F6FEB] !text-white on hover to beat any global rule.
+
+2) Filter shows “Admin” (a role) instead of tenants
+
+You want Tenant filter = All Tenants | Public | Family | Staff. Right now your dropdown is sourcing from roles. Point it to the tenant field and (optionally) show counts.
+
+Example HTML
+<button class="btn tenant-filter" id="tenantFilter" aria-expanded="false">
+  <i class="i-filter"></i> <span data-current>All Tenants</span>
+</button>
+<div class="tenant-menu" id="tenantMenu" hidden>
+  <button class="menu-item" data-tenant="ALL">All Tenants</button>
+  <button class="menu-item" data-tenant="PUBLIC">Public</button>
+  <button class="menu-item" data-tenant="FAMILY">Family</button>
+  <button class="menu-item" data-tenant="STAFF">Staff</button>
+</div>
+
+Minimal JS (populate + filter rows)
+const rows = [...document.querySelectorAll('tr[data-tenant]')];
+const btn  = document.getElementById('tenantFilter');
+const menu = document.getElementById('tenantMenu');
+
+btn.addEventListener('click', () => {
+  const open = btn.getAttribute('aria-expanded') === 'true';
+  btn.setAttribute('aria-expanded', String(!open));
+  menu.hidden = open;
+});
+
+menu.addEventListener('click', (e) => {
+  const item = e.target.closest('.menu-item');
+  if (!item) return;
+  const key = item.dataset.tenant;            // ALL | PUBLIC | FAMILY | STAFF
+  document.querySelector('#tenantFilter [data-current]').textContent =
+    item.textContent.trim();
+
+  rows.forEach(r => {
+    const t = r.dataset.tenant;               // e.g., "PUBLIC"
+    r.hidden = (key !== 'ALL' && t !== key);
+  });
+
+  // close menu
+  btn.setAttribute('aria-expanded','false');
+  menu.hidden = true;
+});
+
+
+Ensure each row has data-tenant="PUBLIC" | "FAMILY" | "STAFF".
+Your Role pills stay independent (Admin, Manager, Client, etc.).
+
+Optional: show counts in the menu
+const counts = rows.reduce((a,r)=>{
+  const t=r.dataset.tenant; a[t]=(a[t]||0)+1; return a;
+}, {});
+menu.querySelectorAll('.menu-item').forEach(mi=>{
+  const k = mi.dataset.tenant;
+  if (k!=='ALL') mi.textContent = `${mi.textContent} (${counts[k]||0})`;
+  else mi.textContent = `All Tenants (${rows.length})`;
+});
