@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +37,8 @@ export default function AdminDashboard() {
   const [newCouponOpen, setNewCouponOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('overview');
   const [planScope, setPlanScope] = useState('PUBLIC');
+  const [planModalOpen, setPlanModalOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState(null);
 
   // Fetch admin data
   const { data: plans, isLoading: plansLoading } = useQuery({
@@ -93,6 +95,150 @@ export default function AdminDashboard() {
       toast({ title: 'Error creating coupon', variant: 'destructive' });
     }
   };
+
+  // Plan modal functionality
+  const handlePlanSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    const tenant = formData.get('tenant') as string;
+    const name = (formData.get('name') as string)?.trim();
+    
+    if (!name) {
+      toast({
+        title: "Error",
+        description: "Plan name is required.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const payload = {
+      tenant,
+      status: formData.get('status'),
+      name,
+      slug: formData.get('slug') || null,
+      description: formData.get('description') || null,
+      pricing: {
+        type: formData.get('pricing_type'),
+        amount: formData.get('amount') ? Number(formData.get('amount')) : null,
+        interval: formData.get('interval') || null,
+        billing_scheme: formData.get('billing_scheme'),
+        trial_days: formData.get('trial_days') ? Number(formData.get('trial_days')) : 0,
+        tax_behavior: formData.get('tax_behavior')
+      },
+      stripe: {
+        product_id: formData.get('stripe_product_id') || null,
+        price_id: formData.get('stripe_price_id') || null
+      },
+      features: Array.from(form.querySelectorAll('input[name="features[]"]'))
+        .map((input: any) => input.value.trim())
+        .filter(Boolean),
+      visibility: formData.get('visibility'),
+      sort: Number(formData.get('sort') || 0),
+      badge: formData.get('badge') || null
+    };
+
+    // Validation for billable plans
+    const needsStripe = (tenant === 'PUBLIC' && payload.pricing.type === 'fixed');
+    if (needsStripe && (!payload.pricing.amount || !payload.pricing.interval)) {
+      toast({
+        title: "Error",
+        description: "Amount and interval are required for a fixed-price client plan.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    console.log('Plan payload:', payload);
+    toast({
+      title: "Success",
+      description: "Plan would be saved successfully!",
+    });
+    setPlanModalOpen(false);
+  };
+
+  const updateBillingVisibility = () => {
+    setTimeout(() => {
+      const tenantSelect = document.getElementById('tenant') as HTMLSelectElement;
+      const pricingTypeSelect = document.getElementById('pricing_type') as HTMLSelectElement;
+      const billableElements = document.querySelectorAll('.billable-only');
+      
+      if (tenantSelect && pricingTypeSelect) {
+        const selectedOption = tenantSelect.selectedOptions[0];
+        const noBillingTenant = selectedOption?.getAttribute('data-nobilling') === 'true';
+        const pricingType = pricingTypeSelect.value;
+        const isBillable = !noBillingTenant && pricingType === 'fixed';
+        
+        billableElements.forEach((element: HTMLElement) => {
+          const inputs = element.querySelectorAll('input, select');
+          if (isBillable) {
+            element.style.opacity = '1';
+            inputs.forEach((input: HTMLInputElement | HTMLSelectElement) => {
+              input.disabled = false;
+            });
+          } else {
+            element.style.opacity = '0.5';
+            inputs.forEach((input: HTMLInputElement | HTMLSelectElement) => {
+              input.disabled = true;
+            });
+          }
+        });
+      }
+    }, 0);
+  };
+
+  const addFeature = () => {
+    const featuresContainer = document.getElementById('features');
+    if (featuresContainer) {
+      const featureCount = featuresContainer.querySelectorAll('.feature-row').length;
+      const row = document.createElement('div');
+      row.className = 'feature-row';
+      row.innerHTML = `
+        <input name="features[]" placeholder="New feature" data-testid="input-feature-${featureCount}" />
+        <button type="button" class="icon-btn remove-feature" aria-label="Remove" data-testid="button-remove-feature-${featureCount}">🗑️</button>
+      `;
+      featuresContainer.appendChild(row);
+      
+      // Add event listener for the new remove button
+      const removeBtn = row.querySelector('.remove-feature');
+      removeBtn?.addEventListener('click', () => {
+        row.remove();
+      });
+    }
+  };
+
+  // Auto-generate slug from name
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.value.trim();
+    const slugInput = document.getElementById('slug') as HTMLInputElement;
+    if (slugInput && !slugInput.value) {
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      slugInput.value = slug;
+    }
+  };
+
+  // Handle modal keyboard events and initial billing visibility
+  useEffect(() => {
+    if (planModalOpen) {
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          setPlanModalOpen(false);
+        }
+      };
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+      
+      // Initial billing visibility update
+      setTimeout(updateBillingVisibility, 0);
+      
+      return () => {
+        document.removeEventListener('keydown', handleEscape);
+        document.body.style.overflow = '';
+      };
+    }
+  }, [planModalOpen]);
 
   const EnhancedStatsCards = () => (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -678,6 +824,10 @@ export default function AdminDashboard() {
                 </button>
                 <button 
                   className="btn primary"
+                  onClick={() => {
+                    setEditingPlan(null);
+                    setPlanModalOpen(true);
+                  }}
                   data-testid="button-new-plan"
                 >
                   <Plus className="w-4 h-4 mr-2" />
@@ -816,6 +966,7 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
+
         );
       
       case 'coupons':
@@ -1071,6 +1222,303 @@ export default function AdminDashboard() {
       <AdminLayout activeSection={activeSection} onSectionChange={setActiveSection}>
         {renderSectionContent()}
       </AdminLayout>
+      
+      {/* Plan Modal - Global */}
+      {planModalOpen && (
+        <div className="modal-backdrop" onClick={(e) => {
+          if (e.target === e.currentTarget) setPlanModalOpen(false);
+        }}>
+          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="planTitle">
+            <header className="modal-header">
+              <h3 id="planTitle">{editingPlan ? 'Edit Plan' : 'Create Subscription Plan'}</h3>
+              <button 
+                className="icon-btn" 
+                onClick={() => setPlanModalOpen(false)}
+                aria-label="Close"
+                data-testid="button-close-plan-modal"
+              >
+                ✖
+              </button>
+            </header>
+
+            <form 
+              id="plan-form" 
+              onSubmit={handlePlanSubmit}
+              className="space-y-4"
+            >
+              {/* Tenant & Status Row */}
+              <div className="grid-2">
+                <div className="field">
+                  <label htmlFor="tenant">Audience / Tenant</label>
+                  <select 
+                    name="tenant" 
+                    id="tenant" 
+                    defaultValue="PUBLIC"
+                    onChange={updateBillingVisibility}
+                    data-testid="select-tenant"
+                    required
+                  >
+                    <option value="PUBLIC">Client (Public)</option>
+                    <option value="FAMILY" data-nobilling="true">Family (no billing)</option>
+                    <option value="STAFF" data-nobilling="true">Staff (no billing)</option>
+                  </select>
+                  <small className="hint">Billing is available only for Client/Public plans.</small>
+                </div>
+
+                <div className="field">
+                  <label htmlFor="status">Status</label>
+                  <select 
+                    name="status" 
+                    id="status"
+                    defaultValue="active"
+                    data-testid="select-status"
+                  >
+                    <option value="active">Active</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Plan Name & Slug Row */}
+              <div className="grid-2">
+                <div className="field">
+                  <label htmlFor="name">Plan Name</label>
+                  <input 
+                    name="name" 
+                    id="name" 
+                    placeholder="Gold" 
+                    onChange={handleNameChange}
+                    data-testid="input-plan-name"
+                    required 
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="slug">Slug (internal)</label>
+                  <input 
+                    name="slug" 
+                    id="slug" 
+                    placeholder="gold"
+                    data-testid="input-plan-slug"
+                  />
+                  <small className="hint">No spaces; used in URLs & internal references.</small>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="field">
+                <label htmlFor="description">Short Description</label>
+                <input 
+                  name="description" 
+                  id="description" 
+                  placeholder="Total peace of mind for your family & business"
+                  data-testid="input-plan-description"
+                />
+              </div>
+
+              {/* Billing Block */}
+              <fieldset id="billing-block">
+                <legend>Billing</legend>
+
+                <div className="grid-3">
+                  <div className="field">
+                    <label htmlFor="pricing_type">Pricing Type</label>
+                    <select 
+                      name="pricing_type" 
+                      id="pricing_type"
+                      defaultValue="fixed"
+                      onChange={updateBillingVisibility}
+                      data-testid="select-pricing-type"
+                    >
+                      <option value="fixed">Fixed Price</option>
+                      <option value="custom">Custom / By Quote</option>
+                      <option value="free">Free</option>
+                    </select>
+                  </div>
+
+                  <div className="field billable-only">
+                    <label htmlFor="amount">Price (USD)</label>
+                    <input 
+                      name="amount" 
+                      id="amount" 
+                      type="number" 
+                      step="0.01" 
+                      min="0" 
+                      placeholder="20.00"
+                      data-testid="input-plan-amount"
+                    />
+                  </div>
+
+                  <div className="field billable-only">
+                    <label htmlFor="interval">Interval</label>
+                    <select 
+                      name="interval" 
+                      id="interval"
+                      defaultValue="month"
+                      data-testid="select-interval"
+                    >
+                      <option value="month">Monthly</option>
+                      <option value="year">Yearly</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid-3 billable-only">
+                  <div className="field">
+                    <label htmlFor="billing_scheme">Collect Annually?</label>
+                    <select 
+                      name="billing_scheme" 
+                      id="billing_scheme"
+                      defaultValue="pay_per_interval"
+                      data-testid="select-billing-scheme"
+                    >
+                      <option value="pay_per_interval">Charge each interval</option>
+                      <option value="annual_prepay">Annual prepay (per-month price shown)</option>
+                    </select>
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor="trial_days">Trial Days</label>
+                    <input 
+                      name="trial_days" 
+                      id="trial_days" 
+                      type="number" 
+                      min="0" 
+                      placeholder="0"
+                      data-testid="input-trial-days"
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor="tax_behavior">Tax Behavior</label>
+                    <select 
+                      name="tax_behavior" 
+                      id="tax_behavior"
+                      defaultValue="unspecified"
+                      data-testid="select-tax-behavior"
+                    >
+                      <option value="unspecified">Unspecified</option>
+                      <option value="inclusive">Tax inclusive</option>
+                      <option value="exclusive">Tax exclusive</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid-2 billable-only">
+                  <div className="field">
+                    <label htmlFor="stripe_product_id">Stripe Product ID</label>
+                    <input 
+                      name="stripe_product_id" 
+                      id="stripe_product_id" 
+                      placeholder="prod_..."
+                      data-testid="input-stripe-product-id"
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="stripe_price_id">Stripe Price ID</label>
+                    <input 
+                      name="stripe_price_id" 
+                      id="stripe_price_id" 
+                      placeholder="price_..."
+                      data-testid="input-stripe-price-id"
+                    />
+                    <small className="hint">Leave blank to auto-create in Stripe on Save.</small>
+                  </div>
+                </div>
+              </fieldset>
+
+              {/* Features */}
+              <fieldset>
+                <legend>Features</legend>
+                <div id="features" onClick={(e) => {
+                  if ((e.target as HTMLElement).closest('.remove-feature')) {
+                    const row = (e.target as HTMLElement).closest('.feature-row');
+                    row?.remove();
+                  }
+                }}>
+                  <div className="feature-row">
+                    <input 
+                      name="features[]" 
+                      placeholder="Advanced security & privacy"
+                      data-testid="input-feature-0"
+                    />
+                    <button 
+                      type="button" 
+                      className="icon-btn remove-feature" 
+                      aria-label="Remove feature"
+                      data-testid="button-remove-feature-0"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  className="btn ghost" 
+                  onClick={addFeature}
+                  data-testid="button-add-feature"
+                >
+                  + Add Feature
+                </button>
+              </fieldset>
+
+              {/* Visibility & Display */}
+              <div className="grid-3">
+                <div className="field">
+                  <label htmlFor="visibility">Visibility</label>
+                  <select 
+                    name="visibility" 
+                    id="visibility"
+                    defaultValue="public"
+                    data-testid="select-visibility"
+                  >
+                    <option value="public">Public (marketing page + checkout)</option>
+                    <option value="internal">Internal only (hidden)</option>
+                    <option value="invite">Invite-only</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="sort">Sort Order</label>
+                  <input 
+                    name="sort" 
+                    id="sort" 
+                    type="number" 
+                    min="0" 
+                    defaultValue="2"
+                    data-testid="input-sort-order"
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="badge">Badge (optional)</label>
+                  <input 
+                    name="badge" 
+                    id="badge" 
+                    placeholder="Popular"
+                    data-testid="input-badge"
+                  />
+                </div>
+              </div>
+
+              <footer className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn ghost" 
+                  onClick={() => setPlanModalOpen(false)}
+                  data-testid="button-cancel-plan"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn primary"
+                  data-testid="button-save-plan"
+                >
+                  Save Plan
+                </button>
+              </footer>
+            </form>
+          </div>
+        </div>
+      )}
     </ToastHost>
   );
 }
