@@ -1030,3 +1030,40 @@ legend {
     min-width: 180px;
   }
 }
+
+/* Article Preview Drawer Styles */
+.drawer-backdrop{position:fixed;inset:0;background:rgba(3,7,18,.48);z-index:60}
+.drawer{
+  position:fixed;top:0;right:0;height:100vh;width:min(880px,94vw);background:#fff;z-index:70;
+  display:flex;flex-direction:column;border-left:1px solid #E5EAF2;box-shadow:-16px 0 48px rgba(16,24,40,.16);
+  transform:translateX(100%);opacity:0;transition:transform .22s ease, opacity .22s ease;border-top-left-radius:12px;border-bottom-left-radius:12px
+}
+.drawer.open{transform:translateX(0);opacity:1}
+.drawer-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #EEF1F5}
+.drawer-title-wrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tenant-badge,.menu-badge{padding:4px 8px;border-radius:999px;font-size:12px;font-weight:600}
+.tenant-badge{background:#E9F2FF;color:#0D6EFD}
+.menu-badge{background:#EEF1F5;color:#374151}
+.icon-btn{background:transparent;border:0;color:#667085;cursor:pointer;font-size:16px}
+.icon-btn:hover{color:#1F6FEB}
+.drawer-body{padding:16px 16px 0;overflow:auto;outline:none}
+.drawer-loading,.drawer-error{display:flex;align-items:center;gap:10px;padding:20px}
+.spinner{width:18px;height:18px;border-radius:50%;border:3px solid #E5EAF2;border-left-color:#1F6FEB;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.muted{color:#6B7280}
+.drawer-article-title{margin:8px 0 4px 0}
+.meta{display:flex;gap:8px;align-items:center;margin-bottom:12px;color:#6B7280}
+.feature-image{width:100%;height:auto;border-radius:10px;border:1px solid #E5EAF2;margin:8px 0 12px}
+.content-html{line-height:1.6;color:#1F2937}
+.content-html h1,.content-html h2,.content-html h3{margin:14px 0 8px}
+.content-html ul{margin:8px 0 8px 18px}
+.content-html code{background:#F3F4F6;border-radius:6px;padding:2px 6px}
+.badge-status{background:#E8F6EE;color:#1B7F3B;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:600}
+.badge-status.draft{background:#E5E7EB;color:#374151}
+.badge-status.scheduled{background:#FFF4E5;color:#AD7A00}
+.drawer-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-top:1px solid #EEF1F5;background:#fff}
+.btn{border-radius:10px;padding:10px 14px;border:1px solid #CBD2E0;background:#fff;color:#344054;cursor:pointer}
+.btn:hover{background:#F6F8FB}
+.btn.primary{background:#1F6FEB;color:#fff;border-color:transparent}
+.btn.primary:hover{background:#195BD2}
+@media (max-width:920px){.drawer{width:100vw}}
