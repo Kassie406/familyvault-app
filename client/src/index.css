@@ -2774,185 +2774,199 @@ legend {
   color: #B42318;
 }
 
-/* ===== Security page polish ===== */
-#security-root .card {
-  background: #fff;
-  border: 1px solid #E5EAF2;
-  border-radius: 14px;
-  box-shadow: 0 2px 12px rgba(16,24,40,.06);
+/* ================= Security page readability fixes ================= */
+#security-root {
+  /* Optional: force a light surface on this page even in dark OS theme */
+  color-scheme: light;
+  --sec-bg: #ffffff;
+  --sec-card: #ffffff;
+  --sec-border: #E5EAF2;
+  --sec-subtle: #667085;
+  --sec-text: #111827;
+  --sec-muted: #475467;
+  --sec-hover: #F6F8FB;
+
+  --pill-ok-bg: #E8F6EE;  --pill-ok-fg: #067647;
+  --pill-warn-bg: #FFF4E5;--pill-warn-fg:#B54708;
+  --pill-bad-bg: #FEECEC; --pill-bad-fg:#B42318;
+  --pill-neutral-bg:#F2F4F7; --pill-neutral-fg:#344054;
+
+  --action: #1F6FEB;
+  background: #F8FAFC; /* light app canvas */
 }
 
+#security-root .page-title,
+#security-root h1, #security-root h2, #security-root h3 {
+  color: var(--sec-text);
+}
+
+/* Cards and sections */
+#security-root .card {
+  background: var(--sec-card);
+  border: 1px solid var(--sec-border);
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(16,24,40,.06);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+/* Fix "Security & Audit" header being too low-contrast */
+#security-root .section-header {
+  color: var(--sec-text);
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+/* Card headers */
 #security-root .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid #EEF1F5;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--sec-border);
 }
 
+#security-root .card-header h3 {
+  margin: 0;
+  color: var(--sec-text);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Posture bar + buttons */
+#security-root .posture.card { background: var(--sec-card); }
 #security-root .btn {
   border: 1px solid #CBD2E0;
   background: #fff;
-  color: #344054;
+  color: var(--sec-muted);
   border-radius: 12px;
   padding: 10px 14px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
   font-weight: 500;
   transition: all 0.2s ease;
 }
+#security-root .btn:hover { background: var(--sec-hover); }
+#security-root .btn.primary { background: var(--action); color: #fff; border-color: transparent; }
+#security-root .btn.danger { background: #EF4444; border-color: #EF4444; color: white; }
+#security-root .btn.danger:hover { background: #DC2626; border-color: #DC2626; }
 
-#security-root .btn.primary {
-  background: #1F6FEB;
-  color: #fff;
-  border-color: transparent;
-}
+/* Pills */
+#security-root .pill           { display:inline-block;padding:4px 10px;border-radius:999px;font-weight:700;font-size:12px }
+#security-root .pill-ok        { background:var(--pill-ok-bg);    color:var(--pill-ok-fg) }
+#security-root .pill-warn      { background:var(--pill-warn-bg);  color:var(--pill-warn-fg) }
+#security-root .pill-bad       { background:var(--pill-bad-bg);   color:var(--pill-bad-fg) }
+#security-root .pill-neutral   { background:var(--pill-neutral-bg); color:var(--pill-neutral-fg) }
 
-#security-root .btn:hover {
-  background: #F6F8FB;
-}
-
-#security-root .btn.primary:hover {
-  background: #1862D4;
-}
-
-#security-root .btn.icon {
-  padding: 8px 10px;
-  border-radius: 10px;
-}
-
-#security-root .pill {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 12px;
-}
-
-.pill-ok {
-  background: #E8F6EE;
-  color: #067647;
-}
-
-.pill-warn {
-  background: #FFF4E5;
-  color: #B54708;
-}
-
-.pill-bad {
-  background: #FEECEC;
-  color: #B42318;
-}
-
-.pill-neutral {
-  background: #F2F4F7;
-  color: #475467;
-}
-
+/* Session rows (no dark wash, readable icons/text) */
 #security-root .session {
-  border: 1px solid #E5EAF2;
-  border-radius: 12px;
   background: #fff;
+  border: 1px solid var(--sec-border);
+  border-radius: 12px;
   padding: 10px 12px;
+  color: var(--sec-text);
+  margin-bottom: 12px;
   transition: all 0.2s ease;
 }
-
+#security-root .session:hover {
+  background: var(--sec-hover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
 #security-root .session.current {
-  background: #ECFDF3;
+  background: #ECFDF3;                /* soft green */
   border-color: #CFF2DD;
 }
+#security-root .session .meta { color: var(--sec-subtle); }
 
+#security-root .session-device {
+  font-weight: 600;
+  color: var(--sec-text);
+  margin-bottom: 4px;
+}
+
+#security-root .session-details {
+  color: var(--sec-subtle);
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+#security-root .session-meta {
+  color: var(--sec-muted);
+  font-size: 13px;
+}
+
+#security-root .session-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Icon buttons (eye, X) */
 #security-root .icon-btn {
-  background: #fff;
-  border: 1px solid #CBD2E0;
-  border-radius: 10px;
-  cursor: pointer;
-  padding: 6px 8px;
+  background:#fff; border:1px solid #CBD2E0; border-radius:10px; cursor:pointer;
+  color: var(--sec-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   transition: all 0.2s ease;
 }
+#security-root .icon-btn:hover { background: var(--sec-hover); }
+#security-root .icon-btn.danger { color: var(--pill-bad-fg); border-color:#F3C3C3; }
+#security-root .icon-btn.danger:hover { background: var(--pill-bad-bg); }
 
-#security-root .icon-btn:hover {
-  background: #F6F8FB;
-}
-
-#security-root .danger {
-  color: #B42318;
-  border-color: #F3C3C3;
-}
-
-#security-root .danger:hover {
-  background: #FEECEC;
-}
+/* Audit chain box chips */
+#security-root .state-compromised { background:var(--pill-bad-bg); color:var(--pill-bad-fg) }
+#security-root .state-verified    { background:var(--pill-ok-bg);  color:var(--pill-ok-fg) }
+#security-root .state-stale       { background:var(--pill-warn-bg);color:var(--pill-warn-fg) }
 
 #security-root .kpi {
   display: flex;
   gap: 10px;
   align-items: center;
-  color: #475467;
+  color: var(--sec-subtle);
 }
 
 #security-root .kpi strong {
-  color: #111827;
+  color: var(--sec-text);
 }
 
+/* Table styling */
 #security-root .table {
   width: 100%;
   border-collapse: collapse;
-}
-
-#security-root .table th,
-#security-root .table td {
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: 1px solid #EEF1F5;
+  margin-top: 16px;
 }
 
 #security-root .table th {
+  text-align: left;
+  padding: 12px 16px;
   background: #F9FAFB;
+  border-bottom: 1px solid var(--sec-border);
+  color: var(--sec-subtle);
   font-weight: 600;
-  color: #374151;
   font-size: 14px;
 }
 
 #security-root .table td {
-  color: #6B7280;
+  padding: 16px;
+  border-bottom: 1px solid var(--sec-border);
+  color: var(--sec-text);
   font-size: 14px;
 }
 
-@media (prefers-color-scheme: dark) {
-  #security-root .card {
-    background: #0F172A;
-    border-color: #1E293B;
-    box-shadow: none;
-  }
-  
-  #security-root .btn {
-    background: #0B1220;
-    color: #E5E7EB;
-    border-color: #263244;
-  }
-  
-  #security-root .btn:hover {
-    background: #141D2E;
-  }
-  
-  #security-root .session {
-    background: #0B1220;
-    border-color: #1E293B;
-  }
-  
-  #security-root .session.current {
-    background: #0E1A12;
-    border-color: #1C2E24;
-  }
-  
-  #security-root .table th {
-    background: #1E293B;
-    color: #F3F4F6;
-  }
-  
-  #security-root .table td {
-    color: #D1D5DB;
-  }
+#security-root .table tr:hover {
+  background: var(--sec-hover);
+}
+
+/* Remove any inherited dark gradient for this page */
+#security-root .section-surface,
+#security-root .gradient-bg {
+  background: none !important;
 }
 
 /* Security Posture Summary */

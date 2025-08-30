@@ -3321,7 +3321,7 @@ export default function AdminDashboard() {
         return (
           <div id="security-root" className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Security & Audit</h2>
+              <h2 className="section-header page-title text-2xl font-bold">Security & Audit</h2>
             </div>
             
             {/* Security Posture Summary */}

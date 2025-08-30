@@ -66,9 +66,9 @@ export default function TamperVerification({ className }: TamperVerificationProp
   };
 
   const getStatusText = () => {
-    if (isLoading || isVerifying) return 'Verifying...';
+    if (isLoading || isVerifying) return 'Verification required';
     if (verification?.valid) return 'Verified';
-    return 'Compromised';
+    return 'Integrity compromised';
   };
 
   const getTotalEntries = () => {
@@ -76,7 +76,7 @@ export default function TamperVerification({ className }: TamperVerificationProp
   };
 
   const getLastVerified = () => {
-    if (!verification?.lastVerified) return 'Never';
+    if (!verification?.lastVerified) return 'Never verified';
     return new Date(verification.lastVerified).toLocaleString();
   };
 
