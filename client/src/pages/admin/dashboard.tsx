@@ -326,7 +326,74 @@ export default function AdminDashboard() {
 
   const { data: articles, isLoading: articlesLoading } = useQuery({
     queryKey: ['/api/admin/articles'],
-    queryFn: () => fetch('/api/admin/articles').then(res => res.json()),
+    queryFn: async () => {
+      const res = await fetch('/api/admin/articles');
+      const data = await res.json();
+      // If API returns empty array, return sample data for demo
+      if (!data.articles || data.articles.length === 0) {
+        return {
+          articles: [
+            {
+              id: 'a_101',
+              title: 'Family Evacuation Checklist',
+              slug: 'family-evacuation-checklist',
+              category: 'announcements',
+              menuCategory: 'Disaster Planning',
+              tenant: 'PUBLIC',
+              status: 'published',
+              published: true,
+              publishAt: '2025-08-20T10:00:00Z',
+              authorName: 'Sarah Martinez',
+              createdAt: '2025-08-20T10:00:00Z',
+              updatedAt: '2025-08-20T10:00:00Z'
+            },
+            {
+              id: 'a_102',
+              title: 'Home Document Binder',
+              slug: 'home-document-binder',
+              category: 'support',
+              menuCategory: 'Home Buying',
+              tenant: 'PUBLIC',
+              status: 'draft',
+              published: false,
+              publishAt: null,
+              authorName: 'John Doe',
+              createdAt: '2025-08-15T14:20:00Z',
+              updatedAt: '2025-08-15T14:20:00Z'
+            },
+            {
+              id: 'a_103',
+              title: 'SOC Playbook Update',
+              slug: 'soc-playbook-update',
+              category: 'onboarding',
+              menuCategory: 'Digital Security',
+              tenant: 'STAFF',
+              status: 'scheduled',
+              published: false,
+              publishAt: '2025-09-01T09:00:00Z',
+              authorName: 'Emily Chen',
+              createdAt: '2025-08-25T16:30:00Z',
+              updatedAt: '2025-08-25T16:30:00Z'
+            },
+            {
+              id: 'a_104',
+              title: 'Pediatric Records Checklist',
+              slug: 'pediatric-records-checklist',
+              category: 'blog',
+              menuCategory: 'Child Information',
+              tenant: 'FAMILY',
+              status: 'published',
+              published: true,
+              publishAt: '2025-08-10T14:20:00Z',
+              authorName: 'Michael Rodriguez',
+              createdAt: '2025-08-10T14:20:00Z',
+              updatedAt: '2025-08-10T14:20:00Z'
+            }
+          ]
+        };
+      }
+      return data;
+    },
     // Fallback to sample data if API fails (for demo purposes)
     placeholderData: {
       articles: [
