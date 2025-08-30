@@ -466,3 +466,42 @@ a[class*="bg-"]:hover {
 .nav-item .dropdown[style*="right"] {
   min-width: 260px;
 }
+
+/* Action button tooltips */
+.row-actions button[data-tip] {
+  position: relative;
+}
+
+.row-actions button[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  background: #111827;
+  color: #fff;
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease;
+  z-index: 50;
+}
+
+.row-actions button:hover[data-tip]::after,
+.row-actions button:focus-visible[data-tip]::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Table row hover enhancement */
+tbody tr:hover {
+  background: #F6F8FB !important;
+}
+
+/* Action button visibility enhancement */
+tbody tr:not(:hover) .row-actions button {
+  opacity: 0.75;
+}
