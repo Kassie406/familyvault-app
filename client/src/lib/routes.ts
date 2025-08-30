@@ -12,19 +12,42 @@ export const ROUTES = {
   COMPLIANCE: '/security-settings',
   WEBHOOKS: '/security-settings',
   
-  // Security deep-links (all redirect to security-settings for now)
-  SECURITY_STATUS: (service: string) => '/security-settings',
+  // System Status Routes - Each component now has its dedicated page
+  SECURITY_STATUS: (service: string) => {
+    switch (service.toLowerCase()) {
+      case 'database': return '/database-status';
+      case 'auth': 
+      case 'authentication': return '/auth-status';
+      case 'smtp': 
+      case 'email': return '/smtp-status';
+      case 'webhooks': return '/webhooks-status';
+      case 'stripe': 
+      case 'payments': return '/stripe-status';
+      case 'storage': return '/storage-status';
+      default: return '/security-settings';
+    }
+  },
+  
+  // Security deep-links
   SECURITY_2FA: '/security-settings',
   SECURITY_SESSIONS: '/security-settings',
   SECURITY_ALLOWLIST: '/security-settings', 
   SECURITY_KEYS: '/security-settings',
   SECURITY_AUDIT: '/security-settings',
   
+  // Direct status page routes
+  DATABASE_STATUS: '/database-status',
+  AUTH_STATUS: '/auth-status',
+  SMTP_STATUS: '/smtp-status',
+  WEBHOOKS_STATUS: '/webhooks-status',
+  STRIPE_STATUS: '/stripe-status',
+  STORAGE_STATUS: '/storage-status',
+  
   // Webhook deep-links
-  WEBHOOKS_DELIVERIES: '/security-settings',
+  WEBHOOKS_DELIVERIES: '/webhooks-status',
   
   // Subscription plans deep-links
-  PLANS_STRIPE: '/security-settings',
+  PLANS_STRIPE: '/stripe-status',
 } as const;
 
 // Navigation helper function using client-side routing
