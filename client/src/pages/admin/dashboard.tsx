@@ -243,6 +243,203 @@ export default function AdminDashboard() {
     }
   }, [planModalOpen]);
 
+  // Coupon filtering and bulk actions functionality
+  useEffect(() => {
+    const initializeCouponFilters = () => {
+      const table = document.getElementById('coupons-table');
+      const selectAll = document.getElementById('select-all');
+      const bulkBar = document.getElementById('bulk-bar');
+      const bulkCount = document.getElementById('bulk-count');
+      const fStatus = document.getElementById('f-status');
+      const fType = document.getElementById('f-type');
+      const fPlan = document.getElementById('f-plan');
+      const fSearch = document.getElementById('f-search');
+      const fClear = document.getElementById('f-clear');
+      const btnEnable = document.getElementById('bulk-enable');
+      const btnDisable = document.getElementById('bulk-disable');
+      const btnArchive = document.getElementById('bulk-archive');
+      const btnExport = document.getElementById('bulk-export');
+      const btnClear = document.getElementById('bulk-clear');
+
+      if (!table || !selectAll || !bulkBar) return;
+
+      const getRows = () => [...table.querySelectorAll('tbody tr[data-id]')];
+      const getChecks = () => [...table.querySelectorAll('tbody .row-check')];
+
+      // Filter functionality
+      const matchPlan = (rowVal: string, filterVal: string) => {
+        if (filterVal === 'ALL') return true;
+        if (!rowVal) return false;
+        if (rowVal === '*') return true;
+        return rowVal.split(',').map(s => s.trim()).includes(filterVal);
+      };
+
+      const matchesFilters = (row: HTMLTableRowElement) => {
+        const statusOK = !fStatus?.value || fStatus.value === 'ALL' || row.dataset.status === fStatus.value;
+        const typeOK = !fType?.value || fType.value === 'ALL' || row.dataset.type === fType.value;
+        const planOK = !fPlan?.value || matchPlan(row.dataset.plans || '', fPlan.value);
+        
+        const searchTerm = fSearch?.value?.trim().toLowerCase() || '';
+        const searchOK = !searchTerm || 
+          (row.dataset.code || '').toLowerCase().includes(searchTerm) ||
+          (row.dataset.value || '').toLowerCase().includes(searchTerm);
+
+        return statusOK && typeOK && planOK && searchOK;
+      };
+
+      const applyFilters = () => {
+        const rows = getRows();
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+          const shouldShow = matchesFilters(row);
+          row.style.display = shouldShow ? '' : 'none';
+          if (shouldShow) visibleCount++;
+        });
+
+        // Update table footer
+        const tableFooter = table.querySelector('.px-4.py-3');
+        if (tableFooter) {
+          tableFooter.textContent = `Showing ${visibleCount} coupons`;
+        }
+      };
+
+      // Bulk selection functionality
+      const updateBulkUI = () => {
+        const checks = getChecks();
+        const selected = checks.filter(c => c.checked);
+        const count = selected.length;
+        
+        if (!bulkBar || !bulkCount) return;
+        
+        bulkBar.style.display = count === 0 ? 'none' : 'flex';
+        bulkCount.textContent = `${count} selected`;
+        
+        // Update row styling
+        getRows().forEach(row => {
+          const checkbox = row.querySelector('.row-check') as HTMLInputElement;
+          row.classList.toggle('bg-blue-100', checkbox?.checked || false);
+        });
+        
+        // Update select-all state
+        const total = checks.length;
+        selectAll.indeterminate = count > 0 && count < total;
+        selectAll.checked = count === total && total > 0;
+      };
+
+      // Event listeners
+      selectAll.addEventListener('change', () => {
+        const shouldCheck = selectAll.checked;
+        getChecks().forEach(check => {
+          const row = check.closest('tr') as HTMLTableRowElement;
+          if (row && row.style.display !== 'none') {
+            check.checked = shouldCheck;
+          }
+        });
+        updateBulkUI();
+      });
+
+      table.addEventListener('change', (e) => {
+        if ((e.target as HTMLElement).classList.contains('row-check')) {
+          updateBulkUI();
+        }
+      });
+
+      // Filter event listeners
+      [fStatus, fType, fPlan, fSearch].forEach(el => {
+        if (el) {
+          el.addEventListener('input', applyFilters);
+          el.addEventListener('change', applyFilters);
+        }
+      });
+
+      fClear?.addEventListener('click', () => {
+        if (fStatus) fStatus.value = 'ALL';
+        if (fType) fType.value = 'ALL';
+        if (fPlan) fPlan.value = 'ALL';
+        if (fSearch) fSearch.value = '';
+        applyFilters();
+      });
+
+      // Bulk action handlers
+      const getSelectedIds = () => 
+        getChecks().filter(c => c.checked).map(c => c.closest('tr')?.dataset.id).filter(Boolean);
+
+      const confirmAndRun = async (label: string, fn: Function) => {
+        const ids = getSelectedIds();
+        if (!ids.length) return;
+        if (!confirm(`${label} ${ids.length} coupon(s)?`)) return;
+        await fn(ids);
+        
+        // Clear selection after action
+        getChecks().forEach(c => c.checked = false);
+        updateBulkUI();
+      };
+
+      btnEnable?.addEventListener('click', () => 
+        confirmAndRun('Enable', async (ids: string[]) => {
+          console.log('Enable coupons →', ids);
+          // TODO: Implement API call
+        })
+      );
+
+      btnDisable?.addEventListener('click', () => 
+        confirmAndRun('Disable', async (ids: string[]) => {
+          console.log('Disable coupons →', ids);
+          // TODO: Implement API call  
+        })
+      );
+
+      btnArchive?.addEventListener('click', () => 
+        confirmAndRun('Archive', async (ids: string[]) => {
+          console.log('Archive coupons →', ids);
+          // TODO: Implement API call
+        })
+      );
+
+      btnExport?.addEventListener('click', () => {
+        const ids = getSelectedIds();
+        if (!ids.length) return;
+        
+        const headers = ['id', 'code', 'type', 'value', 'plans', 'usage', 'expires', 'status'];
+        const csvRows = [headers.join(',')];
+        
+        ids.forEach(id => {
+          const row = table.querySelector(`tr[data-id="${id}"]`);
+          if (row) {
+            const code = (row.dataset.code || '').replace(/,/g, '');
+            const type = row.dataset.type || '';
+            const value = (row.dataset.value || '').replace(/,/g, '');
+            const plans = (row.dataset.plans || '').replace(/,/g, ';');
+            const usage = row.children[6]?.textContent?.trim().replace(/,/g, '') || '';
+            const expires = row.children[7]?.textContent?.trim() || '';
+            const status = row.dataset.status || '';
+            csvRows.push([id, code, type, value, plans, usage, expires, status].join(','));
+          }
+        });
+        
+        const blob = new Blob([csvRows.join('\\n')], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `coupons_export_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+      });
+
+      btnClear?.addEventListener('click', () => {
+        getChecks().forEach(c => c.checked = false);
+        updateBulkUI();
+      });
+
+      // Initialize UI
+      applyFilters();
+      updateBulkUI();
+    };
+
+    // Initialize after a short delay to ensure DOM is ready
+    const timer = setTimeout(initializeCouponFilters, 100);
+    return () => clearTimeout(timer);
+  }, [activeSection, coupons]);
+
   const EnhancedStatsCards = () => (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
       <Card className="bg-[#007BFF] text-white">
@@ -1400,6 +1597,97 @@ export default function AdminDashboard() {
               </div>
             )}
 
+            {/* Filter Bar */}
+            {(coupons?.coupons?.length > 0) && (
+              <>
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <select 
+                      id="f-status" 
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                      aria-label="Filter by status"
+                      defaultValue="ALL"
+                    >
+                      <option value="ALL">Status: All</option>
+                      <option value="active">Active</option>
+                      <option value="disabled">Disabled</option>
+                      <option value="expired">Expired</option>
+                    </select>
+                    
+                    <select 
+                      id="f-type" 
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                      aria-label="Filter by type"
+                      defaultValue="ALL"
+                    >
+                      <option value="ALL">Type: All</option>
+                      <option value="percent">Percent</option>
+                      <option value="fixed">Fixed</option>
+                      <option value="trial">Trial</option>
+                    </select>
+                    
+                    <select 
+                      id="f-plan" 
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                      aria-label="Filter by plan"
+                      defaultValue="ALL"
+                    >
+                      <option value="ALL">Applies to: All</option>
+                      <option value="price_free">Free</option>
+                      <option value="price_silver_10">Silver</option>
+                      <option value="price_gold_20">Gold</option>
+                      <option value="price_custom_quote">Custom</option>
+                    </select>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <input 
+                      id="f-search" 
+                      type="search" 
+                      placeholder="Search code or value…" 
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-64"
+                      aria-label="Search coupons"
+                    />
+                    <Button 
+                      id="f-clear" 
+                      variant="outline" 
+                      size="sm"
+                      className="text-sm"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Bulk Actions Toolbar */}
+                <div id="bulk-bar" className="bg-white border border-gray-200 rounded-lg p-3 mb-4 shadow-sm hidden">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <span id="bulk-count" className="font-medium text-gray-900">0 selected</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button id="bulk-enable" variant="outline" size="sm" className="text-green-700 border-green-300 hover:bg-green-50">
+                        Enable
+                      </Button>
+                      <Button id="bulk-disable" variant="outline" size="sm" className="text-red-700 border-red-300 hover:bg-red-50">
+                        Disable
+                      </Button>
+                      <Button id="bulk-archive" variant="outline" size="sm" className="text-orange-700 border-orange-300 hover:bg-orange-50">
+                        Archive
+                      </Button>
+                      <div className="w-px h-5 bg-gray-300 mx-2"></div>
+                      <Button id="bulk-export" variant="outline" size="sm">
+                        Export CSV
+                      </Button>
+                      <Button id="bulk-clear" variant="outline" size="sm">
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
             {/* Coupons Content */}
             {couponsLoading ? (
               <div className="bg-white rounded-lg border border-gray-200 p-8">
@@ -1410,9 +1698,17 @@ export default function AdminDashboard() {
               </div>
             ) : coupons?.coupons?.length > 0 ? (
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <table className="w-full">
+                <table className="w-full" id="coupons-table">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
+                      <th className="py-3 px-4 w-[36px]">
+                        <input 
+                          type="checkbox" 
+                          id="select-all" 
+                          className="w-4 h-4 cursor-pointer"
+                          aria-label="Select all coupons"
+                        />
+                      </th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Code</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Type</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Value</th>
@@ -1425,7 +1721,22 @@ export default function AdminDashboard() {
                   </thead>
                   <tbody>
                     {/* Sample Data Row 1 */}
-                    <tr className="border-b border-gray-100 hover:bg-blue-50 hover:bg-opacity-30 transition-all duration-200">
+                    <tr 
+                      className="border-b border-gray-100 hover:bg-blue-50 hover:bg-opacity-30 transition-all duration-200"
+                      data-id="c_welcome10"
+                      data-status="active"
+                      data-type="percent"
+                      data-plans="*"
+                      data-code="WELCOME10"
+                      data-value="10% off"
+                    >
+                      <td className="py-4 px-4">
+                        <input 
+                          type="checkbox" 
+                          className="w-4 h-4 cursor-pointer row-check"
+                          aria-label="Select WELCOME10"
+                        />
+                      </td>
                       <td className="py-4 px-4">
                         <div className="font-mono font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded text-sm inline-block">
                           WELCOME10
@@ -1489,7 +1800,22 @@ export default function AdminDashboard() {
                     </tr>
 
                     {/* Sample Data Row 2 */}
-                    <tr className="border-b border-gray-100 hover:bg-blue-50 hover:bg-opacity-30 transition-all duration-200">
+                    <tr 
+                      className="border-b border-gray-100 hover:bg-blue-50 hover:bg-opacity-30 transition-all duration-200"
+                      data-id="c_free3mo"
+                      data-status="active"
+                      data-type="trial"
+                      data-plans="price_silver_10,price_gold_20"
+                      data-code="FREE3MO"
+                      data-value="3 months free"
+                    >
+                      <td className="py-4 px-4">
+                        <input 
+                          type="checkbox" 
+                          className="w-4 h-4 cursor-pointer row-check"
+                          aria-label="Select FREE3MO"
+                        />
+                      </td>
                       <td className="py-4 px-4">
                         <div className="font-mono font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded text-sm inline-block">
                           FREE3MO
@@ -1553,7 +1879,22 @@ export default function AdminDashboard() {
                     </tr>
 
                     {/* Sample Data Row 3 */}
-                    <tr className="border-b border-gray-100 hover:bg-blue-50 hover:bg-opacity-30 transition-all duration-200">
+                    <tr 
+                      className="border-b border-gray-100 hover:bg-blue-50 hover:bg-opacity-30 transition-all duration-200"
+                      data-id="c_beta2025"
+                      data-status="disabled"
+                      data-type="fixed"
+                      data-plans="price_silver_10"
+                      data-code="BETA2025"
+                      data-value="$5 off"
+                    >
+                      <td className="py-4 px-4">
+                        <input 
+                          type="checkbox" 
+                          className="w-4 h-4 cursor-pointer row-check"
+                          aria-label="Select BETA2025"
+                        />
+                      </td>
                       <td className="py-4 px-4">
                         <div className="font-mono font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded text-sm inline-block">
                           BETA2025
