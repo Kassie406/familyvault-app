@@ -63,8 +63,8 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
     { id: 'impersonation', label: 'Impersonation', icon: UserX, description: 'Admin user support' },
     { id: 'compliance', label: 'Compliance', icon: ShieldCheck, description: 'GDPR & privacy' },
     { id: 'security', label: 'Security', icon: Activity, description: 'Audit & monitoring' },
-    { id: 'stepup-test', label: 'Step-Up Authentication', icon: Lock, description: 'Test step-up security flow', href: '/admin/stepup-test' },
-    { id: 'incidents', label: 'Incidents', icon: AlertTriangle, description: 'Status incidents & escalation', href: '/admin/incidents' },
+    { id: 'stepup-test', label: 'Step-Up Authentication', icon: Lock, description: 'Test step-up security flow' },
+    { id: 'incidents', label: 'Incidents', icon: AlertTriangle, description: 'Status incidents & escalation' },
   ];
 
   return (
