@@ -53,6 +53,12 @@ export default function AdminDashboard() {
   // Bulk selection state
   const [selectedArticles, setSelectedArticles] = useState<Set<string>>(new Set());
   const [isSelectAllChecked, setIsSelectAllChecked] = useState(false);
+  
+  // Article preview drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerLoading, setDrawerLoading] = useState(false);
+  const [drawerError, setDrawerError] = useState('');
+  const [previewArticle, setPreviewArticle] = useState<any>(null);
 
   // Bulk selection helpers
   const toggleArticleSelection = (articleId: string) => {
@@ -86,6 +92,137 @@ export default function AdminDashboard() {
     setSelectedArticles(new Set<string>());
     setIsSelectAllChecked(false);
   };
+
+  // Article preview drawer functions
+  const sanitizeHTML = (html: string = '') => {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    // Remove scripts and event handlers
+    div.querySelectorAll('script, iframe[sandbox="allow-scripts"]').forEach(n => n.remove());
+    div.querySelectorAll('*').forEach(el => {
+      [...el.attributes].forEach(a => {
+        if (/^on/i.test(a.name)) el.removeAttribute(a.name);
+        if (a.name === 'style' && /expression|url\(/i.test(a.value)) el.removeAttribute('style');
+      });
+    });
+    return div.innerHTML;
+  };
+
+  const openPreview = async (articleId: string) => {
+    setDrawerLoading(true);
+    setDrawerError('');
+    setDrawerOpen(true);
+    
+    try {
+      // Use sample data for now, replace with API call
+      const sampleData = {
+        'a_101': {
+          id: 'a_101',
+          title: 'Family Evacuation Checklist',
+          tenant: 'PUBLIC',
+          menuCategory: 'Disaster Planning',
+          status: 'published',
+          authorName: 'Sarah Martinez',
+          publishAt: '2025-08-20T10:00:00Z',
+          slug: 'family-evacuation-checklist',
+          html: '<h2>Emergency Evacuation Procedures</h2><p>In the event of an emergency, having a well-prepared evacuation plan can save lives. <strong>Follow these steps:</strong></p><ul><li>Gather important documents</li><li>Check emergency supplies</li><li>Review escape routes</li><li>Contact emergency services if needed</li></ul><p>Remember to practice your evacuation plan regularly with all family members.</p>'
+        },
+        'a_102': {
+          id: 'a_102',
+          title: 'Home Document Binder',
+          tenant: 'PUBLIC',
+          menuCategory: 'Home Buying',
+          status: 'draft',
+          authorName: 'John Doe',
+          publishAt: null,
+          slug: 'home-document-binder',
+          html: '<h2>Essential Documents for Home Buying</h2><p>When purchasing a home, organizing your documents is crucial. <strong>Here\'s what you need:</strong></p><ul><li>Pre-approval letters</li><li>Income verification</li><li>Bank statements</li><li>Property inspection reports</li></ul>'
+        },
+        'a_103': {
+          id: 'a_103',
+          title: 'SOC Playbook Update',
+          tenant: 'STAFF',
+          menuCategory: 'Digital Security',
+          status: 'scheduled',
+          authorName: 'Emily Chen',
+          publishAt: '2025-09-01T09:00:00Z',
+          slug: 'soc-playbook-update',
+          html: '<h2>Security Operations Center Updates</h2><p>This document outlines the latest updates to our SOC procedures. <strong>Key changes include:</strong></p><ul><li>Enhanced threat detection protocols</li><li>Updated incident response procedures</li><li>New monitoring tools integration</li></ul>'
+        },
+        'a_104': {
+          id: 'a_104',
+          title: 'Pediatric Records Checklist',
+          tenant: 'FAMILY',
+          menuCategory: 'Child Information',
+          status: 'published',
+          authorName: 'Michael Rodriguez',
+          publishAt: '2025-08-10T14:20:00Z',
+          slug: 'pediatric-records-checklist',
+          html: '<h2>Important Medical Records for Children</h2><p>Keeping organized medical records for your children is essential. <strong>Include these documents:</strong></p><ul><li>Vaccination records</li><li>Allergy information</li><li>Insurance cards</li><li>Emergency contacts</li></ul>'
+        }
+      };
+      
+      const article = sampleData[articleId as keyof typeof sampleData];
+      if (article) {
+        setPreviewArticle(article);
+      } else {
+        setDrawerError('Article not found');
+      }
+    } catch (error) {
+      setDrawerError('Failed to load preview');
+    } finally {
+      setDrawerLoading(false);
+    }
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setPreviewArticle(null);
+    setDrawerError('');
+  };
+
+  const handleDrawerPublish = async () => {
+    if (!previewArticle) return;
+    
+    try {
+      // Update the preview article status
+      setPreviewArticle({
+        ...previewArticle,
+        status: 'published',
+        publishAt: new Date().toISOString()
+      });
+      toast({ title: 'Article published successfully!' });
+    } catch (error) {
+      toast({ title: 'Failed to publish article', variant: 'destructive' });
+    }
+  };
+
+  const handleDrawerUnpublish = async () => {
+    if (!previewArticle) return;
+    
+    try {
+      setPreviewArticle({
+        ...previewArticle,
+        status: 'draft',
+        publishAt: null
+      });
+      toast({ title: 'Article unpublished successfully!' });
+    } catch (error) {
+      toast({ title: 'Failed to unpublish article', variant: 'destructive' });
+    }
+  };
+
+  // Keyboard handler for drawer
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (drawerOpen && e.key === 'Escape') {
+        closeDrawer();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [drawerOpen]);
 
   // Bulk actions
   const handleBulkPublish = async () => {
@@ -2450,8 +2587,10 @@ export default function AdminDashboard() {
                               <Button 
                                 variant="ghost" 
                                 size="sm"
+                                onClick={() => openPreview(article.id)}
                                 className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
                                 data-testid={`button-preview-${article.id}`}
+                                aria-label="Preview article"
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
@@ -2506,6 +2645,157 @@ export default function AdminDashboard() {
                   </p>
                 </div>
               </div>
+            )}
+
+            {/* Article Preview Drawer */}
+            {drawerOpen && (
+              <>
+                {/* Backdrop */}
+                <div 
+                  className="drawer-backdrop" 
+                  onClick={closeDrawer}
+                  data-testid="drawer-backdrop"
+                />
+                
+                {/* Drawer */}
+                <aside 
+                  className={`drawer ${drawerOpen ? 'open' : ''}`}
+                  role="dialog" 
+                  aria-modal="true" 
+                  aria-labelledby="drawer-title"
+                  data-testid="article-drawer"
+                >
+                  <header className="drawer-header">
+                    <div className="drawer-title-wrap">
+                      <div className="tenant-badge">
+                        {previewArticle?.tenant === 'PUBLIC' ? 'Public' : previewArticle?.tenant === 'FAMILY' ? 'Family' : 'Staff'}
+                      </div>
+                      <h3 id="drawer-title">Preview</h3>
+                      <div className="menu-badge">
+                        {previewArticle?.menuCategory || '—'}
+                      </div>
+                    </div>
+                    <button 
+                      className="icon-btn" 
+                      onClick={closeDrawer}
+                      aria-label="Close"
+                      data-testid="drawer-close"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </header>
+
+                  <div className="drawer-body" tabIndex={0}>
+                    {/* Loading State */}
+                    {drawerLoading && (
+                      <div className="drawer-loading">
+                        <div className="spinner" aria-hidden="true"></div>
+                        <div>Loading preview…</div>
+                      </div>
+                    )}
+
+                    {/* Error State */}
+                    {drawerError && (
+                      <div className="drawer-error">
+                        <strong>Unable to load.</strong>
+                        <div className="muted">{drawerError}</div>
+                      </div>
+                    )}
+
+                    {/* Content */}
+                    {previewArticle && !drawerLoading && !drawerError && (
+                      <article className="drawer-article">
+                        <h1 className="drawer-article-title">{previewArticle.title}</h1>
+                        <div className="meta">
+                          <span className="muted">
+                            {previewArticle.authorName ? `By ${previewArticle.authorName}` : '—'}
+                          </span>
+                          <span>•</span>
+                          <span className="muted">
+                            {previewArticle.publishAt ? new Date(previewArticle.publishAt).toLocaleDateString() : 'Not published'}
+                          </span>
+                          <span 
+                            className={`badge-status ${previewArticle.status === 'draft' ? 'draft' : previewArticle.status === 'scheduled' ? 'scheduled' : ''}`}
+                          >
+                            {previewArticle.status === 'published' ? 'Published' :
+                             previewArticle.status === 'scheduled' ? 'Scheduled' :
+                             previewArticle.status === 'draft' ? 'Draft' : 'Archived'}
+                          </span>
+                        </div>
+
+                        {previewArticle.featureImage && (
+                          <img 
+                            className="feature-image" 
+                            src={previewArticle.featureImage} 
+                            alt=""
+                          />
+                        )}
+
+                        <div 
+                          className="content-html"
+                          dangerouslySetInnerHTML={{
+                            __html: sanitizeHTML(previewArticle.html || '')
+                          }}
+                        />
+                      </article>
+                    )}
+                  </div>
+
+                  <footer className="drawer-footer">
+                    <div className="left">
+                      <a 
+                        className="btn ghost" 
+                        href={`/articles/${previewArticle?.slug}`} 
+                        target="_blank" 
+                        rel="noopener"
+                        data-testid="drawer-view-live"
+                      >
+                        Open Live
+                      </a>
+                      <a 
+                        className="btn ghost" 
+                        href={`/preview/${previewArticle?.id}?token=demo`} 
+                        target="_blank" 
+                        rel="noopener"
+                        data-testid="drawer-view-preview"
+                      >
+                        Open Preview
+                      </a>
+                    </div>
+                    <div className="right">
+                      {previewArticle?.status === 'published' && (
+                        <button 
+                          className="btn ghost" 
+                          onClick={handleDrawerUnpublish}
+                          data-testid="drawer-unpublish"
+                        >
+                          Unpublish
+                        </button>
+                      )}
+                      {(previewArticle?.status === 'draft' || previewArticle?.status === 'scheduled') && (
+                        <button 
+                          className="btn primary" 
+                          onClick={handleDrawerPublish}
+                          data-testid="drawer-publish"
+                        >
+                          Publish
+                        </button>
+                      )}
+                      <button 
+                        className="btn ghost"
+                        onClick={() => {
+                          setEditingArticle(previewArticle);
+                          setNewArticleOpen(true);
+                          closeDrawer();
+                        }}
+                        data-testid="drawer-edit"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  </footer>
+                </aside>
+              </>
             )}
 
             {/* Enhanced Create Article Modal */}
