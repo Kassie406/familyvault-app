@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Users, CreditCard, Ticket, FileText, Shield, Activity, Plus, Eye, Edit, Trash2, 
   TrendingUp, BarChart3, PieChart, Server, ShieldCheck, Search, UserPlus, 
-  MoreHorizontal, Mail, Power, RotateCcw, X, Filter
+  MoreHorizontal, Mail, Power, RotateCcw, X, Filter, Edit3
 } from 'lucide-react';
 import AdminLayout from '@/components/admin/admin-layout';
 import SecurityCenterCard from '@/components/admin/security-center-card';
@@ -2402,13 +2402,15 @@ export default function AdminDashboard() {
               <div className="bg-white rounded-lg border border-gray-200 p-12">
                 <div className="text-center max-w-md mx-auto">
                   <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                    <FileText className="h-12 w-12 text-white" />
+                    <Edit3 className="h-12 w-12 text-white" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">No Content Yet</h3>
                   <p className="text-gray-600 text-sm mb-6 leading-relaxed">
                     Create and manage articles, announcements, and support docs for your users and team.
                     <br />
                     Perfect for system updates, knowledge base articles, and blog posts.
+                    <br />
+                    <span className="text-emerald-600 font-medium">Assign content to menu categories to display directly on familycirclesecure.com.</span>
                   </p>
                   <div className="flex gap-3 justify-center">
                     <Dialog open={newArticleOpen} onOpenChange={setNewArticleOpen}>
@@ -2423,6 +2425,9 @@ export default function AdminDashboard() {
                       Import from Template
                     </Button>
                   </div>
+                  <p className="text-xs text-gray-400 mt-4">
+                    Need help? See our <button className="text-emerald-600 hover:text-emerald-700 underline">Content Guide</button>
+                  </p>
                 </div>
               </div>
             )}
@@ -2680,7 +2685,7 @@ export default function AdminDashboard() {
                                     .replace(/^## (.*)$/gm, '<h2>$1</h2>')
                                     .replace(/^# (.*)$/gm, '<h1>$1</h1>')
                                     .replace(/^\s*[-*] (.*)$/gm, '<li>$1</li>')
-                                    .replace(/(<li>.*<\/li>)(?!\n<li>)/gs, '<ul>$1</ul>')
+                                    .replace(/(<li>.*<\/li>)(?!\n<li>)/g, '<ul>$1</ul>')
                                     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                                     .replace(/\*(.+?)\*/g, '<em>$1</em>')
                                     .replace(/`([^`]+)`/g, '<code>$1</code>')
