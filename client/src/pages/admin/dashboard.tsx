@@ -198,7 +198,7 @@ export default function AdminDashboard() {
                 <CardContent className="space-y-2">
                   <Button 
                     variant="outline" 
-                    className="w-full justify-start"
+                    className="w-full justify-start hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
                     onClick={() => setActiveSection('coupons')}
                   >
                     <Plus className="w-4 h-4 mr-2" />
@@ -206,7 +206,7 @@ export default function AdminDashboard() {
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="w-full justify-start"
+                    className="w-full justify-start hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
                     onClick={() => setActiveSection('users')}
                   >
                     <Users className="w-4 h-4 mr-2" />
@@ -214,7 +214,7 @@ export default function AdminDashboard() {
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="w-full justify-start"
+                    className="w-full justify-start hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
                     onClick={() => setActiveSection('security')}
                   >
                     <Shield className="w-4 h-4 mr-2" />
