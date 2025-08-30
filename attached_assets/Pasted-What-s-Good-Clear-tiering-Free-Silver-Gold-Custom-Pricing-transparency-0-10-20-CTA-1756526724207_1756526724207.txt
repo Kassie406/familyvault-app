@@ -1,0 +1,65 @@
+What’s Good
+
+Clear tiering (Free → Silver → Gold → Custom)
+
+Pricing transparency ($0, $10, $20)
+
+CTA buttons (“Get started”, “Schedule a demo”) are obvious and bright
+
+⚖️ Improvements
+1. Separate Client Plans vs Internal Plans
+
+Right now everything is under “Subscription Plans.” To avoid confusion:
+
+Client Users (www.familycirclesecure.com
+) → Free, Silver, Gold, Custom
+
+Family Members (portal.familycirclesecure.com) → should NOT see billing options (maybe always free, role-based access only)
+
+Employees/Agents (hub.familycirclesecure.com) → no billing, just role/permission management
+
+👉 In your console, you could show tabs or filters:
+
+Plans → [Client Plans] [Family Plans] [Staff Plans]
+
+2. Better Hierarchy in Cards
+
+Make “Most Popular” (Silver or Gold) visually stand out (bigger, badge, shadow).
+
+Add hover effects on cards (transform: scale(1.02); box-shadow: …).
+
+Ensure contrast (yellow on black works, but check WCAG for accessibility).
+
+3. Stripe Integration Ready
+
+Each “Get started” should:
+
+Kick off Stripe Checkout / Customer Portal directly.
+
+Auto-assign user to tenant=Public and update their role (Client / Client+ / Gold).
+
+4. Suggested Console Layout for Client Plans
+
+Instead of a dead “No Plans Configured” card, show them like this in your Admin console:
+
+Plan Name	Price	Interval	Users on Plan	Status	Actions
+Free	$0	Forever	128 users	Active	Edit / Disable
+Silver	$10	Monthly	43 users	Active	Edit / Disable
+Gold	$20	Monthly	25 users	Active	Edit / Disable
+Custom	N/A	Custom	8 users	Active	Manage
+
+⚡ That way, as an admin, you see plan adoption and can manage Stripe integration.
+
+5. User-Facing vs Admin-Facing
+
+User-facing (on www site): Nice marketing cards (like your screenshot).
+
+Admin-facing (in console): Simple table with pricing + # of users on each plan.
+
+🔑 Recommended Fix for Console (Empty State)
+
+If no plans exist → instead of black box, show:
+
+“No Client Plans Configured”
+Connect Stripe and import your Free, Silver, Gold, and Custom tiers.
+➡️ Button: [Connect Stripe]

@@ -636,13 +636,16 @@ export default function AdminDashboard() {
         return (
           <Card>
             <CardHeader>
-              <CardTitle>Subscription Plans</CardTitle>
-              <CardDescription>Manage pricing and subscription options</CardDescription>
+              <CardTitle>Client Plans</CardTitle>
+              <CardDescription>Manage subscription pricing for public website users (familycirclesecure.com)</CardDescription>
             </CardHeader>
             <CardContent>
               {plansLoading ? (
                 <p>Loading plans...</p>
               ) : plans?.plans?.length > 0 ? (
+                // TODO: Replace with table layout showing plan adoption metrics:
+                // Columns: Plan Name | Price | Interval | Users on Plan | Status | Actions (Edit/Disable)
+                // This will help admins see which plans are most popular and manage accordingly
                 <div className="space-y-4">
                   {plans.plans.map((plan: any) => (
                     <div key={plan.id} className="border rounded-lg p-4">
@@ -673,9 +676,9 @@ export default function AdminDashboard() {
                     </div>
                     
                     {/* Improved copy */}
-                    <h3 className="text-xl font-semibold text-gray-900 mb-3">No Plans Configured</h3>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-3">No Client Plans Configured</h3>
                     <p className="text-gray-600 mb-8 leading-relaxed">
-                      Connect Stripe and create your first subscription plan to start billing clients.
+                      Connect Stripe and import your Free, Silver, Gold, and Custom tiers.
                     </p>
                     
                     {/* Clear call-to-action */}
