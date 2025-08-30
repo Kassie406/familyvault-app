@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -35,19 +35,146 @@ import MarketingPromotions from '@/components/admin/marketing-promotions';
 
 export default function AdminDashboard() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [newCouponOpen, setNewCouponOpen] = useState(false);
   const [newArticleOpen, setNewArticleOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('overview');
   const [planScope, setPlanScope] = useState('PUBLIC');
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
-  const [editingArticle, setEditingArticle] = useState(null);
+  const [editingArticle, setEditingArticle] = useState<any>(null);
   const [articleTitle, setArticleTitle] = useState('');
   const [articleSlug, setArticleSlug] = useState('');
   const [slugTouched, setSlugTouched] = useState(false);
   const [articleStatus, setArticleStatus] = useState('draft');
   const [markdownContent, setMarkdownContent] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  
+  // Bulk selection state
+  const [selectedArticles, setSelectedArticles] = useState<Set<string>>(new Set());
+  const [isSelectAllChecked, setIsSelectAllChecked] = useState(false);
+
+  // Bulk selection helpers
+  const toggleArticleSelection = (articleId: string) => {
+    const newSelected = new Set(selectedArticles);
+    if (newSelected.has(articleId)) {
+      newSelected.delete(articleId);
+    } else {
+      newSelected.add(articleId);
+    }
+    setSelectedArticles(newSelected);
+    
+    // Update select all state
+    const totalArticles = articles?.articles?.length || 0;
+    setIsSelectAllChecked(newSelected.size === totalArticles && totalArticles > 0);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedArticles.size === 0) {
+      // Select all
+      const allIds = new Set<string>(articles?.articles?.map((a: any) => a.id) || []);
+      setSelectedArticles(allIds);
+      setIsSelectAllChecked(true);
+    } else {
+      // Deselect all
+      setSelectedArticles(new Set<string>());
+      setIsSelectAllChecked(false);
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedArticles(new Set<string>());
+    setIsSelectAllChecked(false);
+  };
+
+  // Bulk actions
+  const handleBulkPublish = async () => {
+    const ids = Array.from(selectedArticles);
+    if (ids.length === 0) return;
+    
+    if (confirm(`Publish ${ids.length} article(s)?`)) {
+      try {
+        await fetch('/api/admin/content/bulk-publish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids })
+        });
+        toast({ title: 'Articles published successfully' });
+        clearSelection();
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/articles'] });
+      } catch (error) {
+        toast({ title: 'Failed to publish articles', variant: 'destructive' });
+      }
+    }
+  };
+
+  const handleBulkUnpublish = async () => {
+    const ids = Array.from(selectedArticles);
+    if (ids.length === 0) return;
+    
+    if (confirm(`Unpublish ${ids.length} article(s)?`)) {
+      try {
+        await fetch('/api/admin/content/bulk-unpublish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids })
+        });
+        toast({ title: 'Articles unpublished successfully' });
+        clearSelection();
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/articles'] });
+      } catch (error) {
+        toast({ title: 'Failed to unpublish articles', variant: 'destructive' });
+      }
+    }
+  };
+
+  const handleBulkArchive = async () => {
+    const ids = Array.from(selectedArticles);
+    if (ids.length === 0) return;
+    
+    if (confirm(`Archive ${ids.length} article(s)?`)) {
+      try {
+        await fetch('/api/admin/content/bulk-archive', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids })
+        });
+        toast({ title: 'Articles archived successfully' });
+        clearSelection();
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/articles'] });
+      } catch (error) {
+        toast({ title: 'Failed to archive articles', variant: 'destructive' });
+      }
+    }
+  };
+
+  const handleBulkExport = () => {
+    const ids = Array.from(selectedArticles);
+    if (ids.length === 0) return;
+    
+    const selectedData = articles?.articles?.filter((a: any) => ids.includes(a.id)) || [];
+    const headers = ['id', 'title', 'menu_category', 'tenant', 'author', 'published_at', 'status'];
+    const csvRows = [headers.join(',')];
+    
+    selectedData.forEach((article: any) => {
+      const row = [
+        article.id,
+        `"${(article.title || '').replace(/"/g, '""')}"`,
+        `"${(article.menuCategory || '').replace(/"/g, '""')}"`,
+        article.tenant || '',
+        `"${(article.author || 'Admin').replace(/"/g, '""')}"`,
+        article.published ? new Date().toISOString().slice(0, 16).replace('T', ' ') : '—',
+        article.status || 'draft'
+      ];
+      csvRows.push(row.join(','));
+    });
+    
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `articles_export_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  };
 
   // Fetch admin data
   const { data: plans, isLoading: plansLoading } = useQuery({
@@ -2094,37 +2221,81 @@ export default function AdminDashboard() {
                           data-testid="input-search-articles"
                         />
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" data-testid="button-bulk-actions">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem data-testid="bulk-action-publish">
-                            Publish Selected
-                          </DropdownMenuItem>
-                          <DropdownMenuItem data-testid="bulk-action-unpublish">
-                            Unpublish Selected
-                          </DropdownMenuItem>
-                          <DropdownMenuItem data-testid="bulk-action-archive">
-                            Archive Selected
-                          </DropdownMenuItem>
-                          <DropdownMenuItem data-testid="bulk-action-export">
-                            Export Selected
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                     </div>
                   </div>
                 </div>
+                
+                {/* Bulk Actions Toolbar */}
+                {selectedArticles.size > 0 && (
+                  <div className="mx-6 my-4 flex items-center justify-between gap-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-blue-900" data-testid="text-bulk-count">
+                        {selectedArticles.size} selected
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleBulkPublish}
+                        className="text-green-700 hover:bg-green-100"
+                        data-testid="button-bulk-publish"
+                      >
+                        Publish
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleBulkUnpublish}
+                        className="text-gray-700 hover:bg-gray-100"
+                        data-testid="button-bulk-unpublish"
+                      >
+                        Unpublish
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleBulkArchive}
+                        className="text-red-700 hover:bg-red-100"
+                        data-testid="button-bulk-archive"
+                      >
+                        Archive
+                      </Button>
+                      <div className="w-px h-5 bg-gray-300" />
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleBulkExport}
+                        className="text-blue-700 hover:bg-blue-100"
+                        data-testid="button-bulk-export"
+                      >
+                        Export CSV
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={clearSelection}
+                        className="text-gray-500 hover:bg-gray-100"
+                        data-testid="button-bulk-clear"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          <input type="checkbox" className="rounded" data-testid="checkbox-select-all" />
+                          <input 
+                            type="checkbox" 
+                            className="rounded" 
+                            checked={isSelectAllChecked}
+                            onChange={toggleSelectAll}
+                            data-testid="checkbox-select-all" 
+                          />
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Menu Category</th>
@@ -2137,9 +2308,20 @@ export default function AdminDashboard() {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {articles.articles.map((article: any) => (
-                        <tr key={article.id} className="hover:bg-gray-50">
+                        <tr 
+                          key={article.id} 
+                          className={`hover:bg-gray-50 ${
+                            selectedArticles.has(article.id) ? 'bg-blue-50' : ''
+                          }`}
+                        >
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <input type="checkbox" className="rounded" data-testid={`checkbox-article-${article.id}`} />
+                            <input 
+                              type="checkbox" 
+                              className="rounded" 
+                              checked={selectedArticles.has(article.id)}
+                              onChange={() => toggleArticleSelection(article.id)}
+                              data-testid={`checkbox-article-${article.id}`} 
+                            />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900" data-testid={`text-article-title-${article.id}`}>
