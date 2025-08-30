@@ -472,59 +472,69 @@ export default function AdminDashboard() {
                         </td>
                         
                         {/* Actions */}
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="row-actions flex items-center gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0 hover:bg-[#EEF3FF] hover:text-[#007BFF] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:rounded-lg"
+                        <td className="col-actions px-4 py-3 whitespace-nowrap text-right" style={{width: '172px'}}>
+                          <div className="row-actions flex items-center justify-end gap-1" role="group" aria-label="Row actions">
+                            <button 
+                              className="appearance-none bg-transparent border-0 p-1.5 ml-1.5 rounded-lg text-[#667085] opacity-90 cursor-pointer transition-all duration-150 hover:bg-[#EEF3FF] hover:text-[#1F6FEB] hover:opacity-100 focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:outline-offset-2 focus-visible:shadow-[0_0_0_2px_rgba(31,111,235,0.15)]"
                               data-testid={`button-edit-${user.id}`}
                               aria-label={`Edit user ${user.name}`}
+                              data-tip="Edit"
+                              style={{
+                                position: 'relative'
+                              }}
                             >
-                              <Edit className="w-3 h-3" />
-                            </Button>
+                              <Edit className="w-3.5 h-3.5" style={{stroke: 'currentColor', fill: 'none'}} />
+                            </button>
                             
                             {user.status === 'Suspended' ? (
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-8 w-8 p-0 hover:bg-[#EEF3FF] hover:text-[#28A745] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:rounded-lg"
+                              <button 
+                                className="appearance-none bg-transparent border-0 p-1.5 ml-1.5 rounded-lg text-[#667085] opacity-90 cursor-pointer transition-all duration-150 hover:bg-[#EEF3FF] hover:text-[#28A745] hover:opacity-100 focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:outline-offset-2 focus-visible:shadow-[0_0_0_2px_rgba(31,111,235,0.15)]"
                                 data-testid={`button-reactivate-${user.id}`}
                                 aria-label={`Reactivate user ${user.name}`}
+                                data-tip="Reactivate"
+                                style={{
+                                  position: 'relative'
+                                }}
                               >
-                                <Power className="w-3 h-3" />
-                              </Button>
+                                <Power className="w-3.5 h-3.5" style={{stroke: 'currentColor', fill: 'none'}} />
+                              </button>
                             ) : user.status === 'Pending' ? (
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-8 w-8 p-0 hover:bg-[#EEF3FF] hover:text-[#FFC107] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:rounded-lg"
+                              <button 
+                                className="appearance-none bg-transparent border-0 p-1.5 ml-1.5 rounded-lg text-[#667085] opacity-90 cursor-pointer transition-all duration-150 hover:bg-[#EEF3FF] hover:text-[#FFC107] hover:opacity-100 focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:outline-offset-2 focus-visible:shadow-[0_0_0_2px_rgba(31,111,235,0.15)]"
                                 data-testid={`button-resend-${user.id}`}
                                 aria-label={`Resend invitation to ${user.name}`}
+                                data-tip="Resend Invite"
+                                style={{
+                                  position: 'relative'
+                                }}
                               >
-                                <RotateCcw className="w-3 h-3" />
-                              </Button>
+                                <RotateCcw className="w-3.5 h-3.5" style={{stroke: 'currentColor', fill: 'none'}} />
+                              </button>
                             ) : (
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-8 w-8 p-0 hover:bg-[#EEF3FF] hover:text-[#DC3545] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:rounded-lg"
+                              <button 
+                                className="appearance-none bg-transparent border-0 p-1.5 ml-1.5 rounded-lg text-[#667085] opacity-90 cursor-pointer transition-all duration-150 hover:bg-[#EEF3FF] hover:text-[#DC3545] hover:opacity-100 focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:outline-offset-2 focus-visible:shadow-[0_0_0_2px_rgba(31,111,235,0.15)]"
                                 data-testid={`button-suspend-${user.id}`}
                                 aria-label={`Suspend user ${user.name}`}
+                                data-tip="Suspend"
+                                style={{
+                                  position: 'relative'
+                                }}
                               >
-                                <Power className="w-3 h-3" />
-                              </Button>
+                                <Power className="w-3.5 h-3.5" style={{stroke: 'currentColor', fill: 'none'}} />
+                              </button>
                             )}
                             
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0 hover:bg-[#EEF3FF] hover:text-[#DC3545] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:rounded-lg"
+                            <button 
+                              className="appearance-none bg-transparent border-0 p-1.5 ml-1.5 rounded-lg text-[#667085] opacity-90 cursor-pointer transition-all duration-150 hover:bg-[#EEF3FF] hover:text-[#DC3545] hover:opacity-100 focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:outline-offset-2 focus-visible:shadow-[0_0_0_2px_rgba(31,111,235,0.15)]"
                               data-testid={`button-remove-${user.id}`}
                               aria-label={`Remove user ${user.name}`}
+                              data-tip="Remove"
+                              style={{
+                                position: 'relative'
+                              }}
                             >
-                              <X className="w-3 h-3" />
-                            </Button>
+                              <X className="w-3.5 h-3.5" style={{stroke: 'currentColor', fill: 'none'}} />
+                            </button>
                           </div>
                         </td>
                       </tr>
