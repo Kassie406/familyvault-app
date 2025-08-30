@@ -11,6 +11,12 @@ import AdminDashboard from "@/pages/admin/dashboard";
 import AdminIncidents from "@/pages/admin/incidents";
 import AdminSecuritySettings from "@/pages/admin/security-settings";
 import AdminStepUpTest from "@/pages/admin/stepup-test";
+import DatabaseStatus from "@/pages/admin/database-status";
+import AuthStatus from "@/pages/admin/auth-status";
+import SMTPStatus from "@/pages/admin/smtp-status";
+import WebhooksStatus from "@/pages/admin/webhooks-status";
+import StripeStatus from "@/pages/admin/stripe-status";
+import StorageStatus from "@/pages/admin/storage-status";
 import AdminLayout from "@/components/admin/admin-layout";
 import Home from "@/pages/home";
 import Security from "@/pages/security";
@@ -97,6 +103,12 @@ function AdminRouter() {
       <Route path="/incidents" component={AdminIncidents} />
       <Route path="/security-settings" component={AdminSecuritySettings} />
       <Route path="/stepup-test" component={AdminStepUpTest} />
+      <Route path="/database-status" component={DatabaseStatus} />
+      <Route path="/auth-status" component={AuthStatus} />
+      <Route path="/smtp-status" component={SMTPStatus} />
+      <Route path="/webhooks-status" component={WebhooksStatus} />
+      <Route path="/stripe-status" component={StripeStatus} />
+      <Route path="/storage-status" component={StorageStatus} />
       <Route path="/login" component={AdminLogin} />
       <Route path="/" component={AdminLogin} />
       <Route component={AdminLogin} />
