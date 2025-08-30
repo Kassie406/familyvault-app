@@ -4,6 +4,71 @@
 @tailwind utilities;
 
 
+/* ---- Scrollable Sidebar Layout ---- */
+.app-shell{
+  display:grid;
+  grid-template-columns: 264px 1fr;   /* sidebar width + content */
+  min-height: 100dvh;                 /* safe viewport height */
+}
+
+/* Sidebar column is not the scroller itself; its child is. */
+.sidebar{
+  background:#1C1C1C;                /* existing dark theme */
+  color:#e5e7eb;
+  border-right:1px solid #1e293b;
+}
+
+/* The actual scroller */
+.sidebar__scroll{
+  position: sticky;
+  top: 0;
+  height: 100dvh;                    /* full viewport height */
+  overflow-y: auto;                  /* THIS is the scroll */
+  -webkit-overflow-scrolling: touch;
+  display:flex;
+  flex-direction:column;
+  scrollbar-gutter: stable;          /* avoid layout shift with scrollbar */
+}
+
+/* nav occupies top; spacer grows; admin stays at bottom */
+.sidebar__nav{ padding: 12px 10px 8px 10px; }
+.sidebar__spacer{ flex: 1 1 auto; }
+.sidebar__admin{ padding: 10px; }
+
+/* Admin card at the bottom */
+.admin-card{
+  background:#0b1220;
+  border:1px solid #1e293b;
+  border-radius:12px;
+  padding:10px;
+}
+.admin-id{ display:flex; gap:10px; align-items:center; margin-bottom:8px }
+.avatar{ width:28px; height:28px; border-radius:999px; display:grid; place-items:center;
+  background:#1F6FEB; color:#fff; font-weight:800 }
+.name{ font-weight:800; color:#e5e7eb; }
+.role{ font-size:12px; color:#94a3b8 }
+
+.admin-links{ display:flex; flex-direction:column; gap:6px }
+.admin-links a,
+.admin-links .logout{
+  text-align:left; border:0; background:transparent; color:#e5e7eb; padding:6px 6px; border-radius:8px; cursor:pointer;
+  display:flex; align-items:center; gap:6px; font-size:14px;
+}
+.admin-links a:hover,
+.admin-links .logout:hover{ background:#141d2e }
+
+/* ---- main content ---- */
+.main{ min-height:100%; overflow:visible; background:#F8F9FA; }
+
+/* Optional: slim scrollbar style */
+.sidebar__scroll::-webkit-scrollbar{ width:10px }
+.sidebar__scroll::-webkit-scrollbar-thumb{ background:#2b3446; border-radius:8px }
+.sidebar__scroll::-webkit-scrollbar-track{ background:transparent }
+
+/* If any wrapper was clipping popovers/menus, neutralize it */
+#app, .page, .content-wrap, .main { overflow: visible !important; transform: none !important; contain: none !important; }
+html, body { height:auto; overflow:auto; }
+
 /* Force light color scheme throughout the admin interface */
 :root {
   /* Core palette - standardized theme */

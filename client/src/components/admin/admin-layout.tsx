@@ -1,8 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { 
   Shield, LogOut, User, Settings, LayoutDashboard, Users, CreditCard, 
   Ticket, FileText, ShieldCheck, Activity, Search, Filter, Bell, 
@@ -70,11 +67,12 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
       {/* Impersonation Banner */}
       <ImpersonationBanner />
       
-      <div className="min-h-screen bg-[#F8F9FA] flex">
-        {/* Dark Sidebar */}
-        <div className="w-72 bg-[#1C1C1C] text-[#F8F9FA] flex flex-col">
-        {/* Logo Header */}
-        <div className="p-6 border-b border-[#2C2C2C]">
+      <div className="app-shell">
+        {/* Sidebar */}
+        <aside className="sidebar" id="sidebar">
+          <div className="sidebar__scroll">
+            {/* Logo Header */}
+            <div className="p-6 border-b border-[#2C2C2C]">
           <div className="flex items-center space-x-3">
             <Shield className="w-8 h-8 text-[#007BFF]" />
             <div>
@@ -84,126 +82,119 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
           </div>
         </div>
 
-        {/* Navigation Menu */}
-        <div className="flex-1 p-4">
-          <nav className="space-y-2">
-            {navigationItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeSection === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    if (item.href) {
-                      setLocation(item.href);
-                    } else {
-                      onSectionChange?.(item.id);
-                    }
-                  }}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                    isActive 
-                      ? 'bg-[#007BFF] text-white shadow-lg' 
-                      : 'text-[#CED4DA] hover:bg-[#1F6FEB] hover:text-white'
-                  }`}
-                  data-testid={`nav-${item.id}`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <div>
-                    <div className="font-medium">{item.label}</div>
-                    <div className="text-xs opacity-75">{item.description}</div>
-                  </div>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
+            {/* Navigation Menu */}
+            <div className="sidebar__nav">
+              <nav className="space-y-2">
+                {navigationItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeSection === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        if (item.href) {
+                          setLocation(item.href);
+                        } else {
+                          onSectionChange?.(item.id);
+                        }
+                      }}
+                      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                        isActive 
+                          ? 'bg-[#007BFF] text-white shadow-lg' 
+                          : 'text-[#CED4DA] hover:bg-[#1F6FEB] hover:text-white'
+                      }`}
+                      data-testid={`nav-${item.id}`}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <div>
+                        <div className="font-medium text-sm">{item.label}</div>
+                        <div className="text-xs opacity-80">{item.description}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
 
-        {/* Admin User Info */}
-        <div className="p-4 border-t border-[#2C2C2C]">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-[#1F6FEB] transition-colors">
-                <Avatar className="h-10 w-10">
-                  <AvatarFallback className="bg-[#007BFF] text-white">
+            {/* Spacer to push admin to bottom */}
+            <div className="sidebar__spacer"></div>
+
+            {/* Admin Section at Bottom */}
+            <div className="sidebar__admin">
+              <div className="admin-card">
+                <div className="admin-id">
+                  <span className="avatar">
                     {(user.user.name || user.user.username).charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="text-left">
-                  <div className="font-medium">{user.user.name || user.user.username}</div>
-                  <div className="text-xs text-[#CED4DA]">{user.user.role}</div>
+                  </span>
+                  <div>
+                    <div className="name">{user.user.name || user.user.username}</div>
+                    <div className="role">{user.user.role}</div>
+                  </div>
                 </div>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuItem className="flex-col items-start">
-                <div className="font-medium">{user.user.name || user.user.username}</div>
-                <div className="text-xs text-muted-foreground">{user.user.email}</div>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem data-testid="menu-profile">
-                <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem data-testid="menu-settings">
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} data-testid="menu-logout">
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Bar */}
-        <header className="bg-white border-b border-gray-200 shadow-sm">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 capitalize">
-                  {navigationItems.find(item => item.id === activeSection)?.label || 'Dashboard'}
-                </h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  {navigationItems.find(item => item.id === activeSection)?.description || 'Platform management overview'}
-                </p>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                {/* Global Search (⌘K) */}
-                <Button 
-                  variant="outline" 
-                  className="w-64 justify-start text-gray-500 bg-gray-50 border-gray-200 hover:bg-gray-100"
-                  onClick={() => setIsSearchOpen(true)}
-                  data-testid="button-global-search"
-                >
-                  <Search className="w-4 h-4 mr-2" />
-                  Search everywhere... ⌘K
-                </Button>
-                
-                {/* Toolbar Actions */}
-                <Button variant="outline" size="sm">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filter
-                </Button>
-                
-                <Button variant="outline" size="sm">
-                  <Bell className="w-4 h-4" />
-                </Button>
+                <nav className="admin-links">
+                  <a href="#" data-testid="menu-profile">
+                    <User className="w-4 h-4" />
+                    Profile
+                  </a>
+                  <a href="#" data-testid="menu-settings">
+                    <Settings className="w-4 h-4" />
+                    Settings
+                  </a>
+                  <button type="button" className="logout" onClick={handleLogout} data-testid="menu-logout">
+                    <LogOut className="w-4 h-4" />
+                    Log out
+                  </button>
+                </nav>
               </div>
             </div>
           </div>
-        </header>
+        </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-6 bg-gray-50 overflow-auto">
-          {children}
+        <main className="main" id="main">
+          {/* Top Bar */}
+          <header className="bg-white border-b border-gray-200 shadow-sm">
+            <div className="px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 capitalize">
+                    {navigationItems.find(item => item.id === activeSection)?.label || 'Dashboard'}
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {navigationItems.find(item => item.id === activeSection)?.description || 'Platform management overview'}
+                  </p>
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  {/* Global Search (⌘K) */}
+                  <button 
+                    className="w-64 justify-start text-gray-500 bg-gray-50 border border-gray-200 hover:bg-gray-100 px-3 py-2 rounded-lg flex items-center"
+                    onClick={() => setIsSearchOpen(true)}
+                    data-testid="button-global-search"
+                  >
+                    <Search className="w-4 h-4 mr-2" />
+                    Search everywhere... ⌘K
+                  </button>
+                  
+                  {/* Toolbar Actions */}
+                  <button className="px-3 py-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 flex items-center">
+                    <Filter className="w-4 h-4 mr-2" />
+                    Filter
+                  </button>
+                  
+                  <button className="px-3 py-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50">
+                    <Bell className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* Page Content */}
+          <div className="p-6 bg-gray-50 min-h-full">
+            {children}
+          </div>
         </main>
-      </div>
       </div>
 
       {/* Global Search Modal */}
