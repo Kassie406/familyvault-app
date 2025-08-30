@@ -195,6 +195,7 @@ function Router() {
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/security-settings" component={AdminSecuritySettings} />
       <Route path="/admin/stepup-test" component={AdminStepUpTest} />
+      <Route path="/admin/incidents" component={AdminIncidents} />
       
       <Route component={NotFound} />
     </Switch>
