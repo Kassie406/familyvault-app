@@ -1,0 +1,337 @@
+GDPR is where product + legal meet. Here’s a clean, readable GDPR Compliance module you can drop in now—no pitch-black hovers—and a complete flow (UI + models + APIs) for consents, DSARs, retention, and suppression.
+
+1) Visual polish (scoped; fixes the dark cards)
+<div id="gdpr-root">
+  <!-- GDPR Compliance UI goes here -->
+</div>
+
+#gdpr-root .card{background:#fff;border:1px solid #E5EAF2;border-radius:14px;box-shadow:0 2px 12px rgba(16,24,40,.06)}
+#gdpr-root .card-header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #EEF1F5}
+#gdpr-root .btn{border:1px solid #CBD2E0;background:#fff;color:#344054;border-radius:12px;padding:10px 14px;cursor:pointer}
+#gdpr-root .btn.primary{background:#1F6FEB;color:#fff;border-color:transparent}
+#gdpr-root .btn:hover{background:#F6F8FB}
+#gdpr-root .seg{display:inline-flex;border:1px solid #D7DEE8;border-radius:999px;overflow:hidden}
+#gdpr-root .seg button{padding:8px 12px;background:#fff;border:0;color:#344054}
+#gdpr-root .seg button.is-active{background:#111827;color:#F9FAFB}
+.badge{padding:3px 8px;border-radius:999px;font-size:12px;font-weight:600;display:inline-block}
+.badge-open{background:#FFF4E5;color:#AD7A00}
+.badge-due{background:#FEECEC;color:#B42318}
+.badge-ok{background:#E8F6EE;color:#1B7F3B}
+.table{width:100%;border-collapse:separate;border-spacing:0}
+.table th{background:#F9FAFB;border-bottom:1px solid #E5EAF2;padding:10px 12px;text-align:left;color:#111827}
+.table td{padding:10px 12px;border-bottom:1px solid #F2F4F8;color:#1F2937}
+.table tr:hover{background:#F7FAFF}
+
+2) Page structure (four focused panels)
+<div class="card">
+  <div class="card-header">
+    <h3>GDPR Compliance</h3>
+    <div class="seg">
+      <button class="is-active">Overview</button>
+      <button>Consents</button>
+      <button>Requests</button>
+      <button>Retention</button>
+      <button>Suppression</button>
+    </div>
+  </div>
+
+  <!-- Overview metrics -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:12px 16px">
+    <div class="kpi"><strong id="kpi-open">0</strong><div>Open DSARs</div></div>
+    <div class="kpi"><strong id="kpi-due">0</strong><div>Due in ≤7 days</div></div>
+    <div class="kpi"><strong id="kpi-consents">0</strong><div>Consent updates (30d)</div></div>
+    <div class="kpi"><strong id="kpi-deletes">0</strong><div>Deletions processed</div></div>
+  </div>
+
+  <!-- CONSENTS -->
+  <section>
+    <div class="card-header"><h4>Consent Ledger</h4>
+      <div>
+        <button class="btn" id="import-consents">Import</button>
+        <button class="btn primary" id="export-consents">Export CSV</button>
+      </div>
+    </div>
+    <table class="table" id="consent-table">
+      <thead><tr>
+        <th>User</th><th>Purpose</th><th>Status</th><th>Method</th><th>At</th><th>Source</th>
+      </tr></thead>
+      <tbody><!-- rows via JS --></tbody>
+    </table>
+  </section>
+
+  <!-- REQUESTS -->
+  <section style="margin-top:12px">
+    <div class="card-header"><h4>Data Subject Requests</h4>
+      <div>
+        <button class="btn" id="new-dsar">New Request</button>
+        <button class="btn" id="verify-identity">Verify Identity</button>
+      </div>
+    </div>
+    <table class="table" id="dsar-table">
+      <thead><tr>
+        <th>ID</th><th>Type</th><th>Subject</th><th>Status</th><th>Opened</th><th>Due</th><th>Actions</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <!-- RETENTION -->
+  <section style="margin-top:12px">
+    <div class="card-header"><h4>Retention Policies</h4>
+      <button class="btn primary" id="add-retention">Add Policy</button>
+    </div>
+    <table class="table" id="retention-table">
+      <thead><tr>
+        <th>Dataset</th><th>Basis</th><th>Retention</th><th>Disposition</th><th>Enabled</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <!-- SUPPRESSION -->
+  <section style="margin-top:12px">
+    <div class="card-header"><h4>Suppression List</h4>
+      <div>
+        <input id="sup-email" placeholder="email to suppress" style="padding:8px 12px;border:1px solid #D7DEE8;border-radius:10px">
+        <button class="btn" id="add-suppression">Add</button>
+      </div>
+    </div>
+    <table class="table" id="suppression-table">
+      <thead><tr>
+        <th>Email Hash (SHA256)</th><th>Reason</th><th>Added</th><th></th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+</div>
+
+3) Data model (lean & court-ready)
+Consent events (immutable ledger)
+{
+  "id":"ce_01", "user_id":"u_1",
+  "purpose":"marketing|analytics|required",
+  "status":"granted|denied",
+  "method":"banner|settings|api|import",
+  "source":"web|mobile|admin",
+  "ip":"203.0.113.7", "ua":"…",
+  "occurred_at":"2025-08-20T12:10:00Z",
+  "meta": {"banner_version":"v3.1"}
+}
+
+DSAR (Data Subject Request) + items
+{
+  "id":"dsr_01","type":"access|erasure|rectification|portability|restriction|objection",
+  "subject":{"user_id":"u_1","email":"user@example.com"},
+  "status":"open|id_pending|in_progress|awaiting_subject|completed|rejected",
+  "opened_at":"…","due_at":"…","closed_at":null,
+  "legal_basis":"Art. 15/17 …","notes":""
+}
+
+Retention policy
+{
+  "id":"rp_01","dataset":"auth_logs",
+  "basis":"Legitimate interest / security",
+  "ttl":"90d",
+  "disposition":"delete|anonymize",
+  "enabled":true
+}
+
+Suppression (hashed to avoid storing raw email)
+{"id":"sup_01","email_hash":"sha256.hex","reason":"erasure","added_at":"…"}
+
+
+All writes mirror into your tamper-evident audit chain.
+
+4) Core workflows
+A) Consent capture (Banner/Settings → Ledger)
+
+UI gathers toggles by purpose.
+
+POST /api/gdpr/consents with { user_id, events:[{purpose, status, method, source, meta}] }.
+
+Server appends immutable events; compute effective consent per purpose (latest(status) by time).
+
+Expose GET /api/gdpr/consents/:user_id/effective.
+
+Example server upsert (pseudo):
+
+await ConsentEvents.insertMany(events.map(e=>({
+  ...e, occurred_at: new Date(), ip: req.ip, ua: req.headers['user-agent']
+})));
+
+B) DSAR lifecycle (30-day default deadline)
+
+New request → status=open, due_at = opened_at + 30 days (pause when awaiting identity).
+
+Identity verification step toggles status=id_pending until verified.
+
+When completed, generate Export Package (ZIP) + signed manifest (hash + signature).
+
+Rejections record legal ground (manifest!).
+
+Status machine:
+
+open → id_pending → in_progress → (awaiting_subject ↔ in_progress) → completed | rejected
+
+
+Endpoints (sketch):
+
+POST   /api/gdpr/requests
+GET    /api/gdpr/requests?status=open&due<=7d
+PATCH  /api/gdpr/requests/:id {status, note}
+POST   /api/gdpr/requests/:id/verify {code}
+POST   /api/gdpr/requests/:id/export   -> returns signed URL
+POST   /api/gdpr/requests/:id/complete
+
+
+Identity verification token (email link):
+
+// create a one-use token valid 7 days; store hash + dsr_id
+const token = crypto.randomBytes(32).toString('hex');
+await DsrTokens.put({ dsr_id, hash: sha256(token), exp: now+7d });
+sendEmail(subject.email, `Verify: ${origin}/gdpr/verify?dsr=${dsr_id}&t=${token}`);
+
+
+Server verifies sha256(token) matches, marks verified_at.
+
+C) Retention automation
+
+Nightly job enumerates policies and datasets (e.g., tables/buckets), applies TTL or anonymization.
+
+Log counts per run + sample IDs to audit.
+
+Policy engine (pseudo):
+
+for (const p of policies.where({enabled:true})) {
+  const cutoff = now - parseTTL(p.ttl);
+  if (p.disposition === 'delete') await store.deleteOlderThan(p.dataset, cutoff);
+  else await store.anonymizeOlderThan(p.dataset, cutoff);
+  audit('retention.run', { dataset:p.dataset, disposition:p.disposition, cutoff });
+}
+
+D) Suppression list (don’t contact/delete again)
+
+Store SHA-256(email); at send-time, hash recipient email and block if present.
+
+Add automatically when erasure completed; optional expiry per policy.
+
+const hash = sha256(email.trim().toLowerCase());
+await Suppress.add({ email_hash: hash, reason: 'erasure' });
+
+5) Export package (for Access/Portability)
+
+ZIP tree:
+
+/profile.json
+/consents.csv
+/sessions.csv
+/orders.csv
+/attachments/{fileId}.pdf
+/manifest.json (sha256 of each file)
+/manifest.sig (server-signed)
+
+
+Provide download URL + validity window (e.g., S3 pre-signed 24h).
+
+Store manifest hash in audit for proof.
+
+6) Tables: example rows
+DSAR table row rendering logic
+
+Status badge: open → gray; id_pending/in_progress → orange; due ≤7d add red badge-due; completed → green.
+
+Actions: View, Verify ID, Export, Complete, Reject.
+
+Consents table
+
+Effective status pill per purpose; clicking shows event history (drawer).
+
+7) Legal guardrails (practical)
+
+Data minimization: keep consent events immutable; expose effective view separately.
+
+Identity: verify the requester before releasing personal data; log verifier and method.
+
+Deadlines: 30 days default; extend once by 2 months only when justified (log reason).
+
+Erasure: if you must retain minimal data (e.g., invoices), anonymize subject links and place email on suppression.
+
+Records of Processing (RoPA): keep retention & lawful basis per dataset (basis column above).
+
+DPA/Policies: link to your DPA, privacy policy version used in banner (store version in meta).
+
+Audit: every state change → tamper-evident log (we already set this up).
+
+8) Minimal SQL (or NoSQL) sketch
+-- Consent ledger (append-only)
+CREATE TABLE consent_events (
+  id bigserial PRIMARY KEY,
+  user_id varchar(64) NOT NULL,
+  purpose varchar(32) NOT NULL,
+  status varchar(16) NOT NULL,        -- granted/denied
+  method varchar(16) NOT NULL,
+  source varchar(16) NOT NULL,
+  ip inet, ua text,
+  occurred_at timestamptz NOT NULL DEFAULT now(),
+  meta jsonb
+);
+CREATE INDEX ON consent_events (user_id, purpose, occurred_at DESC);
+
+-- DSAR
+CREATE TABLE dsar_requests (
+  id varchar(32) PRIMARY KEY,
+  type varchar(24) NOT NULL,
+  subject_user_id varchar(64),
+  subject_email text,
+  status varchar(24) NOT NULL,
+  opened_at timestamptz NOT NULL,
+  due_at timestamptz NOT NULL,
+  closed_at timestamptz,
+  legal_basis text,
+  notes text
+);
+
+-- Retention
+CREATE TABLE retention_policies (
+  id varchar(32) PRIMARY KEY,
+  dataset varchar(64) NOT NULL,
+  basis text NOT NULL,
+  ttl interval NOT NULL,
+  disposition varchar(16) NOT NULL,   -- delete/anonymize
+  enabled boolean NOT NULL DEFAULT true
+);
+
+-- Suppression (hashed)
+CREATE TABLE suppression_list (
+  id bigserial PRIMARY KEY,
+  email_hash char(64) UNIQUE NOT NULL,
+  reason text,
+  added_at timestamptz NOT NULL DEFAULT now()
+);
+
+9) API contract (concise)
+GET  /api/gdpr/consents/:user/effective
+POST /api/gdpr/consents               // batch append events
+
+GET  /api/gdpr/requests
+POST /api/gdpr/requests               // create DSAR
+PATCH /api/gdpr/requests/:id          // status, notes
+POST /api/gdpr/requests/:id/verify    // identity token
+POST /api/gdpr/requests/:id/export    // generate package
+POST /api/gdpr/requests/:id/complete
+
+GET  /api/gdpr/retention
+POST /api/gdpr/retention
+PATCH /api/gdpr/retention/:id
+
+GET  /api/gdpr/suppression
+POST /api/gdpr/suppression            // add (server hashes email)
+DELETE /api/gdpr/suppression/:hash
+
+10) Cookie banner / preference center
+
+Store banner version (e.g., v3.1) in each consent event meta.
+
+Expose a /privacy/preferences page that toggles purposes → POST to ledger.
+
+On page load, fetch effective consents; only load non-essential scripts when status=granted.

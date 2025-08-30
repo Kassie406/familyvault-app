@@ -12,8 +12,13 @@ import {
   type AdminSession, type InsertAdminSession,
   type SecuritySetting, type InsertSecuritySetting,
   type ImpersonationSession, type InsertImpersonationSession,
+  type GdprConsentEvent, type InsertGdprConsentEvent,
+  type DsarRequest, type InsertDsarRequest,
+  type RetentionPolicy, type InsertRetentionPolicy,
+  type Suppression, type InsertSuppression,
   users, organizations, plans, coupons, articles, consentEvents, auditLogs,
-  adminSessions, securitySettings, impersonationSessions
+  adminSessions, securitySettings, impersonationSessions,
+  gdprConsentEvents, dsarRequests, retentionPolicies, suppressionList
 } from "@shared/schema";
 
 // Database connection
@@ -91,6 +96,31 @@ export interface IStorage {
   endImpersonationSession(sessionId: string, status: string, endReason: string): Promise<void>;
   getRecentImpersonationSessions(limit: number): Promise<ImpersonationSession[]>;
   getExpiredImpersonationSessions(): Promise<ImpersonationSession[]>;
+
+  // GDPR Compliance methods
+  // Consent Management
+  createGdprConsentEvent(event: InsertGdprConsentEvent): Promise<GdprConsentEvent>;
+  getGdprConsentEvents(userId?: string, limit?: number): Promise<GdprConsentEvent[]>;
+  getEffectiveConsents(userId: string): Promise<{[purpose: string]: boolean}>;
+  
+  // DSAR Management
+  createDsarRequest(request: InsertDsarRequest): Promise<DsarRequest>;
+  getAllDsarRequests(status?: string): Promise<DsarRequest[]>;
+  getDsarRequest(id: string): Promise<DsarRequest | undefined>;
+  updateDsarRequest(id: string, updates: Partial<InsertDsarRequest>): Promise<DsarRequest | undefined>;
+  getDsarRequestsByDueDate(daysFromNow: number): Promise<DsarRequest[]>;
+  
+  // Retention Policies
+  getAllRetentionPolicies(): Promise<RetentionPolicy[]>;
+  createRetentionPolicy(policy: InsertRetentionPolicy): Promise<RetentionPolicy>;
+  updateRetentionPolicy(id: string, updates: Partial<InsertRetentionPolicy>): Promise<RetentionPolicy | undefined>;
+  deleteRetentionPolicy(id: string): Promise<boolean>;
+  
+  // Suppression List
+  getAllSuppressions(): Promise<Suppression[]>;
+  addSuppression(suppression: InsertSuppression): Promise<Suppression>;
+  removeSuppression(emailHash: string): Promise<boolean>;
+  isEmailSuppressed(emailHash: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -414,6 +444,134 @@ export class DatabaseStorage implements IStorage {
   async getExpiredImpersonationSessions(): Promise<ImpersonationSession[]> {
     return await db.select().from(impersonationSessions)
       .where(sql`${impersonationSessions.status} = 'active' AND ${impersonationSessions.expiresAt} < NOW()`);
+  }
+
+  // GDPR Compliance methods
+  // Consent Management
+  async createGdprConsentEvent(event: InsertGdprConsentEvent): Promise<GdprConsentEvent> {
+    const result = await db.insert(gdprConsentEvents).values(event).returning();
+    return result[0];
+  }
+
+  async getGdprConsentEvents(userId?: string, limit: number = 500): Promise<GdprConsentEvent[]> {
+    const query = db.select().from(gdprConsentEvents);
+    
+    if (userId) {
+      return await query
+        .where(eq(gdprConsentEvents.userId, userId))
+        .orderBy(desc(gdprConsentEvents.occurredAt))
+        .limit(limit);
+    } else {
+      return await query
+        .orderBy(desc(gdprConsentEvents.occurredAt))
+        .limit(limit);
+    }
+  }
+
+  async getEffectiveConsents(userId: string): Promise<{[purpose: string]: boolean}> {
+    const events = await db.select().from(gdprConsentEvents)
+      .where(eq(gdprConsentEvents.userId, userId))
+      .orderBy(desc(gdprConsentEvents.occurredAt));
+    
+    const effective: {[purpose: string]: boolean} = {};
+    events.forEach(event => {
+      if (!effective.hasOwnProperty(event.purpose)) {
+        effective[event.purpose] = event.status === 'granted';
+      }
+    });
+    
+    return effective;
+  }
+
+  // DSAR Management
+  async createDsarRequest(request: InsertDsarRequest): Promise<DsarRequest> {
+    const result = await db.insert(dsarRequests).values(request).returning();
+    return result[0];
+  }
+
+  async getAllDsarRequests(status?: string): Promise<DsarRequest[]> {
+    const query = db.select().from(dsarRequests);
+    
+    if (status) {
+      return await query
+        .where(eq(dsarRequests.status, status as any))
+        .orderBy(desc(dsarRequests.createdAt));
+    } else {
+      return await query.orderBy(desc(dsarRequests.createdAt));
+    }
+  }
+
+  async getDsarRequest(id: string): Promise<DsarRequest | undefined> {
+    const result = await db.select().from(dsarRequests)
+      .where(eq(dsarRequests.id, id))
+      .limit(1);
+    return result[0];
+  }
+
+  async updateDsarRequest(id: string, updates: Partial<InsertDsarRequest>): Promise<DsarRequest | undefined> {
+    const result = await db.update(dsarRequests)
+      .set(updates)
+      .where(eq(dsarRequests.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async getDsarRequestsByDueDate(daysFromNow: number): Promise<DsarRequest[]> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() + daysFromNow);
+    
+    return await db.select().from(dsarRequests)
+      .where(sql`${dsarRequests.dueAt} <= ${cutoffDate.toISOString()} AND ${dsarRequests.status} NOT IN ('completed', 'rejected')`)
+      .orderBy(dsarRequests.dueAt);
+  }
+
+  // Retention Policies
+  async getAllRetentionPolicies(): Promise<RetentionPolicy[]> {
+    return await db.select().from(retentionPolicies)
+      .orderBy(retentionPolicies.dataset);
+  }
+
+  async createRetentionPolicy(policy: InsertRetentionPolicy): Promise<RetentionPolicy> {
+    const result = await db.insert(retentionPolicies).values(policy).returning();
+    return result[0];
+  }
+
+  async updateRetentionPolicy(id: string, updates: Partial<InsertRetentionPolicy>): Promise<RetentionPolicy | undefined> {
+    const result = await db.update(retentionPolicies)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(retentionPolicies.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteRetentionPolicy(id: string): Promise<boolean> {
+    const result = await db.delete(retentionPolicies)
+      .where(eq(retentionPolicies.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Suppression List
+  async getAllSuppressions(): Promise<Suppression[]> {
+    return await db.select().from(suppressionList)
+      .orderBy(desc(suppressionList.addedAt));
+  }
+
+  async addSuppression(suppression: InsertSuppression): Promise<Suppression> {
+    const result = await db.insert(suppressionList).values(suppression).returning();
+    return result[0];
+  }
+
+  async removeSuppression(emailHash: string): Promise<boolean> {
+    const result = await db.delete(suppressionList)
+      .where(eq(suppressionList.emailHash, emailHash));
+    return result.rowCount > 0;
+  }
+
+  async isEmailSuppressed(emailHash: string): Promise<boolean> {
+    const result = await db.select().from(suppressionList)
+      .where(eq(suppressionList.emailHash, emailHash))
+      .limit(1);
+    return result.length > 0;
   }
 }
 

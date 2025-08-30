@@ -1931,6 +1931,253 @@ app.get('/api/admin/impersonation/sessions', requireAuth('ADMIN'), async (req: A
   await getRecentImpersonationSessions(req, res);
 });
 
+// GDPR Compliance API endpoints
+// Consent Management
+app.post('/api/gdpr/consents', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { events } = req.body;
+    const results = [];
+    
+    for (const event of events) {
+      const consentEvent = await storage.createGdprConsentEvent({
+        ...event,
+        ip: req.ip,
+        userAgent: req.get('User-Agent') || '',
+      });
+      results.push(consentEvent);
+    }
+    
+    res.json({ events: results });
+  } catch (error) {
+    console.error('Create consent events error:', error);
+    res.status(500).json({ error: 'Failed to create consent events' });
+  }
+});
+
+app.get('/api/gdpr/consents/:userId/effective', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const effective = await storage.getEffectiveConsents(userId);
+    res.json({ consents: effective });
+  } catch (error) {
+    console.error('Get effective consents error:', error);
+    res.status(500).json({ error: 'Failed to get effective consents' });
+  }
+});
+
+app.get('/api/gdpr/consents', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { userId, limit } = req.query;
+    const events = await storage.getGdprConsentEvents(
+      userId as string || undefined, 
+      parseInt(limit as string) || 500
+    );
+    res.json({ events });
+  } catch (error) {
+    console.error('Get consent events error:', error);
+    res.status(500).json({ error: 'Failed to get consent events' });
+  }
+});
+
+// DSAR Management
+app.post('/api/gdpr/requests', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { type, subjectEmail, legalBasis, notes } = req.body;
+    
+    // Generate DSAR ID
+    const id = 'dsr_' + crypto.randomUUID();
+    
+    // Set due date (30 days from now)
+    const dueAt = new Date();
+    dueAt.setDate(dueAt.getDate() + 30);
+    
+    const dsarRequest = await storage.createDsarRequest({
+      id,
+      type,
+      subjectEmail,
+      dueAt,
+      legalBasis,
+      notes,
+    });
+    
+    // Log audit trail
+    await AuditService.logAdminAction(
+      'dsar:created',
+      'dsar_request',
+      id,
+      null,
+      dsarRequest,
+      getAuditContext(req)
+    );
+    
+    res.json(dsarRequest);
+  } catch (error) {
+    console.error('Create DSAR error:', error);
+    res.status(500).json({ error: 'Failed to create DSAR request' });
+  }
+});
+
+app.get('/api/gdpr/requests', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { status } = req.query;
+    const requests = await storage.getAllDsarRequests(status as string);
+    res.json({ requests });
+  } catch (error) {
+    console.error('Get DSAR requests error:', error);
+    res.status(500).json({ error: 'Failed to get DSAR requests' });
+  }
+});
+
+app.patch('/api/gdpr/requests/:id', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    const updated = await storage.updateDsarRequest(id, updates);
+    if (!updated) {
+      return res.status(404).json({ error: 'DSAR request not found' });
+    }
+    
+    // Log audit trail
+    await AuditService.logAdminAction(
+      'dsar:updated',
+      'dsar_request',
+      id,
+      updates,
+      updated,
+      getAuditContext(req)
+    );
+    
+    res.json(updated);
+  } catch (error) {
+    console.error('Update DSAR error:', error);
+    res.status(500).json({ error: 'Failed to update DSAR request' });
+  }
+});
+
+// Retention Policies
+app.get('/api/gdpr/retention', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const policies = await storage.getAllRetentionPolicies();
+    res.json({ policies });
+  } catch (error) {
+    console.error('Get retention policies error:', error);
+    res.status(500).json({ error: 'Failed to get retention policies' });
+  }
+});
+
+app.post('/api/gdpr/retention', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const policy = await storage.createRetentionPolicy(req.body);
+    
+    // Log audit trail
+    await AuditService.logAdminAction(
+      'retention_policy:created',
+      'retention_policy',
+      policy.id,
+      null,
+      policy,
+      getAuditContext(req)
+    );
+    
+    res.json(policy);
+  } catch (error) {
+    console.error('Create retention policy error:', error);
+    res.status(500).json({ error: 'Failed to create retention policy' });
+  }
+});
+
+app.patch('/api/gdpr/retention/:id', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    const updated = await storage.updateRetentionPolicy(id, updates);
+    if (!updated) {
+      return res.status(404).json({ error: 'Retention policy not found' });
+    }
+    
+    res.json(updated);
+  } catch (error) {
+    console.error('Update retention policy error:', error);
+    res.status(500).json({ error: 'Failed to update retention policy' });
+  }
+});
+
+// Suppression List
+app.get('/api/gdpr/suppression', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const suppressions = await storage.getAllSuppressions();
+    res.json({ suppressions });
+  } catch (error) {
+    console.error('Get suppressions error:', error);
+    res.status(500).json({ error: 'Failed to get suppressions' });
+  }
+});
+
+app.post('/api/gdpr/suppression', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { email, reason } = req.body;
+    
+    // Hash the email using SHA-256
+    const emailHash = crypto.createHash('sha256').update(email.trim().toLowerCase()).digest('hex');
+    
+    const suppression = await storage.addSuppression({
+      emailHash,
+      reason,
+    });
+    
+    res.json(suppression);
+  } catch (error) {
+    console.error('Add suppression error:', error);
+    res.status(500).json({ error: 'Failed to add suppression' });
+  }
+});
+
+app.delete('/api/gdpr/suppression/:hash', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { hash } = req.params;
+    const success = await storage.removeSuppression(hash);
+    
+    if (!success) {
+      return res.status(404).json({ error: 'Suppression not found' });
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Remove suppression error:', error);
+    res.status(500).json({ error: 'Failed to remove suppression' });
+  }
+});
+
+// GDPR Metrics endpoint
+app.get('/api/gdpr/metrics', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Get metrics for dashboard
+    const openRequests = await storage.getAllDsarRequests('open');
+    const dueSoon = await storage.getDsarRequestsByDueDate(7);
+    const recentConsents = await storage.getGdprConsentEvents(undefined, 100);
+    const suppressions = await storage.getAllSuppressions();
+    
+    // Count consent updates in last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentConsentUpdates = recentConsents.filter(
+      event => new Date(event.occurredAt) > thirtyDaysAgo
+    );
+    
+    res.json({
+      openDsars: openRequests.length,
+      dueSoon: dueSoon.length,
+      consentUpdates30d: recentConsentUpdates.length,
+      totalSuppressions: suppressions.length,
+    });
+  } catch (error) {
+    console.error('Get GDPR metrics error:', error);
+    res.status(500).json({ error: 'Failed to get GDPR metrics' });
+  }
+});
+
 // Webhooks API endpoints
 app.get('/api/admin/webhooks', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {

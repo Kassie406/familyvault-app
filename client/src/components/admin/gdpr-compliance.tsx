@@ -1,0 +1,576 @@
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Eye, Shield, Clock, Users, Trash2, Plus } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import type { 
+  DsarRequest, InsertDsarRequest, 
+  RetentionPolicy, InsertRetentionPolicy,
+  Suppression, InsertSuppression,
+  GdprConsentEvent
+} from '@shared/schema';
+
+type TabType = 'overview' | 'consents' | 'requests' | 'retention' | 'suppression';
+
+export function GdprCompliance() {
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch GDPR metrics for overview
+  const { data: metrics } = useQuery({
+    queryKey: ['/api/gdpr/metrics'],
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  // Fetch data based on active tab
+  const { data: consents } = useQuery({
+    queryKey: ['/api/gdpr/consents'],
+    enabled: activeTab === 'consents',
+  });
+
+  const { data: requests } = useQuery({
+    queryKey: ['/api/gdpr/requests'],
+    enabled: activeTab === 'requests',
+  });
+
+  const { data: policies } = useQuery({
+    queryKey: ['/api/gdpr/retention'],
+    enabled: activeTab === 'retention',
+  });
+
+  const { data: suppressions } = useQuery({
+    queryKey: ['/api/gdpr/suppression'],
+    enabled: activeTab === 'suppression',
+  });
+
+  // Mutations
+  const createDsarMutation = useMutation({
+    mutationFn: (data: Partial<InsertDsarRequest>) =>
+      apiRequest('POST', '/api/gdpr/requests', data),
+    onSuccess: () => {
+      toast({ title: 'DSAR request created successfully' });
+      queryClient.invalidateQueries({ queryKey: ['/api/gdpr/requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/gdpr/metrics'] });
+    },
+  });
+
+  const createRetentionMutation = useMutation({
+    mutationFn: (data: InsertRetentionPolicy) =>
+      apiRequest('POST', '/api/gdpr/retention', data),
+    onSuccess: () => {
+      toast({ title: 'Retention policy created successfully' });
+      queryClient.invalidateQueries({ queryKey: ['/api/gdpr/retention'] });
+    },
+  });
+
+  const addSuppressionMutation = useMutation({
+    mutationFn: (data: { email: string; reason: string }) =>
+      apiRequest('POST', '/api/gdpr/suppression', data),
+    onSuccess: () => {
+      toast({ title: 'Email added to suppression list' });
+      queryClient.invalidateQueries({ queryKey: ['/api/gdpr/suppression'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/gdpr/metrics'] });
+    },
+  });
+
+  const updateDsarMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<DsarRequest> }) =>
+      apiRequest('PATCH', `/api/gdpr/requests/${id}`, updates),
+    onSuccess: () => {
+      toast({ title: 'DSAR request updated successfully' });
+      queryClient.invalidateQueries({ queryKey: ['/api/gdpr/requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/gdpr/metrics'] });
+    },
+  });
+
+  // Form handlers
+  const [newDsarForm, setNewDsarForm] = useState({
+    type: '',
+    subjectEmail: '',
+    legalBasis: '',
+    notes: '',
+  });
+
+  const [newRetentionForm, setNewRetentionForm] = useState({
+    dataset: '',
+    basis: '',
+    ttlDays: 90,
+    disposition: 'delete' as const,
+  });
+
+  const [suppressionEmail, setSuppressionEmail] = useState('');
+
+  const handleCreateDsar = () => {
+    if (!newDsarForm.type || !newDsarForm.subjectEmail) {
+      toast({ title: 'Please fill in required fields', variant: 'destructive' });
+      return;
+    }
+    createDsarMutation.mutate(newDsarForm);
+    setNewDsarForm({ type: '', subjectEmail: '', legalBasis: '', notes: '' });
+  };
+
+  const handleCreateRetention = () => {
+    if (!newRetentionForm.dataset || !newRetentionForm.basis) {
+      toast({ title: 'Please fill in required fields', variant: 'destructive' });
+      return;
+    }
+    createRetentionMutation.mutate(newRetentionForm);
+    setNewRetentionForm({ dataset: '', basis: '', ttlDays: 90, disposition: 'delete' });
+  };
+
+  const handleAddSuppression = () => {
+    if (!suppressionEmail.trim()) {
+      toast({ title: 'Please enter an email address', variant: 'destructive' });
+      return;
+    }
+    addSuppressionMutation.mutate({ 
+      email: suppressionEmail.trim(), 
+      reason: 'Manual suppression' 
+    });
+    setSuppressionEmail('');
+  };
+
+  const getStatusBadge = (status: string, dueAt?: string) => {
+    if (status === 'completed') {
+      return <Badge className="badge-ok">Completed</Badge>;
+    }
+    if (status === 'rejected') {
+      return <Badge variant="destructive">Rejected</Badge>;
+    }
+    if (dueAt && new Date(dueAt) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)) {
+      return <Badge className="badge-due">Due Soon</Badge>;
+    }
+    if (status === 'open' || status === 'in_progress') {
+      return <Badge className="badge-open">In Progress</Badge>;
+    }
+    return <Badge variant="secondary">{status}</Badge>;
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  return (
+    <div id="gdpr-root" className="space-y-6">
+      <div className="card">
+        <div className="card-header">
+          <h3 className="text-lg font-semibold text-gray-900">GDPR Compliance</h3>
+          <div className="seg">
+            {[
+              { key: 'overview', label: 'Overview' },
+              { key: 'consents', label: 'Consents' },
+              { key: 'requests', label: 'Requests' },
+              { key: 'retention', label: 'Retention' },
+              { key: 'suppression', label: 'Suppression' },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as TabType)}
+                className={activeTab === tab.key ? 'is-active' : ''}
+                data-testid={`tab-${tab.key}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <div className="p-4">
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              <div className="kpi">
+                <strong className="text-2xl text-gray-900" id="kpi-open">
+                  {metrics?.openDsars || 0}
+                </strong>
+                <div className="text-sm text-gray-600">Open DSARs</div>
+              </div>
+              <div className="kpi">
+                <strong className="text-2xl text-orange-600" id="kpi-due">
+                  {metrics?.dueSoon || 0}
+                </strong>
+                <div className="text-sm text-gray-600">Due in ≤7 days</div>
+              </div>
+              <div className="kpi">
+                <strong className="text-2xl text-blue-600" id="kpi-consents">
+                  {metrics?.consentUpdates30d || 0}
+                </strong>
+                <div className="text-sm text-gray-600">Consent updates (30d)</div>
+              </div>
+              <div className="kpi">
+                <strong className="text-2xl text-red-600" id="kpi-deletes">
+                  {metrics?.totalSuppressions || 0}
+                </strong>
+                <div className="text-sm text-gray-600">Suppressions active</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="card p-4">
+                <h4 className="font-medium mb-2 flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Legal Status
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Data Protection Officer</span>
+                    <Badge className="badge-ok">Appointed</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Privacy Policy</span>
+                    <Badge className="badge-ok">Current</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Consent Records</span>
+                    <Badge className="badge-ok">Compliant</Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card p-4">
+                <h4 className="font-medium mb-2 flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Automation Status
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Retention Policies</span>
+                    <Badge className="badge-ok">Active</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Auto-cleanup</span>
+                    <Badge className="badge-ok">Running</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Audit Trail</span>
+                    <Badge className="badge-ok">Complete</Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Consents Tab */}
+        {activeTab === 'consents' && (
+          <div className="p-4">
+            <div className="card-header mb-4">
+              <h4 className="font-medium">Consent Ledger</h4>
+              <div className="flex gap-2">
+                <Button variant="outline" id="import-consents" data-testid="button-import-consents">
+                  Import
+                </Button>
+                <Button className="btn primary" id="export-consents" data-testid="button-export-consents">
+                  Export CSV
+                </Button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="table w-full">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Purpose</th>
+                    <th>Status</th>
+                    <th>Method</th>
+                    <th>Date</th>
+                    <th>Source</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {consents?.events?.map((event: GdprConsentEvent) => (
+                    <tr key={event.id}>
+                      <td>{event.userId || 'Unknown'}</td>
+                      <td>
+                        <Badge variant="outline">{event.purpose}</Badge>
+                      </td>
+                      <td>
+                        {event.status === 'granted' ? (
+                          <Badge className="badge-ok">Granted</Badge>
+                        ) : (
+                          <Badge variant="destructive">Denied</Badge>
+                        )}
+                      </td>
+                      <td>{event.method}</td>
+                      <td>{formatDate(event.occurredAt)}</td>
+                      <td>{event.source}</td>
+                    </tr>
+                  )) || (
+                    <tr>
+                      <td colSpan={6} className="text-center text-gray-500 py-4">
+                        No consent events found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Requests Tab */}
+        {activeTab === 'requests' && (
+          <div className="p-4">
+            <div className="card-header mb-4">
+              <h4 className="font-medium">Data Subject Requests</h4>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    const email = prompt('Enter subject email:');
+                    const type = prompt('Enter request type (access, erasure, etc.):');
+                    if (email && type) {
+                      createDsarMutation.mutate({
+                        type: type as any,
+                        subjectEmail: email,
+                        legalBasis: `Article ${type === 'access' ? '15' : '17'} GDPR`,
+                        notes: 'Created via admin panel',
+                      });
+                    }
+                  }}
+                  data-testid="button-new-dsar"
+                >
+                  New Request
+                </Button>
+                <Button variant="outline" data-testid="button-verify-identity">
+                  Verify Identity
+                </Button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="table w-full">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Type</th>
+                    <th>Subject</th>
+                    <th>Status</th>
+                    <th>Opened</th>
+                    <th>Due</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requests?.requests?.map((request: DsarRequest) => (
+                    <tr key={request.id}>
+                      <td>
+                        <code className="text-xs bg-gray-100 px-1 rounded">
+                          {request.id}
+                        </code>
+                      </td>
+                      <td>
+                        <Badge variant="outline">{request.type}</Badge>
+                      </td>
+                      <td>{request.subjectEmail || 'Unknown'}</td>
+                      <td>{getStatusBadge(request.status, request.dueAt)}</td>
+                      <td>{formatDate(request.openedAt)}</td>
+                      <td>{formatDate(request.dueAt)}</td>
+                      <td>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="outline" data-testid={`button-view-${request.id}`}>
+                            View
+                          </Button>
+                          {request.status === 'open' && (
+                            <Button 
+                              size="sm" 
+                              onClick={() => {
+                                updateDsarMutation.mutate({
+                                  id: request.id,
+                                  updates: { status: 'in_progress' }
+                                });
+                              }}
+                              data-testid={`button-start-${request.id}`}
+                            >
+                              Start
+                            </Button>
+                          )}
+                          {request.status === 'in_progress' && (
+                            <Button 
+                              size="sm" 
+                              className="btn primary"
+                              onClick={() => {
+                                updateDsarMutation.mutate({
+                                  id: request.id,
+                                  updates: { status: 'completed', closedAt: new Date() }
+                                });
+                              }}
+                              data-testid={`button-complete-${request.id}`}
+                            >
+                              Complete
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )) || (
+                    <tr>
+                      <td colSpan={7} className="text-center text-gray-500 py-4">
+                        No DSAR requests found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Retention Tab */}
+        {activeTab === 'retention' && (
+          <div className="p-4">
+            <div className="card-header mb-4">
+              <h4 className="font-medium">Retention Policies</h4>
+              <Button 
+                className="btn primary" 
+                onClick={() => {
+                  const dataset = prompt('Enter dataset name:');
+                  const basis = prompt('Enter legal basis:');
+                  const days = prompt('Enter retention days:');
+                  if (dataset && basis && days) {
+                    createRetentionMutation.mutate({
+                      dataset,
+                      basis,
+                      ttlDays: parseInt(days),
+                      disposition: 'delete',
+                      enabled: true,
+                    });
+                  }
+                }}
+                data-testid="button-add-retention"
+              >
+                Add Policy
+              </Button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="table w-full">
+                <thead>
+                  <tr>
+                    <th>Dataset</th>
+                    <th>Legal Basis</th>
+                    <th>Retention</th>
+                    <th>Disposition</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {policies?.policies?.map((policy: RetentionPolicy) => (
+                    <tr key={policy.id}>
+                      <td>
+                        <code className="text-xs bg-gray-100 px-1 rounded">
+                          {policy.dataset}
+                        </code>
+                      </td>
+                      <td>{policy.basis}</td>
+                      <td>{policy.ttlDays} days</td>
+                      <td>
+                        <Badge variant="outline">{policy.disposition}</Badge>
+                      </td>
+                      <td>
+                        {policy.enabled ? (
+                          <Badge className="badge-ok">Active</Badge>
+                        ) : (
+                          <Badge variant="secondary">Disabled</Badge>
+                        )}
+                      </td>
+                    </tr>
+                  )) || (
+                    <tr>
+                      <td colSpan={5} className="text-center text-gray-500 py-4">
+                        No retention policies configured
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Suppression Tab */}
+        {activeTab === 'suppression' && (
+          <div className="p-4">
+            <div className="card-header mb-4">
+              <h4 className="font-medium">Suppression List</h4>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="email to suppress"
+                  value={suppressionEmail}
+                  onChange={(e) => setSuppressionEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddSuppression()}
+                  className="w-64"
+                  data-testid="input-suppression-email"
+                />
+                <Button 
+                  onClick={handleAddSuppression}
+                  disabled={addSuppressionMutation.isPending}
+                  data-testid="button-add-suppression"
+                >
+                  Add
+                </Button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="table w-full">
+                <thead>
+                  <tr>
+                    <th>Email Hash (SHA256)</th>
+                    <th>Reason</th>
+                    <th>Added</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {suppressions?.suppressions?.map((suppression: Suppression) => (
+                    <tr key={suppression.id}>
+                      <td>
+                        <code className="text-xs bg-gray-100 px-1 rounded">
+                          {suppression.emailHash.substring(0, 16)}...
+                        </code>
+                      </td>
+                      <td>{suppression.reason}</td>
+                      <td>{formatDate(suppression.addedAt)}</td>
+                      <td>
+                        <Button 
+                          size="sm" 
+                          variant="destructive" 
+                          onClick={() => {
+                            // TODO: Implement remove suppression
+                            toast({ title: 'Remove functionality coming soon' });
+                          }}
+                          data-testid={`button-remove-suppression-${suppression.id}`}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </td>
+                    </tr>
+                  )) || (
+                    <tr>
+                      <td colSpan={4} className="text-center text-gray-500 py-4">
+                        No suppressed emails
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

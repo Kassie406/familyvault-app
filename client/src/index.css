@@ -2258,3 +2258,159 @@ legend {
     border-color: #2A3646 !important;
   }
 }
+
+/* GDPR Compliance Styling */
+#gdpr-root {
+  max-width: 1200px;
+}
+
+#gdpr-root .kpi {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+#gdpr-root .kpi strong {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+#gdpr-root .badge-ok {
+  background: #DCFCE7;
+  color: #166534;
+  border: none;
+}
+
+#gdpr-root .badge-due {
+  background: #FEF3C7;
+  color: #A16207;
+  border: none;
+}
+
+#gdpr-root .badge-open {
+  background: #DBEAFE;
+  color: #1D4ED8;
+  border: none;
+}
+
+#gdpr-root .table {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#gdpr-root .table th {
+  background: #F9FAFB;
+  color: #374151;
+  font-weight: 600;
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+#gdpr-root .table td {
+  padding: 12px;
+  border-bottom: 1px solid #F3F4F6;
+  color: #1F2937;
+  background: #FFFFFF;
+}
+
+#gdpr-root .table tr:last-child td {
+  border-bottom: none;
+}
+
+#gdpr-root .table tr:hover {
+  background: #F9FAFB !important;
+}
+
+#gdpr-root .card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+#gdpr-root .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid #E5E7EB;
+  background: #FEFEFE;
+  border-radius: 8px 8px 0 0;
+}
+
+#gdpr-root .card-header h3,
+#gdpr-root .card-header h4 {
+  color: #1F2937;
+  font-weight: 600;
+  margin: 0;
+}
+
+#gdpr-root .seg {
+  display: flex;
+  background: #F3F4F6;
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+
+#gdpr-root .seg button {
+  padding: 8px 16px;
+  background: transparent;
+  color: #6B7280;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+#gdpr-root .seg button:hover {
+  background: #E5E7EB;
+  color: #374151;
+}
+
+#gdpr-root .seg button.is-active {
+  background: #FFFFFF;
+  color: #1F2937;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+#gdpr-root .btn.primary {
+  background: #1F6FEB;
+  color: #FFFFFF;
+  border: 1px solid #1F6FEB;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+#gdpr-root .btn.primary:hover {
+  background: #1865D7;
+  border-color: #1865D7;
+}
+
+#gdpr-root input,
+#gdpr-root select,
+#gdpr-root textarea {
+  background: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  color: #1F2937;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+#gdpr-root input:focus,
+#gdpr-root select:focus,
+#gdpr-root textarea:focus {
+  outline: none;
+  border-color: #1F6FEB;
+  box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.1);
+}
