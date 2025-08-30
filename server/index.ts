@@ -956,9 +956,9 @@ app.get('/api/admin/security/posture', requireAuth('ADMIN'), async (req: Authent
       score: 75,
       subtitle: "3 critical issues need attention",
       issues: [
-        { type: 'bad', text: '2FA disabled' },
-        { type: 'warn', text: 'Audit chain stale' },
-        { type: 'warn', text: 'Keys 90+ days old' }
+        { type: 'bad', text: 'Admin 2FA not enforced' },
+        { type: 'warn', text: 'Audit chain verification required' },
+        { type: 'warn', text: 'API keys older than 90 days' }
       ],
       actions: [
         { id: 'enable_2fa', text: 'Enable Admin 2FA', primary: true, handler: 'enable_2fa' },
