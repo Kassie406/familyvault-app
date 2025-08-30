@@ -93,10 +93,26 @@ import WhenSomeoneDiesImportantDeadlines from "@/pages/when-someone-dies-importa
 function AdminRouter() {
   return (
     <Switch>
-      <Route path="/dashboard" component={AdminDashboard} />
-      <Route path="/incidents" component={AdminIncidents} />
-      <Route path="/security-settings" component={AdminSecuritySettings} />
-      <Route path="/stepup-test" component={AdminStepUpTest} />
+      <Route path="/dashboard">
+        <AdminLayout>
+          <AdminDashboard />
+        </AdminLayout>
+      </Route>
+      <Route path="/incidents">
+        <AdminLayout>
+          <AdminIncidents />
+        </AdminLayout>
+      </Route>
+      <Route path="/security-settings">
+        <AdminLayout>
+          <AdminSecuritySettings />
+        </AdminLayout>
+      </Route>
+      <Route path="/stepup-test">
+        <AdminLayout>
+          <AdminStepUpTest />
+        </AdminLayout>
+      </Route>
       <Route path="/login" component={AdminLogin} />
       <Route path="/" component={AdminLogin} />
       <Route component={AdminLogin} />
