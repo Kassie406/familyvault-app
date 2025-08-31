@@ -50,11 +50,13 @@
 
 .admin-links{ display:flex; flex-direction:column; gap:6px }
 .admin-links a,
+.admin-links button,
 .admin-links .logout{
   text-align:left; border:0; background:transparent; color:#e5e7eb; padding:6px 6px; border-radius:8px; cursor:pointer;
   display:flex; align-items:center; gap:6px; font-size:14px;
 }
 .admin-links a:hover,
+.admin-links button:hover,
 .admin-links .logout:hover{ background:#141d2e }
 
 /* ---- main content ---- */
