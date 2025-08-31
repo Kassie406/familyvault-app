@@ -21,6 +21,7 @@ import SecurityCenterCard from '@/components/admin/security-center-card';
 import SessionManagement from '@/components/admin/session-management';
 import TamperVerification from '@/components/admin/tamper-verification';
 import SecurityPostureSummary from '@/components/admin/security-posture-summary';
+import SecuritySettingsContent from '@/components/admin/security-settings-content';
 import EnhancedCouponForm from '@/components/admin/enhanced-coupon-form';
 import FeatureFlagsManager from '@/components/admin/feature-flags-manager';
 import ImpersonationManager from '@/components/admin/impersonation-manager';
@@ -42,6 +43,7 @@ export default function AdminDashboard() {
   const [newCouponOpen, setNewCouponOpen] = useState(false);
   const [newArticleOpen, setNewArticleOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('overview');
+  const [securityTab, setSecurityTab] = useState('audit');
   const [planScope, setPlanScope] = useState('PUBLIC');
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
@@ -3840,62 +3842,99 @@ export default function AdminDashboard() {
         return (
           <div id="security-root" className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="section-header page-title text-2xl font-bold">Security & Audit</h2>
+              <h2 className="section-header page-title text-2xl font-bold">Security</h2>
             </div>
             
-            {/* Security Posture Summary */}
-            <SecurityPostureSummary />
-            
-            {/* Tamper-Evident Chain Verification */}
-            <TamperVerification />
-            
-            {/* Session Management */}
-            <SessionManagement />
-            
-            {/* Recent Audit Logs */}
-            <div className="card">
-              <div className="card-header">
-                <h3 style={{margin: 0}}>Recent Audit Logs</h3>
-                <button 
-                  id="audit-refresh" 
-                  className="btn"
-                  onClick={() => {
-                    // Refetch audit logs
-                    queryClient.invalidateQueries({ queryKey: ['/api/admin/audit'] });
-                  }}
+            {/* Security Tabs */}
+            <div className="border-b border-gray-200">
+              <nav className="flex space-x-8" aria-label="Security tabs">
+                <button
+                  onClick={() => setSecurityTab('audit')}
+                  className={`whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium ${
+                    securityTab === 'audit'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  }`}
+                  data-testid="button-security-audit-tab"
                 >
-                  Refresh
+                  Security & Audit
                 </button>
-              </div>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>Actor</th>
-                    <th>Event</th>
-                    <th>Resource</th>
-                    <th>Result</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {auditLogs?.logs?.map((log: any, index: number) => (
-                    <tr key={index}>
-                      <td>{new Date(log.createdAt).toLocaleString()}</td>
-                      <td>{log.admin?.username || '-'}</td>
-                      <td>{log.action}</td>
-                      <td>{log.targetType || '-'}</td>
-                      <td>ok</td>
-                    </tr>
-                  )) || (
-                    <tr>
-                      <td colSpan={5} style={{textAlign: 'center', padding: '24px'}}>
-                        No audit logs yet
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                <button
+                  onClick={() => setSecurityTab('settings')}
+                  className={`whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium ${
+                    securityTab === 'settings'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  }`}
+                  data-testid="button-security-settings-tab"
+                >
+                  Security Settings
+                </button>
+              </nav>
             </div>
+
+            {/* Tab Content */}
+            {securityTab === 'audit' && (
+              <div className="space-y-6">
+                {/* Security Posture Summary */}
+                <SecurityPostureSummary />
+                
+                {/* Tamper-Evident Chain Verification */}
+                <TamperVerification />
+                
+                {/* Session Management */}
+                <SessionManagement />
+                
+                {/* Recent Audit Logs */}
+                <div className="card">
+                  <div className="card-header">
+                    <h3 className="section-title" style={{margin: 0}}>Recent Audit Logs</h3>
+                    <button 
+                      id="audit-refresh" 
+                      className="btn"
+                      onClick={() => {
+                        // Refetch audit logs
+                        queryClient.invalidateQueries({ queryKey: ['/api/admin/audit'] });
+                      }}
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Time</th>
+                        <th>Actor</th>
+                        <th>Event</th>
+                        <th>Resource</th>
+                        <th>Result</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {auditLogs?.logs?.map((log: any, index: number) => (
+                        <tr key={index}>
+                          <td>{new Date(log.createdAt).toLocaleString()}</td>
+                          <td>{log.admin?.username || '-'}</td>
+                          <td>{log.action}</td>
+                          <td>{log.targetType || '-'}</td>
+                          <td>ok</td>
+                        </tr>
+                      )) || (
+                        <tr>
+                          <td colSpan={5} style={{textAlign: 'center', padding: '24px'}}>
+                            No audit logs yet
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {securityTab === 'settings' && (
+              <SecuritySettingsContent />
+            )}
           </div>
         );
       
