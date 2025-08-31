@@ -16,7 +16,6 @@ import {
   TrendingUp, BarChart3, PieChart, Server, ShieldCheck, Search, UserPlus, 
   MoreHorizontal, Mail, Power, RotateCcw, X, Filter, Edit3
 } from 'lucide-react';
-import AdminLayout from '@/components/admin/admin-layout';
 import SecurityCenterCard from '@/components/admin/security-center-card';
 import SessionManagement from '@/components/admin/session-management';
 import TamperVerification from '@/components/admin/tamper-verification';
@@ -3955,9 +3954,7 @@ export default function AdminDashboard() {
   return (
     <ToastHost>
       <StatusWatcher />
-      <AdminLayout activeSection={activeSection} onSectionChange={setActiveSection}>
-        {renderSectionContent()}
-      </AdminLayout>
+      {renderSectionContent()}
       
       {/* Plan Modal - Global */}
       {planModalOpen && (
