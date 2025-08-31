@@ -47,6 +47,8 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
 
   const navigationItems = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard, description: 'Analytics & overview', href: '/admin/dashboard' },
+    { id: 'profile', label: 'Profile', icon: User, description: 'User profile settings', href: '/admin/profile' },
+    { id: 'settings', label: 'Settings', icon: Settings, description: 'System configuration', href: '/admin/settings' },
     { id: 'users', label: 'Users', icon: Users, description: 'User management' },
     { id: 'plans', label: 'Subscription Plans', icon: CreditCard, description: 'Pricing & billing' },
     { id: 'coupons', label: 'Coupons', icon: Ticket, description: 'Promotional codes' },
