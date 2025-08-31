@@ -102,8 +102,16 @@ function AdminRouter() {
   return (
     <Switch>
       <Route path="/dashboard" component={AdminDashboard} />
-      <Route path="/profile" component={AdminProfile} />
-      <Route path="/settings" component={AdminSettings} />
+      <Route path="/profile">
+        <AdminLayout>
+          <AdminProfile />
+        </AdminLayout>
+      </Route>
+      <Route path="/settings">
+        <AdminLayout>
+          <AdminSettings />
+        </AdminLayout>
+      </Route>
       <Route path="/incidents" component={AdminIncidents} />
       <Route path="/security-settings" component={AdminSecuritySettings} />
       <Route path="/stepup-test" component={AdminStepUpTest} />
