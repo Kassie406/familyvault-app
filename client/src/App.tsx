@@ -198,20 +198,25 @@ function Router() {
       <Route path="/when-someone-dies-important-deadlines" component={WhenSomeoneDiesImportantDeadlines} />
       
       {/* Admin routes for easy access in development */}
-      <Route path="/admin" nest>
+      <Route path="/admin">
         <AdminLayout>
-          <Switch>
-            <Route path="/" component={AdminDashboard} />
-            <Route path="/profile" component={AdminProfile} />
-            <Route path="/settings" component={AdminSettings} />
-            <Route path="/security-settings" component={AdminSecuritySettings} />
-            <Route path="/stepup-test" component={AdminStepUpTest} />
-            <Route path="/incidents" component={AdminIncidents} />
-            <Route component={NotFound} />
-          </Switch>
+          <AdminDashboard />
+        </AdminLayout>
+      </Route>
+      <Route path="/admin/profile">
+        <AdminLayout>
+          <AdminProfile />
+        </AdminLayout>
+      </Route>
+      <Route path="/admin/settings">
+        <AdminLayout>
+          <AdminSettings />
         </AdminLayout>
       </Route>
       <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin/security-settings" component={AdminSecuritySettings} />
+      <Route path="/admin/stepup-test" component={AdminStepUpTest} />
+      <Route path="/admin/incidents" component={AdminIncidents} />
       
       <Route component={NotFound} />
     </Switch>
