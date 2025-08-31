@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { useState, useEffect } from "react";
-import { HardDrive, Upload, Download, FolderOpen, File, Activity, AlertTriangle, CheckCircle, Cloud } from "lucide-react";
+import { HardDrive, Upload, Download, FolderOpen, File, Activity, AlertTriangle, CheckCircle, Cloud, ArrowLeft } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface StorageMetrics {
   status: 'healthy' | 'warning' | 'critical';
@@ -102,12 +103,24 @@ export default function StorageStatus() {
     <div className="p-6 space-y-6" data-testid="storage-status-page">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2" data-testid="page-title">
-            <HardDrive className="w-6 h-6" />
-            Storage Management
-          </h1>
-          <p className="text-muted-foreground">File storage usage, performance, and activity monitoring</p>
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => useLocation()[1]('/dashboard')}
+            className="flex items-center gap-2"
+            data-testid="back-button"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Dashboard
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2" data-testid="page-title">
+              <HardDrive className="w-6 h-6" />
+              Storage Management
+            </h1>
+            <p className="text-muted-foreground">File storage usage, performance, and activity monitoring</p>
+          </div>
         </div>
         <Button 
           onClick={refreshMetrics} 
