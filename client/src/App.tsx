@@ -10,6 +10,8 @@ import AdminLogin from "@/pages/admin/login";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminIncidents from "@/pages/admin/incidents";
 import AdminSecuritySettings from "@/pages/admin/security-settings";
+import AdminProfile from "@/pages/admin/profile";
+import AdminSettings from "@/pages/admin/settings";
 import AdminStepUpTest from "@/pages/admin/stepup-test";
 import DatabaseStatus from "@/pages/admin/database-status";
 import AuthStatus from "@/pages/admin/auth-status";
@@ -208,6 +210,8 @@ function Router() {
       <Route path="/admin/security-settings" component={AdminSecuritySettings} />
       <Route path="/admin/stepup-test" component={AdminStepUpTest} />
       <Route path="/admin/incidents" component={AdminIncidents} />
+      <Route path="/admin/profile" component={AdminProfile} />
+      <Route path="/admin/settings" component={AdminSettings} />
       
       <Route component={NotFound} />
     </Switch>

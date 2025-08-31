@@ -824,6 +824,135 @@ app.get('/api/admin/consents', requireAuth('ADMIN'), async (req: AuthenticatedRe
   }
 });
 
+// Admin profile endpoints
+app.get('/api/admin/profile', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    // Return user profile data
+    const profile = {
+      id: user.id,
+      username: user.username,
+      name: user.name || '',
+      email: user.email || '',
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
+
+    res.json(profile);
+  } catch (error) {
+    console.error('Get admin profile error:', error);
+    res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+});
+
+app.put('/api/admin/profile', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const { name, email, username } = req.body;
+    
+    // TODO: Update user profile in storage
+    // For now, return success message
+    const updatedProfile = {
+      id: user.id,
+      username: username || user.username,
+      name: name || user.name,
+      email: email || user.email,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: new Date().toISOString()
+    };
+
+    res.json(updatedProfile);
+  } catch (error) {
+    console.error('Update admin profile error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// Admin settings endpoints
+app.get('/api/admin/settings', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Return mock settings data - in production this would come from database
+    const settings = {
+      // Security Settings
+      twoFactorRequired: false,
+      sessionTimeout: '24',
+      passwordPolicy: 'medium',
+      
+      // Notification Settings
+      emailNotifications: true,
+      systemAlerts: true,
+      auditAlerts: true,
+      
+      // System Settings
+      timezone: 'UTC',
+      dateFormat: 'YYYY-MM-DD',
+      logRetention: '90',
+      
+      // Feature Flags
+      maintenanceMode: false,
+      debugMode: false,
+      registrationEnabled: true
+    };
+
+    res.json(settings);
+  } catch (error) {
+    console.error('Get admin settings error:', error);
+    res.status(500).json({ error: 'Failed to fetch settings' });
+  }
+});
+
+app.put('/api/admin/settings', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const {
+      twoFactorRequired,
+      sessionTimeout,
+      passwordPolicy,
+      emailNotifications,
+      systemAlerts,
+      auditAlerts,
+      timezone,
+      dateFormat,
+      logRetention,
+      maintenanceMode,
+      debugMode,
+      registrationEnabled
+    } = req.body;
+
+    // TODO: Save settings to database
+    // For now, return the updated settings
+    const updatedSettings = {
+      twoFactorRequired,
+      sessionTimeout,
+      passwordPolicy,
+      emailNotifications,
+      systemAlerts,
+      auditAlerts,
+      timezone,
+      dateFormat,
+      logRetention,
+      maintenanceMode,
+      debugMode,
+      registrationEnabled,
+      updatedAt: new Date().toISOString()
+    };
+
+    res.json(updatedSettings);
+  } catch (error) {
+    console.error('Update admin settings error:', error);
+    res.status(500).json({ error: 'Failed to update settings' });
+  }
+});
+
 // Webhook endpoints - with mock data for demo
 app.get('/api/admin/webhooks', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {
