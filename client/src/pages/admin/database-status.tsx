@@ -17,6 +17,7 @@ interface DatabaseMetrics {
 }
 
 export default function DatabaseStatus() {
+  const [, navigate] = useLocation();
   const [metrics, setMetrics] = useState<DatabaseMetrics>({
     status: 'healthy',
     connections: { active: 23, max: 100 },
@@ -68,7 +69,7 @@ export default function DatabaseStatus() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => useLocation()[1]('/dashboard')}
+            onClick={() => navigate('/dashboard')}
             className="flex items-center gap-2"
             data-testid="back-button"
           >

@@ -23,6 +23,7 @@ interface AuthMetrics {
 }
 
 export default function AuthStatus() {
+  const [, navigate] = useLocation();
   const [metrics, setMetrics] = useState<AuthMetrics>({
     status: 'healthy',
     activeUsers: 147,
@@ -83,7 +84,7 @@ export default function AuthStatus() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => useLocation()[1]('/dashboard')}
+            onClick={() => navigate('/dashboard')}
             className="flex items-center gap-2"
             data-testid="back-button"
           >

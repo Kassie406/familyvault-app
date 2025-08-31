@@ -25,6 +25,7 @@ interface WebhookMetrics {
 }
 
 export default function WebhooksStatus() {
+  const [, navigate] = useLocation();
   const [metrics, setMetrics] = useState<WebhookMetrics>({
     status: 'healthy',
     totalEndpoints: 12,
@@ -97,7 +98,7 @@ export default function WebhooksStatus() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => useLocation()[1]('/dashboard')}
+            onClick={() => navigate('/dashboard')}
             className="flex items-center gap-2"
             data-testid="back-button"
           >
