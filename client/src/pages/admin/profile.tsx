@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import AdminLayout from '@/components/admin/admin-layout';
 import { User, Mail, Shield, Calendar, Edit2, Save, X } from 'lucide-react';
 
 export default function AdminProfile() {
@@ -92,16 +91,13 @@ export default function AdminProfile() {
 
   if (isLoading) {
     return (
-      <AdminLayout>
         <div className="p-6">
           <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
         </div>
-      </AdminLayout>
     );
   }
 
   return (
-    <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -256,6 +252,5 @@ export default function AdminProfile() {
           </CardContent>
         </Card>
       </div>
-    </AdminLayout>
   );
 }
