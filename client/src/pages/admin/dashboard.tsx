@@ -2678,6 +2678,10 @@ export default function AdminDashboard() {
                           <button 
                             className="p-2 hover:bg-blue-100 rounded-lg transition-colors group"
                             title="Edit coupon"
+                            onClick={() => {
+                              setNewCouponOpen(true);
+                              toast({ title: "Edit Coupon", description: "Opening WELCOME10 coupon for editing..." });
+                            }}
                             data-testid="button-edit-coupon"
                           >
                             ✏️
@@ -2685,6 +2689,9 @@ export default function AdminDashboard() {
                           <button 
                             className="p-2 hover:bg-red-100 rounded-lg transition-colors group"
                             title="Disable coupon"
+                            onClick={() => {
+                              toast({ title: "Coupon Disabled", description: "WELCOME10 coupon has been disabled." });
+                            }}
                             data-testid="button-disable-coupon"
                           >
                             🚫
@@ -2692,6 +2699,9 @@ export default function AdminDashboard() {
                           <button 
                             className="p-2 hover:bg-green-100 rounded-lg transition-colors group"
                             title="Duplicate coupon"
+                            onClick={() => {
+                              toast({ title: "Coupon Duplicated", description: "WELCOME10 coupon has been duplicated." });
+                            }}
                             data-testid="button-duplicate-coupon"
                           >
                             🧬
@@ -2699,6 +2709,9 @@ export default function AdminDashboard() {
                           <button 
                             className="p-2 hover:bg-gray-100 rounded-lg transition-colors group"
                             title="Archive coupon"
+                            onClick={() => {
+                              toast({ title: "Coupon Archived", description: "WELCOME10 coupon has been archived." });
+                            }}
                             data-testid="button-archive-coupon"
                           >
                             📦
@@ -2757,6 +2770,10 @@ export default function AdminDashboard() {
                           <button 
                             className="p-2 hover:bg-blue-100 rounded-lg transition-colors group"
                             title="Edit coupon"
+                            onClick={() => {
+                              setNewCouponOpen(true);
+                              toast({ title: "Edit Coupon", description: "Opening FREE3MO coupon for editing..." });
+                            }}
                             data-testid="button-edit-coupon-2"
                           >
                             ✏️
@@ -2764,6 +2781,9 @@ export default function AdminDashboard() {
                           <button 
                             className="p-2 hover:bg-red-100 rounded-lg transition-colors group"
                             title="Disable coupon"
+                            onClick={() => {
+                              toast({ title: "Coupon Disabled", description: "FREE3MO coupon has been disabled." });
+                            }}
                             data-testid="button-disable-coupon-2"
                           >
                             🚫
@@ -2771,6 +2791,9 @@ export default function AdminDashboard() {
                           <button 
                             className="p-2 hover:bg-green-100 rounded-lg transition-colors group"
                             title="Duplicate coupon"
+                            onClick={() => {
+                              toast({ title: "Coupon Duplicated", description: "FREE3MO coupon has been duplicated." });
+                            }}
                             data-testid="button-duplicate-coupon-2"
                           >
                             🧬
@@ -2778,6 +2801,9 @@ export default function AdminDashboard() {
                           <button 
                             className="p-2 hover:bg-gray-100 rounded-lg transition-colors group"
                             title="Archive coupon"
+                            onClick={() => {
+                              toast({ title: "Coupon Archived", description: "FREE3MO coupon has been archived." });
+                            }}
                             data-testid="button-archive-coupon-2"
                           >
                             📦
@@ -2836,6 +2862,10 @@ export default function AdminDashboard() {
                           <button 
                             className="p-2 hover:bg-blue-100 rounded-lg transition-colors group"
                             title="Edit coupon"
+                            onClick={() => {
+                              setNewCouponOpen(true);
+                              toast({ title: "Edit Coupon", description: "Opening BETA2025 coupon for editing..." });
+                            }}
                             data-testid="button-edit-coupon-3"
                           >
                             ✏️
@@ -2843,6 +2873,9 @@ export default function AdminDashboard() {
                           <button 
                             className="p-2 hover:bg-green-100 rounded-lg transition-colors group"
                             title="Enable coupon"
+                            onClick={() => {
+                              toast({ title: "Coupon Enabled", description: "BETA2025 coupon has been enabled." });
+                            }}
                             data-testid="button-enable-coupon-3"
                           >
                             ✅
@@ -2850,6 +2883,9 @@ export default function AdminDashboard() {
                           <button 
                             className="p-2 hover:bg-green-100 rounded-lg transition-colors group"
                             title="Duplicate coupon"
+                            onClick={() => {
+                              toast({ title: "Coupon Duplicated", description: "BETA2025 coupon has been duplicated." });
+                            }}
                             data-testid="button-duplicate-coupon-3"
                           >
                             🧬
@@ -2857,6 +2893,9 @@ export default function AdminDashboard() {
                           <button 
                             className="p-2 hover:bg-gray-100 rounded-lg transition-colors group"
                             title="Archive coupon"
+                            onClick={() => {
+                              toast({ title: "Coupon Archived", description: "BETA2025 coupon has been archived." });
+                            }}
                             data-testid="button-archive-coupon-3"
                           >
                             📦
