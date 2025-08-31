@@ -66,6 +66,8 @@ export default function AdminDashboard() {
   // Users management state
   const [selectedTenant, setSelectedTenant] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [editUserModalOpen, setEditUserModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
 
   // Bulk selection helpers
   const toggleArticleSelection = (articleId: string) => {
@@ -1059,7 +1061,8 @@ export default function AdminDashboard() {
         };
         
         const handleEditUser = (user: any) => {
-          toast({ title: "Edit User", description: `Editing ${user.name}...` });
+          setEditingUser(user);
+          setEditUserModalOpen(true);
         };
         
         const handleSuspendUser = (user: any) => {
@@ -1149,7 +1152,8 @@ export default function AdminDashboard() {
         };
 
         return (
-          <Card className="shadow-lg rounded-2xl bg-white border-gray-100" style={{ borderRadius: '16px' }}>
+          <>
+            <Card className="shadow-lg rounded-2xl bg-white border-gray-100" style={{ borderRadius: '16px' }}>
             {/* Header Section */}
             <CardHeader className="border-b border-gray-100 pb-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1478,6 +1482,113 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Edit User Modal */}
+          {editUserModalOpen && (
+            <Dialog open={editUserModalOpen} onOpenChange={setEditUserModalOpen}>
+              <DialogContent className="bg-[#0F141A] border-[#2B313A] text-[#D5DDE7] max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-[#D5DDE7] text-lg font-semibold">
+                    Edit User
+                  </DialogTitle>
+                  <DialogDescription className="text-[#8B949E]">
+                    Update user information and settings.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                {editingUser && (
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-user-name" className="text-[#D5DDE7]">Full Name</Label>
+                      <Input 
+                        id="edit-user-name"
+                        defaultValue={editingUser.name}
+                        className="bg-[#1C2128] border-[#30363D] text-[#D5DDE7] focus:border-[#1F6FEB]"
+                        data-testid="input-edit-user-name"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-user-email" className="text-[#D5DDE7]">Email Address</Label>
+                      <Input 
+                        id="edit-user-email"
+                        type="email"
+                        defaultValue={editingUser.email}
+                        className="bg-[#1C2128] border-[#30363D] text-[#D5DDE7] focus:border-[#1F6FEB]"
+                        data-testid="input-edit-user-email"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-user-role" className="text-[#D5DDE7]">Role</Label>
+                      <Select defaultValue={editingUser.role}>
+                        <SelectTrigger className="bg-[#1C2128] border-[#30363D] text-[#D5DDE7]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#0F141A] border-[#2B313A]">
+                          <SelectItem value="Admin" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Admin</SelectItem>
+                          <SelectItem value="Family Admin" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Family Admin</SelectItem>
+                          <SelectItem value="Member" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Member</SelectItem>
+                          <SelectItem value="Client" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Client</SelectItem>
+                          <SelectItem value="Agent" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Agent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-user-tenant" className="text-[#D5DDE7]">Tenant</Label>
+                      <Select defaultValue={editingUser.tenant}>
+                        <SelectTrigger className="bg-[#1C2128] border-[#30363D] text-[#D5DDE7]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#0F141A] border-[#2B313A]">
+                          <SelectItem value="PUBLIC" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Public Clients</SelectItem>
+                          <SelectItem value="FAMILY" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Family Portal</SelectItem>
+                          <SelectItem value="STAFF" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Staff Hub</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-user-status" className="text-[#D5DDE7]">Status</Label>
+                      <Select defaultValue={editingUser.status}>
+                        <SelectTrigger className="bg-[#1C2128] border-[#30363D] text-[#D5DDE7]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#0F141A] border-[#2B313A]">
+                          <SelectItem value="Active" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Active</SelectItem>
+                          <SelectItem value="Pending" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Pending</SelectItem>
+                          <SelectItem value="Suspended" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Suspended</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="flex gap-3 pt-4">
+                      <Button 
+                        onClick={() => {
+                          setEditUserModalOpen(false);
+                          toast({ title: "User Updated", description: `${editingUser.name} has been updated successfully.` });
+                        }}
+                        className="flex-1 bg-[#1F6FEB] hover:bg-[#1a5fc9] text-white"
+                        data-testid="button-save-user-edit"
+                      >
+                        Save Changes
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => setEditUserModalOpen(false)}
+                        className="flex-1 border-[#30363D] text-[#D5DDE7] hover:bg-[#1E2A3A]"
+                        data-testid="button-cancel-user-edit"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+          )}
+          </>
         );
       
       case 'plans':
