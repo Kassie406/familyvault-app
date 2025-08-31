@@ -1,0 +1,200 @@
+Below is a drop-in design using PostgreSQL (no new infra) that gives you:
+
+stemming (user → users), phrase search, prefix (auto-complete), and typo-tolerance
+
+one /api/search?q= for everything (Users, Coupons, Plans, Articles, Webhooks, Audit…)
+
+multi-tenant filtering + result highlighting
+
+If you’re already on Elastic/OpenSearch, I can map this over—this PG version is the quickest fix.
+
+1) Unified search index (materialized view)
+-- Enable extensions once per DB
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
+-- Master catalog: one row per searchable thing
+CREATE TABLE search_catalog (
+  id           bigserial PRIMARY KEY,
+  entity       text NOT NULL,                -- 'user' | 'coupon' | 'plan' | 'article' | 'webhook' | 'audit'
+  entity_id    uuid NOT NULL,                -- original PK
+  tenant       text,                         -- optional for scoping
+  title        text,
+  subtitle     text,
+  body         text,
+  tags         text[],
+  url          text NOT NULL,                -- deep link to open on click
+  updated_at   timestamptz NOT NULL DEFAULT now(),
+  tsv          tsvector                      -- full-text vector
+);
+
+-- Build TSV once (weights: title>A, tags>B, subtitle>C, body>D)
+CREATE OR REPLACE FUNCTION search_catalog_update_tsv() RETURNS trigger AS $$
+BEGIN
+  NEW.tsv :=
+    setweight(to_tsvector('simple', coalesce(unaccent(NEW.title),'')),   'A') ||
+    setweight(to_tsvector('simple', array_to_string(NEW.tags, ' ')),     'B') ||
+    setweight(to_tsvector('simple', coalesce(unaccent(NEW.subtitle),'')),'C') ||
+    setweight(to_tsvector('simple', coalesce(unaccent(NEW.body),'')),    'D');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_search_catalog_tsv
+BEFORE INSERT OR UPDATE ON search_catalog
+FOR EACH ROW EXECUTE FUNCTION search_catalog_update_tsv();
+
+-- Indexes for speed + fuzzy
+CREATE INDEX idx_search_catalog_tsv    ON search_catalog USING GIN (tsv);
+CREATE INDEX idx_search_catalog_trgm_t ON search_catalog USING GIN (title gin_trgm_ops);
+CREATE INDEX idx_search_catalog_trgm_s ON search_catalog USING GIN (subtitle gin_trgm_ops);
+CREATE INDEX idx_search_catalog_tenant ON search_catalog (tenant);
+CREATE INDEX idx_search_catalog_entity ON search_catalog (entity);
+
+Populate from your tables (examples)
+-- Users
+INSERT INTO search_catalog(entity,entity_id,tenant,title,subtitle,body,tags,url)
+SELECT 'user', u.id, u.tenant, u.name, u.email, NULL, ARRAY['user','users'],
+       '/users/'||u.id
+FROM users u
+ON CONFLICT DO NOTHING;
+
+-- Coupons
+INSERT INTO search_catalog(entity,entity_id,tenant,title,subtitle,body,tags,url)
+SELECT 'coupon', c.id, NULL, c.code, NULL,
+       CONCAT('Percent: ', c.percent_off, ' Amount: ', c.amount_off),
+       ARRAY['coupon','discount','promo'],
+       '/coupons/'||c.id
+FROM coupons c;
+
+-- Plans
+INSERT INTO search_catalog(entity,entity_id,tenant,title,subtitle,body,tags,url)
+SELECT 'plan', p.id, NULL, p.name, p.interval,
+       CONCAT('Price: ', p.price_cents/100.0, ' Audience: ', p.audience),
+       ARRAY['plan','pricing','subscription', p.audience],
+       '/subscription-plans/'||p.id
+FROM plans p;
+
+-- Articles (CMS)
+INSERT INTO search_catalog(entity,entity_id,tenant,title,subtitle,body,tags,url)
+SELECT 'article', a.id, a.tenant, a.title, a.slug,
+       coalesce(a.body#>>'{plain}', ''), ARRAY['content','article',a.menu_category],
+       '/content/'||a.id
+FROM articles a;
+
+
+Keep these as nightly jobs (or triggers on your source tables) so the catalog stays fresh.
+
+2) Search query that actually works
+
+Full-text via websearch_to_tsquery (handles phrases, AND/OR, minus)
+
+Prefix for auto-complete (e.g., user*)
+
+Fuzzy via pg_trgm for typos
+
+Ranking mixes FTS rank + trigram similarity
+
+-- $1 = raw query, $2 = tenant (nullable), $3 = limit
+WITH q AS (
+  SELECT
+    websearch_to_tsquery('simple', unaccent($1))      AS tsq,
+    unaccent($1)                                      AS uq,
+    regexp_replace(unaccent($1), '\s+$','') || ':*'   AS prefix
+)
+SELECT
+  sc.entity, sc.entity_id, sc.title, sc.subtitle, sc.url, sc.tags,
+  ts_headline('simple', sc.body, q.tsq, 'ShortWord=2, MaxFragments=2, MaxWords=12') AS snippet,
+  (ts_rank_cd(sc.tsv, q.tsq) * 1.0
+   + greatest(similarity(sc.title, q.uq), similarity(sc.subtitle, q.uq)) * 0.6
+   + (CASE WHEN sc.title ILIKE q.uq||'%' THEN 0.3 ELSE 0 END)
+  ) AS score
+FROM search_catalog sc, q
+WHERE
+  ($2 IS NULL OR sc.tenant IS NULL OR sc.tenant = $2) AND
+  (
+    sc.tsv @@ q.tsq                    -- full-text
+    OR to_tsvector('simple', sc.title) @@ to_tsquery(q.prefix)  -- prefix
+    OR similarity(sc.title, q.uq) > 0.25                        -- fuzzy
+  )
+ORDER BY score DESC, sc.updated_at DESC
+LIMIT $3;
+
+
+This will find “user”, “users”, “coupon”, “coupons”, “promo”, “plan”, etc. even with typos (e.g., “couppon”), and short phrases like “add user” or "api keys".
+
+3) API endpoint
+// Node/Express example
+app.get('/api/search', requireAuth, async (req, res) => {
+  const q = (req.query.q || '').toString().trim();
+  if (!q) return res.json({ ok:true, data: [] });
+  const tenant = req.user.tenant || null;
+  const limit  = Math.min(parseInt(req.query.limit as any) || 20, 50);
+
+  const rows = await db.any(
+    `
+    WITH q AS (
+      SELECT websearch_to_tsquery('simple', unaccent($1)) AS tsq,
+             unaccent($1) AS uq,
+             regexp_replace(unaccent($1), '\s+$','') || ':*' AS prefix
+    )
+    SELECT sc.entity, sc.entity_id, sc.title, sc.subtitle, sc.url, sc.tags,
+           ts_headline('simple', sc.body, q.tsq, 'ShortWord=2, MaxFragments=2, MaxWords=12') AS snippet,
+           (ts_rank_cd(sc.tsv, q.tsq) * 1.0
+           + greatest(similarity(sc.title, q.uq), similarity(sc.subtitle, q.uq)) * 0.6
+           + (CASE WHEN sc.title ILIKE q.uq||'%' THEN 0.3 ELSE 0 END)
+           ) AS score
+    FROM search_catalog sc, q
+    WHERE ($2 IS NULL OR sc.tenant IS NULL OR sc.tenant = $2)
+      AND (sc.tsv @@ q.tsq
+        OR to_tsvector('simple', sc.title) @@ to_tsquery(q.prefix)
+        OR similarity(sc.title, q.uq) > 0.25)
+    ORDER BY score DESC, sc.updated_at DESC
+    LIMIT $3;
+    `,
+    [q, tenant, limit]
+  );
+
+  res.json({ ok:true, data: rows });
+});
+
+4) Front-end search box (debounced)
+let timer: any = null;
+const input = document.querySelector<HTMLInputElement>('#global-search');
+
+input?.addEventListener('input', () => {
+  clearTimeout(timer);
+  const q = input.value.trim();
+  if (!q) { renderResults([]); return; }
+  timer = setTimeout(async () => {
+    const r = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=12`);
+    const { data } = await r.json();
+    renderResults(data); // show title, snippet, and click-through to row.url
+  }, 180);
+});
+
+5) Why you were getting “nothing found”
+
+Plain LIKE '%word%' without unaccent/stemming misses users vs user, coupons vs coupon.
+
+Using plainto_tsquery without prefix/trigram misses short terms and typos.
+
+Not indexing many entities (only articles or only users) → nothing else is searchable.
+
+Tenant scoping that accidentally filters everything out.
+
+6) Quick diagnostics (run now)
+-- Do we have rows?
+SELECT count(*), entity FROM search_catalog GROUP BY entity;
+
+-- Does 'user' match anything?
+SELECT title, entity, url
+FROM search_catalog
+WHERE tsv @@ websearch_to_tsquery('simple','user')
+   OR title ILIKE 'user%'
+   OR similarity(title,'user') > 0.25
+ORDER BY similarity(title,'user') DESC
+LIMIT 20;
+
+
+If those return rows, your API → UI wiring is the last mile.

@@ -1,0 +1,254 @@
+here’s the Elastic / OpenSearch setup to power your global search (fast, fuzzy, autocomplete, multi-entity, multi-tenant). You can paste these into Kibana / Dev Tools (or OpenSearch Dashboards), then wire the API.
+
+1) Index with analyzers (stemming, accents, autocomplete)
+PUT search-catalog
+{
+  "settings": {
+    "analysis": {
+      "filter": {
+        "en_stemmer": { "type": "stemmer", "language": "english" }
+      },
+      "analyzer": {
+        "folded": {                   // case/diacritics insensitive
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase","asciifolding","en_stemmer"]
+        },
+        "autocomplete": {             // edge-ngrams for typeahead
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase","asciifolding","en_stemmer","edge_ngram_filter"]
+        },
+        "autocomplete_search": {      // used at search time for autocomplete
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase","asciifolding","en_stemmer"]
+        }
+      },
+      "tokenizer": {},
+      "filter": {
+        "edge_ngram_filter": { "type": "edge_ngram", "min_gram": 2, "max_gram": 15 }
+      }
+    }
+  },
+  "mappings": {
+    "dynamic": "false",
+    "properties": {
+      "entity":   { "type": "keyword" },            // user|coupon|plan|article|webhook|audit
+      "entity_id":{ "type": "keyword" },
+      "tenant":   { "type": "keyword" },            // null allowed; omit to make it global
+      "url":      { "type": "keyword", "index": false },
+      "updated_at": { "type": "date" },
+      "tags":     { "type": "keyword" },
+
+      "title":        { "type": "text", "analyzer": "folded", "fields": {
+        "ac": { "type": "text", "analyzer": "autocomplete", "search_analyzer": "autocomplete_search" },
+        "kw": { "type": "keyword", "ignore_above": 256 }
+      }},
+      "subtitle":     { "type": "text", "analyzer": "folded" },
+      "body":         { "type": "text", "analyzer": "folded" }
+    }
+  }
+}
+
+
+This gives you: stemming (“user” ≈ “users”), accent-insensitivity, edge-ngram autocomplete, plus exact-keyword fields.
+
+2) Index sample documents (one document per thing)
+POST _bulk
+{"index":{"_index":"search-catalog","_id":"user:123"}}
+{"entity":"user","entity_id":"123","tenant":"public","title":"John Doe","subtitle":"john@company.com","tags":["user","admin"],"body":"Admin account for ACME","url":"/users/123","updated_at":"2025-08-30T10:00:00Z"}
+{"index":{"_index":"search-catalog","_id":"coupon:456"}}
+{"entity":"coupon","entity_id":"456","title":"WINTER50","subtitle":"50% off","tags":["coupon","discount","promo"],"url":"/coupons/456","updated_at":"2025-08-29T10:00:00Z"}
+{"index":{"_index":"search-catalog","_id":"plan:789"}}
+{"entity":"plan","entity_id":"789","title":"Gold","subtitle":"$20 monthly • client","tags":["plan","pricing","subscription","client"],"url":"/subscription-plans/789","updated_at":"2025-08-20T10:00:00Z"}
+{"index":{"_index":"search-catalog","_id":"article:a1"}}
+{"entity":"article","entity_id":"a1","tenant":"public","title":"Pediatric Records Checklist","subtitle":"child-information","tags":["content","article","child-information"],"body":"How to keep pediatric records secure...","url":"/content/a1","updated_at":"2025-08-25T10:00:00Z"}
+
+3) Full-text search (fuzzy + phrase + boosting + tenant filter)
+POST search-catalog/_search
+{
+  "size": 20,
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "multi_match": {
+            "query": "user",
+            "type": "best_fields",
+            "fields": [
+              "title^6", "title.ac^6", 
+              "tags^5",
+              "subtitle^3",
+              "body^1"
+            ],
+            "fuzziness": "AUTO",          // typo tolerance
+            "operator": "and"
+          }
+        }
+      ],
+      "filter": [
+        { "terms": { "entity": ["user","coupon","plan","article","webhook","audit"] } },
+        { "bool": { "should": [
+            { "term": {"tenant": "public"}},      // user’s tenant
+            { "bool": { "must_not": { "exists": {"field":"tenant"} }}}  // global docs
+        ]}}
+      ]
+    }
+  },
+  "highlight": {
+    "fields": { "title": {}, "subtitle": {}, "body": {} },
+    "pre_tags": ["<mark>"], "post_tags": ["</mark>"]
+  },
+  "sort": [
+    "_score",
+    { "updated_at": { "order": "desc" } }
+  ]
+}
+
+
+Works nicely for “user”, “coupon”, “api keys”, phrases in quotes, etc.
+
+Multi-tenant: restrict to the user’s tenant or global docs.
+
+4) Autocomplete (as-you-type)
+POST search-catalog/_search
+{
+  "size": 8,
+  "_source": ["entity","entity_id","title","subtitle","url","tags","updated_at"],
+  "query": {
+    "bool": {
+      "must": [
+        { "multi_match": {
+            "query": "cou",
+            "type": "bool_prefix",
+            "fields": [
+              "title.ac^5",       // edge-ngrams
+              "title.ac._2gram",
+              "title.ac._3gram",
+              "title^3",
+              "tags^4",
+              "subtitle^2"
+            ]
+        }}
+      ],
+      "filter": [
+        { "bool": { "should": [
+            { "term": {"tenant": "public"} },
+            { "bool": { "must_not": { "exists": {"field":"tenant"} } } }
+        ]}}
+      ]
+    }
+  }
+}
+
+
+Use this on every keypress (debounced) to power the dropdown.
+
+bool_prefix on the edge-ngram field gives instant typeahead.
+
+5) Simple Node API (Express)
+// npm i @elastic/elasticsearch
+import { Client } from '@elastic/elasticsearch';
+const es = new Client({ node: process.env.ES_NODE });
+
+app.get('/api/search', requireAuth, async (req, res) => {
+  const q = (req.query.q || '').toString().trim();
+  const tenant = req.user.tenant || null;
+  const size = Math.min(parseInt(req.query.limit as any) || 20, 50);
+  if (!q) return res.json({ ok:true, data: [] });
+
+  const body = {
+    size,
+    query: {
+      bool: {
+        must: [{
+          multi_match: {
+            query: q,
+            type: 'best_fields',
+            fields: ['title^6','title.ac^6','tags^5','subtitle^3','body^1'],
+            fuzziness: 'AUTO',
+            operator: 'and'
+          }
+        }],
+        filter: [{
+          bool: {
+            should: [
+              ...(tenant ? [{ term: { tenant } }] : []),
+              { bool: { must_not: { exists: { field: 'tenant' } } } }
+            ]
+          }
+        }]
+      }
+    },
+    sort: ['_score', { updated_at: { order: 'desc' } }],
+    highlight: { fields: { title:{}, subtitle:{}, body:{} }, pre_tags:['<mark>'], post_tags:['</mark>'] }
+  };
+
+  const r = await es.search({ index: 'search-catalog', body });
+  const hits = r.hits.hits.map(h => ({ id: h._id, score: h._score, ...h._source, highlight: h.highlight }));
+  res.json({ ok:true, data: hits });
+});
+
+app.get('/api/search/suggest', requireAuth, async (req, res) => {
+  const q = (req.query.q || '').toString().trim();
+  const tenant = req.user.tenant || null;
+  if (!q) return res.json({ ok:true, data: [] });
+
+  const body = {
+    size: 8,
+    _source: ['entity','entity_id','title','subtitle','url','tags','updated_at'],
+    query: {
+      bool: {
+        must: [{
+          multi_match: {
+            query: q,
+            type: 'bool_prefix',
+            fields: [
+              'title.ac^5','title.ac._2gram','title.ac._3gram','title^3','tags^4','subtitle^2'
+            ]
+          }
+        }],
+        filter: [{
+          bool: {
+            should: [
+              ...(tenant ? [{ term: { tenant } }] : []),
+              { bool: { must_not: { exists: { field: 'tenant' } } } }
+            ]
+          }
+        }]
+      }
+    }
+  };
+
+  const r = await es.search({ index: 'search-catalog', body });
+  res.json({ ok:true, data: r.hits.hits.map(h => ({ id:h._id, ...h._source })) });
+});
+
+6) Keeping the index fresh
+
+On create/update/delete of users, coupons, plans, articles, webhooks:
+
+Upsert the corresponding search-catalog doc (index with same _id like entity:id).
+
+On delete: DELETE search-catalog/_doc/{entity}:{id}.
+
+Nightly rebuild job (optional): re-index all entities to fix drift.
+
+Add ingest pipelines later for HTML → plain text extraction if you store rich content.
+
+7) Frontend wiring (debounced input)
+
+Use /api/search/suggest for the dropdown while typing.
+
+On Enter or selecting a result → navigate to hit.url.
+
+For a “full results” page, call /api/search?q=....
+
+Quick sanity checks
+
+Search “user” → should return Users and anything tagged “user”.
+
+Search “couppon” (typo) → WINTER50 should still appear (fuzzy).
+
+Type “gol” → autocomplete should suggest Gold plan.

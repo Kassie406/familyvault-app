@@ -2434,12 +2434,9 @@ app.post('/api/admin/webhooks/:id/test', requireAuth('ADMIN'), async (req: Authe
 
 // Global search across all admin resources
 app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
-  console.log('Global search request received:', req.query);
   try {
     const { q: query } = req.query;
-    console.log('Search query:', query);
     if (!query || typeof query !== 'string' || query.length < 2) {
-      console.log('Query too short or missing');
       return res.json({ results: [] });
     }
 
