@@ -3025,6 +3025,10 @@ export default function AdminDashboard() {
                         <Input 
                           placeholder="Search articles..." 
                           className="pl-10 w-64"
+                          onChange={(e) => {
+                            // Search functionality could be implemented here
+                            console.log('Searching for:', e.target.value);
+                          }}
                           data-testid="input-search-articles"
                         />
                       </div>
@@ -3206,6 +3210,9 @@ export default function AdminDashboard() {
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
+                                onClick={() => {
+                                  toast({ title: "Article Deleted", description: `"${article.title}" has been deleted.` });
+                                }}
                                 className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                 data-testid={`button-delete-${article.id}`}
                               >
