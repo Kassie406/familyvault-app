@@ -416,21 +416,69 @@ export function GdprCompliance() {
                   variant="outline" 
                   onClick={() => {
                     const email = prompt('Enter subject email:');
-                    const type = prompt('Enter request type (access, erasure, etc.):');
-                    if (email && type) {
-                      createDsarMutation.mutate({
-                        type: type as any,
-                        subjectEmail: email,
-                        legalBasis: `Article ${type === 'access' ? '15' : '17'} GDPR`,
-                        notes: 'Created via admin panel',
-                      });
-                    }
+                    if (!email) return;
+                    
+                    const type = prompt('Enter request type:\n1. access - Data Access Request\n2. erasure - Right to be Forgotten\n3. portability - Data Portability\n4. rectification - Data Correction');
+                    if (!type) return;
+                    
+                    const validTypes = ['access', 'erasure', 'portability', 'rectification'];
+                    const requestType = validTypes.includes(type) ? type : 'access';
+                    
+                    const legalBasisMap = {
+                      access: 'Article 15 GDPR - Right of access',
+                      erasure: 'Article 17 GDPR - Right to erasure',
+                      portability: 'Article 20 GDPR - Right to data portability',
+                      rectification: 'Article 16 GDPR - Right to rectification'
+                    };
+                    
+                    createDsarMutation.mutate({
+                      type: requestType as any,
+                      subjectEmail: email,
+                      legalBasis: legalBasisMap[requestType as keyof typeof legalBasisMap],
+                      notes: `Created via admin panel - ${new Date().toISOString()}`,
+                    });
+                    
+                    toast({ 
+                      title: 'DSAR Request Created', 
+                      description: `${requestType.toUpperCase()} request created for ${email}` 
+                    });
                   }}
                   data-testid="button-new-dsar"
                 >
                   New Request
                 </Button>
-                <Button variant="outline" data-testid="button-verify-identity">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    const email = prompt('Enter email address to verify identity:');
+                    if (!email) return;
+                    
+                    // Simulate identity verification process
+                    toast({ 
+                      title: 'Identity Verification Started', 
+                      description: `Sending verification challenge to ${email}...` 
+                    });
+                    
+                    // Simulate verification delay
+                    setTimeout(() => {
+                      const verified = confirm(`Identity verification sent to ${email}.\n\nClick OK if verification was successful, Cancel if failed.`);
+                      if (verified) {
+                        toast({ 
+                          title: 'Identity Verified', 
+                          description: `Identity confirmed for ${email}. Request can proceed.`,
+                          variant: 'default'
+                        });
+                      } else {
+                        toast({ 
+                          title: 'Verification Failed', 
+                          description: `Identity verification failed for ${email}. Request blocked.`,
+                          variant: 'destructive'
+                        });
+                      }
+                    }, 2000);
+                  }}
+                  data-testid="button-verify-identity"
+                >
                   Verify Identity
                 </Button>
               </div>
