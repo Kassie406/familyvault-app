@@ -3933,7 +3933,9 @@ export default function AdminDashboard() {
             )}
 
             {securityTab === 'settings' && (
-              <SecuritySettingsContent />
+              <SecuritySettingsContent 
+                onSwitchToAuditTab={() => setSecurityTab('audit')}
+              />
             )}
           </div>
         );

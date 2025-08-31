@@ -2,8 +2,41 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Shield, Key, Plus, CheckCircle } from 'lucide-react';
+import { useLocation } from 'wouter';
 
-export default function SecuritySettingsContent() {
+interface SecuritySettingsContentProps {
+  onSwitchToAuditTab?: () => void;
+}
+
+export default function SecuritySettingsContent({ onSwitchToAuditTab }: SecuritySettingsContentProps) {
+  const [, navigate] = useLocation();
+
+  const handleAddPasskey = () => {
+    // Navigate to passkey setup or show setup modal
+    console.log('Add passkey clicked - Setting up device passkey authentication');
+    // For now, could navigate to a dedicated passkey setup page
+    // navigate('/admin/security/passkey-setup');
+  };
+
+  const handleSetupPasskey = () => {
+    // Same as add passkey
+    handleAddPasskey();
+  };
+
+  const handleEnableTwoFA = () => {
+    // Navigate to 2FA setup
+    console.log('Enable 2FA clicked - Setting up two-factor authentication');
+    // navigate('/admin/security/two-factor-setup');
+  };
+
+  const handleReviewSessions = () => {
+    // Switch back to Security & Audit tab to show session management
+    console.log('Review sessions clicked - Switching to Security & Audit tab');
+    if (onSwitchToAuditTab) {
+      onSwitchToAuditTab();
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Passkeys Section */}
@@ -27,7 +60,11 @@ export default function SecuritySettingsContent() {
           </div>
           
           <div className="mt-6 flex justify-end">
-            <Button className="bg-yellow-600 hover:bg-yellow-700 text-white">
+            <Button 
+              onClick={handleAddPasskey}
+              className="bg-yellow-600 hover:bg-yellow-700 text-white"
+              data-testid="button-add-passkey"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add passkey
             </Button>
@@ -79,7 +116,12 @@ export default function SecuritySettingsContent() {
                 <h4 className="font-medium">Add a passkey</h4>
                 <p className="text-sm text-gray-600">Set up device biometric authentication for secure access</p>
               </div>
-              <Button variant="outline" size="sm">
+              <Button 
+                onClick={handleSetupPasskey}
+                variant="outline" 
+                size="sm"
+                data-testid="button-setup-passkey"
+              >
                 Set up
               </Button>
             </div>
@@ -89,7 +131,12 @@ export default function SecuritySettingsContent() {
                 <h4 className="font-medium">Enable Two-Factor Authentication</h4>
                 <p className="text-sm text-gray-600">Add an extra layer of security with TOTP codes</p>
               </div>
-              <Button variant="outline" size="sm">
+              <Button 
+                onClick={handleEnableTwoFA}
+                variant="outline" 
+                size="sm"
+                data-testid="button-enable-2fa"
+              >
                 Enable
               </Button>
             </div>
@@ -99,7 +146,12 @@ export default function SecuritySettingsContent() {
                 <h4 className="font-medium">Review Active Sessions</h4>
                 <p className="text-sm text-gray-600">Check devices that have access to your account</p>
               </div>
-              <Button variant="outline" size="sm">
+              <Button 
+                onClick={handleReviewSessions}
+                variant="outline" 
+                size="sm"
+                data-testid="button-review-sessions"
+              >
                 Review
               </Button>
             </div>
