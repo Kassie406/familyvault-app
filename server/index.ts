@@ -2445,14 +2445,14 @@ app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequ
 
     // Navigation shortcuts - direct section access
     const navigationShortcuts = [
-      { terms: ['user', 'admin', 'management'], section: 'users', title: 'User Management', description: 'Manage user accounts and permissions' },
-      { terms: ['coupon', 'discount', 'promo'], section: 'coupons', title: 'Coupons & Discounts', description: 'Manage promotional codes and discounts' },
-      { terms: ['content', 'article', 'cms'], section: 'content', title: 'Content Management', description: 'Manage articles, announcements, and CMS content' },
-      { terms: ['plan', 'subscription', 'billing'], section: 'plans', title: 'Subscription Plans', description: 'Manage pricing and billing plans' },
-      { terms: ['security', 'audit', 'log'], section: 'security', title: 'Security & Audit', description: 'Security monitoring and audit trails' },
+      { terms: ['user', 'users', 'admin', 'management'], section: 'users', title: 'User Management', description: 'Manage user accounts and permissions' },
+      { terms: ['coupon', 'coupons', 'discount', 'promo'], section: 'coupons', title: 'Coupons & Discounts', description: 'Manage promotional codes and discounts' },
+      { terms: ['content', 'article', 'articles', 'cms'], section: 'content', title: 'Content Management', description: 'Manage articles, announcements, and CMS content' },
+      { terms: ['plan', 'plans', 'subscription', 'billing'], section: 'plans', title: 'Subscription Plans', description: 'Manage pricing and billing plans' },
+      { terms: ['security', 'audit', 'log', 'logs'], section: 'security', title: 'Security & Audit', description: 'Security monitoring and audit trails' },
       { terms: ['compliance', 'gdpr', 'privacy'], section: 'compliance', title: 'GDPR Compliance', description: 'Privacy and compliance management' },
-      { terms: ['webhook', 'integration'], section: 'webhooks', title: 'Webhooks', description: 'Outbound webhook integrations' },
-      { terms: ['flag', 'feature', 'toggle'], section: 'feature-flags', title: 'Feature Flags', description: 'Feature rollouts and targeting' },
+      { terms: ['webhook', 'webhooks', 'integration'], section: 'webhooks', title: 'Webhooks', description: 'Outbound webhook integrations' },
+      { terms: ['flag', 'flags', 'feature', 'toggle'], section: 'feature-flags', title: 'Feature Flags', description: 'Feature rollouts and targeting' },
       { terms: ['marketing', 'promotion', 'campaign'], section: 'marketing', title: 'Marketing Promotions', description: 'Banners and popup campaigns' }
     ];
 
@@ -2486,79 +2486,95 @@ app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequ
       });
     }
 
-    // Search Coupons
-    const coupons = await storage.getAllCoupons();
-    const matchingCoupons = coupons.filter(coupon => 
-      coupon.code.toLowerCase().includes(searchQuery)
-    ).slice(0, 10);
-    
-    matchingCoupons.forEach(coupon => {
-      results.push({
-        id: coupon.id,
-        type: 'coupon',
-        title: coupon.code,
-        subtitle: `${coupon.percentOff ? coupon.percentOff + '%' : (coupon.amountOff ? '$' + coupon.amountOff : '')} off`,
-        metadata: `Used ${coupon.timesRedeemed} times`,
-        status: coupon.active ? 'active' : 'inactive',
-        timestamp: coupon.createdAt,
-        url: '/admin/coupons'
+    // Search Coupons (with error handling)
+    try {
+      const coupons = await storage.getAllCoupons();
+      const matchingCoupons = coupons.filter(coupon => 
+        coupon.code.toLowerCase().includes(searchQuery)
+      ).slice(0, 10);
+      
+      matchingCoupons.forEach(coupon => {
+        results.push({
+          id: coupon.id,
+          type: 'coupon',
+          title: coupon.code,
+          subtitle: `${coupon.percentOff ? coupon.percentOff + '%' : (coupon.amountOff ? '$' + coupon.amountOff : '')} off`,
+          metadata: `Used ${coupon.timesRedeemed} times`,
+          status: coupon.active ? 'active' : 'inactive',
+          timestamp: coupon.createdAt,
+          url: '/admin/coupons'
+        });
       });
-    });
+    } catch (error) {
+      console.error('Error searching coupons:', error);
+    }
 
-    // Search Articles
-    const articles = await storage.getAllArticles();
-    const matchingArticles = articles.filter(article => 
-      article.title.toLowerCase().includes(searchQuery) ||
-      (article.bodyMd && article.bodyMd.toLowerCase().includes(searchQuery))
-    ).slice(0, 10);
-    
-    matchingArticles.forEach(article => {
-      results.push({
-        id: article.id,
-        type: 'article',
-        title: article.title,
-        subtitle: article.slug,
-        metadata: `${article.bodyMd?.length || 0} characters`,
-        status: article.published ? 'published' : 'draft',
-        timestamp: article.createdAt,
-        url: '/admin/content'
+    // Search Articles (with error handling)
+    try {
+      const articles = await storage.getAllArticles();
+      const matchingArticles = articles.filter(article => 
+        article.title.toLowerCase().includes(searchQuery) ||
+        (article.bodyMd && article.bodyMd.toLowerCase().includes(searchQuery))
+      ).slice(0, 10);
+      
+      matchingArticles.forEach(article => {
+        results.push({
+          id: article.id,
+          type: 'article',
+          title: article.title,
+          subtitle: article.slug,
+          metadata: `${article.bodyMd?.length || 0} characters`,
+          status: article.published ? 'published' : 'draft',
+          timestamp: article.createdAt,
+          url: '/admin/content'
+        });
       });
-    });
+    } catch (error) {
+      console.error('Error searching articles:', error);
+    }
 
-    // Search Plans
-    const plans = await storage.getAllPlans();
-    const matchingPlans = plans.filter(plan => 
-      plan.name.toLowerCase().includes(searchQuery)
-    ).slice(0, 10);
-    
-    matchingPlans.forEach(plan => {
-      results.push({
-        id: plan.id,
-        type: 'plan',
-        title: plan.name,
-        subtitle: `$${(plan.amountCents / 100).toFixed(2)}/${plan.interval}`,
-        metadata: plan.features ? JSON.stringify(plan.features) : 'No features',
-        status: 'active',
-        timestamp: plan.createdAt,
-        url: '/admin/plans'
+    // Search Plans (with error handling)
+    try {
+      const plans = await storage.getAllPlans();
+      const matchingPlans = plans.filter(plan => 
+        plan.name.toLowerCase().includes(searchQuery)
+      ).slice(0, 10);
+      
+      matchingPlans.forEach(plan => {
+        results.push({
+          id: plan.id,
+          type: 'plan',
+          title: plan.name,
+          subtitle: `$${(plan.amountCents / 100).toFixed(2)}/${plan.interval}`,
+          metadata: plan.features ? JSON.stringify(plan.features) : 'No features',
+          status: 'active',
+          timestamp: plan.createdAt,
+          url: '/admin/plans'
+        });
       });
-    });
+    } catch (error) {
+      console.error('Error searching plans:', error);
+    }
 
-    // Search Audit Logs
-    const auditLogs = await storage.searchAuditLogs(query, 5);
-    auditLogs.forEach(log => {
-      results.push({
-        id: log.id,
-        type: 'audit',
-        title: log.action.replace(/[_:]/g, ' ').replace(/\w\S*/g, (txt) => 
-          txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
-        ),
-        subtitle: `${log.resource} ${log.resourceId ? '• ' + log.resourceId.substring(0, 8) + '...' : ''}`,
-        metadata: `by ${log.actorId || 'System'}`,
-        timestamp: log.createdAt,
-        url: '/admin/security'
+    // Search Audit Logs (with error handling)
+    try {
+      const auditLogs = await storage.searchAuditLogs(query, 5);
+      auditLogs.forEach(log => {
+        results.push({
+          id: log.id,
+          type: 'audit',
+          title: log.action.replace(/[_:]/g, ' ').replace(/\w\S*/g, (txt) => 
+            txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+          ),
+          subtitle: `${log.resource} ${log.resourceId ? '• ' + log.resourceId.substring(0, 8) + '...' : ''}`,
+          metadata: `by ${log.actorId || 'System'}`,
+          timestamp: log.createdAt,
+          url: '/admin/security'
+        });
       });
-    });
+    } catch (error) {
+      console.error('Error searching audit logs:', error);
+    }
 
     // Sort results by relevance and timestamp
     results.sort((a, b) => {
