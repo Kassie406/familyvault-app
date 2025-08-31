@@ -202,16 +202,16 @@ function Router() {
         <AdminLayout>
           <Switch>
             <Route path="/" component={AdminDashboard} />
+            <Route path="/profile" component={AdminProfile} />
+            <Route path="/settings" component={AdminSettings} />
+            <Route path="/security-settings" component={AdminSecuritySettings} />
+            <Route path="/stepup-test" component={AdminStepUpTest} />
+            <Route path="/incidents" component={AdminIncidents} />
             <Route component={NotFound} />
           </Switch>
         </AdminLayout>
       </Route>
       <Route path="/admin/login" component={AdminLogin} />
-      <Route path="/admin/security-settings" component={AdminSecuritySettings} />
-      <Route path="/admin/stepup-test" component={AdminStepUpTest} />
-      <Route path="/admin/incidents" component={AdminIncidents} />
-      <Route path="/admin/profile" component={AdminProfile} />
-      <Route path="/admin/settings" component={AdminSettings} />
       
       <Route component={NotFound} />
     </Switch>
