@@ -19,7 +19,11 @@ interface SecurityMetrics {
   failedLogins24h: number;
 }
 
-export default function SecurityCenterCard() {
+interface SecurityCenterCardProps {
+  setActiveSection?: (section: string) => void;
+}
+
+export default function SecurityCenterCard({ setActiveSection }: SecurityCenterCardProps) {
   const [, setLocation] = useLocation();
   const { data: securityMetrics, isLoading } = useQuery({
     queryKey: ['/api/admin/security/metrics'],
@@ -99,7 +103,11 @@ export default function SecurityCenterCard() {
             className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" 
             onClick={() => {
               trackAdminClick('security_center_2fa_status');
-              setLocation(ROUTES.SECURITY_2FA);
+              if (setActiveSection) {
+                setActiveSection('security-audit');
+              } else {
+                setLocation(ROUTES.SECURITY_2FA);
+              }
             }}
             data-testid="chip-2fa-status"
           >
@@ -124,7 +132,11 @@ export default function SecurityCenterCard() {
             className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" 
             onClick={() => {
               trackAdminClick('security_center_active_sessions');
-              setLocation(ROUTES.SECURITY_SESSIONS);
+              if (setActiveSection) {
+                setActiveSection('security-audit');
+              } else {
+                setLocation(ROUTES.SECURITY_SESSIONS);
+              }
             }}
             data-testid="chip-active-sessions"
           >
@@ -145,7 +157,11 @@ export default function SecurityCenterCard() {
             className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" 
             onClick={() => {
               trackAdminClick('security_center_ip_allowlist');
-              setLocation(ROUTES.SECURITY_ALLOWLIST);
+              if (setActiveSection) {
+                setActiveSection('security-audit');
+              } else {
+                setLocation(ROUTES.SECURITY_ALLOWLIST);
+              }
             }}
             data-testid="chip-ip-allowlist"
           >
@@ -166,7 +182,11 @@ export default function SecurityCenterCard() {
             className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" 
             onClick={() => {
               trackAdminClick('security_center_key_rotation');
-              setLocation(ROUTES.SECURITY_KEYS);
+              if (setActiveSection) {
+                setActiveSection('security-audit');
+              } else {
+                setLocation(ROUTES.SECURITY_KEYS);
+              }
             }}
             data-testid="chip-key-rotation"
           >
@@ -202,7 +222,11 @@ export default function SecurityCenterCard() {
                 className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
                 onClick={() => {
                   trackAdminClick('security_center_configure_2fa');
-                  setLocation(ROUTES.SECURITY_2FA);
+                  if (setActiveSection) {
+                    setActiveSection('security-audit');
+                  } else {
+                    setLocation(ROUTES.SECURITY_2FA);
+                  }
                 }}
                 data-testid="button-configure-2fa"
               >
@@ -228,7 +252,11 @@ export default function SecurityCenterCard() {
                 className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
                 onClick={() => {
                   trackAdminClick('security_center_configure_ips');
-                  setLocation(ROUTES.SECURITY_ALLOWLIST);
+                  if (setActiveSection) {
+                    setActiveSection('security-audit');
+                  } else {
+                    setLocation(ROUTES.SECURITY_ALLOWLIST);
+                  }
                 }}
                 data-testid="button-configure-ips"
               >
@@ -254,7 +282,11 @@ export default function SecurityCenterCard() {
                 className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
                 onClick={() => {
                   trackAdminClick('security_center_view_logs');
-                  setLocation(ROUTES.SECURITY_AUDIT);
+                  if (setActiveSection) {
+                    setActiveSection('security-audit');
+                  } else {
+                    setLocation(ROUTES.SECURITY_AUDIT);
+                  }
                 }}
                 data-testid="button-view-logs"
               >
@@ -286,7 +318,11 @@ export default function SecurityCenterCard() {
             className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
             onClick={() => {
               trackAdminClick('security_center_view_session_history');
-              setLocation(ROUTES.SECURITY_SESSIONS);
+              if (setActiveSection) {
+                setActiveSection('security-audit');
+              } else {
+                setLocation(ROUTES.SECURITY_SESSIONS);
+              }
             }}
             data-testid="button-view-session-history"
           >
@@ -299,7 +335,11 @@ export default function SecurityCenterCard() {
             className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
             onClick={() => {
               trackAdminClick('security_center_manage_admin_users');
-              setLocation(ROUTES.USERS_ADMINS);
+              if (setActiveSection) {
+                setActiveSection('users');
+              } else {
+                setLocation(ROUTES.USERS_ADMINS);
+              }
             }}
             data-testid="button-manage-admin-users"
           >
@@ -312,7 +352,11 @@ export default function SecurityCenterCard() {
             className="hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
             onClick={() => {
               trackAdminClick('security_center_rotate_api_keys');
-              setLocation(ROUTES.SECURITY_KEYS);
+              if (setActiveSection) {
+                setActiveSection('security-audit');
+              } else {
+                setLocation(ROUTES.SECURITY_KEYS);
+              }
             }}
             data-testid="button-rotate-api-keys"
           >

@@ -941,7 +941,7 @@ export default function AdminDashboard() {
             
             <EnhancedStatsCards />
             
-            <SecurityCenterCard />
+            <SecurityCenterCard setActiveSection={setActiveSection} />
             
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {/* Recent Activity Widget */}
