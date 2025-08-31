@@ -1,0 +1,94 @@
+ready-to-paste fix that will make those “Legal Status / Automation Status” labels readable without needing your exact HTML.
+
+One-shot CSS override (drop in your global stylesheet)
+/* ===== GDPR overview readability hotfix ===== */
+
+/* 0) Scope to the Compliance > GDPR card (use any of these wrappers you have) */
+.gdpr-overview, .gdpr-card, #gdpr-compliance {}
+
+/* 1) Never dim whole columns/sections */
+.gdpr-overview .gdpr-section,
+.gdpr-card .gdpr-section,
+#gdpr-compliance .gdpr-section {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* 2) Section titles (e.g., “Legal Status”, “Automation Status”) */
+.gdpr-overview .section-title,
+.gdpr-card .section-title,
+#gdpr-compliance .section-title {
+  color: #0f172a !important;           /* slate-900 */
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+
+/* 3) Row labels on the left (e.g., “Data Protection Officer”, “Privacy Policy” …) */
+.gdpr-overview .item-label,
+.gdpr-card .item-label,
+#gdpr-compliance .item-label,
+.gdpr-overview .row .label,
+#gdpr-compliance .row .label {
+  color: #334155 !important;           /* slate-700 on light bg */
+}
+
+/* 4) Dark theme guards if you support dark mode */
+.theme-dark .gdpr-overview .section-title,
+.theme-dark #gdpr-compliance .section-title { color: #f3f4f6 !important; } /* gray-100 */
+.theme-dark .gdpr-overview .item-label,
+.theme-dark #gdpr-compliance .item-label     { color: #cbd5e1 !important; } /* slate-300 */
+
+/* 5) If you need a muted/disabled look, dim ONLY badges/icons, not text */
+.gdpr-overview .gdpr-section.is-muted .badge,
+#gdpr-compliance .gdpr-section[aria-disabled="true"] .badge {
+  opacity: .6;
+}
+.gdpr-overview .gdpr-section.is-muted .item-label,
+#gdpr-compliance .gdpr-section[aria-disabled="true"] .item-label {
+  opacity: 1 !important;
+}
+
+/* 6) Safety: undo any accidental transparent text */
+.gdpr-overview .item-label,
+#gdpr-compliance .item-label,
+.gdpr-overview .section-title,
+#gdpr-compliance .section-title {
+  -webkit-text-fill-color: initial !important;
+  mix-blend-mode: normal !important;
+}
+
+
+This does three key things:
+
+Removes any opacity/filter on the entire section (the root cause of “only visible when highlighted”).
+
+Forces titles to slate-900 and labels to slate-700 (WCAG-compliant on light).
+
+Keeps the “muted” feel by dimming badges/icons only, not the text.
+
+Tailwind version (if you render the card in JSX/TSX)
+<section id="gdpr-compliance" className="gdpr-overview">
+  <h3 className="section-title text-slate-900 dark:text-slate-100 font-semibold">
+    Legal Status
+  </h3>
+
+  <div className="row flex items-center justify-between rounded-md hover:bg-slate-900/5">
+    <span className="item-label text-slate-700 dark:text-slate-300">
+      Data Protection Officer
+    </span>
+    <span className="badge inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 px-2 py-0.5 text-xs">
+      Appointed
+    </span>
+  </div>
+</section>
+
+
+Remove any opacity-40/50 on the whole section container; if you want it muted, apply that to the badge/icon only.
+
+Quick check (takes 30 seconds)
+
+Open DevTools → pick the “Data Protection Officer” label.
+
+Confirm Computed → color is #334155 (or similar), and no parent has opacity < 1.
+
+Hover a row — background should tint slightly, text should remain readable.
