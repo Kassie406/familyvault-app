@@ -2588,10 +2588,12 @@ app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequ
       return new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime();
     });
 
+    console.log('Search results count:', results.length);
     res.json({ results: results.slice(0, 20) });
   } catch (error) {
     console.error('Global search error:', error);
-    res.status(500).json({ error: 'Search failed' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ error: 'Search failed', details: error.message });
   }
 });
 
