@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, Edit, Target } from 'lucide-react';
+import { Search, Plus, Edit, Target, Trash2 } from 'lucide-react';
 import AdvancedFlagEditor from './advanced-flag-editor';
 import { TargetingDrawer } from './targeting-drawer';
+import { useToast } from '@/hooks/use-toast';
 
 type Flag = {
   id: string;
@@ -31,6 +32,7 @@ export default function AdvancedFeatureFlags() {
   const [creating, setCreating] = useState(false);
   const [targeting, setTargeting] = useState<Flag | null>(null);
   const [query, setQuery] = useState('');
+  const { toast } = useToast();
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -65,6 +67,19 @@ export default function AdvancedFeatureFlags() {
     return status === 'active' 
       ? <Badge className="bg-green-100 text-green-800">Active</Badge>
       : <Badge variant="secondary">Archived</Badge>;
+  };
+
+  const handleDeleteFlag = (flagId: string) => {
+    const flag = items.find(f => f.id === flagId);
+    if (flag) {
+      setItems(prev => prev.filter(f => f.id !== flagId));
+      console.log('Feature flag deleted:', flag.name);
+      toast({ 
+        title: "Feature Flag Deleted", 
+        description: `"${flag.name}" has been deleted.`,
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -181,6 +196,15 @@ export default function AdvancedFeatureFlags() {
                             data-testid={`button-edit-flag-${flag.key}`}
                           >
                             <Edit className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteFlag(flag.id)}
+                            className="bg-white border-gray-300 hover:bg-red-50 hover:border-red-300 text-gray-700 hover:text-red-700"
+                            data-testid={`button-delete-flag-${flag.key}`}
+                          >
+                            <Trash2 className="w-3 h-3" />
                           </Button>
                         </div>
                       </td>
