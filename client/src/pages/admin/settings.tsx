@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import AdminLayout from '@/components/admin/admin-layout';
 import { 
   Settings as SettingsIcon, 
   Shield, 
@@ -54,9 +53,6 @@ export default function AdminSettings() {
         throw new Error('Failed to fetch settings');
       }
       return response.json();
-    },
-    onSuccess: (data) => {
-      setSettings({ ...settings, ...data });
     }
   });
 
@@ -101,16 +97,13 @@ export default function AdminSettings() {
 
   if (isLoading) {
     return (
-      <AdminLayout>
         <div className="p-6">
           <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
         </div>
-      </AdminLayout>
     );
   }
 
   return (
-    <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -358,6 +351,5 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
       </div>
-    </AdminLayout>
   );
 }
