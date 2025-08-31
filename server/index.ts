@@ -824,11 +824,49 @@ app.get('/api/admin/consents', requireAuth('ADMIN'), async (req: AuthenticatedRe
   }
 });
 
-// Webhook endpoints - simplified for now, returning empty results
+// Webhook endpoints - with mock data for demo
 app.get('/api/admin/webhooks', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // TODO: Implement webhook storage methods
-    res.json({ items: [] });
+    // Mock webhook data for demo purposes
+    const webhooks = [
+      {
+        id: 'webhook-1',
+        url: 'https://api.partner.com/webhooks/fcs',
+        secret: 'wh_1234567890abcdef',
+        events: ['user.created', 'invoice.paid', 'subscription.updated'],
+        active: true,
+        last_delivery: {
+          status: 200,
+          timestamp: new Date(Date.now() - 300000).toISOString() // 5 minutes ago
+        },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: 'webhook-2', 
+        url: 'https://hooks.zapier.com/hooks/catch/123456/abcdef',
+        secret: 'wh_fedcba0987654321',
+        events: ['payment.succeeded', 'payment.failed'],
+        active: true,
+        last_delivery: {
+          status: 500,
+          timestamp: new Date(Date.now() - 1800000).toISOString() // 30 minutes ago
+        },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: 'webhook-3',
+        url: 'https://internal.familycirclesecure.com/webhooks',
+        secret: 'wh_internal789xyz',
+        events: ['user.created', 'user.updated', 'user.deleted', 'plan.changed'],
+        active: false,
+        last_delivery: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    ];
+    res.json({ items: webhooks });
   } catch (error) {
     console.error('Get webhooks error:', error);
     res.status(500).json({ error: 'Failed to fetch webhook endpoints' });
