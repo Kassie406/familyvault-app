@@ -3,7 +3,7 @@ import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, ExternalLink } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { ROUTES, navigate, trackAdminClick } from '@/lib/routes';
 
 type Component = { 
@@ -133,11 +133,6 @@ export default function StatusWidget() {
     loadStatus();
   };
 
-  const handleViewDetails = () => {
-    trackAdminClick('system_status_view_details');
-    // Navigate to the first available system status page for a detailed overview
-    setLocation(ROUTES.DATABASE_STATUS);
-  };
 
   const handleComponentClick = (component: string) => {
     trackAdminClick('system_status_component', { component });
@@ -188,17 +183,6 @@ export default function StatusWidget() {
                 Updated {lastUpdated.toLocaleTimeString()}
               </span>
             )}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleViewDetails}
-              className="text-xs"
-              data-testid="view-details"
-              style={{ borderColor: GOLD, color: GOLD }}
-            >
-              <ExternalLink className="w-3 h-3 mr-1" />
-              View Details
-            </Button>
             <Button 
               variant="outline" 
               size="sm" 
