@@ -134,18 +134,18 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
                 <nav className="admin-links pointer-events-auto relative z-50">
                   <button type="button" onClick={(e) => {
                     e.stopPropagation();
-                    setLocation('/admin/profile');
-                    // Fallback in case something blocks router
-                    setTimeout(() => window.location.assign('/admin/profile'), 100);
+                    console.log('Profile clicked, current location:', window.location.pathname);
+                    console.log('About to navigate to /admin/profile');
+                    window.location.href = '/admin/profile';
                   }} data-testid="menu-profile">
                     <User className="w-4 h-4" />
                     Profile
                   </button>
                   <button type="button" onClick={(e) => {
                     e.stopPropagation();
-                    setLocation('/admin/settings');
-                    // Fallback in case something blocks router
-                    setTimeout(() => window.location.assign('/admin/settings'), 100);
+                    console.log('Settings clicked, current location:', window.location.pathname);
+                    console.log('About to navigate to /admin/settings');
+                    window.location.href = '/admin/settings';
                   }} data-testid="menu-settings">
                     <Settings className="w-4 h-4" />
                     Settings
