@@ -579,18 +579,70 @@ export function GdprCompliance() {
               <Button 
                 className="btn primary" 
                 onClick={() => {
-                  const dataset = prompt('Enter dataset name:');
-                  const basis = prompt('Enter legal basis:');
-                  const days = prompt('Enter retention days:');
-                  if (dataset && basis && days) {
-                    createRetentionMutation.mutate({
-                      dataset,
-                      basis,
-                      ttlDays: parseInt(days),
-                      disposition: 'delete',
-                      enabled: true,
+                  const dataset = prompt('Enter dataset name (e.g., user_data, transaction_logs, session_data):');
+                  if (!dataset) return;
+                  
+                  const basisOptions = `Choose legal basis:
+1. consent - User consent (Article 6(1)(a))
+2. contract - Contract performance (Article 6(1)(b)) 
+3. legal_obligation - Legal obligation (Article 6(1)(c))
+4. legitimate_interest - Legitimate interest (Article 6(1)(f))
+5. public_task - Public task (Article 6(1)(e))`;
+                  
+                  const basisChoice = prompt(basisOptions);
+                  if (!basisChoice) return;
+                  
+                  const basisMap = {
+                    '1': 'Article 6(1)(a) GDPR - Consent',
+                    '2': 'Article 6(1)(b) GDPR - Contract performance', 
+                    '3': 'Article 6(1)(c) GDPR - Legal obligation',
+                    '4': 'Article 6(1)(f) GDPR - Legitimate interest',
+                    '5': 'Article 6(1)(e) GDPR - Public task',
+                    'consent': 'Article 6(1)(a) GDPR - Consent',
+                    'contract': 'Article 6(1)(b) GDPR - Contract performance',
+                    'legal_obligation': 'Article 6(1)(c) GDPR - Legal obligation',
+                    'legitimate_interest': 'Article 6(1)(f) GDPR - Legitimate interest',
+                    'public_task': 'Article 6(1)(e) GDPR - Public task'
+                  };
+                  
+                  const basis = basisMap[basisChoice as keyof typeof basisMap] || basisMap['4'];
+                  
+                  const daysInput = prompt('Enter retention period in days (common values: 30, 90, 365, 1095 for 3 years):');
+                  if (!daysInput) return;
+                  
+                  const days = parseInt(daysInput);
+                  if (isNaN(days) || days <= 0) {
+                    toast({ 
+                      title: 'Invalid retention period', 
+                      description: 'Please enter a valid number of days',
+                      variant: 'destructive' 
                     });
+                    return;
                   }
+                  
+                  const dispositionChoice = prompt('Choose disposition method:\n1. delete - Permanently delete data\n2. anonymize - Remove personal identifiers\n3. archive - Move to secure archive');
+                  const dispositionMap = {
+                    '1': 'delete',
+                    '2': 'anonymize', 
+                    '3': 'archive',
+                    'delete': 'delete',
+                    'anonymize': 'anonymize',
+                    'archive': 'archive'
+                  };
+                  const disposition = dispositionMap[dispositionChoice as keyof typeof dispositionMap] || 'delete';
+                  
+                  createRetentionMutation.mutate({
+                    dataset,
+                    basis,
+                    ttlDays: days,
+                    disposition: disposition as any,
+                    enabled: true,
+                  });
+                  
+                  toast({ 
+                    title: 'Retention Policy Created', 
+                    description: `Policy for "${dataset}" - ${days} days retention with ${disposition} disposition` 
+                  });
                 }}
                 data-testid="button-add-retention"
               >
