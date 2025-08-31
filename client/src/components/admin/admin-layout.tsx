@@ -132,14 +132,14 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
                   </div>
                 </div>
                 <nav className="admin-links">
-                  <a href="#" data-testid="menu-profile">
+                  <button type="button" onClick={() => setLocation('/admin/profile')} data-testid="menu-profile">
                     <User className="w-4 h-4" />
                     Profile
-                  </a>
-                  <a href="#" data-testid="menu-settings">
+                  </button>
+                  <button type="button" onClick={() => setLocation('/admin/settings')} data-testid="menu-settings">
                     <Settings className="w-4 h-4" />
                     Settings
-                  </a>
+                  </button>
                   <button type="button" className="logout" onClick={handleLogout} data-testid="menu-logout">
                     <LogOut className="w-4 h-4" />
                     Log out
