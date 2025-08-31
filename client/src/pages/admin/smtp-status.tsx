@@ -25,6 +25,7 @@ interface SMTPMetrics {
 }
 
 export default function SMTPStatus() {
+  const [, navigate] = useLocation();
   const [metrics, setMetrics] = useState<SMTPMetrics>({
     status: 'healthy',
     emailsToday: { sent: 1247, delivered: 1189, bounced: 32, failed: 26 },
@@ -86,7 +87,7 @@ export default function SMTPStatus() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => useLocation()[1]('/dashboard')}
+            onClick={() => navigate('/dashboard')}
             className="flex items-center gap-2"
             data-testid="back-button"
           >

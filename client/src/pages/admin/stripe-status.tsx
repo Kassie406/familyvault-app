@@ -27,6 +27,7 @@ interface StripeMetrics {
 }
 
 export default function StripeStatus() {
+  const [, navigate] = useLocation();
   const [metrics, setMetrics] = useState<StripeMetrics>({
     status: 'healthy',
     paymentsToday: { total: 156, successful: 143, failed: 9, pending: 4 },
@@ -100,7 +101,7 @@ export default function StripeStatus() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => useLocation()[1]('/dashboard')}
+            onClick={() => navigate('/dashboard')}
             className="flex items-center gap-2"
             data-testid="back-button"
           >

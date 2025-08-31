@@ -31,6 +31,7 @@ interface StorageMetrics {
 }
 
 export default function StorageStatus() {
+  const [, navigate] = useLocation();
   const [metrics, setMetrics] = useState<StorageMetrics>({
     status: 'healthy',
     storage: { used: 847.3, total: 2000, percentage: 42.4, unit: 'GB' },
@@ -107,7 +108,7 @@ export default function StorageStatus() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => useLocation()[1]('/dashboard')}
+            onClick={() => navigate('/dashboard')}
             className="flex items-center gap-2"
             data-testid="back-button"
           >
