@@ -3032,6 +3032,21 @@ export default function AdminDashboard() {
                           data-testid="input-search-articles"
                         />
                       </div>
+                      <Button 
+                        onClick={() => setShowArchived(!showArchived)}
+                        variant={showArchived ? "default" : "outline"}
+                        className={`px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
+                          showArchived 
+                            ? "bg-[#6C757D] hover:bg-[#5a6268] text-white" 
+                            : "border-[#6C757D] text-[#6C757D] hover:bg-[#6C757D] hover:text-white"
+                        }`}
+                        data-testid="button-toggle-archived-content"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        {showArchived 
+                          ? `Hide Archived (${articles.articles.filter((a: any) => a.status === 'archived').length})` 
+                          : `Show Archived (${articles.articles.filter((a: any) => a.status === 'archived').length})`}
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -3118,7 +3133,16 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {articles.articles.map((article: any) => (
+                      {articles.articles
+                        .filter((article: any) => {
+                          // Filter based on archived status
+                          if (showArchived) {
+                            return article.status === 'archived';
+                          } else {
+                            return article.status !== 'archived';
+                          }
+                        })
+                        .map((article: any) => (
                         <tr 
                           key={article.id} 
                           className={`hover:bg-[#F9FAFB] transition-colors duration-150 ${
@@ -3226,7 +3250,13 @@ export default function AdminDashboard() {
                   </table>
                 </div>
                 <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
-                  Showing {articles.articles.length} articles
+                  Showing {articles.articles.filter((article: any) => {
+                    if (showArchived) {
+                      return article.status === 'archived';
+                    } else {
+                      return article.status !== 'archived';
+                    }
+                  }).length} {showArchived ? 'archived' : 'active'} articles
                 </div>
               </div>
             ) : (
