@@ -101,27 +101,28 @@ import WhenSomeoneDiesImportantDeadlines from "@/pages/when-someone-dies-importa
 function AdminRouter() {
   return (
     <Switch>
-      <Route path="/dashboard" component={AdminDashboard} />
-      <Route path="/profile">
+      <Route path="/admin/dashboard" component={AdminDashboard} />
+      <Route path="/admin/profile">
         <AdminLayout>
           <AdminProfile />
         </AdminLayout>
       </Route>
-      <Route path="/settings">
+      <Route path="/admin/settings">
         <AdminLayout>
           <AdminSettings />
         </AdminLayout>
       </Route>
-      <Route path="/incidents" component={AdminIncidents} />
-      <Route path="/security-settings" component={AdminSecuritySettings} />
-      <Route path="/stepup-test" component={AdminStepUpTest} />
-      <Route path="/database-status" component={DatabaseStatus} />
-      <Route path="/auth-status" component={AuthStatus} />
-      <Route path="/smtp-status" component={SMTPStatus} />
-      <Route path="/webhooks-status" component={WebhooksStatus} />
-      <Route path="/stripe-status" component={StripeStatus} />
-      <Route path="/storage-status" component={StorageStatus} />
-      <Route path="/login" component={AdminLogin} />
+      <Route path="/admin/incidents" component={AdminIncidents} />
+      <Route path="/admin/security-settings" component={AdminSecuritySettings} />
+      <Route path="/admin/stepup-test" component={AdminStepUpTest} />
+      <Route path="/admin/database-status" component={DatabaseStatus} />
+      <Route path="/admin/auth-status" component={AuthStatus} />
+      <Route path="/admin/smtp-status" component={SMTPStatus} />
+      <Route path="/admin/webhooks-status" component={WebhooksStatus} />
+      <Route path="/admin/stripe-status" component={StripeStatus} />
+      <Route path="/admin/storage-status" component={StorageStatus} />
+      <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin" component={AdminLogin} />
       <Route path="/" component={AdminLogin} />
       <Route component={AdminLogin} />
     </Switch>
