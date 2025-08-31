@@ -133,19 +133,45 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
                 </div>
                 <nav className="admin-links pointer-events-auto relative z-50">
                   <button type="button" onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     console.log('Profile clicked, current location:', window.location.pathname);
-                    console.log('About to navigate to /admin/profile');
-                    window.location.href = '/admin/profile';
+                    console.log('Attempting multiple navigation methods...');
+                    
+                    // Try multiple methods
+                    try {
+                      window.location.assign('/admin/profile');
+                    } catch (err) {
+                      console.log('assign failed:', err);
+                      try {
+                        window.location.replace('/admin/profile');
+                      } catch (err2) {
+                        console.log('replace failed:', err2);
+                        (window.location as any) = '/admin/profile';
+                      }
+                    }
                   }} data-testid="menu-profile">
                     <User className="w-4 h-4" />
                     Profile
                   </button>
                   <button type="button" onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     console.log('Settings clicked, current location:', window.location.pathname);
-                    console.log('About to navigate to /admin/settings');
-                    window.location.href = '/admin/settings';
+                    console.log('Attempting multiple navigation methods...');
+                    
+                    // Try multiple methods
+                    try {
+                      window.location.assign('/admin/settings');
+                    } catch (err) {
+                      console.log('assign failed:', err);
+                      try {
+                        window.location.replace('/admin/settings');
+                      } catch (err2) {
+                        console.log('replace failed:', err2);
+                        (window.location as any) = '/admin/settings';
+                      }
+                    }
                   }} data-testid="menu-settings">
                     <Settings className="w-4 h-4" />
                     Settings
