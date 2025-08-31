@@ -2712,6 +2712,36 @@ legend {
   font-weight: 600 !important;
 }
 
+/* ===== Security & Audit Section Text Visibility Fixes ===== */
+/* Section headers inside Security & Audit */
+.security-section h2,
+.security-section h3,
+.section-title,
+.section-label {
+  color: #1e293b !important;   /* Dark navy for readability */
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+/* Inline status labels like "Last Verified" */
+.security-section .status-label {
+  color: #374151 !important;   /* Gray-800 for neutral text */
+  font-weight: 500;
+}
+
+/* Emphasis text like "Never verified" */
+.security-section .status-label strong,
+.security-section .highlight {
+  color: #dc2626 !important;   /* Red-600 for warnings */
+  font-weight: 600;
+}
+
+/* Metadata (like "Total Entries") */
+.security-section .meta {
+  color: #4b5563 !important;   /* Gray-700 */
+  font-size: 0.9rem;
+}
+
 .icon-x {
   background: none;
   border: none;

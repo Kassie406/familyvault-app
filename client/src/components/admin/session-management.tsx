@@ -151,7 +151,7 @@ export default function SessionManagement({ className }: SessionManagementProps)
     <div className={className}>
       <div className="card" id="card-sessions">
         <div className="card-header">
-          <h3 style={{margin: 0}}>Active Admin Sessions</h3>
+          <h3 className="section-title" style={{margin: 0}}>Active Admin Sessions</h3>
           <div style={{display: 'flex', gap: '8px'}}>
             <button 
               id="btn-sess-refresh" 
