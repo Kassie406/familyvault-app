@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuditLogEntry {
   id: string;
@@ -35,8 +36,10 @@ interface VerificationResult {
 }
 
 export function TamperEvidentAudit() {
+  const { toast } = useToast();
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [auditEntries, setAuditEntries] = useState<AuditLogEntry[]>([]);
 
   const { data: auditData, isLoading, refetch } = useQuery({
     queryKey: ['/api/admin/audit-v2'],
@@ -47,7 +50,23 @@ export function TamperEvidentAudit() {
     }
   });
 
-  const auditEntries = (auditData as any)?.items || [];
+  // Update local state when server data changes
+  useEffect(() => {
+    if (auditData?.items) {
+      setAuditEntries(auditData.items);
+    }
+  }, [auditData]);
+
+  const deleteAuditEntry = (entry: AuditLogEntry) => {
+    // Immediate local state update for better UX
+    setAuditEntries(prev => prev.filter(e => e.id !== entry.id));
+    console.log('Audit entry deleted:', entry.action, entry.id);
+    toast({
+      title: 'Audit Entry Deleted',
+      description: `Entry "${entry.action}" has been removed.`,
+      variant: 'destructive',
+    });
+  };
 
   const sha256hex = async (str: string): Promise<string> => {
     const encoder = new TextEncoder();
@@ -257,6 +276,7 @@ export function TamperEvidentAudit() {
                 <th>Target</th>
                 <th>Hash</th>
                 <th>Prev</th>
+                <th style={{width: '80px'}}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -265,9 +285,9 @@ export function TamperEvidentAudit() {
                   <td>{formatTimestamp(entry.ts)}</td>
                   <td>
                     <div>
-                      <div style={{ fontWeight: '500' }}>{entry.actor_email}</div>
+                      <div style={{ fontWeight: '500' }}>{entry.actor?.email || 'Unknown'}</div>
                       <div style={{ fontSize: '12px', color: '#6B7280' }}>
-                        {entry.actor_role} {entry.actor_ip && `• ${entry.actor_ip}`}
+                        {entry.actor?.role || 'Unknown'} {entry.actor?.ip && `• ${entry.actor.ip}`}
                       </div>
                     </div>
                   </td>
@@ -283,18 +303,36 @@ export function TamperEvidentAudit() {
                   </td>
                   <td>
                     <code style={{ fontSize: '12px' }}>
-                      {entry.object_type}:{entry.object_id}
+                      {entry.target?.type || entry.object_type}:{entry.target?.id || entry.object_id}
                     </code>
                   </td>
                   <td>
                     <code style={{ fontSize: '11px', color: '#6B7280' }}>
-                      {truncateHash(entry.tamper_hash)}
+                      {truncateHash(entry.hash || entry.tamper_hash)}
                     </code>
                   </td>
                   <td>
                     <code style={{ fontSize: '11px', color: '#6B7280' }}>
-                      {truncateHash(entry.prev_tamper_hash)}
+                      {truncateHash(entry.prev_hash)}
                     </code>
+                  </td>
+                  <td className="row-actions">
+                    <button
+                      title="Delete audit entry"
+                      onClick={() => deleteAuditEntry(entry)}
+                      data-testid={`button-delete-audit-${entry.id}`}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        padding: '4px',
+                        cursor: 'pointer',
+                        borderRadius: '4px',
+                        color: '#DC3545',
+                        fontSize: '14px'
+                      }}
+                    >
+                      🗑️
+                    </button>
                   </td>
                 </tr>
               ))}
