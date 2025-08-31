@@ -2350,6 +2350,40 @@ legend {
   background: #DCFCE7;
   color: #166534;
   border: none;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* GDPR Compliance overview readability fixes */
+#gdpr-root .gdpr-section.is-muted,
+#gdpr-root .gdpr-section[aria-disabled="true"] {
+  opacity: 1;
+  filter: none;
+}
+
+#gdpr-root .section-title {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #111827;
+}
+
+#gdpr-root .item-label {
+  color: #374151;
+}
+
+#gdpr-root .gdpr-section.is-muted .badge,
+#gdpr-root .gdpr-section[aria-disabled="true"] .badge {
+  opacity: 0.6;
+}
+
+#gdpr-root .gdpr-section.is-muted .item-label,
+#gdpr-root .gdpr-section[aria-disabled="true"] .item-label {
+  opacity: 1;
+}
+
+#gdpr-root .row:hover,
+#gdpr-root .row:focus-within {
+  background-color: rgba(15, 23, 42, 0.04);
 }
 
 #gdpr-root .badge-due {
