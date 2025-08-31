@@ -68,6 +68,8 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [editUserModalOpen, setEditUserModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [archivedUsers, setArchivedUsers] = useState<any[]>([]);
 
   // Bulk selection helpers
   const toggleArticleSelection = (articleId: string) => {
@@ -1039,16 +1041,17 @@ export default function AdminDashboard() {
       case 'users':
         // Multi-tenant sample users for demonstration
         const sampleUsers = [
-          { id: 1, name: "John Doe", email: "john@company.com", tenant: "STAFF", role: "admin", status: "Active", mfaEnabled: true, lastLogin: "2024-01-28" },
-          { id: 2, name: "Sarah Martinez", email: "sarah@familycirclesecure.com", tenant: "FAMILY", role: "family_admin", status: "Active", mfaEnabled: true, lastLogin: "2024-01-27" },
-          { id: 3, name: "Alex Johnson", email: "alex.client@gmail.com", tenant: "PUBLIC", role: "client_plus", status: "Active", mfaEnabled: false, lastLogin: "2024-01-26" },
-          { id: 4, name: "Emily Chen", email: "emily@familycirclesecure.com", tenant: "FAMILY", role: "family_member", status: "Pending", mfaEnabled: false, lastLogin: null },
-          { id: 5, name: "Michael Rodriguez", email: "mrodriguez@company.com", tenant: "STAFF", role: "agent", status: "Active", mfaEnabled: true, lastLogin: "2024-01-28" },
-          { id: 6, name: "Lisa Wang", email: "lisa.client@outlook.com", tenant: "PUBLIC", role: "client", status: "Suspended", mfaEnabled: false, lastLogin: "2024-01-20" },
+          { id: 1, name: "John Doe", email: "john@company.com", tenant: "STAFF", role: "admin", status: "Active", mfaEnabled: true, lastLogin: "2024-01-28", archivedAt: null, deletesAt: null },
+          { id: 2, name: "Sarah Martinez", email: "sarah@familycirclesecure.com", tenant: "FAMILY", role: "family_admin", status: "Active", mfaEnabled: true, lastLogin: "2024-01-27", archivedAt: null, deletesAt: null },
+          { id: 3, name: "Alex Johnson", email: "alex.client@gmail.com", tenant: "PUBLIC", role: "client_plus", status: "Active", mfaEnabled: false, lastLogin: "2024-01-26", archivedAt: null, deletesAt: null },
+          { id: 4, name: "Emily Chen", email: "emily@familycirclesecure.com", tenant: "FAMILY", role: "family_member", status: "Pending", mfaEnabled: false, lastLogin: null, archivedAt: null, deletesAt: null },
+          { id: 5, name: "Michael Rodriguez", email: "mrodriguez@company.com", tenant: "STAFF", role: "agent", status: "Active", mfaEnabled: true, lastLogin: "2024-01-28", archivedAt: null, deletesAt: null },
+          { id: 6, name: "Lisa Wang", email: "lisa.client@outlook.com", tenant: "PUBLIC", role: "client", status: "Suspended", mfaEnabled: false, lastLogin: "2024-01-20", archivedAt: null, deletesAt: null },
         ];
         
-        // Filter users based on tenant and search
-        const filteredUsers = sampleUsers.filter(user => {
+        // Combine active and archived users, then filter based on current view
+        const allUsers = showArchived ? archivedUsers : sampleUsers;
+        const filteredUsers = allUsers.filter(user => {
           const matchesTenant = selectedTenant === "all" || user.tenant === selectedTenant;
           const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                                user.email.toLowerCase().includes(searchQuery.toLowerCase());
@@ -1077,6 +1080,42 @@ export default function AdminDashboard() {
           toast({ title: "Invitation Resent", description: `Invitation resent to ${user.email}` });
         };
         
+        const handleArchiveUser = (user: any) => {
+          const now = new Date();
+          const deletesAt = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days from now
+          
+          const archivedUser = {
+            ...user,
+            status: "Archived",
+            archivedAt: now.toISOString(),
+            deletesAt: deletesAt.toISOString()
+          };
+          
+          setArchivedUsers(prev => [...prev, archivedUser]);
+          
+          toast({ 
+            title: "User Archived", 
+            description: `${user.name} has been archived. Will be permanently deleted on ${deletesAt.toLocaleDateString()}.`, 
+            variant: "destructive" 
+          });
+        };
+        
+        const handleRestoreUser = (user: any) => {
+          const restoredUser = {
+            ...user,
+            status: "Active",
+            archivedAt: null,
+            deletesAt: null
+          };
+          
+          setArchivedUsers(prev => prev.filter(u => u.id !== user.id));
+          
+          toast({ 
+            title: "User Restored", 
+            description: `${user.name} has been restored and is now active.`, 
+          });
+        };
+
         const handleRemoveUser = (user: any) => {
           toast({ title: "User Removed", description: `${user.name} has been removed.`, variant: "destructive" });
         };
@@ -1135,12 +1174,14 @@ export default function AdminDashboard() {
           const styles = {
             Active: "badge-status-active bg-[#34C7591a] text-[#2E9950]",
             Pending: "badge-status-pending bg-[#FFC1071a] text-[#AD7A00]",
-            Suspended: "badge-status-susp bg-[#DC35451a] text-[#B02A37]"
+            Suspended: "badge-status-susp bg-[#DC35451a] text-[#B02A37]",
+            Archived: "badge-status-archived bg-[#6C757D1a] text-[#6C757D]"
           };
           const icons = {
             Active: "✓",
             Pending: "⏳", 
-            Suspended: "⚠"
+            Suspended: "⚠",
+            Archived: "📁"
           };
           const config = styles[status as keyof typeof styles] || styles.Active;
           const icon = icons[status as keyof typeof icons] || icons.Active;
@@ -1206,6 +1247,21 @@ export default function AdminDashboard() {
                       data-testid="input-user-search"
                     />
                   </div>
+                  
+                  {/* Show Archived Toggle */}
+                  <Button 
+                    onClick={() => setShowArchived(!showArchived)}
+                    variant={showArchived ? "default" : "outline"}
+                    className={`px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
+                      showArchived 
+                        ? "bg-[#6C757D] hover:bg-[#5a6268] text-white" 
+                        : "border-[#6C757D] text-[#6C757D] hover:bg-[#6C757D] hover:text-white"
+                    }`}
+                    data-testid="button-toggle-archived"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    {showArchived ? `Hide Archived (${archivedUsers.length})` : `Show Archived (${archivedUsers.length})`}
+                  </Button>
                   
                   {/* Invite User Button */}
                   <Button 
@@ -1375,18 +1431,33 @@ export default function AdminDashboard() {
                               </button>
                             )}
                             
-                            <button 
-                              onClick={() => handleRemoveUser(user)}
-                              className="appearance-none bg-transparent border-0 p-1.5 ml-1.5 rounded-lg text-[#667085] opacity-90 cursor-pointer transition-all duration-150 hover:bg-[#EEF3FF] hover:text-[#DC3545] hover:opacity-100 focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:outline-offset-2 focus-visible:shadow-[0_0_0_2px_rgba(31,111,235,0.15)]"
-                              data-testid={`button-remove-${user.id}`}
-                              aria-label={`Remove user ${user.name}`}
-                              data-tip="Remove"
-                              style={{
-                                position: 'relative'
-                              }}
-                            >
-                              <X className="w-3.5 h-3.5" style={{stroke: 'currentColor', fill: 'none'}} />
-                            </button>
+                            {showArchived ? (
+                              <button 
+                                onClick={() => handleRestoreUser(user)}
+                                className="appearance-none bg-transparent border-0 p-1.5 ml-1.5 rounded-lg text-[#667085] opacity-90 cursor-pointer transition-all duration-150 hover:bg-[#EEF3FF] hover:text-[#28A745] hover:opacity-100 focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:outline-offset-2 focus-visible:shadow-[0_0_0_2px_rgba(31,111,235,0.15)]"
+                                data-testid={`button-restore-${user.id}`}
+                                aria-label={`Restore user ${user.name}`}
+                                data-tip="Restore"
+                                style={{
+                                  position: 'relative'
+                                }}
+                              >
+                                <RotateCcw className="w-3.5 h-3.5" style={{stroke: 'currentColor', fill: 'none'}} />
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => handleArchiveUser(user)}
+                                className="appearance-none bg-transparent border-0 p-1.5 ml-1.5 rounded-lg text-[#667085] opacity-90 cursor-pointer transition-all duration-150 hover:bg-[#EEF3FF] hover:text-[#DC3545] hover:opacity-100 focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:outline-offset-2 focus-visible:shadow-[0_0_0_2px_rgba(31,111,235,0.15)]"
+                                data-testid={`button-archive-${user.id}`}
+                                aria-label={`Archive user ${user.name}`}
+                                data-tip="Archive"
+                                style={{
+                                  position: 'relative'
+                                }}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" style={{stroke: 'currentColor', fill: 'none'}} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1465,6 +1536,27 @@ export default function AdminDashboard() {
                       >
                         {user.status === 'Suspended' ? 'Reactivate' : user.status === 'Pending' ? 'Resend' : 'Suspend'}
                       </Button>
+                      {showArchived ? (
+                        <Button 
+                          onClick={() => handleRestoreUser(user)}
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          data-testid={`mobile-button-restore-${user.id}`}
+                        >
+                          <RotateCcw className="w-3 h-3 mr-1" /> Restore
+                        </Button>
+                      ) : (
+                        <Button 
+                          onClick={() => handleArchiveUser(user)}
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          data-testid={`mobile-button-archive-${user.id}`}
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" /> Archive
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
