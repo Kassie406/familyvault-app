@@ -245,15 +245,15 @@ export function GdprCompliance() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span>Data Protection Officer</span>
-                    <Badge className="badge-ok">Appointed</Badge>
+                    <span className="badge badge-ok">Appointed</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Privacy Policy</span>
-                    <Badge className="badge-ok">Current</Badge>
+                    <span className="badge badge-ok">Current</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Consent Records</span>
-                    <Badge className="badge-ok">Compliant</Badge>
+                    <span className="badge badge-ok">Compliant</span>
                   </div>
                 </div>
               </div>
@@ -266,15 +266,15 @@ export function GdprCompliance() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span>Retention Policies</span>
-                    <Badge className="badge-ok">Active</Badge>
+                    <span className="badge badge-ok">Active</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Auto-cleanup</span>
-                    <Badge className="badge-ok">Running</Badge>
+                    <span className="badge badge-ok">Running</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Audit Trail</span>
-                    <Badge className="badge-ok">Complete</Badge>
+                    <span className="badge badge-ok">Complete</span>
                   </div>
                 </div>
               </div>
