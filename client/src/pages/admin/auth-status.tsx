@@ -3,7 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useState, useEffect } from "react";
-import { Shield, Users, Key, Activity, AlertTriangle, Clock, CheckCircle } from "lucide-react";
+import { Shield, Users, Key, Activity, AlertTriangle, Clock, CheckCircle, ArrowLeft } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface AuthMetrics {
   status: 'healthy' | 'warning' | 'critical';
@@ -78,12 +79,24 @@ export default function AuthStatus() {
     <div className="p-6 space-y-6" data-testid="auth-status-page">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2" data-testid="page-title">
-            <Shield className="w-6 h-6" />
-            Authentication System
-          </h1>
-          <p className="text-muted-foreground">Monitor authentication security and user sessions</p>
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => useLocation()[1]('/dashboard')}
+            className="flex items-center gap-2"
+            data-testid="back-button"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Dashboard
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2" data-testid="page-title">
+              <Shield className="w-6 h-6" />
+              Authentication System
+            </h1>
+            <p className="text-muted-foreground">Monitor authentication security and user sessions</p>
+          </div>
         </div>
         <Button 
           onClick={refreshMetrics} 

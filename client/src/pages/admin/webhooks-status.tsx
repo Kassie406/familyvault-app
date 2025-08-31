@@ -3,7 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useState, useEffect } from "react";
-import { Webhook, Send, CheckCircle, AlertTriangle, Clock, Activity, RefreshCw, ExternalLink } from "lucide-react";
+import { Webhook, Send, CheckCircle, AlertTriangle, Clock, Activity, RefreshCw, ExternalLink, ArrowLeft } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface WebhookMetrics {
   status: 'healthy' | 'warning' | 'critical';
@@ -92,12 +93,24 @@ export default function WebhooksStatus() {
     <div className="p-6 space-y-6" data-testid="webhooks-status-page">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2" data-testid="page-title">
-            <Webhook className="w-6 h-6" />
-            Webhook Management
-          </h1>
-          <p className="text-muted-foreground">Monitor webhook deliveries and endpoint health</p>
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => useLocation()[1]('/dashboard')}
+            className="flex items-center gap-2"
+            data-testid="back-button"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Dashboard
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2" data-testid="page-title">
+              <Webhook className="w-6 h-6" />
+              Webhook Management
+            </h1>
+            <p className="text-muted-foreground">Monitor webhook deliveries and endpoint health</p>
+          </div>
         </div>
         <Button 
           onClick={refreshMetrics} 
