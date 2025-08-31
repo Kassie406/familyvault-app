@@ -100,7 +100,7 @@ export default function SecurityCenterCard({ setActiveSection }: SecurityCenterC
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* 2FA Status */}
           <div 
-            className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" 
+            className="flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors" 
             onClick={() => {
               trackAdminClick('security_center_2fa_status');
               if (setActiveSection) {
@@ -129,7 +129,7 @@ export default function SecurityCenterCard({ setActiveSection }: SecurityCenterC
 
           {/* Active Sessions */}
           <div 
-            className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" 
+            className="flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors" 
             onClick={() => {
               trackAdminClick('security_center_active_sessions');
               if (setActiveSection) {
@@ -154,7 +154,7 @@ export default function SecurityCenterCard({ setActiveSection }: SecurityCenterC
 
           {/* IP Allowlist */}
           <div 
-            className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" 
+            className="flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors" 
             onClick={() => {
               trackAdminClick('security_center_ip_allowlist');
               if (setActiveSection) {
@@ -179,7 +179,7 @@ export default function SecurityCenterCard({ setActiveSection }: SecurityCenterC
 
           {/* Key Rotation */}
           <div 
-            className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" 
+            className="flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors" 
             onClick={() => {
               trackAdminClick('security_center_key_rotation');
               if (setActiveSection) {
