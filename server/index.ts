@@ -2443,6 +2443,35 @@ app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequ
     const results = [];
     const searchQuery = query.toLowerCase();
 
+    // Navigation shortcuts - direct section access
+    const navigationShortcuts = [
+      { terms: ['user', 'admin', 'management'], section: 'users', title: 'User Management', description: 'Manage user accounts and permissions' },
+      { terms: ['coupon', 'discount', 'promo'], section: 'coupons', title: 'Coupons & Discounts', description: 'Manage promotional codes and discounts' },
+      { terms: ['content', 'article', 'cms'], section: 'content', title: 'Content Management', description: 'Manage articles, announcements, and CMS content' },
+      { terms: ['plan', 'subscription', 'billing'], section: 'plans', title: 'Subscription Plans', description: 'Manage pricing and billing plans' },
+      { terms: ['security', 'audit', 'log'], section: 'security', title: 'Security & Audit', description: 'Security monitoring and audit trails' },
+      { terms: ['compliance', 'gdpr', 'privacy'], section: 'compliance', title: 'GDPR Compliance', description: 'Privacy and compliance management' },
+      { terms: ['webhook', 'integration'], section: 'webhooks', title: 'Webhooks', description: 'Outbound webhook integrations' },
+      { terms: ['flag', 'feature', 'toggle'], section: 'feature-flags', title: 'Feature Flags', description: 'Feature rollouts and targeting' },
+      { terms: ['marketing', 'promotion', 'campaign'], section: 'marketing', title: 'Marketing Promotions', description: 'Banners and popup campaigns' }
+    ];
+
+    // Add navigation shortcuts based on search query
+    navigationShortcuts.forEach(shortcut => {
+      if (shortcut.terms.some(term => searchQuery.includes(term))) {
+        results.push({
+          id: `nav-${shortcut.section}`,
+          type: 'navigation',
+          title: shortcut.title,
+          subtitle: shortcut.description,
+          metadata: 'Navigate to section',
+          status: 'active',
+          timestamp: new Date().toISOString(),
+          url: `/admin/${shortcut.section}`
+        });
+      }
+    });
+
     // Search Users (placeholder - would search real users)
     if (searchQuery.includes('user') || searchQuery.includes('admin')) {
       results.push({
@@ -2453,7 +2482,7 @@ app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequ
         metadata: 'admin@familycirclesecure.com',
         status: 'active',
         timestamp: new Date().toISOString(),
-        url: '/admin/users/admin'
+        url: '/admin/users'
       });
     }
 
@@ -2472,7 +2501,7 @@ app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequ
         metadata: `Used ${coupon.timesRedeemed} times`,
         status: coupon.active ? 'active' : 'inactive',
         timestamp: coupon.createdAt,
-        url: `/admin/coupons/${coupon.id}`
+        url: '/admin/coupons'
       });
     });
 
@@ -2492,7 +2521,7 @@ app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequ
         metadata: `${article.bodyMd?.length || 0} characters`,
         status: article.published ? 'published' : 'draft',
         timestamp: article.createdAt,
-        url: `/admin/articles/${article.id}`
+        url: '/admin/content'
       });
     });
 
@@ -2511,7 +2540,7 @@ app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequ
         metadata: plan.features ? JSON.stringify(plan.features) : 'No features',
         status: 'active',
         timestamp: plan.createdAt,
-        url: `/admin/plans/${plan.id}`
+        url: '/admin/plans'
       });
     });
 
@@ -2527,7 +2556,7 @@ app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequ
         subtitle: `${log.resource} ${log.resourceId ? '• ' + log.resourceId.substring(0, 8) + '...' : ''}`,
         metadata: `by ${log.actorId || 'System'}`,
         timestamp: log.createdAt,
-        url: `/admin/audit#${log.id}`
+        url: '/admin/security'
       });
     });
 

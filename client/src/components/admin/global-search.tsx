@@ -8,12 +8,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Search, Users, Ticket, FileText, Shield, 
   Activity, Calendar, DollarSign, Eye, Clock,
-  Hash, Mail, Globe, Zap
+  Hash, Mail, Globe, Zap, Navigation
 } from 'lucide-react';
 
 interface SearchResult {
   id: string;
-  type: 'user' | 'coupon' | 'article' | 'audit' | 'plan';
+  type: 'user' | 'coupon' | 'article' | 'audit' | 'plan' | 'navigation';
   title: string;
   subtitle?: string;
   metadata?: string;
@@ -25,9 +25,10 @@ interface SearchResult {
 interface GlobalSearchProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  onNavigate?: (section: string) => void;
 }
 
-export default function GlobalSearch({ isOpen, onOpenChange }: GlobalSearchProps) {
+export default function GlobalSearch({ isOpen, onOpenChange, onNavigate }: GlobalSearchProps) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -92,8 +93,25 @@ export default function GlobalSearch({ isOpen, onOpenChange }: GlobalSearchProps
   }, [isOpen, results, selectedIndex, onOpenChange]);
 
   const handleResultClick = (result: SearchResult) => {
-    // Navigate to the result URL
-    if (result.url.startsWith('/admin/')) {
+    // Map URL to dashboard section
+    const urlToSection = (url: string): string => {
+      if (url.includes('/users')) return 'users';
+      if (url.includes('/coupons')) return 'coupons';
+      if (url.includes('/articles') || url.includes('/content')) return 'content';
+      if (url.includes('/plans')) return 'plans';
+      if (url.includes('/audit') || url.includes('/security')) return 'security';
+      if (url.includes('/compliance')) return 'compliance';
+      if (url.includes('/webhooks')) return 'webhooks';
+      if (url.includes('/flags')) return 'feature-flags';
+      if (url.includes('/marketing')) return 'marketing';
+      return 'overview';
+    };
+
+    // Navigate using the dashboard's section system if onNavigate is available
+    if (onNavigate && result.url.startsWith('/admin/')) {
+      const section = urlToSection(result.url);
+      onNavigate(section);
+    } else if (result.url.startsWith('/admin/')) {
       window.location.hash = result.url;
     } else {
       window.open(result.url, '_blank');
@@ -108,6 +126,7 @@ export default function GlobalSearch({ isOpen, onOpenChange }: GlobalSearchProps
       case 'article': return <FileText className="h-4 w-4 text-purple-500" />;
       case 'audit': return <Shield className="h-4 w-4 text-red-500" />;
       case 'plan': return <DollarSign className="h-4 w-4 text-orange-500" />;
+      case 'navigation': return <Navigation className="h-4 w-4 text-indigo-500" />;
       default: return <Hash className="h-4 w-4 text-gray-500" />;
     }
   };
@@ -119,6 +138,7 @@ export default function GlobalSearch({ isOpen, onOpenChange }: GlobalSearchProps
       case 'article': return 'bg-purple-100 text-purple-800';
       case 'audit': return 'bg-red-100 text-red-800';
       case 'plan': return 'bg-orange-100 text-orange-800';
+      case 'navigation': return 'bg-indigo-100 text-indigo-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
