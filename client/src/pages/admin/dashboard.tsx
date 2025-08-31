@@ -3033,7 +3033,10 @@ export default function AdminDashboard() {
                         />
                       </div>
                       <Button 
-                        onClick={() => setShowArchived(!showArchived)}
+                        onClick={() => {
+                          console.log('Show Archived clicked, current state:', showArchived);
+                          setShowArchived(!showArchived);
+                        }}
                         variant={showArchived ? "default" : "outline"}
                         className={`px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
                           showArchived 
@@ -3235,7 +3238,12 @@ export default function AdminDashboard() {
                                 variant="ghost" 
                                 size="sm" 
                                 onClick={() => {
-                                  toast({ title: "Article Deleted", description: `"${article.title}" has been deleted.` });
+                                  console.log('Delete article clicked:', article.title);
+                                  toast({ 
+                                    title: "Article Deleted", 
+                                    description: `"${article.title}" has been deleted.`,
+                                    variant: "destructive"
+                                  });
                                 }}
                                 className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                 data-testid={`button-delete-${article.id}`}
