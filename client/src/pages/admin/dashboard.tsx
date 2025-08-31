@@ -53,6 +53,66 @@ export default function AdminDashboard() {
   const [markdownContent, setMarkdownContent] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   
+  // Articles state management
+  const [articlesData, setArticlesData] = useState<any[]>([
+    {
+      id: 'a_101',
+      title: 'Family Evacuation Checklist',
+      slug: 'family-evacuation-checklist',
+      category: 'announcements',
+      menuCategory: 'Disaster Planning',
+      tenant: 'PUBLIC',
+      status: 'published',
+      published: true,
+      publishAt: '2025-08-20T10:00:00Z',
+      authorName: 'Sarah Martinez',
+      createdAt: '2025-08-20T10:00:00Z',
+      updatedAt: '2025-08-20T10:00:00Z'
+    },
+    {
+      id: 'a_102',
+      title: 'Home Document Binder',
+      slug: 'home-document-binder',
+      category: 'support',
+      menuCategory: 'Home Buying',
+      tenant: 'PUBLIC',
+      status: 'draft',
+      published: false,
+      publishAt: null,
+      authorName: 'John Doe',
+      createdAt: '2025-08-15T14:20:00Z',
+      updatedAt: '2025-08-15T14:20:00Z'
+    },
+    {
+      id: 'a_103',
+      title: 'SOC Playbook Update',
+      slug: 'soc-playbook-update',
+      category: 'onboarding',
+      menuCategory: 'Digital Security',
+      tenant: 'STAFF',
+      status: 'scheduled',
+      published: false,
+      publishAt: '2025-09-01T09:00:00Z',
+      authorName: 'Emily Chen',
+      createdAt: '2025-08-25T16:30:00Z',
+      updatedAt: '2025-08-25T16:30:00Z'
+    },
+    {
+      id: 'a_104',
+      title: 'Pediatric Records Checklist',
+      slug: 'pediatric-records-checklist',
+      category: 'blog',
+      menuCategory: 'Child Information',
+      tenant: 'FAMILY',
+      status: 'published',
+      published: true,
+      publishAt: '2025-08-10T14:20:00Z',
+      authorName: 'Michael Rodriguez',
+      createdAt: '2025-08-10T14:20:00Z',
+      updatedAt: '2025-08-10T14:20:00Z'
+    }
+  ]);
+
   // Bulk selection state
   const [selectedArticles, setSelectedArticles] = useState<Set<string>>(new Set());
   const [isSelectAllChecked, setIsSelectAllChecked] = useState(false);
@@ -351,133 +411,23 @@ export default function AdminDashboard() {
     queryFn: () => fetch('/api/admin/coupons').then(res => res.json()),
   });
 
-  const { data: articles, isLoading: articlesLoading } = useQuery({
-    queryKey: ['/api/admin/articles'],
-    queryFn: async () => {
-      // Always return sample data for demo purposes
-      return {
-        articles: [
-          {
-            id: 'a_101',
-            title: 'Family Evacuation Checklist',
-            slug: 'family-evacuation-checklist',
-            category: 'announcements',
-            menuCategory: 'Disaster Planning',
-            tenant: 'PUBLIC',
-            status: 'published',
-            published: true,
-            publishAt: '2025-08-20T10:00:00Z',
-            authorName: 'Sarah Martinez',
-            createdAt: '2025-08-20T10:00:00Z',
-            updatedAt: '2025-08-20T10:00:00Z'
-          },
-          {
-            id: 'a_102',
-            title: 'Home Document Binder',
-            slug: 'home-document-binder',
-            category: 'support',
-            menuCategory: 'Home Buying',
-            tenant: 'PUBLIC',
-            status: 'draft',
-            published: false,
-            publishAt: null,
-            authorName: 'John Doe',
-            createdAt: '2025-08-15T14:20:00Z',
-            updatedAt: '2025-08-15T14:20:00Z'
-          },
-          {
-            id: 'a_103',
-            title: 'SOC Playbook Update',
-            slug: 'soc-playbook-update',
-            category: 'onboarding',
-            menuCategory: 'Digital Security',
-            tenant: 'STAFF',
-            status: 'scheduled',
-            published: false,
-            publishAt: '2025-09-01T09:00:00Z',
-            authorName: 'Emily Chen',
-            createdAt: '2025-08-25T16:30:00Z',
-            updatedAt: '2025-08-25T16:30:00Z'
-          },
-          {
-            id: 'a_104',
-            title: 'Pediatric Records Checklist',
-            slug: 'pediatric-records-checklist',
-            category: 'blog',
-            menuCategory: 'Child Information',
-            tenant: 'FAMILY',
-            status: 'published',
-            published: true,
-            publishAt: '2025-08-10T14:20:00Z',
-            authorName: 'Michael Rodriguez',
-            createdAt: '2025-08-10T14:20:00Z',
-            updatedAt: '2025-08-10T14:20:00Z'
-          }
-        ]
-      };
-    },
-    // Fallback to sample data if API fails (for demo purposes)
-    placeholderData: {
-      articles: [
-        {
-          id: 'a_101',
-          title: 'Family Evacuation Checklist',
-          slug: 'family-evacuation-checklist',
-          category: 'announcements',
-          menuCategory: 'Disaster Planning',
-          tenant: 'PUBLIC',
-          status: 'published',
-          published: true,
-          publishAt: '2025-08-20T10:00:00Z',
-          authorName: 'Sarah Martinez',
-          createdAt: '2025-08-20T10:00:00Z',
-          updatedAt: '2025-08-20T10:00:00Z'
-        },
-        {
-          id: 'a_102',
-          title: 'Home Document Binder',
-          slug: 'home-document-binder',
-          category: 'support',
-          menuCategory: 'Home Buying',
-          tenant: 'PUBLIC',
-          status: 'draft',
-          published: false,
-          publishAt: null,
-          authorName: 'John Doe',
-          createdAt: '2025-08-15T14:20:00Z',
-          updatedAt: '2025-08-15T14:20:00Z'
-        },
-        {
-          id: 'a_103',
-          title: 'SOC Playbook Update',
-          slug: 'soc-playbook-update',
-          category: 'onboarding',
-          menuCategory: 'Digital Security',
-          tenant: 'STAFF',
-          status: 'scheduled',
-          published: false,
-          publishAt: '2025-09-01T09:00:00Z',
-          authorName: 'Emily Chen',
-          createdAt: '2025-08-25T16:30:00Z',
-          updatedAt: '2025-08-25T16:30:00Z'
-        },
-        {
-          id: 'a_104',
-          title: 'Pediatric Records Checklist',
-          slug: 'pediatric-records-checklist',
-          category: 'blog',
-          menuCategory: 'Child Information',
-          tenant: 'FAMILY',
-          status: 'published',
-          published: true,
-          publishAt: '2025-08-10T14:20:00Z',
-          authorName: 'Michael Rodriguez',
-          createdAt: '2025-08-10T14:20:00Z',
-          updatedAt: '2025-08-10T14:20:00Z'
-        }
-      ]
+  // Delete article function
+  const handleDeleteArticle = (articleId: string) => {
+    const article = articlesData.find(a => a.id === articleId);
+    if (article) {
+      setArticlesData(prev => prev.filter(a => a.id !== articleId));
+      console.log('Article deleted:', article.title);
+      toast({ 
+        title: "Article Deleted", 
+        description: `"${article.title}" has been deleted.`,
+        variant: "destructive"
+      });
     }
-  });
+  };
+
+  // Mock articles object to maintain compatibility with existing code
+  const articles = { articles: articlesData };
+  const articlesLoading = false;
 
   // Debug logging
   console.log('Articles data:', articles);
@@ -3237,14 +3187,7 @@ export default function AdminDashboard() {
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                onClick={() => {
-                                  console.log('Delete article clicked:', article.title);
-                                  toast({ 
-                                    title: "Article Deleted", 
-                                    description: `"${article.title}" has been deleted.`,
-                                    variant: "destructive"
-                                  });
-                                }}
+                                onClick={() => handleDeleteArticle(article.id)}
                                 className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                 data-testid={`button-delete-${article.id}`}
                               >
