@@ -132,49 +132,14 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
                   </div>
                 </div>
                 <nav className="admin-links pointer-events-auto relative z-50">
-                  <button type="button" onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('=== PROFILE BUTTON CLICKED ===');
-                    console.log('Current URL:', window.location.href);
-                    console.log('Current pathname:', window.location.pathname);
-                    
-                    // Force immediate navigation with reload
-                    console.log('Forcing window.location.href...');
-                    window.location.href = '/admin/profile';
-                    
-                    // Backup: Force page refresh to that URL
-                    setTimeout(() => {
-                      console.log('Backup: window.location.reload...');
-                      window.location.href = '/admin/profile';
-                      window.location.reload();
-                    }, 100);
-                  }} data-testid="menu-profile">
+                  <a href="/admin/profile" data-testid="menu-profile">
                     <User className="w-4 h-4" />
                     Profile
-                  </button>
-                  <button type="button" onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Settings clicked, current location:', window.location.pathname);
-                    console.log('Attempting multiple navigation methods...');
-                    
-                    // Try multiple methods
-                    try {
-                      window.location.assign('/admin/settings');
-                    } catch (err) {
-                      console.log('assign failed:', err);
-                      try {
-                        window.location.replace('/admin/settings');
-                      } catch (err2) {
-                        console.log('replace failed:', err2);
-                        (window.location as any) = '/admin/settings';
-                      }
-                    }
-                  }} data-testid="menu-settings">
+                  </a>
+                  <a href="/admin/settings" data-testid="menu-settings">
                     <Settings className="w-4 h-4" />
                     Settings
-                  </button>
+                  </a>
                   <button type="button" className="logout" onClick={handleLogout} data-testid="menu-logout">
                     <LogOut className="w-4 h-4" />
                     Log out
