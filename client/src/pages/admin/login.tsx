@@ -56,7 +56,7 @@ export default function AdminLogin() {
       
       // Invalidate auth cache and redirect
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
-      setLocation('/dashboard');
+      setLocation('/admin/dashboard');
     },
     onError: (error: Error) => {
       toast({
@@ -70,7 +70,7 @@ export default function AdminLogin() {
   // Redirect if already authenticated as admin (using useEffect to avoid render issues)
   useEffect(() => {
     if (user?.user && ['ADMIN', 'PRESIDENT'].includes(user.user.role)) {
-      setLocation('/dashboard');
+      setLocation('/admin/dashboard');
     }
   }, [user, setLocation]);
 
