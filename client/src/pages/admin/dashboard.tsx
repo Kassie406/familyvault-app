@@ -70,6 +70,21 @@ export default function AdminDashboard() {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [archivedUsers, setArchivedUsers] = useState<any[]>([]);
+  const [activeUsers, setActiveUsers] = useState<any[]>([]);
+
+  // Initialize active users on component mount
+  useEffect(() => {
+    if (activeUsers.length === 0) {
+      setActiveUsers([
+        { id: 1, name: "John Doe", email: "john@company.com", tenant: "STAFF", role: "admin", status: "Active", mfaEnabled: true, lastLogin: "2024-01-28", archivedAt: null, deletesAt: null },
+        { id: 2, name: "Sarah Martinez", email: "sarah@familycirclesecure.com", tenant: "FAMILY", role: "family_admin", status: "Active", mfaEnabled: true, lastLogin: "2024-01-27", archivedAt: null, deletesAt: null },
+        { id: 3, name: "Alex Johnson", email: "alex.client@gmail.com", tenant: "PUBLIC", role: "client_plus", status: "Active", mfaEnabled: false, lastLogin: "2024-01-26", archivedAt: null, deletesAt: null },
+        { id: 4, name: "Emily Chen", email: "emily@familycirclesecure.com", tenant: "FAMILY", role: "family_member", status: "Pending", mfaEnabled: false, lastLogin: null, archivedAt: null, deletesAt: null },
+        { id: 5, name: "Michael Rodriguez", email: "mrodriguez@company.com", tenant: "STAFF", role: "agent", status: "Active", mfaEnabled: true, lastLogin: "2024-01-28", archivedAt: null, deletesAt: null },
+        { id: 6, name: "Lisa Wang", email: "lisa.client@outlook.com", tenant: "PUBLIC", role: "client", status: "Suspended", mfaEnabled: false, lastLogin: "2024-01-20", archivedAt: null, deletesAt: null },
+      ]);
+    }
+  }, []);
 
   // Bulk selection helpers
   const toggleArticleSelection = (articleId: string) => {
@@ -1039,18 +1054,8 @@ export default function AdminDashboard() {
         );
       
       case 'users':
-        // Multi-tenant sample users for demonstration
-        const sampleUsers = [
-          { id: 1, name: "John Doe", email: "john@company.com", tenant: "STAFF", role: "admin", status: "Active", mfaEnabled: true, lastLogin: "2024-01-28", archivedAt: null, deletesAt: null },
-          { id: 2, name: "Sarah Martinez", email: "sarah@familycirclesecure.com", tenant: "FAMILY", role: "family_admin", status: "Active", mfaEnabled: true, lastLogin: "2024-01-27", archivedAt: null, deletesAt: null },
-          { id: 3, name: "Alex Johnson", email: "alex.client@gmail.com", tenant: "PUBLIC", role: "client_plus", status: "Active", mfaEnabled: false, lastLogin: "2024-01-26", archivedAt: null, deletesAt: null },
-          { id: 4, name: "Emily Chen", email: "emily@familycirclesecure.com", tenant: "FAMILY", role: "family_member", status: "Pending", mfaEnabled: false, lastLogin: null, archivedAt: null, deletesAt: null },
-          { id: 5, name: "Michael Rodriguez", email: "mrodriguez@company.com", tenant: "STAFF", role: "agent", status: "Active", mfaEnabled: true, lastLogin: "2024-01-28", archivedAt: null, deletesAt: null },
-          { id: 6, name: "Lisa Wang", email: "lisa.client@outlook.com", tenant: "PUBLIC", role: "client", status: "Suspended", mfaEnabled: false, lastLogin: "2024-01-20", archivedAt: null, deletesAt: null },
-        ];
-        
         // Combine active and archived users, then filter based on current view
-        const allUsers = showArchived ? archivedUsers : sampleUsers;
+        const allUsers = showArchived ? archivedUsers : activeUsers;
         const filteredUsers = allUsers.filter(user => {
           const matchesTenant = selectedTenant === "all" || user.tenant === selectedTenant;
           const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -1091,7 +1096,11 @@ export default function AdminDashboard() {
             deletesAt: deletesAt.toISOString()
           };
           
+          // Add to archived users
           setArchivedUsers(prev => [...prev, archivedUser]);
+          
+          // Remove from active users
+          setActiveUsers(prev => prev.filter(u => u.id !== user.id));
           
           toast({ 
             title: "User Archived", 
@@ -1109,6 +1118,9 @@ export default function AdminDashboard() {
           };
           
           setArchivedUsers(prev => prev.filter(u => u.id !== user.id));
+          
+          // Add back to active users
+          setActiveUsers(prev => [...prev, restoredUser]);
           
           toast({ 
             title: "User Restored", 
@@ -1221,16 +1233,16 @@ export default function AdminDashboard() {
                     </SelectTrigger>
                     <SelectContent className="bg-[#0F141A] border-[#2B313A] shadow-lg" role="menu">
                       <SelectItem value="all" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white" role="menuitemradio" aria-checked="true">
-                        All Tenants <span className="text-gray-400 ml-1">({sampleUsers.length})</span>
+                        All Tenants <span className="text-gray-400 ml-1">({activeUsers.length})</span>
                       </SelectItem>
                       <SelectItem value="PUBLIC" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white" role="menuitemradio">
-                        Public Clients <span className="text-gray-400 ml-1">({sampleUsers.filter(u => u.tenant === 'PUBLIC').length})</span>
+                        Public Clients <span className="text-gray-400 ml-1">({activeUsers.filter(u => u.tenant === 'PUBLIC').length})</span>
                       </SelectItem>
                       <SelectItem value="FAMILY" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white" role="menuitemradio">
-                        Family Portal <span className="text-gray-400 ml-1">({sampleUsers.filter(u => u.tenant === 'FAMILY').length})</span>
+                        Family Portal <span className="text-gray-400 ml-1">({activeUsers.filter(u => u.tenant === 'FAMILY').length})</span>
                       </SelectItem>
                       <SelectItem value="STAFF" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white" role="menuitemradio">
-                        Staff Hub <span className="text-gray-400 ml-1">({sampleUsers.filter(u => u.tenant === 'STAFF').length})</span>
+                        Staff Hub <span className="text-gray-400 ml-1">({activeUsers.filter(u => u.tenant === 'STAFF').length})</span>
                       </SelectItem>
                     </SelectContent>
                   </Select>
