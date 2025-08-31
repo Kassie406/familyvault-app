@@ -850,7 +850,7 @@ export default function AdminDashboard() {
         className="bg-[#007BFF] text-white cursor-pointer hover:bg-blue-600 transition-colors" 
         onClick={() => {
           trackAdminClick('dashboard_kpi_users');
-          navigate(ROUTES.USERS);
+          setActiveSection('users');
         }}
         data-testid="card-total-users"
       >
@@ -871,7 +871,7 @@ export default function AdminDashboard() {
         className="bg-[#28A745] text-white cursor-pointer hover:bg-green-600 transition-colors" 
         onClick={() => {
           trackAdminClick('dashboard_kpi_plans');
-          navigate(ROUTES.PLANS_CLIENT);
+          setActiveSection('plans');
         }}
         data-testid="card-active-plans"
       >
@@ -892,7 +892,7 @@ export default function AdminDashboard() {
         className="bg-[#6C757D] text-white cursor-pointer hover:bg-gray-600 transition-colors" 
         onClick={() => {
           trackAdminClick('dashboard_kpi_coupons');
-          navigate(ROUTES.COUPONS);
+          setActiveSection('coupons');
         }}
         data-testid="card-active-coupons"
       >
@@ -913,7 +913,7 @@ export default function AdminDashboard() {
         className="bg-[#FFC107] text-black cursor-pointer hover:bg-yellow-600 hover:text-white transition-colors" 
         onClick={() => {
           trackAdminClick('dashboard_kpi_content');
-          navigate(ROUTES.CONTENT_PUBLISHED);
+          setActiveSection('content');
         }}
         data-testid="card-content-articles"
       >
