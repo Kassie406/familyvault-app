@@ -1,0 +1,62 @@
+See the console line at the bottom:
+
+[CLICK] → /admin/profile
+
+
+That means the click is firing correctly and React Router is trying to navigate to /admin/profile.
+But your URL in the browser is still /admin/dashboard. That means one of two things is happening:
+
+🔍 What’s happening
+
+You have a guard or redirect in AdminRouter that is forcing everything back to /dashboard.
+Example:
+
+<Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+
+
+If this catch-all is before your /admin/profile route, the router never shows Profile.
+
+The Profile/Settings components are not imported or not declared as routes.
+So React Router says “no match” → falls into the redirect back to dashboard.
+
+✅ Fix
+
+Open your App.tsx (or wherever AdminRouter is defined) and make sure it looks like this:
+
+import { Routes, Route, Navigate } from "react-router-dom";
+import AdminLayout from "./components/admin/AdminLayout";
+import Dashboard from "./pages/admin/Dashboard";
+import Profile from "./pages/admin/Profile";
+import Settings from "./pages/admin/Settings";
+
+function AdminRouter() {
+  return (
+    <Routes>
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="profile" element={<Profile />} />
+        <Route path="settings" element={<Settings />} />
+        {/* 👇 keep catch-all LAST */}
+        <Route path="*" element={<Navigate to="dashboard" replace />} />
+      </Route>
+    </Routes>
+  );
+}
+
+export default AdminRouter;
+
+🚨 Key things to check
+
+Profile.tsx and Settings.tsx exist in /pages/admin/.
+
+They export a React component (e.g., export default function Profile() { return <h1>Profile</h1>; }).
+
+The <Route path="profile" ... /> and <Route path="settings" ... /> lines appear above any wildcard (*) redirect.
+
+Your links in the menu use /admin/profile and /admin/settings:
+
+<NavLink to="/admin/profile">Profile</NavLink>
+<NavLink to="/admin/settings">Settings</NavLink>
+
+
+👉 If you send me your App.tsx (or wherever routes are declared), I can rewrite the exact section for you so clicking Profile/Settings will finally load their pages instead of bouncing to Dashboard.
