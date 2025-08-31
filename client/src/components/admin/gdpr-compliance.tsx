@@ -137,10 +137,59 @@ export function GdprCompliance() {
       toast({ title: 'Please enter an email address', variant: 'destructive' });
       return;
     }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(suppressionEmail.trim())) {
+      toast({ 
+        title: 'Invalid email format', 
+        description: 'Please enter a valid email address',
+        variant: 'destructive' 
+      });
+      return;
+    }
+    
+    const reasonOptions = `Choose suppression reason:
+1. user_request - User requested to be removed
+2. gdpr_erasure - GDPR Right to Erasure request
+3. bounced_emails - Email delivery failures
+4. spam_complaint - Spam/abuse complaint
+5. data_breach - Precautionary suppression due to breach
+6. regulatory_compliance - Regulatory requirement
+7. manual_review - Manual admin decision`;
+    
+    const reasonChoice = prompt(reasonOptions);
+    if (!reasonChoice) return;
+    
+    const reasonMap = {
+      '1': 'User requested removal from all communications',
+      '2': 'GDPR Article 17 - Right to erasure request',
+      '3': 'Email delivery failures - protecting reputation',
+      '4': 'Spam/abuse complaint received',
+      '5': 'Precautionary suppression due to data breach',
+      '6': 'Regulatory compliance requirement',
+      '7': 'Manual admin decision',
+      'user_request': 'User requested removal from all communications',
+      'gdpr_erasure': 'GDPR Article 17 - Right to erasure request',
+      'bounced_emails': 'Email delivery failures - protecting reputation',
+      'spam_complaint': 'Spam/abuse complaint received',
+      'data_breach': 'Precautionary suppression due to data breach',
+      'regulatory_compliance': 'Regulatory compliance requirement',
+      'manual_review': 'Manual admin decision'
+    };
+    
+    const reason = reasonMap[reasonChoice as keyof typeof reasonMap] || reasonMap['7'];
+    
     addSuppressionMutation.mutate({ 
       email: suppressionEmail.trim(), 
-      reason: 'Manual suppression' 
+      reason: reason
     });
+    
+    toast({ 
+      title: 'Email Suppressed', 
+      description: `${suppressionEmail.trim()} added to suppression list` 
+    });
+    
     setSuppressionEmail('');
   };
 
@@ -744,8 +793,37 @@ export function GdprCompliance() {
                           size="sm" 
                           variant="destructive" 
                           onClick={() => {
-                            // TODO: Implement remove suppression
-                            toast({ title: 'Remove functionality coming soon' });
+                            const confirmRemoval = confirm(
+                              `Remove suppression for email hash ${suppression.emailHash.substring(0, 16)}...?\n\n` +
+                              `Reason: ${suppression.reason}\n` +
+                              `Added: ${formatDate(suppression.addedAt)}\n\n` +
+                              `Warning: This will allow emails to this address again.`
+                            );
+                            
+                            if (confirmRemoval) {
+                              // Create a delete mutation for suppressions
+                              const removeMutation = () => {
+                                return apiRequest('DELETE', `/api/gdpr/suppression/${suppression.id}`);
+                              };
+                              
+                              removeMutation()
+                                .then(() => {
+                                  toast({ 
+                                    title: 'Suppression Removed', 
+                                    description: `Email hash ${suppression.emailHash.substring(0, 16)}... removed from suppression list`,
+                                    variant: 'default'
+                                  });
+                                  // Invalidate cache to refresh the list
+                                  queryClient.invalidateQueries({ queryKey: ['/api/gdpr/suppression'] });
+                                })
+                                .catch(() => {
+                                  toast({ 
+                                    title: 'Removal Failed', 
+                                    description: 'Could not remove suppression. Please try again.',
+                                    variant: 'destructive'
+                                  });
+                                });
+                            }
                           }}
                           data-testid={`button-remove-suppression-${suppression.id}`}
                         >
