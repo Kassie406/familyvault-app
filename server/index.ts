@@ -593,7 +593,7 @@ app.get('/api/admin/flags', requireAuth('ADMIN'), async (req: AuthenticatedReque
         updated_at: new Date().toISOString()
       }
     ];
-    res.json({ flags });
+    res.json({ items: flags });
   } catch (error) {
     console.error('Get feature flags error:', error);
     res.status(500).json({ error: 'Failed to fetch feature flags' });
