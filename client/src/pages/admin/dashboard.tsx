@@ -1074,10 +1074,20 @@ export default function AdminDashboard() {
         };
         
         const handleSuspendUser = (user: any) => {
+          // Update user status to Suspended
+          setActiveUsers(prev => prev.map(u => 
+            u.id === user.id ? { ...u, status: "Suspended" } : u
+          ));
+          
           toast({ title: "User Suspended", description: `${user.name} has been suspended.` });
         };
         
         const handleReactivateUser = (user: any) => {
+          // Update user status to Active
+          setActiveUsers(prev => prev.map(u => 
+            u.id === user.id ? { ...u, status: "Active" } : u
+          ));
+          
           toast({ title: "User Reactivated", description: `${user.name} has been reactivated.` });
         };
         
