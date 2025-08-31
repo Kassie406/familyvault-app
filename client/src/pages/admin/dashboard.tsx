@@ -62,6 +62,10 @@ export default function AdminDashboard() {
   const [drawerLoading, setDrawerLoading] = useState(false);
   const [drawerError, setDrawerError] = useState('');
   const [previewArticle, setPreviewArticle] = useState<any>(null);
+  
+  // Users management state
+  const [selectedTenant, setSelectedTenant] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Bulk selection helpers
   const toggleArticleSelection = (articleId: string) => {
@@ -1040,6 +1044,39 @@ export default function AdminDashboard() {
           { id: 5, name: "Michael Rodriguez", email: "mrodriguez@company.com", tenant: "STAFF", role: "agent", status: "Active", mfaEnabled: true, lastLogin: "2024-01-28" },
           { id: 6, name: "Lisa Wang", email: "lisa.client@outlook.com", tenant: "PUBLIC", role: "client", status: "Suspended", mfaEnabled: false, lastLogin: "2024-01-20" },
         ];
+        
+        // Filter users based on tenant and search
+        const filteredUsers = sampleUsers.filter(user => {
+          const matchesTenant = selectedTenant === "all" || user.tenant === selectedTenant;
+          const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                               user.email.toLowerCase().includes(searchQuery.toLowerCase());
+          return matchesTenant && matchesSearch;
+        });
+        
+        // Handle user actions
+        const handleInviteUser = () => {
+          toast({ title: "Invite User", description: "Opening invite user form..." });
+        };
+        
+        const handleEditUser = (user: any) => {
+          toast({ title: "Edit User", description: `Editing ${user.name}...` });
+        };
+        
+        const handleSuspendUser = (user: any) => {
+          toast({ title: "User Suspended", description: `${user.name} has been suspended.` });
+        };
+        
+        const handleReactivateUser = (user: any) => {
+          toast({ title: "User Reactivated", description: `${user.name} has been reactivated.` });
+        };
+        
+        const handleResendInvite = (user: any) => {
+          toast({ title: "Invitation Resent", description: `Invitation resent to ${user.email}` });
+        };
+        
+        const handleRemoveUser = (user: any) => {
+          toast({ title: "User Removed", description: `${user.name} has been removed.`, variant: "destructive" });
+        };
 
         const getTenantBadge = (tenant: string) => {
           const styles = {
@@ -1123,7 +1160,7 @@ export default function AdminDashboard() {
                 
                 <div className="flex flex-col sm:flex-row gap-3">
                   {/* Tenant Filter */}
-                  <Select defaultValue="all">
+                  <Select value={selectedTenant} onValueChange={setSelectedTenant}>
                     <SelectTrigger 
                       className="w-full sm:w-40 tenant-filter bg-[#1E232A] text-[#E8EEF7] border-[#2B313A] hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors duration-200 rounded-full shadow-sm !bg-[#1E232A] hover:!bg-[#1F6FEB] focus:!bg-[#1F6FEB]" 
                       data-testid="select-tenant-filter"
@@ -1139,16 +1176,16 @@ export default function AdminDashboard() {
                     </SelectTrigger>
                     <SelectContent className="bg-[#0F141A] border-[#2B313A] shadow-lg" role="menu">
                       <SelectItem value="all" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white" role="menuitemradio" aria-checked="true">
-                        All Tenants <span className="text-gray-400 ml-1">(6)</span>
+                        All Tenants <span className="text-gray-400 ml-1">({sampleUsers.length})</span>
                       </SelectItem>
                       <SelectItem value="PUBLIC" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white" role="menuitemradio">
-                        Public Clients <span className="text-gray-400 ml-1">(2)</span>
+                        Public Clients <span className="text-gray-400 ml-1">({sampleUsers.filter(u => u.tenant === 'PUBLIC').length})</span>
                       </SelectItem>
                       <SelectItem value="FAMILY" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white" role="menuitemradio">
-                        Family Portal <span className="text-gray-400 ml-1">(2)</span>
+                        Family Portal <span className="text-gray-400 ml-1">({sampleUsers.filter(u => u.tenant === 'FAMILY').length})</span>
                       </SelectItem>
                       <SelectItem value="STAFF" className="text-[#D5DDE7] hover:bg-[#1E2A3A] hover:text-white focus:bg-[#1E2A3A] focus:text-white" role="menuitemradio">
-                        Staff Hub <span className="text-gray-400 ml-1">(2)</span>
+                        Staff Hub <span className="text-gray-400 ml-1">({sampleUsers.filter(u => u.tenant === 'STAFF').length})</span>
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -1159,6 +1196,8 @@ export default function AdminDashboard() {
                     <input 
                       type="text" 
                       placeholder="Search users..." 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#007BFF] focus:border-transparent outline-none w-full sm:w-64"
                       data-testid="input-user-search"
                     />
@@ -1166,6 +1205,7 @@ export default function AdminDashboard() {
                   
                   {/* Invite User Button */}
                   <Button 
+                    onClick={handleInviteUser}
                     className="bg-[#007BFF] hover:bg-[#0056d6] text-white px-4 py-2 rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-black/20 whitespace-nowrap"
                     data-testid="button-invite-user"
                   >
@@ -1194,7 +1234,7 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
-                    {sampleUsers.map((user: any) => (
+                    {filteredUsers.map((user: any) => (
                       <tr key={user.id} data-tenant={user.tenant} data-row className="hover:bg-[#F6F8FB] focus-within:outline focus-within:outline-2 focus-within:outline-[#1F6FEB33] focus-within:rounded-lg transition-all duration-150 group">
                         {/* Name with Avatar */}
                         <td className="px-4 py-3 whitespace-nowrap">
@@ -1278,6 +1318,7 @@ export default function AdminDashboard() {
                         <td className="col-actions px-4 py-3 whitespace-nowrap text-right" style={{width: '172px'}}>
                           <div className="row-actions flex items-center justify-end gap-1" role="group" aria-label="Row actions">
                             <button 
+                              onClick={() => handleEditUser(user)}
                               className="appearance-none bg-transparent border-0 p-1.5 ml-1.5 rounded-lg text-[#667085] opacity-90 cursor-pointer transition-all duration-150 hover:bg-[#EEF3FF] hover:text-[#1F6FEB] hover:opacity-100 focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:outline-offset-2 focus-visible:shadow-[0_0_0_2px_rgba(31,111,235,0.15)]"
                               data-testid={`button-edit-${user.id}`}
                               aria-label={`Edit user ${user.name}`}
@@ -1291,6 +1332,7 @@ export default function AdminDashboard() {
                             
                             {user.status === 'Suspended' ? (
                               <button 
+                                onClick={() => handleReactivateUser(user)}
                                 className="appearance-none bg-transparent border-0 p-1.5 ml-1.5 rounded-lg text-[#667085] opacity-90 cursor-pointer transition-all duration-150 hover:bg-[#EEF3FF] hover:text-[#28A745] hover:opacity-100 focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:outline-offset-2 focus-visible:shadow-[0_0_0_2px_rgba(31,111,235,0.15)]"
                                 data-testid={`button-reactivate-${user.id}`}
                                 aria-label={`Reactivate user ${user.name}`}
@@ -1303,6 +1345,7 @@ export default function AdminDashboard() {
                               </button>
                             ) : user.status === 'Pending' ? (
                               <button 
+                                onClick={() => handleResendInvite(user)}
                                 className="appearance-none bg-transparent border-0 p-1.5 ml-1.5 rounded-lg text-[#667085] opacity-90 cursor-pointer transition-all duration-150 hover:bg-[#EEF3FF] hover:text-[#FFC107] hover:opacity-100 focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:outline-offset-2 focus-visible:shadow-[0_0_0_2px_rgba(31,111,235,0.15)]"
                                 data-testid={`button-resend-${user.id}`}
                                 aria-label={`Resend invitation to ${user.name}`}
@@ -1315,6 +1358,7 @@ export default function AdminDashboard() {
                               </button>
                             ) : (
                               <button 
+                                onClick={() => handleSuspendUser(user)}
                                 className="appearance-none bg-transparent border-0 p-1.5 ml-1.5 rounded-lg text-[#667085] opacity-90 cursor-pointer transition-all duration-150 hover:bg-[#EEF3FF] hover:text-[#DC3545] hover:opacity-100 focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:outline-offset-2 focus-visible:shadow-[0_0_0_2px_rgba(31,111,235,0.15)]"
                                 data-testid={`button-suspend-${user.id}`}
                                 aria-label={`Suspend user ${user.name}`}
@@ -1328,6 +1372,7 @@ export default function AdminDashboard() {
                             )}
                             
                             <button 
+                              onClick={() => handleRemoveUser(user)}
                               className="appearance-none bg-transparent border-0 p-1.5 ml-1.5 rounded-lg text-[#667085] opacity-90 cursor-pointer transition-all duration-150 hover:bg-[#EEF3FF] hover:text-[#DC3545] hover:opacity-100 focus-visible:outline-2 focus-visible:outline-[#1F6FEB] focus-visible:outline-offset-2 focus-visible:shadow-[0_0_0_2px_rgba(31,111,235,0.15)]"
                               data-testid={`button-remove-${user.id}`}
                               aria-label={`Remove user ${user.name}`}
