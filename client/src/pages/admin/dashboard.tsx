@@ -981,7 +981,7 @@ export default function AdminDashboard() {
                     className="w-full justify-start hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
                     onClick={() => {
                       trackAdminClick('dashboard_quick_action_create_coupon');
-                      navigate(ROUTES.COUPONS_NEW);
+                      setActiveSection('coupons');
                     }}
                     data-testid="button-create-new-coupon"
                   >
@@ -993,7 +993,7 @@ export default function AdminDashboard() {
                     className="w-full justify-start hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
                     onClick={() => {
                       trackAdminClick('dashboard_quick_action_view_users');
-                      navigate(ROUTES.USERS);
+                      setActiveSection('users');
                     }}
                     data-testid="button-view-all-users"
                   >
@@ -1005,7 +1005,7 @@ export default function AdminDashboard() {
                     className="w-full justify-start hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
                     onClick={() => {
                       trackAdminClick('dashboard_quick_action_security_audit');
-                      navigate(ROUTES.SECURITY_AUDIT);
+                      setActiveSection('security-audit');
                     }}
                     data-testid="button-security-audit"
                   >
@@ -1017,7 +1017,7 @@ export default function AdminDashboard() {
                     className="w-full justify-start hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
                     onClick={() => {
                       trackAdminClick('dashboard_quick_action_gdpr_compliance');
-                      navigate(ROUTES.COMPLIANCE);
+                      setActiveSection('compliance');
                     }}
                     data-testid="button-gdpr-compliance"
                   >
