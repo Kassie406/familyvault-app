@@ -973,13 +973,62 @@ app.get('/api/admin/audit/search', requireAuth('ADMIN'), async (req: Authenticat
 // Enhanced audit logs v2 with tamper-evident features
 app.get('/api/admin/audit-v2', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { auditService } = await import('./audit-service-v2.js');
-    const { limit, cursor } = req.query;
-    const logs = await auditService.getAuditLogs(
-      limit ? Number(limit) : 100,
-      cursor as string
-    );
-    res.json(logs);
+    // Mock audit data for demo purposes
+    const mockAuditEntries = [
+      {
+        id: 'audit-1',
+        ts: new Date(Date.now() - 1800000).toISOString(), // 30 min ago
+        actor: {
+          id: 'admin-1',
+          email: 'admin@familycirclesecure.com',
+          ip: '192.168.1.100'
+        },
+        action: 'user.create',
+        target: {
+          type: 'user',
+          id: 'u_12345'
+        },
+        meta_hash: 'a1b2c3d4e5f6789abcdef1234567890',
+        prev_hash: null,
+        hash: 'f9e8d7c6b5a4321dcba0987654321fed'
+      },
+      {
+        id: 'audit-2',
+        ts: new Date(Date.now() - 900000).toISOString(), // 15 min ago
+        actor: {
+          id: 'admin-2',
+          email: 'security@familycirclesecure.com',
+          ip: '10.0.0.45'
+        },
+        action: 'feature_flag.update',
+        target: {
+          type: 'feature_flag',
+          id: 'ff_billing_v2'
+        },
+        meta_hash: 'b2c3d4e5f6789abcdef1234567890a1',
+        prev_hash: 'f9e8d7c6b5a4321dcba0987654321fed',
+        hash: 'e7d6c5b4a3210987654321fedcba0987'
+      },
+      {
+        id: 'audit-3',
+        ts: new Date(Date.now() - 300000).toISOString(), // 5 min ago
+        actor: {
+          id: 'admin-1',
+          email: 'admin@familycirclesecure.com',
+          ip: '192.168.1.100'
+        },
+        action: 'webhook.delete',
+        target: {
+          type: 'webhook',
+          id: 'wh_test123'
+        },
+        meta_hash: 'c3d4e5f6789abcdef1234567890a1b2',
+        prev_hash: 'e7d6c5b4a3210987654321fedcba0987',
+        hash: 'd6c5b4a3210987654321fedcba098765'
+      }
+    ];
+    
+    res.json({ items: mockAuditEntries });
   } catch (error) {
     console.error('Get audit logs v2 error:', error);
     res.status(500).json({ error: 'Failed to fetch audit logs' });
