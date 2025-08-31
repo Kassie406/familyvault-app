@@ -49,9 +49,16 @@ export default function GlobalSearch({ isOpen, onOpenChange, onNavigate }: Globa
       if (!query || query.length < 2) return [];
       
       try {
+        console.log('Making search request for:', query);
         const response = await fetch(`/api/admin/search?q=${encodeURIComponent(query)}`);
-        if (!response.ok) throw new Error('Search failed');
+        console.log('Search response status:', response.status);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Search failed:', response.status, errorText);
+          throw new Error(`Search failed: ${response.status} ${errorText}`);
+        }
         const data = await response.json();
+        console.log('Search results:', data);
         return data.results as SearchResult[];
       } catch (error) {
         console.error('Global search error:', error);
