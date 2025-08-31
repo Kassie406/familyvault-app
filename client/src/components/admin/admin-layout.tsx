@@ -132,17 +132,11 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
                   </div>
                 </div>
                 <nav className="admin-links">
-                  <button type="button" onClick={() => {
-                    console.log('Profile button clicked, navigating to /admin/profile');
-                    setLocation('/admin/profile');
-                  }} data-testid="menu-profile">
+                  <button type="button" onClick={() => setLocation('/admin/profile')} data-testid="menu-profile">
                     <User className="w-4 h-4" />
                     Profile
                   </button>
-                  <button type="button" onClick={() => {
-                    console.log('Settings button clicked, navigating to /admin/settings'); 
-                    setLocation('/admin/settings');
-                  }} data-testid="menu-settings">
+                  <button type="button" onClick={() => setLocation('/admin/settings')} data-testid="menu-settings">
                     <Settings className="w-4 h-4" />
                     Settings
                   </button>

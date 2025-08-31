@@ -29,15 +29,19 @@ export default function AdminProfile() {
         throw new Error('Failed to fetch profile');
       }
       return response.json();
-    },
-    onSuccess: (data) => {
-      setFormData({
-        name: data.name || '',
-        email: data.email || '',
-        username: data.username || ''
-      });
     }
   });
+
+  // Update form data when user data loads
+  React.useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        username: user.username || ''
+      });
+    }
+  }, [user]);
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
