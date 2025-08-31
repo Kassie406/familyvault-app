@@ -48,6 +48,7 @@ export default function ImpersonationManager({ className }: ImpersonationManager
   const [businessReason, setBusinessReason] = useState('');
   const [durationMinutes, setDurationMinutes] = useState(10);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [sessionsList, setSessionsList] = useState<RecentSession[]>([]);
 
   // Get current impersonation status
   const { data: statusData, isLoading: statusLoading } = useQuery({
@@ -64,6 +65,13 @@ export default function ImpersonationManager({ className }: ImpersonationManager
   const isActive = statusData?.active || false;
   const activeSession = statusData?.session as ActiveSession | undefined;
   const recentSessions = sessionsData?.sessions as RecentSession[] || [];
+
+  // Update local state when server data changes
+  useEffect(() => {
+    if (recentSessions.length > 0) {
+      setSessionsList(recentSessions);
+    }
+  }, [recentSessions]);
 
   // Start impersonation mutation
   const startMutation = useMutation({
@@ -155,6 +163,17 @@ export default function ImpersonationManager({ className }: ImpersonationManager
       case 'expired': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
+  };
+
+  const handleDeleteSession = (session: RecentSession) => {
+    // Immediate local state update for better UX
+    setSessionsList(prev => prev.filter(s => s.id !== session.id));
+    console.log('Impersonation session deleted:', session.targetId, session.id);
+    toast({
+      title: 'Session Deleted',
+      description: `Session for "${session.targetId}" has been removed from audit history.`,
+      variant: 'destructive',
+    });
   };
 
   return (
@@ -368,14 +387,14 @@ export default function ImpersonationManager({ className }: ImpersonationManager
               <div className="space-y-3">
                 <h4 className="text-sm font-medium text-gray-700">Recent Impersonation Sessions</h4>
                 
-                {recentSessions.length === 0 ? (
+                {sessionsList.length === 0 ? (
                   <div className="text-center py-6 text-gray-500">
                     <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>No recent impersonation sessions</p>
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {recentSessions.slice(0, 10).map((session) => (
+                    {sessionsList.slice(0, 10).map((session) => (
                       <div
                         key={session.id}
                         className="flex items-center justify-between p-3 border rounded-lg bg-white"
@@ -393,11 +412,21 @@ export default function ImpersonationManager({ className }: ImpersonationManager
                             {session.businessReason}
                           </div>
                         </div>
-                        <div className="text-right text-xs text-gray-500">
-                          <div>{new Date(session.createdAt).toLocaleString()}</div>
-                          {session.endedAt && (
-                            <div>Ended: {session.endReason || 'manual'}</div>
-                          )}
+                        <div className="flex items-center gap-2">
+                          <div className="text-right text-xs text-gray-500">
+                            <div>{new Date(session.createdAt).toLocaleString()}</div>
+                            {session.endedAt && (
+                              <div>Ended: {session.endReason || 'manual'}</div>
+                            )}
+                          </div>
+                          <button
+                            title="Delete Session"
+                            onClick={() => handleDeleteSession(session)}
+                            className="text-red-600 hover:text-red-800 text-sm ml-2"
+                            data-testid={`button-delete-session-${session.id}`}
+                          >
+                            🗑️
+                          </button>
                         </div>
                       </div>
                     ))}
