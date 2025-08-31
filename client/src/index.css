@@ -2668,8 +2668,6 @@ legend {
 
 /* Special number badges / stats */
 [class*="badge"], 
-[class*="score"], 
-[class*="score-num"],
 [class*="status"], 
 [class*="count"] {
   background-color: #2563eb !important;  /* blue highlight */
@@ -2677,6 +2675,73 @@ legend {
   font-weight: 600;
   border-radius: 9999px;
   padding: 0.2rem 0.6rem;
+}
+
+/* Security Posture Score Badge - Professional Circular Progress */
+.score-ring,
+[class*="score-ring"] {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-num,
+[class*="score-num"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: conic-gradient(#2563eb 0% calc(var(--score, 75) * 1%), #1e293b calc(var(--score, 75) * 1%) 100%);
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 1.2rem !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  position: relative;
+  z-index: 2;
+}
+
+/* Add a soft glow ring */
+.score-num::after,
+[class*="score-num"]::after {
+  content: "";
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 3px solid rgba(37, 99, 235, 0.4);
+  top: -5px;
+  left: -5px;
+  z-index: -1;
+}
+
+/* Alternative class for direct styling */
+.security-score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: conic-gradient(#2563eb 0% calc(var(--score, 75) * 1%), #1e293b calc(var(--score, 75) * 1%) 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.2rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  position: relative;
+}
+
+.security-score::after {
+  content: "";
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 3px solid rgba(37, 99, 235, 0.4);
+  top: -5px;
+  left: -5px;
 }
 
 /* Button styling in dark cards */

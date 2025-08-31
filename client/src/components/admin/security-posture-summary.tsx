@@ -107,7 +107,12 @@ export default function SecurityPostureSummary({ className }: SecurityPostureSum
                 <circle cx="22" cy="22" r="19" className="ring-bg"/>
                 <circle cx="22" cy="22" r="19" className="ring-val" strokeDasharray="119.38" strokeDashoffset="119.38"/>
               </svg>
-              <div className="score-num">—</div>
+              <div 
+                className="score-num"
+                style={{ '--score': 0 } as React.CSSProperties}
+              >
+                —
+              </div>
             </div>
             <div>
               <div className="title">Security posture</div>
@@ -137,7 +142,11 @@ export default function SecurityPostureSummary({ className }: SecurityPostureSum
                 strokeDashoffset={ringOffset}
               />
             </svg>
-            <div className="score-num" id="sp-score">
+            <div 
+              className="score-num" 
+              id="sp-score"
+              style={{ '--score': posture?.score ?? 75 } as React.CSSProperties}
+            >
               {posture?.score ?? '—'}
             </div>
           </div>
