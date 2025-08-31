@@ -85,7 +85,7 @@ export default function TamperVerification({ className }: TamperVerificationProp
       <div className="card" id="card-chain">
         <div className="card-header">
           <div className="kpi">
-            <h3 style={{margin: 0}}>Tamper-Evident Audit Chain</h3>
+            <h3 className="section-title" style={{margin: 0}}>Tamper-Evident Audit Chain</h3>
             <span className={`pill pill-${getChainState()}`} id="chain-state">
               {getStatusText()}
             </span>
@@ -111,9 +111,9 @@ export default function TamperVerification({ className }: TamperVerificationProp
           </div>
         </div>
         
-        <div style={{padding: '12px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
-          <div>Total Entries: <strong id="chain-count">{getTotalEntries()}</strong></div>
-          <div>Last Verified: <strong id="chain-last">{getLastVerified()}</strong></div>
+        <div className="security-section" style={{padding: '12px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
+          <div className="meta">Total Entries: <strong id="chain-count">{getTotalEntries()}</strong></div>
+          <div className="status-label">Last Verified: <strong id="chain-last" className="highlight">{getLastVerified()}</strong></div>
         </div>
         
         {verification?.errors?.length > 0 && (
@@ -131,7 +131,7 @@ export default function TamperVerification({ className }: TamperVerificationProp
         
         {verification?.errors?.length > 0 && (
           <div style={{padding: '0 16px 16px 16px'}}>
-            <h4 style={{margin: '0 0 8px 0', color: '#B42318', fontSize: '14px', fontWeight: 600}}>
+            <h4 className="section-label" style={{margin: '0 0 8px 0', color: '#B42318', fontSize: '14px', fontWeight: 600}}>
               Integrity Violations:
             </h4>
             <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
