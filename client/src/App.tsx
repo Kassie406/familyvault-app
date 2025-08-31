@@ -204,14 +204,10 @@ function Router() {
         </AdminLayout>
       </Route>
       <Route path="/admin/profile">
-        <AdminLayout>
-          <AdminProfile />
-        </AdminLayout>
+        <AdminProfile />
       </Route>
       <Route path="/admin/settings">
-        <AdminLayout>
-          <AdminSettings />
-        </AdminLayout>
+        <AdminSettings />
       </Route>
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/security-settings" component={AdminSecuritySettings} />
