@@ -124,7 +124,6 @@ function AdminRouter() {
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin" component={AdminLogin} />
       <Route path="/" component={AdminLogin} />
-      <Route component={AdminLogin} />
     </Switch>
   );
 }
