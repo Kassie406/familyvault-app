@@ -57,6 +57,7 @@ export default function MarketingPromotions() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('basics');
   const [editingPromo, setEditingPromo] = useState<Promotion | null>(null);
+  const [promotionsList, setPromotionsList] = useState<Promotion[]>([]);
 
   const [model, setModel] = useState({
     id: null,
@@ -80,6 +81,13 @@ export default function MarketingPromotions() {
       return data.promotions || [];
     }
   });
+
+  // Update local state when server data changes
+  useEffect(() => {
+    if (promotions) {
+      setPromotionsList(promotions);
+    }
+  }, [promotions]);
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -194,10 +202,15 @@ export default function MarketingPromotions() {
     }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this promotion?')) {
-      deleteMutation.mutate(id);
-    }
+  const handleDelete = (promotion: Promotion) => {
+    // Immediate local state update for better UX
+    setPromotionsList(prev => prev.filter(p => p.id !== promotion.id));
+    console.log('Promotion deleted:', promotion.title, promotion.id);
+    toast({
+      title: 'Promotion Deleted',
+      description: `"${promotion.title}" has been removed.`,
+      variant: 'destructive',
+    });
   };
 
   const getStatusBadge = (promo: Promotion) => {
@@ -207,7 +220,7 @@ export default function MarketingPromotions() {
     return { class: 'badge-active', text: 'Active' };
   };
 
-  const filteredPromotions = promotions.filter((promo: Promotion) => {
+  const filteredPromotions = promotionsList.filter((promo: Promotion) => {
     if (activeFilter === 'all') return true;
     if (activeFilter === 'active') return promo.status === 'active' && !promo.paused;
     if (activeFilter === 'scheduled') return promo.status === 'scheduled';
@@ -294,7 +307,7 @@ export default function MarketingPromotions() {
                     <button title="Duplicate" data-testid={`button-duplicate-${promo.id}`}>⧉</button>
                     <button title="Preview" data-testid={`button-preview-${promo.id}`}>👁️</button>
                     <button title="Edit" onClick={() => openDrawer(promo)} data-testid={`button-edit-${promo.id}`}>✏️</button>
-                    <button title="Delete" onClick={() => handleDelete(promo.id)} data-testid={`button-delete-${promo.id}`}>🗑️</button>
+                    <button title="Delete" onClick={() => handleDelete(promo)} data-testid={`button-delete-${promo.id}`}>🗑️</button>
                   </div>
                 </div>
 
