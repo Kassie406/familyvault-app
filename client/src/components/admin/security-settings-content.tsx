@@ -12,7 +12,7 @@ export default function SecuritySettingsContent() {
           <CardTitle className="flex items-center gap-3">
             <Key className="h-6 w-6 text-yellow-600" />
             Passkeys
-            <span className="text-sm font-normal text-gray-500">
+            <span className="section-subtitle text-sm font-normal">
               Use device passkeys for stronger, phishing-resistant sign-in.
             </span>
           </CardTitle>
