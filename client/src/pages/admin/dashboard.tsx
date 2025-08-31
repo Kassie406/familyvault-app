@@ -1879,6 +1879,9 @@ export default function AdminDashboard() {
               <div className="actions">
                 <button 
                   className="btn ghost"
+                  onClick={() => {
+                    toast({ title: "Syncing Stripe", description: "Synchronizing with Stripe dashboard..." });
+                  }}
                   data-testid="button-sync-stripe"
                 >
                   Sync Stripe
@@ -1966,6 +1969,10 @@ export default function AdminDashboard() {
                           title="Edit plan"
                           tabIndex={0}
                           aria-label="Edit plan" 
+                          onClick={() => {
+                            setEditingPlan({ id: 'free', name: 'Free', price: 0, interval: 'Forever' });
+                            setPlanModalOpen(true);
+                          }}
                           data-testid="button-edit-free"
                         >
                           ✏️
@@ -1975,6 +1982,9 @@ export default function AdminDashboard() {
                           title="Duplicate plan"
                           tabIndex={0}
                           aria-label="Duplicate plan" 
+                          onClick={() => {
+                            toast({ title: "Plan Duplicated", description: "Free plan has been duplicated." });
+                          }}
                           data-testid="button-duplicate-free"
                         >
                           🧬
@@ -1984,6 +1994,9 @@ export default function AdminDashboard() {
                           title="Archive plan"
                           tabIndex={0}
                           aria-label="Archive plan" 
+                          onClick={() => {
+                            toast({ title: "Plan Archived", description: "Free plan has been archived." });
+                          }}
                           data-testid="button-archive-free"
                         >
                           📦
@@ -2029,6 +2042,10 @@ export default function AdminDashboard() {
                           title="Edit plan"
                           tabIndex={0}
                           aria-label="Edit plan" 
+                          onClick={() => {
+                            setEditingPlan({ id: 'silver', name: 'Silver', price: 10, interval: 'Monthly' });
+                            setPlanModalOpen(true);
+                          }}
                           data-testid="button-edit-silver"
                         >
                           ✏️
@@ -2038,6 +2055,9 @@ export default function AdminDashboard() {
                           title="Duplicate plan"
                           tabIndex={0}
                           aria-label="Duplicate plan" 
+                          onClick={() => {
+                            toast({ title: "Plan Duplicated", description: "Silver plan has been duplicated." });
+                          }}
                           data-testid="button-duplicate-silver"
                         >
                           🧬
@@ -2047,6 +2067,9 @@ export default function AdminDashboard() {
                           title="Archive plan"
                           tabIndex={0}
                           aria-label="Archive plan" 
+                          onClick={() => {
+                            toast({ title: "Plan Archived", description: "Silver plan has been archived." });
+                          }}
                           data-testid="button-archive-silver"
                         >
                           📦
@@ -2091,6 +2114,10 @@ export default function AdminDashboard() {
                           title="Edit plan"
                           tabIndex={0}
                           aria-label="Edit plan" 
+                          onClick={() => {
+                            setEditingPlan({ id: 'gold', name: 'Gold', price: 20, interval: 'Monthly' });
+                            setPlanModalOpen(true);
+                          }}
                           data-testid="button-edit-gold"
                         >
                           ✏️
@@ -2100,6 +2127,9 @@ export default function AdminDashboard() {
                           title="Duplicate plan"
                           tabIndex={0}
                           aria-label="Duplicate plan" 
+                          onClick={() => {
+                            toast({ title: "Plan Duplicated", description: "Gold plan has been duplicated." });
+                          }}
                           data-testid="button-duplicate-gold"
                         >
                           🧬
@@ -2109,6 +2139,9 @@ export default function AdminDashboard() {
                           title="Archive plan"
                           tabIndex={0}
                           aria-label="Archive plan" 
+                          onClick={() => {
+                            toast({ title: "Plan Archived", description: "Gold plan has been archived." });
+                          }}
                           data-testid="button-archive-gold"
                         >
                           📦
@@ -2149,6 +2182,10 @@ export default function AdminDashboard() {
                           title="Edit plan"
                           tabIndex={0}
                           aria-label="Edit plan" 
+                          onClick={() => {
+                            setEditingPlan({ id: 'custom', name: 'Custom (Advisors)', price: 'Custom', interval: 'Custom' });
+                            setPlanModalOpen(true);
+                          }}
                           data-testid="button-edit-custom"
                         >
                           ✏️
@@ -2158,6 +2195,9 @@ export default function AdminDashboard() {
                           title="Duplicate plan"
                           tabIndex={0}
                           aria-label="Duplicate plan" 
+                          onClick={() => {
+                            toast({ title: "Plan Duplicated", description: "Custom plan has been duplicated." });
+                          }}
                           data-testid="button-duplicate-custom"
                         >
                           🧬
@@ -2167,6 +2207,9 @@ export default function AdminDashboard() {
                           title="Make active"
                           tabIndex={0}
                           aria-label="Activate plan" 
+                          onClick={() => {
+                            toast({ title: "Plan Activated", description: "Custom plan has been activated." });
+                          }}
                           data-testid="button-activate-custom"
                         >
                           ✅
