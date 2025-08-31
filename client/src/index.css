@@ -2354,15 +2354,20 @@ legend {
   font-size: 12px;
 }
 
-/* GDPR Compliance overview readability fixes */
-/* Stop dimming entire columns (left: Legal Status, right: Automation Status) */
+/* ===== GDPR overview readability hotfix ===== */
+
+/* 1) Never dim whole columns/sections */
+.gdpr-overview .gdpr-section,
+.gdpr-card .gdpr-section,
 #gdpr-root .gdpr-section,
 #gdpr-root .card {
   opacity: 1 !important;
   filter: none !important;
 }
 
-/* Strong, readable titles (e.g., "Legal Status", "Automation Status") */
+/* 2) Section titles (e.g., "Legal Status", "Automation Status") */
+.gdpr-overview .section-title,
+.gdpr-card .section-title,
 #gdpr-root .section-title,
 #gdpr-root h4 {
   color: #0f172a !important;
@@ -2370,34 +2375,42 @@ legend {
   letter-spacing: 0.01em;
 }
 
-/* Row labels (e.g., "Data Protection Officer", "Privacy Policy", "Retention Policies") */
+/* 3) Row labels on the left (e.g., "Data Protection Officer", "Privacy Policy" …) */
+.gdpr-overview .item-label,
+.gdpr-card .item-label,
 #gdpr-root .item-label,
+.gdpr-overview .row .label,
+#gdpr-root .row .label,
 #gdpr-root span {
   color: #334155 !important;
 }
 
-/* Dark mode guards */
+/* 4) Dark theme guards if you support dark mode */
+.theme-dark .gdpr-overview .section-title,
 .theme-dark #gdpr-root .section-title,
 .theme-dark #gdpr-root h4 { 
   color: #f3f4f6 !important; 
 }
+.theme-dark .gdpr-overview .item-label,
 .theme-dark #gdpr-root .item-label,
 .theme-dark #gdpr-root span { 
   color: #cbd5e1 !important; 
 }
 
-/* If you want a "muted" look, only dim badges/icons, NOT the text */
-#gdpr-root .gdpr-section.is-muted .badge,
+/* 5) If you need a muted/disabled look, dim ONLY badges/icons, not text */
+.gdpr-overview .gdpr-section.is-muted .badge,
 #gdpr-root .gdpr-section[aria-disabled="true"] .badge {
   opacity: 0.6;
 }
-#gdpr-root .gdpr-section.is-muted .item-label,
+.gdpr-overview .gdpr-section.is-muted .item-label,
 #gdpr-root .gdpr-section[aria-disabled="true"] .item-label {
   opacity: 1 !important;
 }
 
-/* Safety: undo any accidental transparent text from skeleton/disabled styles */
+/* 6) Safety: undo any accidental transparent text */
+.gdpr-overview .item-label,
 #gdpr-root .item-label,
+.gdpr-overview .section-title,
 #gdpr-root .section-title,
 #gdpr-root h4,
 #gdpr-root span {
