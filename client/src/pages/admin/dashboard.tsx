@@ -1489,7 +1489,7 @@ export default function AdminDashboard() {
               
               {/* Mobile Card Layout */}
               <div className="md:hidden">
-                {sampleUsers.map((user: any) => (
+                {filteredUsers.map((user: any) => (
                   <div key={user.id} className="p-4 border-b border-gray-100 hover:bg-[#f6f8fa] transition-colors">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center">
@@ -1577,19 +1577,19 @@ export default function AdminDashboard() {
               {/* Table Footer */}
               <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 text-sm text-gray-500 rounded-b-2xl">
                 <div className="flex items-center justify-between">
-                  <span>Showing {sampleUsers.length} users</span>
+                  <span>Showing {filteredUsers.length} {showArchived ? 'archived' : 'active'} users</span>
                   <div className="flex items-center gap-2 text-xs">
                     <span className="flex items-center gap-1">
                       <div className="w-3 h-3 rounded-full bg-[#0D6EFD1a] border border-[#0D6EFD]" />
-                      Public ({sampleUsers.filter(u => u.tenant === 'PUBLIC').length})
+                      Public ({(showArchived ? archivedUsers : activeUsers).filter(u => u.tenant === 'PUBLIC').length})
                     </span>
                     <span className="flex items-center gap-1">
                       <div className="w-3 h-3 rounded-full bg-[#6F42C11a] border border-[#6F42C1]" />
-                      Family ({sampleUsers.filter(u => u.tenant === 'FAMILY').length})
+                      Family ({(showArchived ? archivedUsers : activeUsers).filter(u => u.tenant === 'FAMILY').length})
                     </span>
                     <span className="flex items-center gap-1">
                       <div className="w-3 h-3 rounded-full bg-[#24A1481a] border border-[#1B7F3B]" />
-                      Staff ({sampleUsers.filter(u => u.tenant === 'STAFF').length})
+                      Staff ({(showArchived ? archivedUsers : activeUsers).filter(u => u.tenant === 'STAFF').length})
                     </span>
                   </div>
                 </div>
