@@ -1,0 +1,158 @@
+since clicking Profile/Settings still leaves you on the Dashboard, one (or more) of these is happening:
+
+the click never reaches a real router navigation (blocked/neutralized by an overlay, preventDefault, or wrong element)
+
+the router does not have a matching route for the URL you’re sending
+
+a guard/catch-all redirect is forcing you back to /dashboard after navigation
+
+Below is a short, do-this-now checklist that will surface and fix the problem quickly. You only need a couple of edits.
+
+1) Make sure the routes really exist (and are reachable)
+
+Use one of these shapes. I recommend nested /admin/*.
+
+App.tsx (React Router, nested under /admin)
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import AdminLayout from "./components/admin/AdminLayout";   // renders <Outlet/>
+import Dashboard    from "./pages/admin/Dashboard";
+import Profile      from "./pages/admin/Profile";
+import Settings     from "./pages/admin/Settings";
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Dashboard />} />           {/* /admin */}
+          <Route path="profile" element={<Profile />} />    {/* /admin/profile */}
+          <Route path="settings" element={<Settings />} />  {/* /admin/settings */}
+          <Route path="*" element={<Navigate to="." replace />} />
+        </Route>
+
+        {/* keep this LAST */}
+        <Route path="*" element={<Navigate to="/admin" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+
+AdminLayout must render <Outlet/>:
+
+// components/admin/AdminLayout.tsx
+import { Outlet } from "react-router-dom";
+export default function AdminLayout() {
+  return (
+    <div className="admin-shell">
+      {/* sidebar/header here */}
+      <main><Outlet /></main>
+    </div>
+  );
+}
+
+2) Make the menu fire a navigation that nothing can swallow
+
+Temporarily replace the two menu items with this (inside the admin sidebar/menu):
+
+// components/admin/UserMenu.tsx (temporary hard nav)
+export default function UserMenu() {
+  return (
+    <div className="user-menu">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          console.log("[CLICK] → /admin/profile");
+          window.location.assign("/admin/profile");
+        }}
+        className="block w-full text-left px-3 py-2"
+      >
+        👤 Profile
+      </button>
+
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          console.log("[CLICK] → /admin/settings");
+          window.location.assign("/admin/settings");
+        }}
+        className="block w-full text-left px-3 py-2"
+      >
+        ⚙️ Settings
+      </button>
+    </div>
+  );
+}
+
+
+If this does not change the URL to /admin/profile or /admin/settings, the server or a global redirect is forcing you to /dashboard. Fix step 4/5 below.
+
+If the URL does change but immediately bounces to /dashboard, a guard/redirect is pushing you back. Fix step 4.
+
+Once this proves nav works, switch to the proper router version:
+
+// proper router version (after things work)
+import { NavLink } from "react-router-dom";
+<NavLink to="/admin/profile"  className="item">👤 Profile</NavLink>
+<NavLink to="/admin/settings" className="item">⚙️ Settings</NavLink>
+
+3) Ensure no overlay or wrapper is eating clicks
+
+Add this CSS (temporary) to be safe:
+
+/* ensure the menu can receive clicks */
+.user-menu { pointer-events: auto; position: relative; z-index: 50; }
+
+/* if you use any fullscreen overlay/backdrop when the menu is open: */
+.modal-backdrop, .app-overlay {
+  pointer-events: none;  /* let clicks go through to links/buttons */
+}
+
+
+Also make sure the menu items are not inside a <form> or a <button> container that calls preventDefault().
+
+4) Check for guards/catch-alls that push to the dashboard
+
+Search your code for any of these that might include /admin/profile or /admin/settings:
+
+<Route path="*"> or a Navigate that is listed before the admin routes
+
+RequireAuth/PrivateRoute wrappers that redirect to /dashboard
+
+role checks that don’t include the correct admin role (e.g., you label the UI as ADMIN but the guard checks for "admin" or a missing scope)
+
+Quick role guard example (allow both cases):
+
+const allowed = user?.roles?.includes("ADMIN") || user?.roles?.includes("admin");
+if (!allowed) return <Navigate to="/dashboard" replace />;
+
+
+Make sure the catch-all route to /dashboard is last (as in the App.tsx above).
+
+5) If you host a custom server, enable SPA fallback
+
+For client-side routes to load directly (refresh or hard navigation):
+
+// server.js (Express example)
+app.use(express.static("dist"));
+app.get("*", (_, res) => res.sendFile(path.join(__dirname, "dist/index.html")));
+
+
+(If you’re using Replit’s static hosting, set the SPA fallback to index.html.)
+
+6) Quick debug logger (optional but helpful)
+
+Add this temporarily to see if something bounces you:
+
+if (typeof window !== "undefined") {
+  const log = () => console.debug("[NAV]", window.location.pathname);
+  log();
+  const push = history.pushState.bind(history);
+  history.pushState = (...args) => { push(...args); log(); };
+  window.addEventListener("popstate", log);
+}
+
+
+Click Profile. If you see [NAV] /admin/profile then immediately [NAV] /admin, a redirect/guard is active.

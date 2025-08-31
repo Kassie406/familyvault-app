@@ -48,7 +48,7 @@
 .name{ font-weight:800; color:#e5e7eb; }
 .role{ font-size:12px; color:#94a3b8 }
 
-.admin-links{ display:flex; flex-direction:column; gap:6px }
+.admin-links{ display:flex; flex-direction:column; gap:6px; pointer-events: auto; position: relative; z-index: 50; }
 .admin-links a,
 .admin-links button,
 .admin-links .logout{
@@ -70,6 +70,11 @@
 /* If any wrapper was clipping popovers/menus, neutralize it */
 #app, .page, .content-wrap, .main { overflow: visible !important; transform: none !important; contain: none !important; }
 html, body { height:auto; overflow:auto; }
+
+/* Ensure overlays don't block menu clicks */
+.modal-backdrop, .app-overlay {
+  pointer-events: none;
+}
 
 /* Force light color scheme throughout the admin interface */
 :root {

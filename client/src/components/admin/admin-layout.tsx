@@ -132,14 +132,32 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
                   </div>
                 </div>
                 <nav className="admin-links pointer-events-auto relative z-50">
-                  <a href="/admin/profile" data-testid="menu-profile">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log("[CLICK] → /admin/profile");
+                      window.location.assign("/admin/profile");
+                    }}
+                    className="block w-full text-left"
+                    data-testid="menu-profile"
+                  >
                     <User className="w-4 h-4" />
                     Profile
-                  </a>
-                  <a href="/admin/settings" data-testid="menu-settings">
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log("[CLICK] → /admin/settings");
+                      window.location.assign("/admin/settings");
+                    }}
+                    className="block w-full text-left"
+                    data-testid="menu-settings"
+                  >
                     <Settings className="w-4 h-4" />
                     Settings
-                  </a>
+                  </button>
                   <button type="button" className="logout" onClick={handleLogout} data-testid="menu-logout">
                     <LogOut className="w-4 h-4" />
                     Log out
