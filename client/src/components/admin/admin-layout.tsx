@@ -135,21 +135,20 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
                   <button type="button" onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Profile clicked, current location:', window.location.pathname);
-                    console.log('Attempting multiple navigation methods...');
+                    console.log('=== PROFILE BUTTON CLICKED ===');
+                    console.log('Current URL:', window.location.href);
+                    console.log('Current pathname:', window.location.pathname);
                     
-                    // Try multiple methods
-                    try {
-                      window.location.assign('/admin/profile');
-                    } catch (err) {
-                      console.log('assign failed:', err);
-                      try {
-                        window.location.replace('/admin/profile');
-                      } catch (err2) {
-                        console.log('replace failed:', err2);
-                        (window.location as any) = '/admin/profile';
-                      }
-                    }
+                    // Force immediate navigation with reload
+                    console.log('Forcing window.location.href...');
+                    window.location.href = '/admin/profile';
+                    
+                    // Backup: Force page refresh to that URL
+                    setTimeout(() => {
+                      console.log('Backup: window.location.reload...');
+                      window.location.href = '/admin/profile';
+                      window.location.reload();
+                    }, 100);
                   }} data-testid="menu-profile">
                     <User className="w-4 h-4" />
                     Profile
