@@ -1,0 +1,208 @@
+Replit says your search endpoint was throwing a 500 and you added logging, but results are still empty/broken. Here’s a focused, “make-it-work” patch you can drop in that fixes the usual causes in one go:
+
+What usually causes this 500
+
+Missing/invalid ES_NODE env → the Elasticsearch client throws.
+
+Empty/short query → your code still calls the backend and ES rejects it.
+
+Tenant filter excludes everything → zero results even though docs exist.
+
+No index or empty index → query runs but returns nothing.
+
+Auth cookie blocked on Replit → server returns 401 on some calls; UI reports “failed search”.
+
+Below is a robust route with:
+
+input validation
+
+graceful fallback if ES is not configured or errors
+
+clear logs (one line per request + error reason)
+
+optional tenant filter
+
+safe min length and limit
+
+1) Drop-in route (Node/Express / TypeScript)
+// routes/search.ts
+import type { Request, Response } from 'express';
+import { Client } from '@elastic/elasticsearch';
+
+const hasES = !!process.env.ES_NODE;
+const es = hasES ? new Client({ node: process.env.ES_NODE }) : null;
+
+const MIN_CHARS = 1;
+const HARD_LIMIT = 50;
+
+export async function globalSearch(req: Request, res: Response) {
+  try {
+    const q = (req.query.q ?? '').toString().trim();
+    const limit = Math.min(parseInt((req.query.limit as string) || '20', 10), HARD_LIMIT);
+    const tenant = (req as any).user?.tenant ?? null; // adapt to your auth
+
+    console.log(`[search] q="${q}" tenant="${tenant}" limit=${limit}`);
+
+    if (!q || q.length < MIN_CHARS) {
+      return res.json({ ok: true, data: [] });
+    }
+
+    // If Elastic not configured, use fallback now (simple LIKE/ILIKE)
+    if (!hasES || !es) {
+      console.warn('[search] ES_NODE not set; using SQL fallback');
+      const data = await sqlFallback(req.app.get('db'), q, limit, tenant);
+      return res.json({ ok: true, data });
+    }
+
+    // Elastic query body (matches the mapping I gave you earlier)
+    const body: any = {
+      size: limit,
+      query: {
+        bool: {
+          must: [{
+            multi_match: {
+              query: q,
+              type: 'best_fields',
+              fields: ['title^6','title.ac^6','tags^5','subtitle^3','body^1'],
+              fuzziness: 'AUTO',
+              operator: 'and'
+            }
+          }],
+          filter: tenantFilter(tenant)
+        }
+      },
+      sort: ['_score', { updated_at: { order: 'desc' } }],
+      highlight: { fields: { title: {}, subtitle: {}, body: {} }, pre_tags: ['<mark>'], post_tags: ['</mark>'] }
+    };
+
+    const r = await es.search({ index: 'search-catalog', body });
+    const hits = (r.hits?.hits ?? []).map((h: any) => ({
+      id: h._id,
+      score: h._score,
+      ...(h._source || {}),
+      highlight: h.highlight
+    }));
+
+    console.log(`[search] hits=${hits.length}`);
+    return res.json({ ok: true, data: hits });
+  } catch (err: any) {
+    // One-line diagnostics in Replit logs
+    console.error('[search] ERROR', err?.meta?.body ?? err?.message ?? err);
+    // Last-resort fallback so the UI still works
+    try {
+      const data = await sqlFallback(req.app.get('db'), (req.query.q as string) || '', 20, (req as any).user?.tenant ?? null);
+      return res.json({ ok: true, data, fallback: true });
+    } catch (fallbackErr) {
+      console.error('[search] fallback error', fallbackErr);
+      return res.status(500).json({ ok: false, error: 'Search failed' });
+    }
+  }
+}
+
+function tenantFilter(tenant: string | null) {
+  if (!tenant) {
+    // show global docs only
+    return [{ bool: { must_not: { exists: { field: 'tenant' } } } }];
+  }
+  return [{
+    bool: {
+      should: [
+        { term: { tenant } },
+        { bool: { must_not: { exists: { field: 'tenant' } } } } // global docs
+      ]
+    }
+  }];
+}
+
+// Simple SQL fallback (Postgres) — change to your query builder/ORM
+async function sqlFallback(db: any, q: string, limit: number, tenant: string | null) {
+  const like = `%${q}%`;
+  // Adjust table/column names to your schema
+  const rows = await db.any(`
+    SELECT 'user' AS entity, id::text AS entity_id, name AS title, email AS subtitle, '/users/'||id AS url, ARRAY['user'] AS tags
+    FROM users
+    WHERE (name ILIKE $1 OR email ILIKE $1)
+      AND ($3::text IS NULL OR tenant = $3)
+    UNION ALL
+    SELECT 'coupon', id::text, code, NULL, '/coupons/'||id, ARRAY['coupon','promo']
+    FROM coupons
+    WHERE code ILIKE $1
+    UNION ALL
+    SELECT 'plan', id::text, name, interval, '/subscription-plans/'||id, ARRAY['plan','pricing','subscription']
+    FROM plans
+    WHERE name ILIKE $1
+    UNION ALL
+    SELECT 'article', id::text, title, slug, '/content/'||id, ARRAY['content','article',menu_category]
+    FROM articles
+    WHERE (title ILIKE $1 OR slug ILIKE $1 OR coalesce(body->>'plain','') ILIKE $1)
+      AND ($3::text IS NULL OR tenant = $3)
+    LIMIT $2
+  `, [like, limit, tenant]);
+  console.log(`[search:fallback] rows=${rows.length}`);
+  return rows;
+}
+
+
+Wire it up:
+
+// server/index.ts
+import express from 'express';
+import { globalSearch } from './routes/search';
+
+const app = express();
+// app.set('db', pgInstance); // make sure db is mounted for fallback
+
+app.get('/api/search', globalSearch);
+app.get('/api/search/suggest', globalSearch); // optional reuse
+
+export default app;
+
+2) Quick health checks (copy/paste)
+
+Do you hit the route?
+Open DevTools → Network while typing “users”. You should see /api/search?q=users.
+
+Is ES reachable?
+
+curl -s $ES_NODE | jq .version.number
+
+
+Does the index exist and have docs?
+
+curl -s $ES_NODE/search-catalog/_count | jq
+curl -s $ES_NODE/search-catalog/_search -H 'content-type: application/json' \
+  -d '{ "size": 3, "query": { "match_all": {} } }' | jq '.hits.hits[]._source'
+
+
+If count is 0, ingest a few docs (from earlier instructions) and test again.
+
+Tenant filter not excluding all?
+Temporarily remove the tenant filter in the route and try again. If hits appear, your docs’ tenant values don’t match the logged-in user’s tenant—either set tenant on docs or loosen the filter (keep global docs available).
+
+3) Common Replit gotchas (and fixes)
+
+ENV var not set: Add ES_NODE to your Replit Secrets. If not set, the route automatically uses SQL fallback.
+
+Auth: If your search API is behind auth and the cookie isn’t sent, you’ll see 401/403; set credentials: "include" in the fetch used by your search box.
+
+CORS: If UI and API are on different origins, ensure CORS allows GET /api/search with credentials.
+
+4) Minimal frontend fetch (debounced)
+let t: any;
+const box = document.querySelector<HTMLInputElement>('#global-search');
+
+box?.addEventListener('input', () => {
+  clearTimeout(t);
+  const q = box.value.trim();
+  if (!q) return renderResults([]);
+  t = setTimeout(async () => {
+    const r = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=12`, { credentials: 'include' });
+    const { ok, data, error } = await r.json();
+    if (!ok) { console.warn('search error', error); return; }
+    renderResults(data);
+  }, 180);
+});
+
+If you still see “No results”
+
+Paste the logs that start with [search] from Replit’s console (they print the query, tenant, hit count, and any ES error body). With that one line I can tell you exactly which check fails (env, index, tenant, or mapping).

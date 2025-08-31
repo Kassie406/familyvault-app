@@ -2435,14 +2435,32 @@ app.post('/api/admin/webhooks/:id/test', requireAuth('ADMIN'), async (req: Authe
 // Global search across all admin resources
 app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { q: query } = req.query;
-    if (!query || typeof query !== 'string' || query.length < 2) {
+    const q = (req.query.q ?? '').toString().trim();
+    const limit = Math.min(parseInt((req.query.limit as string) || '20', 10), 50);
+    const tenant = req.user?.tenant ?? null;
+
+    console.log(`[search] q="${q}" tenant="${tenant}" limit=${limit}`);
+
+    if (!q || q.length < 1) {
       return res.json({ results: [] });
     }
 
-    const results = [];
-    const searchQuery = query.toLowerCase();
+    // Use SQL fallback since we don't have Elasticsearch configured
+    const results = await sqlFallback(q, limit, tenant);
+    console.log(`[search] results=${results.length}`);
+    return res.json({ results: results.slice(0, 20) });
+  } catch (err: any) {
+    console.error('[search] ERROR', err?.message ?? err);
+    return res.status(500).json({ results: [], error: 'Search failed' });
+  }
+});
 
+// SQL fallback function for search
+async function sqlFallback(q: string, limit: number, tenant: string | null) {
+  const searchQuery = q.toLowerCase();
+  const results: any[] = [];
+
+  try {
     // Navigation shortcuts - direct section access
     const navigationShortcuts = [
       { terms: ['user', 'users', 'admin', 'management'], section: 'users', title: 'User Management', description: 'Manage user accounts and permissions' },
@@ -2558,7 +2576,7 @@ app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequ
 
     // Search Audit Logs (with error handling)
     try {
-      const auditLogs = await storage.searchAuditLogs(query, 5);
+      const auditLogs = await storage.searchAuditLogs(q, 5);
       auditLogs.forEach(log => {
         results.push({
           id: log.id,
@@ -2588,14 +2606,12 @@ app.get('/api/admin/search', requireAuth('ADMIN'), async (req: AuthenticatedRequ
       return new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime();
     });
 
-    console.log('Search results count:', results.length);
-    res.json({ results: results.slice(0, 20) });
+    return results;
   } catch (error) {
-    console.error('Global search error:', error);
-    console.error('Error stack:', error.stack);
-    res.status(500).json({ error: 'Search failed', details: error.message });
+    console.error('[search:fallback] error:', error);
+    return [];
   }
-});
+}
 
 // Incident management API routes
 app.get('/api/admin/incidents', requireAuth('ADMIN'), async (req: AuthenticatedRequest, res: Response) => {
