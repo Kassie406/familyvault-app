@@ -2355,30 +2355,54 @@ legend {
 }
 
 /* GDPR Compliance overview readability fixes */
-#gdpr-root .gdpr-section.is-muted,
-#gdpr-root .gdpr-section[aria-disabled="true"] {
-  opacity: 1;
-  filter: none;
+/* Stop dimming entire columns (left: Legal Status, right: Automation Status) */
+#gdpr-root .gdpr-section,
+#gdpr-root .card {
+  opacity: 1 !important;
+  filter: none !important;
 }
 
-#gdpr-root .section-title {
+/* Strong, readable titles (e.g., "Legal Status", "Automation Status") */
+#gdpr-root .section-title,
+#gdpr-root h4 {
+  color: #0f172a !important;
   font-weight: 600;
   letter-spacing: 0.01em;
-  color: #111827;
 }
 
-#gdpr-root .item-label {
-  color: #374151;
+/* Row labels (e.g., "Data Protection Officer", "Privacy Policy", "Retention Policies") */
+#gdpr-root .item-label,
+#gdpr-root span {
+  color: #334155 !important;
 }
 
+/* Dark mode guards */
+.theme-dark #gdpr-root .section-title,
+.theme-dark #gdpr-root h4 { 
+  color: #f3f4f6 !important; 
+}
+.theme-dark #gdpr-root .item-label,
+.theme-dark #gdpr-root span { 
+  color: #cbd5e1 !important; 
+}
+
+/* If you want a "muted" look, only dim badges/icons, NOT the text */
 #gdpr-root .gdpr-section.is-muted .badge,
 #gdpr-root .gdpr-section[aria-disabled="true"] .badge {
   opacity: 0.6;
 }
-
 #gdpr-root .gdpr-section.is-muted .item-label,
 #gdpr-root .gdpr-section[aria-disabled="true"] .item-label {
-  opacity: 1;
+  opacity: 1 !important;
+}
+
+/* Safety: undo any accidental transparent text from skeleton/disabled styles */
+#gdpr-root .item-label,
+#gdpr-root .section-title,
+#gdpr-root h4,
+#gdpr-root span {
+  -webkit-text-fill-color: initial !important;
+  mix-blend-mode: normal !important;
 }
 
 #gdpr-root .row:hover,
