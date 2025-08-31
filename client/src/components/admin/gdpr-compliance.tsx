@@ -238,42 +238,42 @@ export function GdprCompliance() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="card p-4">
-                <h4 className="font-medium mb-2 flex items-center gap-2">
+                <h4 className="section-title font-medium mb-2 flex items-center gap-2">
                   <Shield className="h-4 w-4" />
                   Legal Status
                 </h4>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Data Protection Officer</span>
+                  <div className="row flex justify-between">
+                    <span className="item-label">Data Protection Officer</span>
                     <span className="badge badge-ok" style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>Appointed</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Privacy Policy</span>
+                  <div className="row flex justify-between">
+                    <span className="item-label">Privacy Policy</span>
                     <span className="badge badge-ok" style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>Current</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Consent Records</span>
+                  <div className="row flex justify-between">
+                    <span className="item-label">Consent Records</span>
                     <span className="badge badge-ok" style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>Compliant</span>
                   </div>
                 </div>
               </div>
 
               <div className="card p-4">
-                <h4 className="font-medium mb-2 flex items-center gap-2">
+                <h4 className="section-title font-medium mb-2 flex items-center gap-2">
                   <Clock className="h-4 w-4" />
                   Automation Status
                 </h4>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Retention Policies</span>
+                  <div className="row flex justify-between">
+                    <span className="item-label">Retention Policies</span>
                     <span className="badge badge-ok" style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>Active</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Auto-cleanup</span>
+                  <div className="row flex justify-between">
+                    <span className="item-label">Auto-cleanup</span>
                     <span className="badge badge-ok" style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>Running</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Audit Trail</span>
+                  <div className="row flex justify-between">
+                    <span className="item-label">Audit Trail</span>
                     <span className="badge badge-ok" style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>Complete</span>
                   </div>
                 </div>
