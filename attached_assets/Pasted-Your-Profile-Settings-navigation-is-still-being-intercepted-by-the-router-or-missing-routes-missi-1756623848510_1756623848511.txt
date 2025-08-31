@@ -1,0 +1,147 @@
+Your Profile/Settings navigation is still being intercepted by the router (or missing routes / missing <Outlet>), which keeps you on /admin/dashboard.
+
+The 500 errors are from the /api/admin/audit endpoint and are unrelated to routing (they won’t stop the router from changing pages). We’ll fix routing first so you can reach Profile/Settings reliably.
+
+Below is a clean, bullet-proof routing setup you can drop in. It covers the most common failure points I see in your screenshots:
+
+Missing or mis-ordered routes (catch-all before real routes)
+
+AdminLayout not rendering <Outlet/>
+
+Links using /admin/... while routes are defined as just profile/settings (or vice-versa)
+
+A guard or wildcard redirect pushing you back to dashboard
+
+1) Replace your admin routing with this
+client/src/App.tsx
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import AdminLayout from "./components/admin/AdminLayout";
+
+// Pages
+import Dashboard from "./pages/admin/Dashboard";
+import Profile from "./pages/admin/Profile";
+import Settings from "./pages/admin/Settings";
+
+// Optional: error boundary so a bad import doesn't blank the screen
+function ErrorBoundary({ children }: { children: React.ReactNode }) {
+  try { return <>{children}</>; } catch (e) { 
+    console.error(e); 
+    return <div style={{padding:24}}>Something went wrong rendering this page.</div>;
+  }
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <ErrorBoundary>
+        <Routes>
+          {/* All admin pages live under /admin */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="settings" element={<Settings />} />
+            {/* keep wildcard LAST so it does not swallow real routes */}
+            <Route path="*" element={<Navigate to="dashboard" replace />} />
+          </Route>
+
+          {/* Fallback for anything else */}
+          <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+        </Routes>
+      </ErrorBoundary>
+    </BrowserRouter>
+  );
+}
+
+client/src/components/admin/AdminLayout.tsx
+import { Outlet } from "react-router-dom";
+
+// This layout must render <Outlet/> for nested routes to show
+export default function AdminLayout() {
+  return (
+    <div className="admin-shell">
+      {/* your sidebar/header here */}
+      <div className="admin-content">
+        <Outlet />
+      </div>
+    </div>
+  );
+}
+
+2) Make sure the menu uses matching links
+
+If your routes are /admin/profile and /admin/settings, the links must match those exact paths:
+
+client/src/components/admin/UserMenu.tsx (or where those two links live)
+import { NavLink } from "react-router-dom";
+
+export default function UserMenu() {
+  return (
+    <div className="user-menu">
+      <NavLink to="/admin/profile"  className="menu-item">👤 Profile</NavLink>
+      <NavLink to="/admin/settings" className="menu-item">⚙️ Settings</NavLink>
+    </div>
+  );
+}
+
+
+If you previously changed links to just /profile or /settings, change them back to /admin/profile and /admin/settings so they match the router above.
+
+3) Ensure the target pages actually exist
+
+Just to rule out bad imports, start with simple placeholders:
+
+client/src/pages/admin/Profile.tsx
+export default function Profile() {
+  return <div style={{padding:24}}><h2>Profile</h2><p>Profile page renders.</p></div>;
+}
+
+client/src/pages/admin/Settings.tsx
+export default function Settings() {
+  return <div style={{padding:24}}><h2>Settings</h2><p>Settings page renders.</p></div>;
+}
+
+
+If these render, you can wire back your real UI incrementally.
+
+4) Remove/relocate any redirect that forces you to the dashboard
+
+Common gotcha: a wildcard like this above your routes:
+
+<Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+
+
+or an auth/role guard that redirects. In the snippet I provided, the wildcard is last, so it won’t swallow /admin/profile or /admin/settings. If you have a role guard, make sure admins actually pass:
+
+const allowed = user?.roles?.includes("ADMIN") || user?.roles?.includes("admin");
+if (!allowed) return <Navigate to="/admin/dashboard" replace />;
+
+5) Quick sanity check (optional but powerful)
+
+Temporarily add this route above the wildcard to confirm matching works:
+
+<Route path="/admin/_probe" element={<div>ROUTE PROBE OK</div>} />
+
+
+Navigate to /admin/_probe. If this does not render, a redirect/guard is still intercepting routes.
+
+6) Ignore the 500s for routing purposes
+
+Those console 500s are from:
+
+/api/admin/audit
+
+
+They will not block router navigation. We’ll fix that API next, but it’s separate from the Profile/Settings issue.
+
+After applying the snippet
+
+Sidebar ➜ Profile should land on /admin/profile and render the placeholder.
+
+Sidebar ➜ Settings should land on /admin/settings and render the placeholder.
+
+Visiting /admin/_probe should show “ROUTE PROBE OK” (if you keep that test route).
+
+If you still see a bounce back to /admin/dashboard, that means there’s a guard or earlier wildcard still redirecting. Move it below the specific routes or loosen the guard for admins.
+
+Once routing is stable, we’ll circle back to the /api/admin/audit 500 and the CSP warnings.
