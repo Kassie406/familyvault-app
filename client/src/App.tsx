@@ -1,4 +1,5 @@
-import { Switch, Route } from "wouter";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Switch, Route as WouterRoute } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -98,33 +99,42 @@ import WhenSomeoneDiesBillsObligations from "@/pages/when-someone-dies-bills-obl
 import WhenSomeoneDiesLegalResponsibilities from "@/pages/when-someone-dies-legal-responsibilities";
 import WhenSomeoneDiesImportantDeadlines from "@/pages/when-someone-dies-important-deadlines";
 
+// Error boundary so a bad import doesn't blank the screen
+function ErrorBoundary({ children }: { children: React.ReactNode }) {
+  try { return <>{children}</>; } catch (e) { 
+    console.error(e); 
+    return <div style={{padding:24}}>Something went wrong rendering this page.</div>;
+  }
+}
+
 function AdminRouter() {
   return (
-    <Switch>
-      <Route path="/admin/dashboard" component={AdminDashboard} />
-      <Route path="/admin/profile">
-        <AdminLayout>
-          <AdminProfile />
-        </AdminLayout>
-      </Route>
-      <Route path="/admin/settings">
-        <AdminLayout>
-          <AdminSettings />
-        </AdminLayout>
-      </Route>
-      <Route path="/admin/incidents" component={AdminIncidents} />
-      <Route path="/admin/security-settings" component={AdminSecuritySettings} />
-      <Route path="/admin/stepup-test" component={AdminStepUpTest} />
-      <Route path="/admin/database-status" component={DatabaseStatus} />
-      <Route path="/admin/auth-status" component={AuthStatus} />
-      <Route path="/admin/smtp-status" component={SMTPStatus} />
-      <Route path="/admin/webhooks-status" component={WebhooksStatus} />
-      <Route path="/admin/stripe-status" component={StripeStatus} />
-      <Route path="/admin/storage-status" component={StorageStatus} />
-      <Route path="/admin/login" component={AdminLogin} />
-      <Route path="/admin" component={AdminLogin} />
-      <Route path="/" component={AdminLogin} />
-    </Switch>
+    <BrowserRouter>
+      <Routes>
+        {/* All admin pages live under /admin */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="profile" element={<AdminProfile />} />
+          <Route path="settings" element={<AdminSettings />} />
+          <Route path="_probe" element={<div style={{padding:24}}>ROUTE PROBE OK</div>} />
+          <Route path="incidents" element={<AdminIncidents />} />
+          <Route path="security-settings" element={<AdminSecuritySettings />} />
+          <Route path="stepup-test" element={<AdminStepUpTest />} />
+          <Route path="database-status" element={<DatabaseStatus />} />
+          <Route path="auth-status" element={<AuthStatus />} />
+          <Route path="smtp-status" element={<SMTPStatus />} />
+          <Route path="webhooks-status" element={<WebhooksStatus />} />
+          <Route path="stripe-status" element={<StripeStatus />} />
+          <Route path="storage-status" element={<StorageStatus />} />
+          {/* keep wildcard LAST so it does not swallow real routes */}
+          <Route path="*" element={<Navigate to="dashboard" replace />} />
+        </Route>
+        <Route path="/admin/login" element={<AdminLogin />} />
+        {/* Fallback for anything else */}
+        <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useLocation } from 'wouter';
+import { useLocation, useNavigate, Outlet, NavLink } from 'react-router-dom';
 import { 
   Shield, LogOut, User, Settings, LayoutDashboard, Users, CreditCard, 
   Ticket, FileText, ShieldCheck, Activity, Search, Filter, Bell, 
@@ -17,8 +17,9 @@ interface AdminLayoutProps {
   onSectionChange?: (section: string) => void;
 }
 
-export default function AdminLayout({ children, activeSection = 'overview', onSectionChange }: AdminLayoutProps) {
-  const [, setLocation] = useLocation();
+export default function AdminLayout({ activeSection = 'overview', onSectionChange }: Omit<AdminLayoutProps, 'children'>) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { isOpen: isSearchOpen, setIsOpen: setIsSearchOpen } = useGlobalSearch();
 
@@ -33,7 +34,7 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
       await fetch('/api/auth/logout', { method: 'POST' });
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
       toast({ title: 'Logged out successfully' });
-      setLocation('/admin/login');
+      navigate('/admin/login');
     } catch (error) {
       toast({ title: 'Logout failed', variant: 'destructive' });
     }
@@ -41,7 +42,7 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
 
   // Redirect to login if not authenticated or not admin
   if (!user?.user || !['ADMIN', 'PRESIDENT'].includes(user.user.role)) {
-    setLocation('/admin/login');
+    navigate('/admin/login');
     return null;
   }
 
@@ -93,7 +94,7 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
                       key={item.id}
                       onClick={() => {
                         if (item.href) {
-                          setLocation(item.href);
+                          navigate(item.href);
                         } else {
                           onSectionChange?.(item.id);
                         }
@@ -132,14 +133,14 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
                   </div>
                 </div>
                 <nav className="admin-links pointer-events-auto relative z-50">
-                  <a href="/admin/profile" data-testid="menu-profile">
+                  <NavLink to="/admin/profile" data-testid="menu-profile">
                     <User className="w-4 h-4" />
                     Profile
-                  </a>
-                  <a href="/admin/settings" data-testid="menu-settings">
+                  </NavLink>
+                  <NavLink to="/admin/settings" data-testid="menu-settings">
                     <Settings className="w-4 h-4" />
                     Settings
-                  </a>
+                  </NavLink>
                   <button type="button" className="logout" onClick={handleLogout} data-testid="menu-logout">
                     <LogOut className="w-4 h-4" />
                     Log out
@@ -192,7 +193,7 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
 
           {/* Page Content */}
           <div className="p-6 bg-gray-50 min-h-full">
-            {children}
+            <Outlet />
           </div>
         </main>
       </div>
