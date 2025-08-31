@@ -1005,7 +1005,7 @@ export default function AdminDashboard() {
                     className="w-full justify-start hover:bg-[#1F6FEB] hover:text-white hover:border-[#1F6FEB] transition-colors"
                     onClick={() => {
                       trackAdminClick('dashboard_quick_action_security_audit');
-                      setActiveSection('security-audit');
+                      setActiveSection('security');
                     }}
                     data-testid="button-security-audit"
                   >
