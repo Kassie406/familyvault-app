@@ -198,7 +198,11 @@ export default function AdminLayout({ children, activeSection = 'overview', onSe
       </div>
 
       {/* Global Search Modal */}
-      <GlobalSearch isOpen={isSearchOpen} onOpenChange={setIsSearchOpen} />
+      <GlobalSearch 
+        isOpen={isSearchOpen} 
+        onOpenChange={setIsSearchOpen} 
+        onNavigate={onSectionChange}
+      />
     </>
   );
 }
