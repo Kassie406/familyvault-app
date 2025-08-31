@@ -245,15 +245,15 @@ export function GdprCompliance() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span>Data Protection Officer</span>
-                    <span className="badge badge-ok">Appointed</span>
+                    <span className="badge badge-ok" style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>Appointed</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Privacy Policy</span>
-                    <span className="badge badge-ok">Current</span>
+                    <span className="badge badge-ok" style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>Current</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Consent Records</span>
-                    <span className="badge badge-ok">Compliant</span>
+                    <span className="badge badge-ok" style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>Compliant</span>
                   </div>
                 </div>
               </div>
@@ -266,15 +266,15 @@ export function GdprCompliance() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span>Retention Policies</span>
-                    <span className="badge badge-ok">Active</span>
+                    <span className="badge badge-ok" style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>Active</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Auto-cleanup</span>
-                    <span className="badge badge-ok">Running</span>
+                    <span className="badge badge-ok" style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>Running</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Audit Trail</span>
-                    <span className="badge badge-ok">Complete</span>
+                    <span className="badge badge-ok" style={{ fontSize: '12px', fontWeight: '600', color: '#166534' }}>Complete</span>
                   </div>
                 </div>
               </div>
