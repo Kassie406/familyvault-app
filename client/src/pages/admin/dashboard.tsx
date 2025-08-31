@@ -68,6 +68,7 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [editUserModalOpen, setEditUserModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [inviteUserModalOpen, setInviteUserModalOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [archivedUsers, setArchivedUsers] = useState<any[]>([]);
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
@@ -1065,7 +1066,39 @@ export default function AdminDashboard() {
         
         // Handle user actions
         const handleInviteUser = () => {
-          toast({ title: "Invite User", description: "Opening invite user form..." });
+          setInviteUserModalOpen(true);
+        };
+        
+        const handleInviteSubmit = async (e: React.FormEvent) => {
+          e.preventDefault();
+          const form = e.target as HTMLFormElement;
+          const formData = new FormData(form);
+          
+          const name = formData.get('name') as string;
+          const email = formData.get('email') as string;
+          const tenant = formData.get('tenant') as string;
+          const role = formData.get('role') as string;
+          
+          // Create new user with pending status
+          const newUser = {
+            id: Date.now(), // Simple ID generation for demo
+            name,
+            email,
+            tenant,
+            role,
+            status: "Pending",
+            mfaEnabled: false,
+            lastLogin: "Never",
+            archivedAt: null,
+            deletesAt: null
+          };
+          
+          // Add to active users
+          setActiveUsers(prev => [...prev, newUser]);
+          
+          setInviteUserModalOpen(false);
+          form.reset();
+          toast({ title: "User Invited", description: `Invitation sent to ${email}` });
         };
         
         const handleEditUser = (user: any) => {
@@ -1709,6 +1742,98 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 )}
+              </DialogContent>
+            </Dialog>
+          )}
+
+          {/* Invite User Modal */}
+          {inviteUserModalOpen && (
+            <Dialog open={inviteUserModalOpen} onOpenChange={setInviteUserModalOpen}>
+              <DialogContent className="bg-[#0F141A] border-[#2B313A] text-[#D5DDE7] max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-[#D5DDE7] text-lg font-semibold">
+                    Invite New User
+                  </DialogTitle>
+                  <DialogDescription className="text-[#8B949E]">
+                    Send an invitation to a new team member to join your organization.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <form onSubmit={handleInviteSubmit} className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-user-name" className="text-[#D5DDE7]">Full Name</Label>
+                    <Input 
+                      id="invite-user-name"
+                      name="name"
+                      required
+                      placeholder="Enter full name"
+                      className="bg-[#1C2128] border-[#30363D] text-[#D5DDE7] focus:border-[#1F6FEB]"
+                      data-testid="input-invite-user-name"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-user-email" className="text-[#D5DDE7]">Email Address</Label>
+                    <Input 
+                      id="invite-user-email"
+                      name="email"
+                      type="email"
+                      required
+                      placeholder="Enter email address"
+                      className="bg-[#1C2128] border-[#30363D] text-[#D5DDE7] focus:border-[#1F6FEB]"
+                      data-testid="input-invite-user-email"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-user-tenant" className="text-[#D5DDE7]">Tenant</Label>
+                    <Select name="tenant" required>
+                      <SelectTrigger className="bg-[#1C2128] border-[#30363D] text-[#D5DDE7]">
+                        <SelectValue placeholder="Select tenant" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#0F141A] border-[#2B313A]">
+                        <SelectItem value="PUBLIC" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Public Clients</SelectItem>
+                        <SelectItem value="FAMILY" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Family Portal</SelectItem>
+                        <SelectItem value="STAFF" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Staff Hub</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-user-role" className="text-[#D5DDE7]">Role</Label>
+                    <Select name="role" required>
+                      <SelectTrigger className="bg-[#1C2128] border-[#30363D] text-[#D5DDE7]">
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#0F141A] border-[#2B313A]">
+                        <SelectItem value="admin" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Admin</SelectItem>
+                        <SelectItem value="family_admin" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Family Admin</SelectItem>
+                        <SelectItem value="member" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Member</SelectItem>
+                        <SelectItem value="client" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Client</SelectItem>
+                        <SelectItem value="agent" className="text-[#D5DDE7] hover:bg-[#1E2A3A]">Agent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex gap-3 pt-4">
+                    <Button 
+                      type="submit"
+                      className="flex-1 bg-[#1F6FEB] hover:bg-[#1a5fc9] text-white"
+                      data-testid="button-send-invite"
+                    >
+                      Send Invitation
+                    </Button>
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      onClick={() => setInviteUserModalOpen(false)}
+                      className="flex-1 border-[#30363D] text-[#D5DDE7] hover:bg-[#1E2A3A]"
+                      data-testid="button-cancel-invite"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
               </DialogContent>
             </Dialog>
           )}
