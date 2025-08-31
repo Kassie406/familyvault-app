@@ -1440,6 +1440,7 @@ export default function AdminDashboard() {
                     
                     <div className="flex gap-2">
                       <Button 
+                        onClick={() => handleEditUser(user)}
                         variant="outline" 
                         size="sm" 
                         className="flex-1"
@@ -1448,6 +1449,15 @@ export default function AdminDashboard() {
                         <Edit className="w-3 h-3 mr-1" /> Edit
                       </Button>
                       <Button 
+                        onClick={() => {
+                          if (user.status === 'Suspended') {
+                            handleReactivateUser(user);
+                          } else if (user.status === 'Pending') {
+                            handleResendInvite(user);
+                          } else {
+                            handleSuspendUser(user);
+                          }
+                        }}
                         variant="outline" 
                         size="sm" 
                         className="flex-1"
