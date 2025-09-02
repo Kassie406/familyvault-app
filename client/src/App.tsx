@@ -236,7 +236,9 @@ function App() {
                        pathname.startsWith('/admin') ||
                        pathname.startsWith('/login') ||
                        pathname.startsWith('/dashboard');
-  const isPortalDomain = subdomain === 'portal' || hostname === 'portal.familycirclesecure.com';
+  const isPortalDomain = subdomain === 'portal' || 
+                         hostname === 'portal.familycirclesecure.com' ||
+                         pathname.startsWith('/family');
   const isHubDomain = subdomain === 'hub' || hostname === 'hub.familycirclesecure.com';
   
   // Admin Console Interface
