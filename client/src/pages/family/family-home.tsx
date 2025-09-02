@@ -111,10 +111,15 @@ export default function FamilyHome() {
   return (
     <div className="flex h-full">
       {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
+      <div className="w-64 bg-[#111111] border-r border-gray-800 flex flex-col">
         {/* Sidebar Header */}
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Family Circle Secure</h2>
+        <div className="p-6 border-b border-gray-800">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-[#D4AF37] rounded-lg">
+              <Heart className="w-5 h-5 text-black" />
+            </div>
+            <h2 className="text-lg font-semibold text-white">Family Circle Secure</h2>
+          </div>
         </div>
 
         {/* Sidebar Navigation */}
@@ -127,14 +132,16 @@ export default function FamilyHome() {
                 key={item.id}
                 to={item.href}
                 onClick={() => setActiveSection(item.id)}
-                className={`flex items-center px-6 py-3 text-sm font-medium transition-colors ${
+                className={`flex items-center px-6 py-3 text-sm font-medium transition-all duration-200 relative group ${
                   isActive
-                    ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'text-[#D4AF37] border-r-2 border-[#D4AF37] bg-[#1a1a1a]'
+                    : 'text-gray-300 hover:text-[#D4AF37] hover:bg-[#1a1a1a]'
                 }`}
                 data-testid={`sidebar-${item.id}`}
               >
-                <Icon className="w-5 h-5 mr-3" />
+                <Icon className={`w-5 h-5 mr-3 transition-colors ${
+                  isActive ? 'text-[#D4AF37]' : 'text-gray-400 group-hover:text-[#D4AF37]'
+                }`} />
                 {item.label}
               </Link>
             );
@@ -142,33 +149,47 @@ export default function FamilyHome() {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="p-6 border-t border-gray-200">
+        <div className="p-6 border-t border-gray-800">
           <Link
             to="/family/referrals"
-            className="flex items-center text-sm font-medium text-green-600 hover:text-green-800"
+            className="flex items-center text-sm font-medium text-[#2ECC71] hover:text-[#D4AF37] transition-colors group"
           >
-            <DollarSign className="w-4 h-4 mr-2" />
+            <DollarSign className="w-4 h-4 mr-2 group-hover:text-[#D4AF37]" />
             Refer & earn
           </Link>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="p-8 space-y-8">
-          {/* Welcome Header */}
-          <div className="text-center">
-            <div className="flex items-center justify-center mb-4">
-              <div className="p-3 bg-indigo-600 rounded-full">
-                <Heart className="w-8 h-8 text-white" />
+      <div className="flex-1 overflow-auto bg-[#F8F8F8]">
+        {/* Luxury Header with Gradient */}
+        <div className="bg-gradient-to-r from-[#0A0A1A] via-[#111111] to-[#0A0A1A] relative overflow-hidden">
+          {/* Gold Heart Crest Background */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-10">
+            <Heart className="w-32 h-32 text-[#D4AF37]" />
+          </div>
+          
+          <div className="relative z-10 text-center py-16 px-8">
+            <div className="flex items-center justify-center mb-6">
+              <div className="p-4 bg-[#D4AF37] rounded-full shadow-lg">
+                <Heart className="w-10 h-10 text-black" />
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to Your Family Portal</h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <h1 className="text-4xl font-bold text-white mb-2">
+              Welcome to Your{' '}
+              <span className="text-[#D4AF37] relative group">
+                Family Portal
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#D4AF37] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
+              </span>
+            </h1>
+            <p className="text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed">
               Your secure, private space to stay connected and organized as a family. 
               Share important documents, communicate safely, and keep everyone informed.
             </p>
           </div>
+        </div>
+        
+        <div className="p-8 space-y-8">
 
       {/* Family Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -192,22 +213,32 @@ export default function FamilyHome() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <h2 className="text-xl font-semibold text-[#0A0A1A] mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map((action) => {
+          {quickActions.map((action, index) => {
             const Icon = action.icon;
+            const colors = ['#D4AF37', '#2ECC71', '#3498DB', '#E74C3C'];
+            const iconColor = colors[index % colors.length];
+            
             return (
               <Link
                 key={action.id}
                 to={action.href}
-                className={`${action.color} text-white rounded-xl p-6 transition-colors group`}
+                className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 group hover:border-[#D4AF37]/30"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <Icon className="w-6 h-6" />
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <div 
+                    className="w-12 h-12 rounded-full flex items-center justify-center shadow-md"
+                    style={{ backgroundColor: iconColor }}
+                  >
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 group-hover:text-[#D4AF37] transition-all" />
                 </div>
-                <h3 className="font-semibold mb-1">{action.title}</h3>
-                <p className="text-sm opacity-90">{action.description}</p>
+                <h3 className="font-semibold mb-1 text-[#0A0A1A] group-hover:text-[#D4AF37] transition-colors">
+                  {action.title}
+                </h3>
+                <p className="text-sm text-gray-600">{action.description}</p>
               </Link>
             );
           })}
@@ -217,13 +248,14 @@ export default function FamilyHome() {
       {/* Recent Activity & Upcoming Events */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Activity */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-              <Activity className="w-5 h-5 mr-2 text-indigo-600" />
+        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
+          <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
+            <h2 className="text-xl font-semibold text-[#0A0A1A] flex items-center relative">
+              <Activity className="w-5 h-5 mr-2 text-[#D4AF37]" />
               Recent Activity
+              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#D4AF37]"></span>
             </h2>
-            <Link to="/family/activity" className="text-sm text-indigo-600 hover:text-indigo-800">
+            <Link to="/family/activity" className="text-sm text-[#D4AF37] hover:text-[#0A0A1A] transition-colors">
               View all
             </Link>
           </div>
@@ -250,39 +282,44 @@ export default function FamilyHome() {
         </div>
 
         {/* Family Announcements */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-              <Bell className="w-5 h-5 mr-2 text-indigo-600" />
+        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
+          <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
+            <h2 className="text-xl font-semibold text-[#0A0A1A] flex items-center relative">
+              <Bell className="w-5 h-5 mr-2 text-[#D4AF37]" />
               Family Announcements
+              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#D4AF37]"></span>
             </h2>
-            <Link to="/family/announcements" className="text-sm text-indigo-600 hover:text-indigo-800">
+            <Link to="/family/announcements" className="text-sm text-[#D4AF37] hover:text-[#0A0A1A] transition-colors">
               View all
             </Link>
           </div>
           <div className="space-y-4">
-            <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+            <div className="p-4 bg-gradient-to-r from-[#D4AF37]/10 to-[#D4AF37]/5 rounded-lg border border-[#D4AF37]/20 shadow-sm">
               <div className="flex items-start space-x-3">
-                <Star className="w-5 h-5 text-yellow-600 mt-0.5" />
+                <div className="w-8 h-8 rounded-full bg-[#D4AF37] flex items-center justify-center">
+                  <Star className="w-4 h-4 text-white" />
+                </div>
                 <div>
-                  <h3 className="font-medium text-gray-900">Family Vacation Planning</h3>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <h3 className="font-medium text-[#0A0A1A]">Family Vacation Planning</h3>
+                  <p className="text-sm text-gray-700 mt-1">
                     Don't forget to submit your preferred dates for our summer family vacation by Friday!
                   </p>
-                  <p className="text-xs text-gray-500 mt-2">Posted by Mom • 3 days ago</p>
+                  <p className="text-xs text-[#D4AF37] mt-2 font-medium">Posted by Mom • 3 days ago</p>
                 </div>
               </div>
             </div>
             
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="p-4 bg-gradient-to-r from-[#3498DB]/10 to-[#3498DB]/5 rounded-lg border border-[#3498DB]/20 shadow-sm">
               <div className="flex items-start space-x-3">
-                <Calendar className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div className="w-8 h-8 rounded-full bg-[#3498DB] flex items-center justify-center">
+                  <Calendar className="w-4 h-4 text-white" />
+                </div>
                 <div>
-                  <h3 className="font-medium text-gray-900">Updated Family Calendar</h3>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <h3 className="font-medium text-[#0A0A1A]">Updated Family Calendar</h3>
+                  <p className="text-sm text-gray-700 mt-1">
                     New events added including Sarah's graduation and the family reunion in July.
                   </p>
-                  <p className="text-xs text-gray-500 mt-2">Posted by Dad • 1 week ago</p>
+                  <p className="text-xs text-[#3498DB] mt-2 font-medium">Posted by Dad • 1 week ago</p>
                 </div>
               </div>
             </div>
@@ -292,28 +329,52 @@ export default function FamilyHome() {
 
       {/* Family Navigation Grid */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Family Tools</h2>
+        <h2 className="text-xl font-semibold text-[#0A0A1A] mb-4">Family Tools</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Link to="/family/members" className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow group">
-            <Users className="w-8 h-8 text-blue-600 mb-4" />
-            <h3 className="font-semibold text-gray-900 mb-2">Family Members</h3>
-            <p className="text-sm text-gray-600 mb-4">Manage profiles, contact info, and emergency details for all family members.</p>
-            <span className="text-sm text-blue-600 group-hover:text-blue-800">Manage profiles →</span>
+          <Link to="/family/members" className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl hover:border-[#D4AF37]/30 transition-all duration-300 group">
+            <div className="w-16 h-16 rounded-full bg-[#3498DB] flex items-center justify-center mb-6 shadow-md group-hover:shadow-lg group-hover:shadow-[#D4AF37]/20 transition-all">
+              <Users className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="font-semibold text-[#0A0A1A] mb-2 group-hover:text-[#D4AF37] transition-colors">Family Members</h3>
+            <p className="text-sm text-gray-600 mb-4 leading-relaxed">Manage profiles, contact info, and emergency details for all family members.</p>
+            <span className="text-sm text-[#3498DB] group-hover:text-[#D4AF37] font-medium transition-colors">Manage profiles →</span>
           </Link>
 
-          <Link to="/family/documents" className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow group">
-            <FileText className="w-8 h-8 text-green-600 mb-4" />
-            <h3 className="font-semibold text-gray-900 mb-2">Document Vault</h3>
-            <p className="text-sm text-gray-600 mb-4">Securely store and share important family documents like IDs, medical records, and legal papers.</p>
-            <span className="text-sm text-green-600 group-hover:text-green-800">View documents →</span>
+          <Link to="/family/documents" className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl hover:border-[#D4AF37]/30 transition-all duration-300 group">
+            <div className="w-16 h-16 rounded-full bg-[#2ECC71] flex items-center justify-center mb-6 shadow-md group-hover:shadow-lg group-hover:shadow-[#D4AF37]/20 transition-all">
+              <FileText className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="font-semibold text-[#0A0A1A] mb-2 group-hover:text-[#D4AF37] transition-colors">Document Vault</h3>
+            <p className="text-sm text-gray-600 mb-4 leading-relaxed">Securely store and share important family documents like IDs, medical records, and legal papers.</p>
+            <span className="text-sm text-[#2ECC71] group-hover:text-[#D4AF37] font-medium transition-colors">View documents →</span>
           </Link>
 
-          <Link to="/family/emergency" className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow group">
-            <Shield className="w-8 h-8 text-red-600 mb-4" />
-            <h3 className="font-semibold text-gray-900 mb-2">Emergency Center</h3>
-            <p className="text-sm text-gray-600 mb-4">Quick access to critical information, emergency contacts, and family safety plans.</p>
-            <span className="text-sm text-red-600 group-hover:text-red-800">Access emergency info →</span>
+          <Link to="/family/emergency" className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl hover:border-[#D4AF37]/30 transition-all duration-300 group">
+            <div className="w-16 h-16 rounded-full bg-[#E74C3C] flex items-center justify-center mb-6 shadow-md group-hover:shadow-lg group-hover:shadow-[#D4AF37]/20 transition-all">
+              <Shield className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="font-semibold text-[#0A0A1A] mb-2 group-hover:text-[#D4AF37] transition-colors">Emergency Center</h3>
+            <p className="text-sm text-gray-600 mb-4 leading-relaxed">Quick access to critical information, emergency contacts, and family safety plans.</p>
+            <span className="text-sm text-[#E74C3C] group-hover:text-[#D4AF37] font-medium transition-colors">Access emergency info →</span>
           </Link>
+        </div>
+      </div>
+
+      {/* Luxury Footer */}
+      <div className="bg-gradient-to-r from-[#0A0A1A] to-[#111111] rounded-xl mt-12 relative overflow-hidden">
+        {/* Gold Crest Watermark */}
+        <div className="absolute right-8 top-1/2 transform -translate-y-1/2 opacity-10">
+          <Shield className="w-24 h-24 text-[#D4AF37]" />
+        </div>
+        
+        <div className="relative z-10 p-8 text-center">
+          <div className="flex items-center justify-center mb-4">
+            <Heart className="w-6 h-6 text-[#D4AF37] mr-2" />
+            <span className="text-[#D4AF37] text-sm font-medium tracking-wider uppercase">© 2025 Family Circle Secure</span>
+          </div>
+          <p className="text-gray-300 text-sm">
+            Private Family Portal — Where Family Legacy Meets Security
+          </p>
         </div>
       </div>
         </div>
