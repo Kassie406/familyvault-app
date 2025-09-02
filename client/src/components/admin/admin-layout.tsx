@@ -3,7 +3,7 @@ import { useLocation, useNavigate, Outlet, NavLink } from 'react-router-dom';
 import { useEffect } from 'react';
 import { 
   Shield, LogOut, User, Settings, LayoutDashboard, Users, CreditCard, 
-  Ticket, FileText, ShieldCheck, Activity, Search, Filter, Bell, 
+  Ticket, FileText, ShieldCheck, Activity, Search, Bell, 
   Flag, UserX, Webhook, Tag, Megaphone, AlertTriangle, Key, Lock
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -194,11 +194,6 @@ export default function AdminLayout({ activeSection = 'overview', onSectionChang
                   </button>
                   
                   {/* Toolbar Actions */}
-                  <button className="px-3 py-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 flex items-center">
-                    <Filter className="w-4 h-4 mr-2" />
-                    Filter
-                  </button>
-                  
                   <button className="px-3 py-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50">
                     <Bell className="w-4 h-4" />
                   </button>
