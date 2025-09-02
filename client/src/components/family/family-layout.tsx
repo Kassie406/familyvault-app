@@ -1,4 +1,4 @@
-import { useLocation, Outlet, Link } from 'react-router-dom';
+import { useLocation, Link } from 'wouter';
 import { useState } from 'react';
 import { 
   Shield, Home, Users, FileText, MessageCircle, Bell, Settings,
@@ -6,8 +6,8 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-export default function FamilyLayout() {
-  const location = useLocation();
+export default function FamilyLayout({ children }: { children: React.ReactNode }) {
+  const [location] = useLocation();
   const { toast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -21,7 +21,7 @@ export default function FamilyLayout() {
     { id: 'emergency', label: 'Emergency Info', icon: Shield, href: '/family/emergency', description: 'Critical family information' },
   ];
 
-  const currentPath = location.pathname;
+  const currentPath = location;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -125,7 +125,7 @@ export default function FamilyLayout() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Outlet />
+        {children}
       </main>
 
       {/* Footer */}

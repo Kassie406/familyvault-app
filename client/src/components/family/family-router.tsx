@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route as ReactRoute, Navigate } from 'react-router-dom';
+import { Switch, Route } from 'wouter';
 import FamilyLayout from './family-layout';
 import FamilyHome from '@/pages/family/family-home';
 
@@ -66,28 +66,30 @@ function FamilySettings() {
   );
 }
 
+// Layout wrapper for family pages
+function withFamilyLayout(Component: () => JSX.Element) {
+  return function WrappedComponent() {
+    return (
+      <FamilyLayout>
+        <Component />
+      </FamilyLayout>
+    );
+  };
+}
+
 export default function FamilyRouter() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* All family pages live under /family */}
-        <ReactRoute path="/family" element={<FamilyLayout />}>
-          <ReactRoute index element={<FamilyHome />} />
-          <ReactRoute path="members" element={<FamilyMembers />} />
-          <ReactRoute path="documents" element={<FamilyDocuments />} />
-          <ReactRoute path="messages" element={<FamilyMessages />} />
-          <ReactRoute path="calendar" element={<FamilyCalendar />} />
-          <ReactRoute path="photos" element={<FamilyPhotos />} />
-          <ReactRoute path="emergency" element={<FamilyEmergency />} />
-          <ReactRoute path="settings" element={<FamilySettings />} />
-          {/* Keep wildcard LAST so it doesn't swallow real routes */}
-          <ReactRoute path="*" element={<Navigate to="/family" replace />} />
-        </ReactRoute>
-        {/* Root redirect to family */}
-        <ReactRoute path="/" element={<Navigate to="/family" replace />} />
-        {/* Fallback for anything else */}
-        <ReactRoute path="*" element={<Navigate to="/family" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <Switch>
+      <Route path="/" component={withFamilyLayout(FamilyHome)} />
+      <Route path="/family" component={withFamilyLayout(FamilyHome)} />
+      <Route path="/family/members" component={withFamilyLayout(FamilyMembers)} />
+      <Route path="/family/documents" component={withFamilyLayout(FamilyDocuments)} />
+      <Route path="/family/messages" component={withFamilyLayout(FamilyMessages)} />
+      <Route path="/family/calendar" component={withFamilyLayout(FamilyCalendar)} />
+      <Route path="/family/photos" component={withFamilyLayout(FamilyPhotos)} />
+      <Route path="/family/emergency" component={withFamilyLayout(FamilyEmergency)} />
+      <Route path="/family/settings" component={withFamilyLayout(FamilySettings)} />
+      <Route component={withFamilyLayout(FamilyHome)} />
+    </Switch>
   );
 }
