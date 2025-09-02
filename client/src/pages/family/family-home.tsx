@@ -114,7 +114,7 @@ export default function FamilyHome() {
       <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
         {/* Sidebar Header */}
         <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Trustworthy.</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Family Circle Secure</h2>
         </div>
 
         {/* Sidebar Navigation */}
