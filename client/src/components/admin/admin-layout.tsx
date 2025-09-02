@@ -157,7 +157,7 @@ export default function AdminLayout({ activeSection = 'overview', onSectionChang
       {/* Impersonation Banner */}
       <ImpersonationBanner />
       
-      <div className="app-shell">
+      <div className="app-shell relative">
         {/* Sidebar */}
         <aside className="sidebar" id="sidebar">
           <div className="sidebar__scroll">
@@ -243,7 +243,7 @@ export default function AdminLayout({ activeSection = 'overview', onSectionChang
         {/* Main Content */}
         <main className="main" id="main">
           {/* Top Bar */}
-          <header className="bg-white border-b border-gray-200 shadow-sm">
+          <header className="bg-white border-b border-gray-200 shadow-sm relative z-50">
             <div className="px-6 py-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -284,7 +284,13 @@ export default function AdminLayout({ activeSection = 'overview', onSectionChang
                         )}
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-96 p-0 mr-6 z-50" align="end">
+                    <PopoverContent 
+                      className="w-96 p-0 mr-6" 
+                      align="end" 
+                      side="bottom" 
+                      sideOffset={8}
+                      style={{ zIndex: 99999 }}
+                    >
                       <div className="p-4 border-b border-gray-200">
                         <div className="flex items-center justify-between">
                           <h3 className="font-semibold">Notifications</h3>
