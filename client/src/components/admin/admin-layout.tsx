@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate, Outlet, NavLink } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Shield, LogOut, User, Settings, LayoutDashboard, Users, CreditCard, 
   Ticket, FileText, ShieldCheck, Activity, Search, Bell, 
@@ -9,7 +10,6 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import GlobalSearch, { useGlobalSearch } from './global-search';
@@ -29,6 +29,8 @@ export default function AdminLayout({ activeSection = 'overview', onSectionChang
   
   // Notification state
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const bellRef = useRef<HTMLButtonElement>(null);
+  const [notificationPos, setNotificationPos] = useState({ top: 0, right: 0 });
   const [notifications, setNotifications] = useState([
     {
       id: '1',
@@ -65,6 +67,33 @@ export default function AdminLayout({ activeSection = 'overview', onSectionChang
   ]);
   
   const unreadCount = notifications.filter(n => !n.read).length;
+  
+  // Close notification on ESC
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setIsNotificationOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  
+  // Position notification popover
+  useEffect(() => {
+    if (isNotificationOpen && bellRef.current) {
+      const place = () => {
+        const r = bellRef.current!.getBoundingClientRect();
+        setNotificationPos({
+          top: r.bottom + 10,
+          right: Math.max(8, window.innerWidth - r.right)
+        });
+      };
+      place();
+      window.addEventListener('resize', place);
+      window.addEventListener('scroll', place, true);
+      return () => {
+        window.removeEventListener('resize', place);
+        window.removeEventListener('scroll', place, true);
+      };
+    }
+  }, [isNotificationOpen]);
   
   // Helper functions
   const markAsRead = (notificationId: string) => {
@@ -267,98 +296,131 @@ export default function AdminLayout({ activeSection = 'overview', onSectionChang
                   </button>
                   
                   {/* Notifications */}
-                  <Popover open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
-                    <PopoverTrigger asChild>
-                      <button 
-                        className="relative px-3 py-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors"
-                        data-testid="button-notifications"
+                  <button 
+                    ref={bellRef}
+                    onClick={() => setIsNotificationOpen(prev => !prev)}
+                    className="relative px-3 py-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors"
+                    data-testid="button-notifications"
+                    aria-haspopup="dialog"
+                    aria-expanded={isNotificationOpen}
+                  >
+                    <Bell className="w-4 h-4" />
+                    {unreadCount > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
                       >
-                        <Bell className="w-4 h-4" />
-                        {unreadCount > 0 && (
-                          <Badge 
-                            variant="destructive" 
-                            className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                          >
-                            {unreadCount > 9 ? '9+' : unreadCount}
-                          </Badge>
-                        )}
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent 
-                      className="w-96 p-0 absolute right-0 top-12 z-[10000]" 
-                      align="end" 
-                      side="bottom" 
-                      sideOffset={8}
-                    >
-                      <div className="p-4 border-b border-gray-200">
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-semibold">Notifications</h3>
-                          {unreadCount > 0 && (
-                            <button 
-                              onClick={markAllAsRead}
-                              className="text-sm text-blue-600 hover:text-blue-800"
-                              data-testid="button-mark-all-read"
-                            >
-                              Mark all read
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <ScrollArea className="max-h-96">
-                        {notifications.length === 0 ? (
-                          <div className="p-4 text-center text-gray-500">
-                            No notifications
-                          </div>
-                        ) : (
-                          <div className="divide-y divide-gray-100">
-                            {notifications.map((notification) => (
-                              <div 
-                                key={notification.id}
-                                className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                                  !notification.read ? 'bg-blue-50' : ''
-                                }`}
-                                onClick={() => markAsRead(notification.id)}
-                                data-testid={`notification-${notification.id}`}
-                              >
-                                <div className="flex items-start space-x-3">
-                                  <div className="flex-shrink-0 mt-1">
-                                    {getNotificationIcon(notification.type)}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between">
-                                      <p className="font-medium text-sm text-gray-900 truncate">
-                                        {notification.title}
-                                      </p>
-                                      {!notification.read && (
-                                        <div className="w-2 h-2 bg-blue-600 rounded-full ml-2 flex-shrink-0" />
-                                      )}
-                                    </div>
-                                    <p className="text-sm text-gray-600 mt-1">
-                                      {notification.message}
-                                    </p>
-                                    <p className="text-xs text-gray-400 mt-2">
-                                      {formatTime(notification.timestamp)}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </ScrollArea>
-                      {notifications.length > 0 && (
-                        <div className="p-3 border-t border-gray-200 bg-gray-50">
-                          <button 
-                            className="w-full text-sm text-gray-600 hover:text-gray-800 text-center"
-                            onClick={() => setIsNotificationOpen(false)}
-                            data-testid="button-view-all-notifications"
-                          >
-                            View all notifications
-                          </button>
-                        </div>
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </Badge>
+                    )}
+                  </button>
+                  
+                  {/* Portal-based notification popover */}
+                  {isNotificationOpen && (
+                    <>
+                      {/* Backdrop to close on outside click */}
+                      {createPortal(
+                        <div
+                          className="fixed inset-0 z-[9999] bg-black/30"
+                          onClick={() => setIsNotificationOpen(false)}
+                        />,
+                        document.body
                       )}
-                    </PopoverContent>
-                  </Popover>
+                      
+                      {/* Notification popover */}
+                      {createPortal(
+                        <div
+                          role="dialog"
+                          aria-modal="true"
+                          style={{ top: notificationPos.top, right: notificationPos.right }}
+                          className="
+                            fixed z-[10000]
+                            w-[360px] rounded-2xl
+                            bg-white text-slate-900
+                            shadow-2xl ring-1 ring-black/10
+                            transition-transform duration-150
+                          "
+                          onBlur={(e) => {
+                            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                              setIsNotificationOpen(false);
+                            }
+                          }}
+                        >
+                          {/* Header */}
+                          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                            <h3 className="font-semibold">Notifications</h3>
+                            {unreadCount > 0 && (
+                              <button 
+                                onClick={markAllAsRead}
+                                className="text-sm text-blue-600 hover:text-blue-800"
+                                data-testid="button-mark-all-read"
+                              >
+                                Mark all read
+                              </button>
+                            )}
+                          </div>
+                          
+                          {/* Notification list */}
+                          <div className="max-h-[60vh] overflow-auto">
+                            {notifications.length === 0 ? (
+                              <div className="p-4 text-center text-gray-500">
+                                No notifications
+                              </div>
+                            ) : (
+                              <div className="divide-y divide-gray-100">
+                                {notifications.map((notification) => (
+                                  <div 
+                                    key={notification.id}
+                                    className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
+                                      !notification.read ? 'bg-blue-50' : ''
+                                    }`}
+                                    onClick={() => markAsRead(notification.id)}
+                                    data-testid={`notification-${notification.id}`}
+                                  >
+                                    <div className="flex items-start space-x-3">
+                                      <div className="flex-shrink-0 mt-1">
+                                        {getNotificationIcon(notification.type)}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                          <p className="font-medium text-sm text-gray-900 truncate">
+                                            {notification.title}
+                                          </p>
+                                          {!notification.read && (
+                                            <div className="w-2 h-2 bg-blue-600 rounded-full ml-2 flex-shrink-0" />
+                                          )}
+                                        </div>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                          {notification.message}
+                                        </p>
+                                        <p className="text-xs text-gray-400 mt-2">
+                                          {formatTime(notification.timestamp)}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Footer */}
+                          {notifications.length > 0 && (
+                            <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 text-center rounded-b-2xl">
+                              <button 
+                                className="text-sm text-blue-600 hover:text-blue-800"
+                                onClick={() => setIsNotificationOpen(false)}
+                                data-testid="button-view-all-notifications"
+                              >
+                                View all notifications
+                              </button>
+                            </div>
+                          )}
+                        </div>,
+                        document.body
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
