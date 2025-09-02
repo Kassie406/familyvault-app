@@ -2,10 +2,31 @@ import { useState } from 'react';
 import { Link } from 'wouter';
 import {
   Users, FileText, MessageCircle, Calendar, Image, Shield,
-  Heart, Clock, Star, Bell, Plus, ArrowRight, Activity
+  Heart, Clock, Star, Bell, Plus, ArrowRight, Activity,
+  Inbox, AlarmClock, CreditCard, Home as HomeIcon, Key, 
+  Umbrella, Receipt, Scale, Building2, BookOpen, 
+  Phone, DollarSign
 } from 'lucide-react';
 
 export default function FamilyHome() {
+  const [activeSection, setActiveSection] = useState('dashboard');
+
+  const sidebarItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, href: '/family', isActive: true },
+    { id: 'inbox', label: 'Inbox', icon: Inbox, href: '/family/inbox' },
+    { id: 'reminders', label: 'Reminders', icon: AlarmClock, href: '/family/reminders' },
+    { id: 'family-ids', label: 'Family IDs', icon: Users, href: '/family/ids' },
+    { id: 'finance', label: 'Finance', icon: DollarSign, href: '/family/finance' },
+    { id: 'property', label: 'Property', icon: HomeIcon, href: '/family/property' },
+    { id: 'passwords', label: 'Passwords', icon: Key, href: '/family/passwords' },
+    { id: 'insurance', label: 'Insurance', icon: Umbrella, href: '/family/insurance' },
+    { id: 'taxes', label: 'Taxes', icon: Receipt, href: '/family/taxes' },
+    { id: 'legal', label: 'Legal', icon: Scale, href: '/family/legal' },
+    { id: 'business', label: 'Business', icon: Building2, href: '/family/business' },
+    { id: 'family-resources', label: 'Family Resources', icon: BookOpen, href: '/family/resources' },
+    { id: 'contacts', label: 'Contacts', icon: Phone, href: '/family/contacts' },
+  ];
+
   const [recentActivity] = useState([
     {
       id: '1',
@@ -88,20 +109,66 @@ export default function FamilyHome() {
   ];
 
   return (
-    <div className="space-y-8">
-      {/* Welcome Header */}
-      <div className="text-center">
-        <div className="flex items-center justify-center mb-4">
-          <div className="p-3 bg-indigo-600 rounded-full">
-            <Heart className="w-8 h-8 text-white" />
-          </div>
+    <div className="flex h-full">
+      {/* Sidebar */}
+      <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
+        {/* Sidebar Header */}
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Trustworthy.</h2>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to Your Family Portal</h1>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Your secure, private space to stay connected and organized as a family. 
-          Share important documents, communicate safely, and keep everyone informed.
-        </p>
+
+        {/* Sidebar Navigation */}
+        <nav className="flex-1 py-4">
+          {sidebarItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = item.id === activeSection;
+            return (
+              <Link
+                key={item.id}
+                to={item.href}
+                onClick={() => setActiveSection(item.id)}
+                className={`flex items-center px-6 py-3 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`}
+                data-testid={`sidebar-${item.id}`}
+              >
+                <Icon className="w-5 h-5 mr-3" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Sidebar Footer */}
+        <div className="p-6 border-t border-gray-200">
+          <Link
+            to="/family/referrals"
+            className="flex items-center text-sm font-medium text-green-600 hover:text-green-800"
+          >
+            <DollarSign className="w-4 h-4 mr-2" />
+            Refer & earn
+          </Link>
+        </div>
       </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto">
+        <div className="p-8 space-y-8">
+          {/* Welcome Header */}
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-4">
+              <div className="p-3 bg-indigo-600 rounded-full">
+                <Heart className="w-8 h-8 text-white" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to Your Family Portal</h1>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Your secure, private space to stay connected and organized as a family. 
+              Share important documents, communicate safely, and keep everyone informed.
+            </p>
+          </div>
 
       {/* Family Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -247,6 +314,8 @@ export default function FamilyHome() {
             <p className="text-sm text-gray-600 mb-4">Quick access to critical information, emergency contacts, and family safety plans.</p>
             <span className="text-sm text-red-600 group-hover:text-red-800">Access emergency info →</span>
           </Link>
+        </div>
+      </div>
         </div>
       </div>
     </div>
