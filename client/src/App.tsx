@@ -21,6 +21,7 @@ import WebhooksStatus from "@/pages/admin/webhooks-status";
 import StripeStatus from "@/pages/admin/stripe-status";
 import StorageStatus from "@/pages/admin/storage-status";
 import AdminLayout from "@/components/admin/admin-layout";
+import FamilyRouter from "@/components/family/family-router";
 import Home from "@/pages/home";
 import Security from "@/pages/security";
 import PromoBanner from "@/components/marketing/promo-banner";
@@ -256,12 +257,7 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
-          <div className="bg-blue-600 text-white text-center py-2 px-4">
-            <p className="text-sm font-medium">
-              🌐 Family Portal - Welcome to FamilyCircle Secure
-            </p>
-          </div>
-          <Router />
+          <FamilyRouter />
         </TooltipProvider>
       </QueryClientProvider>
     );
