@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate, Outlet, NavLink } from 'react-router-dom';
+import { useEffect } from 'react';
 import { 
   Shield, LogOut, User, Settings, LayoutDashboard, Users, CreditCard, 
   Ticket, FileText, ShieldCheck, Activity, Search, Filter, Bell, 
@@ -41,8 +42,23 @@ export default function AdminLayout({ activeSection = 'overview', onSectionChang
   };
 
   // Redirect to login if not authenticated or not admin
+  useEffect(() => {
+    if (user !== undefined && (!user?.user || !['ADMIN', 'PRESIDENT'].includes(user.user.role))) {
+      navigate('/admin/login');
+    }
+  }, [user, navigate]);
+
+  // Show loading while checking auth
+  if (user === undefined) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading"/>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated (useEffect will handle redirect)
   if (!user?.user || !['ADMIN', 'PRESIDENT'].includes(user.user.role)) {
-    navigate('/admin/login');
     return null;
   }
 
