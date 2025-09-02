@@ -284,7 +284,7 @@ export default function AdminLayout({ activeSection = 'overview', onSectionChang
                         )}
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-96 p-0 mr-6" align="end">
+                    <PopoverContent className="w-96 p-0 mr-6 z-50" align="end">
                       <div className="p-4 border-b border-gray-200">
                         <div className="flex items-center justify-between">
                           <h3 className="font-semibold">Notifications</h3>
