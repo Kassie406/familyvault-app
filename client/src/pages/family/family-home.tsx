@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'wouter';
 import {
   Users, FileText, MessageCircle, Calendar, Image, Shield,
   Heart, Clock, Star, Bell, Plus, ArrowRight, Activity
