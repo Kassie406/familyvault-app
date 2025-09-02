@@ -1,6 +1,7 @@
 import { Switch, Route } from 'wouter';
 import FamilyLayout from './family-layout';
 import FamilyHome from '@/pages/family/family-home';
+import InboxPanel from './inbox-panel';
 
 // Placeholder components for family portal pages
 function FamilyMembers() {
@@ -79,17 +80,23 @@ function withFamilyLayout(Component: () => JSX.Element) {
 
 export default function FamilyRouter() {
   return (
-    <Switch>
-      <Route path="/" component={withFamilyLayout(FamilyHome)} />
-      <Route path="/family" component={withFamilyLayout(FamilyHome)} />
-      <Route path="/family/members" component={withFamilyLayout(FamilyMembers)} />
-      <Route path="/family/documents" component={withFamilyLayout(FamilyDocuments)} />
-      <Route path="/family/messages" component={withFamilyLayout(FamilyMessages)} />
-      <Route path="/family/calendar" component={withFamilyLayout(FamilyCalendar)} />
-      <Route path="/family/photos" component={withFamilyLayout(FamilyPhotos)} />
-      <Route path="/family/emergency" component={withFamilyLayout(FamilyEmergency)} />
-      <Route path="/family/settings" component={withFamilyLayout(FamilySettings)} />
-      <Route component={withFamilyLayout(FamilyHome)} />
-    </Switch>
+    <>
+      {/* Main Family Routes */}
+      <Switch>
+        <Route path="/" component={withFamilyLayout(FamilyHome)} />
+        <Route path="/family" component={withFamilyLayout(FamilyHome)} />
+        <Route path="/family/members" component={withFamilyLayout(FamilyMembers)} />
+        <Route path="/family/documents" component={withFamilyLayout(FamilyDocuments)} />
+        <Route path="/family/messages" component={withFamilyLayout(FamilyMessages)} />
+        <Route path="/family/calendar" component={withFamilyLayout(FamilyCalendar)} />
+        <Route path="/family/photos" component={withFamilyLayout(FamilyPhotos)} />
+        <Route path="/family/emergency" component={withFamilyLayout(FamilyEmergency)} />
+        <Route path="/family/settings" component={withFamilyLayout(FamilySettings)} />
+        <Route component={withFamilyLayout(FamilyHome)} />
+      </Switch>
+      
+      {/* Inbox Slide-over Panel - rendered above all routes */}
+      <InboxPanel />
+    </>
   );
 }
