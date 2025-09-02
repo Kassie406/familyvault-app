@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate, Outlet, NavLink } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   Shield, LogOut, User, Settings, LayoutDashboard, Users, CreditCard, 
   Ticket, FileText, ShieldCheck, Activity, Search, Bell, 
@@ -9,6 +9,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import GlobalSearch, { useGlobalSearch } from './global-search';
 import ImpersonationBanner from './impersonation-banner';
 
@@ -23,6 +26,76 @@ export default function AdminLayout({ activeSection = 'overview', onSectionChang
   const location = useLocation();
   const { toast } = useToast();
   const { isOpen: isSearchOpen, setIsOpen: setIsSearchOpen } = useGlobalSearch();
+  
+  // Notification state
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState([
+    {
+      id: '1',
+      title: 'System Alert',
+      message: 'Database backup completed successfully',
+      type: 'success',
+      timestamp: new Date(Date.now() - 10 * 60 * 1000), // 10 minutes ago
+      read: false
+    },
+    {
+      id: '2', 
+      title: 'Security Warning',
+      message: 'Failed login attempt detected from IP 192.168.1.100',
+      type: 'warning',
+      timestamp: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+      read: false
+    },
+    {
+      id: '3',
+      title: 'User Activity',
+      message: '15 new user registrations in the last hour',
+      type: 'info',
+      timestamp: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
+      read: true
+    },
+    {
+      id: '4',
+      title: 'System Update',
+      message: 'Scheduled maintenance window begins in 2 hours',
+      type: 'info',
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+      read: false
+    }
+  ]);
+  
+  const unreadCount = notifications.filter(n => !n.read).length;
+  
+  // Helper functions
+  const markAsRead = (notificationId: string) => {
+    setNotifications(prev => 
+      prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+    );
+  };
+  
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+  
+  const formatTime = (timestamp: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - timestamp.getTime();
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return timestamp.toLocaleDateString();
+  };
+  
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'success': return <ShieldCheck className="w-4 h-4 text-green-500" />;
+      case 'warning': return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
+      case 'error': return <Shield className="w-4 h-4 text-red-500" />;
+      default: return <Activity className="w-4 h-4 text-blue-500" />;
+    }
+  };
 
   const { data: user } = useQuery({
     queryKey: ['/api/auth/me'],
@@ -193,10 +266,94 @@ export default function AdminLayout({ activeSection = 'overview', onSectionChang
                     Search everywhere... ⌘K
                   </button>
                   
-                  {/* Toolbar Actions */}
-                  <button className="px-3 py-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50">
-                    <Bell className="w-4 h-4" />
-                  </button>
+                  {/* Notifications */}
+                  <Popover open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
+                    <PopoverTrigger asChild>
+                      <button 
+                        className="relative px-3 py-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors"
+                        data-testid="button-notifications"
+                      >
+                        <Bell className="w-4 h-4" />
+                        {unreadCount > 0 && (
+                          <Badge 
+                            variant="destructive" 
+                            className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                          >
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                          </Badge>
+                        )}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-96 p-0 mr-6" align="end">
+                      <div className="p-4 border-b border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold">Notifications</h3>
+                          {unreadCount > 0 && (
+                            <button 
+                              onClick={markAllAsRead}
+                              className="text-sm text-blue-600 hover:text-blue-800"
+                              data-testid="button-mark-all-read"
+                            >
+                              Mark all read
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <ScrollArea className="max-h-96">
+                        {notifications.length === 0 ? (
+                          <div className="p-4 text-center text-gray-500">
+                            No notifications
+                          </div>
+                        ) : (
+                          <div className="divide-y divide-gray-100">
+                            {notifications.map((notification) => (
+                              <div 
+                                key={notification.id}
+                                className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
+                                  !notification.read ? 'bg-blue-50' : ''
+                                }`}
+                                onClick={() => markAsRead(notification.id)}
+                                data-testid={`notification-${notification.id}`}
+                              >
+                                <div className="flex items-start space-x-3">
+                                  <div className="flex-shrink-0 mt-1">
+                                    {getNotificationIcon(notification.type)}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between">
+                                      <p className="font-medium text-sm text-gray-900 truncate">
+                                        {notification.title}
+                                      </p>
+                                      {!notification.read && (
+                                        <div className="w-2 h-2 bg-blue-600 rounded-full ml-2 flex-shrink-0" />
+                                      )}
+                                    </div>
+                                    <p className="text-sm text-gray-600 mt-1">
+                                      {notification.message}
+                                    </p>
+                                    <p className="text-xs text-gray-400 mt-2">
+                                      {formatTime(notification.timestamp)}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </ScrollArea>
+                      {notifications.length > 0 && (
+                        <div className="p-3 border-t border-gray-200 bg-gray-50">
+                          <button 
+                            className="w-full text-sm text-gray-600 hover:text-gray-800 text-center"
+                            onClick={() => setIsNotificationOpen(false)}
+                            data-testid="button-view-all-notifications"
+                          >
+                            View all notifications
+                          </button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
             </div>
