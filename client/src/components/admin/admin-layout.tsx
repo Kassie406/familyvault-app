@@ -243,7 +243,7 @@ export default function AdminLayout({ activeSection = 'overview', onSectionChang
         {/* Main Content */}
         <main className="main" id="main">
           {/* Top Bar */}
-          <header className="bg-white border-b border-gray-200 shadow-sm relative z-50">
+          <header className="bg-white border-b border-gray-200 shadow-sm overflow-visible relative z-10">
             <div className="px-6 py-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -255,7 +255,7 @@ export default function AdminLayout({ activeSection = 'overview', onSectionChang
                   </p>
                 </div>
 
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-4 relative">
                   {/* Global Search (⌘K) */}
                   <button 
                     className="w-64 justify-start text-gray-500 bg-gray-50 border border-gray-200 hover:bg-gray-100 px-3 py-2 rounded-lg flex items-center"
@@ -285,11 +285,10 @@ export default function AdminLayout({ activeSection = 'overview', onSectionChang
                       </button>
                     </PopoverTrigger>
                     <PopoverContent 
-                      className="w-96 p-0 mr-6" 
+                      className="w-96 p-0 absolute right-0 top-12 z-[10000]" 
                       align="end" 
                       side="bottom" 
                       sideOffset={8}
-                      style={{ zIndex: 99999 }}
                     >
                       <div className="p-4 border-b border-gray-200">
                         <div className="flex items-center justify-between">
