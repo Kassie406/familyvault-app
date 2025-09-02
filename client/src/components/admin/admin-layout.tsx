@@ -409,7 +409,10 @@ export default function AdminLayout({ activeSection = 'overview', onSectionChang
                             <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 text-center rounded-b-2xl">
                               <button 
                                 className="text-sm text-blue-600 hover:text-blue-800"
-                                onClick={() => setIsNotificationOpen(false)}
+                                onClick={() => {
+                                  setIsNotificationOpen(false);
+                                  onSectionChange?.('security');
+                                }}
                                 data-testid="button-view-all-notifications"
                               >
                                 View all notifications
