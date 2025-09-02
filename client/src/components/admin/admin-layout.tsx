@@ -31,6 +31,7 @@ export default function AdminLayout({ activeSection = 'overview', onSectionChang
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const bellRef = useRef<HTMLButtonElement>(null);
   const [notificationPos, setNotificationPos] = useState({ top: 0, right: 0 });
+  const [notificationLimit, setNotificationLimit] = useState(3); // Show only 3 initially
   const [notifications, setNotifications] = useState([
     {
       id: '1',
@@ -368,7 +369,7 @@ export default function AdminLayout({ activeSection = 'overview', onSectionChang
                               </div>
                             ) : (
                               <div className="divide-y divide-gray-100">
-                                {notifications.map((notification) => (
+                                {notifications.slice(0, notificationLimit).map((notification) => (
                                   <div 
                                     key={notification.id}
                                     className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
@@ -404,18 +405,15 @@ export default function AdminLayout({ activeSection = 'overview', onSectionChang
                             )}
                           </div>
                           
-                          {/* Footer */}
-                          {notifications.length > 0 && (
+                          {/* Footer - Show only if there are more notifications to display */}
+                          {notifications.length > notificationLimit && (
                             <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 text-center rounded-b-2xl">
                               <button 
                                 className="text-sm text-blue-600 hover:text-blue-800"
-                                onClick={() => {
-                                  setIsNotificationOpen(false);
-                                  onSectionChange?.('security');
-                                }}
+                                onClick={() => setNotificationLimit(notifications.length)}
                                 data-testid="button-view-all-notifications"
                               >
-                                View all notifications
+                                View all notifications ({notifications.length - notificationLimit} more)
                               </button>
                             </div>
                           )}
