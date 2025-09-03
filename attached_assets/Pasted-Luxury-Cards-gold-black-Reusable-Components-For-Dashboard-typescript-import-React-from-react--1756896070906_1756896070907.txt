@@ -1,0 +1,135 @@
+Luxury Cards (gold/black) – Reusable Components For Dashboard
+· typescript
+import React from "react";
+      </div>
+    </LuxuryCard>
+  );
+}
+
+
+/** AnnouncementCard — priority banner with subtle gold strip */
+export function AnnouncementCard({ title, body, meta }: { title: string; body?: string; meta?: string }) {
+  return (
+    <LuxuryCard className="p-4 relative overflow-hidden">
+      <div className="absolute left-0 top-0 h-full w-1 bg-[#D4AF37]" />
+      <div className="ml-3">
+        <div className="text-sm font-medium text-white flex items-center gap-2">
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: GOLD }} />
+          {title}
+        </div>
+        {body && <div className="text-sm text-neutral-300 mt-1">{body}</div>}
+        {meta && <div className="text-xs text-neutral-500 mt-1">{meta}</div>}
+      </div>
+    </LuxuryCard>
+  );
+}
+
+
+/** ActivityTimeline — vertical line with dots */
+export function ActivityTimeline({ items }: { items: { icon?: React.ReactNode; title: string; meta: string; tone?: "ok" | "info" | "warn" }[] }) {
+  return (
+    <LuxuryCard className="p-5">
+      <div className="relative">
+        <div className="absolute left-[14px] top-0 bottom-0 w-px bg-[#2A2A33]" />
+        <ul className="space-y-4">
+          {items.map((it, i) => (
+            <li key={i} className="relative pl-10">
+              <span className="absolute left-[8px] top-1 h-3 w-3 rounded-full border border-[#2A2A33]"
+                style={{ background: it.tone === "ok" ? "#2ECC71" : it.tone === "warn" ? "#E7B84C" : "#2D7CF0" }} />
+              <div className="text-sm text-white">{it.title}</div>
+              <div className="text-xs text-neutral-400">{it.meta}</div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </LuxuryCard>
+  );
+}
+
+
+/** ---------------------- USAGE EXAMPLE (Dashboard) ---------------------- */
+export function DashboardPreview() {
+  return (
+    <div className="space-y-6">
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <StatCard icon={<Users className="h-5 w-5"/>} value={5} label="Family Members" />
+        <StatCard icon={<FileText className="h-5 w-5"/>} value={23} label="Documents Shared" />
+        <StatCard icon={<MessageCircle className="h-5 w-5"/>} value={12} label="Messages Today" />
+        <StatCard icon={<ImageIcon className="h-5 w-5"/>} value={156} label="Photos Uploaded" />
+      </div>
+
+
+      {/* Quick actions */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <ActionCard icon={<Upload className="h-5 w-5"/>} title="Upload Document" subtitle="Add new family document" />
+        <ActionCard icon={<MessageCircle className="h-5 w-5"/>} title="Send Message" subtitle="Chat with family" />
+        <ActionCard icon={<ImageIcon className="h-5 w-5"/>} title="View Photos" subtitle="Browse family gallery" />
+        <ActionCard icon={<ShieldAlert className="h-5 w-5"/>} title="Emergency Info" subtitle="Quick access to critical info" />
+      </div>
+
+
+      {/* Activity + Announcements */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ActivityTimeline
+          items={[
+            { title: "Medical Records Updated", meta: "Sarah updated emergency contact info · 2 hours ago", tone: "info" },
+            { title: "New Family Message", meta: "Dad shared vacation photos · 4 hours ago", tone: "ok" },
+            { title: "Upcoming Event", meta: "Family dinner Sunday 6 PM · 1 day ago", tone: "info" },
+            { title: "Safety Check Complete", meta: "All family confirmed safe · 2 days ago", tone: "ok" },
+          ]}
+        />
+        <div className="space-y-3">
+          <AnnouncementCard title="Family Vacation Planning" body="Submit preferred dates for the summer trip by Friday" meta="Posted by Mom · 3 days ago" />
+          <AnnouncementCard title="Updated Family Calendar" body="New events: Sarah's graduation, reunion in July" meta="Posted by Dad · 1 week ago" />
+        </div>
+      </div>
+
+
+      {/* Tools */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <ToolCard icon={<Users className="h-6 w-6"/>} title="Family Members" description="Manage profiles, contacts, and emergency details." cta="Manage profiles →" />
+        <ToolCard icon={<FileText className="h-6 w-6"/>} title="Document Vault" description="Securely store and share IDs, medical, legal papers." cta="View documents →" />
+        <ToolCard icon={<ShieldAlert className="h-6 w-6"/>} title="Emergency Center" description="Quick access to emergency info and safety plans." cta="Access emergency info →" />
+      </div>
+    </div>
+  );
+}
+
+
+
+Done. I dropped a full luxury card system in the canvas you can plug into the Dashboard right now.
+
+What you got
+
+<LuxuryCard/> base: dark gradient, soft border, gold glow on hover.
+
+<StatCard/>: big number + label + icon (for Members, Docs, etc.).
+
+<ActionCard/>: pill-style quick actions with gold icon circle.
+
+<ToolCard/>: section entry cards (Members, Vault, Emergency).
+
+<AnnouncementCard/>: gold strip banner for notices.
+
+<ActivityTimeline/>: vertical timeline with dots (Recent Activity).
+
+DashboardPreview example wiring all sections together.
+
+Theme details
+
+Uses your Royal Gold #D4AF37 accents.
+
+Dark backgrounds (#161616 → #0F0F0F) with elegant shadows.
+
+Consistent spacing, rounded 2xl, tasteful hover transitions.
+
+How to use
+
+Import the components from the file and replace your current dashboard card markup section-by-section:
+
+<StatCard icon={<Users className="h-5 w-5" />} value={5} label="Family Members" />
+<ActionCard icon={<Upload className="h-5 w-5" />} title="Upload Document" subtitle="Add new family document" />
+<ActivityTimeline items={[{ title: "Medical Records Updated", meta: "2h ago" }]} />
+<AnnouncementCard title="Family Vacation Planning" body="Submit dates by Friday" />
+<ToolCard icon={<FileText className="h-6 w-6" />} title="Document Vault" cta="View documents →" />
