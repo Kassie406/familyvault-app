@@ -1,0 +1,85 @@
+that toggle is effectively invisible on the dark card. It’s a styling clash: the track and thumb colors default to “background” tokens that are almost the same as your card gradient, and the thumb only becomes obvious on hover.
+
+Here’s a drop-in fix that makes the switch always visible in your gold/black theme.
+
+1) Global CSS override (recommended)
+
+Add this to your globals.css (or wherever your Tailwind base styles live):
+
+/* ---- FamilyCircle Secure: Gold/Black Switch ---- */
+/* Works with shadcn/ui <Switch /> */
+
+.fcs-switch {
+  height: 24px;           /* h-6 */
+  width: 44px;            /* w-11 */
+  border: 1px solid #2A2A33;
+  background: #15161B;    /* visible on dark cards */
+  transition: background-color .2s, border-color .2s, box-shadow .2s;
+}
+
+.fcs-switch[data-state="checked"] {
+  background: #D4AF37;    /* Royal Gold track */
+  border-color: #D4AF37;
+}
+
+/* Thumb */
+.fcs-switch > span {
+  background: #0A0A0F;    /* dark thumb so it pops on gold & grey */
+}
+
+/* Focus ring for accessibility */
+.fcs-switch:focus-visible {
+  box-shadow: 0 0 0 2px #0A0A0F, 0 0 0 4px #D4AF37;
+}
+
+/* Optional: disabled look (if you ever use disabled switches) */
+.fcs-switch[disabled] {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+2) Use the class on your Switch
+
+Update the two switches in your Share panel:
+
+{/* Enable shareable link */}
+<Switch
+  checked={linkEnabled}
+  onCheckedChange={(v) => setLinkEnabled(v)}
+  className="fcs-switch"
+/>
+
+{/* Require login */}
+<Switch
+  checked={requireLogin}
+  onCheckedChange={(v) => setRequireLogin(v)}
+  className="fcs-switch"
+/>
+
+
+Why this works: shadcn’s <Switch /> renders a button[role="switch"] (the track) and a span (the thumb). The .fcs-switch class targets the track via data-state and the thumb via > span, so it’s reliable and doesn’t depend on internal class names.
+
+3) Pure Tailwind (optional, no global CSS)
+
+If you prefer to keep it inline, this also works—but it’s harder to maintain because you can’t target the thumb without CSS:
+
+<Switch
+  checked={requireLogin}
+  onCheckedChange={setRequireLogin}
+  className="
+    h-6 w-11 border data-[state=unchecked]:bg-[#15161B] data-[state=unchecked]:border-[#2A2A33]
+    data-[state=checked]:bg-[#D4AF37] data-[state=checked]:border-[#D4AF37]
+    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0F]
+  "
+/>
+
+
+(You’ll still want the global CSS snippet for the thumb color, otherwise it may blend into the track.)
+
+4) Sanity checks
+
+Ensure you’re not passing disabled inadvertently.
+
+Verify no parent has opacity-0, mix-blend-*, or backdrop-filter affecting the switch.
+
+If you use CSS modules/scope, keep .fcs-switch global.
