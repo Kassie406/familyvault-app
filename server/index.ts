@@ -588,9 +588,21 @@ app.put("/api/credentials/:id/shares", requireAuth, async (req: AuthenticatedReq
 
 // Mock credential data (in production this would be encrypted in database)
 const mockCredentials: Record<string, any> = {
+  '1': {
+    title: "Angel's Phone Password",
+    tag: 'Device',
+    owner: 'Angel',
+    sharedBy: 'Kassandra',
+    username: 'angel@family.com',
+    password: 'Angel123Phone!',
+    url: '',
+    notes: 'Angel\'s phone unlock password - updated monthly'
+  },
   'c-gd-home': {
     title: 'Garage Door Code',
     tag: 'Access',
+    owner: 'Family',
+    sharedBy: 'Dad',
     username: '',
     password: '4829',
     url: '',
@@ -599,6 +611,8 @@ const mockCredentials: Record<string, any> = {
   'c-ph-angel': {
     title: 'Bank of America - Personal Account',
     tag: 'Banking', 
+    owner: 'Angel',
+    sharedBy: 'Angel',
     username: 'sarah.johnson@email.com',
     password: 'MySecureP@ssw0rd123',
     url: 'https://bankofamerica.com',
@@ -607,6 +621,8 @@ const mockCredentials: Record<string, any> = {
   'c-em-work': {
     title: 'Gmail - Work Account',
     tag: 'Email',
+    owner: 'Dad',
+    sharedBy: 'Dad',
     username: 'john.smith@company.com', 
     password: 'WorkEmail2024!',
     url: 'https://gmail.com',
@@ -630,9 +646,13 @@ app.get("/api/share/:token", async (req, res) => {
       where: eq(credentials.id, link.credentialId),
     });
 
+    // Get credential details from mock data for better display
+    const mockData = mockCredentials[link.credentialId];
+    
     return res.json({
-      title: cred?.title ?? "Shared Item",
-      owner: cred?.ownerId ?? "Unknown",
+      title: mockData?.title ?? cred?.title ?? "Shared Item",
+      owner: mockData?.owner ?? cred?.ownerId ?? "Unknown",
+      sharedBy: mockData?.sharedBy ?? "Unknown",
       requireLogin: !!link.requireLogin,
       canReveal: !link.requireLogin,
     });
@@ -669,6 +689,9 @@ app.post("/api/share/:token/reveal", async (req: Request, res: Response) => {
     if (!mockData) {
       // Return fallback data for demo purposes
       return res.json({
+        title: "Demo Credential",
+        owner: "Unknown",
+        sharedBy: "System",
         username: "demo@example.com",
         password: "Demo123Password",
         url: "https://example.com",
@@ -680,8 +703,11 @@ app.post("/api/share/:token/reveal", async (req: Request, res: Response) => {
     const userId = link.requireLogin ? getUserId(req as AuthenticatedRequest) : 'anonymous';
     console.log(`Share revealed: credential=${link.credentialId}, user=${userId}`);
 
-    // Return full credential data that frontend expects
+    // Return full credential data that frontend expects (metadata + secrets)
     return res.json({
+      title: mockData.title,
+      owner: mockData.owner,
+      sharedBy: mockData.sharedBy,
       username: mockData.username,
       password: mockData.password,
       url: mockData.url,
