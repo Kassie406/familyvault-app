@@ -109,87 +109,35 @@ export default function FamilyHome() {
   ];
 
   return (
-    <div className="flex h-full">
-      {/* Sidebar */}
-      <div className="w-64 bg-[#111111] border-r border-gray-800 flex flex-col">
-        {/* Sidebar Header */}
-        <div className="p-6 border-b border-gray-800">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-[#D4AF37] rounded-lg">
-              <Heart className="w-5 h-5 text-black" />
-            </div>
-            <h2 className="text-lg font-semibold text-white">Family Circle Secure</h2>
-          </div>
-        </div>
-
-        {/* Sidebar Navigation */}
-        <nav className="flex-1 py-4">
-          {sidebarItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = item.id === activeSection;
-            return (
-              <Link
-                key={item.id}
-                to={item.href}
-                onClick={() => setActiveSection(item.id)}
-                className={`flex items-center px-6 py-3 text-sm font-medium transition-all duration-200 relative group ${
-                  isActive
-                    ? 'text-[#D4AF37] border-r-2 border-[#D4AF37] bg-[#1a1a1a]'
-                    : 'text-gray-300 hover:text-[#D4AF37] hover:bg-[#1a1a1a]'
-                }`}
-                data-testid={`sidebar-${item.id}`}
-              >
-                <Icon className={`w-5 h-5 mr-3 transition-colors ${
-                  isActive ? 'text-[#D4AF37]' : 'text-gray-400 group-hover:text-[#D4AF37]'
-                }`} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Sidebar Footer */}
-        <div className="p-6 border-t border-gray-800">
-          <Link
-            to="/family/referrals"
-            className="flex items-center text-sm font-medium text-[#2ECC71] hover:text-[#D4AF37] transition-colors group"
-          >
-            <DollarSign className="w-4 h-4 mr-2 group-hover:text-[#D4AF37]" />
-            Refer & earn
-          </Link>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto bg-[#F8F8F8]">
-        {/* Luxury Header with Gradient */}
-        <div className="bg-gradient-to-r from-[#0A0A1A] via-[#111111] to-[#0A0A1A] relative overflow-hidden">
-          {/* Gold Heart Crest Background */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-10">
-            <Heart className="w-32 h-32 text-[#D4AF37]" />
-          </div>
-          
-          <div className="relative z-10 text-center py-16 px-8">
-            <div className="flex items-center justify-center mb-6">
-              <div className="p-4 bg-[#D4AF37] rounded-full shadow-lg">
-                <Heart className="w-10 h-10 text-black" />
-              </div>
-            </div>
-            <h1 className="text-4xl font-bold text-white mb-2">
-              Welcome to Your{' '}
-              <span className="text-[#D4AF37] relative group">
-                Family Portal
-                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#D4AF37] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
-              </span>
-            </h1>
-            <p className="text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed">
-              Your secure, private space to stay connected and organized as a family. 
-              Share important documents, communicate safely, and keep everyone informed.
-            </p>
-          </div>
+    <div className="flex-1 overflow-auto bg-[#F8F8F8]">
+      {/* Luxury Header with Gradient */}
+      <div className="bg-gradient-to-r from-[#0A0A1A] via-[#111111] to-[#0A0A1A] relative overflow-hidden">
+        {/* Gold Heart Crest Background */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-10">
+          <Heart className="w-32 h-32 text-[#D4AF37]" />
         </div>
         
-        <div className="p-8 space-y-8">
+        <div className="relative z-10 text-center py-16 px-8">
+          <div className="flex items-center justify-center mb-6">
+            <div className="p-4 bg-[#D4AF37] rounded-full shadow-lg">
+              <Heart className="w-10 h-10 text-black" />
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold text-white mb-2">
+            Welcome to Your{' '}
+            <span className="text-[#D4AF37] relative group">
+              Family Portal
+              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#D4AF37] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
+            </span>
+          </h1>
+          <p className="text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed">
+            Your secure, private space to stay connected and organized as a family. 
+            Share important documents, communicate safely, and keep everyone informed.
+          </p>
+        </div>
+      </div>
+      
+      <div className="p-8 space-y-8">
 
       {/* Family Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -377,7 +325,6 @@ export default function FamilyHome() {
           </p>
         </div>
       </div>
-        </div>
       </div>
     </div>
   );

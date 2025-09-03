@@ -1,5 +1,5 @@
 import { Switch, Route } from 'wouter';
-import FamilyLayout from './family-layout';
+import SidebarLayout from './sidebar-layout';
 import FamilyHome from '@/pages/family/family-home';
 import FamilyIds from '@/pages/family/family-ids';
 import Finance from '@/pages/family/finance';
@@ -78,12 +78,12 @@ function FamilySettings() {
 }
 
 // Layout wrapper for family pages
-function withFamilyLayout(Component: () => JSX.Element) {
+function withSidebarLayout(Component: () => JSX.Element) {
   return function WrappedComponent() {
     return (
-      <FamilyLayout>
+      <SidebarLayout>
         <Component />
-      </FamilyLayout>
+      </SidebarLayout>
     );
   };
 }
@@ -93,25 +93,25 @@ export default function FamilyRouter() {
     <>
       {/* Main Family Routes */}
       <Switch>
-        <Route path="/" component={withFamilyLayout(FamilyHome)} />
-        <Route path="/family" component={withFamilyLayout(FamilyHome)} />
-        <Route path="/family/ids" component={withFamilyLayout(() => <FamilyIds />)} />
-        <Route path="/family/finance" component={withFamilyLayout(() => <Finance />)} />
-        <Route path="/family/property" component={withFamilyLayout(() => <Property />)} />
-        <Route path="/family/passwords" component={withFamilyLayout(() => <FamilyPasswords />)} />
-        <Route path="/family/insurance" component={withFamilyLayout(() => <FamilyInsurance />)} />
-        <Route path="/family/taxes" component={withFamilyLayout(() => <FamilyTaxes />)} />
-        <Route path="/family/legal" component={withFamilyLayout(() => <FamilyLegal />)} />
-        <Route path="/family/resources" component={withFamilyLayout(() => <FamilyResources />)} />
-        <Route path="/family/contacts" component={withFamilyLayout(() => <FamilyContacts />)} />
-        <Route path="/family/members" component={withFamilyLayout(FamilyMembers)} />
-        <Route path="/family/documents" component={withFamilyLayout(FamilyDocuments)} />
-        <Route path="/family/messages" component={withFamilyLayout(FamilyMessages)} />
-        <Route path="/family/calendar" component={withFamilyLayout(FamilyCalendar)} />
-        <Route path="/family/photos" component={withFamilyLayout(FamilyPhotos)} />
-        <Route path="/family/emergency" component={withFamilyLayout(FamilyEmergency)} />
-        <Route path="/family/settings" component={withFamilyLayout(FamilySettings)} />
-        <Route component={withFamilyLayout(FamilyHome)} />
+        <Route path="/" component={withSidebarLayout(FamilyHome)} />
+        <Route path="/family" component={withSidebarLayout(FamilyHome)} />
+        <Route path="/family/ids" component={withSidebarLayout(() => <FamilyIds />)} />
+        <Route path="/family/finance" component={withSidebarLayout(() => <Finance />)} />
+        <Route path="/family/property" component={withSidebarLayout(() => <Property />)} />
+        <Route path="/family/passwords" component={withSidebarLayout(() => <FamilyPasswords />)} />
+        <Route path="/family/insurance" component={withSidebarLayout(() => <FamilyInsurance />)} />
+        <Route path="/family/taxes" component={withSidebarLayout(() => <FamilyTaxes />)} />
+        <Route path="/family/legal" component={withSidebarLayout(() => <FamilyLegal />)} />
+        <Route path="/family/resources" component={withSidebarLayout(() => <FamilyResources />)} />
+        <Route path="/family/contacts" component={withSidebarLayout(() => <FamilyContacts />)} />
+        <Route path="/family/members" component={withSidebarLayout(FamilyMembers)} />
+        <Route path="/family/documents" component={withSidebarLayout(FamilyDocuments)} />
+        <Route path="/family/messages" component={withSidebarLayout(FamilyMessages)} />
+        <Route path="/family/calendar" component={withSidebarLayout(FamilyCalendar)} />
+        <Route path="/family/photos" component={withSidebarLayout(FamilyPhotos)} />
+        <Route path="/family/emergency" component={withSidebarLayout(FamilyEmergency)} />
+        <Route path="/family/settings" component={withSidebarLayout(FamilySettings)} />
+        <Route component={withSidebarLayout(FamilyHome)} />
       </Switch>
       
       {/* Slide-over Panels - rendered above all routes */}
