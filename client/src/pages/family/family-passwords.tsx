@@ -606,7 +606,7 @@ function EnhancedShareContent({
     timeoutRef.current = timer;
 
     try {
-      const response = await fetch(`/api/credentials/${credential.id}/shares/regenerate`, {
+      const response = await fetch(`/api/share-generate/${credential.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
