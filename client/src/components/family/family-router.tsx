@@ -2,6 +2,7 @@ import { Switch, Route } from 'wouter';
 import FamilyLayout from './family-layout';
 import FamilyHome from '@/pages/family/family-home';
 import InboxPanel from './inbox-panel';
+import RemindersPanel from './reminders-panel';
 
 // Placeholder components for family portal pages
 function FamilyMembers() {
@@ -95,8 +96,9 @@ export default function FamilyRouter() {
         <Route component={withFamilyLayout(FamilyHome)} />
       </Switch>
       
-      {/* Inbox Slide-over Panel - rendered above all routes */}
+      {/* Slide-over Panels - rendered above all routes */}
       <InboxPanel />
+      <RemindersPanel />
     </>
   );
 }
