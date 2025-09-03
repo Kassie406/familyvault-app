@@ -9,6 +9,7 @@ import FamilyInsurance from '@/pages/family/family-insurance';
 import FamilyTaxes from '@/pages/family/family-taxes';
 import FamilyLegal from '@/pages/family/family-legal';
 import FamilyResources from '@/pages/family/family-resources';
+import FamilyContacts from '@/pages/family/family-contacts';
 import InboxPanel from './inbox-panel';
 import RemindersPanel from './reminders-panel';
 
@@ -102,6 +103,7 @@ export default function FamilyRouter() {
         <Route path="/family/taxes" component={withFamilyLayout(() => <FamilyTaxes />)} />
         <Route path="/family/legal" component={withFamilyLayout(() => <FamilyLegal />)} />
         <Route path="/family/resources" component={withFamilyLayout(() => <FamilyResources />)} />
+        <Route path="/family/contacts" component={withFamilyLayout(() => <FamilyContacts />)} />
         <Route path="/family/members" component={withFamilyLayout(FamilyMembers)} />
         <Route path="/family/documents" component={withFamilyLayout(FamilyDocuments)} />
         <Route path="/family/messages" component={withFamilyLayout(FamilyMessages)} />
