@@ -67,6 +67,34 @@ export default function RemindersPanel() {
       context: "Family Resources • Emergency Info",
       dateISO: "2024-11-20",
       cadence: "quarterly"
+    },
+    {
+      id: "6",
+      title: "Sarah's Birthday",
+      context: "Family Birthdays • Age 16",
+      dateISO: "2025-02-14",
+      cadence: "yearly"
+    },
+    {
+      id: "7",
+      title: "Mom's Birthday",
+      context: "Family Birthdays • Birthday Celebration",
+      dateISO: "2025-03-22",
+      cadence: "yearly"
+    },
+    {
+      id: "8",
+      title: "Dad's Birthday", 
+      context: "Family Birthdays • Birthday Celebration",
+      dateISO: "2025-05-18",
+      cadence: "yearly"
+    },
+    {
+      id: "9",
+      title: "Grandma's Birthday",
+      context: "Family Birthdays • 85th Birthday",
+      dateISO: "2025-06-08",
+      cadence: "yearly"
     }
   ];
 
