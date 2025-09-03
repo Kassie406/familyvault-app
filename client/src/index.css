@@ -3,6 +3,38 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---- FamilyCircle Secure: Gold/Black Switch ---- */
+/* Works with shadcn/ui <Switch /> */
+
+.fcs-switch {
+  height: 24px;           /* h-6 */
+  width: 44px;            /* w-11 */
+  border: 1px solid #2A2A33;
+  background: #15161B;    /* visible on dark cards */
+  transition: background-color .2s, border-color .2s, box-shadow .2s;
+}
+
+.fcs-switch[data-state="checked"] {
+  background: #D4AF37;    /* Royal Gold track */
+  border-color: #D4AF37;
+}
+
+/* Thumb */
+.fcs-switch > span {
+  background: #0A0A0F;    /* dark thumb so it pops on gold & grey */
+}
+
+/* Focus ring for accessibility */
+.fcs-switch:focus-visible {
+  box-shadow: 0 0 0 2px #0A0A0F, 0 0 0 4px #D4AF37;
+}
+
+/* Optional: disabled look (if you ever use disabled switches) */
+.fcs-switch[disabled] {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
 
 /* ---- Scrollable Sidebar Layout ---- */
 .app-shell{

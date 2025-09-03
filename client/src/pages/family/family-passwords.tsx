@@ -660,7 +660,7 @@ function EnhancedShareContent({
           <Switch 
             checked={linkEnabled}
             onCheckedChange={handleLinkToggle}
-            className="data-[state=checked]:bg-[#D4AF37]"
+            className="fcs-switch"
           />
           <Label className="text-sm text-white">Enable shareable link</Label>
         </div>
@@ -735,7 +735,7 @@ function EnhancedShareContent({
                 <Switch 
                   checked={requireLogin}
                   onCheckedChange={setRequireLogin}
-                  className="data-[state=checked]:bg-[#D4AF37] scale-75"
+                  className="fcs-switch"
                 />
                 <Label className="text-xs text-neutral-400">Require login</Label>
                 <Info className="h-3 w-3 text-neutral-400" />
