@@ -96,8 +96,8 @@ export default function FamilyPasswords() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-gray-900">Passwords</h1>
-          <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+          <h1 className="text-2xl font-bold text-black">Passwords</h1>
+          <div className="flex items-center gap-2 bg-[#D4AF37] bg-opacity-10 text-[#D4AF37] px-3 py-1 rounded-full">
             <Plus className="h-4 w-4" />
             <span className="text-sm font-medium">
               {passwordManagers.reduce((sum, pm) => sum + pm.itemCount, 0)} recommended items
@@ -106,7 +106,7 @@ export default function FamilyPasswords() {
         </div>
         <Button 
           variant="ghost" 
-          className="text-gray-600 hover:text-gray-900"
+          className="text-gray-600 hover:text-[#D4AF37]"
           data-testid="button-help"
         >
           Help
@@ -120,25 +120,25 @@ export default function FamilyPasswords() {
           placeholder="Search"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 bg-gray-50 border-0 focus:bg-white"
+          className="pl-10 bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-[#D4AF37] focus:ring-opacity-50"
           data-testid="input-search"
         />
       </div>
 
       {/* Password Managers Section */}
       <div className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Password Managers</h2>
+        <h2 className="text-lg font-semibold text-black mb-4">Password Managers</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredPasswordManagers.map((manager) => (
-            <Card key={manager.id} className="border border-gray-200 hover:border-gray-300 transition-colors">
+            <Card key={manager.id} className="border border-gray-200 hover:border-[#D4AF37] hover:shadow-md transition-all duration-200">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
-                    <div className="bg-blue-100 p-2 rounded-lg">
-                      <manager.icon className="h-5 w-5 text-blue-600" />
+                    <div className="bg-[#D4AF37] bg-opacity-10 p-2 rounded-lg">
+                      <manager.icon className="h-5 w-5 text-[#D4AF37]" />
                     </div>
                     <div>
-                      <h3 className="font-medium text-gray-900 mb-1" data-testid={`text-manager-${manager.id}`}>
+                      <h3 className="font-medium text-black mb-1" data-testid={`text-manager-${manager.id}`}>
                         {manager.name}
                       </h3>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -185,10 +185,10 @@ export default function FamilyPasswords() {
 
       {/* Individual Passwords Section */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Passwords</h2>
+        <h2 className="text-lg font-semibold text-black mb-4">Passwords</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredPasswords.map((password) => (
-            <Card key={password.id} className="border border-gray-200 hover:border-gray-300 transition-colors">
+            <Card key={password.id} className="border border-gray-200 hover:border-[#D4AF37] hover:shadow-md transition-all duration-200">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
@@ -196,7 +196,7 @@ export default function FamilyPasswords() {
                       <password.icon className="h-5 w-5 text-gray-600" />
                     </div>
                     <div>
-                      <h3 className="font-medium text-gray-900 mb-1" data-testid={`text-password-${password.id}`}>
+                      <h3 className="font-medium text-black mb-1" data-testid={`text-password-${password.id}`}>
                         {password.name}
                       </h3>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -250,7 +250,7 @@ export default function FamilyPasswords() {
           <div className="text-gray-400 mb-4">
             <Key className="h-12 w-12 mx-auto" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No passwords found</h3>
+          <h3 className="text-lg font-medium text-black mb-2">No passwords found</h3>
           <p className="text-gray-600">Try adjusting your search terms or add a new password.</p>
         </div>
       )}
