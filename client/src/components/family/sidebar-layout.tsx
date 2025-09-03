@@ -47,16 +47,16 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
   ];
 
   return (
-    <div className="flex h-screen bg-[#F8F8F8]">
+    <div className="flex h-screen bg-[var(--bg-900)]">
       {/* Sidebar */}
-      <div className="w-64 bg-[#111111] border-r border-gray-800 flex flex-col fixed h-full z-30">
+      <div className="w-64 bg-[var(--bg-850)] border-r border-[var(--line-700)] flex flex-col fixed h-full z-30">
         {/* Sidebar Header */}
-        <div className="p-6 border-b border-gray-800">
+        <div className="p-6 border-b border-[var(--line-700)]">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-[#D4AF37] rounded-lg">
               <Heart className="w-5 h-5 text-black" />
             </div>
-            <h2 className="text-lg font-semibold text-white">Family Circle Secure</h2>
+            <h2 className="text-lg font-semibold text-[var(--ink-100)]">Family Circle Secure</h2>
           </div>
         </div>
 
@@ -72,13 +72,13 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
                 onClick={() => setActiveSection(item.id)}
                 className={`flex items-center px-6 py-3 text-sm font-medium transition-all duration-200 relative group ${
                   isActive
-                    ? 'text-[#D4AF37] border-r-2 border-[#D4AF37] bg-[#1a1a1a]'
-                    : 'text-gray-300 hover:text-[#D4AF37] hover:bg-[#1a1a1a]'
+                    ? 'text-[var(--gold)] border-r-2 border-[var(--gold)] bg-[var(--bg-800)]'
+                    : 'text-[var(--ink-300)] hover:text-[var(--gold)] hover:bg-[var(--bg-800)]'
                 }`}
                 data-testid={`sidebar-${item.id}`}
               >
                 <Icon className={`w-5 h-5 mr-3 transition-colors ${
-                  isActive ? 'text-[#D4AF37]' : 'text-gray-400 group-hover:text-[#D4AF37]'
+                  isActive ? 'text-[var(--gold)]' : 'text-[var(--ink-300)] group-hover:text-[var(--gold)]'
                 }`} />
                 {item.label}
               </Link>
@@ -87,10 +87,10 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="p-6 border-t border-gray-800">
+        <div className="p-6 border-t border-[var(--line-700)]">
           <Link
             to="/family/referrals"
-            className="flex items-center text-sm font-medium text-[#2ECC71] hover:text-[#D4AF37] transition-colors group"
+            className="flex items-center text-sm font-medium text-[#2ECC71] hover:text-[var(--gold)] transition-colors group"
           >
             <DollarSign className="w-4 h-4 mr-2 group-hover:text-[#D4AF37]" />
             Refer & earn

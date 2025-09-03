@@ -43,13 +43,13 @@ export default function FamilyResources() {
   const totalItems = 4;
 
   return (
-    <div className="bg-white rounded-xl p-8 shadow-sm">
+    <div className="card p-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-bold text-black">Family Resources</h1>
+        <h1 className="text-2xl font-bold text-[var(--ink-100)]">Family Resources</h1>
         <Button 
           variant="ghost" 
-          className="text-gray-600 hover:text-[#D4AF37]"
+          className="text-[var(--ink-300)] hover:text-[var(--gold)]"
           data-testid="button-help"
         >
           Help

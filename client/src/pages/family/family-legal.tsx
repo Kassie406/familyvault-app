@@ -164,12 +164,12 @@ export default function FamilyLegal() {
                     filteredPowerOfAttorney.length > 0 || filteredMedicalDirectives.length > 0;
 
   return (
-    <div className="bg-white rounded-xl p-8 shadow-sm">
+    <div className="card p-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-black">Legal</h1>
-          <div className="flex items-center gap-2 bg-[#D4AF37] bg-opacity-10 text-[#D4AF37] px-3 py-1 rounded-full">
+          <h1 className="text-2xl font-bold text-[var(--ink-100)]">Legal</h1>
+          <div className="flex items-center gap-2 bg-[var(--gold)] bg-opacity-10 text-[var(--gold)] px-3 py-1 rounded-full">
             <Plus className="h-4 w-4" />
             <span className="text-sm font-medium">
               {totalItems} recommended items

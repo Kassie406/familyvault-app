@@ -76,19 +76,29 @@ html, body { height:auto; overflow:auto; }
   pointer-events: none;
 }
 
-/* Force light color scheme throughout the admin interface */
+/* Dark luxury theme with new brand palette */
 :root {
-  /* Core palette - standardized theme */
-  --bg: #0b0b0c;          /* page background */
-  --surface: #141415;     /* cards/sections */
-  --surface-2: #1a1b1c;   /* inset panels/stripes */
-  --text: #e7e7ea;        /* primary text */
-  --muted: #a8a9ad;       /* secondary text */
-  --line: #2a2b2e;        /* subtle borders */
-  --brand: #f6c33d;       /* gold */
-  --brand-2: #f6c33d;     /* same gold for hover - no color change */
-  --brand-ink: #000;      /* pure black text on gold */
-  --focus: #ffe69070;     /* focus ring */
+  /* New brand palette - dark luxury */
+  --gold: #D4AF37;        /* Royal Gold */
+  --gold-600: #c6a02e;    /* Gold hover */
+  --bg-900: #0A0A0F;      /* Page background */
+  --bg-850: #0F1016;      /* Cards/sections */
+  --bg-800: #13141B;      /* Inputs/secondary */
+  --ink-100: #F4F4F6;     /* Primary text */
+  --ink-300: #C9CBD3;     /* Secondary text */
+  --line-700: #232530;    /* Borders */
+  
+  /* Core palette - mapped to new system */
+  --bg: var(--bg-900);    /* page background */
+  --surface: var(--bg-850);     /* cards/sections */
+  --surface-2: var(--bg-800);   /* inset panels/stripes */
+  --text: var(--ink-100);        /* primary text */
+  --muted: var(--ink-300);       /* secondary text */
+  --line: var(--line-700);        /* subtle borders */
+  --brand: var(--gold);       /* gold */
+  --brand-2: var(--gold-600);     /* gold hover */
+  --brand-ink: #0B0B0E;      /* dark text on gold */
+  --focus: rgba(212, 175, 55, 0.4);     /* focus ring */
   
   /* Legacy compatibility - mapped to new system */
   --background: var(--bg);
@@ -257,9 +267,101 @@ html, body { height:auto; overflow:auto; }
   color: var(--brand);
 }
 
+/* Luxury hero background (dark vignette + gold glow) */
+.rich-hero {
+  background:
+    radial-gradient(1200px 600px at 80% 40%, rgba(212,175,55,0.22), transparent 60%),
+    radial-gradient(900px 500px at 10% 10%, rgba(212,175,55,0.12), transparent 60%),
+    linear-gradient(180deg, var(--bg-900) 0%, var(--bg-900) 40%, var(--bg-850) 100%);
+}
+
+/* Card + border system */
+.card {
+  background: linear-gradient(180deg, var(--bg-850), var(--bg-800));
+  border: 1px solid var(--line-700);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / .35);
+}
+.card:hover { 
+  box-shadow: 0 16px 40px rgb(0 0 0 / .45); 
+}
+
+/* Buttons */
+.btn-gold {
+  background: var(--gold);
+  color: #0B0B0E;
+  border-radius: 999px;
+  box-shadow: 0 6px 14px rgba(212,175,55,.25);
+}
+.btn-gold:hover { 
+  background: var(--gold-600); 
+  transform: translateY(-1px); 
+}
+.btn-ghost { 
+  color: var(--ink-100); 
+  border: 1px solid var(--line-700); 
+  background: transparent; 
+}
+.btn-ghost:hover { 
+  border-color: var(--gold); 
+  color: var(--gold); 
+}
+
+/* Headline underline */
+.gold-underline {
+  background: linear-gradient(to right, var(--gold), var(--gold));
+  height: 3px; 
+  width: 64px; 
+  border-radius: 3px;
+}
+
+/* Focus states (a11y) */
+:where(button, a, input, [role="button"]):focus-visible {
+  outline: 2px solid var(--gold); 
+  outline-offset: 2px; 
+  border-radius: 8px;
+}
+
+/* Dropdown/menus – keep text visible on hover */
+.menu-item {
+  color: var(--ink-100); 
+  background: transparent;
+}
+.menu-item:hover {
+  background: color-mix(in srgb, var(--gold) 18%, transparent);
+  color: var(--ink-100); /* never white-out */
+}
+
+/* Gold shimmer effect */
+.gold-shine { 
+  position: relative; 
+}
+.gold-shine::after {
+  content: ""; 
+  position: absolute; 
+  inset: -2px;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,.35), transparent);
+  transform: translateX(-120%); 
+  filter: blur(4px); 
+  pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0); 
+  mask: linear-gradient(#000 0 0);
+}
+.gold-shine:hover::after { 
+  animation: shine 900ms ease; 
+}
+@keyframes shine { 
+  to { transform: translateX(120%); } 
+}
+
 @layer base {
   * {
     border-color: var(--line);
+  }
+
+  html, body { 
+    background: var(--bg-900); 
+    color: var(--ink-100); 
   }
 
   body {
