@@ -508,9 +508,15 @@ function EnhancedShareContent({
 }) {
   const [linkEnabled, setLinkEnabled] = useState(true);
   const [shareUrl] = useState(`https://familyvault.app/s/${credential.id}`);
+  const [expiry, setExpiry] = useState('7d');
+  const [requireLogin, setRequireLogin] = useState(false);
   const [sendMode, setSendMode] = useState<'email' | 'sms'>('email');
   const [recipientInput, setRecipientInput] = useState('');
   const [recipients, setRecipients] = useState<string[]>([]);
+  const [audit, setAudit] = useState([
+    { event: 'Credential created', ts: Date.now() - 86400000 },
+    { event: 'Sharing enabled', ts: Date.now() - 3600000 }
+  ]);
 
   // Family directory
   const DIRECTORY = [
@@ -527,41 +533,67 @@ function EnhancedShareContent({
 
   const handleCopyLink = () => {
     navigator.clipboard?.writeText(shareUrl);
+    setAudit(prev => [{ event: 'Link copied', ts: Date.now() }, ...prev]);
   };
 
   const handleRegenerateLink = () => {
     console.log('Regenerating link...');
+    setAudit(prev => [{ event: 'Link regenerated', ts: Date.now() }, ...prev]);
+  };
+
+  const handleLinkToggle = (enabled: boolean) => {
+    setLinkEnabled(enabled);
+    setAudit(prev => [{ event: `Sharing ${enabled ? 'enabled' : 'disabled'}`, ts: Date.now() }, ...prev]);
   };
 
   const updatePermission = (personId: string, permission: string) => {
+    const person = DIRECTORY.find(m => m.id === personId);
     setShares(prev => prev.map(share => 
       share.personId === personId ? { ...share, permission } : share
     ));
+    setAudit(prev => [{ event: `${person?.name} permission changed to ${permission}`, ts: Date.now() }, ...prev]);
   };
 
   const addShare = (personId: string) => {
     if (!shares.find(s => s.personId === personId)) {
+      const person = DIRECTORY.find(m => m.id === personId);
       setShares(prev => [...prev, { personId, permission: 'view' }]);
+      setAudit(prev => [{ event: `${person?.name} added with view permission`, ts: Date.now() }, ...prev]);
     }
   };
 
   const removeShare = (personId: string) => {
+    const person = DIRECTORY.find(m => m.id === personId);
     setShares(prev => prev.filter(s => s.personId !== personId));
+    setAudit(prev => [{ event: `${person?.name} removed from sharing`, ts: Date.now() }, ...prev]);
   };
 
   const addRecipient = () => {
     if (recipientInput.trim() && !recipients.includes(recipientInput.trim())) {
       setRecipients(prev => [...prev, recipientInput.trim()]);
+      setAudit(prev => [{ event: `Recipient ${recipientInput.trim()} added`, ts: Date.now() }, ...prev]);
       setRecipientInput('');
     }
   };
 
   const removeRecipient = (index: number) => {
+    const recipient = recipients[index];
     setRecipients(prev => prev.filter((_, i) => i !== index));
+    setAudit(prev => [{ event: `Recipient ${recipient} removed`, ts: Date.now() }, ...prev]);
   };
 
   const handleSend = () => {
+    if (!linkEnabled) {
+      console.log('Cannot send - link is disabled');
+      return;
+    }
     console.log(`Sending via ${sendMode} to:`, recipients);
+    setAudit(prev => [{ event: `Link sent via ${sendMode} to ${recipients.length} recipient(s)`, ts: Date.now() }, ...prev]);
+  };
+
+  const handleSave = () => {
+    console.log('Saving sharing settings');
+    setAudit(prev => [{ event: 'Sharing settings updated', ts: Date.now() }, ...prev]);
   };
 
   const availableMembers = DIRECTORY.filter(member => !shares.find(s => s.personId === member.id));
@@ -578,7 +610,7 @@ function EnhancedShareContent({
         <div className="flex items-center gap-3">
           <Switch 
             checked={linkEnabled}
-            onCheckedChange={setLinkEnabled}
+            onCheckedChange={handleLinkToggle}
             className="data-[state=checked]:bg-[#D4AF37]"
           />
           <Label className="text-sm text-white">Enable shareable link</Label>
@@ -603,6 +635,33 @@ function EnhancedShareContent({
               <Button size="sm" variant="outline" onClick={handleRegenerateLink} className="border-[#232530] text-neutral-300 hover:text-white">
                 Regenerate
               </Button>
+            </div>
+
+            {/* Security Options */}
+            <div className="flex flex-wrap items-center gap-4 pt-3 border-t border-[#232530]">
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-neutral-400">Expires:</Label>
+                <Select value={expiry} onValueChange={setExpiry}>
+                  <SelectTrigger className="w-20 bg-black text-white border-[#232530] text-xs h-7">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-black text-white border-[#232530]">
+                    <SelectItem value="24h" className="hover:bg-white/10 text-xs">24h</SelectItem>
+                    <SelectItem value="7d" className="hover:bg-white/10 text-xs">7d</SelectItem>
+                    <SelectItem value="30d" className="hover:bg-white/10 text-xs">30d</SelectItem>
+                    <SelectItem value="never" className="hover:bg-white/10 text-xs">Never</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Switch 
+                  checked={requireLogin}
+                  onCheckedChange={setRequireLogin}
+                  className="data-[state=checked]:bg-[#D4AF37] scale-75"
+                />
+                <Label className="text-xs text-neutral-400">Require login</Label>
+              </div>
             </div>
           </div>
         )}
@@ -726,18 +785,40 @@ function EnhancedShareContent({
         <div className="mt-2">
           <Button 
             variant="outline" 
-            className="border-[#232530] text-white hover:bg-white/10" 
+            className="border-[#232530] text-white hover:bg-white/10 disabled:opacity-50" 
             onClick={handleSend}
-            disabled={recipients.length === 0}
+            disabled={recipients.length === 0 || !linkEnabled}
           >
             Send {sendMode.toUpperCase()}
           </Button>
+          {!linkEnabled && recipients.length > 0 && (
+            <div className="text-xs text-amber-400 mt-1">Enable the shareable link to send notifications</div>
+          )}
         </div>
+      </div>
+
+      <Separator className="bg-[#232530]" />
+
+      {/* Audit Log */}
+      <div className="space-y-3">
+        <Label className="text-sm text-white">Recent Activity</Label>
+        {audit.length === 0 ? (
+          <div className="text-xs text-neutral-500">No recent actions</div>
+        ) : (
+          <div className="max-h-32 overflow-y-auto space-y-1">
+            {audit.slice(0, 5).map((entry, i) => (
+              <div key={i} className="text-xs text-neutral-300 flex justify-between">
+                <span>• {entry.event}</span>
+                <span className="text-neutral-500">{new Date(entry.ts).toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Section 4: Actions */}
       <div className="flex justify-end gap-3">
-        <Button className="bg-[#D4AF37] text-black hover:bg-[#c6a02e]">
+        <Button onClick={handleSave} className="bg-[#D4AF37] text-black hover:bg-[#c6a02e]">
           Update Sharing
         </Button>
         <Button variant="ghost" onClick={onClose} className="text-neutral-300 hover:text-white">
