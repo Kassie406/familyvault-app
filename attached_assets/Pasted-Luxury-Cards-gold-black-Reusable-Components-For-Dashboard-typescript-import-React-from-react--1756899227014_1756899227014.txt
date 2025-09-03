@@ -1,0 +1,105 @@
+Luxury Cards (gold/black) – Reusable Components For Dashboard
+· typescript
+import React from "react";
+          {/* Masked password */}
+          <div className="mt-2 flex items-center gap-2">
+            <div className="text-[13px] tracking-widest text-neutral-500 select-none">•••• •••• ••••</div>
+            <button className="text-xs text-[#D4AF37] hover:underline underline-offset-4">Reveal</button>
+            <span className="text-neutral-600 text-xs">•</span>
+            <button className="text-xs text-neutral-300 hover:text-white">Copy</button>
+          </div>
+        </div>
+        <DropdownDots />
+      </div>
+    </Shell>
+  );
+}
+
+
+function DropdownDots() {
+  return (
+    <button className="h-8 w-8 inline-grid place-items-center rounded-lg border border-transparent text-neutral-400
+                       hover:text-white hover:border-[#232530]">
+      ⋯
+    </button>
+  );
+}
+
+
+export default function PasswordsPage() {
+  return (
+    <div className="min-h-screen bg-[#0A0A0F] text-[#F4F4F6]">
+      <div className="mx-auto max-w-7xl px-6 py-8 space-y-8">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold">Passwords</h1>
+            <p className="text-sm text-neutral-400">Securely store and share credentials across the family.</p>
+          </div>
+          <Button className="bg-[#D4AF37] text-black hover:bg-[#c6a02e] rounded-full px-5">Add credential</Button>
+        </div>
+
+
+        {/* Search + filters */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+          <div className="md:col-span-6">
+            <div className="flex items-center gap-2 rounded-xl border border-[#232530] bg-[#13141B] px-3 py-2">
+              <svg className="h-4 w-4 text-neutral-400" viewBox="0 0 24 24"><path fill="currentColor" d="M10 18a8 8 0 1 1 5.293-14.293A8 8 0 0 1 10 18Zm11 3.707L16.314 17.02"/></svg>
+              <input className="w-full bg-transparent text-sm focus:outline-none placeholder:text-neutral-500"
+                     placeholder="Search by name, site, or owner" />
+            </div>
+          </div>
+          <Select className="md:col-span-3">
+            <SelectTrigger className="bg-[#13141B] border-[#232530] text-neutral-300">
+              <SelectValue placeholder="Filter by Owner" />
+            </SelectTrigger>
+            <SelectContent className="bg-[#0F0F0F] border border-[#232530] text-white shadow-lg">
+              <SelectItem value="all" className="hover:bg-[#D4AF37]/20 focus:bg-[#D4AF37]/20">All Owners</SelectItem>
+              <SelectItem value="angel" className="hover:bg-[#D4AF37]/20 focus:bg-[#D4AF37]/20">Angel</SelectItem>
+              <SelectItem value="kassandra" className="hover:bg-[#D4AF37]/20 focus:bg-[#D4AF37]/20">Kassandra</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select className="md:col-span-3">
+            <SelectTrigger className="bg-[#13141B] border-[#232530] text-neutral-300">
+              <SelectValue placeholder="Filter by Type" />
+            </SelectTrigger>
+            <SelectContent className="bg-[#0F0F0F] border border-[#232530] text-white shadow-lg">
+              <SelectItem value="all" className="hover:bg-[#D4AF37]/20 focus:bg-[#D4AF37]/20">All Types</SelectItem>
+              <SelectItem value="device" className="hover:bg-[#D4AF37]/20 focus:bg-[#D4AF37]/20">Devices</SelectItem>
+              <SelectItem value="network" className="hover:bg-[#D4AF37]/20 focus:bg-[#D4AF37]/20">Network</SelectItem>
+              <SelectItem value="access" className="hover:bg-[#D4AF37]/20 focus:bg-[#D4AF37]/20">Access Codes</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+
+        {/* Managers */}
+        <div>
+          <h2 className="text-sm font-semibold tracking-wide text-neutral-300 mb-3">Password Managers</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <ManagerCard name="Angel’s Password Manager" count={2} />
+            <ManagerCard name="Kassandra’s Password Manager" count={2} />
+          </div>
+        </div>
+
+
+        {/* Credentials */}
+        <div>
+          <h2 className="text-sm font-semibold tracking-wide text-neutral-300 mb-3">Passwords</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <CredentialCard title="Angel’s Phone Password" owner="Angel" icon={<Smartphone className="h-4 w-4"/>} />
+            <CredentialCard title="Home Wi-Fi Password" owner="House" icon={<Wifi className="h-4 w-4"/>} />
+            <CredentialCard title="Garage Door Code" owner="Home" icon={<DoorOpen className="h-4 w-4"/>} />
+            <CredentialCard title="Kassandra’s Laptop Password" owner="Kassandra" icon={<Laptop className="h-4 w-4"/>} />
+            <CredentialCard title="Code to Safe" owner="Family" icon={<Lock className="h-4 w-4"/>} />
+            <CredentialCard title="Kassandra’s Phone Password" owner="Kassandra" icon={<Smartphone className="h-4 w-4"/>} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
+I fixed your dropdowns so the menu background is now solid dark with a gold hover/focus highlight, making text always visible and easy to click. ✅
