@@ -589,14 +589,18 @@ function EnhancedShareContent({
 
     const timer = window.setTimeout(() => {
       if (!ctrl.signal.aborted) {
-        ctrl.abort();
-        setGenTimedOut(true);
-        toast({
-          title: "Timeout",
-          description: "Generation timed out. Please retry.",
-          variant: "destructive",
-        });
-        setAudit(prev => [{ event: 'Link generation timed out', ts: Date.now() }, ...prev]);
+        try {
+          ctrl.abort();
+          setGenTimedOut(true);
+          toast({
+            title: "Timeout",
+            description: "Generation timed out. Please retry.",
+            variant: "destructive",
+          });
+          setAudit(prev => [{ event: 'Link generation timed out', ts: Date.now() }, ...prev]);
+        } catch (e) {
+          console.warn("Timeout abort already triggered", e);
+        }
       }
     }, GEN_TIMEOUT_MS);
     timeoutRef.current = timer;
