@@ -240,12 +240,20 @@ function CredentialCard({
     }
   };
 
+  // Get actual password based on credential ID
+  const getActualPassword = () => {
+    if (id === '1' || title === "Angel's Phone Password") {
+      return "Angel123Phone!";
+    }
+    return "MySecretPass123"; // fallback for other credentials
+  };
+
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
       // Only copy if password is revealed
       if (isRevealed) {
-        await navigator.clipboard.writeText("MySecretPass123");
+        await navigator.clipboard.writeText(getActualPassword());
         // You could add a toast notification here for better UX
         console.log('Password copied to clipboard for:', title);
       } else {
@@ -279,7 +287,7 @@ function CredentialCard({
             {/* Masked secret row */}
             <div className="mt-2 flex items-center gap-2">
               <div className="text-[13px] tracking-widest text-neutral-500 select-none">
-                {isRevealed ? "MySecretPass123" : "•••• •••• ••••"}
+                {isRevealed ? getActualPassword() : "•••• •••• ••••"}
               </div>
               <button 
                 onClick={isRevealed ? handleHide : handleReveal}
