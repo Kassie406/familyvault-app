@@ -29,13 +29,13 @@ export default function FamilyResources() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56 bg-white border-2 border-gray-200 shadow-lg rounded-lg p-2">
-              <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-neutral-800 font-medium hover:bg-[#D4AF37]/20 hover:text-neutral-800" data-testid="button-important-document">
+              <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-gray-800 font-medium hover:bg-[#D4AF37]/20 hover:!text-gray-800 focus:!text-gray-800" data-testid="button-important-document">
                 Important Document
               </DropdownMenuItem>
-              <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-neutral-800 font-medium hover:bg-[#D4AF37]/20 hover:text-neutral-800" data-testid="button-emergency-equipment">
+              <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-gray-800 font-medium hover:bg-[#D4AF37]/20 hover:!text-gray-800 focus:!text-gray-800" data-testid="button-emergency-equipment">
                 Emergency Equipment
               </DropdownMenuItem>
-              <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-neutral-800 font-medium hover:bg-[#D4AF37]/20 hover:text-neutral-800" data-testid="button-letter-loved-one">
+              <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-gray-800 font-medium hover:bg-[#D4AF37]/20 hover:!text-gray-800 focus:!text-gray-800" data-testid="button-letter-loved-one">
                 Letter to Loved One
               </DropdownMenuItem>
             </DropdownMenuContent>
