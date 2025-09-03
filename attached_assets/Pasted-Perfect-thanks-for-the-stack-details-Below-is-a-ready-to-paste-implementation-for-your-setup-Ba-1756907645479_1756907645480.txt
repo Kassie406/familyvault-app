@@ -1,0 +1,383 @@
+Perfect — thanks for the stack details. Below is a ready-to-paste implementation for your setup:
+
+Backend: Express (TypeScript)
+
+DB: Neon Postgres + Drizzle ORM (neon-http)
+
+Auth: requireAuth middleware (kept, with a safe dev bypass option)
+
+Routes implemented:
+
+POST /api/credentials/:id/shares/regenerate
+
+PUT /api/credentials/:id/shares
+
+GET /api/share/:token
+
+POST /api/share/:token/reveal
+
+It includes schema, helpers, and endpoints. Copy these into your repo and run the migration steps at the end.
+
+1) Schema (Drizzle)
+
+shared/schema.ts — add the new tables. If you have an existing credential table, keep it; this version only references by id to avoid FK mismatches.
+
+// shared/schema.ts
+import {
+  pgTable, text, boolean, timestamp, primaryKey
+} from "drizzle-orm/pg-core";
+
+// If you already have a credentials table, keep yours.
+// This is just the minimal shape we need to read a title/owner for share viewer.
+export const credentials = pgTable("credentials", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  ownerId: text("owner_id").notNull(),
+});
+
+// Share links (token-per-link)
+export const shareLinks = pgTable("share_links", {
+  token: text("token").primaryKey(),
+  credentialId: text("credential_id").notNull(),
+  requireLogin: boolean("require_login").notNull().default(true),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  revoked: boolean("revoked").notNull().default(false),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Per-member / per-group permissions for a credential
+export const credentialShares = pgTable(
+  "credential_shares",
+  {
+    credentialId: text("credential_id").notNull(),
+    subjectId: text("subject_id").notNull(), // member or group id
+    permission: text("permission").notNull(), // 'none' | 'view' | 'edit' | 'owner'
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.credentialId, t.subjectId] }),
+  })
+);
+
+2) Drizzle DB init for Neon
+
+server/db.ts
+
+// server/db.ts
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
+import * as schema from "@/shared/schema";
+
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is not set");
+}
+
+const sql = neon(process.env.DATABASE_URL);
+export const db = drizzle(sql, { schema });
+export { schema };
+
+
+If your project uses a different alias path than @/shared/schema, adjust imports accordingly.
+
+3) Small helpers
+
+server/shareHelpers.ts
+
+// server/shareHelpers.ts
+import crypto from "crypto";
+
+export type Expiry = "24h" | "7d" | "30d" | "never";
+
+export function makeToken(len = 26) {
+  return crypto.randomBytes(len).toString("base64url").replace(/_/g, "x");
+}
+
+export function expiryToDate(exp: Expiry): Date | null {
+  const now = Date.now();
+  if (exp === "never") return null;
+  const map: Record<Exclude<Expiry, "never">, number> = {
+    "24h": 86400,
+    "7d": 7 * 86400,
+    "30d": 30 * 86400,
+  };
+  return new Date(now + map[exp] * 1000);
+}
+
+export function appUrl() {
+  return process.env.APP_URL || "http://localhost:3000";
+}
+
+4) Express routes
+
+server/index.ts — replace or extend your file with the parts below. I’ve kept requireAuth but added a safe dev bypass you can toggle.
+
+// server/index.ts
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import { and, eq } from "drizzle-orm";
+import { db, schema } from "@/server/db";
+import { appUrl, expiryToDate, makeToken, Expiry } from "@/server/shareHelpers";
+
+// ---- Auth middleware ----
+// Replace with your real auth middleware that sets req.user.id
+const requireAuth: express.RequestHandler =
+  process.env.DEV_BYPASS_AUTH === "true"
+    ? (_req, _res, next) => next()
+    : (req, res, next) => {
+        // Example: if you already have sessions, read from req.session.user
+        const userId = (req as any).user?.id || (req as any).session?.user?.id;
+        if (!userId) return res.status(401).json({ error: "unauthorized" });
+        next();
+      };
+
+// ---- App setup ----
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const PORT = Number(process.env.PORT || 5000);
+
+// ---- API: Regenerate link ----
+app.post(
+  "/api/credentials/:id/shares/regenerate",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const credentialId = req.params.id;
+      const { expiry = "7d", requireLogin = true } = (req.body ?? {}) as {
+        expiry?: Expiry;
+        requireLogin?: boolean;
+      };
+
+      // If you want to revoke previous links automatically, uncomment this:
+      // await db.update(schema.shareLinks)
+      //   .set({ revoked: true })
+      //   .where(eq(schema.shareLinks.credentialId, credentialId));
+
+      const token = makeToken(18);
+      const expiresAt = expiryToDate(expiry);
+
+      // get user.id from your auth/session; for DEV_BYPASS, stub
+      const createdBy =
+        ((req as any).user?.id ||
+          (req as any).session?.user?.id ||
+          "dev-user") as string;
+
+      await db.insert(schema.shareLinks).values({
+        token,
+        credentialId,
+        requireLogin,
+        expiresAt: expiresAt ?? undefined,
+        createdBy,
+      });
+
+      const url = `${appUrl()}/share/${token}`;
+      return res.json({ url, token });
+    } catch (e) {
+      console.error("regenerate error", e);
+      return res.status(500).json({ error: "server_error" });
+    }
+  }
+);
+
+// ---- API: Save sharing (toggle/expiry/requireLogin + member perms) ----
+app.put("/api/credentials/:id/shares", requireAuth, async (req, res) => {
+  try {
+    const credentialId = req.params.id;
+    const {
+      linkEnabled,
+      shareUrl,
+      expiry = "7d",
+      requireLogin = true,
+      shares = [],
+    } = (req.body ?? {}) as {
+      linkEnabled: boolean;
+      shareUrl?: string | null;
+      expiry?: Expiry;
+      requireLogin?: boolean;
+      shares?: { personId: string; permission: string }[];
+    };
+
+    if (!linkEnabled) {
+      await db
+        .update(schema.shareLinks)
+        .set({ revoked: true })
+        .where(eq(schema.shareLinks.credentialId, credentialId));
+    } else if (shareUrl) {
+      const token = shareUrl.split("/share/").pop()!;
+      await db
+        .update(schema.shareLinks)
+        .set({
+          requireLogin,
+          expiresAt: expiryToDate(expiry) ?? undefined,
+          revoked: false,
+        })
+        .where(
+          and(
+            eq(schema.shareLinks.token, token),
+            eq(schema.shareLinks.credentialId, credentialId)
+          )
+        );
+    }
+
+    // Upsert per-member/group permissions
+    for (const s of shares) {
+      // on conflict (credential_id, subject_id) do update
+      await db
+        .insert(schema.credentialShares)
+        .values({
+          credentialId,
+          subjectId: s.personId,
+          permission: s.permission,
+        })
+        .onConflictDoUpdate({
+          target: [
+            schema.credentialShares.credentialId,
+            schema.credentialShares.subjectId,
+          ],
+          set: { permission: s.permission },
+        });
+    }
+
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("save shares error", e);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+// ---- API: Viewer metadata (no secret) ----
+app.get("/api/share/:token", async (req, res) => {
+  try {
+    const token = req.params.token;
+    const link = await db.query.shareLinks.findFirst({
+      where: eq(schema.shareLinks.token, token),
+    });
+    if (!link || link.revoked) return res.status(404).json({ error: "invalid" });
+    if (link.expiresAt && new Date(link.expiresAt) < new Date())
+      return res.status(410).json({ error: "expired" });
+
+    // Pull minimal credential metadata for card
+    const cred = await db.query.credentials.findFirst({
+      columns: { id: true, title: true, ownerId: true },
+      where: eq(schema.credentials.id, link.credentialId),
+    });
+
+    return res.json({
+      title: cred?.title ?? "Shared Item",
+      owner: cred?.ownerId ?? "Unknown",
+      requireLogin: !!link.requireLogin,
+      canReveal: !link.requireLogin, // UI hint only; server enforces again
+    });
+  } catch (e) {
+    console.error("viewer error", e);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+// ---- API: Reveal secret (enforces login/expiry) ----
+app.post("/api/share/:token/reveal", requireAuth, async (req, res) => {
+  try {
+    const token = req.params.token;
+    const link = await db.query.shareLinks.findFirst({
+      where: eq(schema.shareLinks.token, token),
+    });
+    if (!link || link.revoked) return res.status(404).json({ error: "invalid" });
+    if (link.expiresAt && new Date(link.expiresAt) < new Date())
+      return res.status(410).json({ error: "expired" });
+
+    // You can fetch and decrypt the actual secret here by link.credentialId
+    // Placeholder to prove flow:
+    const secret = "1234"; // TODO: your KMS/decryption
+
+    // audit example:
+    // await db.insert(auditTable).values({ ... });
+
+    return res.json({ secret });
+  } catch (e) {
+    console.error("reveal error", e);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+// Simple health check
+app.get("/healthz", (_req, res) => res.json({ ok: true }));
+
+app.listen(PORT, () => {
+  console.log(`Server listening on :${PORT}`);
+  console.log(`APP_URL = ${appUrl()}`);
+  if (process.env.DEV_BYPASS_AUTH === "true") {
+    console.log("⚠️ DEV_BYPASS_AUTH is ON (do not use in production)");
+  }
+});
+
+
+Note: if you mount this server behind Vite dev proxy, ensure your FE calls same-origin /api/...; otherwise set a NEXT_PUBLIC_API_BASE and call absolute URLs.
+
+5) Environment
+
+Add these:
+
+DATABASE_URL=postgres://<user>:<pass>@<neon-host>/<db>
+APP_URL=http://localhost:3000           # for local dev; prod = https://portal.familycirclesecure.com
+DEV_BYPASS_AUTH=true                    # turn OFF in prod
+
+6) Migrations (Drizzle)
+
+If you use drizzle-kit, add the tables:
+
+# generate SQL
+npx drizzle-kit generate
+
+# push to Neon
+npx drizzle-kit push
+
+
+Or run the SQL equivalent manually:
+
+CREATE TABLE IF NOT EXISTS share_links (
+  token TEXT PRIMARY KEY,
+  credential_id TEXT NOT NULL,
+  require_login BOOLEAN NOT NULL DEFAULT TRUE,
+  expires_at TIMESTAMPTZ NULL,
+  revoked BOOLEAN NOT NULL DEFAULT FALSE,
+  created_by TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS credential_shares (
+  credential_id TEXT NOT NULL,
+  subject_id TEXT NOT NULL,
+  permission TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (credential_id, subject_id)
+);
+
+7) Front-end usage (unchanged but explicit)
+
+Generate/Regenerate → POST /api/credentials/:id/shares/regenerate with { expiry, requireLogin } → set shareUrl from { url }.
+
+Update Sharing → PUT /api/credentials/:id/shares with { linkEnabled, shareUrl, expiry, requireLogin, shares }.
+
+Viewer → GET /api/share/:token for metadata (no secret).
+
+Reveal → POST /api/share/:token/reveal (server enforces requireLogin + expiry again).
+
+8) Quick CURL tests
+# 1) health
+curl -s http://localhost:5000/healthz
+
+# 2) regenerate (dev bypass auth ON)
+curl -s -X POST http://localhost:5000/api/credentials/c-gd-home/shares/regenerate \
+  -H 'content-type: application/json' \
+  -d '{"expiry":"7d","requireLogin":true}'
+
+# 3) save settings
+curl -s -X PUT http://localhost:5000/api/credentials/c-gd-home/shares \
+  -H 'content-type: application/json' \
+  -d '{"linkEnabled":true,"shareUrl":"http://localhost:3000/share/xxxxx","expiry":"7d","requireLogin":true,"shares":[{"personId":"p-kas","permission":"view"}]}'
+
+
+If step 2 returns { "url": ".../share/<token>" }, your UI will stop timing out and the Generating… button will return to normal.

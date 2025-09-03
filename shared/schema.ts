@@ -377,7 +377,7 @@ export const credentials = pgTable("credentials", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Share Links for credentials
+// Share Links for credentials  
 export const shareLinks = pgTable("share_links", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   token: text("token").notNull().unique(),
