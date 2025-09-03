@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation } from 'wouter';
-import { Search, Key, Eye, EyeOff, Copy, BadgeCheck, X, MoreVertical, Edit, Share, Trash2 } from 'lucide-react';
+import { Search, Key, Eye, EyeOff, Copy, BadgeCheck, X, MoreVertical, Edit, Share, Trash2, Link2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -93,17 +93,29 @@ function ManagerDropdownDots() {
 }
 
 // Credential Dropdown Dots Component
-function DropdownDots({ cardId, cardTitle }: { cardId: string; cardTitle: string }) {
+function DropdownDots({ 
+  cardId, 
+  cardTitle, 
+  onEdit, 
+  onView, 
+  onShare 
+}: { 
+  cardId: string; 
+  cardTitle: string;
+  onEdit: (id: string, title: string) => void;
+  onView: (id: string, title: string) => void;
+  onShare: (id: string, title: string) => void;
+}) {
   const handleEdit = () => {
-    console.log('Edit credential:', cardTitle);
+    onEdit(cardId, cardTitle);
   };
 
   const handleView = () => {
-    console.log('View credential details:', cardTitle);
+    onView(cardId, cardTitle);
   };
 
   const handleShare = () => {
-    console.log('Share credential:', cardTitle);
+    onShare(cardId, cardTitle);
   };
 
   const handleDelete = () => {
@@ -183,13 +195,19 @@ function CredentialCard({
   title, 
   owner, 
   tag, 
-  onNavigate 
+  onNavigate,
+  onEdit,
+  onView,
+  onShare
 }: { 
   id: string;
   title: string; 
   owner?: string; 
   tag?: string;
   onNavigate: (id: string) => void;
+  onEdit: (id: string, title: string) => void;
+  onView: (id: string, title: string) => void;
+  onShare: (id: string, title: string) => void;
 }) {
   const [isRevealed, setIsRevealed] = useState(false);
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
@@ -275,7 +293,13 @@ function CredentialCard({
               </button>
             </div>
           </div>
-          <DropdownDots cardId={id} cardTitle={title} />
+          <DropdownDots 
+            cardId={id} 
+            cardTitle={title}
+            onEdit={onEdit}
+            onView={onView}
+            onShare={onShare}
+          />
         </div>
       </Shell>
     </div>
@@ -472,6 +496,199 @@ function CredentialDetail({
   );
 }
 
+// Side Panel Component for Edit/View/Share
+function CredentialSidePanel({ 
+  isOpen, 
+  mode, 
+  credential, 
+  onClose 
+}: { 
+  isOpen: boolean; 
+  mode: 'edit' | 'view' | 'share'; 
+  credential: {id: string; title: string} | null; 
+  onClose: () => void;
+}) {
+  if (!credential) return null;
+
+  const getTitleByMode = () => {
+    switch (mode) {
+      case 'edit': return `Edit ${credential.title}`;
+      case 'view': return `View ${credential.title}`;
+      case 'share': return `Share ${credential.title}`;
+      default: return credential.title;
+    }
+  };
+
+  const renderContent = () => {
+    switch (mode) {
+      case 'edit':
+        return (
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm text-neutral-300">Credential Name</Label>
+                <Input 
+                  defaultValue={credential.title}
+                  className="mt-1 bg-[#111111] border-[#232530] text-white"
+                />
+              </div>
+              <div>
+                <Label className="text-sm text-neutral-300">Username</Label>
+                <Input 
+                  defaultValue="angel@family.com"
+                  className="mt-1 bg-[#111111] border-[#232530] text-white"
+                />
+              </div>
+              <div>
+                <Label className="text-sm text-neutral-300">Password</Label>
+                <Input 
+                  type="password"
+                  defaultValue="MySecretPass123"
+                  className="mt-1 bg-[#111111] border-[#232530] text-white"
+                />
+              </div>
+              <div>
+                <Label className="text-sm text-neutral-300">URL</Label>
+                <Input 
+                  defaultValue="https://icloud.com"
+                  className="mt-1 bg-[#111111] border-[#232530] text-white"
+                />
+              </div>
+              <div>
+                <Label className="text-sm text-neutral-300">Notes</Label>
+                <Input 
+                  defaultValue="Personal iCloud account"
+                  className="mt-1 bg-[#111111] border-[#232530] text-white"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button className="bg-[#D4AF37] text-black hover:bg-[#c6a02e]">
+                Save Changes
+              </Button>
+              <Button variant="ghost" onClick={onClose} className="text-neutral-300 hover:text-white">
+                Cancel
+              </Button>
+            </div>
+          </div>
+        );
+      
+      case 'share':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 p-4 rounded-xl border border-[#232530] bg-[#111111]">
+              <Link2 className="h-5 w-5 text-[#D4AF37]" />
+              <div>
+                <div className="text-sm font-medium text-white">Shareable Link</div>
+                <div className="text-xs text-neutral-400">Anyone with this link can view this credential</div>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm text-neutral-300">Share with Family Members</Label>
+                <div className="mt-2 space-y-2">
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-[#232530] bg-[#111111]">
+                    <div className="flex items-center gap-3">
+                      <Users className="h-4 w-4 text-neutral-400" />
+                      <span className="text-sm text-white">Kassandra</span>
+                    </div>
+                    <Select defaultValue="view">
+                      <SelectTrigger className="w-24 bg-[#13141B] border-[#232530] text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="view">View</SelectItem>
+                        <SelectItem value="edit">Edit</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-[#232530] bg-[#111111]">
+                    <div className="flex items-center gap-3">
+                      <Users className="h-4 w-4 text-neutral-400" />
+                      <span className="text-sm text-white">Family Group</span>
+                    </div>
+                    <Select defaultValue="none">
+                      <SelectTrigger className="w-24 bg-[#13141B] border-[#232530] text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="view">View</SelectItem>
+                        <SelectItem value="edit">Edit</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <Button className="bg-[#D4AF37] text-black hover:bg-[#c6a02e]">
+                Update Sharing
+              </Button>
+              <Button variant="ghost" onClick={onClose} className="text-neutral-300 hover:text-white">
+                Cancel
+              </Button>
+            </div>
+          </div>
+        );
+
+      case 'view':
+      default:
+        return (
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <div className="rounded-xl border border-[#232530] bg-[#111111] p-4">
+                <div className="text-xs text-neutral-400 mb-1">Username</div>
+                <div className="text-sm text-white">angel@family.com</div>
+              </div>
+              <div className="rounded-xl border border-[#232530] bg-[#111111] p-4">
+                <div className="text-xs text-neutral-400 mb-1">URL</div>
+                <a href="https://icloud.com" className="text-sm text-[#D4AF37] hover:underline" target="_blank" rel="noreferrer">
+                  https://icloud.com
+                </a>
+              </div>
+              <div className="rounded-xl border border-[#232530] bg-[#111111] p-4">
+                <div className="text-xs text-neutral-400 mb-1">Last Updated</div>
+                <div className="text-sm text-white">{new Date().toLocaleDateString()}</div>
+              </div>
+              <div className="rounded-xl border border-[#232530] bg-[#111111] p-4">
+                <div className="text-xs text-neutral-400 mb-1">Notes</div>
+                <div className="text-sm text-white">Personal iCloud account</div>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="ghost" onClick={onClose} className="text-neutral-300 hover:text-white">
+                Close
+              </Button>
+            </div>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent side="right" className="w-[480px] bg-[#0A0A0F] text-[#F4F4F6] border-l border-[#232530]">
+        <SheetHeader>
+          <div className="flex items-center justify-between">
+            <SheetTitle className="text-lg text-white">{getTitleByMode()}</SheetTitle>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </SheetHeader>
+        
+        <div className="mt-6">
+          {renderContent()}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 // Mock data
 const passwordManagers = [
   {
@@ -532,6 +749,11 @@ export default function FamilyPasswords() {
   const [location, navigate] = useLocation();
   const params = useParams();
 
+  // Side panel state
+  const [sidePanelOpen, setSidePanelOpen] = useState(false);
+  const [sidePanelMode, setSidePanelMode] = useState<'edit' | 'view' | 'share'>('view');
+  const [selectedCredential, setSelectedCredential] = useState<{id: string; title: string} | null>(null);
+
   // Extract credential ID from URL
   const credentialId = params.id;
   const isDetailOpen = !!credentialId;
@@ -542,6 +764,30 @@ export default function FamilyPasswords() {
 
   const handleCloseDetail = () => {
     navigate('/family/passwords');
+  };
+
+  // Side panel handlers
+  const handleEdit = (id: string, title: string) => {
+    setSelectedCredential({ id, title });
+    setSidePanelMode('edit');
+    setSidePanelOpen(true);
+  };
+
+  const handleView = (id: string, title: string) => {
+    setSelectedCredential({ id, title });
+    setSidePanelMode('view');
+    setSidePanelOpen(true);
+  };
+
+  const handleShare = (id: string, title: string) => {
+    setSelectedCredential({ id, title });
+    setSidePanelMode('share');
+    setSidePanelOpen(true);
+  };
+
+  const handleCloseSidePanel = () => {
+    setSidePanelOpen(false);
+    setSelectedCredential(null);
   };
 
   const filteredPasswordManagers = passwordManagers.filter(manager =>
@@ -635,6 +881,9 @@ export default function FamilyPasswords() {
               owner={password.owner}
               tag={password.tag}
               onNavigate={handleNavigateToDetail}
+              onEdit={handleEdit}
+              onView={handleView}
+              onShare={handleShare}
             />
           ))}
         </div>
@@ -659,6 +908,14 @@ export default function FamilyPasswords() {
           onClose={handleCloseDetail}
         />
       )}
+
+      {/* Side Panel for Edit/View/Share */}
+      <CredentialSidePanel
+        isOpen={sidePanelOpen}
+        mode={sidePanelMode}
+        credential={selectedCredential}
+        onClose={handleCloseSidePanel}
+      />
     </div>
   );
 }
