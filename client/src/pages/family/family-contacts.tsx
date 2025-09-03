@@ -63,25 +63,25 @@ export default function FamilyContacts() {
 
       {/* Search Bar */}
       <div className="relative mb-8">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--ink-400)] h-4 w-4" />
         <Input
           placeholder={`Search ${contactCount} contact${contactCount !== 1 ? 's' : ''}`}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-[#D4AF37] focus:ring-opacity-50"
+          className="pl-10 bg-[var(--bg-900)] border border-[var(--line-700)] text-[var(--ink-100)] focus:bg-[var(--bg-900)] focus:ring-2 focus:ring-[var(--gold)] focus:ring-opacity-50"
           data-testid="input-search"
         />
       </div>
 
       {/* Contacts Table */}
-      <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <div className="border border-[var(--line-700)] rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="bg-gray-50">
-              <TableHead className="font-medium text-gray-700">Name</TableHead>
-              <TableHead className="font-medium text-gray-700">Phone</TableHead>
-              <TableHead className="font-medium text-gray-700">Email</TableHead>
-              <TableHead className="font-medium text-gray-700">Role</TableHead>
+            <TableRow className="bg-[var(--line-700)]/30">
+              <TableHead className="font-medium text-[var(--ink-200)]">Name</TableHead>
+              <TableHead className="font-medium text-[var(--ink-200)]">Phone</TableHead>
+              <TableHead className="font-medium text-[var(--ink-200)]">Email</TableHead>
+              <TableHead className="font-medium text-[var(--ink-200)]">Role</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -89,28 +89,28 @@ export default function FamilyContacts() {
             {filteredContacts.map((contact) => (
               <TableRow 
                 key={contact.id} 
-                className="hover:bg-gray-50 transition-colors"
+                className="hover:bg-[var(--line-700)]/20 transition-colors"
                 data-testid={`row-contact-${contact.id}`}
               >
                 <TableCell className="py-4">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-[#D4AF37] bg-opacity-20 text-[#D4AF37] text-sm font-medium">
+                      <AvatarFallback className="bg-[var(--gold)] bg-opacity-20 text-[var(--gold)] text-sm font-medium">
                         {contact.initials}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="font-medium text-black" data-testid={`text-name-${contact.id}`}>
+                    <span className="font-medium text-[var(--ink-100)]" data-testid={`text-name-${contact.id}`}>
                       {contact.name}
                     </span>
                   </div>
                 </TableCell>
-                <TableCell className="py-4 text-gray-600" data-testid={`text-phone-${contact.id}`}>
+                <TableCell className="py-4 text-[var(--ink-300)]" data-testid={`text-phone-${contact.id}`}>
                   {contact.phone || '-'}
                 </TableCell>
-                <TableCell className="py-4 text-gray-600" data-testid={`text-email-${contact.id}`}>
+                <TableCell className="py-4 text-[var(--ink-300)]" data-testid={`text-email-${contact.id}`}>
                   {contact.email}
                 </TableCell>
-                <TableCell className="py-4 text-gray-600" data-testid={`text-role-${contact.id}`}>
+                <TableCell className="py-4 text-[var(--ink-300)]" data-testid={`text-role-${contact.id}`}>
                   {contact.role}
                 </TableCell>
                 <TableCell className="py-4">
@@ -157,14 +157,14 @@ export default function FamilyContacts() {
             <User className="h-12 w-12 mx-auto" />
           </div>
           <h3 className="text-lg font-medium text-black mb-2">No contacts found</h3>
-          <p className="text-gray-600">Try adjusting your search terms or add a new contact.</p>
+          <p className="text-[var(--ink-300)]">Try adjusting your search terms or add a new contact.</p>
         </div>
       )}
 
       {/* Add Contact Button */}
       <div className="mt-6 flex justify-start">
         <Button 
-          className="bg-[#D4AF37] hover:bg-[#B8941F] text-white"
+          className="bg-[var(--gold)] hover:bg-[#B8941F] text-white"
           data-testid="button-add-contact"
         >
           <Plus className="h-4 w-4 mr-2" />

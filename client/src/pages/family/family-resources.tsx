@@ -58,12 +58,12 @@ export default function FamilyResources() {
 
       {/* Search Bar */}
       <div className="relative mb-8">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--ink-400)] h-4 w-4" />
         <Input
           placeholder="Search"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-[#D4AF37] focus:ring-opacity-50"
+          className="pl-10 bg-[var(--bg-900)] border border-[var(--line-700)] text-[var(--ink-100)] focus:bg-[var(--bg-900)] focus:ring-2 focus:ring-[var(--gold)] focus:ring-opacity-50"
           data-testid="input-search"
         />
       </div>
@@ -73,14 +73,14 @@ export default function FamilyResources() {
         <TabsList className="grid w-full grid-cols-2 mb-8">
           <TabsTrigger 
             value="created" 
-            className="data-[state=active]:bg-[#D4AF37] data-[state=active]:text-white"
+            className="data-[state=active]:bg-[var(--gold)] data-[state=active]:text-white"
             data-testid="tab-created"
           >
             Created
           </TabsTrigger>
           <TabsTrigger 
             value="templates" 
-            className="data-[state=active]:bg-[#D4AF37] data-[state=active]:text-white"
+            className="data-[state=active]:bg-[var(--gold)] data-[state=active]:text-white"
             data-testid="tab-templates"
           >
             Templates
@@ -91,31 +91,31 @@ export default function FamilyResources() {
         <TabsContent value="created" className="mt-8">
           {createdResources.length === 0 ? (
             <div className="text-center py-16">
-              <div className="text-gray-400 mb-4">
+              <div className="text-[var(--ink-400)] mb-4">
                 <FileText className="h-16 w-16 mx-auto" />
               </div>
-              <h3 className="text-xl font-medium text-black mb-2">No created resources yet</h3>
-              <p className="text-gray-600 mb-6 max-w-md mx-auto">
+              <h3 className="text-xl font-medium text-[var(--ink-100)] mb-2">No created resources yet</h3>
+              <p className="text-[var(--ink-300)] mb-6 max-w-md mx-auto">
                 Start creating your family resources to organize important information and documents.
               </p>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
-                    className="bg-[#D4AF37] hover:bg-[#B8941F] text-white"
+                    className="bg-[var(--gold)] hover:bg-[#B8941F] text-white"
                     data-testid="button-create-resource"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Create New Resource
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="center" className="w-56 bg-white border-2 border-gray-200 shadow-lg rounded-lg p-2">
-                  <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-gray-800 font-medium hover:bg-[#D4AF37]/20 hover:!text-gray-800 focus:!text-gray-800" data-testid="button-important-document">
+                <DropdownMenuContent align="center" className="w-56 card border-2 border-[var(--line-700)] shadow-lg rounded-lg p-2">
+                  <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-[var(--ink-100)] font-medium hover:bg-[var(--gold)]/20 hover:!text-[var(--ink-100)] focus:!text-[var(--ink-100)]" data-testid="button-important-document">
                     Important Document
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-gray-800 font-medium hover:bg-[#D4AF37]/20 hover:!text-gray-800 focus:!text-gray-800" data-testid="button-emergency-equipment">
+                  <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-[var(--ink-100)] font-medium hover:bg-[var(--gold)]/20 hover:!text-[var(--ink-100)] focus:!text-[var(--ink-100)]" data-testid="button-emergency-equipment">
                     Emergency Equipment
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-gray-800 font-medium hover:bg-[#D4AF37]/20 hover:!text-gray-800 focus:!text-gray-800" data-testid="button-letter-loved-one">
+                  <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-[var(--ink-100)] font-medium hover:bg-[var(--gold)]/20 hover:!text-[var(--ink-100)] focus:!text-[var(--ink-100)]" data-testid="button-letter-loved-one">
                     Letter to Loved One
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -131,18 +131,18 @@ export default function FamilyResources() {
                 return (
                   <Card key={resource.id} className="p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-center gap-4">
-                      <div className="p-3 bg-[#D4AF37]/10 rounded-lg">
-                        <IconComponent className="h-6 w-6 text-[#D4AF37]" />
+                      <div className="p-3 bg-[var(--gold)]/10 rounded-lg">
+                        <IconComponent className="h-6 w-6 text-[var(--gold)]" />
                       </div>
                       <div className="flex-1">
                         <h3 className="font-medium text-black">{resource.name}</h3>
-                        <p className="text-sm text-gray-600">{resource.type}</p>
-                        <p className="text-xs text-gray-500">Created: {resource.dateCreated}</p>
+                        <p className="text-sm text-[var(--ink-300)]">{resource.type}</p>
+                        <p className="text-xs text-[var(--ink-400)]">Created: {resource.dateCreated}</p>
                       </div>
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="text-gray-400 hover:text-[#D4AF37]"
+                        className="text-[var(--ink-400)] hover:text-[var(--gold)]"
                         data-testid={`button-edit-${resource.id}`}
                       >
                         Edit
@@ -157,21 +157,21 @@ export default function FamilyResources() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button 
-                      className="w-full bg-[#D4AF37] hover:bg-[#B8941F] text-white"
+                      className="w-full bg-[var(--gold)] hover:bg-[#B8941F] text-white"
                       data-testid="button-create-resource"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Create New Resource
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="center" className="w-56 bg-white border-2 border-gray-200 shadow-lg rounded-lg p-2">
-                    <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-gray-800 font-medium hover:bg-[#D4AF37]/20 hover:!text-gray-800 focus:!text-gray-800" data-testid="button-important-document">
+                  <DropdownMenuContent align="center" className="w-56 card border-2 border-[var(--line-700)] shadow-lg rounded-lg p-2">
+                    <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-[var(--ink-100)] font-medium hover:bg-[var(--gold)]/20 hover:!text-[var(--ink-100)] focus:!text-[var(--ink-100)]" data-testid="button-important-document">
                       Important Document
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-gray-800 font-medium hover:bg-[#D4AF37]/20 hover:!text-gray-800 focus:!text-gray-800" data-testid="button-emergency-equipment">
+                    <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-[var(--ink-100)] font-medium hover:bg-[var(--gold)]/20 hover:!text-[var(--ink-100)] focus:!text-[var(--ink-100)]" data-testid="button-emergency-equipment">
                       Emergency Equipment
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-gray-800 font-medium hover:bg-[#D4AF37]/20 hover:!text-gray-800 focus:!text-gray-800" data-testid="button-letter-loved-one">
+                    <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-[var(--ink-100)] font-medium hover:bg-[var(--gold)]/20 hover:!text-[var(--ink-100)] focus:!text-[var(--ink-100)]" data-testid="button-letter-loved-one">
                       Letter to Loved One
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -192,12 +192,12 @@ export default function FamilyResources() {
                 <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-medium text-black">Evacuation Plan</h4>
-                    <FileText className="h-5 w-5 text-gray-400" />
+                    <FileText className="h-5 w-5 text-[var(--ink-400)]" />
                   </div>
                   <div className="flex items-center gap-2 text-sm text-blue-500">
                     <Zap className="h-3 w-3" />
                     <span>1 item</span>
-                    <span className="text-gray-400">Pre-populated</span>
+                    <span className="text-[var(--ink-400)]">Pre-populated</span>
                   </div>
                 </Card>
                 
@@ -205,9 +205,9 @@ export default function FamilyResources() {
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <h4 className="font-medium text-black">New Eulogy</h4>
-                      <p className="text-sm text-gray-500">Assisted eulogy writing</p>
+                      <p className="text-sm text-[var(--ink-400)]">Assisted eulogy writing</p>
                     </div>
-                    <Edit className="h-5 w-5 text-gray-400" />
+                    <Edit className="h-5 w-5 text-[var(--ink-400)]" />
                   </div>
                 </Card>
               </div>
@@ -220,24 +220,24 @@ export default function FamilyResources() {
                 <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-medium text-black">Fire Extinguisher</h4>
-                    <Siren className="h-5 w-5 text-gray-400" />
+                    <Siren className="h-5 w-5 text-[var(--ink-400)]" />
                   </div>
                   <div className="flex items-center gap-2 text-sm text-blue-500">
                     <Zap className="h-3 w-3" />
                     <span>1 item</span>
-                    <span className="text-gray-400">Pre-populated</span>
+                    <span className="text-[var(--ink-400)]">Pre-populated</span>
                   </div>
                 </Card>
                 
                 <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-medium text-black">Go Bag</h4>
-                    <Briefcase className="h-5 w-5 text-gray-400" />
+                    <Briefcase className="h-5 w-5 text-[var(--ink-400)]" />
                   </div>
                   <div className="flex items-center gap-2 text-sm text-blue-500">
                     <Zap className="h-3 w-3" />
                     <span>1 item</span>
-                    <span className="text-gray-400">Pre-populated</span>
+                    <span className="text-[var(--ink-400)]">Pre-populated</span>
                   </div>
                 </Card>
               </div>
@@ -250,12 +250,12 @@ export default function FamilyResources() {
                 <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-medium text-black">Letter for Angel</h4>
-                    <Edit className="h-5 w-5 text-gray-400" />
+                    <Edit className="h-5 w-5 text-[var(--ink-400)]" />
                   </div>
                   <div className="flex items-center gap-2 text-sm text-blue-500">
                     <Zap className="h-3 w-3" />
                     <span>2 items</span>
-                    <span className="text-gray-400">Pre-populated</span>
+                    <span className="text-[var(--ink-400)]">Pre-populated</span>
                   </div>
                 </Card>
               </div>
@@ -268,11 +268,11 @@ export default function FamilyResources() {
       {/* Search Results - shown when there's a search term */}
       {searchTerm && (
         <div className="text-center py-12">
-          <div className="text-gray-400 mb-4">
+          <div className="text-[var(--ink-400)] mb-4">
             <Search className="h-12 w-12 mx-auto" />
           </div>
           <h3 className="text-lg font-medium text-black mb-2">No resources found</h3>
-          <p className="text-gray-600">Try adjusting your search terms or create a new resource.</p>
+          <p className="text-[var(--ink-300)]">Try adjusting your search terms or create a new resource.</p>
         </div>
       )}
     </div>
