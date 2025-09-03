@@ -52,11 +52,31 @@ function CredentialCard({
   onNavigate: (id: string) => void;
 }) {
   const [isRevealed, setIsRevealed] = useState(false);
+  const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
   
   const handleReveal = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsRevealed(true);
-    setTimeout(() => setIsRevealed(false), 15000);
+    // Clear any existing timeout
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    // Set new timeout for auto-hide
+    const newTimeoutId = setTimeout(() => {
+      setIsRevealed(false);
+      setTimeoutId(null);
+    }, 15000);
+    setTimeoutId(newTimeoutId);
+  };
+
+  const handleHide = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsRevealed(false);
+    // Clear the auto-hide timeout
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      setTimeoutId(null);
+    }
   };
 
   const handleCopy = (e: React.MouseEvent) => {
@@ -88,7 +108,7 @@ function CredentialCard({
                 {isRevealed ? "MySecretPass123" : "•••• •••• ••••"}
               </div>
               <button 
-                onClick={handleReveal}
+                onClick={isRevealed ? handleHide : handleReveal}
                 className="text-xs text-[#D4AF37] hover:underline underline-offset-4"
               >
                 {isRevealed ? "Hide" : "Reveal"}
