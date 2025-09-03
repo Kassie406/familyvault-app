@@ -630,9 +630,13 @@ function EnhancedShareContent({
         description: "Link generated successfully",
       });
       
-      // Verify the token resolves correctly
+      // Verify the token resolves correctly (but don't let it fail the main operation)
       if (data.token) {
-        await verifyToken(data.token);
+        try {
+          await verifyToken(data.token);
+        } catch (verifyError) {
+          console.warn('Token verification failed, but link was created successfully:', verifyError);
+        }
       }
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
@@ -655,9 +659,13 @@ function EnhancedShareContent({
       if (response.ok) {
         const data = await response.json();
         setPeekData(data);
+      } else {
+        console.warn('Token verification returned non-OK status:', response.status);
       }
     } catch (error) {
       console.error('Error verifying token:', error);
+      // Re-throw to be handled by caller
+      throw error;
     }
   };
 
