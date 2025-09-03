@@ -10,6 +10,7 @@ import {
   User,
   PawPrint
 } from 'lucide-react';
+import { LuxuryCard } from '@/components/luxury-cards';
 
 interface FamilyMember {
   id: string;
@@ -79,10 +80,15 @@ export default function FamilyIds() {
   return (
     <div className="min-h-screen bg-[var(--bg-900)]">
       {/* Header */}
-      <div className="card border-b border-[var(--line-700)] px-8 py-6">
+      <LuxuryCard className="border-b border-[var(--line-700)] px-8 py-6 rounded-none"
+        style={{
+          background: 'linear-gradient(135deg, #161616 0%, #0F0F0F 100%)',
+          borderRadius: '0'
+        }}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-bold text-[var(--ink-100)]">Family IDs</h1>
+            <h1 className="text-3xl font-bold text-white">Family IDs</h1>
             <Button 
               size="sm" 
               className="bg-[var(--gold)] text-black hover:bg-[var(--gold)]/80 rounded-full h-8 w-8 p-0"
@@ -90,9 +96,9 @@ export default function FamilyIds() {
             >
               <Plus className="h-4 w-4" />
             </Button>
-            <div className="flex items-center gap-2 text-sm text-[var(--ink-300)]">
-              <div className="w-4 h-4 rounded-full bg-[#3498DB] flex items-center justify-center">
-                <span className="text-white text-xs">⚡</span>
+            <div className="flex items-center gap-2 text-sm text-neutral-300">
+              <div className="w-4 h-4 rounded-full bg-[#D4AF37] flex items-center justify-center">
+                <span className="text-black text-xs">⚡</span>
               </div>
               <span>{recommendedItems} recommended items</span>
             </div>
@@ -106,7 +112,7 @@ export default function FamilyIds() {
                 placeholder="Search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-[var(--line-700)] rounded-lg bg-[var(--bg-900)] text-[var(--ink-100)] focus:outline-none focus:ring-2 focus:ring-[var(--gold)] focus:border-[var(--gold)] w-64"
+                className="pl-10 pr-4 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] w-64"
                 data-testid="search-family-ids"
               />
             </div>
@@ -119,22 +125,22 @@ export default function FamilyIds() {
             </div>
           </div>
         </div>
-      </div>
+      </LuxuryCard>
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-8 py-8">
         {/* People Section */}
         <div className="mb-12">
           <div className="flex items-center gap-2 mb-6">
-            <Users className="h-5 w-5 text-[var(--ink-100)]" />
-            <h2 className="text-xl font-semibold text-[var(--ink-100)]">People</h2>
+            <Users className="h-5 w-5 text-[#D4AF37]" />
+            <h2 className="text-xl font-semibold text-white">People</h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {familyMembers.map((member) => (
-              <div 
+              <LuxuryCard 
                 key={member.id}
-                className="card p-6 hover:shadow-md hover:border-[var(--gold)]/30 transition-all cursor-pointer group"
+                className="p-6 cursor-pointer group hover:scale-[1.02] transition-all"
                 data-testid={`family-member-${member.id}`}
               >
                 <div className="flex items-start justify-between mb-4">
@@ -153,58 +159,61 @@ export default function FamilyIds() {
                 </div>
                 
                 <div className="mb-4">
-                  <h3 className="font-semibold text-[var(--ink-100)] mb-1 group-hover:text-[var(--gold)] transition-colors">
+                  <h3 className="font-semibold text-white mb-1 group-hover:text-[#D4AF37] transition-colors">
                     {member.name}
                   </h3>
                 </div>
                 
-                <div className="flex items-center text-sm text-[var(--gold)] group-hover:text-[var(--gold)] transition-colors">
+                <div className="flex items-center text-sm text-[#D4AF37] group-hover:text-[#D4AF37] transition-colors">
                   <User className="h-4 w-4 mr-1" />
                   <span>{member.itemCount} items</span>
                 </div>
-              </div>
+              </LuxuryCard>
             ))}
             
             {/* Add New Family ID Card */}
-            <div className="bg-gradient-to-br from-[var(--gold)]/10 to-[var(--gold)]/5 rounded-xl p-6 border-2 border-dashed border-[var(--gold)]/30 hover:border-[var(--gold)] transition-colors cursor-pointer group">
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12 rounded-full bg-[var(--gold)]/20 flex items-center justify-center">
-                  <User className="h-6 w-6 text-[var(--gold)]" />
+            <LuxuryCard className="p-6 border-2 border-dashed border-[#D4AF37]/30 hover:border-[#D4AF37] transition-colors cursor-pointer group relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#D4AF37]/10 to-[#D4AF37]/5"></div>
+              <div className="relative z-10">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-12 h-12 rounded-full bg-[#D4AF37]/20 flex items-center justify-center">
+                    <User className="h-6 w-6 text-[#D4AF37]" />
+                  </div>
+                  <Badge variant="outline" className="border-[#D4AF37] text-[#D4AF37]">
+                    Recommended item
+                  </Badge>
                 </div>
-                <Badge variant="outline" className="border-[var(--gold)] text-[var(--gold)]">
-                  Recommended item
-                </Badge>
+                
+                <div className="mb-4">
+                  <h3 className="font-semibold text-white mb-1">New Family ID</h3>
+                </div>
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-[#D4AF37] hover:text-[#D4AF37]/80 p-0 h-auto font-normal"
+                  data-testid="add-new-family-member"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add this item
+                </Button>
               </div>
-              
-              <div className="mb-4">
-                <h3 className="font-semibold text-[var(--ink-100)] mb-1">New Family ID</h3>
-              </div>
-              
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-[var(--gold)] hover:text-[var(--gold)]/80 p-0 h-auto font-normal"
-                data-testid="add-new-family-member"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add this item
-              </Button>
-            </div>
+            </LuxuryCard>
           </div>
         </div>
 
         {/* Pets Section */}
         <div>
           <div className="flex items-center gap-2 mb-6">
-            <PawPrint className="h-5 w-5 text-[var(--ink-100)]" />
-            <h2 className="text-xl font-semibold text-[var(--ink-100)]">Pets</h2>
+            <PawPrint className="h-5 w-5 text-[#D4AF37]" />
+            <h2 className="text-xl font-semibold text-white">Pets</h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {pets.map((pet) => (
-              <div 
+              <LuxuryCard 
                 key={pet.id}
-                className="card p-6 hover:shadow-md hover:border-[var(--gold)]/30 transition-all cursor-pointer group"
+                className="p-6 cursor-pointer group hover:scale-[1.02] transition-all"
                 data-testid={`pet-${pet.id}`}
               >
                 <div className="flex items-start justify-between mb-4">
@@ -217,16 +226,16 @@ export default function FamilyIds() {
                 </div>
                 
                 <div className="mb-4">
-                  <h3 className="font-semibold text-[var(--ink-100)] mb-1 group-hover:text-[var(--gold)] transition-colors">
+                  <h3 className="font-semibold text-white mb-1 group-hover:text-[#D4AF37] transition-colors">
                     {pet.name}
                   </h3>
                 </div>
                 
-                <div className="flex items-center text-sm text-[var(--gold)] group-hover:text-[var(--gold)] transition-colors">
+                <div className="flex items-center text-sm text-[#D4AF37] group-hover:text-[#D4AF37] transition-colors">
                   <PawPrint className="h-4 w-4 mr-1" />
                   <span>{pet.itemCount} items</span>
                 </div>
-              </div>
+              </LuxuryCard>
             ))}
           </div>
         </div>
