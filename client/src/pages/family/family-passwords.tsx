@@ -581,65 +581,19 @@ function EnhancedShareContent({
 
   const handleRegenerateLink = async () => {
     if (isGenerating) return;
+    
     setIsGenerating(true);
     setGenTimedOut(false);
-
-    // Clean up existing controller and timeout
-    if (abortRef.current) {
-      abortRef.current = null;
-    }
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-
-    const timer = window.setTimeout(() => {
-      if (ctrl && !ctrl.signal.aborted) {
-        ctrl.abort();
-        setGenTimedOut(true);
-        setIsGenerating(false);
-        toast({
-          title: "Timeout",
-          description: "Generation timed out. Please retry.",
-          variant: "destructive",
-        });
-        setAudit(prev => [{ event: 'Link generation timed out', ts: Date.now() }, ...prev]);
-      }
-    }, 15000); // Increase timeout to 15 seconds
-    timeoutRef.current = timer;
 
     try {
       console.log('Sending regenerate request for credential:', credential.id);
       
-      const response = await fetch(`/api/credentials/${credential.id}/shares/regenerate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          expiry: expiry,
-          requireLogin
-        }),
-        signal: ctrl.signal,
-      });
-
-      const contentType = response.headers.get('content-type') || '';
-      const bodyText = await response.text();
-      console.log('Response status:', response.status, 'Content-Type:', contentType, 'Body:', bodyText.slice(0, 200));
-
-      if (!contentType.includes('application/json')) {
-        throw new Error(`Non-JSON response (likely SPA/HTML). status=${response.status} body=${bodyText.slice(0,120)}`);
-      }
-
-      const data = JSON.parse(bodyText);
-      if (!response.ok || data?.ok === false) {
-        throw new Error(data?.error || `HTTP ${response.status}`);
-      }
-
-      if (!data?.url) throw new Error('No URL returned');
+      const { postJson } = await import('@/utils/http');
+      const data = await postJson<{ token: string; url: string }>(
+        `/api/credentials/${credential.id}/shares/regenerate`,
+        { expiry, requireLogin },
+        { timeoutMs: 15000 }
+      );
 
       setShareUrl(data.url);
       setAudit(prev => [{ event: 'Link regenerated', ts: Date.now() }, ...prev]);
@@ -657,26 +611,14 @@ function EnhancedShareContent({
         }
       }
     } catch (e: any) {
-      if (e?.name === 'AbortError') {
-        console.log('Request was aborted (timeout)');
-      } else {
-        console.error('Error generating share link:', e);
-        toast({
-          title: "Error",
-          description: e.message || "Could not generate link",
-          variant: "destructive",
-        });
-        setAudit(prev => [{ event: 'Link generation error', ts: Date.now() }, ...prev]);
-      }
+      console.error('Error generating share link:', e);
+      toast({
+        title: "Error",
+        description: String(e?.message ?? "Failed to generate link"),
+        variant: "destructive",
+      });
+      setAudit(prev => [{ event: 'Link generation error', ts: Date.now() }, ...prev]);
     } finally {
-      // Clear timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-      
-      // Clean up abort controller
-      abortRef.current = null;
       setIsGenerating(false);
     }
   };
