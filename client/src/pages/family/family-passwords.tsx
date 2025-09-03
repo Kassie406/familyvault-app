@@ -738,6 +738,9 @@ function EnhancedShareContent({
                   className="data-[state=checked]:bg-[#D4AF37] scale-75"
                 />
                 <Label className="text-xs text-neutral-400">Require login</Label>
+                <div className="w-4 h-4 rounded-full border border-neutral-600 bg-neutral-800 flex items-center justify-center text-[10px] text-neutral-400">
+                  i
+                </div>
               </div>
             </div>
           </div>
