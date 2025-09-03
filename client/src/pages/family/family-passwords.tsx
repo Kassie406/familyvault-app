@@ -588,8 +588,8 @@ function EnhancedShareContent({
     try {
       console.log('Sending regenerate request for credential:', credential.id);
       
-      const { postJson } = await import('@/utils/http');
-      const data = await postJson<{ token: string; url: string }>(
+      const { postJsonNoAbort } = await import('@/utils/http');
+      const data = await postJsonNoAbort<{ token: string; url: string }>(
         `/api/credentials/${credential.id}/shares/regenerate`,
         { expiry, requireLogin },
         { timeoutMs: 15000 }
