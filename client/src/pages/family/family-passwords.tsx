@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation } from 'wouter';
-import { Search, Key, Eye, EyeOff, Copy, BadgeCheck, X, MoreVertical, Edit, Share, Trash2, Link2, Users, UserRound, UsersRound, Send, Plus } from 'lucide-react';
+import { Search, Key, Eye, EyeOff, Copy, BadgeCheck, X, MoreVertical, Edit, Share, Trash2, Link2, Users, UserRound, UsersRound, Send, Plus, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -738,9 +738,7 @@ function EnhancedShareContent({
                   className="data-[state=checked]:bg-[#D4AF37] scale-75"
                 />
                 <Label className="text-xs text-neutral-400">Require login</Label>
-                <div className="w-4 h-4 rounded-full border border-neutral-600 bg-neutral-800 flex items-center justify-center text-[10px] text-neutral-400">
-                  i
-                </div>
+                <Info className="h-3 w-3 text-neutral-400" />
               </div>
             </div>
           </div>
