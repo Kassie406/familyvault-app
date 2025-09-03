@@ -1,0 +1,119 @@
+Good call. A straight redeploy can fix it, but let’s make sure the Replit Deployment is actually using the new backend + DB and not serving the old build.
+
+Here’s a quick, surgical checklist for Replit Deployments (based on your screenshot):
+
+1) Confirm deployment type & start command
+
+In Deployments → Settings:
+
+Type: Web server (not “Static site”).
+
+Start command: node server/index.js (or your compiled entry).
+
+Your Express app must listen on process.env.PORT in production.
+
+// server/index.ts
+app.listen(process.env.PORT || 5000, () => console.log('API up'));
+
+2) Set production env vars (in Replit “Secrets” for this Deployment)
+NODE_ENV=production
+APP_URL=https://portal.familycirclesecure.com
+DATABASE_URL=postgres://<neon-user>:<password>@<neon-host>/<db>
+DEV_BYPASS_AUTH=false
+# if API and FE are same origin, omit; if not, set explicit:
+# CORS_ORIGIN=https://portal.familycirclesecure.com
+
+
+Re-check these on the Deployment (not just in the Repl run tab). Replit creates a separate env for the deployed app.
+
+3) Run the production DB migration in the Deployment
+
+You can wire it in one of two ways:
+
+A) Post-deploy hook (preferred)
+
+In Deployment “Build & Run” add a post-deploy command:
+
+npm run db:push
+
+
+(so every new deploy guarantees schema is in sync)
+
+B) One-time manual (via Replit shell of the deployed app)
+
+npm run db:push
+
+
+Then verify:
+
+SELECT token, credential_id, require_login, expires_at, revoked
+FROM share_links ORDER BY created_at DESC LIMIT 5;
+
+4) Health check before testing the UI
+
+From your browser:
+
+https://portal.familycirclesecure.com/api/healthz
+
+
+Expected: {"ok":true}
+If you see HTML/404, the backend isn’t running or the Deployment is a static site (or the app isn’t listening on PORT).
+
+5) Network check from the UI
+
+Open DevTools → Network, click Click Regenerate on a credential.
+
+Request: POST /api/credentials/:id/shares/regenerate
+
+Expected: 200 JSON { url, token }
+
+If 401 → session cookie not reaching API. Check cookie attributes & that Replit proxy forwards Cookie.
+
+If HTML / 404 → start command / routing wrong (see #1 & #4).
+
+If 5xx → click Deployments → Logs; likely missing env or DB access.
+
+6) Make sure FE calls relative paths
+
+Confirm you don’t have http://localhost:5000 or a stale API_BASE. FE should call:
+
+fetch(`/api/credentials/${id}/shares/regenerate`, { method: 'POST', ... })
+
+7) If it still times out
+
+Run these in the deployed app logs console (or add temp routes) to isolate:
+
+Simple POST test route (sanity):
+
+app.post('/api/test-post', (req,res)=>res.json({ok:true}));
+
+
+If /api/test-post returns JSON 200 → server is fine; issue is auth/DB.
+
+If it returns HTML → Deployment is serving static HTML (wrong type) or app not listening on PORT.
+
+8) Clean redeploy (to avoid old cache)
+
+In Deployments, use “Clean install” (npm ci) if available, then Redeploy.
+
+Watch Build → Bundle → Promote; once green, hit /api/healthz again.
+
+Mini “must-pass” list
+
+ /api/healthz returns JSON 200
+
+ npm run db:push ran against production DB
+
+ DevTools shows POST /api/credentials/:id/shares/regenerate → 200 JSON
+
+ Session cookie arrives at API (no 401)
+
+ “Copy” shows a token URL that opens a share page
+
+If you hit an error after redeploy, grab:
+
+The Network panel details (status + response text) for the regenerate call
+
+The latest Replit “Deployments → Logs” error line
+
+Paste those and I’ll point at the exact fix.
