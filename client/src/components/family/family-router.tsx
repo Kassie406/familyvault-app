@@ -109,6 +109,7 @@ export default function FamilyRouter() {
         <Route path="/family/finance" component={withSidebarLayout(() => <Finance />)} />
         <Route path="/family/property" component={withSidebarLayout(() => <Property />)} />
         <Route path="/family/passwords" component={withSidebarLayout(() => <FamilyPasswords />)} />
+        <Route path="/family/passwords/:id" component={withSidebarLayout(() => <FamilyPasswords />)} />
         <Route path="/family/insurance" component={withSidebarLayout(() => <FamilyInsurance />)} />
         <Route path="/family/taxes" component={withSidebarLayout(() => <FamilyTaxes />)} />
         <Route path="/family/legal" component={withSidebarLayout(() => <FamilyLegal />)} />
