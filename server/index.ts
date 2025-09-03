@@ -455,44 +455,35 @@ import { makeToken, expiryToDate, appUrl, type Expiry } from "./shareHelpers";
 import { db } from "./db";
 import { shareLinks, credentials, credentialShares } from "@shared/schema";
 
-// DEV_BYPASS_AUTH for testing - remove in production
-const shareAuth: express.RequestHandler = 
-  process.env.DEV_BYPASS_AUTH === "true"
-    ? (req, res, next) => {
-        (req as any).user = { id: "dev-user" };
-        next();
-      }
-    : requireAuth;
+// Production-ready authentication helper
+const getUserId = (req: any) => req.user?.id || req.session?.user?.id;
 
-// DEBUG: Simple test endpoint
-app.get('/api/credentials/test', (req, res) => {
-  console.log('Test endpoint hit!');
-  res.json({ message: 'Test successful' });
-});
-
-// DEBUG: Simple POST test
-app.post('/api/credentials/test-post', (req, res) => {
-  console.log('POST Test endpoint hit!', req.body);
-  res.json({ message: 'POST Test successful', body: req.body });
-});
-
-// DEBUG: Test with different path
-app.post('/api/shares/test', (req, res) => {
-  console.log('Shares POST Test endpoint hit!', req.body);
-  res.json({ message: 'Shares POST Test successful', body: req.body });
-});
-
-// WORKAROUND: Move share endpoint to working pattern like /api/share-generate
-app.post('/api/share-generate/:id', async (req: AuthenticatedRequest, res: Response) => {
-  console.log('Share regenerate endpoint hit:', req.params.id, req.body);
+// Production endpoints - Generate/regenerate share link
+app.post('/api/credentials/:id/shares/regenerate', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    console.log('Starting share generation...');
     const credentialId = req.params.id;
-    
-    // Simple version first - just return a mock response
+    const { expiry = "7d", requireLogin = true } = (req.body ?? {}) as {
+      expiry?: Expiry;
+      requireLogin?: boolean;
+    };
+
     const token = makeToken(18);
+    const expiresAt = expiryToDate(expiry);
+    const createdBy = getUserId(req);
+
+    if (!createdBy) {
+      return res.status(401).json({ error: "unauthorized" });
+    }
+
+    await db.insert(shareLinks).values({
+      token,
+      credentialId,
+      requireLogin,
+      expiresAt: expiresAt ?? undefined,
+      createdBy,
+    });
+
     const url = `${appUrl()}/share/${token}`;
-    console.log('Share regenerate success (mock):', { url, token });
     return res.json({ url, token });
   } catch (e) {
     console.error("regenerate error", e);
@@ -500,8 +491,8 @@ app.post('/api/share-generate/:id', async (req: AuthenticatedRequest, res: Respo
   }
 });
 
-// Save sharing settings
-app.put("/api/credentials/:id/shares", shareAuth, async (req: AuthenticatedRequest, res: Response) => {
+// Update sharing settings 
+app.put("/api/credentials/:id/shares", requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const credentialId = req.params.id;
     const {
@@ -593,7 +584,7 @@ const mockCredentials: Record<string, any> = {
   }
 };
 
-// Viewer metadata (no secret)
+// Share viewer metadata (public endpoint)
 app.get("/api/share/:token", async (req, res) => {
   try {
     const token = req.params.token;
@@ -604,7 +595,6 @@ app.get("/api/share/:token", async (req, res) => {
     if (link.expiresAt && new Date(link.expiresAt) < new Date())
       return res.status(410).json({ error: "expired" });
 
-    // Pull minimal credential metadata for card
     const cred = await db.query.credentials.findFirst({
       columns: { id: true, title: true, ownerId: true },
       where: eq(credentials.id, link.credentialId),
@@ -614,7 +604,7 @@ app.get("/api/share/:token", async (req, res) => {
       title: cred?.title ?? "Shared Item",
       owner: cred?.ownerId ?? "Unknown",
       requireLogin: !!link.requireLogin,
-      canReveal: !link.requireLogin, // UI hint only; server enforces again
+      canReveal: !link.requireLogin,
     });
   } catch (e) {
     console.error("viewer error", e);
@@ -622,8 +612,8 @@ app.get("/api/share/:token", async (req, res) => {
   }
 });
 
-// Reveal secret (enforces login/expiry)
-app.post("/api/share/:token/reveal", shareAuth, async (req: AuthenticatedRequest, res: Response) => {
+// Reveal secret (enforces authentication if required)
+app.post("/api/share/:token/reveal", requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const token = req.params.token;
     const link = await db.query.shareLinks.findFirst({
@@ -633,13 +623,13 @@ app.post("/api/share/:token/reveal", shareAuth, async (req: AuthenticatedRequest
     if (link.expiresAt && new Date(link.expiresAt) < new Date())
       return res.status(410).json({ error: "expired" });
 
-    // You can fetch and decrypt the actual secret here by link.credentialId
-    // For now, use mock data
+    // Get mock credential data (TODO: replace with real decryption)
     const mockData = mockCredentials[link.credentialId];
-    const secret = mockData?.password || "1234"; 
+    const secret = mockData?.password || "1234";
 
-    // audit example:
-    console.log(`Share revealed: credential=${link.credentialId}, user=${req.user?.id || 'dev-user'}`);
+    // Audit log
+    const userId = getUserId(req);
+    console.log(`Share revealed: credential=${link.credentialId}, user=${userId || 'anonymous'}`);
 
     return res.json({ secret });
   } catch (e) {
@@ -648,24 +638,22 @@ app.post("/api/share/:token/reveal", shareAuth, async (req: AuthenticatedRequest
   }
 });
 
-// Peek endpoint to verify token resolution
+// Peek endpoint - simple token verification
 app.get('/api/share/:token/peek', async (req: Request, res: Response) => {
   try {
-    const { token } = req.params;
+    const token = req.params.token;
     
-    const resolution = await resolveShare(token);
-    if (resolution.status === 'invalid') {
-      return res.status(404).json({ error: 'Token not found' });
-    }
-    if (resolution.status === 'expired') {
+    const link = await db.query.shareLinks.findFirst({
+      where: eq(shareLinks.token, token),
+    });
+    if (!link || link.revoked) return res.status(404).json({ error: 'Token not found' });
+    if (link.expiresAt && new Date(link.expiresAt) < new Date())
       return res.status(410).json({ error: 'Token expired' });
-    }
     
-    const { link } = resolution;
     const mockData = mockCredentials[link.credentialId];
     
     res.json({
-      title: link.credential.title || mockData?.title || 'Shared Credential',
+      title: mockData?.title || 'Shared Credential',
       credentialId: link.credentialId,
       tag: mockData?.tag || 'Credential',
       owner: link.createdBy

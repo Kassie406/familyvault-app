@@ -1,0 +1,362 @@
+Awesome—let’s make share-links production-ready on portal.familycirclesecure.com.
+
+Below is a tight, copy-paste plan with final Express + Drizzle endpoints (auth on), env vars, deploy checks, and smoke tests.
+
+0) Decide the public URL
+
+Set the canonical app URL your users will copy in links:
+
+APP_URL=https://portal.familycirclesecure.com
+
+1) Environment (production)
+
+Add these to your prod secrets:
+
+# App
+NODE_ENV=production
+APP_URL=https://portal.familycirclesecure.com
+
+# DB (Neon)
+DATABASE_URL=postgres://USER:PASSWORD@HOST/db
+
+# Auth
+DEV_BYPASS_AUTH=false
+
+# CORS (optional if API and app share the same origin)
+CORS_ORIGIN=https://portal.familycirclesecure.com
+
+2) Auth middleware (required in prod)
+
+Assumption: your session or auth adds req.user.id for logged-in members.
+
+// server/auth.ts
+import type { RequestHandler } from "express";
+
+export const requireAuth: RequestHandler = (req, res, next) => {
+  const userId = (req as any).user?.id || (req as any).session?.user?.id;
+  if (!userId) return res.status(401).json({ error: "unauthorized" });
+  return next();
+};
+
+// helper for getting user id consistently
+export const getUserId = (req: any) => req.user?.id || req.session?.user?.id;
+
+3) Drizzle schema (share tables)
+
+If you don’t already have these, add them:
+
+// shared/schema.ts
+import { pgTable, text, boolean, timestamp, primaryKey } from "drizzle-orm/pg-core";
+
+export const credentials = pgTable("credentials", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  ownerId: text("owner_id").notNull(),
+});
+
+export const shareLinks = pgTable("share_links", {
+  token: text("token").primaryKey(),
+  credentialId: text("credential_id").notNull(),
+  requireLogin: boolean("require_login").notNull().default(true),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  revoked: boolean("revoked").notNull().default(false),
+  createdBy: text("created_by").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const credentialShares = pgTable(
+  "credential_shares",
+  {
+    credentialId: text("credential_id").notNull(),
+    subjectId: text("subject_id").notNull(),
+    permission: text("permission").notNull(), // 'none' | 'view' | 'edit' | 'owner'
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.credentialId, t.subjectId] }) })
+);
+
+
+Run your Drizzle migration (drizzle-kit push) so production DB has these tables.
+
+4) Helpers
+// server/shareHelpers.ts
+import crypto from "crypto";
+
+export type Expiry = "24h" | "7d" | "30d" | "never";
+
+export function makeToken(len = 18) {
+  return crypto.randomBytes(len).toString("base64url");
+}
+
+export function expiryToDate(exp: Expiry) {
+  if (exp === "never") return null;
+  const sec = exp === "24h" ? 86400 : exp === "7d" ? 7*86400 : 30*86400;
+  return new Date(Date.now() + sec * 1000);
+}
+
+export const appUrl = () => process.env.APP_URL || "http://localhost:3000";
+
+5) Final production endpoints (Express + Drizzle + auth)
+
+We’ll keep the clean path:
+
+POST /api/credentials/:id/shares/regenerate
+
+PUT /api/credentials/:id/shares
+
+GET /api/share/:token
+
+POST /api/share/:token/reveal
+
+// server/index.ts
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
+import { and, eq } from "drizzle-orm";
+import { credentials, shareLinks, credentialShares } from "@/shared/schema";
+import { requireAuth, getUserId } from "@/server/auth";
+import { appUrl, expiryToDate, makeToken, Expiry } from "@/server/shareHelpers";
+
+const app = express();
+app.use(helmet());
+app.use(express.json());
+
+// CORS only if API is on different origin than frontend
+if (process.env.CORS_ORIGIN) {
+  app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));
+}
+
+const sql = neon(process.env.DATABASE_URL!);
+const db  = drizzle(sql);
+
+// Basic abuse protection on share endpoints
+const limiter = rateLimit({ windowMs: 60_000, max: 120 }); // 120/min
+app.use("/api/share", limiter);
+app.use("/api/credentials", limiter);
+
+// --- Generate/regenerate token ---
+app.post("/api/credentials/:id/shares/regenerate", requireAuth, async (req, res) => {
+  try {
+    const credentialId = req.params.id;
+    const { expiry = "7d", requireLogin = true } = (req.body ?? {}) as {
+      expiry?: Expiry; requireLogin?: boolean;
+    };
+    const token = makeToken();
+    const expiresAt = expiryToDate(expiry);
+    const createdBy = getUserId(req);
+
+    await db.insert(shareLinks).values({
+      token,
+      credentialId,
+      requireLogin,
+      expiresAt: expiresAt ?? undefined,
+      createdBy,
+    });
+
+    return res.json({ url: `${appUrl()}/share/${token}`, token });
+  } catch (e) {
+    console.error("regenerate error", e);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+// --- Update sharing settings ---
+app.put("/api/credentials/:id/shares", requireAuth, async (req, res) => {
+  try {
+    const credentialId = req.params.id;
+    const {
+      linkEnabled,
+      shareUrl,
+      expiry = "7d",
+      requireLogin = true,
+      shares = [],
+    } = (req.body ?? {}) as {
+      linkEnabled: boolean;
+      shareUrl?: string | null;
+      expiry?: Expiry;
+      requireLogin?: boolean;
+      shares?: { personId: string; permission: string }[];
+    };
+
+    if (!linkEnabled) {
+      await db.update(shareLinks)
+        .set({ revoked: true })
+        .where(eq(shareLinks.credentialId, credentialId));
+    } else if (shareUrl) {
+      const token = shareUrl.split("/share/").pop()!;
+      await db.update(shareLinks)
+        .set({
+          requireLogin,
+          expiresAt: expiryToDate(expiry) ?? undefined,
+          revoked: false,
+        })
+        .where(and(
+          eq(shareLinks.token, token),
+          eq(shareLinks.credentialId, credentialId)
+        ));
+    }
+
+    // per-member/group permissions
+    for (const s of shares) {
+      await db.insert(credentialShares).values({
+        credentialId,
+        subjectId: s.personId,
+        permission: s.permission,
+      }).onConflictDoUpdate({
+        target: [credentialShares.credentialId, credentialShares.subjectId],
+        set: { permission: s.permission },
+      });
+    }
+
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("save shares error", e);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+// --- Viewer metadata (no secret) ---
+app.get("/api/share/:token", async (req, res) => {
+  try {
+    const token = req.params.token;
+    const link = await db.query.shareLinks.findFirst({
+      where: eq(shareLinks.token, token),
+    });
+    if (!link || link.revoked) return res.status(404).json({ error: "invalid" });
+    if (link.expiresAt && new Date(link.expiresAt) < new Date())
+      return res.status(410).json({ error: "expired" });
+
+    const cred = await db.query.credentials.findFirst({
+      columns: { id: true, title: true, ownerId: true },
+      where: eq(credentials.id, link.credentialId),
+    });
+
+    return res.json({
+      title: cred?.title ?? "Shared Item",
+      owner: cred?.ownerId ?? "Unknown",
+      requireLogin: !!link.requireLogin,
+      canReveal: !link.requireLogin,
+    });
+  } catch (e) {
+    console.error("viewer error", e);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+// --- Reveal secret (requires auth if policy says so) ---
+app.post("/api/share/:token/reveal", requireAuth, async (req, res) => {
+  try {
+    const token = req.params.token;
+    const link = await db.query.shareLinks.findFirst({
+      where: eq(shareLinks.token, token),
+    });
+    if (!link || link.revoked) return res.status(404).json({ error: "invalid" });
+    if (link.expiresAt && new Date(link.expiresAt) < new Date())
+      return res.status(410).json({ error: "expired" });
+
+    // TODO: Fetch & decrypt actual secret by link.credentialId from your vault
+    const secret = "1234"; // placeholder
+
+    // TODO: audit insert here if needed
+    return res.json({ secret });
+  } catch (e) {
+    console.error("reveal error", e);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+// Health
+app.get("/healthz", (_req, res) => res.json({ ok: true }));
+
+// Start
+app.listen(process.env.PORT || 5000, () =>
+  console.log("API listening", process.env.PORT || 5000)
+);
+
+
+In production you do not mount the Vite dev server; these API routes won’t be intercepted.
+
+6) Front-end (production)
+
+Keep your FE calling the original REST path now that Vite isn’t in prod:
+
+await fetch(`/api/credentials/${credentialId}/shares/regenerate`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ expiry, requireLogin }),
+});
+
+
+And your Update Sharing call:
+
+await fetch(`/api/credentials/${credentialId}/shares`, {
+  method: "PUT",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ linkEnabled, shareUrl, expiry, requireLogin, shares }),
+});
+
+7) Nginx / proxy (if applicable)
+
+Make sure /api/* is proxied to your Node server; everything else serves the frontend.
+
+location /api/ {
+  proxy_pass http://127.0.0.1:5000;
+  proxy_set_header Host $host;
+  proxy_set_header X-Forwarded-Proto $scheme;
+}
+
+location / {
+  root /var/www/portal.familycirclesecure.com;
+  try_files $uri /index.html;
+}
+
+8) Smoke tests (production)
+# 1) health
+curl -s https://portal.familycirclesecure.com/api/healthz
+
+# 2) regenerate (must be authenticated; test with a session cookie or run locally)
+curl -i -X POST https://portal.familycirclesecure.com/api/credentials/c-garage/shares/regenerate \
+  -H 'content-type: application/json' \
+  --cookie "session=YOUR_SESSION_COOKIE" \
+  -d '{"expiry":"7d","requireLogin":true}'
+
+# 3) viewer (no auth)
+curl -s https://portal.familycirclesecure.com/api/share/<TOKEN>
+
+# 4) reveal (requires auth if policy requires)
+curl -i -X POST https://portal.familycirclesecure.com/api/share/<TOKEN>/reveal \
+  --cookie "session=YOUR_SESSION_COOKIE"
+
+9) Security checklist
+
+✅ HTTPS + HSTS
+
+✅ Tokens never encode secrets; server checks token → loads secret server-side
+
+✅ requireLogin enforced in /reveal (and hinted in /share/:token)
+
+✅ Expiry enforced (410 Gone)
+
+✅ Revocation via linkEnabled=false (mass revoke)
+
+✅ Rate-limit /share endpoints
+
+✅ Audit “generated / revealed / revoked” (optional but recommended)
+
+Rollout plan (safe)
+
+Deploy the API with the new routes + DB tables.
+
+Confirm health and manual CURL test with an authenticated cookie.
+
+Flip the FE to the original paths (as shown above).
+
+Disable any dev bypass; verify a real user can generate/copy/reveal.
+
+Turn on server logs/alerts for /api/share/* errors.
+
+If you want, I can also add:
