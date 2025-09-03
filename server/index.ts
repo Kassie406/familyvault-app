@@ -499,28 +499,15 @@ app.post('/api/credentials/:id/shares/regenerate', async (req, res) => {
       expiry === '7d'    ? new Date(now.getTime() + 7*24*3600*1000) :
       new Date(now.getTime() + 30*24*3600*1000);
 
-    // Insert token into database (direct insert for debugging)
-    console.log('[regen] attempting db insert', { token: token.slice(0,8), credentialId: id, expiresAt, requireLogin });
-    try {
-      const insertResult = await db.insert(shareLinks).values({
-        token,
-        credentialId: id,
-        expiresAt: expiresAt ?? undefined,
-        requireLogin,
-        revoked: false,
-        createdBy: getUserId(req) || 'anonymous',
-      });
-      console.log('[regen] db insert success', { token: token.slice(0,8), result: insertResult });
-    } catch (dbError: any) {
-      console.error('[regen] db insert failed', { 
-        error: dbError?.message, 
-        code: dbError?.code,
-        detail: dbError?.detail,
-        constraint: dbError?.constraint,
-        table: dbError?.table 
-      });
-      throw new Error(`Database insert failed: ${dbError?.message}`);
-    }
+    // Insert token into database
+    await db.insert(shareLinks).values({
+      token,
+      credentialId: id,
+      expiresAt: expiresAt ?? undefined,
+      requireLogin,
+      revoked: false,
+      createdBy: getUserId(req) || 'anonymous',
+    });
 
     const baseUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
     const url = `${baseUrl}/share/${token}`;
