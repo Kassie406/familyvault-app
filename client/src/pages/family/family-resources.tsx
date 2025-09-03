@@ -3,6 +3,12 @@ import { Search, Plus, FileText, Layout } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function FamilyResources() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,9 +22,24 @@ export default function FamilyResources() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-black">Family Resources</h1>
-          <div className="bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center">
-            <Plus className="h-4 w-4" />
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors" data-testid="button-add-resource">
+                <Plus className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem data-testid="button-important-document">
+                Important Document
+              </DropdownMenuItem>
+              <DropdownMenuItem data-testid="button-emergency-equipment">
+                Emergency Equipment
+              </DropdownMenuItem>
+              <DropdownMenuItem data-testid="button-letter-loved-one">
+                Letter to Loved One
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <span className="text-sm text-blue-500 font-medium">
             {totalItems} recommended items
           </span>
