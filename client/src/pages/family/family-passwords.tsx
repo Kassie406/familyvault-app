@@ -584,28 +584,36 @@ function EnhancedShareContent({
     setIsGenerating(true);
     setGenTimedOut(false);
 
+    // Clean up existing controller and timeout
+    if (abortRef.current) {
+      abortRef.current = null;
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
     const ctrl = new AbortController();
     abortRef.current = ctrl;
 
     const timer = window.setTimeout(() => {
-      if (!ctrl.signal.aborted) {
-        try {
-          ctrl.abort();
-          setGenTimedOut(true);
-          toast({
-            title: "Timeout",
-            description: "Generation timed out. Please retry.",
-            variant: "destructive",
-          });
-          setAudit(prev => [{ event: 'Link generation timed out', ts: Date.now() }, ...prev]);
-        } catch (e) {
-          console.warn("Timeout abort already triggered", e);
-        }
+      if (ctrl && !ctrl.signal.aborted) {
+        ctrl.abort();
+        setGenTimedOut(true);
+        setIsGenerating(false);
+        toast({
+          title: "Timeout",
+          description: "Generation timed out. Please retry.",
+          variant: "destructive",
+        });
+        setAudit(prev => [{ event: 'Link generation timed out', ts: Date.now() }, ...prev]);
       }
-    }, GEN_TIMEOUT_MS);
+    }, 15000); // Increase timeout to 15 seconds
     timeoutRef.current = timer;
 
     try {
+      console.log('Sending regenerate request for credential:', credential.id);
+      
       const response = await fetch(`/api/credentials/${credential.id}/shares/regenerate`, {
         method: 'POST',
         headers: {
@@ -618,7 +626,18 @@ function EnhancedShareContent({
         signal: ctrl.signal,
       });
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const contentType = response.headers.get('content-type') || '';
+      console.log('Response status:', response.status, 'Content-Type:', contentType);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText.slice(0, 200)}`);
+      }
+
+      if (!contentType.includes('application/json')) {
+        const htmlResponse = await response.text();
+        throw new Error('Non-JSON response (routing issue): ' + htmlResponse.slice(0, 100));
+      }
 
       const data = await response.json();
       if (!data?.url) throw new Error('No URL returned');
@@ -639,17 +658,27 @@ function EnhancedShareContent({
         }
       }
     } catch (e: any) {
-      if (e?.name !== 'AbortError') {
+      if (e?.name === 'AbortError') {
+        console.log('Request was aborted (timeout)');
+      } else {
         console.error('Error generating share link:', e);
         toast({
           title: "Error",
-          description: "Could not generate link",
+          description: e.message || "Could not generate link",
           variant: "destructive",
         });
         setAudit(prev => [{ event: 'Link generation error', ts: Date.now() }, ...prev]);
       }
     } finally {
-      clearGenGuards();
+      // Clear timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      
+      // Clean up abort controller
+      abortRef.current = null;
+      setIsGenerating(false);
     }
   };
 

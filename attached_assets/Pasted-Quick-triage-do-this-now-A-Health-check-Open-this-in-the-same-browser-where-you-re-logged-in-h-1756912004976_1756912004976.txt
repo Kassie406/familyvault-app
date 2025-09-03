@@ -1,0 +1,105 @@
+Quick triage (do this now)
+A) Health check
+
+Open this in the same browser where you’re logged in:
+
+https://portal.familycirclesecure.com/api/healthz
+
+
+If JSON (e.g., {ok:true}) → server is up.
+
+If HTML / 404 / 502 → the deploy isn’t running the API (routing/start command).
+
+B) One-shot test from the browser console
+
+On the portal page, press F12 → Console and paste:
+
+(async () => {
+  const r1 = await fetch('/api/healthz'); 
+  console.log('health:', r1.status, await r1.text());
+
+  const credId = document.querySelector('[data-credential-id]')?.getAttribute('data-credential-id') || 'c-garage';
+  const r2 = await fetch(`/api/credentials/${credId}/shares/regenerate`, {
+    method: 'POST',
+    headers: {'content-type':'application/json'},
+    body: JSON.stringify({ expiry:'7d', requireLogin:true })
+  });
+  const ct = r2.headers.get('content-type');
+  const body = await r2.text();
+  console.log('regen:', r2.status, ct, body.slice(0, 200));
+})();
+
+
+Interpret the result:
+
+What you see	Meaning	Fix
+regen: 200 application/json {...}	Works; UI timeout logic is wrong	I’ll give you the tiny UI fix below
+regen: 401 ...	Auth cookie not reaching API	Ensure cookie Secure; SameSite=Lax & proxy forwards Cookie
+regen: 404 ...	Wrong path/hit SPA	Make sure deploy’s start command runs Express and /api/* is routed before SPA
+regen: 200 text/html ...	SPA HTML intercepted /api/*	Put API proxy/route before try_files /index.html
+(no response / hangs)	Process not started / blocked	Check Deployment Logs and start command
+Most common production fixes (Replit Deploy)
+
+Start command must run the API, not just a static build. In Deploy → Settings:
+
+Start: node dist/index.js         # or node server/index.js (your compiled entry)
+Type:  Web server
+
+
+Post-deploy migration (otherwise DB hangs/throws):
+
+npm run db:push
+
+
+ENV secrets set on the Deployment (not only the Repl):
+
+NODE_ENV=production
+APP_URL=https://portal.familycirclesecure.com
+DATABASE_URL=postgres://<neon>
+DEV_BYPASS_AUTH=false
+
+
+Routing (if you use Nginx or a proxy): /api/* → Node before SPA fallback.
+
+Add server logging (1 minute)
+
+Put this at the top of your regenerate handler to see what’s happening in logs:
+
+app.post('/api/credentials/:id/shares/regenerate', requireAuth, async (req, res) => {
+  console.log('[regen] user', req.user?.id || req.session?.user?.id, 'cred', req.params.id);
+  // ...existing logic...
+});
+
+
+Then redeploy and watch Deployments → Logs while you click “Generate”.
+
+UI: show the real error instead of “Timeout”
+
+If the API returns HTML/401/500, the current UI just times out. Change your call wrapper to surface the error:
+
+async function regenerateLink(credentialId, opts) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 15000); // 15s, not 5s
+  try {
+    const res = await fetch(`/api/credentials/${credentialId}/shares/regenerate`, {
+      method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify(opts),
+      signal: ctrl.signal,
+    });
+    const ct = res.headers.get('content-type') || '';
+    const body = ct.includes('application/json') ? await res.json() : { raw: await res.text() };
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${JSON.stringify(body).slice(0,200)}`);
+    if (!ct.includes('application/json')) throw new Error('Non-JSON response (SPA or proxy is intercepting /api)');
+
+    return body; // { url, token }
+  } catch (e) {
+    throw new Error(`Share generation failed: ${e.message}`);
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+
+Now the toast will show the actual cause (401/HTML/500) instead of a generic timeout.
