@@ -1,0 +1,191 @@
+Luxury Cards (gold/black) – Reusable Components For Dashboard
+· typescript
+import React, { useMemo, useState } from "react";
+              <div key={s.personId} className="flex items-center justify-between rounded-2xl bg-[#111] p-3 border border-[#232530]">
+                <div className="min-w-0">
+                  <div className="text-sm truncate">{person.name}</div>
+                  <div className="text-[11px] text-neutral-400 truncate">{person.email || person.phone || (person.type === 'group' ? 'Group' : 'Member')}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select value={s.permission} onValueChange={(v: Permission) => updatePerm(s.personId, v)}>
+                    <SelectTrigger className="w-[120px] bg-black text-white border-[#232530]">
+                      <SelectValue placeholder="Permission" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-black text-white border-[#232530]">
+                      <SelectItem value="none" className="hover:bg-white/10 focus:bg-white/10">None</SelectItem>
+                      <SelectItem value="view" className="hover:bg-white/10 focus:bg-white/10">View</SelectItem>
+                      <SelectItem value="edit" className="hover:bg-white/10 focus:bg-white/10">Edit</SelectItem>
+                      <SelectItem value="owner" className="hover:bg-white/10 focus:bg-white/10">Owner</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="ghost" size="sm" className="text-neutral-400 hover:text-white" onClick={() => removeShare(s.personId)}>Remove</Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+
+        {/* Add another member */}
+        <div className="mt-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-[#D4AF37] hover:text-white hover:bg-[#D4AF37]/10">+ Add another member</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-black text-white border border-[#232530] min-w-[260px]">
+              {DIRECTORY.map((p) => (
+                <DropdownMenuItem key={p.id} className="hover:bg-white/10" onClick={() => addShare(p.id)}>
+                  <div>
+                    <div className="text-sm">{p.name}</div>
+                    <div className="text-[11px] text-neutral-400">{p.email || p.phone || (p.type === 'group' ? 'Group' : 'Member')}</div>
+                  </div>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+
+      <Separator className="bg-[#232530] mb-6" />
+
+
+      {/* Send Directly */}
+      <div className="mb-6">
+        <p className="text-sm mb-2">Send Link Directly</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={sendMode} onValueChange={(v: any) => setSendMode(v)}>
+            <SelectTrigger className="w-[120px] bg-black text-white border-[#232530]">
+              <SelectValue placeholder="Email" />
+            </SelectTrigger>
+            <SelectContent className="bg-black text-white border-[#232530]">
+              <SelectItem value="email" className="hover:bg-white/10">Email</SelectItem>
+              <SelectItem value="sms" className="hover:bg:white/10">SMS</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input
+            placeholder={sendMode === 'email' ? 'name@example.com' : '+1 (555) 555‑5555'}
+            value={recipientInput}
+            onChange={(e) => setRecipientInput(e.target.value)}
+            className="bg-black text-white border-[#232530]"
+          />
+          <Button className="bg-[#D4AF37] text-black" onClick={addRecipient}>Add</Button>
+        </div>
+        {recipients.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {recipients.map((r, i) => (
+              <span key={i} className="inline-flex items-center gap-1 rounded-full bg-[#111] border border-[#232530] px-2 py-1 text-xs">
+                {r}
+                <button onClick={() => removeRecipient(i)} className="text-neutral-400 hover:text-white">✕</button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="mt-2">
+          <Button variant="outline" className="border-[#232530] text-white" onClick={sendNotifications}>Send {sendMode.toUpperCase()}</Button>
+        </div>
+      </div>
+
+
+      {/* Actions */}
+      <div className="flex justify-end gap-3">
+        <Button className="bg-[#D4AF37] text-black" onClick={saveSharing}>Update Sharing</Button>
+        <Button variant="ghost">Cancel</Button>
+      </div>
+    </div>
+  );
+}
+
+
+
+Awesome — I wired the Share Credential Panel so it’s production-ready:
+
+What I added (in your canvas component)
+
+API hooks:
+
+PUT /api/credentials/:id/shares → saves linkEnabled, shareUrl, and per-person permissions.
+
+POST /api/credentials/:id/shares/regenerate → returns a new url (fallback included).
+
+POST /api/notify/email or /api/notify/sms → sends the link to recipients.
+
+Member management:
+
+Add/remove members or groups from a directory list.
+
+Per-member permission dropdown: None / View / Edit / Owner.
+
+Direct send:
+
+Mode switch Email/SMS, add multiple recipients (chip UI), and Send.
+
+Solid black menus + white text everywhere (no more transparent dropdowns).
+
+Toasts for success/failure (using sonner—swap to your toast if different).
+
+Backend contract (quick schema)
+
+You can implement your endpoints like this:
+
+PUT /api/credentials/:id/shares
+
+{
+  "linkEnabled": true,
+  "shareUrl": "https://familycircle.app/share/abc123",
+  "shares": [
+    { "personId": "p-kas", "permission": "view" },
+    { "personId": "g-family", "permission": "none" }
+  ]
+}
+
+
+Return 200 { ok: true }.
+
+POST /api/credentials/:id/shares/regenerate
+
+{ "url": "https://familycircle.app/share/newtoken123" }
+
+
+POST /api/notify/email
+
+{
+  "credentialId": "c-ph-angel",
+  "recipients": ["name@example.com","dad@example.com"],
+  "url": "https://familycircle.app/share/abc123",
+  "mode": "email"
+}
+
+
+POST /api/notify/sms
+
+{
+  "credentialId": "c-ph-angel",
+  "recipients": ["+15550001","+15550002"],
+  "url": "https://familycircle.app/share/abc123",
+  "mode": "sms"
+}
+
+Where to integrate auth/permissions
+
+Validate the caller can share the credential (owner or edit).
+
+When saving shares:
+
+Upsert records in credential_shares (credential_id, subject_id, permission).
+
+Emit an audit event: share.updated with diffs.
+
+For email/SMS:
+
+Use your message queue to send and audit share.notified.
+
+Optional security polish (easy adds)
+
+Add “Expires in” to the shareable link (dropdown with 24h, 7d, 30d, Never).
+
+Checkbox “Require login to view” even with link.
+
+Watermark recipient on view page (email/phone hash in the corner).
+
+Add a “Revoke all links” button in the panel.
