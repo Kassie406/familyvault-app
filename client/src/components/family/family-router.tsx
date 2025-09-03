@@ -1,6 +1,7 @@
 import { Switch, Route } from 'wouter';
 import FamilyLayout from './family-layout';
 import FamilyHome from '@/pages/family/family-home';
+import FamilyIds from '@/pages/family/family-ids';
 import InboxPanel from './inbox-panel';
 import RemindersPanel from './reminders-panel';
 
@@ -86,6 +87,7 @@ export default function FamilyRouter() {
       <Switch>
         <Route path="/" component={withFamilyLayout(FamilyHome)} />
         <Route path="/family" component={withFamilyLayout(FamilyHome)} />
+        <Route path="/family/ids" component={withFamilyLayout(() => <FamilyIds />)} />
         <Route path="/family/members" component={withFamilyLayout(FamilyMembers)} />
         <Route path="/family/documents" component={withFamilyLayout(FamilyDocuments)} />
         <Route path="/family/messages" component={withFamilyLayout(FamilyMessages)} />
