@@ -1,0 +1,127 @@
+Amazing progress. From your notes/screens, you now have the production-ready share link system wired with:
+
+DEV_BYPASS_AUTH=false (real auth on)
+
+Clean endpoints:
+
+POST /api/credentials/:id/shares/regenerate
+
+PUT /api/credentials/:id/shares
+
+GET /api/share/:token
+
+POST /api/share/:token/reveal
+
+Frontend switched back to the original /api/credentials/... paths
+
+Below is a tight go-live checklist + quick validation commands you can run on portal.familycirclesecure.com.
+
+1) Final env
+APP_URL=https://portal.familycirclesecure.com
+DATABASE_URL=postgres://<neon creds>
+NODE_ENV=production
+DEV_BYPASS_AUTH=false
+# If API and app are same origin, omit CORS. If different:
+CORS_ORIGIN=https://portal.familycirclesecure.com
+
+2) Database sanity
+
+Run in Neon (or any SQL client):
+
+-- tables exist?
+SELECT table_name FROM information_schema.tables
+ WHERE table_schema='public' AND table_name IN ('share_links','credential_shares');
+
+-- token rows show up when you generate a link?
+SELECT token, credential_id, require_login, expires_at, revoked, created_at
+FROM share_links ORDER BY created_at DESC LIMIT 5;
+
+3) Proxy / server routing
+
+If you use Nginx/ALB, ensure /api/* goes to Node and everything else to the SPA:
+
+location /api/ { proxy_pass http://127.0.0.1:5000; }
+location /     { try_files $uri /index.html; }
+
+4) Smoke tests (production)
+
+Replace YOUR_COOKIE with a valid session cookie from a logged-in browser.
+
+Health
+
+curl -s https://portal.familycirclesecure.com/api/healthz
+
+
+Generate (auth required)
+
+curl -i -X POST https://portal.familycirclesecure.com/api/credentials/c-garage/shares/regenerate \
+  -H 'content-type: application/json' \
+  --cookie "session=YOUR_COOKIE" \
+  -d '{"expiry":"7d","requireLogin":true}'
+# expect 200 + {url, token}
+
+
+Viewer (no auth)
+
+curl -i https://portal.familycirclesecure.com/api/share/<TOKEN>
+# expect 200 or 410 if expired / 404 if revoked
+
+
+Reveal (auth enforced when requireLogin=true)
+
+curl -i -X POST https://portal.familycirclesecure.com/api/share/<TOKEN>/reveal \
+  --cookie "session=YOUR_COOKIE"
+# expect 200 + {secret} (after you wire real KMS)
+
+
+Revoke all for a credential
+
+curl -i -X PUT https://portal.familycirclesecure.com/api/credentials/c-garage/shares \
+  -H 'content-type: application/json' --cookie "session=YOUR_COOKIE" \
+  -d '{"linkEnabled":false}'
+# expect 200; links for that credential become revoked
+
+5) Security & compliance hardening (prod)
+
+HTTPS + HSTS enabled at the edge.
+
+No secrets in URLs. Only tokens.
+
+Rate limit /api/share and /api/credentials/* (already in the sample; keep it).
+
+Cache headers for share pages/API:
+Cache-Control: no-store, max-age=0, must-revalidate
+
+CSP & security headers: keep helmet() on; add CSP if you haven’t.
+
+Audit trail (recommended): log generated, reveal, revoked events with user_id, credential_id, ip, ua, token_prefix.
+
+RLS/impersonation middleware: confirm these middlewares don’t block the endpoints. If you see 401/403, log req.user at the start of each handler to confirm identity context.
+
+KMS/decryption: swap the placeholder "1234" in /reveal with your vault/KMS‐backed decryption.
+
+6) Frontend verification (UX)
+
+Generate → “Copy” enabled, button returns from Generating… reliably.
+
+“Require login” toggle actually changes server policy (test reveal with and without a cookie).
+
+Expiry chips (24h / 7d / 30d / never) behave as expected (a 24h token should return 410 Gone after you set a short TTL in a test env).
+
+“Update sharing” with linkEnabled:false revokes all existing tokens for that credential.
+
+7) Monitoring & rollback
+
+Add log sampling for /api/credentials/* and /api/share/*, alert on ≥ 1% 5xx over 5 min.
+
+Metric to watch: token generation success rate, reveal success rate, expired/revoked hits.
+
+Rollback plan: if share calls fail post-deploy, flip FE to hide share actions and re-enable after fix; DB rows are safe to keep.
+
+Common production pitfalls & quick fixes
+
+401 on Generate/Reveal → session cookie not forwarded by the proxy. Ensure proxy_set_header Cookie $http_cookie; and same-site cookie settings (SameSite=Lax, Secure).
+
+HTML returned instead of JSON → a catch-all SPA handler intercepts /api/*. Make sure API routes are matched before SPA fallback.
+
+CORS error (only if cross-origin) → set CORS_ORIGIN to your exact site origin and credentials: true.
