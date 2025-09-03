@@ -1,12 +1,19 @@
 import { useState } from 'react';
 import { Link } from 'wouter';
 import {
-  Users, FileText, MessageCircle, Calendar, Image, Shield,
+  Users, FileText, MessageCircle, Calendar, Image as ImageIcon, Shield,
   Heart, Clock, Star, Bell, Plus, ArrowRight, Activity,
   Inbox, AlarmClock, CreditCard, Home as HomeIcon, Key, 
   Umbrella, Receipt, Scale, Building2, BookOpen, 
-  Phone, DollarSign
+  Phone, DollarSign, Upload, ShieldAlert
 } from 'lucide-react';
+import { 
+  StatCard, 
+  ActionCard, 
+  ToolCard, 
+  AnnouncementCard, 
+  ActivityTimeline 
+} from '@/components/luxury-cards';
 
 export default function FamilyHome() {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -102,10 +109,10 @@ export default function FamilyHome() {
   ];
 
   const familyStats = [
-    { label: 'Family Members', value: '5', icon: Users, color: 'text-blue-600' },
-    { label: 'Documents Shared', value: '23', icon: FileText, color: 'text-green-600' },
-    { label: 'Messages Today', value: '12', icon: MessageCircle, color: 'text-purple-600' },
-    { label: 'Photos Uploaded', value: '156', icon: Image, color: 'text-orange-600' }
+    { label: 'Family Members', value: 5, icon: Users },
+    { label: 'Documents Shared', value: 23, icon: FileText },
+    { label: 'Messages Today', value: 12, icon: MessageCircle },
+    { label: 'Photos Uploaded', value: 156, icon: ImageIcon }
   ];
 
   return (
@@ -144,17 +151,12 @@ export default function FamilyHome() {
         {familyStats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <div key={stat.label} className="card p-6">
-              <div className="flex items-center space-x-3">
-                <div className={`p-2 rounded-lg bg-[var(--bg-800)]`}>
-                  <Icon className={`w-5 h-5 ${stat.color}`} />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-[var(--ink-100)]">{stat.value}</div>
-                  <div className="text-sm text-[var(--ink-300)]">{stat.label}</div>
-                </div>
-              </div>
-            </div>
+            <StatCard 
+              key={stat.label}
+              icon={<Icon className="h-5 w-5" />}
+              value={stat.value}
+              label={stat.label}
+            />
           );
         })}
       </div>
@@ -163,148 +165,61 @@ export default function FamilyHome() {
       <div>
         <h2 className="text-xl font-semibold text-[var(--ink-100)] mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map((action, index) => {
-            const Icon = action.icon;
-            const colors = ['#D4AF37', '#2ECC71', '#3498DB', '#E74C3C'];
-            const iconColor = colors[index % colors.length];
-            
-            return (
-              <Link
-                key={action.id}
-                to={action.href}
-                className="card p-6 hover:shadow-xl transition-all duration-300 group hover:border-[var(--gold)]/30"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div 
-                    className="w-12 h-12 rounded-full flex items-center justify-center shadow-md"
-                    style={{ backgroundColor: iconColor }}
-                  >
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-[var(--ink-300)] group-hover:translate-x-1 group-hover:text-[var(--gold)] transition-all" />
-                </div>
-                <h3 className="font-semibold mb-1 text-[var(--ink-100)] group-hover:text-[var(--gold)] transition-colors">
-                  {action.title}
-                </h3>
-                <p className="text-sm text-[var(--ink-300)]">{action.description}</p>
-              </Link>
-            );
-          })}
+          <ActionCard icon={<Upload className="h-5 w-5"/>} title="Upload Document" subtitle="Add new family document" />
+          <ActionCard icon={<MessageCircle className="h-5 w-5"/>} title="Send Message" subtitle="Chat with family" />
+          <ActionCard icon={<ImageIcon className="h-5 w-5"/>} title="View Photos" subtitle="Browse family gallery" />
+          <ActionCard icon={<ShieldAlert className="h-5 w-5"/>} title="Emergency Info" subtitle="Quick access to critical info" />
         </div>
       </div>
 
-      {/* Recent Activity & Upcoming Events */}
+      {/* Recent Activity & Announcements */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Activity */}
-        <div className="card p-6 hover:shadow-xl transition-shadow">
-          <div className="flex items-center justify-between mb-6 border-b border-[var(--line-700)] pb-4">
-            <h2 className="text-xl font-semibold text-[var(--ink-100)] flex items-center relative">
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-[var(--ink-100)] flex items-center">
               <Activity className="w-5 h-5 mr-2 text-[var(--gold)]" />
               Recent Activity
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--gold)]"></span>
             </h2>
             <Link to="/family/activity" className="text-sm text-[var(--gold)] hover:text-[var(--ink-100)] transition-colors">
               View all
             </Link>
           </div>
-          <div className="space-y-4">
-            {recentActivity.map((activity) => {
-              const Icon = activity.icon;
-              return (
-                <div key={activity.id} className="flex items-start space-x-3">
-                  <div className={`p-2 rounded-lg ${activity.color}`}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-[var(--ink-100)]">{activity.title}</p>
-                    <p className="text-sm text-[var(--ink-300)]">{activity.description}</p>
-                    <div className="flex items-center mt-1 text-xs text-[var(--ink-300)]">
-                      <Clock className="w-3 h-3 mr-1" />
-                      {activity.timestamp}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <ActivityTimeline
+            items={[
+              { title: "Medical Records Updated", meta: "Sarah updated emergency contact info · 2 hours ago", tone: "info" },
+              { title: "New Family Message", meta: "Dad shared vacation photos · 4 hours ago", tone: "ok" },
+              { title: "Upcoming Event", meta: "Family dinner Sunday 6 PM · 1 day ago", tone: "info" },
+              { title: "Safety Check Complete", meta: "All family confirmed safe · 2 days ago", tone: "ok" },
+            ]}
+          />
         </div>
 
         {/* Family Announcements */}
-        <div className="card p-6 hover:shadow-xl transition-shadow">
-          <div className="flex items-center justify-between mb-6 border-b border-[var(--line-700)] pb-4">
-            <h2 className="text-xl font-semibold text-[var(--ink-100)] flex items-center relative">
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-[var(--ink-100)] flex items-center">
               <Bell className="w-5 h-5 mr-2 text-[var(--gold)]" />
               Family Announcements
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--gold)]"></span>
             </h2>
             <Link to="/family/announcements" className="text-sm text-[var(--gold)] hover:text-[var(--ink-100)] transition-colors">
               View all
             </Link>
           </div>
-          <div className="space-y-4">
-            <div className="p-4 bg-gradient-to-r from-[#D4AF37]/10 to-[#D4AF37]/5 rounded-lg border border-[#D4AF37]/20 shadow-sm">
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 rounded-full bg-[#D4AF37] flex items-center justify-center">
-                  <Star className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-[var(--ink-100)]">Family Vacation Planning</h3>
-                  <p className="text-sm text-[var(--ink-300)] mt-1">
-                    Don't forget to submit your preferred dates for our summer family vacation by Friday!
-                  </p>
-                  <p className="text-xs text-[var(--gold)] mt-2 font-medium">Posted by Mom • 3 days ago</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-4 bg-gradient-to-r from-[#3498DB]/10 to-[#3498DB]/5 rounded-lg border border-[#3498DB]/20 shadow-sm">
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 rounded-full bg-[#3498DB] flex items-center justify-center">
-                  <Calendar className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-[var(--ink-100)]">Updated Family Calendar</h3>
-                  <p className="text-sm text-[var(--ink-300)] mt-1">
-                    New events added including Sarah's graduation and the family reunion in July.
-                  </p>
-                  <p className="text-xs text-[#3498DB] mt-2 font-medium">Posted by Dad • 1 week ago</p>
-                </div>
-              </div>
-            </div>
+          <div className="space-y-3">
+            <AnnouncementCard title="Family Vacation Planning" body="Submit preferred dates for the summer trip by Friday" meta="Posted by Mom · 3 days ago" />
+            <AnnouncementCard title="Updated Family Calendar" body="New events: Sarah's graduation, reunion in July" meta="Posted by Dad · 1 week ago" />
           </div>
         </div>
       </div>
 
-      {/* Family Navigation Grid */}
+      {/* Family Tools */}
       <div>
         <h2 className="text-xl font-semibold text-[var(--ink-100)] mb-4">Family Tools</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Link to="/family/members" className="card p-6 hover:shadow-xl hover:border-[var(--gold)]/30 transition-all duration-300 group">
-            <div className="w-16 h-16 rounded-full bg-[#3498DB] flex items-center justify-center mb-6 shadow-md group-hover:shadow-lg group-hover:shadow-[#D4AF37]/20 transition-all">
-              <Users className="w-8 h-8 text-white" />
-            </div>
-            <h3 className="font-semibold text-[var(--ink-100)] mb-2 group-hover:text-[var(--gold)] transition-colors">Family Members</h3>
-            <p className="text-sm text-[var(--ink-300)] mb-4 leading-relaxed">Manage profiles, contact info, and emergency details for all family members.</p>
-            <span className="text-sm text-[#3498DB] group-hover:text-[#D4AF37] font-medium transition-colors">Manage profiles →</span>
-          </Link>
-
-          <Link to="/family/documents" className="card p-6 hover:shadow-xl hover:border-[var(--gold)]/30 transition-all duration-300 group">
-            <div className="w-16 h-16 rounded-full bg-[#2ECC71] flex items-center justify-center mb-6 shadow-md group-hover:shadow-lg group-hover:shadow-[var(--gold)]/20 transition-all">
-              <FileText className="w-8 h-8 text-white" />
-            </div>
-            <h3 className="font-semibold text-[var(--ink-100)] mb-2 group-hover:text-[var(--gold)] transition-colors">Document Vault</h3>
-            <p className="text-sm text-[var(--ink-300)] mb-4 leading-relaxed">Securely store and share important family documents like IDs, medical records, and legal papers.</p>
-            <span className="text-sm text-[#2ECC71] group-hover:text-[var(--gold)] font-medium transition-colors">View documents →</span>
-          </Link>
-
-          <Link to="/family/emergency" className="card p-6 hover:shadow-xl hover:border-[var(--gold)]/30 transition-all duration-300 group">
-            <div className="w-16 h-16 rounded-full bg-[#E74C3C] flex items-center justify-center mb-6 shadow-md group-hover:shadow-lg group-hover:shadow-[var(--gold)]/20 transition-all">
-              <Shield className="w-8 h-8 text-white" />
-            </div>
-            <h3 className="font-semibold text-[var(--ink-100)] mb-2 group-hover:text-[var(--gold)] transition-colors">Emergency Center</h3>
-            <p className="text-sm text-[var(--ink-300)] mb-4 leading-relaxed">Quick access to critical information, emergency contacts, and family safety plans.</p>
-            <span className="text-sm text-[#E74C3C] group-hover:text-[var(--gold)] font-medium transition-colors">Access emergency info →</span>
-          </Link>
+          <ToolCard icon={<Users className="h-6 w-6"/>} title="Family Members" description="Manage profiles, contacts, and emergency details." cta="Manage profiles →" />
+          <ToolCard icon={<FileText className="h-6 w-6"/>} title="Document Vault" description="Securely store and share IDs, medical, legal papers." cta="View documents →" />
+          <ToolCard icon={<ShieldAlert className="h-6 w-6"/>} title="Emergency Center" description="Quick access to emergency info and safety plans." cta="Access emergency info →" />
         </div>
       </div>
 
