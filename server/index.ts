@@ -489,17 +489,33 @@ app.post('/api/credentials/:id/shares/regenerate', async (req, res) => {
     const { expiry = '7d', requireLogin = true } = req.body ?? {};
     console.log('[regen] hit', { id, expiry, requireLogin, t: Date.now() });
 
-    // TODO: Replace with real DB work, wrapped with a hard cap:
+    const token = crypto.randomBytes(16).toString('base64url');
+    
+    // Calculate expiry date
+    const now = new Date();
+    const expiresAt = 
+      expiry === 'never' ? null :
+      expiry === '24h'   ? new Date(now.getTime() + 24*3600*1000) :
+      expiry === '7d'    ? new Date(now.getTime() + 7*24*3600*1000) :
+      new Date(now.getTime() + 30*24*3600*1000);
+
+    // Insert token into database with timeout
     await withTimeout(
-      Promise.resolve(), // replace with drizzle/neon upsert/insert
+      db.insert(shareLinks).values({
+        token,
+        credentialId: id,
+        expiresAt: expiresAt ?? undefined,
+        requireLogin,
+        revoked: false,
+        createdBy: getUserId(req) || 'anonymous',
+      }),
       8000,
-      'share_links upsert'
+      'share_links insert'
     );
 
-    const token = crypto.randomBytes(16).toString('base64url');
     const baseUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
     const url = `${baseUrl}/share/${token}`;
-    console.log('[regen] ok', { id, token: token.slice(0,8), url, baseUrl });
+    console.log('[regen] ok', { id, token: token.slice(0,8), url, baseUrl, saved: true });
     return res.json({ token, url, requireLogin });
   } catch (err: any) {
     console.error('[regen] fail', { id: req.params.id, err: err?.message });
