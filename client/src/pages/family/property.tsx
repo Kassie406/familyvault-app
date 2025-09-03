@@ -120,7 +120,7 @@ export default function Property() {
       icon: Diamond,
       itemCount: 2,
       status: 'Pre-populated',
-      iconColor: '#D4AF37'
+      iconColor: 'var(--gold)'
     }
   ];
 
@@ -152,7 +152,7 @@ export default function Property() {
     const IconComponent = item.icon;
     
     return (
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:border-[#D4AF37]/30 transition-all cursor-pointer group">
+      <div className="card p-6 hover:shadow-md hover:border-[var(--gold)]/30 transition-all cursor-pointer group">
         <div className="flex items-start justify-between mb-4">
           <div 
             className="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm"
@@ -161,19 +161,19 @@ export default function Property() {
             <IconComponent className="h-6 w-6" style={{ color: item.iconColor }} />
           </div>
           {item.status && (
-            <Badge variant="secondary" className="bg-gray-100 text-gray-600 text-xs">
+            <Badge variant="secondary" className="bg-[var(--line-700)] text-[var(--ink-300)] text-xs">
               {item.status}
             </Badge>
           )}
         </div>
         
         <div className="mb-4">
-          <h3 className="font-semibold text-[#0A0A1A] mb-1 group-hover:text-[#D4AF37] transition-colors">
+          <h3 className="font-semibold text-[var(--ink-100)] mb-1 group-hover:text-[var(--gold)] transition-colors">
             {item.name}
           </h3>
         </div>
         
-        <div className="flex items-center text-sm text-[#3498DB] group-hover:text-[#D4AF37] transition-colors">
+        <div className="flex items-center text-sm text-[var(--gold)] group-hover:text-[var(--gold)] transition-colors">
           <Building className="h-4 w-4 mr-1" />
           <span>{item.itemCount} items</span>
         </div>
@@ -191,7 +191,7 @@ export default function Property() {
     gridCols?: string;
   }) => (
     <div className="mb-10">
-      <h2 className="text-xl font-semibold text-[#0A0A1A] mb-6">{title}</h2>
+      <h2 className="text-xl font-semibold text-[var(--ink-100)] mb-6">{title}</h2>
       <div className={`grid ${gridCols} gap-6`}>
         {items.map((item) => (
           <PropertyCard key={item.id} item={item} />
@@ -201,20 +201,20 @@ export default function Property() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F8F8F8]">
+    <div className="min-h-screen bg-[var(--bg-900)]">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
+      <div className="card border-b border-[var(--line-700)] px-8 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-bold text-[#0A0A1A]">Property</h1>
+            <h1 className="text-3xl font-bold text-[var(--ink-100)]">Property</h1>
             <Button 
               size="sm" 
-              className="bg-[#D4AF37] text-black hover:bg-[#c6a02e] rounded-full h-8 w-8 p-0"
+              className="bg-[var(--gold)] text-black hover:bg-[var(--gold)]/80 rounded-full h-8 w-8 p-0"
               data-testid="add-property-button"
             >
               <Plus className="h-4 w-4" />
             </Button>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-[var(--ink-300)]">
               <div className="w-4 h-4 rounded-full bg-[#3498DB] flex items-center justify-center">
                 <span className="text-white text-xs">⚡</span>
               </div>
@@ -223,11 +223,11 @@ export default function Property() {
           </div>
           
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" className="text-gray-600 hover:text-[#D4AF37]">
+            <Button variant="ghost" size="sm" className="text-[var(--ink-300)] hover:text-[var(--gold)]">
               <HelpCircle className="h-4 w-4 mr-2" />
               Help
             </Button>
-            <div className="w-8 h-8 rounded-full bg-[#D4AF37] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-[var(--gold)] flex items-center justify-center">
               <span className="text-black text-sm font-medium">KC</span>
             </div>
           </div>
@@ -236,13 +236,13 @@ export default function Property() {
         {/* Search Bar */}
         <div className="mt-6">
           <div className="relative max-w-lg">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--ink-400)] h-4 w-4" />
             <input
               type="text"
               placeholder="Search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] w-full"
+              className="pl-10 pr-4 py-2 border border-[var(--line-700)] rounded-lg bg-[var(--bg-900)] text-[var(--ink-100)] focus:outline-none focus:ring-2 focus:ring-[var(--gold)] focus:border-[var(--gold)] w-full"
               data-testid="search-property"
             />
           </div>
