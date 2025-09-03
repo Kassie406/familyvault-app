@@ -1,0 +1,164 @@
+start with #1 (encoding data into the URL) — that works for low-risk, non-sensitive info. For your app (sharing private credentials), you’ll want stronger patterns. Here’s a practical menu of methods from “simple” to “bank-grade,” plus drop-in examples you can use now.
+
+2) Signed URLs (no database)
+
+Use when you need a link that can be verified as untampered but you don’t need to revoke it later.
+
+How it works
+
+Put only non-secret metadata in the link (e.g., cid, exp).
+
+Add a signature over the params using a server secret (HMAC) or JWT.
+
+Viewer verifies signature and expiry before rendering.
+
+Example (Express + HMAC)
+
+// create link
+const crypto = require("crypto");
+function sign(params) {
+  const msg = new URLSearchParams(params).toString();
+  const sig = crypto.createHmac("sha256", process.env.LINK_SECRET).update(msg).digest("base64url");
+  return `${msg}&sig=${sig}`;
+}
+
+// e.g. /share?cid=abc123&exp=1725667200&sig=...
+const url = `/share?${sign({ cid: "abc123", exp: Math.floor(Date.now()/1000)+7*86400 })}`;
+
+// verify on GET /share
+function verify(req) {
+  const {sig, ...rest} = Object.fromEntries(new URL(req.url, "http://x").searchParams);
+  const msg = new URLSearchParams(rest).toString();
+  const good = crypto.createHmac("sha256", process.env.LINK_SECRET).update(msg).digest("base64url");
+  if (sig !== good) throw new Error("bad sig");
+  if (Number(rest.exp) && Date.now()/1000 > Number(rest.exp)) throw new Error("expired");
+  return rest; // contains cid
+}
+
+
+Pros: Simple, stateless, fast.
+Cons: Can’t revoke specific links; anyone with the link can use it until exp.
+
+3) Database-backed unique tokens (recommended for you)
+
+Use when links must be revocable, auditable, and can enforce Require login and Expires.
+
+How it works
+
+Generate a random token; save it with policy fields.
+
+Viewer exchanges token for metadata; reveal endpoint enforces policy.
+
+Schema (minimal)
+
+CREATE TABLE share_link (
+  token TEXT PRIMARY KEY,
+  credential_id TEXT NOT NULL,
+  require_login BOOLEAN NOT NULL DEFAULT TRUE,
+  expires_at TIMESTAMPTZ,
+  revoked BOOLEAN NOT NULL DEFAULT FALSE,
+  created_by TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE credential_share (
+  credential_id TEXT NOT NULL,
+  subject_id TEXT NOT NULL,           -- member or group
+  permission TEXT NOT NULL,           -- 'none'|'view'|'edit'|'owner'
+  PRIMARY KEY (credential_id, subject_id)
+);
+
+
+Endpoints (Express-style)
+
+// POST /api/credentials/:id/shares/regenerate
+app.post("/api/credentials/:id/shares/regenerate", async (req, res) => {
+  const { expiry = "7d", requireLogin = true } = req.body || {};
+  const token = crypto.randomBytes(18).toString("base64url");
+  const expires_at = expiry === "never" ? null : new Date(Date.now() + (
+     expiry === "24h" ? 86400 : expiry === "7d" ? 7*86400 : 30*86400) * 1000);
+  await db.run(
+    `INSERT INTO share_link(token, credential_id, require_login, expires_at, created_by)
+     VALUES (?,?,?,?,?)`,
+     [token, req.params.id, requireLogin, expires_at, req.user.id]
+  );
+  res.json({ url: `${process.env.APP_URL}/share/${token}`, token });
+});
+
+// PUT /api/credentials/:id/shares
+app.put("/api/credentials/:id/shares", async (req, res) => {
+  const { linkEnabled, shareUrl, expiry="7d", requireLogin=true, shares=[] } = req.body;
+  if (!linkEnabled) {
+    await db.run(`UPDATE share_link SET revoked=TRUE WHERE credential_id=?`, [req.params.id]);
+  } else if (shareUrl) {
+    const token = shareUrl.split("/share/").pop();
+    const expires_at = expiry === "never" ? null : new Date(Date.now() + (
+      expiry === "24h" ? 86400 : expiry === "7d" ? 7*86400 : 30*86400) * 1000);
+    await db.run(
+      `UPDATE share_link SET require_login=?, expires_at=?, revoked=FALSE
+       WHERE token=? AND credential_id=?`,
+      [requireLogin, expires_at, token, req.params.id]
+    );
+  }
+  for (const s of shares) {
+    await db.run(
+      `INSERT INTO credential_share(credential_id, subject_id, permission)
+       VALUES (?,?,?)
+       ON CONFLICT(credential_id, subject_id) DO UPDATE SET permission=excluded.permission`,
+      [req.params.id, s.personId, s.permission]
+    );
+  }
+  res.json({ ok: true });
+});
+
+// GET /api/share/:token  -> viewer metadata
+app.get("/api/share/:token", async (req, res) => {
+  const link = await db.get(`SELECT * FROM share_link WHERE token=?`, [req.params.token]);
+  if (!link || link.revoked) return res.status(404).json({ error: "invalid" });
+  if (link.expires_at && new Date(link.expires_at) < new Date()) return res.status(410).json({ error: "expired" });
+
+  // never return the secret here; just metadata
+  const cred = await db.get(`SELECT title, owner_id FROM credential WHERE id=?`, [link.credential_id]);
+  res.json({
+    title: cred.title,
+    owner: cred.owner_id,
+    requireLogin: !!link.require_login,
+    canReveal: !link.require_login && !link.revoked
+  });
+});
+
+// POST /api/share/:token/reveal -> reveals secret if allowed
+app.post("/api/share/:token/reveal", async (req, res) => {
+  const link = await db.get(`SELECT * FROM share_link WHERE token=?`, [req.params.token]);
+  if (!link || link.revoked) return res.status(404).json({ error: "invalid" });
+  if (link.expires_at && new Date(link.expires_at) < new Date()) return res.status(410).json({ error: "expired" });
+  if (link.require_login && !req.user) return res.status(401).json({ error: "auth" });
+
+  // decrypt secret from your vault/KMS here
+  const secret = await getDecryptedSecret(link.credential_id);
+  res.json({ secret });
+});
+
+
+Pros: Revocable, auditable, enforces “Require login” + “Expires”.
+Cons: Needs a DB table and a couple of routes (which you’re basically done with already).
+
+4) One-time (burn-after-read) links
+
+Use when you want a link that works exactly once.
+
+Add one_time BOOLEAN DEFAULT FALSE + used_at TIMESTAMPTZ.
+
+In /reveal, if one_time and used_at IS NULL, reveal and set used_at = now(); otherwise 410 Gone.
+
+5) Storage pre-signed URLs (files)
+
+Use when you’re sharing files from S3/GCS.
+
+Generate pre-signed download URLs with short expiry (e.g., 10 min).
+
+Combine with method #3 if you also need per-recipient permissions and auditing.
+
+6) Short links / QR
+
+Generate your secure token as usual (#3), then shorten it (Bitly/self-host) or render as a QR for physical handoffs. Expiry + revoke still enforced server-side.
