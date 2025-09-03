@@ -28,14 +28,14 @@ export default function FamilyResources() {
                 <Plus className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem data-testid="button-important-document">
+            <DropdownMenuContent align="start" className="w-56 bg-white border-2 border-gray-200 shadow-lg rounded-lg p-2">
+              <DropdownMenuItem className="px-4 py-3 hover:bg-gray-50 rounded-md cursor-pointer text-gray-700 font-medium" data-testid="button-important-document">
                 Important Document
               </DropdownMenuItem>
-              <DropdownMenuItem data-testid="button-emergency-equipment">
+              <DropdownMenuItem className="px-4 py-3 hover:bg-gray-50 rounded-md cursor-pointer text-gray-700 font-medium" data-testid="button-emergency-equipment">
                 Emergency Equipment
               </DropdownMenuItem>
-              <DropdownMenuItem data-testid="button-letter-loved-one">
+              <DropdownMenuItem className="px-4 py-3 hover:bg-gray-50 rounded-md cursor-pointer text-gray-700 font-medium" data-testid="button-letter-loved-one">
                 Letter to Loved One
               </DropdownMenuItem>
             </DropdownMenuContent>
