@@ -102,6 +102,14 @@ app.post('/api/test-post', (req, res) => {
   res.json({ ok: true });
 });
 
+// Small helper to guarantee we never hang the client
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`TIMEOUT ${label} after ${ms}ms`)), ms);
+    p.then(v => { clearTimeout(t); resolve(v); }).catch(e => { clearTimeout(t); reject(e); });
+  });
+}
+
 // Session tracking middleware (after cookie parsing)
 app.use(touchAuthSession);
 
@@ -468,37 +476,46 @@ import { shareLinks, credentials, credentialShares } from "@shared/schema";
 // Production-ready authentication helper
 const getUserId = (req: any) => req.user?.id || req.session?.user?.id;
 
-// Production endpoints - Generate/regenerate share link
+// Production endpoints - Generate/regenerate share link (FAST, DETERMINISTIC)
 app.post('/api/credentials/:id/shares/regenerate', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
-  console.log('[regen] id=', req.params.id, 'ip=', req.ip, 'ts=', Date.now());
+  const id = req.params.id;
+  const { expiry = '7d', requireLogin = true } = req.body || {};
+  const started = Date.now();
+
   try {
-    const credentialId = req.params.id;
-    const { expiry = "7d", requireLogin = true } = (req.body ?? {}) as {
-      expiry?: Expiry;
-      requireLogin?: boolean;
-    };
+    console.log('[regen] hit', { id, expiry, requireLogin, t: started });
 
     const token = makeToken(18);
-    const expiresAt = expiryToDate(expiry);
+    const expiresAt = expiryToDate(expiry as Expiry);
     const createdBy = getUserId(req);
 
     if (!createdBy) {
-      return res.status(401).json({ error: "unauthorized" });
+      console.log('[regen] fail - unauthorized', { id, ms: Date.now() - started });
+      return res.status(401).json({ ok: false, error: 'unauthorized' });
     }
 
-    await db.insert(shareLinks).values({
-      token,
-      credentialId,
-      requireLogin,
-      expiresAt: expiresAt ?? undefined,
-      createdBy,
-    });
+    // DB operation with explicit timeout
+    await withTimeout(
+      db.insert(shareLinks).values({
+        token,
+        credentialId: id,
+        requireLogin,
+        expiresAt: expiresAt ?? undefined,
+        createdBy,
+      }),
+      8000, // 8s hard cap
+      'share_links insert'
+    );
 
     const url = `${appUrl()}/share/${token}`;
-    return res.json({ url, token });
-  } catch (e) {
-    console.error("regenerate error", e);
-    return res.status(500).json({ error: "server_error" });
+    console.log('[regen] ok', { id, ms: Date.now() - started, url });
+    return res.json({ token, url, expiresAt, requireLogin });
+  } catch (err: any) {
+    console.error('[regen] fail', { id, ms: Date.now() - started, err: err?.message });
+    // Always JSON error (no SPA HTML)
+    return res
+      .status(/TIMEOUT/.test(err?.message) ? 504 : 500)
+      .json({ ok: false, error: err?.message || 'unknown' });
   }
 });
 

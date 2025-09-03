@@ -630,15 +630,15 @@ function EnhancedShareContent({
       const bodyText = await response.text();
       console.log('Response status:', response.status, 'Content-Type:', contentType, 'Body:', bodyText.slice(0, 200));
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status} – ${bodyText.slice(0, 200)}`);
-      }
-
       if (!contentType.includes('application/json')) {
-        throw new Error('Non-JSON response (SPA intercepted /api).');
+        throw new Error(`Non-JSON response (likely SPA/HTML). status=${response.status} body=${bodyText.slice(0,120)}`);
       }
 
       const data = JSON.parse(bodyText);
+      if (!response.ok || data?.ok === false) {
+        throw new Error(data?.error || `HTTP ${response.status}`);
+      }
+
       if (!data?.url) throw new Error('No URL returned');
 
       setShareUrl(data.url);
