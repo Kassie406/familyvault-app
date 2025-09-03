@@ -1,37 +1,38 @@
-export async function postJson<T>(url: string, body: unknown, opts?: { timeoutMs?: number }) {
-  const timeoutMs = opts?.timeoutMs ?? 15000; // 15s cap
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+type Json = Record<string, any>;
 
-  try {
+export async function postJsonNoAbort<T = Json>(
+  url: string,
+  body: Json,
+  { timeoutMs = 15000 }: { timeoutMs?: number } = {}
+): Promise<T> {
+  // Promise that resolves to a timeout result (no AbortError)
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error("Service timeout: no response from server")), timeoutMs);
+  });
+
+  // The real network call
+  const fetchPromise = (async () => {
     const res = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body ?? {}),
-      signal: ctrl.signal,
       credentials: "include",
+      cache: "no-store",
     });
 
     const ct = res.headers.get("content-type") || "";
     const text = await res.text();
 
-    // ensure JSON
     if (!ct.includes("application/json")) {
-      throw new Error(`Non-JSON response: status=${res.status} body=${text.slice(0,120)}`);
+      throw new Error(`Non-JSON response (likely SPA/HTML). status=${res.status} body=${text.slice(0,120)}`);
     }
-
     const data = JSON.parse(text);
     if (!res.ok || data?.ok === false) {
       throw new Error(data?.error || `HTTP ${res.status}`);
     }
     return data as T;
-  } catch (err: any) {
-    if (err?.name === "AbortError") {
-      // user-visible, but do NOT throw to overlay
-      throw new Error("Generation timed out. Please try again.");
-    }
-    throw err;
-  } finally {
-    clearTimeout(t);
-  }
+  })();
+
+  // Race them WITHOUT AbortController
+  return Promise.race([fetchPromise, timeoutPromise]);
 }
