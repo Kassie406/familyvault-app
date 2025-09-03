@@ -460,6 +460,7 @@ const db = drizzle(neonClient);
 
 // Generate share token for a credential
 app.post('/api/credentials/:id/shares/regenerate', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  console.log('Share regenerate endpoint hit:', req.params.id, req.body, 'User:', req.user?.id);
   try {
     const { id } = req.params;
     const { expiry = '7d', requireLogin = true } = req.body;
@@ -502,6 +503,7 @@ app.post('/api/credentials/:id/shares/regenerate', requireAuth, async (req: Auth
       createdBy: req.user?.id || '',
     });
     
+    console.log('Share regenerate success:', { url, token });
     res.json({ url, token });
   } catch (error) {
     console.error('Share regeneration error:', error);
