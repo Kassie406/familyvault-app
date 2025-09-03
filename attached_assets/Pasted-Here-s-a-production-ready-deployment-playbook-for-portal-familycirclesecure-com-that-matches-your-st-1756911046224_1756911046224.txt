@@ -1,0 +1,107 @@
+Here’s a production-ready deployment playbook for portal.familycirclesecure.com that matches your stack (Express + Vite front-end, Neon Postgres, Drizzle).
+
+Option A — Deploy on a VPS (Ubuntu/Debian) with Nginx + PM2
+1) Pull code & install
+# SSH to the box that serves portal.familycirclesecure.com
+sudo apt-get update -y
+sudo apt-get install -y nginx git curl build-essential
+
+# Node LTS (if not installed)
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# App directory
+sudo mkdir -p /srv/familycircle && sudo chown -R $USER /srv/familycircle
+cd /srv/familycircle
+git clone <YOUR_REPO_URL> .  # or rsync/copy your Replit code
+npm ci
+
+2) Configure environment
+
+Create /srv/familycircle/.env (or use your secrets manager):
+
+NODE_ENV=production
+APP_URL=https://portal.familycirclesecure.com
+DATABASE_URL=postgres://<neon_user>:<pass>@<host>/<db>
+DEV_BYPASS_AUTH=false
+# If your API and app are SAME origin, omit CORS. If different, set:
+# CORS_ORIGIN=https://portal.familycirclesecure.com
+
+3) Run Drizzle migration against production DB
+npm run db:push
+# verify table exists
+# psql <DATABASE_URL> -c 'select * from share_links limit 1;'
+
+4) Build front-end and start the server
+npm run build   # builds Vite into /dist (or your configured dir)
+
+(Recommended) Use PM2 to keep the Node server alive
+sudo npm i -g pm2
+pm2 start "node server/index.js" --name familycircle-api
+pm2 save
+pm2 startup    # follow instructions to enable at boot
+
+
+If you compile TypeScript at build time, start the compiled file (e.g., dist/server/index.js).
+If your project starts with a script, use that (e.g., pm2 start npm --name familycircle-api -- start).
+
+5) Nginx reverse proxy
+
+Create /etc/nginx/sites-available/familycircle:
+
+server {
+  server_name portal.familycirclesecure.com;
+
+  # Redirect http->https if you terminate TLS here
+  listen 80;
+  listen [::]:80;
+  return 301 https://$host$request_uri;
+}
+
+server {
+  server_name portal.familycirclesecure.com;
+  listen 443 ssl http2;
+  listen [::]:443 ssl http2;
+
+  # TLS (use certbot or your provider)
+  ssl_certificate     /etc/letsencrypt/live/portal.familycirclesecure.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/portal.familycirclesecure.com/privkey.pem;
+  add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+
+  # API FIRST: send /api/* to Node
+  location /api/ {
+    proxy_pass http://127.0.0.1:5000;           # or your node port
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Cookie $http_cookie;
+    proxy_http_version 1.1;
+  }
+
+  # Static app (Vite build output)
+  root /srv/familycircle/dist;
+  index index.html;
+
+  # Let the SPA handle routes
+  location / {
+    try_files $uri /index.html;
+  }
+}
+
+
+Enable & reload:
+
+sudo ln -s /etc/nginx/sites-available/familycircle /etc/nginx/sites-enabled/familycircle
+sudo nginx -t
+sudo systemctl reload nginx
+# (optional) certbot --nginx -d portal.familycirclesecure.com
+
+6) Smoke tests
+# health
+curl -s https://portal.familycirclesecure.com/api/healthz
+
+# with a browser session (logged-in), open DevTools → Network and
+# click "Click Regenerate" → should POST /api/credentials/:id/shares/regenerate (200 JSON)
+
+# reveal flow (requires auth if "Require login" is ON)
+# curl -i -X POST https://portal.familycirclesecure.com/api/share/<TOKEN>/reveal --cookie "session=<cookie>"
