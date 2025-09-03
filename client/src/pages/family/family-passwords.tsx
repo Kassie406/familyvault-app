@@ -1,12 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation } from 'wouter';
-import { Search, Key, Eye, EyeOff, Copy, BadgeCheck, X } from 'lucide-react';
+import { Search, Key, Eye, EyeOff, Copy, BadgeCheck, X, MoreVertical, Edit, Share, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // Luxury Card Shell Component
 function Shell({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -16,6 +22,140 @@ function Shell({ children, className = "" }: { children: React.ReactNode; classN
                      hover:border-[#D4AF37] hover:shadow-[0_16px_40px_rgba(212,175,55,0.12)] ${className}`}>
       {children}
     </div>
+  );
+}
+
+// Manager Dropdown Dots Component
+function ManagerDropdownDots() {
+  const handleEdit = () => {
+    console.log('Edit password manager');
+  };
+
+  const handleView = () => {
+    console.log('View password manager details');
+  };
+
+  const handleShare = () => {
+    console.log('Share password manager');
+  };
+
+  const handleDelete = () => {
+    console.log('Delete password manager');
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button 
+          onClick={(e) => e.stopPropagation()}
+          className="h-8 w-8 inline-grid place-items-center rounded-lg border border-transparent text-neutral-400
+                     hover:text-white hover:border-[#232530]"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent 
+        align="end" 
+        className="bg-[#13141B] border-[#232530] text-white"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <DropdownMenuItem 
+          onClick={handleEdit}
+          className="text-neutral-300 hover:text-white hover:bg-[rgba(212,175,55,0.18)] focus:bg-[rgba(212,175,55,0.18)] focus:text-white"
+        >
+          <Edit className="h-4 w-4 mr-2" />
+          Edit Manager
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={handleView}
+          className="text-neutral-300 hover:text-white hover:bg-[rgba(212,175,55,0.18)] focus:bg-[rgba(212,175,55,0.18)] focus:text-white"
+        >
+          <Eye className="h-4 w-4 mr-2" />
+          View Details
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={handleShare}
+          className="text-neutral-300 hover:text-white hover:bg-[rgba(212,175,55,0.18)] focus:bg-[rgba(212,175,55,0.18)] focus:text-white"
+        >
+          <Share className="h-4 w-4 mr-2" />
+          Share Manager
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={handleDelete}
+          className="text-red-400 hover:text-red-300 hover:bg-[rgba(239,68,68,0.18)] focus:bg-[rgba(239,68,68,0.18)] focus:text-red-300"
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Delete Manager
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// Credential Dropdown Dots Component
+function DropdownDots({ cardId, cardTitle }: { cardId: string; cardTitle: string }) {
+  const handleEdit = () => {
+    console.log('Edit credential:', cardTitle);
+  };
+
+  const handleView = () => {
+    console.log('View credential details:', cardTitle);
+  };
+
+  const handleShare = () => {
+    console.log('Share credential:', cardTitle);
+  };
+
+  const handleDelete = () => {
+    console.log('Delete credential:', cardTitle);
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button 
+          onClick={(e) => e.stopPropagation()}
+          className="h-8 w-8 inline-grid place-items-center rounded-lg border border-transparent text-neutral-400
+                     hover:text-white hover:border-[#232530]"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent 
+        align="end" 
+        className="bg-[#13141B] border-[#232530] text-white"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <DropdownMenuItem 
+          onClick={handleEdit}
+          className="text-neutral-300 hover:text-white hover:bg-[rgba(212,175,55,0.18)] focus:bg-[rgba(212,175,55,0.18)] focus:text-white"
+        >
+          <Edit className="h-4 w-4 mr-2" />
+          Edit Credential
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={handleView}
+          className="text-neutral-300 hover:text-white hover:bg-[rgba(212,175,55,0.18)] focus:bg-[rgba(212,175,55,0.18)] focus:text-white"
+        >
+          <Eye className="h-4 w-4 mr-2" />
+          View Details
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={handleShare}
+          className="text-neutral-300 hover:text-white hover:bg-[rgba(212,175,55,0.18)] focus:bg-[rgba(212,175,55,0.18)] focus:text-white"
+        >
+          <Share className="h-4 w-4 mr-2" />
+          Share Credential
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={handleDelete}
+          className="text-red-400 hover:text-red-300 hover:bg-[rgba(239,68,68,0.18)] focus:bg-[rgba(239,68,68,0.18)] focus:text-red-300"
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Delete Credential
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -31,7 +171,7 @@ function ManagerCard({ name, count }: { name: string; count: number }) {
           <div className="text-white font-medium truncate">{name}</div>
           <div className="text-xs text-neutral-400">+ {count} items pre-populated</div>
         </div>
-        <DropdownDots />
+        <ManagerDropdownDots />
       </div>
     </Shell>
   );
@@ -135,25 +275,14 @@ function CredentialCard({
               </button>
             </div>
           </div>
-          <DropdownDots />
+          <DropdownDots cardId={id} cardTitle={title} />
         </div>
       </Shell>
     </div>
   );
 }
 
-// Dropdown Dots Component
-function DropdownDots() {
-  return (
-    <button 
-      onClick={(e) => e.stopPropagation()}
-      className="h-8 w-8 inline-grid place-items-center rounded-lg border border-transparent text-neutral-400
-                 hover:text-white hover:border-[#232530]"
-    >
-      ⋯
-    </button>
-  );
-}
+
 
 // Detail Slide-over Component
 function CredentialDetail({ 
