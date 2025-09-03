@@ -1,0 +1,173 @@
+Great—that means generation now works, but the viewer is rejecting the token as “Invalid Link.” That only happens when the public resolver can’t find (or accept) the token you just created.
+
+There are only a few root causes:
+
+Wrong database / table: the token was written to one DB, but the public viewer is reading another (dev vs prod).
+
+Resolver route missing / wrong: the page at /share/:token can’t validate because the API route it calls doesn’t exist or returns HTML/404.
+
+Schema mismatch: your table uses token as the PK, but the resolver queries id (or vice-versa), or columns like expires_at/revoked are named differently.
+
+Expired/revoked logic: row exists but the resolver treats it as expired/revoked (timezone or flag bug).
+
+Wrong host in URL: the generated URL uses the replit host, and that deployment points at a different Postgres than the one used by portal.
+
+Below is a tight, copy-paste checklist to pinpoint and fix it fast.
+
+1) Verify the token exists (DB)
+
+Take the token from the generated link (after /share/), then run one of these:
+
+SQL (Neon / psql)
+SELECT token, credential_id, expires_at, revoked
+FROM share_links
+WHERE token = '<PASTE_TOKEN_HERE>';
+
+
+You should get one row with revoked = false and expires_at in the future (or NULL if “never”).
+
+If no row: your generate endpoint didn’t persist properly → see “Fix insert” below.
+
+2) Test the resolver API directly
+
+On the same host where the “Invalid Link” page is shown, open DevTools Console and call:
+
+fetch('/api/share/<PASTE_TOKEN_HERE>').then(r => r.status).then(console.log)
+
+
+Expected: 200.
+If you get 404/410/500 or HTML, here’s what it means:
+
+404: Resolver didn’t find the token → wrong DB, wrong query field, or token not inserted.
+
+410: Marked as expired/revoked by resolver.
+
+HTML: SPA fallback is intercepting /api/share/* → API routes are mounted after the SPA. Move API before SPA fallback.
+
+3) Make sure the resolver route exists & is correct
+
+Add this exact route on the server:
+
+// server/index.ts (AFTER app.use(express.json()), BEFORE SPA fallback)
+import { eq } from "drizzle-orm"; // or your query helper
+// import { db, share_links } from './db'; // your actual imports
+
+app.get('/api/share/:token', async (req, res) => {
+  try {
+    const token = req.params.token;
+
+    // 1) Lookup by token (NOT id)
+    const row = await db
+      .select()
+      .from(share_links)
+      .where(eq(share_links.token, token))
+      .limit(1);
+
+    if (!row.length) return res.status(404).json({ ok: false, error: 'not_found' });
+
+    const link = row[0];
+
+    // 2) Expiry/revoked checks
+    if (link.revoked) return res.status(410).json({ ok: false, error: 'revoked' });
+    if (link.expires_at && new Date(link.expires_at) < new Date()) {
+      return res.status(410).json({ ok: false, error: 'expired' });
+    }
+
+    // 3) OK → send back minimal info
+    return res.json({ ok: true, credentialId: link.credential_id });
+  } catch (e: any) {
+    return res.status(500).json({ ok: false, error: e?.message || 'server_error' });
+  }
+});
+
+
+If your schema uses expiresAt / credentialId / revoked_at, update the field names accordingly. The important thing is query by token.
+
+4) Ensure the public page calls the resolver
+
+The page that renders at /share/:token should call the endpoint above:
+
+// client (share page)
+useEffect(() => {
+  const token = params.token;
+  fetch(`/api/share/${token}`)
+    .then(async r => {
+      if (!r.ok) throw new Error((await r.json()).error || `HTTP ${r.status}`);
+      return r.json();
+    })
+    .then(({ credentialId }) => setState({ ok: true, credentialId }))
+    .catch(() => setState({ ok: false })); // shows “Invalid Link”
+}, []);
+
+
+If this call returns 404/410/500, you get the Invalid Link screen. Once it returns { ok: true }, the page should switch to the “Reveal Credential” UI.
+
+5) Single DB + correct host
+
+In both the generator and the viewer deployments, confirm the same DATABASE_URL is set (Neon prod).
+
+Set APP_URL=https://portal.familycirclesecure.com in production secrets so generated links always point to your portal domain.
+
+If you’re testing on the replit preview domain, that preview must also use the same DATABASE_URL or the token won’t be found.
+
+6) If your generate endpoint didn’t insert a row
+
+Make sure you actually upsert into share_links:
+
+// inside /api/credentials/:id/shares/regenerate
+const token = crypto.randomBytes(16).toString('base64url');
+
+// compute expiry
+const now = new Date();
+const expires_at =
+  expiry === 'never' ? null :
+  expiry === '24h'   ? new Date(now.getTime() + 24*3600*1000) :
+  expiry === '7d'    ? new Date(now.getTime() + 7*24*3600*1000) :
+  new Date(now.getTime() + 30*24*3600*1000);
+
+// pseudo Drizzle upsert
+await db
+  .insert(share_links)
+  .values({
+    token,
+    credential_id: id,
+    expires_at,
+    revoked: false,
+    created_at: now
+  })
+  .onConflictDoUpdate({
+    target: share_links.credential_id,
+    set: { token, expires_at, revoked: false, updated_at: new Date() }
+  });
+
+res.json({ ok: true, token, url: `${getBaseUrl(req)}/share/${token}` });
+
+Most likely fix in your case
+
+From your screenshots:
+
+The link is on the replit host (not portal).
+
+The viewer says “Invalid Link” → resolver can’t find the token.
+
+So the most probable combo is:
+
+The generator is writing to DB A (prod Neon)
+
+The viewer endpoint on the replit host reads DB B (a different Neon or none)
+→ Result: 404 → “Invalid Link”
+
+Action:
+
+Set the same DATABASE_URL for whatever host serves /share/:token and the host generating the link.
+
+Add /api/share/:token exactly as above.
+
+Confirm /api/share/<token> returns { ok: true } in the browser console. Then the page will stop showing “Invalid Link”.
+
+If you paste back:
+
+the response from fetch('/api/share/<token>').then(r=>r.status) and
+
+the result of the SQL SELECT for that token,
+I’ll point you to the exact line to change (schema field, DB secret, or SPA intercept).
