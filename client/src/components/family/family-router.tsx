@@ -10,6 +10,16 @@ import FamilyTaxes from '@/pages/family/family-taxes';
 import FamilyLegal from '@/pages/family/family-legal';
 import FamilyResources from '@/pages/family/family-resources';
 import FamilyContacts from '@/pages/family/family-contacts';
+import ChildInformation from '@/pages/family/child-information';
+import ElderlyParents from '@/pages/family/elderly-parents';
+import GettingMarried from '@/pages/family/getting-married';
+import InternationalTravel from '@/pages/family/international-travel';
+import Moving from '@/pages/family/moving';
+import DisasterPlanning from '@/pages/family/disaster-planning';
+import EstatePlanning from '@/pages/family/estate-planning';
+import HomeBuying from '@/pages/family/home-buying';
+import StartingFamily from '@/pages/family/starting-family';
+import WhenSomeoneDies from '@/pages/family/when-someone-dies';
 import InboxPanel from './inbox-panel';
 import RemindersPanel from './reminders-panel';
 
@@ -104,6 +114,16 @@ export default function FamilyRouter() {
         <Route path="/family/legal" component={withSidebarLayout(() => <FamilyLegal />)} />
         <Route path="/family/resources" component={withSidebarLayout(() => <FamilyResources />)} />
         <Route path="/family/contacts" component={withSidebarLayout(() => <FamilyContacts />)} />
+        <Route path="/family/child-information" component={withSidebarLayout(() => <ChildInformation />)} />
+        <Route path="/family/elderly-parents" component={withSidebarLayout(() => <ElderlyParents />)} />
+        <Route path="/family/getting-married" component={withSidebarLayout(() => <GettingMarried />)} />
+        <Route path="/family/international-travel" component={withSidebarLayout(() => <InternationalTravel />)} />
+        <Route path="/family/moving" component={withSidebarLayout(() => <Moving />)} />
+        <Route path="/family/disaster-planning" component={withSidebarLayout(() => <DisasterPlanning />)} />
+        <Route path="/family/estate-planning" component={withSidebarLayout(() => <EstatePlanning />)} />
+        <Route path="/family/home-buying" component={withSidebarLayout(() => <HomeBuying />)} />
+        <Route path="/family/starting-family" component={withSidebarLayout(() => <StartingFamily />)} />
+        <Route path="/family/when-someone-dies" component={withSidebarLayout(() => <WhenSomeoneDies />)} />
         <Route path="/family/members" component={withSidebarLayout(FamilyMembers)} />
         <Route path="/family/documents" component={withSidebarLayout(FamilyDocuments)} />
         <Route path="/family/messages" component={withSidebarLayout(FamilyMessages)} />
