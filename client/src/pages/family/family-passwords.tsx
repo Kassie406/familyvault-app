@@ -697,12 +697,7 @@ function EnhancedShareContent({
     }
   };
 
-  // Generate initial share link on component mount
-  React.useEffect(() => {
-    if (!shareUrl) {
-      handleRegenerateLink();
-    }
-  }, []);
+  // No automatic generation - user must click "Generate" explicitly
 
   // Cleanup on unmount
   useEffect(() => () => clearGenGuards(), []);
@@ -818,7 +813,7 @@ function EnhancedShareContent({
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Input 
-                  value={shareUrl || (isGenerating ? 'Generating secure link...' : 'Click Regenerate to create link')}
+                  value={shareUrl || (isGenerating ? 'Generating secure link...' : 'Click Generate to create link')}
                   readOnly
                   className="bg-[#0A0A0F] border-[#232530] text-neutral-300 text-xs"
                 />
