@@ -1,0 +1,144 @@
+Brand palette (dark luxury)
+
+--gold: #D4AF37 (Royal Gold)
+
+--gold-600: #c6a02e (hover)
+
+--bg-900: #0A0A0F (page background)
+
+--bg-850: #0F1016 (cards/sections)
+
+--bg-800: #13141B (inputs/secondary)
+
+--ink-100: #F4F4F6 (primary text)
+
+--ink-300: #C9CBD3 (secondary text)
+
+--line-700: #232530 (borders)
+
+Accents: Emerald #2ECC71, Crimson #E74C3C, Royal Blue #2D7CF0 (sparingly)
+
+Global CSS variables (drop in globals.css)
+:root {
+  --gold:#D4AF37; --gold-600:#c6a02e;
+  --bg-900:#0A0A0F; --bg-850:#0F1016; --bg-800:#13141B;
+  --ink-100:#F4F4F6; --ink-300:#C9CBD3; --line-700:#232530;
+}
+html, body { background: var(--bg-900); color: var(--ink-100); }
+
+/* Luxury hero background (dark vignette + gold glow) */
+.rich-hero {
+  background:
+    radial-gradient(1200px 600px at 80% 40%, rgba(212,175,55,0.22), transparent 60%),
+    radial-gradient(900px 500px at 10% 10%, rgba(212,175,55,0.12), transparent 60%),
+    linear-gradient(180deg, #0A0A0F 0%, #0A0A0F 40%, #0F1016 100%);
+}
+
+/* Card + border system */
+.card {
+  background: linear-gradient(180deg, var(--bg-850), var(--bg-800));
+  border: 1px solid var(--line-700);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / .35);
+}
+.card:hover { box-shadow: 0 16px 40px rgb(0 0 0 / .45); }
+
+/* Buttons */
+.btn-gold {
+  background: var(--gold);
+  color: #0B0B0E;
+  border-radius: 999px;
+  box-shadow: 0 6px 14px rgba(212,175,55,.25);
+}
+.btn-gold:hover { background: var(--gold-600); transform: translateY(-1px); }
+.btn-ghost { color: var(--ink-100); border:1px solid var(--line-700); background: transparent; }
+.btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+
+/* Headline underline */
+.gold-underline {
+  background: linear-gradient( to right, var(--gold), var(--gold) );
+  height: 3px; width: 64px; border-radius: 3px;
+}
+
+/* Focus states (a11y) */
+:where(button, a, input, [role="button"]):focus-visible {
+  outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 8px;
+}
+
+/* Dropdown/menus – keep text visible on hover */
+.menu-item {
+  color: var(--ink-100); background: transparent;
+}
+.menu-item:hover {
+  background: color-mix(in srgb, var(--gold) 18%, transparent);
+  color: var(--ink-100); /* never white-out */
+}
+
+Tailwind helpers (if you prefer utility classes)
+
+Page wrapper: class="min-h-screen bg-[#0A0A0F] text-[#F4F4F6]"
+
+Hero: class="rich-hero pt-20 pb-16"
+
+Cards: class="card p-5"
+
+Section titles: class="text-2xl font-semibold tracking-wide" + <div class="gold-underline mt-2"></div>
+
+Primary button: class="btn-gold px-6 py-3 font-semibold"
+
+Ghost button: class="btn-ghost px-5 py-3 rounded-xl"
+
+Component styling map
+
+Navbar: black glass (bg-[#0A0A0F]/85 backdrop-blur) + gold bottom border (border-b border-[#D4AF37]/20); active link = gold underline.
+
+Hero: large white headline, gold underline, CTA .btn-gold; right-side mock “dashboard” card with subtle inner shadow.
+
+Stats tiles: small .card tiles with tiny gold dot bullet and big number.
+
+Quick Actions: light borders, small gold icon circle; hover adds gold ring (ring-1 ring-[#D4AF37]/30).
+
+Announcements: .card with faint gold gradient strip on left (bg-gradient-to-r from-[#D4AF37]/15 to-transparent).
+
+Footer: charcoal bar with gold crest/icon watermark and small-caps text in gold.
+
+Micro-interactions (tasteful)
+
+Gold shimmer on crest/logo (CSS only):
+
+.gold-shine { position: relative; }
+.gold-shine::after{
+  content:""; position:absolute; inset:-2px;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,.35), transparent);
+  transform: translateX(-120%); filter: blur(4px); pointer-events:none;
+  -webkit-mask: linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0);
+}
+.gold-shine:hover::after{ animation: shine 900ms ease; }
+@keyframes shine { to { transform: translateX(120%); } }
+
+shadcn/ui quick overrides
+// Button
+<Button className="btn-gold px-6 py-3 h-auto">Get Started Free</Button>
+
+// Card container
+<div className="card p-6">
+  <h3 className="text-lg font-semibold">Family Dashboard</h3>
+  <div className="gold-underline mt-2" />
+</div>
+
+// Menu items (prevents hover text disappearing)
+<DropdownMenuItem className="menu-item">Important Document</DropdownMenuItem>
+
+Background options for “money” feel
+
+Add grain/noise overlay (very low opacity) to avoid flat black:
+
+.rich-noise {
+  background-image: url('/noise.png'); /* 2–4% opacity PNG */
+  opacity:.05; pointer-events:none;
+}
+
+
+Optional soft gold vignette at footer/header already included in .rich-hero.
+
+If you paste the CSS variables and utility classes above, your landing + dashboard will match the “fancy wealth” look in your screenshots—deep blacks, soft gradients, and controlled gold.

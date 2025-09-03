@@ -109,9 +109,9 @@ export default function FamilyHome() {
   ];
 
   return (
-    <div className="flex-1 overflow-auto bg-[#F8F8F8]">
+    <div className="flex-1 overflow-auto bg-[var(--bg-900)]">
       {/* Luxury Header with Gradient */}
-      <div className="bg-gradient-to-r from-[#0A0A1A] via-[#111111] to-[#0A0A1A] relative overflow-hidden">
+      <div className="rich-hero relative overflow-hidden">
         {/* Gold Heart Crest Background */}
         <div className="absolute inset-0 flex items-center justify-center opacity-10">
           <Heart className="w-32 h-32 text-[#D4AF37]" />
@@ -130,7 +130,7 @@ export default function FamilyHome() {
               <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#D4AF37] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
             </span>
           </h1>
-          <p className="text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg text-[var(--ink-300)] max-w-2xl mx-auto leading-relaxed">
             Your secure, private space to stay connected and organized as a family. 
             Share important documents, communicate safely, and keep everyone informed.
           </p>
@@ -144,14 +144,14 @@ export default function FamilyHome() {
         {familyStats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <div key={stat.label} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div key={stat.label} className="card p-6">
               <div className="flex items-center space-x-3">
-                <div className={`p-2 rounded-lg bg-gray-50`}>
+                <div className={`p-2 rounded-lg bg-[var(--bg-800)]`}>
                   <Icon className={`w-5 h-5 ${stat.color}`} />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                  <div className="text-sm text-gray-600">{stat.label}</div>
+                  <div className="text-2xl font-bold text-[var(--ink-100)]">{stat.value}</div>
+                  <div className="text-sm text-[var(--ink-300)]">{stat.label}</div>
                 </div>
               </div>
             </div>
@@ -161,7 +161,7 @@ export default function FamilyHome() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-xl font-semibold text-[#0A0A1A] mb-4">Quick Actions</h2>
+        <h2 className="text-xl font-semibold text-[var(--ink-100)] mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map((action, index) => {
             const Icon = action.icon;
@@ -172,7 +172,7 @@ export default function FamilyHome() {
               <Link
                 key={action.id}
                 to={action.href}
-                className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 group hover:border-[#D4AF37]/30"
+                className="card p-6 hover:shadow-xl transition-all duration-300 group hover:border-[var(--gold)]/30"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div 
@@ -181,12 +181,12 @@ export default function FamilyHome() {
                   >
                     <Icon className="w-6 h-6 text-white" />
                   </div>
-                  <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 group-hover:text-[#D4AF37] transition-all" />
+                  <ArrowRight className="w-4 h-4 text-[var(--ink-300)] group-hover:translate-x-1 group-hover:text-[var(--gold)] transition-all" />
                 </div>
-                <h3 className="font-semibold mb-1 text-[#0A0A1A] group-hover:text-[#D4AF37] transition-colors">
+                <h3 className="font-semibold mb-1 text-[var(--ink-100)] group-hover:text-[var(--gold)] transition-colors">
                   {action.title}
                 </h3>
-                <p className="text-sm text-gray-600">{action.description}</p>
+                <p className="text-sm text-[var(--ink-300)]">{action.description}</p>
               </Link>
             );
           })}
@@ -196,14 +196,14 @@ export default function FamilyHome() {
       {/* Recent Activity & Upcoming Events */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Activity */}
-        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
-          <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
-            <h2 className="text-xl font-semibold text-[#0A0A1A] flex items-center relative">
-              <Activity className="w-5 h-5 mr-2 text-[#D4AF37]" />
+        <div className="card p-6 hover:shadow-xl transition-shadow">
+          <div className="flex items-center justify-between mb-6 border-b border-[var(--line-700)] pb-4">
+            <h2 className="text-xl font-semibold text-[var(--ink-100)] flex items-center relative">
+              <Activity className="w-5 h-5 mr-2 text-[var(--gold)]" />
               Recent Activity
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#D4AF37]"></span>
+              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--gold)]"></span>
             </h2>
-            <Link to="/family/activity" className="text-sm text-[#D4AF37] hover:text-[#0A0A1A] transition-colors">
+            <Link to="/family/activity" className="text-sm text-[var(--gold)] hover:text-[var(--ink-100)] transition-colors">
               View all
             </Link>
           </div>
@@ -216,9 +216,9 @@ export default function FamilyHome() {
                     <Icon className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900">{activity.title}</p>
-                    <p className="text-sm text-gray-600">{activity.description}</p>
-                    <div className="flex items-center mt-1 text-xs text-gray-500">
+                    <p className="font-medium text-[var(--ink-100)]">{activity.title}</p>
+                    <p className="text-sm text-[var(--ink-300)]">{activity.description}</p>
+                    <div className="flex items-center mt-1 text-xs text-[var(--ink-300)]">
                       <Clock className="w-3 h-3 mr-1" />
                       {activity.timestamp}
                     </div>
@@ -230,14 +230,14 @@ export default function FamilyHome() {
         </div>
 
         {/* Family Announcements */}
-        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
-          <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
-            <h2 className="text-xl font-semibold text-[#0A0A1A] flex items-center relative">
-              <Bell className="w-5 h-5 mr-2 text-[#D4AF37]" />
+        <div className="card p-6 hover:shadow-xl transition-shadow">
+          <div className="flex items-center justify-between mb-6 border-b border-[var(--line-700)] pb-4">
+            <h2 className="text-xl font-semibold text-[var(--ink-100)] flex items-center relative">
+              <Bell className="w-5 h-5 mr-2 text-[var(--gold)]" />
               Family Announcements
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#D4AF37]"></span>
+              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--gold)]"></span>
             </h2>
-            <Link to="/family/announcements" className="text-sm text-[#D4AF37] hover:text-[#0A0A1A] transition-colors">
+            <Link to="/family/announcements" className="text-sm text-[var(--gold)] hover:text-[var(--ink-100)] transition-colors">
               View all
             </Link>
           </div>
@@ -248,11 +248,11 @@ export default function FamilyHome() {
                   <Star className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-[#0A0A1A]">Family Vacation Planning</h3>
-                  <p className="text-sm text-gray-700 mt-1">
+                  <h3 className="font-medium text-[var(--ink-100)]">Family Vacation Planning</h3>
+                  <p className="text-sm text-[var(--ink-300)] mt-1">
                     Don't forget to submit your preferred dates for our summer family vacation by Friday!
                   </p>
-                  <p className="text-xs text-[#D4AF37] mt-2 font-medium">Posted by Mom • 3 days ago</p>
+                  <p className="text-xs text-[var(--gold)] mt-2 font-medium">Posted by Mom • 3 days ago</p>
                 </div>
               </div>
             </div>
@@ -263,8 +263,8 @@ export default function FamilyHome() {
                   <Calendar className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-[#0A0A1A]">Updated Family Calendar</h3>
-                  <p className="text-sm text-gray-700 mt-1">
+                  <h3 className="font-medium text-[var(--ink-100)]">Updated Family Calendar</h3>
+                  <p className="text-sm text-[var(--ink-300)] mt-1">
                     New events added including Sarah's graduation and the family reunion in July.
                   </p>
                   <p className="text-xs text-[#3498DB] mt-2 font-medium">Posted by Dad • 1 week ago</p>
@@ -277,33 +277,33 @@ export default function FamilyHome() {
 
       {/* Family Navigation Grid */}
       <div>
-        <h2 className="text-xl font-semibold text-[#0A0A1A] mb-4">Family Tools</h2>
+        <h2 className="text-xl font-semibold text-[var(--ink-100)] mb-4">Family Tools</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Link to="/family/members" className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl hover:border-[#D4AF37]/30 transition-all duration-300 group">
+          <Link to="/family/members" className="card p-6 hover:shadow-xl hover:border-[var(--gold)]/30 transition-all duration-300 group">
             <div className="w-16 h-16 rounded-full bg-[#3498DB] flex items-center justify-center mb-6 shadow-md group-hover:shadow-lg group-hover:shadow-[#D4AF37]/20 transition-all">
               <Users className="w-8 h-8 text-white" />
             </div>
-            <h3 className="font-semibold text-[#0A0A1A] mb-2 group-hover:text-[#D4AF37] transition-colors">Family Members</h3>
-            <p className="text-sm text-gray-600 mb-4 leading-relaxed">Manage profiles, contact info, and emergency details for all family members.</p>
+            <h3 className="font-semibold text-[var(--ink-100)] mb-2 group-hover:text-[var(--gold)] transition-colors">Family Members</h3>
+            <p className="text-sm text-[var(--ink-300)] mb-4 leading-relaxed">Manage profiles, contact info, and emergency details for all family members.</p>
             <span className="text-sm text-[#3498DB] group-hover:text-[#D4AF37] font-medium transition-colors">Manage profiles →</span>
           </Link>
 
-          <Link to="/family/documents" className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl hover:border-[#D4AF37]/30 transition-all duration-300 group">
-            <div className="w-16 h-16 rounded-full bg-[#2ECC71] flex items-center justify-center mb-6 shadow-md group-hover:shadow-lg group-hover:shadow-[#D4AF37]/20 transition-all">
+          <Link to="/family/documents" className="card p-6 hover:shadow-xl hover:border-[var(--gold)]/30 transition-all duration-300 group">
+            <div className="w-16 h-16 rounded-full bg-[#2ECC71] flex items-center justify-center mb-6 shadow-md group-hover:shadow-lg group-hover:shadow-[var(--gold)]/20 transition-all">
               <FileText className="w-8 h-8 text-white" />
             </div>
-            <h3 className="font-semibold text-[#0A0A1A] mb-2 group-hover:text-[#D4AF37] transition-colors">Document Vault</h3>
-            <p className="text-sm text-gray-600 mb-4 leading-relaxed">Securely store and share important family documents like IDs, medical records, and legal papers.</p>
-            <span className="text-sm text-[#2ECC71] group-hover:text-[#D4AF37] font-medium transition-colors">View documents →</span>
+            <h3 className="font-semibold text-[var(--ink-100)] mb-2 group-hover:text-[var(--gold)] transition-colors">Document Vault</h3>
+            <p className="text-sm text-[var(--ink-300)] mb-4 leading-relaxed">Securely store and share important family documents like IDs, medical records, and legal papers.</p>
+            <span className="text-sm text-[#2ECC71] group-hover:text-[var(--gold)] font-medium transition-colors">View documents →</span>
           </Link>
 
-          <Link to="/family/emergency" className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl hover:border-[#D4AF37]/30 transition-all duration-300 group">
-            <div className="w-16 h-16 rounded-full bg-[#E74C3C] flex items-center justify-center mb-6 shadow-md group-hover:shadow-lg group-hover:shadow-[#D4AF37]/20 transition-all">
+          <Link to="/family/emergency" className="card p-6 hover:shadow-xl hover:border-[var(--gold)]/30 transition-all duration-300 group">
+            <div className="w-16 h-16 rounded-full bg-[#E74C3C] flex items-center justify-center mb-6 shadow-md group-hover:shadow-lg group-hover:shadow-[var(--gold)]/20 transition-all">
               <Shield className="w-8 h-8 text-white" />
             </div>
-            <h3 className="font-semibold text-[#0A0A1A] mb-2 group-hover:text-[#D4AF37] transition-colors">Emergency Center</h3>
-            <p className="text-sm text-gray-600 mb-4 leading-relaxed">Quick access to critical information, emergency contacts, and family safety plans.</p>
-            <span className="text-sm text-[#E74C3C] group-hover:text-[#D4AF37] font-medium transition-colors">Access emergency info →</span>
+            <h3 className="font-semibold text-[var(--ink-100)] mb-2 group-hover:text-[var(--gold)] transition-colors">Emergency Center</h3>
+            <p className="text-sm text-[var(--ink-300)] mb-4 leading-relaxed">Quick access to critical information, emergency contacts, and family safety plans.</p>
+            <span className="text-sm text-[#E74C3C] group-hover:text-[var(--gold)] font-medium transition-colors">Access emergency info →</span>
           </Link>
         </div>
       </div>

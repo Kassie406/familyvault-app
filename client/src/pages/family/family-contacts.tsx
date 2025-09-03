@@ -43,18 +43,18 @@ export default function FamilyContacts() {
   const contactCount = filteredContacts.length;
 
   return (
-    <div className="bg-white rounded-xl p-8 shadow-sm">
+    <div className="card p-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-black">Contacts</h1>
-          <div className="bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center">
+          <h1 className="text-2xl font-bold text-[var(--ink-100)]">Contacts</h1>
+          <div className="bg-[var(--gold)] text-white w-8 h-8 rounded-full flex items-center justify-center">
             <Plus className="h-4 w-4" />
           </div>
         </div>
         <Button 
           variant="ghost" 
-          className="text-gray-600 hover:text-[#D4AF37]"
+          className="text-[var(--ink-300)] hover:text-[var(--gold)]"
           data-testid="button-help"
         >
           Help

@@ -92,12 +92,12 @@ export default function FamilyPasswords() {
   );
 
   return (
-    <div className="bg-white rounded-xl p-8 shadow-sm">
+    <div className="card p-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-black">Passwords</h1>
-          <div className="flex items-center gap-2 bg-[#D4AF37] bg-opacity-10 text-[#D4AF37] px-3 py-1 rounded-full">
+          <h1 className="text-2xl font-bold text-[var(--ink-100)]">Passwords</h1>
+          <div className="flex items-center gap-2 bg-[var(--gold)] bg-opacity-10 text-[var(--gold)] px-3 py-1 rounded-full">
             <Plus className="h-4 w-4" />
             <span className="text-sm font-medium">
               {passwordManagers.reduce((sum, pm) => sum + pm.itemCount, 0)} recommended items
@@ -106,7 +106,7 @@ export default function FamilyPasswords() {
         </div>
         <Button 
           variant="ghost" 
-          className="text-gray-600 hover:text-[#D4AF37]"
+          className="text-[var(--ink-300)] hover:text-[var(--gold)]"
           data-testid="button-help"
         >
           Help
@@ -115,22 +115,22 @@ export default function FamilyPasswords() {
 
       {/* Search Bar */}
       <div className="relative mb-8">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--ink-300)] h-4 w-4" />
         <Input
           placeholder="Search"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-[#D4AF37] focus:ring-opacity-50"
+          className="pl-10 bg-[var(--bg-800)] border-0 focus:bg-[var(--bg-850)] focus:ring-2 focus:ring-[var(--gold)] focus:ring-opacity-50 text-[var(--ink-100)]"
           data-testid="input-search"
         />
       </div>
 
       {/* Password Managers Section */}
       <div className="mb-8">
-        <h2 className="text-lg font-semibold text-black mb-4">Password Managers</h2>
+        <h2 className="text-lg font-semibold text-[var(--ink-100)] mb-4">Password Managers</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredPasswordManagers.map((manager) => (
-            <Card key={manager.id} className="border border-gray-200 hover:border-[#D4AF37] hover:shadow-md transition-all duration-200">
+            <Card key={manager.id} className="border border-[var(--line-700)] hover:border-[var(--gold)] hover:shadow-md transition-all duration-200 bg-[var(--bg-850)]">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
