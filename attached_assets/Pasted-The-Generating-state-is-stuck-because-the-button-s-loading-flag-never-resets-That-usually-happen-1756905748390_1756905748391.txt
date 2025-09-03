@@ -1,0 +1,88 @@
+The “Generating…” state is stuck because the button’s loading flag never resets. That usually happens when:
+
+the request throws before setGenLoading(false) runs,
+
+the API returns 204/empty and your code tries await res.json() (throws), or
+
+multiple clicks fire concurrent requests.
+
+Here’s a robust drop-in handler that fixes all three:
+
+// state
+const [genLoading, setGenLoading] = useState(false);
+const [shareUrl, setShareUrl] = useState<string | null>(null);
+const abortRef = useRef<AbortController | null>(null);
+
+async function handleRegenerate() {
+  if (genLoading) return;                        // prevent double-clicks
+  setGenLoading(true);
+
+  // cancel any in-flight call
+  abortRef.current?.abort();
+  const ctrl = new AbortController();
+  abortRef.current = ctrl;
+
+  try {
+    const res = await fetch(
+      `/api/credentials/${credentialId}/shares/regenerate`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expiry, requireLogin }),
+        signal: ctrl.signal,
+      }
+    );
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    // Some backends return 204 or text; handle all cases safely
+    let data: any = null;
+    const ct = res.headers.get("content-type") || "";
+    if (ct.includes("application/json")) data = await res.json();
+    else data = { url: await res.text() || null };
+
+    if (!data?.url) throw new Error("No URL returned");
+    setShareUrl(data.url);
+    toast.success("Link generated");
+  } catch (e: any) {
+    if (e?.name !== "AbortError") {
+      console.error(e);
+      toast.error("Could not generate link");
+    }
+  } finally {
+    setGenLoading(false);
+  }
+}
+
+// cleanup on unmount to avoid stuck state if the component unmounts mid-request
+useEffect(() => () => abortRef.current?.abort(), []);
+
+
+Hook it to the button:
+
+<Button
+  onClick={handleRegenerate}
+  disabled={genLoading}
+  className="bg-[#D4AF37] text-black"
+>
+  {genLoading ? "Generating…" : (shareUrl ? "Regenerate" : "Generate")}
+</Button>
+
+
+And your Copy button should guard against missing URL:
+
+<Button
+  onClick={() => shareUrl ? navigator.clipboard.writeText(shareUrl) : toast.message("Generate a link first")}
+  disabled={!shareUrl}
+  className="bg-[#D4AF37] text-black"
+>
+  Copy
+</Button>
+
+Bonus guards (recommended)
+
+Disable Generate/Copy when “Enable shareable link” is OFF.
+
+In Update Sharing, send shareUrl, expiry, requireLogin; if linkEnabled === false, your backend should revoke all tokens (you’ve got that in place from the previous step).
+
+On API: always return JSON { url, token } (avoid 204) to keep the client simple.
