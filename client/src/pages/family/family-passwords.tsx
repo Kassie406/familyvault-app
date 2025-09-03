@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation } from 'wouter';
-import { Search, Key, Eye, EyeOff, Copy, BadgeCheck, X, MoreVertical, Edit, Share, Trash2, Link2, Users } from 'lucide-react';
+import { Search, Key, Eye, EyeOff, Copy, BadgeCheck, X, MoreVertical, Edit, Share, Trash2, Link2, Users, UserRound, UsersRound, Send, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -496,6 +497,7 @@ function CredentialDetail({
   );
 }
 
+
 // Side Panel Component for Edit/View/Share
 function CredentialSidePanel({ 
   isOpen, 
@@ -576,54 +578,145 @@ function CredentialSidePanel({
       case 'share':
         return (
           <div className="space-y-6">
-            <div className="flex items-center gap-3 p-4 rounded-xl border border-[#232530] bg-[#111111]">
-              <Link2 className="h-5 w-5 text-[#D4AF37]" />
-              <div>
-                <div className="text-sm font-medium text-white">Shareable Link</div>
-                <div className="text-xs text-neutral-400">Anyone with this link can view this credential</div>
+            {/* Header */}
+            <div>
+              <p className="text-xs text-neutral-400">Control who can view or manage this credential.</p>
+            </div>
+
+            {/* Section 1: Shareable Link */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <Switch 
+                  defaultChecked={true}
+                  className="data-[state=checked]:bg-[#D4AF37]"
+                />
+                <Label className="text-sm text-white">Enable shareable link</Label>
+              </div>
+              
+              <div className="p-4 rounded-xl border border-[#232530] bg-[#111111] space-y-3">
+                <div className="flex items-center gap-2">
+                  <Link2 className="h-4 w-4 text-[#D4AF37]" />
+                  <span className="text-xs text-neutral-400">Anyone with this link can view this credential</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input 
+                    value={`https://familyvault.app/s/${credential.id}`}
+                    readOnly
+                    className="bg-[#0A0A0F] border-[#232530] text-neutral-300 text-xs"
+                  />
+                  <Button size="sm" className="bg-[#D4AF37] text-black hover:bg-[#c6a02e]">
+                    <Copy className="h-3 w-3 mr-1" />
+                    Copy
+                  </Button>
+                  <Button size="sm" variant="outline" className="border-[#232530] text-neutral-300 hover:text-white">
+                    Regenerate
+                  </Button>
+                </div>
               </div>
             </div>
-            
-            <div className="space-y-4">
-              <div>
-                <Label className="text-sm text-neutral-300">Share with Family Members</Label>
-                <div className="mt-2 space-y-2">
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-[#232530] bg-[#111111]">
-                    <div className="flex items-center gap-3">
-                      <Users className="h-4 w-4 text-neutral-400" />
-                      <span className="text-sm text-white">Kassandra</span>
+
+            {/* Section 2: Share with Family Members */}
+            <div className="space-y-3">
+              <Label className="text-sm text-white">Share with Family Members</Label>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-3 rounded-xl border border-[#232530] bg-[#111111]">
+                  <div className="flex items-center gap-3">
+                    <UserRound className="h-4 w-4 text-neutral-400" />
+                    <div>
+                      <div className="text-sm text-white">Kassandra</div>
+                      <div className="text-xs text-neutral-400">kass@family.com</div>
                     </div>
-                    <Select defaultValue="view">
-                      <SelectTrigger className="w-24 bg-[#13141B] border-[#232530] text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-black border-[#232530] text-white">
-                        <SelectItem value="view">View</SelectItem>
-                        <SelectItem value="edit">Edit</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-[#232530] bg-[#111111]">
-                    <div className="flex items-center gap-3">
-                      <Users className="h-4 w-4 text-neutral-400" />
-                      <span className="text-sm text-white">Family Group</span>
-                    </div>
-                    <Select defaultValue="none">
-                      <SelectTrigger className="w-24 bg-[#13141B] border-[#232530] text-white">
+                  <div className="flex items-center gap-2">
+                    <Select defaultValue="view">
+                      <SelectTrigger className="w-20 bg-black border-[#232530] text-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-black border-[#232530] text-white">
                         <SelectItem value="none">None</SelectItem>
                         <SelectItem value="view">View</SelectItem>
                         <SelectItem value="edit">Edit</SelectItem>
+                        <SelectItem value="owner">Owner</SelectItem>
                       </SelectContent>
                     </Select>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="h-8 w-8 p-0 text-neutral-400 hover:text-red-400"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 rounded-xl border border-[#232530] bg-[#111111]">
+                  <div className="flex items-center gap-3">
+                    <UsersRound className="h-4 w-4 text-neutral-400" />
+                    <div>
+                      <div className="text-sm text-white">Family Group</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Select defaultValue="none">
+                      <SelectTrigger className="w-20 bg-black border-[#232530] text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-black border-[#232530] text-white">
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="view">View</SelectItem>
+                        <SelectItem value="edit">Edit</SelectItem>
+                        <SelectItem value="owner">Owner</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="h-8 w-8 p-0 text-neutral-400 hover:text-red-400"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
                   </div>
                 </div>
               </div>
+
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="text-[#D4AF37] hover:text-[#c6a02e]"
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add another member
+              </Button>
             </div>
-            
+
+            {/* Section 3: Send Link Directly */}
+            <div className="space-y-3">
+              <Label className="text-sm text-white">Send Link Directly</Label>
+              
+              <div className="flex gap-2">
+                <Select defaultValue="email">
+                  <SelectTrigger className="w-24 bg-black border-[#232530] text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-black border-[#232530] text-white">
+                    <SelectItem value="email">✉️ Email</SelectItem>
+                    <SelectItem value="sms">📱 SMS</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Input
+                  placeholder="Enter email address"
+                  className="bg-[#111111] border-[#232530] text-white"
+                />
+                
+                <Button className="bg-[#D4AF37] text-black hover:bg-[#c6a02e]">
+                  Add
+                </Button>
+              </div>
+            </div>
+
+            {/* Section 4: Actions */}
             <div className="flex gap-3">
               <Button className="bg-[#D4AF37] text-black hover:bg-[#c6a02e]">
                 Update Sharing
