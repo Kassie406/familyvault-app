@@ -79,9 +79,22 @@ function CredentialCard({
     }
   };
 
-  const handleCopy = (e: React.MouseEvent) => {
+  const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('Copying credential for:', title);
+    try {
+      // Only copy if password is revealed
+      if (isRevealed) {
+        await navigator.clipboard.writeText("MySecretPass123");
+        // You could add a toast notification here for better UX
+        console.log('Password copied to clipboard for:', title);
+      } else {
+        // Copy masked value if not revealed
+        await navigator.clipboard.writeText("•••• •••• ••••");
+        console.log('Masked password copied for:', title);
+      }
+    } catch (err) {
+      console.error('Failed to copy password:', err);
+    }
   };
 
   const handleCardClick = () => {
