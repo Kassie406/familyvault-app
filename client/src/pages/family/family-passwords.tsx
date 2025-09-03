@@ -507,7 +507,7 @@ function EnhancedShareContent({
   credential: {id: string; title: string};
 }) {
   const [linkEnabled, setLinkEnabled] = useState(true);
-  const [shareUrl] = useState(`https://familyvault.app/s/${credential.id}`);
+  const [shareUrl] = useState(`${window.location.origin}/share/demo-abc123`);
   const [expiry, setExpiry] = useState('7d');
   const [requireLogin, setRequireLogin] = useState(false);
   const [sendMode, setSendMode] = useState<'email' | 'sms'>('email');
@@ -537,7 +537,9 @@ function EnhancedShareContent({
   };
 
   const handleRegenerateLink = () => {
-    console.log('Regenerating link...');
+    // In production this would generate a new token and update the share URL
+    const newToken = Math.random() > 0.5 ? 'demo-abc123' : 'demo-xyz789';
+    console.log('Regenerating link...', newToken);
     setAudit(prev => [{ event: 'Link regenerated', ts: Date.now() }, ...prev]);
   };
 

@@ -450,6 +450,92 @@ app.use('/api/stepup', requireAuth, stepupRouter);
 // Test step-up authentication endpoints
 app.use('/api/test-stepup', requireAuth, testStepupRouter);
 
+// Share endpoints (public access for secure sharing)
+app.get('/api/share/:token', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { token } = req.params;
+    
+    // Mock data for demo - in production this would query a share_links table
+    // and verify expiry, revocation status, etc.
+    const mockShares: Record<string, any> = {
+      'demo-abc123': {
+        id: 'c-ph-angel',
+        title: 'Bank of America - Personal Account',
+        owner: 'Sarah Johnson',
+        tag: 'Banking',
+        expires_at: null, // Never expires
+        require_login: false,
+        revoked: false
+      },
+      'demo-xyz789': {
+        id: 'c-em-work',
+        title: 'Gmail - Work Account',
+        owner: 'John Smith', 
+        tag: 'Email',
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+        require_login: true,
+        revoked: false
+      }
+    };
+    
+    const share = mockShares[token];
+    if (!share || share.revoked) {
+      return res.status(404).json({ error: 'invalid' });
+    }
+    
+    if (share.expires_at && new Date(share.expires_at) < new Date()) {
+      return res.status(410).json({ error: 'expired' });
+    }
+    
+    // Return only what a link viewer can see (no secrets yet)
+    res.json({
+      title: share.title,
+      owner: share.owner,
+      tag: share.tag,
+      allowReveal: !share.require_login,
+      requireLogin: share.require_login
+    });
+  } catch (error) {
+    console.error('Share lookup error:', error);
+    res.status(500).json({ error: 'internal_error' });
+  }
+});
+
+app.post('/api/share/:token/reveal', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { token } = req.params;
+    
+    // Mock data for demo - in production this would verify permissions
+    const mockSecrets: Record<string, any> = {
+      'demo-abc123': {
+        username: 'sarah.johnson@email.com',
+        password: 'MySecureP@ssw0rd123',
+        url: 'https://bankofamerica.com',
+        notes: 'Primary checking account - remember to check balance weekly'
+      },
+      'demo-xyz789': {
+        username: 'john.smith@company.com',
+        password: 'WorkEmail2024!',
+        url: 'https://gmail.com',
+        notes: 'Work email account - used for all business communications'
+      }
+    };
+    
+    const secret = mockSecrets[token];
+    if (!secret) {
+      return res.status(404).json({ error: 'invalid' });
+    }
+    
+    // In production, verify share hasn't expired and check auth if required
+    // If require_login is true, verify user session here
+    
+    res.json(secret);
+  } catch (error) {
+    console.error('Share reveal error:', error);
+    res.status(500).json({ error: 'internal_error' });
+  }
+});
+
 // Organization security settings API
 app.get('/api/admin/org-security', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {

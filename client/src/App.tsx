@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { StepUpProvider } from "@/components/StepUpProvider";
 import ChatSupport from "@/components/chat-support";
 import NotFound from "@/pages/not-found";
+import Share from "@/pages/share";
 import AdminLogin from "@/pages/admin/login";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminIncidents from "@/pages/admin/incidents";
@@ -151,6 +152,7 @@ function Router() {
       <Route path="/schedule-demo" component={ScheduleDemo} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
+      <Route path="/share/:token" component={Share} />
       <Route path="/signup-options" component={SignupOptions} />
       <Route path="/settings" component={Settings} />
       <Route path="/test-stepup" component={TestStepUp} />
