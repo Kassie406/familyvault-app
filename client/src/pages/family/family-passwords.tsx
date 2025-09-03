@@ -597,7 +597,7 @@ function CredentialSidePanel({
                       <SelectTrigger className="w-24 bg-[#13141B] border-[#232530] text-white">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-black border-[#232530] text-white">
                         <SelectItem value="view">View</SelectItem>
                         <SelectItem value="edit">Edit</SelectItem>
                         <SelectItem value="admin">Admin</SelectItem>
@@ -613,7 +613,7 @@ function CredentialSidePanel({
                       <SelectTrigger className="w-24 bg-[#13141B] border-[#232530] text-white">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-black border-[#232530] text-white">
                         <SelectItem value="none">None</SelectItem>
                         <SelectItem value="view">View</SelectItem>
                         <SelectItem value="edit">Edit</SelectItem>
