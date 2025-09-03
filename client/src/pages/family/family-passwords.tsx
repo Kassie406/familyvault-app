@@ -1,259 +1,263 @@
 import { useState } from 'react';
-import { Search, Plus, MoreVertical, Key, Smartphone, Laptop, Home, Shield, Wifi } from 'lucide-react';
+import { Search, Key, Smartphone, Laptop, Home, Shield, Wifi } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-// Mock data based on the reference image
+// Luxury Card Shell Component
+function Shell({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`rounded-2xl border border-[#232530] bg-gradient-to-b from-[#161616] to-[#0F0F0F]
+                     shadow-[0_10px_28px_rgba(0,0,0,0.45)] transition-all
+                     hover:border-[#D4AF37] hover:shadow-[0_16px_40px_rgba(212,175,55,0.12)] ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+// Password Manager Card Component
+function ManagerCard({ name, count }: { name: string; count: number }) {
+  return (
+    <Shell className="p-5">
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-xl grid place-items-center bg-[#D4AF37]/15 text-[#D4AF37] border border-[#232530]">
+          <Key className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-white font-medium truncate">{name}</div>
+          <div className="text-xs text-neutral-400">+ {count} items pre-populated</div>
+        </div>
+        <DropdownDots />
+      </div>
+    </Shell>
+  );
+}
+
+// Credential Card Component
+function CredentialCard({ title, owner, tag }: { title: string; owner?: string; tag?: string }) {
+  const [isRevealed, setIsRevealed] = useState(false);
+  
+  const handleReveal = () => {
+    setIsRevealed(true);
+    // Auto-mask after 15 seconds
+    setTimeout(() => setIsRevealed(false), 15000);
+  };
+
+  const handleCopy = () => {
+    // Copy functionality would be implemented here
+    console.log('Copying credential for:', title);
+  };
+
+  return (
+    <Shell className="p-4">
+      <div className="flex items-start gap-3">
+        <div className="h-9 w-9 rounded-lg grid place-items-center bg-[#111214] border border-[#232530] text-neutral-300">
+          <Key className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm text-white font-medium truncate">{title}</div>
+          <div className="text-xs text-neutral-500 mt-0.5">
+            {owner && <>Owner: <span className="text-neutral-300">{owner}</span></>}
+            {tag && <> · <span className="rounded-full border border-[#232530] bg-[#111214] px-2 py-0.5 text-[11px]">{tag}</span></>}
+          </div>
+
+          {/* Masked secret row */}
+          <div className="mt-2 flex items-center gap-2">
+            <div className="text-[13px] tracking-widest text-neutral-500 select-none">
+              {isRevealed ? "MySecretPass123" : "•••• •••• ••••"}
+            </div>
+            <button 
+              onClick={handleReveal}
+              className="text-xs text-[#D4AF37] hover:underline underline-offset-4"
+            >
+              {isRevealed ? "Hide" : "Reveal"}
+            </button>
+            <span className="text-neutral-600 text-xs">•</span>
+            <button 
+              onClick={handleCopy}
+              className="text-xs text-neutral-300 hover:text-white"
+            >
+              Copy
+            </button>
+          </div>
+        </div>
+        <DropdownDots />
+      </div>
+    </Shell>
+  );
+}
+
+// Dropdown Dots Component
+function DropdownDots() {
+  return (
+    <button className="h-8 w-8 inline-grid place-items-center rounded-lg border border-transparent text-neutral-400
+                       hover:text-white hover:border-[#232530]">
+      ⋯
+    </button>
+  );
+}
+
+// Mock data
 const passwordManagers = [
   {
     id: '1',
     name: "Angel's Password Manager",
-    itemCount: 2,
-    status: 'Pre-populated',
-    icon: Key,
+    count: 2,
   },
   {
     id: '2',
-    name: "kassandra's Password Manager", 
-    itemCount: 2,
-    status: 'Pre-populated',
-    icon: Key,
+    name: "Kassandra's Password Manager", 
+    count: 2,
   },
 ];
 
 const passwords = [
   {
     id: '1',
-    name: "Angel's Phone Password",
-    itemCount: 1,
-    status: 'Pre-populated',
-    icon: Smartphone,
+    title: "Angel's Phone Password",
+    owner: "Angel",
+    tag: "Device",
   },
   {
     id: '2',
-    name: "Angel's Laptop Password",
-    itemCount: 1,
-    status: 'Pre-populated', 
-    icon: Laptop,
+    title: "Home Wi-Fi",
+    owner: "House",
+    tag: "Network",
   },
   {
     id: '3',
-    name: "Garage Door Code",
-    itemCount: 1,
-    status: 'Pre-populated',
-    icon: Home,
+    title: "Garage Door Code",
+    owner: "Home",
+    tag: "Access",
   },
   {
     id: '4',
-    name: "Home Wifi Password",
-    itemCount: 1,
-    status: 'Pre-populated',
-    icon: Wifi,
+    title: "Angel's Laptop Password",
+    owner: "Angel", 
+    tag: "Device",
   },
   {
     id: '5',
-    name: "Code To Safe",
-    itemCount: 1,
-    status: 'Pre-populated',
-    icon: Shield,
+    title: "Code To Safe",
+    owner: "Home",
+    tag: "Access",
   },
   {
     id: '6',
-    name: "kassandra's Phone Password",
-    itemCount: 1,
-    status: 'Pre-populated',
-    icon: Smartphone,
-  },
-  {
-    id: '7',
-    name: "kassandra's Laptop Password",
-    itemCount: 1,
-    status: 'Pre-populated',
-    icon: Laptop,
+    title: "Kassandra's Phone Password",
+    owner: "Kassandra",
+    tag: "Device",
   },
 ];
 
 export default function FamilyPasswords() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [ownerFilter, setOwnerFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
 
   const filteredPasswordManagers = passwordManagers.filter(manager =>
     manager.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredPasswords = passwords.filter(password =>
-    password.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPasswords = passwords.filter(password => {
+    const matchesSearch = password.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesOwner = !ownerFilter || ownerFilter === 'all-owners' || password.owner === ownerFilter;
+    const matchesType = !typeFilter || typeFilter === 'all-types' || password.tag === typeFilter;
+    return matchesSearch && matchesOwner && matchesType;
+  });
 
   return (
-    <div className="card p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-[var(--ink-100)]">Passwords</h1>
-          <div className="flex items-center gap-2 bg-[var(--gold)] bg-opacity-10 text-[var(--gold)] px-3 py-1 rounded-full">
-            <Plus className="h-4 w-4" />
-            <span className="text-sm font-medium">
-              {passwordManagers.reduce((sum, pm) => sum + pm.itemCount, 0)} recommended items
-            </span>
+    <div className="min-h-screen bg-[#0A0A0F] text-[#F4F4F6]">
+      <div className="mx-auto max-w-7xl px-6 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-semibold">Passwords</h1>
+            <p className="text-sm text-neutral-400">Securely store and share credentials across the family.</p>
+          </div>
+          <Button className="bg-[#D4AF37] text-black hover:bg-[#c6a02e] rounded-full px-5">
+            Add credential
+          </Button>
+        </div>
+
+        {/* Search + filters */}
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-12 gap-3">
+          <div className="md:col-span-6">
+            <div className="flex items-center gap-2 rounded-xl border border-[#232530] bg-[#13141B] px-3 py-2">
+              <Search className="h-4 w-4 text-neutral-400" />
+              <input 
+                className="w-full bg-transparent text-sm focus:outline-none placeholder:text-neutral-500"
+                placeholder="Search by name, site, or owner" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="md:col-span-3">
+            <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+              <SelectTrigger className="rounded-xl border-[#232530] bg-[#13141B] text-white">
+                <SelectValue placeholder="All Owners" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#13141B] border-[#232530]">
+                <SelectItem value="all-owners">All Owners</SelectItem>
+                <SelectItem value="Angel">Angel</SelectItem>
+                <SelectItem value="Kassandra">Kassandra</SelectItem>
+                <SelectItem value="Home">Home</SelectItem>
+                <SelectItem value="House">House</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="md:col-span-3">
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="rounded-xl border-[#232530] bg-[#13141B] text-white">
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#13141B] border-[#232530]">
+                <SelectItem value="all-types">All Types</SelectItem>
+                <SelectItem value="Device">Device</SelectItem>
+                <SelectItem value="Network">Network</SelectItem>
+                <SelectItem value="Access">Access</SelectItem>
+                <SelectItem value="Finance">Finance</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-        <Button 
-          variant="ghost" 
-          className="text-[var(--ink-300)] hover:text-[var(--gold)]"
-          data-testid="button-help"
-        >
-          Help
-        </Button>
-      </div>
 
-      {/* Search Bar */}
-      <div className="relative mb-8">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--ink-300)] h-4 w-4" />
-        <Input
-          placeholder="Search"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 bg-[var(--bg-800)] border-0 focus:bg-[var(--bg-850)] focus:ring-2 focus:ring-[var(--gold)] focus:ring-opacity-50 text-[var(--ink-100)]"
-          data-testid="input-search"
-        />
-      </div>
-
-      {/* Password Managers Section */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold text-[var(--ink-100)] mb-4">Password Managers</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Password Managers Section */}
+        <h2 className="text-sm font-semibold tracking-wide text-neutral-300 mb-3">Password Managers</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {filteredPasswordManagers.map((manager) => (
-            <Card key={manager.id} className="border border-[var(--line-700)] hover:border-[var(--gold)] hover:shadow-md transition-all duration-200 bg-[var(--bg-850)]">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="bg-[#D4AF37] bg-opacity-10 p-2 rounded-lg">
-                      <manager.icon className="h-5 w-5 text-[#D4AF37]" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-black mb-1" data-testid={`text-manager-${manager.id}`}>
-                        {manager.name}
-                      </h3>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Plus className="h-3 w-3" />
-                        <span>{manager.itemCount} items {manager.status}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0"
-                        data-testid={`button-manager-options-${manager.id}`}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem data-testid={`button-edit-manager-${manager.id}`}>
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem data-testid={`button-view-manager-${manager.id}`}>
-                        View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem data-testid={`button-share-manager-${manager.id}`}>
-                        Share
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className="text-red-600" 
-                        data-testid={`button-delete-manager-${manager.id}`}
-                      >
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardContent>
-            </Card>
+            <ManagerCard 
+              key={manager.id} 
+              name={manager.name} 
+              count={manager.count} 
+            />
           ))}
         </div>
-      </div>
 
-      {/* Individual Passwords Section */}
-      <div>
-        <h2 className="text-lg font-semibold text-black mb-4">Passwords</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Passwords Section */}
+        <h2 className="text-sm font-semibold tracking-wide text-neutral-300 mb-3">Passwords</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {filteredPasswords.map((password) => (
-            <Card key={password.id} className="border border-gray-200 hover:border-[#D4AF37] hover:shadow-md transition-all duration-200">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="bg-gray-100 p-2 rounded-lg">
-                      <password.icon className="h-5 w-5 text-gray-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-black mb-1" data-testid={`text-password-${password.id}`}>
-                        {password.name}
-                      </h3>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Plus className="h-3 w-3" />
-                        <span>{password.itemCount} item {password.status}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0"
-                        data-testid={`button-password-options-${password.id}`}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem data-testid={`button-edit-password-${password.id}`}>
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem data-testid={`button-view-password-${password.id}`}>
-                        View Password
-                      </DropdownMenuItem>
-                      <DropdownMenuItem data-testid={`button-copy-password-${password.id}`}>
-                        Copy Password
-                      </DropdownMenuItem>
-                      <DropdownMenuItem data-testid={`button-share-password-${password.id}`}>
-                        Share
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className="text-red-600" 
-                        data-testid={`button-delete-password-${password.id}`}
-                      >
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardContent>
-            </Card>
+            <CredentialCard 
+              key={password.id} 
+              title={password.title} 
+              owner={password.owner}
+              tag={password.tag}
+            />
           ))}
         </div>
-      </div>
 
-      {/* Empty State */}
-      {filteredPasswordManagers.length === 0 && filteredPasswords.length === 0 && searchTerm && (
-        <div className="text-center py-12">
-          <div className="text-gray-400 mb-4">
-            <Key className="h-12 w-12 mx-auto" />
+        {/* Empty State */}
+        {filteredPasswordManagers.length === 0 && filteredPasswords.length === 0 && searchTerm && (
+          <div className="text-center py-12">
+            <div className="text-neutral-400 mb-4">
+              <Key className="h-12 w-12 mx-auto" />
+            </div>
+            <h3 className="text-lg font-medium text-white mb-2">No passwords found</h3>
+            <p className="text-neutral-400">Try adjusting your search terms or add a new credential.</p>
           </div>
-          <h3 className="text-lg font-medium text-black mb-2">No passwords found</h3>
-          <p className="text-gray-600">Try adjusting your search terms or add a new password.</p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
