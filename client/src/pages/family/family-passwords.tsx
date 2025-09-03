@@ -331,7 +331,6 @@ function CredentialDetail({
 }) {
   const [revealUntil, setRevealUntil] = useState<number | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [audit, setAudit] = useState<Array<{action: string; ts: number}>>([]);
 
   const shell = "rounded-xl border border-[#232530] bg-[#111111]";
@@ -340,7 +339,7 @@ function CredentialDetail({
   const cred = {
     id: credentialId,
     title: "Angel's Phone Password",
-    secret: "MySecretPass123",
+    secret: "Angel123Phone!",
     username: "angel@family.com",
     url: "https://icloud.com",
     updatedAt: Date.now() - 86400000,
@@ -354,14 +353,9 @@ function CredentialDetail({
 
   const isRevealed = revealUntil !== null && Date.now() < revealUntil;
 
-  const startReveal = useCallback(() => {
-    setConfirmOpen(true);
-  }, []);
-
-  const confirmReveal = useCallback(() => {
+  const handleReveal = useCallback(() => {
     const until = Date.now() + 15000;
     setRevealUntil(until);
-    setConfirmOpen(false);
     
     // Add to audit log
     setAudit(prev => [{
@@ -426,7 +420,7 @@ function CredentialDetail({
               </div>
               <div className="mt-3 flex items-center gap-2">
                 {!isRevealed ? (
-                  <Button className="bg-[#D4AF37] text-black hover:bg-[#c6a02e]" onClick={startReveal}>
+                  <Button className="bg-[#D4AF37] text-black hover:bg-[#c6a02e]" onClick={handleReveal}>
                     <Eye className="h-4 w-4 mr-1"/> Reveal
                   </Button>
                 ) : (
@@ -480,29 +474,6 @@ function CredentialDetail({
         </SheetContent>
       </Sheet>
 
-      {/* Reveal confirmation dialog */}
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent className="sm:max-w-[480px] bg-[#0F0F13] text-white border border-[#2A2A33]">
-          <DialogHeader>
-            <DialogTitle className="text-base">Verify to reveal</DialogTitle>
-            <DialogDescription className="text-xs text-neutral-400">
-              For your security, confirm this action. You can integrate OTP / device biometric here.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-2">
-            <Label className="text-xs text-neutral-300">One-time code</Label>
-            <Input placeholder="Enter 6-digit code" className="bg-[#111111] border-[#2A2A33] text-white"/>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" className="text-neutral-300 hover:text-white" onClick={()=>setConfirmOpen(false)}>
-              Cancel
-            </Button>
-            <Button className="bg-[#D4AF37] text-black hover:bg-[#c6a02e]" onClick={confirmReveal}>
-              Confirm
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
