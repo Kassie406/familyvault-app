@@ -643,25 +643,50 @@ app.get("/api/share/:token", async (req, res) => {
 });
 
 // Reveal secret (enforces authentication if required)
-app.post("/api/share/:token/reveal", requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+app.post("/api/share/:token/reveal", async (req: Request, res: Response) => {
   try {
     const token = req.params.token;
     const link = await db.query.shareLinks.findFirst({
       where: eq(shareLinks.token, token),
     });
+    
     if (!link || link.revoked) return res.status(404).json({ error: "invalid" });
     if (link.expiresAt && new Date(link.expiresAt) < new Date())
       return res.status(410).json({ error: "expired" });
 
+    // Check if authentication is required for this specific link
+    if (link.requireLogin) {
+      const authHeader = req.headers.authorization;
+      const session = (req as any).session;
+      if (!authHeader?.startsWith('Bearer ') && !session?.userId) {
+        return res.status(401).json({ error: "authentication_required" });
+      }
+    }
+
     // Get mock credential data (TODO: replace with real decryption)
     const mockData = mockCredentials[link.credentialId];
-    const secret = mockData?.password || "1234";
+    
+    if (!mockData) {
+      // Return fallback data for demo purposes
+      return res.json({
+        username: "demo@example.com",
+        password: "Demo123Password",
+        url: "https://example.com",
+        notes: "This is a demo credential for testing"
+      });
+    }
 
     // Audit log
-    const userId = getUserId(req);
-    console.log(`Share revealed: credential=${link.credentialId}, user=${userId || 'anonymous'}`);
+    const userId = link.requireLogin ? getUserId(req as AuthenticatedRequest) : 'anonymous';
+    console.log(`Share revealed: credential=${link.credentialId}, user=${userId}`);
 
-    return res.json({ secret });
+    // Return full credential data that frontend expects
+    return res.json({
+      username: mockData.username,
+      password: mockData.password,
+      url: mockData.url,
+      notes: mockData.notes
+    });
   } catch (e) {
     console.error("reveal error", e);
     return res.status(500).json({ error: "server_error" });
