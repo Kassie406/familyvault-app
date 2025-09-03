@@ -11,7 +11,7 @@ import { WebAuthnService } from "./webauthn-service";
 import { AuditService, getAuditContext } from "./audit-service";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { type AuthenticatedRequest, optionalAuth, requireAuth, loginUser, registerUser } from "./auth";
+import { type AuthenticatedRequest, optionalAuth, requireAuth, loginUser, registerUser, generateToken } from "./auth";
 import { storage } from "./storage";
 import { requireRecentReauth, markStrongAuth } from "./reauth-middleware";
 import { touchAuthSession } from "./request-tracker";
@@ -385,11 +385,13 @@ app.post('/api/auth/webauthn/authenticate/complete', async (req: Request, res: R
         markStrongAuth(req);
         
         // Check for new device and send alert if needed
-        await maybeSendNewDeviceEmail(
-          { id: user.id, email: user.email, orgId: user.orgId },
-          req.get('user-agent'),
-          req.ip
-        );
+        if (user.email) {
+          await maybeSendNewDeviceEmail(
+            { id: user.id, email: user.email, orgId: user.orgId },
+            req.get('user-agent'),
+            req.ip
+          );
+        }
         
         res.json({ success: true, user: { id: user.id, email: user.email, role: user.role } });
       } else {
