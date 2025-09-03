@@ -1,0 +1,88 @@
+the red overlay shows your abort logic is firing twice.
+The line that blows up:
+
+abortRef.current?.abort();   // already aborted once before
+
+
+After the first call, AbortController.signal is already aborted. Calling abort() again throws signal is aborted without reason.
+
+🔧 Fix: make abort safe & idempotent
+
+Change your clearGenGuards to only abort once, then clear:
+
+function clearGenGuards() {
+  try {
+    if (abortRef.current) {
+      // Only abort if it hasn’t already been triggered
+      if (!abortRef.current.signal.aborted) {
+        abortRef.current.abort();
+      }
+      abortRef.current = null;
+    }
+  } catch (e) {
+    console.warn("Abort already triggered, skipping");
+  }
+
+  if (timeoutRef.current) {
+    clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+  }
+
+  setGenLoading(false);
+}
+
+🔧 Fix: handle “timeout → abort” cleanly
+
+When you race fetch with a timeout, the timeout reject fires after you’ve already aborted. That double-fires the cleanup.
+
+Safer pattern:
+
+async function handleRegenerate() {
+  if (genLoading) return;
+  setGenLoading(true);
+  setGenTimedOut(false);
+
+  const ctrl = new AbortController();
+  abortRef.current = ctrl;
+
+  const timer = window.setTimeout(() => {
+    if (!ctrl.signal.aborted) {
+      ctrl.abort();                // triggers fetch abort
+      setGenTimedOut(true);
+      toast.error("Generation timed out. Please retry.");
+    }
+  }, GEN_TIMEOUT_MS);
+  timeoutRef.current = timer;
+
+  try {
+    const res = await fetch(`/api/credentials/${credentialId}/shares/regenerate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ expiry, requireLogin }),
+      signal: ctrl.signal,
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+    if (!data?.url) throw new Error("No URL returned");
+
+    setShareUrl(data.url);
+    toast.success("Link generated");
+  } catch (e: any) {
+    if (e.name !== "AbortError") {
+      console.error(e);
+      toast.error("Could not generate link");
+    }
+  } finally {
+    clearGenGuards();   // safe now
+  }
+}
+
+✅ Outcome
+
+No more runtime “signal aborted” error.
+
+Timeout now cleanly aborts the request, sets genTimedOut=true, and shows Retry.
+
+Clicking Retry cancels the old abort controller, creates a fresh one, and works reliably.

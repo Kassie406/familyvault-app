@@ -523,26 +523,26 @@ function EnhancedShareContent({
   const GEN_TIMEOUT_MS = 12000;
 
   function clearGenGuards() {
-    abortRef.current?.abort();
-    abortRef.current = null;
+    try {
+      if (abortRef.current) {
+        // Only abort if it hasn't already been triggered
+        if (!abortRef.current.signal.aborted) {
+          abortRef.current.abort();
+        }
+        abortRef.current = null;
+      }
+    } catch (e) {
+      console.warn("Abort already triggered, skipping");
+    }
+
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
+
     setIsGenerating(false);
   }
 
-  function withTimeout<T>(p: Promise<T>, ms: number) {
-    return Promise.race([
-      p,
-      new Promise<never>((_, rej) => {
-        timeoutRef.current = window.setTimeout(
-          () => rej(new Error('timeout')),
-          ms
-        );
-      }),
-    ]);
-  }
   const [peekData, setPeekData] = useState<{title: string; credentialId: string} | null>(null);
   const [audit, setAudit] = useState([
     { event: 'Credential created', ts: Date.now() - 86400000 },
@@ -581,15 +581,28 @@ function EnhancedShareContent({
 
   const handleRegenerateLink = async () => {
     if (isGenerating) return;
-    setGenTimedOut(false);
     setIsGenerating(true);
+    setGenTimedOut(false);
 
-    abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
 
+    const timer = window.setTimeout(() => {
+      if (!ctrl.signal.aborted) {
+        ctrl.abort();
+        setGenTimedOut(true);
+        toast({
+          title: "Timeout",
+          description: "Generation timed out. Please retry.",
+          variant: "destructive",
+        });
+        setAudit(prev => [{ event: 'Link generation timed out', ts: Date.now() }, ...prev]);
+      }
+    }, GEN_TIMEOUT_MS);
+    timeoutRef.current = timer;
+
     try {
-      const req = fetch(`/api/credentials/${credential.id}/shares/regenerate`, {
+      const response = await fetch(`/api/credentials/${credential.id}/shares/regenerate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -601,12 +614,9 @@ function EnhancedShareContent({
         signal: ctrl.signal,
       });
 
-      const response = await withTimeout(req, GEN_TIMEOUT_MS);
-      
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      const ct = response.headers.get('content-type') || '';
-      const data = ct.includes('application/json') ? await response.json() : { url: await response.text() };
+      const data = await response.json();
       if (!data?.url) throw new Error('No URL returned');
 
       setShareUrl(data.url);
@@ -621,21 +631,13 @@ function EnhancedShareContent({
         await verifyToken(data.token);
       }
     } catch (e: any) {
-      if (e?.message === 'timeout') {
-        setGenTimedOut(true);
-        toast({
-          title: "Timeout",
-          description: "Generation timed out. Please retry.",
-          variant: "destructive",
-        });
-        setAudit(prev => [{ event: 'Link generation timed out', ts: Date.now() }, ...prev]);
-      } else if (e?.name !== 'AbortError') {
+      if (e?.name !== 'AbortError') {
+        console.error('Error generating share link:', e);
         toast({
           title: "Error",
           description: "Could not generate link",
           variant: "destructive",
         });
-        console.error('Error generating share link:', e);
         setAudit(prev => [{ event: 'Link generation error', ts: Date.now() }, ...prev]);
       }
     } finally {
