@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useLocation } from 'wouter';
+import { useToast } from '@/hooks/use-toast';
 import { Search, Key, Eye, EyeOff, Copy, BadgeCheck, X, MoreVertical, Edit, Share, Trash2, Link2, Users, UserRound, UsersRound, Send, Plus, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -506,6 +507,7 @@ function EnhancedShareContent({
   onClose: () => void;
   credential: {id: string; title: string};
 }) {
+  const { toast } = useToast();
   const [linkEnabled, setLinkEnabled] = useState(true);
   const [shareUrl, setShareUrl] = useState('');
   const [expiry, setExpiry] = useState('7d');
@@ -514,6 +516,33 @@ function EnhancedShareContent({
   const [recipientInput, setRecipientInput] = useState('');
   const [recipients, setRecipients] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [genTimedOut, setGenTimedOut] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<number | null>(null);
+
+  const GEN_TIMEOUT_MS = 12000;
+
+  function clearGenGuards() {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    setIsGenerating(false);
+  }
+
+  function withTimeout<T>(p: Promise<T>, ms: number) {
+    return Promise.race([
+      p,
+      new Promise<never>((_, rej) => {
+        timeoutRef.current = window.setTimeout(
+          () => rej(new Error('timeout')),
+          ms
+        );
+      }),
+    ]);
+  }
   const [peekData, setPeekData] = useState<{title: string; credentialId: string} | null>(null);
   const [audit, setAudit] = useState([
     { event: 'Credential created', ts: Date.now() - 86400000 },
@@ -534,14 +563,33 @@ function EnhancedShareContent({
   ]);
 
   const handleCopyLink = () => {
-    navigator.clipboard?.writeText(shareUrl);
-    setAudit(prev => [{ event: 'Link copied', ts: Date.now() }, ...prev]);
+    if (shareUrl) {
+      navigator.clipboard?.writeText(shareUrl);
+      setAudit(prev => [{ event: 'Link copied', ts: Date.now() }, ...prev]);
+      toast({
+        title: "Copied",
+        description: "Link copied to clipboard",
+      });
+    } else {
+      toast({
+        title: "No link",
+        description: "Generate a link first",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleRegenerateLink = async () => {
+    if (isGenerating) return;
+    setGenTimedOut(false);
     setIsGenerating(true);
+
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
     try {
-      const response = await fetch(`/api/credentials/${credential.id}/shares/regenerate`, {
+      const req = fetch(`/api/credentials/${credential.id}/shares/regenerate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -549,25 +597,49 @@ function EnhancedShareContent({
         body: JSON.stringify({
           expiry: expiry,
           requireLogin
-        })
+        }),
+        signal: ctrl.signal,
+      });
+
+      const response = await withTimeout(req, GEN_TIMEOUT_MS);
+      
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const ct = response.headers.get('content-type') || '';
+      const data = ct.includes('application/json') ? await response.json() : { url: await response.text() };
+      if (!data?.url) throw new Error('No URL returned');
+
+      setShareUrl(data.url);
+      setAudit(prev => [{ event: 'Link regenerated', ts: Date.now() }, ...prev]);
+      toast({
+        title: "Success",
+        description: "Link generated successfully",
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        setShareUrl(data.url);
-        setAudit(prev => [{ event: 'Link regenerated', ts: Date.now() }, ...prev]);
-        
-        // Verify the token resolves correctly
+      // Verify the token resolves correctly
+      if (data.token) {
         await verifyToken(data.token);
-      } else {
-        console.error('Failed to generate share link');
-        setAudit(prev => [{ event: 'Link generation failed', ts: Date.now() }, ...prev]);
       }
-    } catch (error) {
-      console.error('Error generating share link:', error);
-      setAudit(prev => [{ event: 'Link generation error', ts: Date.now() }, ...prev]);
+    } catch (e: any) {
+      if (e?.message === 'timeout') {
+        setGenTimedOut(true);
+        toast({
+          title: "Timeout",
+          description: "Generation timed out. Please retry.",
+          variant: "destructive",
+        });
+        setAudit(prev => [{ event: 'Link generation timed out', ts: Date.now() }, ...prev]);
+      } else if (e?.name !== 'AbortError') {
+        toast({
+          title: "Error",
+          description: "Could not generate link",
+          variant: "destructive",
+        });
+        console.error('Error generating share link:', e);
+        setAudit(prev => [{ event: 'Link generation error', ts: Date.now() }, ...prev]);
+      }
     } finally {
-      setIsGenerating(false);
+      clearGenGuards();
     }
   };
 
@@ -589,6 +661,9 @@ function EnhancedShareContent({
       handleRegenerateLink();
     }
   }, []);
+
+  // Cleanup on unmount
+  useEffect(() => () => clearGenGuards(), []);
 
   const handleLinkToggle = (enabled: boolean) => {
     setLinkEnabled(enabled);
@@ -718,10 +793,18 @@ function EnhancedShareContent({
                   size="sm" 
                   variant="outline" 
                   onClick={handleRegenerateLink} 
-                  className="border-[#232530] text-neutral-300 hover:text-white"
+                  className="border-[#232530] text-neutral-300 hover:text-white disabled:opacity-70"
                   disabled={isGenerating}
+                  aria-live="polite"
+                  aria-busy={isGenerating}
                 >
-                  {isGenerating ? 'Generating...' : 'Regenerate'}
+                  {isGenerating && (
+                    <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" fill="none" opacity=".25"/>
+                      <path d="M22 12a10 10 0 0 1-10 10" fill="none" stroke="currentColor" strokeWidth="3" />
+                    </svg>
+                  )}
+                  {isGenerating ? 'Generating...' : genTimedOut ? 'Retry' : (shareUrl ? 'Regenerate' : 'Generate')}
                 </Button>
               </div>
               
