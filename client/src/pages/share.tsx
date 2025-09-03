@@ -149,7 +149,7 @@ export default function Share() {
         <div className="text-center space-y-2">
           <h1 className="text-xl font-semibold text-white">{data.title}</h1>
           <p className="text-sm text-neutral-400">
-            Shared by {data.owner} {data.tag ? `• ${data.tag}` : ''}
+            Owner: {data.owner} • Shared by {data.sharedBy}
           </p>
         </div>
 
