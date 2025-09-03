@@ -1,0 +1,267 @@
+You’ve got two things to wire so the UI stops “pretending” and actually enforces security:
+
+a share-links service (generate/save token, expiry, require-login)
+
+viewer endpoints that validate a token before returning anything
+
+Below is a drop-in backend you can use (Next.js App Router + Prisma/Postgres). If you’re on Express/Nest, the same logic applies—copy the model and handlers.
+
+1) Data model (Prisma)
+// prisma/schema.prisma
+model Credential {
+  id           String       @id @default(cuid())
+  title        String
+  ownerId      String
+  // …your other fields…
+
+  shares       ShareLink[]
+  grants       CredentialShare[]
+}
+
+model ShareLink {
+  id            String   @id @default(cuid())
+  token         String   @unique
+  credentialId  String
+  credential    Credential @relation(fields: [credentialId], references: [id])
+  requireLogin  Boolean  @default(true)
+  expiresAt     DateTime?
+  revoked       Boolean  @default(false)
+  createdBy     String
+  createdAt     DateTime @default(now())
+}
+
+model CredentialShare {
+  id           String  @id @default(cuid())
+  credentialId String
+  subjectId    String      // member or group id
+  permission   String      // 'none' | 'view' | 'edit' | 'owner'
+  createdAt    DateTime @default(now())
+
+  @@unique([credentialId, subjectId])
+}
+
+
+Run:
+
+npx prisma migrate dev -n add_share_links
+
+2) Helpers
+// lib/shares.ts
+import { prisma } from "@/lib/prisma";
+
+export function makeToken(len = 26) {
+  return [...crypto.getRandomValues(new Uint8Array(len))]
+    .map(b => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36])
+    .join("");
+}
+
+export function expiryToDate(exp: "24h" | "7d" | "30d" | "never"): Date | null {
+  const now = new Date();
+  if (exp === "never") return null;
+  const d = new Date(now);
+  if (exp === "24h") d.setHours(now.getHours() + 24);
+  if (exp === "7d")  d.setDate(now.getDate() + 7);
+  if (exp === "30d") d.setDate(now.getDate() + 30);
+  return d;
+}
+
+export async function resolveShare(token: string) {
+  const link = await prisma.shareLink.findUnique({ where: { token }, include: { credential: true }});
+  if (!link || link.revoked) return { status: "invalid" as const };
+  if (link.expiresAt && link.expiresAt < new Date()) return { status: "expired" as const };
+  return { status: "ok" as const, link };
+}
+
+3) Endpoints
+a) Regenerate a link for a credential
+
+Used by the “Generating…” button. This creates & saves a new token that maps to the exact credential and returns the canonical URL.
+
+// app/api/credentials/[id]/shares/regenerate/route.ts
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { makeToken, expiryToDate } from "@/lib/shares";
+import { getSession } from "@/lib/auth"; // your session util
+
+export async function POST(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const { expiry = "7d", requireLogin = true } = await req.json().catch(() => ({}));
+
+  const token = makeToken();
+  const url = `${process.env.APP_URL}/share/${token}`;
+
+  // Optional: revoke previous links or keep multiple alive
+  // await prisma.shareLink.updateMany({ where: { credentialId: params.id }, data: { revoked: true } });
+
+  await prisma.shareLink.create({
+    data: {
+      token,
+      credentialId: params.id,
+      requireLogin,
+      expiresAt: expiryToDate(expiry) ?? undefined,
+      createdBy: session.user.id,
+    },
+  });
+
+  return NextResponse.json({ url, token });
+}
+
+b) Save sharing settings (toggle, expiry, requireLogin, member permissions)
+// app/api/credentials/[id]/shares/route.ts
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { expiryToDate } from "@/lib/shares";
+import { getSession } from "@/lib/auth";
+
+export async function PUT(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const body = await req.json();
+  const { linkEnabled, shareUrl, expiry = "7d", requireLogin = true, shares = [] } = body;
+
+  // If linkEnabled === false, revoke all links for this credential
+  if (!linkEnabled) {
+    await prisma.shareLink.updateMany({ where: { credentialId: params.id }, data: { revoked: true } });
+  } else if (shareUrl) {
+    // Update the most recent token matching the URL
+    const token = shareUrl.split("/share/").pop()!;
+    await prisma.shareLink.updateMany({
+      where: { token, credentialId: params.id },
+      data: { requireLogin, expiresAt: expiryToDate(expiry) ?? undefined, revoked: false },
+    });
+  }
+
+  // Upsert per-member/group permissions
+  await Promise.all(
+    shares.map((s: any) =>
+      prisma.credentialShare.upsert({
+        where: { credentialId_subjectId: { credentialId: params.id, subjectId: s.personId } },
+        update: { permission: s.permission },
+        create: { credentialId: params.id, subjectId: s.personId, permission: s.permission },
+      })
+    )
+  );
+
+  return NextResponse.json({ ok: true });
+}
+
+c) Resolve a token for the viewer page
+// app/api/share/[token]/route.ts
+import { NextResponse } from "next/server";
+import { resolveShare } from "@/lib/shares";
+import { getSession } from "@/lib/auth";
+
+export async function GET(_: Request, { params }: { params: { token: string } }) {
+  const res = await resolveShare(params.token);
+  if (res.status === "invalid") return NextResponse.json({ error: "invalid" }, { status: 404 });
+  if (res.status === "expired") return NextResponse.json({ error: "expired" }, { status: 410 });
+
+  const { credential, requireLogin } = res.link;
+  const session = await getSession();
+
+  // Provide metadata even if not logged in (no secret yet)
+  return NextResponse.json({
+    title: credential.title,
+    owner: credential.ownerId,   // map to name if needed
+    tag: "Access",               // example
+    requireLogin,
+    canReveal: !requireLogin || !!session?.user, // reveal allowed if no login required or logged in
+  });
+}
+
+d) Reveal secret (enforces requireLogin + expiry)
+// app/api/share/[token]/reveal/route.ts
+import { NextResponse } from "next/server";
+import { resolveShare } from "@/lib/shares";
+import { getSession } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+export async function POST(_: Request, { params }: { params: { token: string } }) {
+  const res = await resolveShare(params.token);
+  if (res.status === "invalid") return NextResponse.json({ error: "invalid" }, { status: 404 });
+  if (res.status === "expired") return NextResponse.json({ error: "expired" }, { status: 410 });
+
+  const { link } = res;
+  if (link.requireLogin) {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "auth" }, { status: 401 });
+  }
+
+  // Pull the encrypted secret from your store and decrypt here
+  const secret = "1234"; // TODO: replace with your kms/decrypt
+
+  // audit
+  await prisma.$executeRawUnsafe(
+    `/* audit */ SELECT 1` // replace with your audit insert
+  );
+
+  return NextResponse.json({ secret });
+}
+
+4) Frontend fixes (so “Generating…” doesn’t get stuck)
+
+When you click Generate/Regenerate, call the endpoint with the current expiry and requireLogin and set the URL returned. Also, always finally clear the loading state.
+
+// inside your panel component
+const [genLoading, setGenLoading] = useState(false);
+
+async function handleRegenerate() {
+  setGenLoading(true);
+  try {
+    const res = await fetch(`/api/credentials/${credentialId}/shares/regenerate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ expiry, requireLogin })
+    });
+    if (!res.ok) throw new Error("regenerate failed");
+    const { url } = await res.json();
+    setShareUrl(url);
+    toast.success("Link regenerated");
+  } catch (e) {
+    toast.error("Could not generate link");
+  } finally {
+    setGenLoading(false); // <-- prevents “Generating…” from sticking
+  }
+}
+
+
+When you hit Update Sharing, send your full payload. The backend will revoke links when toggle is OFF and update the active link’s expiry/requireLogin when it’s ON.
+
+await fetch(`/api/credentials/${credentialId}/shares`, {
+  method: "PUT",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ linkEnabled, shareUrl, expiry, requireLogin, shares })
+});
+
+5) Enforcement summary
+
+Toggle OFF → backend sets all shareLink.revoked = true. Any old token returns 404.
+
+Require login → reveal endpoint requires session.user; otherwise 401.
+
+Expires → resolveShare checks expiresAt; after time, returns 410.
+
+Viewer page shows metadata; “Reveal” only works if canReveal from /api/share/:token is true, and the POST /reveal double-checks again server-side.
+
+6) Quick tests
+
+Regenerate → Copy URL → open in Incognito
+
+If requireLogin = true: you should see “Log in to view.”
+
+If requireLogin = false: you can press Reveal and see the secret.
+
+Set Expires: 24h, then manually backdate expiresAt to 1 hour ago → opening should return 410.
+
+Toggle OFF (link disabled), try URL → 404.
+
+Change permission of a family member and save → backend upserts in CredentialShare.
