@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Plus, FileText, Layout, Shield, Heart, AlertTriangle } from 'lucide-react';
+import { Search, Plus, FileText, Layout, Shield, Heart, AlertTriangle, Zap, Edit, Siren, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -183,21 +183,84 @@ export default function FamilyResources() {
 
         {/* Templates Tab Content */}
         <TabsContent value="templates" className="mt-8">
-          <div className="text-center py-16">
-            <div className="text-gray-400 mb-4">
-              <Layout className="h-16 w-16 mx-auto" />
+          <div className="space-y-8">
+            
+            {/* Important Documents Section */}
+            <div>
+              <h3 className="text-lg font-medium text-black mb-4">Important Documents</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium text-black">Evacuation Plan</h4>
+                    <FileText className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-blue-500">
+                    <Zap className="h-3 w-3" />
+                    <span>1 item</span>
+                    <span className="text-gray-400">Pre-populated</span>
+                  </div>
+                </Card>
+                
+                <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h4 className="font-medium text-black">New Eulogy</h4>
+                      <p className="text-sm text-gray-500">Assisted eulogy writing</p>
+                    </div>
+                    <Edit className="h-5 w-5 text-gray-400" />
+                  </div>
+                </Card>
+              </div>
             </div>
-            <h3 className="text-xl font-medium text-black mb-2">Resource Templates</h3>
-            <p className="text-gray-600 mb-6 max-w-md mx-auto">
-              Choose from pre-built templates to quickly organize your family information.
-            </p>
-            <Button 
-              className="bg-[#D4AF37] hover:bg-[#B8941F] text-white"
-              data-testid="button-browse-templates"
-            >
-              <Layout className="h-4 w-4 mr-2" />
-              Browse Templates
-            </Button>
+
+            {/* Emergency Equipment Section */}
+            <div>
+              <h3 className="text-lg font-medium text-black mb-4">Emergency Equipment</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium text-black">Fire Extinguisher</h4>
+                    <Siren className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-blue-500">
+                    <Zap className="h-3 w-3" />
+                    <span>1 item</span>
+                    <span className="text-gray-400">Pre-populated</span>
+                  </div>
+                </Card>
+                
+                <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium text-black">Go Bag</h4>
+                    <Briefcase className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-blue-500">
+                    <Zap className="h-3 w-3" />
+                    <span>1 item</span>
+                    <span className="text-gray-400">Pre-populated</span>
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* Letters to Loved Ones Section */}
+            <div>
+              <h3 className="text-lg font-medium text-black mb-4">Letters to Loved Ones</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium text-black">Letter for Angel</h4>
+                    <Edit className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-blue-500">
+                    <Zap className="h-3 w-3" />
+                    <span>2 items</span>
+                    <span className="text-gray-400">Pre-populated</span>
+                  </div>
+                </Card>
+              </div>
+            </div>
+
           </div>
         </TabsContent>
       </Tabs>
