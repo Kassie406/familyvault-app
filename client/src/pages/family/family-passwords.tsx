@@ -507,12 +507,14 @@ function EnhancedShareContent({
   credential: {id: string; title: string};
 }) {
   const [linkEnabled, setLinkEnabled] = useState(true);
-  const [shareUrl] = useState(`${window.location.origin}/share/demo-abc123`);
+  const [shareUrl, setShareUrl] = useState('');
   const [expiry, setExpiry] = useState('7d');
   const [requireLogin, setRequireLogin] = useState(false);
   const [sendMode, setSendMode] = useState<'email' | 'sms'>('email');
   const [recipientInput, setRecipientInput] = useState('');
   const [recipients, setRecipients] = useState<string[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [peekData, setPeekData] = useState<{title: string; credentialId: string} | null>(null);
   const [audit, setAudit] = useState([
     { event: 'Credential created', ts: Date.now() - 86400000 },
     { event: 'Sharing enabled', ts: Date.now() - 3600000 }
@@ -536,12 +538,57 @@ function EnhancedShareContent({
     setAudit(prev => [{ event: 'Link copied', ts: Date.now() }, ...prev]);
   };
 
-  const handleRegenerateLink = () => {
-    // In production this would generate a new token and update the share URL
-    const newToken = Math.random() > 0.5 ? 'demo-abc123' : 'demo-xyz789';
-    console.log('Regenerating link...', newToken);
-    setAudit(prev => [{ event: 'Link regenerated', ts: Date.now() }, ...prev]);
+  const handleRegenerateLink = async () => {
+    setIsGenerating(true);
+    try {
+      const response = await fetch(`/api/credentials/${credential.id}/shares/regenerate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          expiresIn: expiry,
+          requireLogin
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setShareUrl(data.url);
+        setAudit(prev => [{ event: 'Link regenerated', ts: Date.now() }, ...prev]);
+        
+        // Verify the token resolves correctly
+        await verifyToken(data.token);
+      } else {
+        console.error('Failed to generate share link');
+        setAudit(prev => [{ event: 'Link generation failed', ts: Date.now() }, ...prev]);
+      }
+    } catch (error) {
+      console.error('Error generating share link:', error);
+      setAudit(prev => [{ event: 'Link generation error', ts: Date.now() }, ...prev]);
+    } finally {
+      setIsGenerating(false);
+    }
   };
+
+  const verifyToken = async (token: string) => {
+    try {
+      const response = await fetch(`/api/share/${token}/peek`);
+      if (response.ok) {
+        const data = await response.json();
+        setPeekData(data);
+      }
+    } catch (error) {
+      console.error('Error verifying token:', error);
+    }
+  };
+
+  // Generate initial share link on component mount
+  React.useEffect(() => {
+    if (!shareUrl) {
+      handleRegenerateLink();
+    }
+  }, []);
 
   const handleLinkToggle = (enabled: boolean) => {
     setLinkEnabled(enabled);
@@ -624,19 +671,47 @@ function EnhancedShareContent({
               <Link2 className="h-4 w-4 text-[#D4AF37]" />
               <span className="text-xs text-neutral-400">Anyone with this link can view this credential</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Input 
-                value={shareUrl}
-                readOnly
-                className="bg-[#0A0A0F] border-[#232530] text-neutral-300 text-xs"
-              />
-              <Button size="sm" onClick={handleCopyLink} className="bg-[#D4AF37] text-black hover:bg-[#c6a02e]">
-                <Copy className="h-3 w-3 mr-1" />
-                Copy
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleRegenerateLink} className="border-[#232530] text-neutral-300 hover:text-white">
-                Regenerate
-              </Button>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Input 
+                  value={shareUrl || (isGenerating ? 'Generating secure link...' : 'Click Regenerate to create link')}
+                  readOnly
+                  className="bg-[#0A0A0F] border-[#232530] text-neutral-300 text-xs"
+                />
+                <Button 
+                  size="sm" 
+                  onClick={handleCopyLink} 
+                  className="bg-[#D4AF37] text-black hover:bg-[#c6a02e]"
+                  disabled={!shareUrl || isGenerating}
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  Copy
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={handleRegenerateLink} 
+                  className="border-[#232530] text-neutral-300 hover:text-white"
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? 'Generating...' : 'Regenerate'}
+                </Button>
+              </div>
+              
+              {/* Peek verification */}
+              {peekData && (
+                <div className="text-xs text-emerald-400 flex items-center gap-1">
+                  <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
+                  ✓ Link resolves to {peekData.title}
+                </div>
+              )}
+              
+              {peekData && peekData.credentialId !== credential.id && (
+                <div className="text-xs text-amber-400 flex items-center gap-1">
+                  <div className="w-1 h-1 bg-amber-400 rounded-full"></div>
+                  ⚠️ This link resolves to {peekData.title}, not {credential.title}
+                </div>
+              )}
             </div>
 
             {/* Security Options */}
