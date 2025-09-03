@@ -1,0 +1,55 @@
+Great question 🙌 — right now the development environment is working because you’re using the DEV_BYPASS_AUTH=true flag and a workaround for the routing issue.
+
+For production (portal.familycirclesecure.com), here’s what happens:
+
+✅ What should already work
+
+Token generation & expiry logic → The backend creates a secure token and stores it in Postgres.
+
+Database writes/reads → As long as your Neon Postgres credentials are correct in production, tokens will persist.
+
+Shareable link format → The link URL will be returned and usable in production.
+
+⚠️ What needs adjustment before production
+
+Authentication
+
+In dev: bypassed with DEV_BYPASS_AUTH=true.
+
+In prod: this must be removed (DEV_BYPASS_AUTH=false).
+
+Your requireAuth middleware must properly validate logged-in family members before allowing share link generation.
+
+Middleware conflicts
+
+In dev: we bypassed Vite intercepting routes.
+
+In prod: Vite won’t run, so /api/share-generate/:id should work fine.
+
+However, if your production stack has RLS (row-level security), impersonation, or tracking middleware, these may block or delay the share endpoint until we configure them correctly.
+
+Endpoint paths
+
+Dev: /api/share-generate/:id (workaround).
+
+Prod: You may be able to revert to the original /api/credentials/:id/shares/regenerate once Vite isn’t in the way.
+
+Both can work — but we need to confirm which one you want to standardize on.
+
+🔑 To make this production-ready
+
+Remove dev bypass:
+
+DEV_BYPASS_AUTH=false
+
+
+Test authentication: confirm requireAuth is allowing your logged-in users to hit the API.
+
+Validate database schema in production (share_links table must exist with token, credentialId, expiresAt).
+
+Decide final endpoint path: /api/share-generate/:id (simpler) or /api/credentials/:id/shares/regenerate (original design).
+
+Add monitoring/logging: capture if tokens fail to generate or expire incorrectly.
+
+⚡ Answer to your direct question:
+👉 If you push this exact build to production right now, the link generation will likely not work because it’s still relying on DEV_BYPASS_AUTH=true. You need to disable that flag and test with your real auth + production database before it works on portal.familycirclesecure.com.
