@@ -3,33 +3,53 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ---- FamilyCircle Secure: Gold/Black Switch ---- */
-/* Works with shadcn/ui <Switch /> */
-
+/* ===== Luxury Switch (gold/black) ===== */
 .fcs-switch {
-  height: 24px;           /* h-6 */
-  width: 44px;            /* w-11 */
+  position: relative;
+  height: 24px;              /* h-6  */
+  width: 44px;               /* w-11 */
   border: 1px solid #2A2A33;
-  background: #15161B;    /* visible on dark cards */
-  transition: background-color .2s, border-color .2s, box-shadow .2s;
+  background: #15161B;       /* visible on dark card */
+  transition: background-color .2s, border-color .2s, box-shadow .2s, transform .2s;
+  border-radius: 9999px;
 }
 
+/* Track colors */
+.fcs-switch[data-state="unchecked"] {
+  background: #15161B;
+  border-color: #2A2A33;
+}
 .fcs-switch[data-state="checked"] {
-  background: #D4AF37;    /* Royal Gold track */
+  background: #D4AF37;       /* Royal Gold */
   border-color: #D4AF37;
 }
 
-/* Thumb */
+/* Thumb (the inner circle) */
 .fcs-switch > span {
-  background: #0A0A0F;    /* dark thumb so it pops on gold & grey */
+  height: 18px;
+  width: 18px;
+  background: #FFFFFF;       /* white thumb for contrast */
+  border: 1px solid #0A0A0F; /* dark ring so it's visible on white */
+  box-shadow: 0 1px 0 rgba(0,0,0,.35); /* subtle depth */
+}
+
+/* Add a black inner dot so it's readable on gold + grey */
+.fcs-switch > span::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 9999px;
+  background: #0A0A0F;
+  pointer-events: none;
 }
 
 /* Focus ring for accessibility */
 .fcs-switch:focus-visible {
+  outline: none;
   box-shadow: 0 0 0 2px #0A0A0F, 0 0 0 4px #D4AF37;
 }
 
-/* Optional: disabled look (if you ever use disabled switches) */
+/* Optional disabled appearance */
 .fcs-switch[disabled] {
   opacity: .5;
   cursor: not-allowed;

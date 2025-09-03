@@ -1,0 +1,78 @@
+the thumb isn’t visible unless hover because it’s inheriting dark styles from the card and has no explicit fill/border. Let’s force a high-contrast thumb so it’s obvious in both states.
+
+Drop-in fix (global CSS)
+
+Add/replace this in your globals.css (or theme stylesheet). It styles the shadcn <Switch /> track and thumb (the inner circle), including a small black dot so it pops on gold + dark.
+
+/* ===== Luxury Switch (gold/black) ===== */
+.fcs-switch {
+  position: relative;
+  height: 24px;              /* h-6  */
+  width: 44px;               /* w-11 */
+  border: 1px solid #2A2A33;
+  background: #15161B;       /* visible on dark card */
+  transition: background-color .2s, border-color .2s, box-shadow .2s, transform .2s;
+  border-radius: 9999px;
+}
+
+/* Track colors */
+.fcs-switch[data-state="unchecked"] {
+  background: #15161B;
+  border-color: #2A2A33;
+}
+.fcs-switch[data-state="checked"] {
+  background: #D4AF37;       /* Royal Gold */
+  border-color: #D4AF37;
+}
+
+/* Thumb (the inner circle) */
+.fcs-switch > span {
+  height: 18px;
+  width: 18px;
+  background: #FFFFFF;       /* white thumb for contrast */
+  border: 1px solid #0A0A0F; /* dark ring so it’s visible on white */
+  box-shadow: 0 1px 0 rgba(0,0,0,.35); /* subtle depth */
+}
+
+/* Add a black inner dot so it’s readable on gold + grey */
+.fcs-switch > span::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 9999px;
+  background: #0A0A0F;
+  pointer-events: none;
+}
+
+/* Focus ring for accessibility */
+.fcs-switch:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #0A0A0F, 0 0 0 4px #D4AF37;
+}
+
+/* Optional disabled appearance */
+.fcs-switch[disabled] {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+Use it on your switches
+<Switch
+  checked={linkEnabled}
+  onCheckedChange={setLinkEnabled}
+  className="fcs-switch"
+/>
+
+<Switch
+  checked={requireLogin}
+  onCheckedChange={setRequireLogin}
+  className="fcs-switch"
+/>
+
+Why this fixes it
+
+We force a white thumb with a dark ring + inner dot so it’s visible on both the gold (checked) and dark (unchecked) tracks.
+
+We don’t rely on hover styles at all.
+
+It targets shadcn’s DOM (button[role="switch"] as track and its child span as thumb), so it’s reliable
