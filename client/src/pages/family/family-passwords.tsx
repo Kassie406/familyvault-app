@@ -547,7 +547,7 @@ function EnhancedShareContent({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          expiresIn: expiry,
+          expiry: expiry,
           requireLogin
         })
       });
@@ -640,9 +640,36 @@ function EnhancedShareContent({
     setAudit(prev => [{ event: `Link sent via ${sendMode} to ${recipients.length} recipient(s)`, ts: Date.now() }, ...prev]);
   };
 
-  const handleSave = () => {
-    console.log('Saving sharing settings');
-    setAudit(prev => [{ event: 'Sharing settings updated', ts: Date.now() }, ...prev]);
+  const handleSave = async () => {
+    try {
+      const response = await fetch(`/api/credentials/${credential.id}/shares`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          linkEnabled,
+          shareUrl,
+          expiry,
+          requireLogin,
+          shares: shares.map((s: any) => ({
+            personId: s.personId,
+            permission: s.permission
+          }))
+        })
+      });
+      
+      if (response.ok) {
+        setAudit(prev => [{ event: 'Sharing settings updated', ts: Date.now() }, ...prev]);
+        console.log('Share settings saved successfully');
+      } else {
+        console.error('Failed to save share settings');
+        setAudit(prev => [{ event: 'Settings update failed', ts: Date.now() }, ...prev]);
+      }
+    } catch (error) {
+      console.error('Error saving share settings:', error);
+      setAudit(prev => [{ event: 'Settings save error', ts: Date.now() }, ...prev]);
+    }
   };
 
   const availableMembers = DIRECTORY.filter(member => !shares.find(s => s.personId === member.id));

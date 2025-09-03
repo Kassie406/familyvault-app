@@ -450,128 +450,175 @@ app.use('/api/stepup', requireAuth, stepupRouter);
 // Test step-up authentication endpoints
 app.use('/api/test-stepup', requireAuth, testStepupRouter);
 
-// In-memory store for share tokens (in production this would be in database)
-const shareTokens = new Map<string, {
-  credentialId: string;
-  title: string;
-  owner: string;
-  tag: string;
-  createdAt: Date;
-  expiresAt: Date | null;
-  requireLogin: boolean;
-  revoked: boolean;
-  secretData: {
-    username?: string;
-    password?: string;
-    url?: string;
-    notes?: string;
-  };
-}>();
+import { makeToken, expiryToDate, resolveShare } from "./share-utils";
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
+import { shareLinks, credentials, credentialShares } from "@shared/schema";
+
+const neonClient = neon(process.env.DATABASE_URL!);
+const db = drizzle(neonClient);
 
 // Generate share token for a credential
 app.post('/api/credentials/:id/shares/regenerate', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { expiresIn = '7d', requireLogin = false } = req.body;
+    const { expiry = '7d', requireLogin = true } = req.body;
     
-    // Mock credential lookup - in production this would query credentials table
-    const mockCredentials: Record<string, any> = {
-      'c-gd-home': {
-        title: 'Garage Door Code',
-        tag: 'Access',
-        username: '',
-        password: '4829',
-        url: '',
-        notes: 'Main garage door entry code - change quarterly'
-      },
-      'c-ph-angel': {
-        title: 'Bank of America - Personal Account',
-        tag: 'Banking', 
-        username: 'sarah.johnson@email.com',
-        password: 'MySecureP@ssw0rd123',
-        url: 'https://bankofamerica.com',
-        notes: 'Primary checking account - remember to check balance weekly'
-      },
-      'c-em-work': {
-        title: 'Gmail - Work Account',
-        tag: 'Email',
-        username: 'john.smith@company.com', 
-        password: 'WorkEmail2024!',
-        url: 'https://gmail.com',
-        notes: 'Work email account - used for all business communications'
-      }
-    };
-    
-    const credential = mockCredentials[id];
-    if (!credential) {
+    // Check if credential exists and user has access
+    const credential = await db.select().from(credentials).where(eq(credentials.id, id)).limit(1);
+    if (!credential.length) {
       return res.status(404).json({ error: 'Credential not found' });
     }
     
-    // Generate secure token
-    const token = Array.from(crypto.getRandomValues(new Uint8Array(32)), 
-      byte => byte.toString(16).padStart(2, '0')).join('').substring(0, 32);
-    
-    // Calculate expiry
-    let expiresAt: Date | null = null;
-    if (expiresIn !== 'never') {
-      const hours = expiresIn === '24h' ? 24 : expiresIn === '7d' ? 168 : expiresIn === '30d' ? 720 : 168;
-      expiresAt = new Date(Date.now() + hours * 60 * 60 * 1000);
+    // Check if user owns the credential (simplified check)
+    if (credential[0].ownerId !== req.user?.id) {
+      return res.status(403).json({ error: 'Not authorized to share this credential' });
     }
     
-    // Store the share mapping
-    shareTokens.set(token, {
-      credentialId: id,
-      title: credential.title,
-      owner: req.user?.username || 'Unknown',
-      tag: credential.tag,
-      createdAt: new Date(),
-      expiresAt,
-      requireLogin,
-      revoked: false,
-      secretData: {
-        username: credential.username,
-        password: credential.password,
-        url: credential.url,
-        notes: credential.notes
-      }
-    });
+    // Generate secure token and get host URL
+    const token = makeToken();
+    const appUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || 
+                  `https://${req.get('host')}` ||
+                  'http://localhost:5000';
+    const url = `${appUrl}/share/${token}`;
     
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://portal.familycirclesecure.com' 
-      : `${req.protocol}://${req.get('host')}`;
+    // Calculate expiry
+    const expiresAt = expiryToDate(expiry as any);
     
-    res.json({
-      url: `${baseUrl}/share/${token}`,
+    // Revoke existing links for this credential (optional - or keep multiple active)
+    await db.update(shareLinks)
+      .set({ revoked: true })
+      .where(and(
+        eq(shareLinks.credentialId, id),
+        eq(shareLinks.revoked, false)
+      ));
+    
+    // Create new share link
+    await db.insert(shareLinks).values({
       token,
-      expiresAt
+      credentialId: id,
+      requireLogin,
+      expiresAt,
+      createdBy: req.user?.id || '',
     });
+    
+    res.json({ url, token });
   } catch (error) {
-    console.error('Share generation error:', error);
+    console.error('Share regeneration error:', error);
     res.status(500).json({ error: 'Failed to generate share link' });
   }
 });
 
-// Share endpoints (public access for secure sharing)
-app.get('/api/share/:token', async (req: AuthenticatedRequest, res: Response) => {
+// Save sharing settings
+app.put('/api/credentials/:id/shares', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { linkEnabled, shareUrl, expiry = '7d', requireLogin = true, shares = [] } = req.body;
+    
+    // Check if credential exists and user has access
+    const credential = await db.select().from(credentials).where(eq(credentials.id, id)).limit(1);
+    if (!credential.length) {
+      return res.status(404).json({ error: 'Credential not found' });
+    }
+    
+    if (credential[0].ownerId !== req.user?.id) {
+      return res.status(403).json({ error: 'Not authorized to modify sharing for this credential' });
+    }
+    
+    if (!linkEnabled) {
+      // Disable all sharing by revoking links
+      await db.update(shareLinks)
+        .set({ revoked: true })
+        .where(eq(shareLinks.credentialId, id));
+    } else if (shareUrl) {
+      // Update existing link settings
+      const token = shareUrl.split('/share/').pop();
+      if (token) {
+        await db.update(shareLinks)
+          .set({ 
+            requireLogin, 
+            expiresAt: expiryToDate(expiry as any),
+            revoked: false 
+          })
+          .where(and(
+            eq(shareLinks.token, token),
+            eq(shareLinks.credentialId, id)
+          ));
+      }
+    }
+    
+    // Update per-member permissions (simplified)
+    for (const share of shares) {
+      await db.insert(credentialShares).values({
+        credentialId: id,
+        subjectId: share.personId,
+        permission: share.permission,
+      })
+      .onConflictDoUpdate({
+        target: [credentialShares.credentialId, credentialShares.subjectId],
+        set: { permission: share.permission }
+      });
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Share settings update error:', error);
+    res.status(500).json({ error: 'Failed to update sharing settings' });
+  }
+});
+
+// Mock credential data (in production this would be encrypted in database)
+const mockCredentials: Record<string, any> = {
+  'c-gd-home': {
+    title: 'Garage Door Code',
+    tag: 'Access',
+    username: '',
+    password: '4829',
+    url: '',
+    notes: 'Main garage door entry code - change quarterly'
+  },
+  'c-ph-angel': {
+    title: 'Bank of America - Personal Account',
+    tag: 'Banking', 
+    username: 'sarah.johnson@email.com',
+    password: 'MySecureP@ssw0rd123',
+    url: 'https://bankofamerica.com',
+    notes: 'Primary checking account - remember to check balance weekly'
+  },
+  'c-em-work': {
+    title: 'Gmail - Work Account',
+    tag: 'Email',
+    username: 'john.smith@company.com', 
+    password: 'WorkEmail2024!',
+    url: 'https://gmail.com',
+    notes: 'Work email account - used for all business communications'
+  }
+};
+
+// Resolve share token (public access for share links)
+app.get('/api/share/:token', async (req: Request, res: Response) => {
   try {
     const { token } = req.params;
     
-    const share = shareTokens.get(token);
-    if (!share || share.revoked) {
+    const resolution = await resolveShare(token);
+    if (resolution.status === 'invalid') {
       return res.status(404).json({ error: 'invalid' });
     }
-    
-    if (share.expiresAt && new Date() > share.expiresAt) {
+    if (resolution.status === 'expired') {
       return res.status(410).json({ error: 'expired' });
     }
     
-    // Return only what a link viewer can see (no secrets yet)
+    const { link } = resolution;
+    const mockData = mockCredentials[link.credentialId];
+    
+    // Return metadata (no secrets yet)
     res.json({
-      title: share.title,
-      owner: share.owner,
-      tag: share.tag,
-      allowReveal: !share.requireLogin,
-      requireLogin: share.requireLogin
+      title: link.credential.title || mockData?.title || 'Shared Credential',
+      owner: link.createdBy,
+      tag: mockData?.tag || 'Credential',
+      requireLogin: link.requireLogin,
+      canReveal: !link.requireLogin || !!(req as any).user,
+      allowReveal: !link.requireLogin // For backward compatibility
     });
   } catch (error) {
     console.error('Share lookup error:', error);
@@ -579,25 +626,41 @@ app.get('/api/share/:token', async (req: AuthenticatedRequest, res: Response) =>
   }
 });
 
-app.post('/api/share/:token/reveal', async (req: AuthenticatedRequest, res: Response) => {
+app.post('/api/share/:token/reveal', async (req: Request, res: Response) => {
   try {
     const { token } = req.params;
     
-    const share = shareTokens.get(token);
-    if (!share || share.revoked) {
+    const resolution = await resolveShare(token);
+    if (resolution.status === 'invalid') {
       return res.status(404).json({ error: 'invalid' });
     }
-    
-    if (share.expiresAt && new Date() > share.expiresAt) {
+    if (resolution.status === 'expired') {
       return res.status(410).json({ error: 'expired' });
     }
     
-    // Check login requirement
-    if (share.requireLogin && !req.user) {
-      return res.status(401).json({ error: 'login_required' });
+    const { link } = resolution;
+    
+    // Check if login is required but user not authenticated
+    if (link.requireLogin && !(req as any).user) {
+      return res.status(401).json({ error: 'auth' });
     }
     
-    res.json(share.secretData);
+    // Get mock credential data (in production this would decrypt from database)
+    const mockData = mockCredentials[link.credentialId];
+    if (!mockData) {
+      return res.status(404).json({ error: 'Credential data not found' });
+    }
+    
+    // TODO: Add audit log entry here
+    console.log(`Share accessed: credential=${link.credentialId}, user=${(req as any).user?.id || 'anonymous'}`);
+    
+    // Return the secret data
+    res.json({
+      secret: mockData.password,
+      username: mockData.username || '',
+      url: mockData.url || '',
+      notes: mockData.notes || ''
+    });
   } catch (error) {
     console.error('Share reveal error:', error);
     res.status(500).json({ error: 'internal_error' });
@@ -605,24 +668,26 @@ app.post('/api/share/:token/reveal', async (req: AuthenticatedRequest, res: Resp
 });
 
 // Peek endpoint to verify token resolution
-app.get('/api/share/:token/peek', async (req: AuthenticatedRequest, res: Response) => {
+app.get('/api/share/:token/peek', async (req: Request, res: Response) => {
   try {
     const { token } = req.params;
     
-    const share = shareTokens.get(token);
-    if (!share || share.revoked) {
+    const resolution = await resolveShare(token);
+    if (resolution.status === 'invalid') {
       return res.status(404).json({ error: 'Token not found' });
     }
-    
-    if (share.expiresAt && new Date() > share.expiresAt) {
+    if (resolution.status === 'expired') {
       return res.status(410).json({ error: 'Token expired' });
     }
     
+    const { link } = resolution;
+    const mockData = mockCredentials[link.credentialId];
+    
     res.json({
-      title: share.title,
-      credentialId: share.credentialId,
-      tag: share.tag,
-      owner: share.owner
+      title: link.credential.title || mockData?.title || 'Shared Credential',
+      credentialId: link.credentialId,
+      tag: mockData?.tag || 'Credential',
+      owner: link.createdBy
     });
   } catch (error) {
     console.error('Share peek error:', error);

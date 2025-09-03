@@ -364,6 +364,42 @@ export const suppressionList = pgTable("suppression_list", {
   addedAt: timestamp("added_at").defaultNow().notNull(),
 });
 
+// Family Credential Storage
+export const credentials = pgTable("credentials", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  category: text("category").notNull(), // 'password', 'note', 'card', etc.
+  encryptedData: text("encrypted_data").notNull(), // Encrypted JSON payload
+  ownerId: varchar("owner_id").notNull(),
+  orgId: varchar("org_id"),
+  tags: text("tags").array().default([]).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Share Links for credentials
+export const shareLinks = pgTable("share_links", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  token: text("token").notNull().unique(),
+  credentialId: varchar("credential_id").notNull(),
+  requireLogin: boolean("require_login").default(true).notNull(),
+  expiresAt: timestamp("expires_at"),
+  revoked: boolean("revoked").default(false).notNull(),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Credential sharing permissions
+export const credentialShares = pgTable("credential_shares", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  credentialId: varchar("credential_id").notNull(),
+  subjectId: varchar("subject_id").notNull(), // member or group id
+  permission: text("permission").notNull().default("none"), // 'none', 'view', 'edit', 'owner'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueCredentialSubject: unique().on(table.credentialId, table.subjectId),
+}));
+
 // Admin Impersonation Sessions - Security-sensitive table for tracking user impersonation
 export const impersonationStatusEnum = pgEnum("impersonation_status", ["active", "completed", "expired", "terminated"]);
 
@@ -554,6 +590,31 @@ export const insertSuppressionSchema = createInsertSchema(suppressionList).pick(
   reason: true,
 });
 
+// Family credential schemas
+export const insertCredentialSchema = createInsertSchema(credentials).pick({
+  title: true,
+  category: true,
+  encryptedData: true,
+  ownerId: true,
+  orgId: true,
+  tags: true,
+});
+
+export const insertShareLinkSchema = createInsertSchema(shareLinks).pick({
+  token: true,
+  credentialId: true,
+  requireLogin: true,
+  expiresAt: true,
+  revoked: true,
+  createdBy: true,
+});
+
+export const insertCredentialShareSchema = createInsertSchema(credentialShares).pick({
+  credentialId: true,
+  subjectId: true,
+  permission: true,
+});
+
 // Security schema inserts
 export const insertUserDeviceSchema = createInsertSchema(userDevices).pick({
   userId: true,
@@ -680,3 +741,13 @@ export type RetentionPolicy = typeof retentionPolicies.$inferSelect;
 
 export type InsertSuppression = z.infer<typeof insertSuppressionSchema>;
 export type Suppression = typeof suppressionList.$inferSelect;
+
+// Family credential types
+export type InsertCredential = z.infer<typeof insertCredentialSchema>;
+export type Credential = typeof credentials.$inferSelect;
+
+export type InsertShareLink = z.infer<typeof insertShareLinkSchema>;
+export type ShareLink = typeof shareLinks.$inferSelect;
+
+export type InsertCredentialShare = z.infer<typeof insertCredentialShareSchema>;
+export type CredentialShare = typeof credentialShares.$inferSelect;
