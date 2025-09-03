@@ -1,0 +1,98 @@
+this error is coming from the front-end timeout/abort, not from the API. Your UI is aborting the request and Vite’s overlay is showing the unhandled “AbortError”. Two fixes:
+
+1) Patch the client so aborts don’t crash and you see the real error
+
+Replace your current “generate” call with this safe wrapper. It:
+
+handles AbortError cleanly,
+
+shows the server’s message if there is one,
+
+guarantees no unhandled rejection on ctrl.abort().
+
+// utils/http.ts
+export async function postJson<T>(url: string, body: unknown, opts?: { timeoutMs?: number }) {
+  const timeoutMs = opts?.timeoutMs ?? 15000; // 15s cap
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body ?? {}),
+      signal: ctrl.signal,
+      credentials: "include",
+    });
+
+    const ct = res.headers.get("content-type") || "";
+    const text = await res.text();
+
+    // ensure JSON
+    if (!ct.includes("application/json")) {
+      throw new Error(`Non-JSON response: status=${res.status} body=${text.slice(0,120)}`);
+    }
+
+    const data = JSON.parse(text);
+    if (!res.ok || data?.ok === false) {
+      throw new Error(data?.error || `HTTP ${res.status}`);
+    }
+    return data as T;
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      // user-visible, but do NOT throw to overlay
+      throw new Error("Generation timed out. Please try again.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+
+Then use it in your Passwords page:
+
+import { postJson } from "@/utils/http";
+
+async function regenerateShareLink(credentialId: string, expiry: "24h"|"7d"|"30d"|"never", requireLogin: boolean) {
+  return postJson<{ token: string; url: string }>(
+    `/api/credentials/${credentialId}/shares/regenerate`,
+    { expiry, requireLogin },
+    { timeoutMs: 15000 }
+  );
+}
+
+// In your click handler:
+setIsGenerating(true);
+regenerateShareLink(credentialId, expiry, requireLogin)
+  .then(({ url }) => {
+    setShareUrl(url);
+    toast.success("Share link created");
+  })
+  .catch((e) => {
+    // <-- You'll get a precise message here (timeout, 401, Non-JSON, 500…)
+    toast.error(String(e?.message ?? "Failed to generate link"));
+  })
+  .finally(() => setIsGenerating(false));
+
+
+And remove your manual setTimeout(() => ctrl.abort()...) code that was calling ctrl.abort() directly—this wrapper already does it and handles the abort safely.
+
+2) Quick backend sanity checks (so the call won’t time out)
+
+Do these two hits in the same browser (logged into portal):
+
+Health:
+
+https://portal.familycirclesecure.com/api/healthz
+
+
+✅ Must return JSON (not HTML/404).
+
+From DevTools → Console:
+
+fetch('/api/test-post',{method:'POST'}).then(r=>r.text()).then(console.log)
+
+
+✅ Should print {"ok":true} (or similar JSON).
+If either returns HTML/404 → your SPA is intercepting /api/* or the deployed app isn’t the API server. Fix by ensuring API routes are registered before any SPA fallback and your Start command is the Node server (node dist/index.js etc.).
