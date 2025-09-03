@@ -480,14 +480,7 @@ const getUserId = (req: any) => req.user?.id || req.session?.user?.id;
 app.get('/api/healthz', (_req, res) => res.json({ok: true}));
 app.post('/api/test-post', (_req, res) => res.json({ok: true}));
 
-// Timeout wrapper function
-function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error(`TIMEOUT ${label} after ${ms}ms`)), ms);
-    p.then(v => { clearTimeout(t); resolve(v); })
-     .catch(e => { clearTimeout(t); reject(e); });
-  });
-}
+// Timeout wrapper function (removed duplicate)
 
 // Production endpoints - Generate/regenerate share link (FAST, DETERMINISTIC)
 app.post('/api/credentials/:id/shares/regenerate', async (req, res) => {
@@ -504,8 +497,9 @@ app.post('/api/credentials/:id/shares/regenerate', async (req, res) => {
     );
 
     const token = crypto.randomBytes(16).toString('base64url');
-    const url = `${process.env.APP_URL || ''}/share/${token}`;
-    console.log('[regen] ok', { id, token: token.slice(0,8), url });
+    const baseUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+    const url = `${baseUrl}/share/${token}`;
+    console.log('[regen] ok', { id, token: token.slice(0,8), url, baseUrl });
     return res.json({ token, url, requireLogin });
   } catch (err: any) {
     console.error('[regen] fail', { id: req.params.id, err: err?.message });
