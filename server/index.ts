@@ -94,6 +94,14 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
+// Health check and test endpoints - MUST come before any SPA fallback
+app.get('/api/healthz', (req, res) => res.json({ ok: true, t: Date.now() }));
+
+app.post('/api/test-post', (req, res) => {
+  console.log('[test-post] hit', new Date().toISOString());
+  res.json({ ok: true });
+});
+
 // Session tracking middleware (after cookie parsing)
 app.use(touchAuthSession);
 
@@ -462,6 +470,7 @@ const getUserId = (req: any) => req.user?.id || req.session?.user?.id;
 
 // Production endpoints - Generate/regenerate share link
 app.post('/api/credentials/:id/shares/regenerate', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  console.log('[regen] id=', req.params.id, 'ip=', req.ip, 'ts=', Date.now());
   try {
     const credentialId = req.params.id;
     const { expiry = "7d", requireLogin = true } = (req.body ?? {}) as {
