@@ -8,7 +8,7 @@ export default function FamilyResources() {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Total recommended items as shown in reference
-  const totalItems = 5;
+  const totalItems = 4;
 
   return (
     <div className="bg-white rounded-xl p-8 shadow-sm">
@@ -16,12 +16,12 @@ export default function FamilyResources() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-black">Family Resources</h1>
-          <div className="flex items-center gap-2 bg-[#D4AF37] bg-opacity-10 text-[#D4AF37] px-3 py-1 rounded-full">
+          <div className="bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center">
             <Plus className="h-4 w-4" />
-            <span className="text-sm font-medium">
-              {totalItems} recommended items
-            </span>
           </div>
+          <span className="text-sm text-blue-500 font-medium">
+            {totalItems} recommended items
+          </span>
         </div>
         <Button 
           variant="ghost" 
