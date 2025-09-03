@@ -627,19 +627,18 @@ function EnhancedShareContent({
       });
 
       const contentType = response.headers.get('content-type') || '';
-      console.log('Response status:', response.status, 'Content-Type:', contentType);
+      const bodyText = await response.text();
+      console.log('Response status:', response.status, 'Content-Type:', contentType, 'Body:', bodyText.slice(0, 200));
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText.slice(0, 200)}`);
+        throw new Error(`HTTP ${response.status} – ${bodyText.slice(0, 200)}`);
       }
 
       if (!contentType.includes('application/json')) {
-        const htmlResponse = await response.text();
-        throw new Error('Non-JSON response (routing issue): ' + htmlResponse.slice(0, 100));
+        throw new Error('Non-JSON response (SPA intercepted /api).');
       }
 
-      const data = await response.json();
+      const data = JSON.parse(bodyText);
       if (!data?.url) throw new Error('No URL returned');
 
       setShareUrl(data.url);
