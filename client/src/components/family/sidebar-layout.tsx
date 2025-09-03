@@ -3,7 +3,8 @@ import { Link, useLocation } from 'wouter';
 import {
   Home as HomeIcon, Inbox, AlarmClock, Users, DollarSign, 
   Key, Umbrella, Receipt, Scale, Building2, BookOpen, 
-  Phone, Heart
+  Phone, Heart, Baby, UserCheck, HeartHandshake, Plane, Package,
+  AlertTriangle, FileText, Home as HouseIcon, Users as FamilyIcon, Leaf
 } from 'lucide-react';
 
 interface SidebarLayoutProps {
@@ -27,6 +28,16 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
     if (location.startsWith('/family/business')) return 'business';
     if (location.startsWith('/family/resources')) return 'family-resources';
     if (location.startsWith('/family/contacts')) return 'contacts';
+    if (location.startsWith('/family/child-information')) return 'child-information';
+    if (location.startsWith('/family/elderly-parents')) return 'elderly-parents';
+    if (location.startsWith('/family/getting-married')) return 'getting-married';
+    if (location.startsWith('/family/international-travel')) return 'international-travel';
+    if (location.startsWith('/family/moving')) return 'moving';
+    if (location.startsWith('/family/disaster-planning')) return 'disaster-planning';
+    if (location.startsWith('/family/estate-planning')) return 'estate-planning';
+    if (location.startsWith('/family/home-buying')) return 'home-buying';
+    if (location.startsWith('/family/starting-family')) return 'starting-family';
+    if (location.startsWith('/family/when-someone-dies')) return 'when-someone-dies';
     return 'dashboard';
   });
 
@@ -44,6 +55,16 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
     { id: 'business', label: 'Business', icon: Building2, href: '/family/business' },
     { id: 'family-resources', label: 'Family Resources', icon: BookOpen, href: '/family/resources' },
     { id: 'contacts', label: 'Contacts', icon: Phone, href: '/family/contacts' },
+    { id: 'child-information', label: 'Child Information', icon: Baby, href: '/family/child-information' },
+    { id: 'elderly-parents', label: 'Elderly Parents', icon: UserCheck, href: '/family/elderly-parents' },
+    { id: 'getting-married', label: 'Getting Married', icon: HeartHandshake, href: '/family/getting-married' },
+    { id: 'international-travel', label: 'International Travel', icon: Plane, href: '/family/international-travel' },
+    { id: 'moving', label: 'Moving', icon: Package, href: '/family/moving' },
+    { id: 'disaster-planning', label: 'Disaster Planning', icon: AlertTriangle, href: '/family/disaster-planning' },
+    { id: 'estate-planning', label: 'Estate Planning', icon: FileText, href: '/family/estate-planning' },
+    { id: 'home-buying', label: 'Home Buying', icon: HouseIcon, href: '/family/home-buying' },
+    { id: 'starting-family', label: 'Starting a Family', icon: FamilyIcon, href: '/family/starting-family' },
+    { id: 'when-someone-dies', label: 'When Someone Dies', icon: Leaf, href: '/family/when-someone-dies' },
   ];
 
   return (
