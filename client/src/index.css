@@ -138,11 +138,11 @@ button[data-testid^="button-manager"]:active {
   border: none !important;
 }
 
-/* Fix section header buttons in Family ID vault */
-.rounded-2xl button:hover,
-.rounded-2xl button:focus,
-.rounded-2xl button:focus-visible,
-.rounded-2xl button:active {
+/* Fix section header buttons in Family ID vault - only target section toggle buttons */
+.rounded-2xl > button:first-child:hover,
+.rounded-2xl > button:first-child:focus,
+.rounded-2xl > button:first-child:focus-visible,
+.rounded-2xl > button:first-child:active {
   background: transparent !important;
   background-color: transparent !important;
   background-image: none !important;
