@@ -2,6 +2,7 @@ import { Switch, Route } from 'wouter';
 import SidebarLayout from './sidebar-layout';
 import FamilyHome from '@/pages/family/family-home';
 import FamilyIds from '@/pages/family/family-ids';
+import FamilyMemberDetail from '@/pages/family/family-member-detail';
 import Finance from '@/pages/family/finance';
 import Property from '@/pages/family/property';
 import FamilyPasswords from '@/pages/family/family-passwords';
@@ -107,6 +108,7 @@ export default function FamilyRouter() {
         <Route path="/" component={withSidebarLayout(FamilyHome)} />
         <Route path="/family" component={withSidebarLayout(FamilyHome)} />
         <Route path="/family/ids" component={withSidebarLayout(() => <FamilyIds />)} />
+        <Route path="/family/ids/:memberId" component={withSidebarLayout(() => <FamilyMemberDetail />)} />
         <Route path="/family/finance" component={withSidebarLayout(() => <Finance />)} />
         <Route path="/family/property" component={withSidebarLayout(() => <Property />)} />
         <Route path="/family/passwords" component={withSidebarLayout(() => <FamilyPasswords />)} />
