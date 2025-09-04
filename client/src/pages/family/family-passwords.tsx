@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Key, Eye, EyeOff, Copy, BadgeCheck, X, MoreVertical, Edit, Share, Trash2, Link2, Users, UserRound, UsersRound, Send, Plus, Info } from 'lucide-react';
+import { Search, Key, Eye, EyeOff, Copy, BadgeCheck, X, MoreVertical, Edit, Share, Trash2, Link2, Users, UserRound, UsersRound, Send, Plus, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -475,6 +475,87 @@ function CredentialDetail({
       </Sheet>
 
     </>
+  );
+}
+
+// Category Section Component
+function CategorySection({
+  id,
+  label,
+  icon,
+  description,
+  credentials,
+  onNavigate,
+  onEdit,
+  onView,
+  onShare
+}: {
+  id: string;
+  label: string;
+  icon: string;
+  description: string;
+  credentials: any[];
+  onNavigate: (id: string) => void;
+  onEdit: (id: string, title: string) => void;
+  onView: (id: string, title: string) => void;
+  onShare: (id: string, title: string) => void;
+}) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  return (
+    <div className="space-y-4">
+      {/* Category Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">{icon}</span>
+          <div>
+            <h3 className="text-lg font-semibold text-white">{label}</h3>
+            <p className="text-xs text-neutral-400">{description} • {credentials.length} items</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-neutral-300 hover:text-white text-xs"
+            onClick={() => console.log('Add to', label)}
+          >
+            + Add
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-neutral-400 hover:text-white p-1"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+          >
+            {isCollapsed ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronUp className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Category Content */}
+      {!isCollapsed && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {credentials.map((credential) => (
+            <CredentialCard
+              key={credential.id}
+              id={credential.id}
+              title={credential.title}
+              owner={credential.owner}
+              tag={credential.tag}
+              onNavigate={onNavigate}
+              onEdit={onEdit}
+              onView={onView}
+              onShare={onShare}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1129,38 +1210,96 @@ const passwords = [
     title: "Angel's Phone Password",
     owner: "Angel",
     tag: "Device",
+    category: "devices",
   },
   {
     id: '2',
     title: "Home Wi-Fi",
     owner: "House",
     tag: "Network",
+    category: "home",
   },
   {
     id: '3',
     title: "Garage Door Code",
     owner: "Home",
     tag: "Access",
+    category: "home",
   },
   {
     id: '4',
     title: "Angel's Laptop Password",
     owner: "Angel", 
     tag: "Device",
+    category: "devices",
   },
   {
     id: '5',
     title: "Code To Safe",
     owner: "Home",
     tag: "Access",
+    category: "home",
   },
   {
     id: '6',
     title: "Kassandra's Phone Password",
     owner: "Kassandra",
     tag: "Device",
+    category: "devices",
+  },
+  {
+    id: '7',
+    title: "Netflix",
+    owner: "Home",
+    tag: "Entertainment",
+    category: "entertainment",
+  },
+  {
+    id: '8',
+    title: "Spotify Family",
+    owner: "House",
+    tag: "Entertainment",
+    category: "entertainment",
+  },
+  {
+    id: '9',
+    title: "Angel's Bank Account",
+    owner: "Angel",
+    tag: "Finance",
+    category: "personal",
   },
 ];
+
+// Category configuration
+const CATEGORY_MAP = {
+  home: {
+    label: "Home",
+    icon: "🏠",
+    description: "WiFi, codes, and home access"
+  },
+  devices: {
+    label: "Devices & Electronics", 
+    icon: "💻",
+    description: "Phones, laptops, and smart devices"
+  },
+  entertainment: {
+    label: "Entertainment & Subscriptions",
+    icon: "🎬", 
+    description: "Streaming, music, and media services"
+  },
+  personal: {
+    label: "Personal Accounts",
+    icon: "🔐",
+    description: "Banking, email, and personal services"
+  },
+  other: {
+    label: "Other",
+    icon: "📋",
+    description: "Uncategorized credentials"
+  }
+};
+
+const sectionOrder = ['home', 'devices', 'entertainment', 'personal', 'other'];
 
 export default function FamilyPasswords() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -1220,6 +1359,11 @@ export default function FamilyPasswords() {
     const matchesType = !typeFilter || typeFilter === 'all-types' || password.tag === typeFilter;
     return matchesSearch && matchesOwner && matchesType;
   });
+
+  // Check if any category has credentials after filtering
+  const hasAnyCredentials = sectionOrder.some(categoryKey => 
+    filteredPasswords.some(p => (p.category || 'other') === categoryKey)
+  );
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] text-[#F4F4F6]">
@@ -1290,26 +1434,32 @@ export default function FamilyPasswords() {
           ))}
         </div>
 
-        {/* Passwords Section */}
-        <h2 className="text-sm font-semibold tracking-wide text-neutral-300 mb-3">Passwords</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {filteredPasswords.map((password) => (
-            <CredentialCard 
-              key={password.id}
-              id={password.id}
-              title={password.title} 
-              owner={password.owner}
-              tag={password.tag}
-              onNavigate={handleNavigateToDetail}
-              onEdit={handleEdit}
-              onView={handleView}
-              onShare={handleShare}
-            />
-          ))}
+        {/* Categorized Passwords Sections */}
+        <div className="space-y-8">
+          {sectionOrder.map((categoryKey) => {
+            const categoryCredentials = filteredPasswords.filter(p => (p.category || 'other') === categoryKey);
+            if (categoryCredentials.length === 0) return null;
+            
+            const category = CATEGORY_MAP[categoryKey];
+            return (
+              <CategorySection
+                key={categoryKey}
+                id={categoryKey}
+                label={category.label}
+                icon={category.icon}
+                description={category.description}
+                credentials={categoryCredentials}
+                onNavigate={handleNavigateToDetail}
+                onEdit={handleEdit}
+                onView={handleView}
+                onShare={handleShare}
+              />
+            );
+          })}
         </div>
 
         {/* Empty State */}
-        {filteredPasswordManagers.length === 0 && filteredPasswords.length === 0 && searchTerm && (
+        {filteredPasswordManagers.length === 0 && !hasAnyCredentials && searchTerm && (
           <div className="text-center py-12">
             <div className="text-neutral-400 mb-4">
               <Key className="h-12 w-12 mx-auto" />
