@@ -1,0 +1,135 @@
+You’re right—that behavior is awful. What’s happening is the header (the whole red-outlined area) is catching the click/blur and toggling a piece of state that hides the “+” trigger. The fix is to make the “+” button controlled and always mounted, and never let any parent click/blur toggle its visibility.
+
+Below is a drop-in header pattern that stops the disappearing act in Family IDs (you can reuse it in Finance too).
+
+Fix it this way
+1) Use a controlled popover/sheet for the “+” menu (no hide, no timeouts)
+// FamilyIdsHeader.tsx
+import { useState } from "react";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+// or Dialog/Sheet if you prefer
+
+export default function FamilyIdsHeader({ onCreate }: { onCreate?: (type: string) => void }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div
+      className="flex items-center justify-between gap-4 py-2"
+      // IMPORTANT: no onClick handlers here that change visibility
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <h1 className="text-2xl font-semibold shrink-0">Family IDs</h1>
+
+        {/* ALWAYS-MOUNTED + BUTTON */}
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"                // prevents form submit rerenders
+              size="icon"
+              className="h-8 w-8 rounded-full bg-[#D4AF37] text-black hover:bg-[#c6a02e] focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();       // stops parent header clicks from closing/hiding
+                setOpen((v) => !v);
+              }}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+
+          <PopoverContent
+            sideOffset={8}
+            align="start"
+            className="w-72 rounded-xl border border-[#232530] bg-[#0F0F0F] text-white shadow-xl"
+            onInteractOutside={() => setOpen(false)}
+          >
+            <div className="text-sm font-medium mb-2">Add to Family IDs</div>
+            <ul className="space-y-1">
+              {[
+                ["Person", "person"],
+                ["Pet", "pet"],
+                ["Household member", "household"],
+                ["Other", "other"],
+              ].map(([label, type]) => (
+                <li key={type}>
+                  <button
+                    className="w-full text-left px-2 py-1.5 rounded-md hover:bg-white/5"
+                    onClick={() => {
+                      onCreate?.(type);
+                      setOpen(false);
+                    }}
+                  >
+                    {label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </PopoverContent>
+        </Popover>
+
+        <span className="text-sm text-neutral-400">• 12 recommended items</span>
+      </div>
+
+      {/* Search + help, etc. */}
+      <div className="flex items-center gap-3">
+        {/* your Search input */}
+      </div>
+    </div>
+  );
+}
+
+2) Remove the code that hides the button
+
+Search your Family IDs page for any of the following and delete/replace them:
+
+Global/parent click handlers on the header that hide the quick-add:
+
+<header onClick={() => setShowQuickAdd(false)}> … </header>   // ❌ remove
+
+
+Conditional rendering that unmounts the button:
+
+{showQuickAdd ? null : <PlusButton />}                          // ❌ remove
+
+
+Timeouts or “loading means hidden”:
+
+setPlusVisible(false);
+setTimeout(() => setPlusVisible(true), 2000);                   // ❌ remove
+
+
+CSS states that hide children (these cause “vanish on click”):
+
+/* examples to remove/adjust if present on the header container */
+.header:active .quickAdd { opacity:0; pointer-events:none; }    /* ❌ */
+.group:focus-within .quickAdd { display:none; }                 /* ❌ */
+
+
+If you want a loading indicator, put a spinner inside the popover — do not unmount the trigger.
+
+3) Make sure styling doesn’t make it look invisible
+
+Explicitly set the button’s hover/active/focus colors so it never “blends” into the background:
+
+className="h-8 w-8 rounded-full bg-[#D4AF37] text-black hover:bg-[#c6a02e]
+           active:bg-[#b49122] focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
+
+4) Avoid header remounts
+
+Ensure clicking the header doesn’t change keys/route state that remounts the whole header. The title/search container should be a simple div with no onClick/blur logic tied to the “+”.
+
+Quick checklist
+
+ The “+” is always mounted (no {open ? null : <Plus/>}).
+
+ No setHidden, setTimeout, or “hide on outside click” in the parent; rely on Popover’s onOpenChange.
+
+ The header container has no onClick that toggles visibility.
+
+ stopPropagation() is used on the button’s onClick.
+
+ No CSS like :active, :focus-within, or group-* that hides .quickAdd.
+
+Do those, and you’ll stop the disappearance completely. If you paste your current Family IDs header component, I’ll patch it line-by-line to your codebase style.
