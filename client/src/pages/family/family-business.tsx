@@ -54,19 +54,36 @@ export default function FamilyBusiness() {
   const [, setLocation] = useLocation();
   const addButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Fetch business managers from API
+  // Fetch business managers from API with quick fallback
   const { data: businessManagers = fallbackManagers, isLoading } = useQuery<BusinessManager[]>({
     queryKey: ['/api/business/managers'],
     queryFn: async (): Promise<BusinessManager[]> => {
       try {
-        const res = await fetch('/api/business/managers');
-        if (!res.ok) throw new Error('Failed to fetch managers');
-        return res.json();
+        console.log('Attempting to fetch business managers...');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+        
+        const res = await fetch('/api/business/managers', {
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!res.ok) {
+          console.warn('API response not ok, using fallback');
+          return fallbackManagers;
+        }
+        
+        const data = await res.json();
+        console.log('API returned:', data);
+        return data;
       } catch (error) {
-        console.warn('Using fallback business managers data:', error);
+        console.warn('API failed, using fallback business managers data:', error);
         return fallbackManagers;
       }
-    }
+    },
+    retry: false, // Don't retry failed requests
+    staleTime: 30000 // Consider data fresh for 30 seconds
   });
 
   // Calculate total items across all managers
