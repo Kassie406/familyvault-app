@@ -41,13 +41,14 @@ import {
 import { LuxuryCard } from '@/components/luxury-cards';
 
 // Types
-type BusinessId = "angel-llc" | "kassandra-trust" | "camacho-assembly" | "vendor-agreements" | "subcontractor-contracts" | "client-agreements" | "contractor-license" | "transport-permit" | "business-insurance" | "business-accounts" | "payroll-docs" | "business-taxes" | "employee-roster" | "board-members" | "subcontractors" | "vehicle-registrations" | "store-equipment" | "software-licenses";
+type MemberId = "angel" | "kassandra" | "family";
 type SectionKey = "documents" | "finances" | "legal" | "people" | "other";
 
 type BusinessItem = {
   id: string;
   title: string;
-  businessId: BusinessId;
+  ownerId: MemberId;
+  type: "entity" | "contract" | "license" | "insurance" | "partner" | "other";
   section: SectionKey;
   category: string;
   value?: string;
@@ -55,66 +56,57 @@ type BusinessItem = {
   meta?: { label?: string; sensitive?: boolean; contact?: string };
 };
 
-// Section metadata
+// Section metadata - mapping business types to sections
 const SECTION_META: Record<SectionKey, { label: string; sub: string; icon: React.ReactNode }> = {
-  documents: { label: "Documents", sub: "Articles of incorporation, EIN letter, contracts", icon: <FileText className="h-4 w-4" /> },
-  finances: { label: "Finances", sub: "Bank accounts, QuickBooks, payroll", icon: <DollarSign className="h-4 w-4" /> },
-  legal: { label: "Legal", sub: "Licenses, permits, insurance policies", icon: <Scale className="h-4 w-4" /> },
-  people: { label: "People", sub: "Employees, subcontractors, trustees", icon: <Users className="h-4 w-4" /> },
-  other: { label: "Other", sub: "Uncategorized business files", icon: <FolderOpen className="h-4 w-4" /> },
+  documents: { label: "Company Entities", sub: "LLCs, corporations, partnerships", icon: <FileText className="h-4 w-4" /> },
+  finances: { label: "Contracts & Agreements", sub: "Service contracts, vendor agreements", icon: <DollarSign className="h-4 w-4" /> },
+  legal: { label: "Licenses & Permits", sub: "Business licenses, permits, insurance", icon: <Scale className="h-4 w-4" /> },
+  people: { label: "Employees & Partners", sub: "Staff roster, subcontractors, board members", icon: <Users className="h-4 w-4" /> },
+  other: { label: "Other", sub: "Uncategorized business items", icon: <FolderOpen className="h-4 w-4" /> },
+};
+
+// Type mapping for organizing items into sections
+const TYPE_TO_SECTION: Record<BusinessItem["type"], SectionKey> = {
+  entity: "documents",
+  contract: "finances", 
+  license: "legal",
+  insurance: "legal",
+  partner: "people",
+  other: "other"
 };
 
 // Mock data - replace with real API
 const ALL_BUSINESS_ITEMS: BusinessItem[] = [
-  // Angel's LLC - Documents
-  { id: "al-d1", title: "Articles of Incorporation", businessId: "angel-llc", section: "documents", category: "Legal Doc", value: "Filed: March 2020" },
-  { id: "al-d2", title: "EIN Letter", businessId: "angel-llc", section: "documents", category: "Tax Doc", value: "EIN: 12-3456789", meta: { sensitive: true } },
-  { id: "al-d3", title: "Operating Agreement", businessId: "angel-llc", section: "documents", category: "Legal Doc", value: "Updated: Jan 2024" },
-  { id: "al-d4", title: "Business License", businessId: "angel-llc", section: "documents", category: "License", value: "Expires: Dec 2025" },
+  // Angel's Business Items
+  { id: "a-e1", title: "Angel's LLC", ownerId: "angel", type: "entity", section: "documents", category: "LLC", value: "Managing Member" },
+  { id: "a-e2", title: "Prime Set Assembly LLC", ownerId: "angel", type: "entity", section: "documents", category: "LLC", value: "EIN: 12-3456789", meta: { sensitive: true } },
+  { id: "a-c1", title: "Home Depot Subcontractor Contract", ownerId: "angel", type: "contract", section: "finances", category: "Service Contract", value: "Expires: Dec 2025" },
+  { id: "a-c2", title: "Vendor Agreement - ABC Supply", ownerId: "angel", type: "contract", section: "finances", category: "Vendor Contract", value: "Active" },
+  { id: "a-l1", title: "NJ Contractor License", ownerId: "angel", type: "license", section: "legal", category: "License", value: "License #: GC-12345" },
+  { id: "a-l2", title: "Transportation Permit", ownerId: "angel", type: "license", section: "legal", category: "Permit", value: "DOT permit", meta: { sensitive: true } },
+  { id: "a-p1", title: "Subcontractor List", ownerId: "angel", type: "partner", section: "people", category: "Contractor", value: "8 active contractors" },
+  { id: "a-p2", title: "Site Foreman - Mike Chen", ownerId: "angel", type: "partner", section: "people", category: "Employee", value: "Full-time", meta: { contact: "mike@angelllc.com" } },
   
-  // Angel's LLC - Finances
-  { id: "al-f1", title: "Chase Business Account", businessId: "angel-llc", section: "finances", category: "Account", value: "Account #: ****4567", meta: { sensitive: true } },
-  { id: "al-f2", title: "QuickBooks Online", businessId: "angel-llc", section: "finances", category: "Software", value: "Monthly subscription active" },
-  { id: "al-f3", title: "2024 P&L Statement", businessId: "angel-llc", section: "finances", category: "Report", value: "Revenue: $125,000", meta: { sensitive: true } },
-  { id: "al-f4", title: "Business Credit Card", businessId: "angel-llc", section: "finances", category: "Account", value: "Chase Ink Business", meta: { sensitive: true } },
+  // Kassandra's Business Items
+  { id: "k-c1", title: "Client Service Agreement - Johnson Corp", ownerId: "kassandra", type: "contract", section: "finances", category: "Service Contract", value: "Annual contract" },
+  { id: "k-c2", title: "Software License Agreement", ownerId: "kassandra", type: "contract", section: "finances", category: "Software Contract", value: "QuickBooks Pro" },
+  { id: "k-p1", title: "Employee Roster", ownerId: "kassandra", type: "partner", section: "people", category: "Employee", value: "12 employees" },
+  { id: "k-p2", title: "HR Specialist - Sarah Martinez", ownerId: "kassandra", type: "partner", section: "people", category: "Employee", value: "Part-time", meta: { contact: "sarah@hr-solutions.com" } },
+  { id: "k-o1", title: "Laptops / Software Licenses", ownerId: "kassandra", type: "other", section: "other", category: "Technology", value: "11 items" },
+  { id: "k-o2", title: "Payroll Documents", ownerId: "kassandra", type: "other", section: "other", category: "Payroll", value: "24 files" },
   
-  // Angel's LLC - Legal
-  { id: "al-l1", title: "General Liability Insurance", businessId: "angel-llc", section: "legal", category: "Insurance", value: "Coverage: $1M" },
-  { id: "al-l2", title: "Workers Comp Insurance", businessId: "angel-llc", section: "legal", category: "Insurance", value: "Active policy" },
-  { id: "al-l3", title: "Contractor License", businessId: "angel-llc", section: "legal", category: "License", value: "License #: GC-12345" },
-  { id: "al-l4", title: "State Registration", businessId: "angel-llc", section: "legal", category: "Registration", value: "Active - Good Standing" },
-  
-  // Angel's LLC - People
-  { id: "al-p1", title: "Angel Johnson", businessId: "angel-llc", section: "people", category: "Owner", value: "Managing Member", meta: { contact: "angel@angelllc.com" } },
-  { id: "al-p2", title: "Sarah Martinez", businessId: "angel-llc", section: "people", category: "Employee", value: "Project Manager", meta: { contact: "(555) 123-4567" } },
-  { id: "al-p3", title: "Mike Chen", businessId: "angel-llc", section: "people", category: "Contractor", value: "Electrical Contractor", meta: { contact: "mike@electrical.com" } },
-  { id: "al-p4", title: "Legal Counsel", businessId: "angel-llc", section: "people", category: "Professional", value: "Johnson & Associates", meta: { contact: "legal@johnson-law.com", sensitive: true } },
-  
-  // Angel's LLC - Other
-  { id: "al-o1", title: "Office Lease Agreement", businessId: "angel-llc", section: "other", category: "Contract", value: "Expires: Dec 2025" },
-  { id: "al-o2", title: "Vehicle Fleet Registration", businessId: "angel-llc", section: "other", category: "Asset", value: "3 work trucks" },
-  { id: "al-o3", title: "Equipment Inventory", businessId: "angel-llc", section: "other", category: "Asset", value: "Last updated: Jan 2025" },
+  // Family Shared Business Items
+  { id: "f-e1", title: "Camacho Assembly LLC", ownerId: "family", type: "entity", section: "documents", category: "LLC", value: "Joint ownership" },
+  { id: "f-i1", title: "Wells Fargo Business Insurance", ownerId: "family", type: "insurance", section: "legal", category: "Insurance", value: "Coverage: $2M" },
+  { id: "f-p1", title: "Board of Trustees", ownerId: "family", type: "partner", section: "people", category: "Board", value: "4 members" },
+  { id: "f-o1", title: "Store Fixtures / Racking Tools", ownerId: "family", type: "other", section: "other", category: "Equipment", value: "18 items" },
+  { id: "f-o2", title: "Vehicles (VINs, titles)", ownerId: "family", type: "other", section: "other", category: "Vehicle", value: "6 vehicles" },
 ];
 
-const BUSINESS_NAMES: Record<BusinessId, string> = {
-  "angel-llc": "Angel's LLC",
-  "kassandra-trust": "Kassandra's Trust Enterprise", 
-  "camacho-assembly": "Camacho Assembly LLC",
-  "vendor-agreements": "Vendor Agreements",
-  "subcontractor-contracts": "Subcontractor Contracts",
-  "client-agreements": "Client Service Agreements",
-  "contractor-license": "General Contractor License",
-  "transport-permit": "Transportation Permit",
-  "business-insurance": "Business Insurance Policies",
-  "business-accounts": "Business Bank Accounts",
-  "payroll-docs": "Payroll Documents",
-  "business-taxes": "Business Tax Filings",
-  "employee-roster": "Employee Roster",
-  "board-members": "Board Members / Trustees",
-  "subcontractors": "Subcontractors",
-  "vehicle-registrations": "Vehicle Registrations",
-  "store-equipment": "Store Equipment",
-  "software-licenses": "Tech/Software Licenses",
+const MEMBER_NAMES: Record<MemberId, string> = {
+  "angel": "Angel Johnson",
+  "kassandra": "Kassandra Johnson",
+  "family": "Family Shared"
 };
 
 // Card Shell Component (same as other modules)
@@ -266,7 +258,7 @@ function BusinessItemCard({
 }
 
 export default function BusinessDetail() {
-  const { id: businessId } = useParams<{ id: string }>();
+  const { id: memberId } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   
@@ -276,13 +268,13 @@ export default function BusinessDetail() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedSection, setSelectedSection] = useState<SectionKey>('documents');
 
-  if (!businessId || !(businessId in BUSINESS_NAMES)) {
+  if (!memberId || !(memberId in MEMBER_NAMES)) {
     return (
       <div className="min-h-screen bg-[var(--bg-900)] flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-white mb-2">Business item not found</h2>
-          <p className="text-neutral-400 mb-4">The business item you're looking for doesn't exist.</p>
+          <h2 className="text-xl font-semibold text-white mb-2">Manager not found</h2>
+          <p className="text-neutral-400 mb-4">The business manager you're looking for doesn't exist.</p>
           <Button onClick={() => setLocation('/family/business')} className="bg-[#D4AF37] text-black hover:bg-[#D4AF37]/80">
             Back to Business
           </Button>
@@ -291,13 +283,13 @@ export default function BusinessDetail() {
     );
   }
 
-  const typedBusinessId = businessId as BusinessId;
-  const businessName = BUSINESS_NAMES[typedBusinessId];
+  const typedMemberId = memberId as MemberId;
+  const memberName = MEMBER_NAMES[typedMemberId];
 
-  // Get business items for this entity
+  // Get business items for this member
   const businessItems = useMemo(() => {
-    return ALL_BUSINESS_ITEMS.filter(item => item.businessId === typedBusinessId);
-  }, [typedBusinessId]);
+    return ALL_BUSINESS_ITEMS.filter(item => item.ownerId === typedMemberId);
+  }, [typedMemberId]);
 
   // Apply search and type filters
   const filteredItems = useMemo(() => {
@@ -312,7 +304,7 @@ export default function BusinessDetail() {
     });
   }, [businessItems, searchTerm, selectedType]);
 
-  // Group items by section
+  // Group items by section based on type
   const groupedItems: Record<SectionKey, BusinessItem[]> = useMemo(() => {
     const grouped: Record<SectionKey, BusinessItem[]> = { 
       documents: [], 
@@ -321,7 +313,10 @@ export default function BusinessDetail() {
       people: [],
       other: [] 
     };
-    filteredItems.forEach(item => grouped[item.section]?.push(item));
+    filteredItems.forEach(item => {
+      const section = TYPE_TO_SECTION[item.type] || 'other';
+      grouped[section]?.push(item);
+    });
     return grouped;
   }, [filteredItems]);
 
@@ -374,8 +369,8 @@ export default function BusinessDetail() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-white shrink-0">{businessName}</h1>
-              <p className="text-sm text-neutral-400 mt-1">Business Entity • {businessItems.length} items</p>
+              <h1 className="text-3xl font-bold text-white shrink-0">{memberName}'s Business</h1>
+              <p className="text-sm text-neutral-400 mt-1">Business Manager • {businessItems.length} items</p>
             </div>
           </div>
           
@@ -399,7 +394,7 @@ export default function BusinessDetail() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 h-4 w-4" />
             <input
               type="text"
-              placeholder="Search business documents…"
+              placeholder="Search this vault…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] w-full"
