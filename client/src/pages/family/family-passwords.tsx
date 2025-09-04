@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, UserPlus, Shield, Lock, Search } from 'lucide-react';
+import { Plus, UserPlus, Shield, Lock, Search, HelpCircle, MoreHorizontal, Check, X } from 'lucide-react';
+import { LuxuryCard } from '@/components/luxury-cards';
 
 // Enhanced Manager type
 type Manager = {
@@ -37,6 +38,11 @@ export default function FamilyPasswords() {
   const [query, setQuery] = useState("");
   const [owner, setOwner] = useState("all");
   const [sort, setSort] = useState<"az" | "items" | "recent">("az");
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [pageTitle, setPageTitle] = useState('Passwords');
+  const [tempTitle, setTempTitle] = useState('Passwords');
+
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const managers = useMemo(() => {
     let list = managersData;
@@ -73,29 +79,145 @@ export default function FamilyPasswords() {
     setLocation(`/family/passwords/manager/${managerId}`);
   };
 
-  return (
-    <div className="mx-auto max-w-7xl px-6 py-8 text-[#F4F4F6]">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-white">Passwords</h1>
-        <p className="text-sm text-neutral-400">Select a manager to view their vault.</p>
-      </div>
+  // Handle escape key for title editing
+  useEffect(() => {
+    if (!isEditingTitle) return;
+    
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsEditingTitle(false);
+        setTempTitle(pageTitle);
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isEditingTitle, pageTitle]);
 
-      {/* Toolbar */}
-      <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-12">
-        {/* Search */}
-        <div className="md:col-span-6">
-          <div className="flex items-center gap-2 rounded-xl border border-[#232530] bg-[#13141B] px-3 py-2">
-            <Search className="h-4 w-4 text-neutral-400" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search manager or member"
-              className="h-8 border-0 bg-transparent p-0 text-sm focus-visible:ring-0 text-white placeholder:text-neutral-400"
-            />
+  // Focus input when editing starts
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [isEditingTitle]);
+
+  const handleEditTitle = () => {
+    setTempTitle(pageTitle);
+    setIsEditingTitle(true);
+  };
+
+  const handleSaveTitle = () => {
+    if (tempTitle.trim()) {
+      setPageTitle(tempTitle.trim());
+    } else {
+      setTempTitle(pageTitle);
+    }
+    setIsEditingTitle(false);
+  };
+
+  const handleCancelEdit = () => {
+    setTempTitle(pageTitle);
+    setIsEditingTitle(false);
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSaveTitle();
+    } else if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[var(--bg-900)]">
+      {/* Header */}
+      <LuxuryCard className="border-b border-[var(--line-700)] px-8 py-6 rounded-none"
+        style={{
+          background: 'linear-gradient(135deg, #161616 0%, #0F0F0F 100%)',
+          borderRadius: '0'
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="flex items-center gap-3">
+              {isEditingTitle ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={titleInputRef}
+                    type="text"
+                    value={tempTitle}
+                    onChange={(e) => setTempTitle(e.target.value)}
+                    onKeyDown={handleTitleKeyDown}
+                    className="text-3xl font-bold text-white bg-transparent border-b-2 border-[#D4AF37] outline-none focus:border-[#D4AF37] min-w-0"
+                    style={{ background: 'transparent' }}
+                    data-testid="title-input"
+                  />
+                  <button
+                    onClick={handleSaveTitle}
+                    className="p-1 text-green-400 hover:text-green-300 transition-colors"
+                    data-testid="save-title-button"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="p-1 text-red-400 hover:text-red-300 transition-colors"
+                    data-testid="cancel-title-button"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <h1 className="text-3xl font-bold text-white shrink-0" data-testid="page-title">{pageTitle}</h1>
+                  <button
+                    onClick={handleEditTitle}
+                    className="p-1 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
+                    data-testid="edit-title-button"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--ink-400)] h-4 w-4" />
+              <input
+                type="text"
+                placeholder="Search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] w-64"
+                data-testid="search-passwords"
+              />
+            </div>
+            <Button variant="ghost" size="sm" className="text-[var(--ink-300)] hover:text-[var(--gold)]">
+              <HelpCircle className="h-4 w-4 mr-2" />
+              Help
+            </Button>
+            <div className="w-8 h-8 rounded-full bg-[var(--gold)] flex items-center justify-center">
+              <span className="text-black text-sm font-medium">KC</span>
+            </div>
           </div>
         </div>
+      </LuxuryCard>
 
+      {/* Content */}
+      <div className="mx-auto max-w-7xl px-8 py-8 text-[#F4F4F6]">
+        {/* Page Description */}
+        <div className="mb-6">
+          <p className="text-sm text-neutral-400">Select a manager to view their vault.</p>
+        </div>
+
+        {/* Filter Controls */}
+        <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-6">
         {/* Owner Filter */}
         <div className="md:col-span-3">
           <Select value={owner} onValueChange={setOwner}>
@@ -125,7 +247,7 @@ export default function FamilyPasswords() {
         </div>
       </div>
 
-      {/* Action Buttons */}
+        {/* Action Buttons */}
       <div className="mb-6 flex flex-wrap gap-3">
         <Button className="rounded-full bg-[#D4AF37] text-black hover:bg-[#c6a02e]">
           <Plus className="h-4 w-4 mr-2" /> Add Manager
@@ -135,16 +257,17 @@ export default function FamilyPasswords() {
         </Button>
       </div>
 
-      {/* Manager Cards or Empty State */}
-      {managers.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {managers.map((manager) => (
-            <ManagerCard key={manager.id} manager={manager} onClick={() => navigateToManager(manager.id)} />
-          ))}
-        </div>
-      )}
+        {/* Manager Cards or Empty State */}
+        {managers.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {managers.map((manager) => (
+              <ManagerCard key={manager.id} manager={manager} onClick={() => navigateToManager(manager.id)} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
