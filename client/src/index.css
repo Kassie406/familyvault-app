@@ -150,6 +150,20 @@ button[data-testid^="button-manager"]:active {
   box-shadow: none !important;
 }
 
+/* Ensure dropdown menu buttons work properly */
+[data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
+}
+
+/* Make sure add item buttons are not affected by the section header fix */
+.border-dashed:hover,
+.border-dashed:focus,
+.border-dashed:focus-visible,
+.border-dashed:active {
+  background: inherit !important;
+  background-color: inherit !important;
+}
+
 /* Optional: slim scrollbar style */
 .sidebar__scroll::-webkit-scrollbar{ width:10px }
 .sidebar__scroll::-webkit-scrollbar-thumb{ background:#2b3446; border-radius:8px }
