@@ -37,7 +37,6 @@ export default function FamilyIds() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [addMenuOpen, setAddMenuOpen] = useState(false);
-  const [titleMenuOpen, setTitleMenuOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [pageTitle, setPageTitle] = useState('Family IDs');
   const [tempTitle, setTempTitle] = useState('Family IDs');
@@ -105,7 +104,6 @@ export default function FamilyIds() {
 
   // Custom click outside hook for stable button behavior
   const addMenuRef = useRef<HTMLDivElement>(null);
-  const titleMenuRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => {
@@ -132,34 +130,23 @@ export default function FamilyIds() {
     };
   }, [addMenuOpen]);
 
-  // Title menu click outside hook
+  // Handle escape key for title editing
   useEffect(() => {
-    if (!titleMenuOpen) return;
-    
-    const handleClickOutside = (e: MouseEvent) => {
-      if (titleMenuRef.current && !titleMenuRef.current.contains(e.target as Node)) {
-        setTitleMenuOpen(false);
-      }
-    };
+    if (!isEditingTitle) return;
     
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setTitleMenuOpen(false);
-        if (isEditingTitle) {
-          setIsEditingTitle(false);
-          setTempTitle(pageTitle);
-        }
+        setIsEditingTitle(false);
+        setTempTitle(pageTitle);
       }
     };
     
-    document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleEscape);
     
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [titleMenuOpen, isEditingTitle, pageTitle]);
+  }, [isEditingTitle, pageTitle]);
 
   // Focus input when editing starts
   useEffect(() => {
@@ -172,7 +159,6 @@ export default function FamilyIds() {
   const handleEditTitle = () => {
     setTempTitle(pageTitle);
     setIsEditingTitle(true);
-    setTitleMenuOpen(false);
   };
 
   const handleSaveTitle = () => {
@@ -239,34 +225,13 @@ export default function FamilyIds() {
               ) : (
                 <>
                   <h1 className="text-3xl font-bold text-white shrink-0" data-testid="page-title">{pageTitle}</h1>
-                  <div 
-                    ref={titleMenuRef}
-                    className="relative"
+                  <button
+                    onClick={handleEditTitle}
+                    className="p-1 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
+                    data-testid="edit-title-button"
                   >
-                    <button
-                      onClick={() => setTitleMenuOpen(!titleMenuOpen)}
-                      className="p-1 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
-                      data-testid="title-menu-button"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
-                    
-                    {titleMenuOpen && (
-                      <div
-                        className="absolute left-0 top-8 w-48 rounded-xl border border-[#252733] bg-[#0F0F10] text-white shadow-xl p-2 z-50"
-                        data-testid="title-menu"
-                      >
-                        <button
-                          onClick={handleEditTitle}
-                          className="w-full text-left px-3 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2 text-sm"
-                          data-testid="edit-title-option"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                          <span>Edit page title</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
                 </>
               )}
             </div>
