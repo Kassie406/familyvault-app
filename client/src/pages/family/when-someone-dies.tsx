@@ -156,18 +156,37 @@ export default function WhenSomeoneDies() {
         <div className="mx-auto max-w-6xl px-6 py-4 flex items-center gap-3">
           <h1 className="text-[28px] font-semibold tracking-tight text-white" data-testid="text-page-title">When Someone Dies</h1>
 
+          <div className="grow" />
+
+          {/* Search */}
+          <div className="relative w-[420px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search bereavement information…"
+              className="w-full rounded-full bg-white/6 px-4 py-2 pl-10 text-sm outline-none focus:ring-2 focus:ring-amber-400/25 text-white placeholder:text-white/40"
+              data-testid="input-search"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Add Button and Recommended Items Section */}
+      <div className="mx-auto max-w-6xl px-6 py-6">
+        <div className="flex items-center gap-4">
           {/* Persistent + Add */}
           <div className="relative">
             <button
               ref={addRef}
               type="button"
               onClick={() => setAddOpen(v => !v)}
-              className="h-8 rounded-full bg-amber-400/20 px-3 text-amber-200 hover:bg-amber-400/30 transition"
+              className="h-9 px-4 rounded-lg bg-[#D4AF37] text-black hover:bg-[#D4AF37]/80 transition gap-2 flex items-center"
               aria-expanded={addOpen}
               aria-controls="bereavement-add-menu"
               data-testid="button-add-bereavement"
             >
-              + Add
+              + Add Support Resource
             </button>
 
             {addOpen && (
@@ -194,22 +213,10 @@ export default function WhenSomeoneDies() {
           </div>
 
           {/* Metrics pill */}
-          <div className="rounded-full bg-amber-400/15 px-3 py-1 text-sm text-amber-200" data-testid="text-section-count">
-            {sections.length} sections • {totalItems} total items
-          </div>
-
-          <div className="grow" />
-
-          {/* Search */}
-          <div className="relative w-[420px]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search bereavement information…"
-              className="w-full rounded-full bg-white/6 px-4 py-2 pl-10 text-sm outline-none focus:ring-2 focus:ring-amber-400/25 text-white placeholder:text-white/40"
-              data-testid="input-search"
-            />
+          <div className="flex items-center gap-2 bg-[#D4AF37]/10 text-[#D4AF37] px-3 py-1.5 rounded-full" data-testid="text-section-count">
+            <span className="text-sm font-medium">
+              🔔 {sections.length} sections • {totalItems} total items
+            </span>
           </div>
         </div>
       </div>
