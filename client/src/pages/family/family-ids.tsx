@@ -200,18 +200,23 @@ export default function FamilyIds() {
                   </div>
                   <ul className="mt-1">
                     {[
-                      ["Person", "person"],
-                      ["Pet", "pet"],
-                      ["Household member", "household"],
-                      ["Other", "other"],
-                    ].map(([label, value]) => (
+                      ["Import with Plaid", "import-plaid", "🏦"],
+                      ["Add Manually", "add-manually", null],
+                      ["Bank Account", "bank-account", null],
+                      ["Investment Account", "investment-account", null],
+                      ["Loan", "loan", null],
+                      ["Credit Card", "credit-card", null],
+                      ["Cryptocurrency", "cryptocurrency", null],
+                      ["Other", "other", null],
+                    ].map(([label, value, icon]) => (
                       <li key={value}>
                         <button
                           role="menuitem"
-                          className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors"
+                          className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
                           onClick={() => handleCreateMember(value)}
                         >
-                          {label}
+                          {icon && <span>{icon}</span>}
+                          <span>{label}</span>
                         </button>
                       </li>
                     ))}
