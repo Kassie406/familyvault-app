@@ -11,19 +11,32 @@ const router = Router();
  */
 router.get("/managers", async (_req, res) => {
   try {
-    // Get users with at least one business item
+    // Define our business managers
+    const managerInfo = {
+      'angel': { name: 'Angel Johnson', initials: 'AJ' },
+      'kassandra': { name: 'Kassandra Johnson', initials: 'KJ' },
+      'family': { name: 'Family Shared', initials: 'FS' }
+    };
+
+    // Get item counts for each manager
     const rows = await db.execute(sql`
-      SELECT u.id,
-             u.name,
-             INITCAP(COALESCE(SUBSTRING(u.name FROM 1 FOR 1), 'U')) ||
-             INITCAP(COALESCE(SUBSTRING(SPLIT_PART(u.name,' ',2) FROM 1 FOR 1), '')) as initials,
-             COUNT(b.id)::int as "itemCount"
-      FROM users u
-      JOIN business_items b ON b.owner_id = u.id
-      GROUP BY u.id, u.name
-      ORDER BY u.name ASC
+      SELECT owner_id, COUNT(*)::int as item_count
+      FROM business_items
+      GROUP BY owner_id
     `);
-    res.json(rows);
+
+    // Build response with manager info and counts
+    const managers = Object.entries(managerInfo).map(([id, info]) => {
+      const countRow = rows.find((r: any) => r.owner_id === id);
+      return {
+        id,
+        name: info.name,
+        initials: info.initials,
+        itemCount: countRow?.item_count || 0
+      };
+    });
+
+    res.json(managers);
   } catch (error) {
     console.error("Error fetching business managers:", error);
     res.status(500).json({ error: "Failed to fetch business managers" });
