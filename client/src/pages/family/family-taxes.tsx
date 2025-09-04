@@ -102,63 +102,6 @@ export default function FamilyTaxes() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6 min-w-0">
             <h1 className="text-3xl font-bold text-white shrink-0">Taxes</h1>
-            
-            {/* Add Button */}
-            <div className="relative">
-              <Button 
-                ref={addButtonRef}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setAddMenuOpen(!addMenuOpen);
-                }}
-                className="bg-[#D4AF37] text-black hover:bg-[#D4AF37]/80 h-9 px-4"
-                data-testid="button-add-tax"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add
-              </Button>
-              
-              {addMenuOpen && (
-                <div className="absolute top-full mt-2 left-0 w-48 bg-[#111214] border border-[#232530] rounded-lg shadow-xl z-50">
-                  <div className="py-1">
-                    <button 
-                      className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#232530] transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setAddMenuOpen(false);
-                      }}
-                    >
-                      Add New Tax Year
-                    </button>
-                    <button 
-                      className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#232530] transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setAddMenuOpen(false);
-                      }}
-                    >
-                      Upload Document
-                    </button>
-                    <button 
-                      className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#232530] transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setAddMenuOpen(false);
-                      }}
-                    >
-                      Other
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Recommended Items */}
-            <div className="flex items-center gap-2 bg-[#D4AF37]/10 text-[#D4AF37] px-3 py-1.5 rounded-full">
-              <span className="text-sm font-medium">
-                🔔 {totalItems} recommended items
-              </span>
-            </div>
           </div>
           
           <div className="flex items-center gap-4">
@@ -191,6 +134,67 @@ export default function FamilyTaxes() {
         </div>
       </LuxuryCard>
 
+      {/* Add Button and Recommended Items Section */}
+      <div className="max-w-7xl mx-auto px-8 py-6">
+        <div className="flex items-center gap-4">
+          {/* Add Button */}
+          <div className="relative">
+            <Button 
+              ref={addButtonRef}
+              onClick={(e) => {
+                e.stopPropagation();
+                setAddMenuOpen(!addMenuOpen);
+              }}
+              className="bg-[#D4AF37] text-black hover:bg-[#D4AF37]/80 h-9 px-4 gap-2"
+              data-testid="button-add-tax"
+            >
+              <Plus className="h-4 w-4" />
+              Add Tax Return
+            </Button>
+            
+            {addMenuOpen && (
+              <div className="absolute top-full mt-2 left-0 w-48 bg-[#111214] border border-[#232530] rounded-lg shadow-xl z-50">
+                <div className="py-1">
+                  <button 
+                    className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#232530] transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAddMenuOpen(false);
+                    }}
+                  >
+                    Add New Tax Year
+                  </button>
+                  <button 
+                    className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#232530] transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAddMenuOpen(false);
+                    }}
+                  >
+                    Upload Document
+                  </button>
+                  <button 
+                    className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#232530] transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAddMenuOpen(false);
+                    }}
+                  >
+                    Other
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Recommended Items */}
+          <div className="flex items-center gap-2 bg-[#D4AF37]/10 text-[#D4AF37] px-3 py-1.5 rounded-full">
+            <span className="text-sm font-medium">
+              🔔 {totalItems} recommended items
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-8 py-8">
@@ -258,18 +262,18 @@ export default function FamilyTaxes() {
             ))}
           </div>
         </div>
-      </div>
 
-      {/* Empty State */}
-      {filteredTaxReturns.length === 0 && searchTerm && (
-        <div className="text-center py-12">
-          <div className="text-neutral-400 mb-4">
-            <FileText className="h-12 w-12 mx-auto" />
+        {/* Empty State */}
+        {filteredTaxReturns.length === 0 && searchTerm && (
+          <div className="text-center py-12">
+            <div className="text-neutral-400 mb-4">
+              <FileText className="h-12 w-12 mx-auto" />
+            </div>
+            <h3 className="text-lg font-medium text-white mb-2">No tax returns found</h3>
+            <p className="text-neutral-400">Try adjusting your search terms or add a new tax return.</p>
           </div>
-          <h3 className="text-lg font-medium text-white mb-2">No tax returns found</h3>
-          <p className="text-neutral-400">Try adjusting your search terms or add a new tax return.</p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
