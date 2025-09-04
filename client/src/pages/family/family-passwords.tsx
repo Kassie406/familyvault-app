@@ -478,84 +478,122 @@ function CredentialDetail({
   );
 }
 
-// Category Section Component
-function CategorySection({
-  id,
-  label,
-  icon,
-  description,
+// Manager with Internal Sections Component
+function ManagerWithSections({
+  manager,
   credentials,
   onNavigate,
   onEdit,
   onView,
-  onShare
+  onShare,
+  onAdd
 }: {
-  id: string;
-  label: string;
-  icon: string;
-  description: string;
+  manager: any;
   credentials: any[];
   onNavigate: (id: string) => void;
   onEdit: (id: string, title: string) => void;
   onView: (id: string, title: string) => void;
   onShare: (id: string, title: string) => void;
+  onAdd: (managerId: string, section: string) => void;
 }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  // Group this manager's credentials by category
+  const managerCredentials = credentials.filter(cred => cred.managerId === manager.id);
+  const groupedCredentials = sectionOrder.reduce((acc, categoryKey) => {
+    acc[categoryKey] = managerCredentials.filter(cred => (cred.category || 'other') === categoryKey);
+    return acc;
+  }, {} as Record<string, any[]>);
 
   return (
-    <div className="space-y-4">
-      {/* Category Header */}
-      <div className="flex items-center justify-between">
+    <Shell className="overflow-hidden">
+      {/* Manager Header */}
+      <div className="flex items-center justify-between p-4 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="flex items-center gap-3">
-          <span className="text-2xl">{icon}</span>
-          <div>
-            <h3 className="text-lg font-semibold text-white">{label}</h3>
-            <p className="text-xs text-neutral-400">{description} • {credentials.length} items</p>
+          <div className="h-10 w-10 rounded-xl grid place-items-center bg-[#D4AF37]/15 text-[#D4AF37] border border-[#232530]">
+            <Key className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-white font-medium truncate">{manager.name}</div>
+            <div className="text-xs text-neutral-400">+ {manager.count} items pre-populated</div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-neutral-300 hover:text-white text-xs"
-            onClick={() => console.log('Add to', label)}
-          >
-            + Add
-          </Button>
           <Button
             variant="ghost"
             size="sm"
             className="text-neutral-400 hover:text-white p-1"
-            onClick={() => setIsCollapsed(!isCollapsed)}
           >
-            {isCollapsed ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
+            {isExpanded ? (
               <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
             )}
           </Button>
+          <DropdownDots 
+            cardId={manager.id} 
+            cardTitle={manager.name}
+            onEdit={() => {}}
+            onView={() => {}}
+            onShare={() => {}}
+          />
         </div>
       </div>
 
-      {/* Category Content */}
-      {!isCollapsed && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {credentials.map((credential) => (
-            <CredentialCard
-              key={credential.id}
-              id={credential.id}
-              title={credential.title}
-              owner={credential.owner}
-              tag={credential.tag}
-              onNavigate={onNavigate}
-              onEdit={onEdit}
-              onView={onView}
-              onShare={onShare}
-            />
-          ))}
+      {/* Manager Sections */}
+      {isExpanded && (
+        <div className="px-4 pb-4 space-y-6">
+          {sectionOrder.map((categoryKey) => {
+            const categoryCredentials = groupedCredentials[categoryKey] || [];
+            const category = CATEGORY_MAP[categoryKey];
+            
+            return (
+              <div key={categoryKey} className="space-y-3">
+                {/* Section Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{category.icon}</span>
+                    <div>
+                      <h4 className="text-sm font-medium text-white">{category.label}</h4>
+                      <p className="text-xs text-neutral-500">{category.description} • {categoryCredentials.length} items</p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-neutral-300 hover:text-white text-xs"
+                    onClick={() => onAdd(manager.id, categoryKey)}
+                  >
+                    + Add
+                  </Button>
+                </div>
+
+                {/* Section Content */}
+                {categoryCredentials.length === 0 ? (
+                  <div className="text-xs text-neutral-500 pl-6">No items yet.</div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3">
+                    {categoryCredentials.map((credential) => (
+                      <CredentialCard
+                        key={credential.id}
+                        id={credential.id}
+                        title={credential.title}
+                        owner={credential.owner}
+                        tag={credential.tag}
+                        onNavigate={onNavigate}
+                        onEdit={onEdit}
+                        onView={onView}
+                        onShare={onShare}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
-    </div>
+    </Shell>
   );
 }
 
@@ -1193,14 +1231,14 @@ function CredentialSidePanel({
 // Mock data
 const passwordManagers = [
   {
-    id: '1',
+    id: 'angel',
     name: "Angel's Password Manager",
-    count: 2,
+    count: 5,
   },
   {
-    id: '2',
+    id: 'kassandra',
     name: "Kassandra's Password Manager", 
-    count: 2,
+    count: 4,
   },
 ];
 
@@ -1209,64 +1247,73 @@ const passwords = [
     id: '1',
     title: "Angel's Phone Password",
     owner: "Angel",
+    managerId: "angel",
     tag: "Device",
     category: "devices",
   },
   {
     id: '2',
     title: "Home Wi-Fi",
-    owner: "House",
+    owner: "Angel",
+    managerId: "angel",
     tag: "Network",
     category: "home",
   },
   {
     id: '3',
     title: "Garage Door Code",
-    owner: "Home",
+    owner: "Angel",
+    managerId: "angel",
     tag: "Access",
     category: "home",
   },
   {
     id: '4',
     title: "Angel's Laptop Password",
-    owner: "Angel", 
+    owner: "Angel",
+    managerId: "angel", 
     tag: "Device",
     category: "devices",
   },
   {
     id: '5',
-    title: "Code To Safe",
-    owner: "Home",
-    tag: "Access",
-    category: "home",
+    title: "Angel's Bank Account",
+    owner: "Angel",
+    managerId: "angel",
+    tag: "Finance",
+    category: "personal",
   },
   {
     id: '6',
     title: "Kassandra's Phone Password",
     owner: "Kassandra",
+    managerId: "kassandra",
     tag: "Device",
     category: "devices",
   },
   {
     id: '7',
     title: "Netflix",
-    owner: "Home",
+    owner: "Kassandra",
+    managerId: "kassandra",
     tag: "Entertainment",
     category: "entertainment",
   },
   {
     id: '8',
     title: "Spotify Family",
-    owner: "House",
+    owner: "Kassandra",
+    managerId: "kassandra",
     tag: "Entertainment",
     category: "entertainment",
   },
   {
     id: '9',
-    title: "Angel's Bank Account",
-    owner: "Angel",
-    tag: "Finance",
-    category: "personal",
+    title: "Safe Code",
+    owner: "Kassandra",
+    managerId: "kassandra",
+    tag: "Access",
+    category: "home",
   },
 ];
 
@@ -1360,9 +1407,9 @@ export default function FamilyPasswords() {
     return matchesSearch && matchesOwner && matchesType;
   });
 
-  // Check if any category has credentials after filtering
-  const hasAnyCredentials = sectionOrder.some(categoryKey => 
-    filteredPasswords.some(p => (p.category || 'other') === categoryKey)
+  // Check if any manager has credentials after filtering
+  const hasAnyCredentials = filteredPasswordManagers.some(manager =>
+    filteredPasswords.some(p => p.managerId === manager.id)
   );
 
   return (
@@ -1422,40 +1469,21 @@ export default function FamilyPasswords() {
           </div>
         </div>
 
-        {/* Password Managers Section */}
+        {/* Password Managers with Internal Sections */}
         <h2 className="text-sm font-semibold tracking-wide text-neutral-300 mb-3">Password Managers</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredPasswordManagers.map((manager) => (
-            <ManagerCard 
-              key={manager.id} 
-              name={manager.name} 
-              count={manager.count} 
+            <ManagerWithSections
+              key={manager.id}
+              manager={manager}
+              credentials={filteredPasswords}
+              onNavigate={handleNavigateToDetail}
+              onEdit={handleEdit}
+              onView={handleView}
+              onShare={handleShare}
+              onAdd={(managerId, section) => console.log('Add to', managerId, section)}
             />
           ))}
-        </div>
-
-        {/* Categorized Passwords Sections */}
-        <div className="space-y-8">
-          {sectionOrder.map((categoryKey) => {
-            const categoryCredentials = filteredPasswords.filter(p => (p.category || 'other') === categoryKey);
-            if (categoryCredentials.length === 0) return null;
-            
-            const category = CATEGORY_MAP[categoryKey];
-            return (
-              <CategorySection
-                key={categoryKey}
-                id={categoryKey}
-                label={category.label}
-                icon={category.icon}
-                description={category.description}
-                credentials={categoryCredentials}
-                onNavigate={handleNavigateToDetail}
-                onEdit={handleEdit}
-                onView={handleView}
-                onShare={handleShare}
-              />
-            );
-          })}
         </div>
 
         {/* Empty State */}
