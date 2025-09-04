@@ -155,27 +155,19 @@ button[data-testid^="button-manager"]:active {
   z-index: 9999 !important;
 }
 
-/* Make sure add item buttons work properly and don't disappear */
-button.border-dashed {
+/* Stable button styling - prevent any disappearing effects */
+.popover-trigger-button {
   position: relative !important;
   visibility: visible !important;
   opacity: 1 !important;
-  display: flex !important;
 }
 
-button.border-dashed:hover,
-button.border-dashed:focus,
-button.border-dashed:focus-visible,
-button.border-dashed:active {
-  background: transparent !important;
-  background-color: transparent !important;
+.popover-trigger-button:hover,
+.popover-trigger-button:focus,
+.popover-trigger-button:focus-visible,
+.popover-trigger-button:active {
   visibility: visible !important;
   opacity: 1 !important;
-}
-
-/* Prevent any transitions from causing button to disappear */
-button.border-dashed * {
-  pointer-events: none;
 }
 
 /* Optional: slim scrollbar style */

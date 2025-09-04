@@ -1,0 +1,146 @@
+that “+” briefly vanishing is almost always a UI-state bug (the click puts the button into a transient “loading/hidden” state and a timer brings it back). Let’s make the Add (+) button stable and make it open an add-menu/sheet immediately with no flicker.
+
+Here are the fixes to apply (they’re safe even if you don’t have every piece exactly the same):
+
+1) Make the + a controlled button (no transient hide)
+
+What to look for: anywhere you do something like setHidden(true); setTimeout(()=>setHidden(false), 2000) or render null while “adding”.
+
+Fix: remove the hide logic and use an “open” boolean for the menu/sheet instead.
+
+// FinanceHeader.tsx
+import { useState } from "react";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+// or use Dialog/Sheet if you prefer a full-screen panel
+
+export default function FinanceHeader({
+  onAdd,
+}: {
+  onAdd?: (type: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
+        <h1 className="text-2xl font-semibold">Finance</h1>
+
+        {/* STABLE + BUTTON (does not disappear) */}
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"                 // <- prevents form submit rerenders
+              size="icon"
+              className="h-8 w-8 rounded-full bg-[#D4AF37] text-black hover:bg-[#c6a02e] focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();        // <- prevents parent click/blur toggles
+                setOpen((v) => !v);
+              }}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+
+          <PopoverContent
+            align="start"
+            sideOffset={8}
+            className="w-64 rounded-xl border border-[#232530] bg-[#0F0F0F] text-white shadow-xl"
+          >
+            <div className="text-sm font-medium mb-2">Add to Finance</div>
+            <ul className="space-y-1">
+              {[
+                ["Bank account", "bank"],
+                ["Credit card", "card"],
+                ["Investment account", "investment"],
+                ["Loan / Mortgage", "loan"],
+                ["Other financial item", "other"],
+              ].map(([label, type]) => (
+                <li key={type}>
+                  <button
+                    className="w-full text-left px-2 py-1.5 rounded-md hover:bg-white/5"
+                    onClick={() => {
+                      onAdd?.(type);
+                      setOpen(false);
+                    }}
+                  >
+                    {label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </PopoverContent>
+        </Popover>
+
+        <span className="text-sm text-neutral-400">
+          ⚡ {/**/}38 recommended items
+        </span>
+      </div>
+
+      {/* Search and “Show archived” live here */}
+    </div>
+  );
+}
+
+
+Why this stops the flicker
+
+We never render null for the button.
+
+No timeouts; the button’s visibility is not tied to async work.
+
+type="button" avoids implicit <form> submission rerenders.
+
+stopPropagation() prevents a parent click/blur effect from unmounting it.
+
+2) Kill any “loading means hide” code
+
+Search your codebase for anything like:
+
+const [adding, setAdding] = useState(false);
+{adding ? null : <PlusButton/>}              // <- remove this
+
+
+or
+
+setAdding(true);
+await doSomething();
+setTimeout(() => setAdding(false), 2000);    // <- remove this
+
+
+Replace with a spinner inside the popover/dialog if you actually need a loading indicator, without removing the button from the DOM.
+
+3) Prevent style “disappear on active” cases
+
+If the icon turns the same color as the background on :active or :focus, it can look like it vanished. Ensure the button has explicit background/text colors for hover, active, and focus-visible, e.g. in Tailwind we already set:
+
+bg-[#D4AF37] text-black hover:bg-[#c6a02e] focus-visible:ring-[#D4AF37]
+
+4) If you open a full-screen Sheet/Dialog instead of a popover
+
+Use shadcn/ui Sheet or Dialog, but don’t unmount the trigger while the sheet is opening. Example:
+
+<Sheet open={open} onOpenChange={setOpen}>
+  <SheetTrigger asChild>
+    <Button type="button" ...> <Plus/> </Button>
+  </SheetTrigger>
+  <SheetContent side="right" className="w-[420px] bg-[#0F0F0F]">
+    {/* Add form goes here */}
+  </SheetContent>
+</Sheet>
+
+5) Last sanity checks
+
+Ensure the header isn’t conditionally hidden on route changes triggered by the button.
+
+Make sure there isn’t a key change on the header container that forces a remount on click.
+
+If the button sits inside a <label>, move it out (labels can steal focus/blur unexpectedly).
+
+If you paste your current Finance header component (the part that renders the title, + button, and search), I’ll patch it exactly. The snippet above is drop-in and will stop the 2-second disappear/reappear behavior immediately.
