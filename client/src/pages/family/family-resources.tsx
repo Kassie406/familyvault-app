@@ -118,43 +118,6 @@ export default function FamilyResources() {
           <div className="px-6 py-4 flex items-center gap-3">
             <h1 className="text-2xl font-semibold text-white" data-testid="text-page-title">Family Resources</h1>
 
-            {/* Persistent + menu */}
-            <div className="relative">
-              <button
-                aria-label="Add"
-                onClick={() => setAddOpen(o => !o)}
-                className="grid size-8 place-items-center rounded-full bg-amber-400/25 text-amber-200 hover:bg-amber-400/35 transition"
-                data-testid="button-add-resource"
-              >
-                +
-              </button>
-              {addOpen && (
-                <div
-                  className="absolute left-0 z-30 mt-2 w-64 rounded-xl border border-white/10 bg-[#0b0d11]/95 shadow-xl backdrop-blur"
-                  role="menu"
-                  data-testid="menu-add-options"
-                >
-                  {[
-                    { label: "New Document", icon: "📄" },
-                    { label: "New Checklist", icon: "✅" },
-                    { label: "New Letter", icon: "✉️" },
-                    { label: "New Guide", icon: "📘" },
-                    { label: "Import from Template", icon: "✨" },
-                  ].map(opt => (
-                    <button
-                      key={opt.label}
-                      className="flex w-full items-center gap-3 px-3 py-2 text-sm hover:bg-white/5 rounded-lg text-white"
-                      onClick={() => setAddOpen(false)}
-                      data-testid={`button-${opt.label.toLowerCase().replace(/\s+/g, '-')}`}
-                    >
-                      <span className="text-base">{opt.icon}</span>
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
             {/* spacer */}
             <div className="grow" />
 
@@ -197,6 +160,55 @@ export default function FamilyResources() {
                 style={{ left: tab === "created" ? 4 : 4 + 112 }}
                 aria-hidden
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Add Button and Recommended Items Section */}
+        <div className="mx-auto max-w-6xl px-6 py-6">
+          <div className="flex items-center gap-4">
+            {/* Persistent + menu */}
+            <div className="relative">
+              <button
+                aria-label="Add Resource"
+                onClick={() => setAddOpen(o => !o)}
+                className="h-9 px-4 rounded-lg bg-[#D4AF37] text-black hover:bg-[#D4AF37]/80 transition gap-2 flex items-center"
+                data-testid="button-add-resource"
+              >
+                + Add Resource
+              </button>
+              {addOpen && (
+                <div
+                  className="absolute left-0 z-30 mt-2 w-64 rounded-xl border border-white/10 bg-[#0b0d11]/95 shadow-xl backdrop-blur"
+                  role="menu"
+                  data-testid="menu-add-options"
+                >
+                  {[
+                    { label: "New Document", icon: "📄" },
+                    { label: "New Checklist", icon: "✅" },
+                    { label: "New Letter", icon: "✉️" },
+                    { label: "New Guide", icon: "📘" },
+                    { label: "Import from Template", icon: "✨" },
+                  ].map(opt => (
+                    <button
+                      key={opt.label}
+                      className="flex w-full items-center gap-3 px-3 py-2 text-sm hover:bg-white/5 rounded-lg text-white"
+                      onClick={() => setAddOpen(false)}
+                      data-testid={`button-${opt.label.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      <span className="text-base">{opt.icon}</span>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Recommended Items */}
+            <div className="flex items-center gap-2 bg-[#D4AF37]/10 text-[#D4AF37] px-3 py-1.5 rounded-full">
+              <span className="text-sm font-medium">
+                🔔 {data.length} recommended templates
+              </span>
             </div>
           </div>
         </div>
