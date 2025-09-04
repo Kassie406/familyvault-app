@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -29,6 +30,7 @@ interface Pet {
 }
 
 export default function FamilyIds() {
+  const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
 
   const familyMembers: FamilyMember[] = [
@@ -76,6 +78,15 @@ export default function FamilyIds() {
   ];
 
   const recommendedItems = 12;
+
+  const navigateToMember = (memberId: string) => {
+    // Convert member id to a URL-friendly slug
+    const memberSlug = familyMembers.find(m => m.id === memberId)?.name
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '') || memberId;
+    setLocation(`/family/ids/${memberSlug}`);
+  };
 
   return (
     <div className="min-h-screen bg-[var(--bg-900)]">
@@ -142,6 +153,7 @@ export default function FamilyIds() {
                 key={member.id}
                 className="p-6 cursor-pointer group hover:scale-[1.02] transition-all"
                 data-testid={`family-member-${member.id}`}
+                onClick={() => navigateToMember(member.id)}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div 
