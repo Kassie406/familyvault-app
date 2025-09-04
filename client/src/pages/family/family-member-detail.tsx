@@ -446,39 +446,40 @@ export default function FamilyMemberDetail() {
                     ))}
                     
                     {/* Add New Item Card with Dropdown */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <div className="border-2 border-dashed border-[#D4AF37]/30 rounded-xl p-4 hover:border-[#D4AF37] transition-colors cursor-pointer group">
+                    <div className="relative">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="w-full border-2 border-dashed border-[#D4AF37]/30 rounded-xl p-4 hover:border-[#D4AF37] focus:border-[#D4AF37] focus:outline-none transition-colors cursor-pointer group text-left bg-transparent">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-[#D4AF37]/20 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-lg bg-[#D4AF37]/20 flex items-center justify-center flex-shrink-0">
                               <Plus className="h-5 w-5 text-[#D4AF37]" />
                             </div>
-                            <div>
+                            <div className="flex-1">
                               <p className="text-white font-medium">Add New Item</p>
                               <p className="text-neutral-400 text-sm">Add to {section.title}</p>
                             </div>
                           </div>
-                        </div>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent 
-                        className="w-56 bg-[#0F0F0F] border-[#232530] shadow-xl z-50"
-                        align="start"
-                        sideOffset={5}
-                      >
-                        {sectionAddOptions[section.id]?.map((option) => (
-                          <DropdownMenuItem
-                            key={option.id}
-                            onClick={() => handleAddItem(section.id, option.id)}
-                            className="text-neutral-300 hover:bg-[#171822] hover:text-white focus:bg-[#171822] focus:text-white cursor-pointer"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="text-[#D4AF37]">{option.icon}</div>
-                              {option.label}
-                            </div>
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent 
+                          className="w-56 bg-[#0F0F0F] border-[#232530] shadow-xl"
+                          align="start"
+                          sideOffset={5}
+                          style={{ zIndex: 9999 }}
+                        >
+                          {sectionAddOptions[section.id]?.map((option) => (
+                            <DropdownMenuItem
+                              key={option.id}
+                              onClick={() => handleAddItem(section.id, option.id)}
+                              className="text-neutral-300 hover:bg-[#171822] hover:text-white focus:bg-[#171822] focus:text-white cursor-pointer"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="text-[#D4AF37]">{option.icon}</div>
+                                {option.label}
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 </div>
               )}
