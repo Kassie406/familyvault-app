@@ -3,6 +3,7 @@ import { useLocation, useRoute } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { 
   ArrowLeft, 
   Plus, 
@@ -56,6 +57,12 @@ interface VaultItem {
   isSecure?: boolean;
   preview?: string;
   details?: Record<string, string>;
+}
+
+interface AddItemOption {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
 }
 
 // Mock data for Sarah Johnson
@@ -237,6 +244,58 @@ const mockVaultData: VaultSection[] = [
   }
 ];
 
+// Add item options for each section
+const sectionAddOptions: Record<string, AddItemOption[]> = {
+  documents: [
+    { id: 'passport', label: 'Passport', icon: <FileText className="h-4 w-4" /> },
+    { id: 'drivers-license', label: 'Driver\'s License', icon: <FileText className="h-4 w-4" /> },
+    { id: 'birth-certificate', label: 'Birth Certificate', icon: <FileText className="h-4 w-4" /> },
+    { id: 'ssn-card', label: 'Social Security Card', icon: <FileText className="h-4 w-4" /> },
+    { id: 'marriage-certificate', label: 'Marriage Certificate', icon: <FileText className="h-4 w-4" /> },
+    { id: 'other-document', label: 'Other Document', icon: <FileText className="h-4 w-4" /> }
+  ],
+  medical: [
+    { id: 'health-insurance', label: 'Health Insurance Card', icon: <Heart className="h-4 w-4" /> },
+    { id: 'prescription', label: 'Prescription', icon: <Heart className="h-4 w-4" /> },
+    { id: 'allergy-info', label: 'Allergy Information', icon: <Heart className="h-4 w-4" /> },
+    { id: 'medical-condition', label: 'Medical Condition', icon: <Heart className="h-4 w-4" /> },
+    { id: 'emergency-contact', label: 'Emergency Contact', icon: <Phone className="h-4 w-4" /> },
+    { id: 'other-medical', label: 'Other Medical', icon: <Heart className="h-4 w-4" /> }
+  ],
+  financial: [
+    { id: 'bank-account', label: 'Bank Account', icon: <CreditCard className="h-4 w-4" /> },
+    { id: 'credit-card', label: 'Credit Card', icon: <CreditCard className="h-4 w-4" /> },
+    { id: 'investment-account', label: 'Investment Account', icon: <CreditCard className="h-4 w-4" /> },
+    { id: 'loan', label: 'Loan', icon: <CreditCard className="h-4 w-4" /> },
+    { id: 'cryptocurrency', label: 'Cryptocurrency', icon: <CreditCard className="h-4 w-4" /> },
+    { id: 'other-financial', label: 'Other Financial', icon: <CreditCard className="h-4 w-4" /> }
+  ],
+  education: [
+    { id: 'diploma', label: 'Diploma', icon: <GraduationCap className="h-4 w-4" /> },
+    { id: 'certificate', label: 'Certificate', icon: <GraduationCap className="h-4 w-4" /> },
+    { id: 'student-id', label: 'Student ID', icon: <GraduationCap className="h-4 w-4" /> },
+    { id: 'transcript', label: 'Transcript', icon: <GraduationCap className="h-4 w-4" /> },
+    { id: 'professional-license', label: 'Professional License', icon: <GraduationCap className="h-4 w-4" /> },
+    { id: 'other-education', label: 'Other Education', icon: <GraduationCap className="h-4 w-4" /> }
+  ],
+  digital: [
+    { id: 'email-account', label: 'Email Account', icon: <Smartphone className="h-4 w-4" /> },
+    { id: 'cloud-storage', label: 'Cloud Storage', icon: <Smartphone className="h-4 w-4" /> },
+    { id: 'social-media', label: 'Social Media Account', icon: <Smartphone className="h-4 w-4" /> },
+    { id: 'streaming-service', label: 'Streaming Service', icon: <Smartphone className="h-4 w-4" /> },
+    { id: 'app-account', label: 'App Account', icon: <Smartphone className="h-4 w-4" /> },
+    { id: 'other-digital', label: 'Other Digital', icon: <Smartphone className="h-4 w-4" /> }
+  ],
+  notes: [
+    { id: 'personal-note', label: 'Personal Note', icon: <StickyNote className="h-4 w-4" /> },
+    { id: 'travel-note', label: 'Travel Note', icon: <StickyNote className="h-4 w-4" /> },
+    { id: 'legal-note', label: 'Legal Note', icon: <StickyNote className="h-4 w-4" /> },
+    { id: 'family-note', label: 'Family Note', icon: <StickyNote className="h-4 w-4" /> },
+    { id: 'reminder', label: 'Reminder', icon: <StickyNote className="h-4 w-4" /> },
+    { id: 'other-note', label: 'Other Note', icon: <StickyNote className="h-4 w-4" /> }
+  ]
+};
+
 export default function FamilyMemberDetail() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute('/family/ids/:memberId');
@@ -267,6 +326,12 @@ export default function FamilyMemberDetail() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     // Could add toast notification here
+  };
+
+  const handleAddItem = (sectionId: string, itemType: string) => {
+    console.log(`Adding ${itemType} to ${sectionId} section`);
+    // TODO: Implement add item functionality
+    // This would typically open a form modal or navigate to an add form
   };
 
   const goBack = () => {
@@ -380,18 +445,39 @@ export default function FamilyMemberDetail() {
                       />
                     ))}
                     
-                    {/* Add New Item Card */}
-                    <div className="border-2 border-dashed border-[#D4AF37]/30 rounded-xl p-4 hover:border-[#D4AF37] transition-colors cursor-pointer group">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-[#D4AF37]/20 flex items-center justify-center">
-                          <Plus className="h-5 w-5 text-[#D4AF37]" />
+                    {/* Add New Item Card with Dropdown */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <div className="border-2 border-dashed border-[#D4AF37]/30 rounded-xl p-4 hover:border-[#D4AF37] transition-colors cursor-pointer group">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-[#D4AF37]/20 flex items-center justify-center">
+                              <Plus className="h-5 w-5 text-[#D4AF37]" />
+                            </div>
+                            <div>
+                              <p className="text-white font-medium">Add New Item</p>
+                              <p className="text-neutral-400 text-sm">Add to {section.title}</p>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-white font-medium">Add New Item</p>
-                          <p className="text-neutral-400 text-sm">Add to {section.title}</p>
-                        </div>
-                      </div>
-                    </div>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent 
+                        className="w-56 bg-[#0F0F0F] border-[#232530] shadow-xl"
+                        align="start"
+                      >
+                        {sectionAddOptions[section.id]?.map((option) => (
+                          <DropdownMenuItem
+                            key={option.id}
+                            onClick={() => handleAddItem(section.id, option.id)}
+                            className="text-neutral-300 hover:bg-[#171822] hover:text-white focus:bg-[#171822] focus:text-white cursor-pointer"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="text-[#D4AF37]">{option.icon}</div>
+                              {option.label}
+                            </div>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               )}
