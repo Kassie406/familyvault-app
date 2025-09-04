@@ -119,18 +119,34 @@ export default function FamilyBusiness() {
         <div className="mx-auto max-w-6xl px-6 py-4 flex items-center gap-3">
           <h1 className="text-[28px] font-semibold tracking-tight text-white" data-testid="text-page-title">Business</h1>
 
+          <div className="grow" />
+
+          {/* Search */}
+          <input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Search managers or business items..."
+            className="w-[420px] rounded-full bg-white/6 px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-400/25 text-white placeholder:text-white/40"
+            data-testid="input-search"
+          />
+        </div>
+      </div>
+
+      {/* Add Button and Recommended Items Section */}
+      <div className="mx-auto max-w-6xl px-6 py-6">
+        <div className="flex items-center gap-4">
           {/* Persistent + Add */}
           <div className="relative">
             <button
               ref={addRef}
               type="button"
               onClick={() => setAddOpen(v => !v)}
-              className="h-8 rounded-full bg-amber-400/20 px-3 text-amber-200 hover:bg-amber-400/30 transition"
+              className="h-9 px-4 rounded-lg bg-[#D4AF37] text-black hover:bg-[#D4AF37]/80 transition gap-2 flex items-center"
               aria-expanded={addOpen}
               aria-controls="business-add-menu"
               data-testid="button-add-business"
             >
-              + Add
+              + Add Business Item
             </button>
 
             {addOpen && (
@@ -152,20 +168,11 @@ export default function FamilyBusiness() {
           </div>
 
           {/* Metrics pill */}
-          <div className="rounded-full bg-amber-400/15 px-3 py-1 text-sm text-amber-200" data-testid="text-manager-count">
-            {managers.length} managers • {totalItems} total items
+          <div className="flex items-center gap-2 bg-[#D4AF37]/10 text-[#D4AF37] px-3 py-1.5 rounded-full" data-testid="text-manager-count">
+            <span className="text-sm font-medium">
+              🔔 {managers.length} managers • {totalItems} total items
+            </span>
           </div>
-
-          <div className="grow" />
-
-          {/* Search */}
-          <input
-            value={q}
-            onChange={e => setQ(e.target.value)}
-            placeholder="Search managers or business items..."
-            className="w-[420px] rounded-full bg-white/6 px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-400/25 text-white placeholder:text-white/40"
-            data-testid="input-search"
-          />
         </div>
       </div>
 
