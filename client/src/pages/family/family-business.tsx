@@ -8,43 +8,44 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LuxuryCard } from '@/components/luxury-cards';
+import { useQuery } from '@tanstack/react-query';
 
-// Business managers data
+// Business managers data types
 type BusinessManager = {
   id: string;
   name: string;
   initials: string;
-  role: string;
   itemCount: number;
-  avatarColor: string;
 };
 
-const businessManagers: BusinessManager[] = [
+// Fallback data for when API is not available
+const fallbackManagers: BusinessManager[] = [
   {
     id: 'angel',
     name: 'Angel Johnson',
     initials: 'AJ',
-    role: 'Managing Member',
-    itemCount: 42,
-    avatarColor: '#D4AF37'
+    itemCount: 42
   },
   {
     id: 'kassandra',
     name: 'Kassandra Johnson',
     initials: 'KJ',
-    role: 'Operations Director',
-    itemCount: 28,
-    avatarColor: '#9333EA'
+    itemCount: 28
   },
   {
     id: 'family',
     name: 'Family Shared',
     initials: 'FS',
-    role: 'Joint Ownership',
-    itemCount: 15,
-    avatarColor: '#059669'
+    itemCount: 15
   }
 ];
+
+// Avatar colors for managers
+const avatarColors: Record<string, string> = {
+  'angel': '#D4AF37',
+  'kassandra': '#9333EA', 
+  'family': '#059669'
+};
 
 
 export default function FamilyBusiness() {
@@ -53,8 +54,23 @@ export default function FamilyBusiness() {
   const [, setLocation] = useLocation();
   const addButtonRef = useRef<HTMLButtonElement>(null);
 
+  // Fetch business managers from API
+  const { data: businessManagers = fallbackManagers, isLoading } = useQuery<BusinessManager[]>({
+    queryKey: ['/api/business/managers'],
+    queryFn: async (): Promise<BusinessManager[]> => {
+      try {
+        const res = await fetch('/api/business/managers');
+        if (!res.ok) throw new Error('Failed to fetch managers');
+        return res.json();
+      } catch (error) {
+        console.warn('Using fallback business managers data:', error);
+        return fallbackManagers;
+      }
+    }
+  });
+
   // Calculate total items across all managers
-  const totalItems = businessManagers.reduce((sum, manager) => sum + manager.itemCount, 0);
+  const totalItems = businessManagers.reduce((sum: number, manager: BusinessManager) => sum + manager.itemCount, 0);
 
   // Handle click outside to close menu
   useEffect(() => {
@@ -71,9 +87,8 @@ export default function FamilyBusiness() {
   }, [addMenuOpen]);
 
   // Filter function for search
-  const filteredManagers = businessManagers.filter(manager => {
-    return manager.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           manager.role.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredManagers = businessManagers.filter((manager: BusinessManager) => {
+    return manager.name.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
 
@@ -171,9 +186,16 @@ export default function FamilyBusiness() {
           Select a manager to view their business vault.
         </p>
 
-        {/* Managers Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredManagers.map((manager) => (
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-neutral-400">Loading business managers...</div>
+          </div>
+        ) : (
+          <>
+            {/* Managers Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredManagers.map((manager: BusinessManager) => (
             <LuxuryCard 
               key={manager.id} 
               className="p-6 cursor-pointer group hover:scale-[1.02] transition-all"
@@ -182,7 +204,7 @@ export default function FamilyBusiness() {
               <div className="flex items-center gap-4">
                 <div 
                   className="w-12 h-12 rounded-full flex items-center justify-center text-black font-semibold"
-                  style={{ backgroundColor: manager.avatarColor }}
+                  style={{ backgroundColor: avatarColors[manager.id] || '#D4AF37' }}
                 >
                   {manager.initials}
                 </div>
@@ -190,15 +212,16 @@ export default function FamilyBusiness() {
                   <h3 className="font-semibold text-white mb-1 group-hover:text-[#D4AF37] transition-colors">
                     {manager.name}
                   </h3>
-                  <div className="text-xs text-neutral-400 mb-1">{manager.role}</div>
                   <div className="text-xs text-neutral-500">
                     {manager.itemCount} items pre-populated
                   </div>
                 </div>
               </div>
             </LuxuryCard>
-          ))}
-        </div>
+              ))}
+            </div>
+          </>
+        )}
 
         {/* Empty State */}
         {searchTerm && filteredManagers.length === 0 && (

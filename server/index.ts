@@ -20,6 +20,7 @@ import { getOrgSecuritySettings, setOrgSecuritySettings, guardFor, canModifyOrgS
 import sessionsRouter from "./sessions-api";
 import stepupRouter from "./stepup-routes";
 import testStepupRouter from "./test-stepup-routes";
+import businessRoutes from "./routes/business";
 import { escalationWorker } from "./escalation-worker";
 import { smsService } from "./sms-service";
 import { eq, desc, and } from "drizzle-orm";
@@ -467,6 +468,9 @@ app.use('/api/stepup', requireAuth, stepupRouter);
 
 // Test step-up authentication endpoints
 app.use('/api/test-stepup', requireAuth, testStepupRouter);
+
+// Business management API
+app.use('/api/business', requireAuth, businessRoutes);
 
 // Share functionality imports and setup
 import { makeToken, expiryToDate, appUrl, type Expiry } from "./shareHelpers";
