@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, useRef } from "react";
-import { ChevronDown, MoreHorizontal, Check, X } from "lucide-react";
+import { ChevronDown, MoreHorizontal, Check, X, Search, HelpCircle } from "lucide-react";
 import { useLocation } from "wouter";
+import { Button } from '@/components/ui/button';
+import { LuxuryCard } from '@/components/luxury-cards';
 
 /** TYPES */
 type Resource = {
@@ -168,11 +170,16 @@ export default function FamilyResources() {
   }, [tab, q, created, templates]);
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] text-white">
-      <div className="px-6 pb-16">
-        {/* Sticky header */}
-        <div className="sticky top-0 z-20 -mx-6 mb-6 border-b border-white/8 bg-[rgb(7_8_10/0.85)] backdrop-blur supports-[backdrop-filter]:bg-black/60">
-          <div className="px-6 py-4 flex items-center gap-3">
+    <div className="min-h-screen bg-[var(--bg-900)]">
+      {/* Header */}
+      <LuxuryCard className="border-b border-[var(--line-700)] px-8 py-6 rounded-none"
+        style={{
+          background: 'linear-gradient(135deg, #161616 0%, #0F0F0F 100%)',
+          borderRadius: '0'
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4 min-w-0">
             <div className="flex items-center gap-3">
               {isEditingTitle ? (
                 <div className="flex items-center gap-2">
@@ -182,7 +189,7 @@ export default function FamilyResources() {
                     value={tempTitle}
                     onChange={(e) => setTempTitle(e.target.value)}
                     onKeyDown={handleTitleKeyDown}
-                    className="text-2xl font-semibold text-white bg-transparent border-b-2 border-[#D4AF37] outline-none focus:border-[#D4AF37] min-w-0"
+                    className="text-3xl font-bold text-white bg-transparent border-b-2 border-[#D4AF37] outline-none focus:border-[#D4AF37] min-w-0"
                     style={{ background: 'transparent' }}
                     data-testid="title-input"
                   />
@@ -203,7 +210,7 @@ export default function FamilyResources() {
                 </div>
               ) : (
                 <>
-                  <h1 className="text-2xl font-semibold text-white" data-testid="text-page-title">{pageTitle}</h1>
+                  <h1 className="text-3xl font-bold text-white shrink-0" data-testid="page-title">{pageTitle}</h1>
                   <button
                     onClick={handleEditTitle}
                     className="p-1 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
@@ -214,50 +221,56 @@ export default function FamilyResources() {
                 </>
               )}
             </div>
-
-            {/* spacer */}
-            <div className="grow" />
-
-            {/* Search */}
-            <div className="relative w-[420px]">
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--ink-400)] h-4 w-4" />
               <input
-                value={q}
-                onChange={e => setQ(e.target.value)}
+                type="text"
                 placeholder="Search resources, categories, or notes"
-                className="w-full rounded-full bg-white/6 px-4 py-2 text-sm outline-none ring-0 focus:ring-2 focus:ring-amber-400/25 text-white placeholder:text-white/40"
-                aria-label="Search family resources"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] w-64"
                 data-testid="input-search"
               />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/40">
-                <ChevronDown className="size-4 rotate-180" />
-              </span>
+            </div>
+            <Button variant="ghost" size="sm" className="text-[var(--ink-300)] hover:text-[var(--gold)]">
+              <HelpCircle className="h-4 w-4 mr-2" />
+              Help
+            </Button>
+            <div className="w-8 h-8 rounded-full bg-[var(--gold)] flex items-center justify-center">
+              <span className="text-black text-sm font-medium">KC</span>
             </div>
           </div>
+        </div>
+      </LuxuryCard>
 
-          {/* Tabs with pill slider */}
-          <div className="px-6 pb-3">
-            <div className="relative inline-flex rounded-full bg-white/6 p-1" data-testid="tabs-container">
-              {tabs.map((t) => {
-                const active = tab === t.key;
-                return (
-                  <button
-                    key={t.key}
-                    onClick={() => setTab(t.key)}
-                    className={`relative z-10 rounded-full px-4 py-1.5 text-sm transition ${
-                      active ? "text-black" : "text-white/75 hover:text-white"
-                    }`}
-                    data-testid={`tab-${t.key}`}
-                  >
-                    {t.label}
-                  </button>
-                );
-              })}
-              <span
-                className={`absolute inset-y-1 w-28 rounded-full bg-amber-400 transition-[left]`}
-                style={{ left: tab === "created" ? 4 : 4 + 112 }}
-                aria-hidden
-              />
-            </div>
+      {/* Content */}
+      <div className="px-6 pb-16">
+        {/* Tabs with pill slider */}
+        <div className="px-6 py-6">
+          <div className="relative inline-flex rounded-full bg-white/6 p-1" data-testid="tabs-container">
+            {tabs.map((t) => {
+              const active = tab === t.key;
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  className={`relative z-10 rounded-full px-4 py-1.5 text-sm transition ${
+                    active ? "text-black" : "text-white/75 hover:text-white"
+                  }`}
+                  data-testid={`tab-${t.key}`}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+            <span
+              className={`absolute inset-y-1 w-28 rounded-full bg-amber-400 transition-[left]`}
+              style={{ left: tab === "created" ? 4 : 4 + 112 }}
+              aria-hidden
+            />
           </div>
         </div>
 
