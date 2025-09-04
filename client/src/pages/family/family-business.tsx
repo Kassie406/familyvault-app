@@ -1,253 +1,176 @@
-import { useState, useRef, useEffect } from 'react';
-import { useLocation } from 'wouter';
-import { 
-  Search, 
-  Plus, 
-  Building2, 
-  HelpCircle
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { LuxuryCard } from '@/components/luxury-cards';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "wouter";
 
-// Business managers data types
-type BusinessManager = {
+type Manager = {
   id: string;
   name: string;
-  initials: string;
-  itemCount: number;
+  role?: string;
+  itemCount?: number;
+  initials?: string;
 };
-
-// Fallback data for when API is not available
-const fallbackManagers: BusinessManager[] = [
-  {
-    id: 'angel',
-    name: 'Angel Johnson',
-    initials: 'AJ',
-    itemCount: 42
-  },
-  {
-    id: 'kassandra',
-    name: 'Kassandra Johnson',
-    initials: 'KJ',
-    itemCount: 28
-  },
-  {
-    id: 'family',
-    name: 'Family Shared',
-    initials: 'FS',
-    itemCount: 15
-  }
-];
-
-// Avatar colors for managers
-const avatarColors: Record<string, string> = {
-  'angel': '#D4AF37',
-  'kassandra': '#9333EA', 
-  'family': '#059669'
-};
-
 
 export default function FamilyBusiness() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [managers, setManagers] = useState<Manager[]>([]);
+  const [q, setQ] = useState("");
   const [, setLocation] = useLocation();
-  const addButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Fetch business managers from API with quick fallback
-  const { data: businessManagers = fallbackManagers, isLoading } = useQuery<BusinessManager[]>({
-    queryKey: ['/api/business/managers'],
-    queryFn: async (): Promise<BusinessManager[]> => {
+  useEffect(() => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 15000); // safety cap
+
+    (async () => {
       try {
-        console.log('Attempting to fetch business managers...');
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+        setError(null);
+        console.log('Fetching business managers...');
         
-        const res = await fetch('/api/business/managers', {
-          signal: controller.signal
+        const res = await fetch("/api/business/managers", { 
+          signal: ctrl.signal, 
+          credentials: "include" 
         });
         
-        clearTimeout(timeoutId);
-        
         if (!res.ok) {
-          console.warn('API response not ok, using fallback');
-          return fallbackManagers;
+          throw new Error(`HTTP ${res.status}`);
         }
         
-        const data = await res.json();
-        console.log('API returned:', data);
-        return data;
-      } catch (error) {
-        console.warn('API failed, using fallback business managers data:', error);
-        return fallbackManagers;
+        const data = await res.json().catch(() => ({}));
+        console.log('API response:', data);
+        
+        // Accept several shapes - handle both array and object responses
+        const raw = Array.isArray(data) ? data : (data?.items ?? data?.managers ?? []);
+
+        const mapped: Manager[] = raw.map((m: any, i: number) => ({
+          id: String(m.id ?? m.managerId ?? i),
+          name: String(m.name ?? m.fullName ?? "Unnamed"),
+          role: m.role ?? m.title ?? "Manager",
+          itemCount: Number(m.itemCount ?? m.itemsCount ?? m.count ?? 0),
+          initials: m.initials ?? m.name?.split(" ").map((s: string) => s[0]).slice(0, 2).join("") ?? "??",
+        }));
+
+        setManagers(mapped);
+        console.log('Mapped managers:', mapped);
+      } catch (e: any) {
+        console.error('Error fetching managers:', e);
+        if (e?.name === "AbortError") {
+          setError("Request timed out. Please try again.");
+        } else {
+          setError(e?.message || "Failed to load managers.");
+        }
+        
+        // Fallback to default managers on error
+        setManagers([
+          { id: "angel", name: "Angel Johnson", role: "Managing Member", itemCount: 42, initials: "AJ" },
+          { id: "kassandra", name: "Kassandra Johnson", role: "Operations Director", itemCount: 28, initials: "KJ" },
+          { id: "family", name: "Family Shared", role: "Joint Ownership", itemCount: 15, initials: "FS" }
+        ]);
+      } finally {
+        clearTimeout(t);
+        setLoading(false);
       }
-    },
-    retry: false, // Don't retry failed requests
-    staleTime: 30000 // Consider data fresh for 30 seconds
-  });
+    })();
 
-  // Calculate total items across all managers
-  const totalItems = businessManagers.reduce((sum: number, manager: BusinessManager) => sum + manager.itemCount, 0);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+  }, []);
 
-  // Handle click outside to close menu
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (addButtonRef.current && !addButtonRef.current.contains(event.target as Node)) {
-        setAddMenuOpen(false);
-      }
-    }
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return managers;
+    return managers.filter(m =>
+      m.name.toLowerCase().includes(needle) ||
+      (m.role ?? "").toLowerCase().includes(needle)
+    );
+  }, [q, managers]);
 
-    if (addMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [addMenuOpen]);
+  const totalItems = managers.reduce((sum, manager) => sum + (manager.itemCount || 0), 0);
 
-  // Filter function for search
-  const filteredManagers = businessManagers.filter((manager: BusinessManager) => {
-    return manager.name.toLowerCase().includes(searchTerm.toLowerCase());
-  });
-
-
-
+  // Avatar colors for managers
+  const avatarColors: Record<string, string> = {
+    'angel': '#D4AF37',
+    'kassandra': '#9333EA', 
+    'family': '#059669'
+  };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-900)]">
-      {/* Header */}
-      <LuxuryCard className="border-b border-[var(--line-700)] px-8 py-6 rounded-none"
-        style={{
-          background: 'linear-gradient(135deg, #161616 0%, #0F0F0F 100%)',
-          borderRadius: '0'
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6 min-w-0">
-            <h1 className="text-3xl font-bold text-white shrink-0">Business</h1>
-            
-            {/* Add Button */}
-            <div className="relative">
-              <Button 
-                ref={addButtonRef}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setAddMenuOpen(!addMenuOpen);
-                }}
-                className="bg-[#D4AF37] text-black hover:bg-[#D4AF37]/80 h-9 px-4"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add
-              </Button>
-              
-              {addMenuOpen && (
-                <div className="absolute top-full mt-2 left-0 w-56 bg-[#111214] border border-[#232530] rounded-lg shadow-xl z-50">
-                  <div className="py-1">
-                    <button className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#232530] transition-colors">
-                      New Entity
-                    </button>
-                    <button className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#232530] transition-colors">
-                      New Contract
-                    </button>
-                    <button className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#232530] transition-colors">
-                      New License/Permit
-                    </button>
-                    <button className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#232530] transition-colors">
-                      New Insurance
-                    </button>
-                    <button className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#232530] transition-colors">
-                      New Partner
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Recommended Items */}
-            <div className="flex items-center gap-2 bg-[#D4AF37]/10 text-[#D4AF37] px-3 py-1.5 rounded-full">
-              <span className="text-sm font-medium">
-                🔔 {totalItems} total items
-              </span>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              className="text-neutral-300 hover:text-[#D4AF37] p-2"
+    <div className="min-h-screen bg-[#0F0F0F] text-white">
+      <div className="px-6 pb-12">
+        {/* Header */}
+        <div className="sticky top-0 z-10 -mx-6 border-b border-white/8 bg-black/60 backdrop-blur">
+          <div className="px-6 py-4 flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-white" data-testid="text-page-title">Business</h1>
+            <button
+              className="rounded-full bg-amber-400/25 px-3 py-1.5 text-amber-200 hover:bg-amber-400/35 transition"
+              onClick={() => {/* open add menu/modal */}}
+              data-testid="button-add-business"
             >
-              <HelpCircle className="h-5 w-5" />
-            </Button>
-            <div className="w-8 h-8 rounded-full bg-[#D4AF37] flex items-center justify-center">
-              <span className="text-black text-sm font-medium">KC</span>
+              + Add
+            </button>
+            <div className="rounded-full bg-amber-400/15 px-3 py-1 text-amber-200 text-sm" data-testid="text-manager-count">
+              {managers.length} managers • {totalItems} total items
             </div>
-          </div>
-        </div>
-
-        {/* Search Bar */}
-        <div className="mt-6">
-          <div className="relative max-w-lg">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 h-4 w-4" />
+            <div className="grow" />
             <input
-              type="text"
-              placeholder="Search managers or business items…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-[#2A2A33] rounded-full bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] w-full"
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              placeholder="Search managers or business items..."
+              className="w-[420px] rounded-full bg-white/6 px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-400/25 text-white placeholder:text-white/40"
+              data-testid="input-search"
             />
           </div>
         </div>
-      </LuxuryCard>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-8 py-8">
-        <p className="text-sm text-neutral-400 mb-6">
-          Select a manager to view their business vault.
-        </p>
-
-        {/* Loading State */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-neutral-400">Loading business managers...</div>
+        {/* States */}
+        {loading && (
+          <div className="py-16 text-center text-white/60" data-testid="loading-state">
+            Loading business managers…
           </div>
-        ) : (
-          <>
-            {/* Managers Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredManagers.map((manager: BusinessManager) => (
-            <LuxuryCard 
-              key={manager.id} 
-              className="p-6 cursor-pointer group hover:scale-[1.02] transition-all"
-              onClick={() => setLocation(`/family/business/${manager.id}`)}
-            >
-              <div className="flex items-center gap-4">
-                <div 
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-black font-semibold"
-                  style={{ backgroundColor: avatarColors[manager.id] || '#D4AF37' }}
-                >
-                  {manager.initials}
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-white mb-1 group-hover:text-[#D4AF37] transition-colors">
-                    {manager.name}
-                  </h3>
-                  <div className="text-xs text-neutral-500">
-                    {manager.itemCount} items pre-populated
-                  </div>
-                </div>
-              </div>
-            </LuxuryCard>
-              ))}
-            </div>
-          </>
         )}
 
-        {/* Empty State */}
-        {searchTerm && filteredManagers.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-neutral-400 mb-4">
-              <Building2 className="h-12 w-12 mx-auto" />
-            </div>
-            <h3 className="text-lg font-medium text-white mb-2">No managers found</h3>
-            <p className="text-neutral-400">Try adjusting your search terms.</p>
+        {!loading && error && (
+          <div className="mx-auto mt-10 max-w-xl rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200" data-testid="error-state">
+            {error}{" "}
+            <button
+              className="ml-2 underline hover:no-underline"
+              onClick={() => window.location.reload()}
+              data-testid="button-retry"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && filtered.length === 0 && (
+          <div className="mx-auto mt-10 max-w-xl rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-sm text-white/70" data-testid="empty-state">
+            No managers found. Click <span className="text-amber-300">+ Add</span> to create one.
+          </div>
+        )}
+
+        {!loading && filtered.length > 0 && (
+          <div className="mx-auto mt-6 grid max-w-6xl gap-4 md:grid-cols-2 lg:grid-cols-3" data-testid="managers-grid">
+            {filtered.map(m => (
+              <button
+                key={m.id}
+                onClick={() => setLocation(`/family/business/${m.id}`)}
+                className="rounded-2xl border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-4 hover:border-white/12 transition hover:scale-[1.02] text-left"
+                data-testid={`manager-card-${m.id}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="grid size-10 place-items-center rounded-full text-black font-semibold"
+                    style={{ backgroundColor: avatarColors[m.id] || '#D4AF37' }}
+                  >
+                    {m.initials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium text-white">{m.name}</div>
+                    <div className="text-xs text-white/60">{m.role} • {m.itemCount ?? 0} items</div>
+                  </div>
+                </div>
+              </button>
+            ))}
           </div>
         )}
       </div>
