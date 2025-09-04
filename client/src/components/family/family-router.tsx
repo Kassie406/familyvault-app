@@ -21,6 +21,7 @@ import FamilyContacts from '@/pages/family/family-contacts';
 import ChildInformation from '@/pages/family/child-information';
 import ChildSectionPage from '@/pages/family/child-section';
 import ElderlyParents from '@/pages/family/elderly-parents';
+import ElderlySectionPage from '@/pages/family/elderly-section';
 import GettingMarried from '@/pages/family/getting-married';
 import InternationalTravel from '@/pages/family/international-travel';
 import Moving from '@/pages/family/moving';
@@ -140,6 +141,12 @@ export default function FamilyRouter() {
         <Route path="/family/child/activities" component={withSidebarLayout(() => <ChildSectionPage title="Sports & Activities" createTo="/family/child/new/activity" />)} />
         <Route path="/family/child/immunizations" component={withSidebarLayout(() => <ChildSectionPage title="Immunizations" createTo="/family/child/new/immunization" />)} />
         <Route path="/family/elderly-parents" component={withSidebarLayout(() => <ElderlyParents />)} />
+        <Route path="/family/elderly/medical" component={withSidebarLayout(() => <ElderlySectionPage title="Medical Information" createTo="/family/elderly/new/medical" />)} />
+        <Route path="/family/elderly/legal" component={withSidebarLayout(() => <ElderlySectionPage title="Legal Documents" createTo="/family/elderly/new/legal" />)} />
+        <Route path="/family/elderly/providers" component={withSidebarLayout(() => <ElderlySectionPage title="Care Providers" createTo="/family/elderly/new/provider" />)} />
+        <Route path="/family/elderly/dailycare" component={withSidebarLayout(() => <ElderlySectionPage title="Daily Care Plans" createTo="/family/elderly/new/schedule" />)} />
+        <Route path="/family/elderly/emergency" component={withSidebarLayout(() => <ElderlySectionPage title="Emergency Contacts" createTo="/family/elderly/new/emergency" />)} />
+        <Route path="/family/elderly/finances" component={withSidebarLayout(() => <ElderlySectionPage title="Financial Information" createTo="/family/elderly/new/financial" />)} />
         <Route path="/family/getting-married" component={withSidebarLayout(() => <GettingMarried />)} />
         <Route path="/family/international-travel" component={withSidebarLayout(() => <InternationalTravel />)} />
         <Route path="/family/moving" component={withSidebarLayout(() => <Moving />)} />
