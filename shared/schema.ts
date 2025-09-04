@@ -590,6 +590,28 @@ export const insertSuppressionSchema = createInsertSchema(suppressionList).pick(
   reason: true,
 });
 
+// Business Management - Company entities, contracts, licenses, etc.
+export const businessTypeEnum = pgEnum("business_type", [
+  "entity",
+  "contract", 
+  "license",
+  "insurance",
+  "partner",
+  "other",
+]);
+
+export const businessItems = pgTable("business_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ownerId: varchar("owner_id").notNull(), // References users.id
+  type: businessTypeEnum("type").notNull(),
+  title: text("title").notNull(),
+  subtitle: text("subtitle"),
+  docCount: integer("doc_count").default(0),
+  tags: text("tags").array().default([]).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Family credential schemas
 export const insertCredentialSchema = createInsertSchema(credentials).pick({
   title: true,
@@ -613,6 +635,16 @@ export const insertCredentialShareSchema = createInsertSchema(credentialShares).
   credentialId: true,
   subjectId: true,
   permission: true,
+});
+
+// Business schemas
+export const insertBusinessItemSchema = createInsertSchema(businessItems).pick({
+  ownerId: true,
+  type: true,
+  title: true,
+  subtitle: true,
+  docCount: true,
+  tags: true,
 });
 
 // Security schema inserts
@@ -751,3 +783,7 @@ export type ShareLink = typeof shareLinks.$inferSelect;
 
 export type InsertCredentialShare = z.infer<typeof insertCredentialShareSchema>;
 export type CredentialShare = typeof credentialShares.$inferSelect;
+
+// Business type exports  
+export type BusinessItem = typeof businessItems.$inferSelect;
+export type NewBusinessItem = typeof businessItems.$inferInsert;

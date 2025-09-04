@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
 import { 
   Search, 
   Plus, 
@@ -49,8 +50,14 @@ type BusinessItem = {
   title: string;
   ownerId: MemberId;
   type: "entity" | "contract" | "license" | "insurance" | "partner" | "other";
-  section: SectionKey;
-  category: string;
+  subtitle?: string;
+  docCount?: number;
+  tags?: string[];
+  updatedAt?: string;
+  createdAt?: string;
+  // Legacy support for existing mock data structure
+  section?: SectionKey;
+  category?: string;
   value?: string;
   isRevealed?: boolean;
   meta?: { label?: string; sensitive?: boolean; contact?: string };
@@ -286,23 +293,44 @@ export default function BusinessDetail() {
   const typedMemberId = memberId as MemberId;
   const memberName = MEMBER_NAMES[typedMemberId];
 
-  // Get business items for this member
-  const businessItems = useMemo(() => {
-    return ALL_BUSINESS_ITEMS.filter(item => item.ownerId === typedMemberId);
+  // Fetch business items from API
+  const { data: businessItems = [], isLoading } = useQuery<BusinessItem[]>({
+    queryKey: ['/api/business/items', typedMemberId],
+    queryFn: async (): Promise<BusinessItem[]> => {
+      try {
+        const res = await fetch(`/api/business/items?ownerId=${typedMemberId}`);
+        if (!res.ok) throw new Error('Failed to fetch business items');
+        return res.json();
+      } catch (error) {
+        console.warn('Using fallback business items data:', error);
+        return [];
+      }
+    },
+    enabled: !!typedMemberId
+  });
+
+  // Use mock data as fallback if API fails
+  const fallbackItems = useMemo(() => {
+    return ALL_BUSINESS_ITEMS.filter((item: BusinessItem) => item.ownerId === typedMemberId);
   }, [typedMemberId]);
+
+  const itemsToUse = businessItems.length > 0 ? businessItems : fallbackItems;
 
   // Apply search and type filters
   const filteredItems = useMemo(() => {
-    return businessItems.filter(item => {
+    return itemsToUse.filter(item => {
       const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (item.subtitle && item.subtitle.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                           (item.category && item.category.toLowerCase().includes(searchTerm.toLowerCase())) ||
                            (item.value && item.value.toLowerCase().includes(searchTerm.toLowerCase()));
       
-      const matchesType = selectedType === 'all' || item.category.toLowerCase().includes(selectedType.toLowerCase());
+      const matchesType = selectedType === 'all' || 
+                         (item.category && item.category.toLowerCase().includes(selectedType.toLowerCase())) ||
+                         item.type.toLowerCase().includes(selectedType.toLowerCase());
       
       return matchesSearch && matchesType;
     });
-  }, [businessItems, searchTerm, selectedType]);
+  }, [itemsToUse, searchTerm, selectedType]);
 
   // Group items by section based on type
   const groupedItems: Record<SectionKey, BusinessItem[]> = useMemo(() => {
@@ -313,8 +341,8 @@ export default function BusinessDetail() {
       people: [],
       other: [] 
     };
-    filteredItems.forEach(item => {
-      const section = TYPE_TO_SECTION[item.type] || 'other';
+    filteredItems.forEach((item: BusinessItem) => {
+      const section = TYPE_TO_SECTION[item.type as keyof typeof TYPE_TO_SECTION] || 'other';
       grouped[section]?.push(item);
     });
     return grouped;
@@ -370,7 +398,7 @@ export default function BusinessDetail() {
             </Button>
             <div>
               <h1 className="text-3xl font-bold text-white shrink-0">{memberName}'s Business</h1>
-              <p className="text-sm text-neutral-400 mt-1">Business Manager • {businessItems.length} items</p>
+              <p className="text-sm text-neutral-400 mt-1">Business Manager • {itemsToUse.length} items</p>
             </div>
           </div>
           
@@ -418,44 +446,50 @@ export default function BusinessDetail() {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-8 py-8">
-        <div className="space-y-6">
-          {(Object.keys(SECTION_META) as SectionKey[]).map((key) => {
-            const meta = SECTION_META[key];
-            const items = groupedItems[key];
-            return (
-              <Shell key={key} className="p-5">
-                <SectionHeader 
-                  icon={meta.icon} 
-                  title={meta.label} 
-                  sub={`${meta.sub} • ${items.length} items`} 
-                  onAdd={() => openAddModal(key)} 
-                />
-                {items.length === 0 ? (
-                  <div className="text-xs text-neutral-500 pl-1">No items yet.</div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {items.map(item => (
-                      <BusinessItemCard 
-                        key={item.id} 
-                        id={item.id}
-                        title={item.title}
-                        value={item.value}
-                        category={item.category}
-                        contact={item.meta?.contact}
-                        isRevealed={revealedItems.has(item.id)}
-                        isSensitive={item.meta?.sensitive}
-                        onReveal={handleReveal}
-                        onEdit={handleEdit}
-                        onView={handleView}
-                        onShare={handleShare}
-                      />
-                    ))}
-                  </div>
-                )}
-              </Shell>
-            );
-          })}
-        </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-neutral-400">Loading business items...</div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {(Object.keys(SECTION_META) as SectionKey[]).map((key) => {
+              const meta = SECTION_META[key];
+              const items = groupedItems[key];
+              return (
+                <Shell key={key} className="p-5">
+                  <SectionHeader 
+                    icon={meta.icon} 
+                    title={meta.label} 
+                    sub={`${meta.sub} • ${items.length} items`} 
+                    onAdd={() => openAddModal(key)} 
+                  />
+                  {items.length === 0 ? (
+                    <div className="text-xs text-neutral-500 pl-1">No items yet.</div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {items.map(item => (
+                        <BusinessItemCard 
+                          key={item.id} 
+                          id={item.id}
+                          title={item.title}
+                          value={item.value || item.subtitle}
+                          category={item.category || item.type}
+                          contact={item.meta?.contact}
+                          isRevealed={revealedItems.has(item.id)}
+                          isSensitive={item.meta?.sensitive}
+                          onReveal={handleReveal}
+                          onEdit={handleEdit}
+                          onView={handleView}
+                          onShare={handleShare}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </Shell>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
