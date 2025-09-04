@@ -11,31 +11,41 @@ const router = Router();
  */
 router.get("/managers", async (_req, res) => {
   try {
-    // Define our business managers
-    const managerInfo = {
-      'angel': { name: 'Angel Johnson', initials: 'AJ' },
-      'kassandra': { name: 'Kassandra Johnson', initials: 'KJ' },
-      'family': { name: 'Family Shared', initials: 'FS' }
-    };
-
-    // Get item counts for each manager
-    const rows = await db.execute(sql`
-      SELECT owner_id, COUNT(*)::int as item_count
-      FROM business_items
-      GROUP BY owner_id
-    `);
-
-    // Build response with manager info and counts
-    const managers = Object.entries(managerInfo).map(([id, info]) => {
-      const countRow = rows.find((r: any) => r.owner_id === id);
-      return {
-        id,
-        name: info.name,
-        initials: info.initials,
-        itemCount: countRow?.item_count || 0
-      };
+    console.log("Business managers API called");
+    
+    // Get actual counts from database
+    const items = await db.select().from(businessItems);
+    console.log("Business items found:", items.length);
+    
+    // Count items by owner
+    const counts: Record<string, number> = {};
+    items.forEach(item => {
+      counts[item.ownerId] = (counts[item.ownerId] || 0) + 1;
     });
+    
+    // Define our business managers with counts
+    const managers = [
+      {
+        id: 'angel',
+        name: 'Angel Johnson',
+        initials: 'AJ',
+        itemCount: counts['angel'] || 0
+      },
+      {
+        id: 'kassandra',
+        name: 'Kassandra Johnson',
+        initials: 'KJ',
+        itemCount: counts['kassandra'] || 0
+      },
+      {
+        id: 'family',
+        name: 'Family Shared',
+        initials: 'FS',
+        itemCount: counts['family'] || 0
+      }
+    ];
 
+    console.log("Returning managers:", managers);
     res.json(managers);
   } catch (error) {
     console.error("Error fetching business managers:", error);
