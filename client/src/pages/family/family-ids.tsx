@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
   Plus, 
   Search, 
@@ -32,6 +33,7 @@ interface Pet {
 export default function FamilyIds() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
 
   const familyMembers: FamilyMember[] = [
     {
@@ -88,6 +90,12 @@ export default function FamilyIds() {
     setLocation(`/family/ids/${memberSlug}`);
   };
 
+  const handleCreateMember = (type: string) => {
+    console.log(`Creating new ${type}`);
+    setAddMenuOpen(false);
+    // TODO: Implement create member functionality
+  };
+
   return (
     <div className="min-h-screen bg-[var(--bg-900)]">
       {/* Header */}
@@ -98,15 +106,53 @@ export default function FamilyIds() {
         }}
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-bold text-white">Family IDs</h1>
-            <Button 
-              size="sm" 
-              className="bg-[var(--gold)] text-black hover:bg-[var(--gold)]/80 rounded-full h-8 w-8 p-0"
-              data-testid="add-family-id-button"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+          <div className="flex items-center gap-4 min-w-0">
+            <h1 className="text-3xl font-bold text-white shrink-0">Family IDs</h1>
+            
+            {/* ALWAYS-MOUNTED + BUTTON WITH STABLE POPOVER */}
+            <Popover open={addMenuOpen} onOpenChange={setAddMenuOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="bg-[var(--gold)] text-black hover:bg-[#c6a02e] active:bg-[#b49122] focus-visible:ring-2 focus-visible:ring-[#D4AF37] rounded-full h-8 w-8 p-0"
+                  data-testid="add-family-id-button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setAddMenuOpen((v) => !v);
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                sideOffset={8}
+                align="start"
+                className="w-72 rounded-xl border border-[#232530] bg-[#0F0F0F] text-white shadow-xl"
+                onInteractOutside={() => setAddMenuOpen(false)}
+              >
+                <div className="text-sm font-medium mb-3 text-[#D4AF37]">Add to Family IDs</div>
+                <ul className="space-y-1">
+                  {[
+                    ["Person", "person"],
+                    ["Pet", "pet"],
+                    ["Household member", "household"],
+                    ["Other", "other"],
+                  ].map(([label, type]) => (
+                    <li key={type}>
+                      <button
+                        className="w-full text-left px-3 py-2 rounded-md hover:bg-white/5 transition-colors"
+                        onClick={() => handleCreateMember(type)}
+                      >
+                        {label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </PopoverContent>
+            </Popover>
+            
             <div className="flex items-center gap-2 text-sm text-neutral-300">
               <div className="w-4 h-4 rounded-full bg-[#D4AF37] flex items-center justify-center">
                 <span className="text-black text-xs">⚡</span>
