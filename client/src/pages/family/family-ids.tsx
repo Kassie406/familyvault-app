@@ -163,26 +163,43 @@ export default function FamilyIds() {
       <div className="max-w-7xl mx-auto px-8 py-8">
         {/* People Section */}
         <div className="mb-12">
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-4 mb-6 relative z-20">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-[#D4AF37]" />
               <h2 className="text-xl font-semibold text-white">People</h2>
             </div>
             
-            {/* ALWAYS-MOUNTED + BUTTON WITH STABLE CUSTOM DROPDOWN */}
-            <div ref={addMenuRef} className="relative inline-flex items-center">
+            {/* ALWAYS-MOUNTED + BUTTON WITH STABLE CUSTOM DROPDOWN - ISOLATED */}
+            <div 
+              ref={addMenuRef} 
+              className="relative inline-flex items-center isolate"
+              style={{ isolation: 'isolate', zIndex: 1000 }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onMouseUp={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
               {/* ALWAYS-MOUNTED TRIGGER BUTTON */}
               <button
                 type="button"
                 aria-label="Add to Family IDs"
                 aria-expanded={addMenuOpen}
                 aria-haspopup="menu"
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
+                onMouseUp={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
                 onClick={(e) => {
                   e.stopPropagation();
+                  e.preventDefault();
                   setAddMenuOpen((v) => !v);
                 }}
                 className="h-8 w-8 rounded-full flex items-center justify-center bg-[#D4AF37] text-black shadow hover:bg-[#caa62f] active:bg-[#b59324] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] stable-add-button"
                 data-testid="add-family-id-button"
+                style={{ position: 'relative', zIndex: 1001 }}
               >
                 <Plus className="h-4 w-4" />
               </button>
@@ -192,7 +209,10 @@ export default function FamilyIds() {
                 <div
                   role="menu"
                   aria-label="Add to Family IDs"
-                  className="absolute left-0 top-10 z-50 w-64 rounded-xl border border-[#252733] bg-[#0F0F10] text-white shadow-xl p-2"
+                  className="absolute left-0 top-10 w-64 rounded-xl border border-[#252733] bg-[#0F0F10] text-white shadow-xl p-2"
+                  style={{ zIndex: 1002 }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onMouseUp={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="px-2 py-1.5 text-sm font-medium text-[#D4AF37]">
@@ -233,13 +253,18 @@ export default function FamilyIds() {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
             {familyMembers.map((member) => (
               <LuxuryCard 
                 key={member.id}
                 className="p-6 cursor-pointer group hover:scale-[1.02] transition-all"
                 data-testid={`family-member-${member.id}`}
-                onClick={() => navigateToMember(member.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigateToMember(member.id);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onMouseUp={(e) => e.stopPropagation()}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div 
