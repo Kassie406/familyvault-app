@@ -16,6 +16,7 @@ import LegalDetail from '@/pages/family/legal-detail';
 import FamilyBusiness from '@/pages/family/family-business';
 import BusinessDetail from '@/pages/family/business-detail';
 import FamilyResources from '@/pages/family/family-resources';
+import ResourceDetail from '@/pages/family/resource-detail';
 import FamilyContacts from '@/pages/family/family-contacts';
 import ChildInformation from '@/pages/family/child-information';
 import ElderlyParents from '@/pages/family/elderly-parents';
@@ -128,6 +129,7 @@ export default function FamilyRouter() {
         <Route path="/family/business" component={withSidebarLayout(() => <FamilyBusiness />)} />
         <Route path="/family/business/:id" component={withSidebarLayout(() => <BusinessDetail />)} />
         <Route path="/family/resources" component={withSidebarLayout(() => <FamilyResources />)} />
+        <Route path="/family/resources/:id" component={withSidebarLayout(() => <ResourceDetail />)} />
         <Route path="/family/contacts" component={withSidebarLayout(() => <FamilyContacts />)} />
         <Route path="/family/child-information" component={withSidebarLayout(() => <ChildInformation />)} />
         <Route path="/family/elderly-parents" component={withSidebarLayout(() => <ElderlyParents />)} />
