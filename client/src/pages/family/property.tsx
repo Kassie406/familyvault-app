@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -29,8 +29,42 @@ interface PropertyItem {
 
 export default function Property() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
 
   const recommendedItems = 41;
+
+  // Custom click outside hook for stable button behavior
+  const addMenuRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (!addMenuOpen) return;
+    
+    const handleClickOutside = (e: MouseEvent) => {
+      if (addMenuRef.current && !addMenuRef.current.contains(e.target as Node)) {
+        setAddMenuOpen(false);
+      }
+    };
+    
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setAddMenuOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [addMenuOpen]);
+
+  const handleCreatePropertyItem = (type: string) => {
+    console.log(`Creating new ${type}`);
+    setAddMenuOpen(false);
+    // TODO: Implement create property item functionality
+  };
 
   const realEstate: PropertyItem[] = [
     {
@@ -211,21 +245,8 @@ export default function Property() {
         }}
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-bold text-white">Property</h1>
-            <Button 
-              size="sm" 
-              className="bg-[#D4AF37] text-black hover:bg-[#D4AF37]/80 rounded-full h-8 w-8 p-0"
-              data-testid="add-property-button"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-            <div className="flex items-center gap-2 text-sm text-neutral-300">
-              <div className="w-4 h-4 rounded-full bg-[#D4AF37] flex items-center justify-center">
-                <span className="text-black text-xs">⚡</span>
-              </div>
-              <span>{recommendedItems} recommended items</span>
-            </div>
+          <div className="flex items-center gap-4 min-w-0">
+            <h1 className="text-3xl font-bold text-white shrink-0">Property</h1>
           </div>
           
           <div className="flex items-center gap-4">
@@ -258,11 +279,97 @@ export default function Property() {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-8 py-8">
         {/* Real Estate Section */}
-        <PropertySection 
-          title="Real Estate" 
-          items={realEstate}
-          gridCols="grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-        />
+        <div className="mb-10">
+          <div className="flex items-center gap-4 mb-6 relative z-20">
+            <h2 className="text-xl font-semibold text-white">Real Estate</h2>
+            
+            {/* STABLE + BUTTON WITH PROPERTY MENU - MOVED TO REAL ESTATE */}
+            <div 
+              ref={addMenuRef} 
+              className="relative inline-flex items-center isolate"
+              style={{ isolation: 'isolate', zIndex: 1000 }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onMouseUp={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                aria-label="Add to Property"
+                aria-expanded={addMenuOpen}
+                aria-haspopup="menu"
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
+                onMouseUp={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  setAddMenuOpen((v) => !v);
+                }}
+                className="h-8 w-8 rounded-full flex items-center justify-center bg-[#D4AF37] text-black shadow hover:bg-[#caa62f] active:bg-[#b59324] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] stable-add-button"
+                data-testid="add-property-button"
+                style={{ position: 'relative', zIndex: 1001 }}
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+
+              {/* PROPERTY MENU DROPDOWN */}
+              {addMenuOpen && (
+                <div
+                  role="menu"
+                  aria-label="Add to Property"
+                  className="absolute left-0 top-10 w-64 rounded-xl border border-[#252733] bg-[#0F0F10] text-white shadow-xl p-2"
+                  style={{ zIndex: 1002 }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onMouseUp={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="px-2 py-1.5 text-sm font-medium text-[#D4AF37]">
+                    Add to Property
+                  </div>
+                  <ul className="mt-1">
+                    {[
+                      ["Real Estate", "real-estate", "🏠"],
+                      ["Vehicle", "vehicle", "🚗"],
+                      ["Electronics", "electronics", "💻"],
+                      ["Jewelry", "jewelry", "💎"],
+                      ["Artwork", "artwork", "🎨"],
+                      ["Heirloom", "heirloom", "👑"],
+                      ["Other", "other", null],
+                    ].map(([label, value, icon]) => (
+                      <li key={value}>
+                        <button
+                          role="menuitem"
+                          className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
+                          onClick={() => handleCreatePropertyItem(value as string)}
+                        >
+                          {icon && <span>{icon}</span>}
+                          <span>{label}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2 text-sm text-neutral-300">
+              <div className="w-4 h-4 rounded-full bg-[#D4AF37] flex items-center justify-center">
+                <span className="text-black text-xs">⚡</span>
+              </div>
+              <span>{recommendedItems} recommended items</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {realEstate.map((item) => (
+              <PropertyCard key={item.id} item={item} />
+            ))}
+          </div>
+        </div>
 
         {/* Vehicles Section */}
         <PropertySection 
