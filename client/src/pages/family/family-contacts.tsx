@@ -1,175 +1,265 @@
-import { useState } from 'react';
-import { Search, Plus, MoreVertical, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useMemo, useState, useRef } from "react";
+import { Plus, Search, ChevronRight, User, Users, Phone, Shield, Heart, Building2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useLocation } from "wouter";
 
-// Contact data based on the reference image
-const contacts = [
-  {
-    id: '1',
-    name: 'Rafael Frias',
-    phone: '',
-    email: 'rfrias972@gmail.com',
-    role: 'Family Member',
-    initials: 'RF',
-  },
-];
+type SectionKey = "family" | "emergency" | "medical" | "professional" | "friends" | "services";
+
+type Section = {
+  key: SectionKey;
+  title: string;
+  desc: string;
+  icon: React.ReactNode;
+  count: number;
+  href: string;
+};
+
+function MenuItem({
+  onClick,
+  icon,
+  children,
+}: {
+  onClick?: () => void;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-white hover:bg-white/5 transition"
+    >
+      <span className="text-white/70">{icon}</span>
+      <span>{children}</span>
+    </button>
+  );
+}
+
+function SectionCard({ section }: { section: Section }) {
+  const [, setLocation] = useLocation();
+  
+  return (
+    <article className="group rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-4 hover:border-white/12 transition shadow-[0_10px_28px_rgba(0,0,0,0.45)] hover:shadow-[0_16px_40px_rgba(212,175,55,0.12)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D4AF37]/15 ring-1 ring-[#D4AF37]/30">
+            <span className="text-[#D4AF37]">{section.icon}</span>
+          </div>
+          <div className="min-w-0">
+            <div className="truncate text-[15px] font-medium text-white">{section.title}</div>
+            <div className="truncate text-xs text-white/60">{section.desc}</div>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setLocation(section.href)}
+          className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white hover:bg-white/10 transition"
+          data-testid={`button-view-${section.key}`}
+        >
+          View
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      <div className="mt-3 text-xs text-white/60">{section.count} contacts</div>
+    </article>
+  );
+}
 
 export default function FamilyContacts() {
-  const [searchTerm, setSearchTerm] = useState('');
+  // Mock data - replace with real fetch
+  const [sections] = useState<Section[]>([
+    {
+      key: "family",
+      title: "Family Members",
+      desc: "Immediate & extended family contact information",
+      icon: <Users className="h-4 w-4" />,
+      count: 1,
+      href: "/family/contacts/family",
+    },
+    {
+      key: "emergency",
+      title: "Emergency Contacts",
+      desc: "Police, fire, medical & critical emergency numbers",
+      icon: <Shield className="h-4 w-4" />,
+      count: 0,
+      href: "/family/contacts/emergency",
+    },
+    {
+      key: "medical",
+      title: "Medical Contacts",
+      desc: "Doctors, specialists, hospitals & healthcare providers",
+      icon: <Heart className="h-4 w-4" />,
+      count: 0,
+      href: "/family/contacts/medical",
+    },
+    {
+      key: "professional",
+      title: "Professional Services",
+      desc: "Lawyers, accountants, financial advisors & consultants",
+      icon: <Building2 className="h-4 w-4" />,
+      count: 0,
+      href: "/family/contacts/professional",
+    },
+    {
+      key: "friends",
+      title: "Friends & Social",
+      desc: "Personal friends, neighbors & social connections",
+      icon: <User className="h-4 w-4" />,
+      count: 0,
+      href: "/family/contacts/friends",
+    },
+    {
+      key: "services",
+      title: "Service Providers",
+      desc: "Utilities, repair services, maintenance & vendors",
+      icon: <Phone className="h-4 w-4" />,
+      count: 0,
+      href: "/family/contacts/services",
+    },
+  ]);
 
-  // Filter contacts based on search
-  const filteredContacts = contacts.filter(contact =>
-    contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const [query, setQuery] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
+  const addRef = useRef<HTMLButtonElement | null>(null);
 
-  const contactCount = filteredContacts.length;
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return sections;
+    return sections.filter(
+      s =>
+        s.title.toLowerCase().includes(q) ||
+        s.desc.toLowerCase().includes(q)
+    );
+  }, [query, sections]);
+
+  // Handle click outside to close menu
+  const handleDocumentClick = (ev: MouseEvent) => {
+    if (!addRef.current) return;
+    const target = ev.target as Node;
+    const clickedButton = addRef.current.contains(target);
+    const clickedMenu = document.getElementById("contacts-add-menu")?.contains(target);
+    if (!clickedButton && !clickedMenu) setAddOpen(false);
+  };
+
+  useState(() => {
+    document.addEventListener("mousedown", handleDocumentClick);
+    return () => document.removeEventListener("mousedown", handleDocumentClick);
+  });
+
+  const totalContacts = sections.reduce((sum, section) => sum + section.count, 0);
 
   return (
-    <div className="card p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-[var(--ink-100)]">Contacts</h1>
-          <div className="bg-[var(--gold)] text-white w-8 h-8 rounded-full flex items-center justify-center">
-            <Plus className="h-4 w-4" />
-          </div>
-        </div>
-        <Button 
-          variant="ghost" 
-          className="text-[var(--ink-300)] hover:text-[var(--gold)]"
-          data-testid="button-help"
-        >
-          Help
-        </Button>
-      </div>
+    <div className="min-h-screen bg-[#0F0F0F] text-white">
+      {/* Sticky header */}
+      <div className="sticky top-0 z-20 -mx-6 border-b border-white/8 bg-black/60 backdrop-blur">
+        <div className="mx-auto max-w-6xl px-6 py-4 flex items-center gap-3">
+          <h1 className="text-[28px] font-semibold tracking-tight text-white" data-testid="text-page-title">Contacts</h1>
 
-      {/* Search Bar */}
-      <div className="relative mb-8">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--ink-400)] h-4 w-4" />
-        <Input
-          placeholder={`Search ${contactCount} contact${contactCount !== 1 ? 's' : ''}`}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 bg-[var(--bg-900)] border border-[var(--line-700)] text-[var(--ink-100)] focus:bg-[var(--bg-900)] focus:ring-2 focus:ring-[var(--gold)] focus:ring-opacity-50"
-          data-testid="input-search"
-        />
-      </div>
+          {/* Persistent + Add */}
+          <div className="relative">
+            <button
+              ref={addRef}
+              type="button"
+              onClick={() => setAddOpen(v => !v)}
+              className="h-8 rounded-full bg-amber-400/20 px-3 text-amber-200 hover:bg-amber-400/30 transition"
+              aria-expanded={addOpen}
+              aria-controls="contacts-add-menu"
+              data-testid="button-add-contact"
+            >
+              + Add
+            </button>
 
-      {/* Contacts Table */}
-      <div className="border border-[var(--line-700)] rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-[var(--line-700)]/30">
-              <TableHead className="font-medium text-[var(--ink-200)]">Name</TableHead>
-              <TableHead className="font-medium text-[var(--ink-200)]">Phone</TableHead>
-              <TableHead className="font-medium text-[var(--ink-200)]">Email</TableHead>
-              <TableHead className="font-medium text-[var(--ink-200)]">Role</TableHead>
-              <TableHead className="w-12"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredContacts.map((contact) => (
-              <TableRow 
-                key={contact.id} 
-                className="hover:bg-[var(--line-700)]/20 transition-colors"
-                data-testid={`row-contact-${contact.id}`}
+            {addOpen && (
+              <div
+                id="contacts-add-menu"
+                className="absolute left-0 mt-2 w-56 rounded-2xl border border-white/10 bg-[#101217] p-2 shadow-xl z-30"
+                data-testid="menu-add-options"
               >
-                <TableCell className="py-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-[var(--gold)] bg-opacity-20 text-[var(--gold)] text-sm font-medium">
-                        {contact.initials}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium text-[var(--ink-100)]" data-testid={`text-name-${contact.id}`}>
-                      {contact.name}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="py-4 text-[var(--ink-300)]" data-testid={`text-phone-${contact.id}`}>
-                  {contact.phone || '-'}
-                </TableCell>
-                <TableCell className="py-4 text-[var(--ink-300)]" data-testid={`text-email-${contact.id}`}>
-                  {contact.email}
-                </TableCell>
-                <TableCell className="py-4 text-[var(--ink-300)]" data-testid={`text-role-${contact.id}`}>
-                  {contact.role}
-                </TableCell>
-                <TableCell className="py-4">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0"
-                        data-testid={`button-contact-options-${contact.id}`}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem data-testid={`button-edit-contact-${contact.id}`}>
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem data-testid={`button-view-contact-${contact.id}`}>
-                        View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem data-testid={`button-duplicate-contact-${contact.id}`}>
-                        Duplicate
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className="text-red-600" 
-                        data-testid={`button-delete-contact-${contact.id}`}
-                      >
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                <div className="px-3 py-2 text-xs text-white/50">Add New Contact</div>
+                <MenuItem icon={<Users className="h-4 w-4" />} onClick={() => setAddOpen(false)}>
+                  Family Member
+                </MenuItem>
+                <MenuItem onClick={() => setAddOpen(false)}>Emergency Contact</MenuItem>
+                <MenuItem onClick={() => setAddOpen(false)}>Medical Provider</MenuItem>
+                <MenuItem onClick={() => setAddOpen(false)}>Professional Service</MenuItem>
+                <MenuItem onClick={() => setAddOpen(false)}>Friend/Neighbor</MenuItem>
+                <MenuItem onClick={() => setAddOpen(false)}>Service Provider</MenuItem>
+                <MenuItem onClick={() => setAddOpen(false)}>Business Contact</MenuItem>
+                <div className="px-3 py-2 text-xs text-white/50">Import</div>
+                <MenuItem onClick={() => setAddOpen(false)}>Import from phone…</MenuItem>
+                <MenuItem onClick={() => setAddOpen(false)}>Import from file…</MenuItem>
+              </div>
+            )}
+          </div>
+
+          {/* Metrics pill */}
+          <div className="rounded-full bg-amber-400/15 px-3 py-1 text-sm text-amber-200" data-testid="text-contact-count">
+            {sections.length} categories • {totalContacts} total contacts
+          </div>
+
+          <div className="grow" />
+
+          {/* Search */}
+          <div className="relative w-[420px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search contacts…"
+              className="w-full rounded-full bg-white/6 px-4 py-2 pl-10 text-sm outline-none focus:ring-2 focus:ring-amber-400/25 text-white placeholder:text-white/40"
+              data-testid="input-search"
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Empty State */}
-      {filteredContacts.length === 0 && searchTerm && (
-        <div className="text-center py-12">
-          <div className="text-gray-400 mb-4">
-            <User className="h-12 w-12 mx-auto" />
-          </div>
-          <h3 className="text-lg font-medium text-black mb-2">No contacts found</h3>
-          <p className="text-[var(--ink-300)]">Try adjusting your search terms or add a new contact.</p>
+      {/* Content */}
+      <div className="mx-auto max-w-6xl px-6 py-8">
+        <div className="mb-6">
+          <p className="text-white/60 text-sm">
+            Organize all your important contacts by category for quick access when you need them most.
+          </p>
         </div>
-      )}
 
-      {/* Add Contact Button */}
-      <div className="mt-6 flex justify-start">
-        <Button 
-          className="bg-[var(--gold)] hover:bg-[#B8941F] text-white"
-          data-testid="button-add-contact"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Contact
-        </Button>
+        {/* Sections grid */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-testid="sections-grid">
+          {filtered.map((s) => (
+            <SectionCard key={s.key} section={s} />
+          ))}
+        </div>
+
+        {/* Empty state */}
+        {filtered.length === 0 && (
+          <div className="mt-20 rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center" data-testid="empty-state">
+            <div className="text-lg font-medium text-white">No matches</div>
+            <div className="mt-1 text-sm text-white/60">
+              Try a different search or add a new contact with the button above.
+            </div>
+          </div>
+        )}
+
+        {/* Getting Started Section - only show if no contacts exist */}
+        {totalContacts === 0 && filtered.length > 0 && (
+          <div className="mt-12 text-center" data-testid="getting-started">
+            <Users className="h-16 w-16 text-white/40 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">Organize Your Contacts</h3>
+            <p className="text-white/60 max-w-md mx-auto mb-6">
+              Keep all your important contacts organized by category for quick access when you need them most.
+            </p>
+            <Button 
+              onClick={() => setAddOpen(true)}
+              variant="gold"
+              data-testid="button-get-started"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add First Contact
+            </Button>
+          </div>
+        )}
+
+        {/* Bottom spacing */}
+        <div className="h-8" />
       </div>
     </div>
   );
