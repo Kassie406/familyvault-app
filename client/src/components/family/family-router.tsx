@@ -25,7 +25,9 @@ import ElderlySectionPage from '@/pages/family/elderly-section';
 import GettingMarried from '@/pages/family/getting-married';
 import WeddingSectionPage from '@/pages/family/wedding-section';
 import InternationalTravel from '@/pages/family/international-travel';
+import TravelSectionPage from '@/pages/family/travel-section';
 import Moving from '@/pages/family/moving';
+import MovingSectionPage from '@/pages/family/moving-section';
 import DisasterPlanning from '@/pages/family/disaster-planning';
 import EstatePlanning from '@/pages/family/estate-planning';
 import HomeBuying from '@/pages/family/home-buying';
@@ -156,7 +158,19 @@ export default function FamilyRouter() {
         <Route path="/family/wedding/timeline" component={withSidebarLayout(() => <WeddingSectionPage title="Timeline & Schedule" createTo="/family/wedding/new/timeline" />)} />
         <Route path="/family/wedding/vendors" component={withSidebarLayout(() => <WeddingSectionPage title="Vendor Management" createTo="/family/wedding/new/vendor" />)} />
         <Route path="/family/international-travel" component={withSidebarLayout(() => <InternationalTravel />)} />
+        <Route path="/family/travel/documents" component={withSidebarLayout(() => <TravelSectionPage title="Travel Documents" createTo="/family/travel/new/document" />)} />
+        <Route path="/family/travel/itinerary" component={withSidebarLayout(() => <TravelSectionPage title="Itinerary Planning" createTo="/family/travel/new/itinerary" />)} />
+        <Route path="/family/travel/emergency" component={withSidebarLayout(() => <TravelSectionPage title="Emergency Information" createTo="/family/travel/new/emergency" />)} />
+        <Route path="/family/travel/destination" component={withSidebarLayout(() => <TravelSectionPage title="Destination Info" createTo="/family/travel/new/destination" />)} />
+        <Route path="/family/travel/finances" component={withSidebarLayout(() => <TravelSectionPage title="Travel Finances" createTo="/family/travel/new/expense" />)} />
+        <Route path="/family/travel/health" component={withSidebarLayout(() => <TravelSectionPage title="Health & Safety" createTo="/family/travel/new/health" />)} />
         <Route path="/family/moving" component={withSidebarLayout(() => <Moving />)} />
+        <Route path="/family/moving/checklist" component={withSidebarLayout(() => <MovingSectionPage title="Moving Checklist" createTo="/family/moving/new/task" />)} />
+        <Route path="/family/moving/companies" component={withSidebarLayout(() => <MovingSectionPage title="Moving Companies" createTo="/family/moving/new/company" />)} />
+        <Route path="/family/moving/addresses" component={withSidebarLayout(() => <MovingSectionPage title="Address Changes" createTo="/family/moving/new/address" />)} />
+        <Route path="/family/moving/documents" component={withSidebarLayout(() => <MovingSectionPage title="Important Documents" createTo="/family/moving/new/document" />)} />
+        <Route path="/family/moving/finances" component={withSidebarLayout(() => <MovingSectionPage title="Moving Finances" createTo="/family/moving/new/expense" />)} />
+        <Route path="/family/moving/inventory" component={withSidebarLayout(() => <MovingSectionPage title="Inventory & Packing" createTo="/family/moving/new/item" />)} />
         <Route path="/family/disaster-planning" component={withSidebarLayout(() => <DisasterPlanning />)} />
         <Route path="/family/estate-planning" component={withSidebarLayout(() => <EstatePlanning />)} />
         <Route path="/family/home-buying" component={withSidebarLayout(() => <HomeBuying />)} />
