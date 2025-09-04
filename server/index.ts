@@ -469,6 +469,17 @@ app.use('/api/stepup', requireAuth, stepupRouter);
 // Test step-up authentication endpoints
 app.use('/api/test-stepup', requireAuth, testStepupRouter);
 
+// Business management API - Simple endpoint
+app.get('/api/business/managers', (_req, res) => {
+  console.log("Direct business managers API called");
+  const managers = [
+    { id: 'angel', name: 'Angel Johnson', initials: 'AJ', itemCount: 5, role: 'Managing Member' },
+    { id: 'kassandra', name: 'Kassandra Johnson', initials: 'KJ', itemCount: 2, role: 'Operations Director' },
+    { id: 'family', name: 'Family Shared', initials: 'FS', itemCount: 2, role: 'Joint Ownership' }
+  ];
+  res.json(managers);
+});
+
 // Business management API
 app.use('/api/business', requireAuth, businessRoutes);
 
