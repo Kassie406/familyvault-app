@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { ChevronDown, MoreHorizontal, Check, X } from "lucide-react";
 import { useLocation } from "wouter";
 
 /** TYPES */
@@ -93,8 +93,65 @@ export default function FamilyResources() {
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<TabKey>("created");
   const [addOpen, setAddOpen] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [pageTitle, setPageTitle] = useState('Family Resources');
+  const [tempTitle, setTempTitle] = useState('Family Resources');
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { loadResources().then(setData); }, []);
+
+  // Handle escape key for title editing
+  useEffect(() => {
+    if (!isEditingTitle) return;
+    
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsEditingTitle(false);
+        setTempTitle(pageTitle);
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isEditingTitle, pageTitle]);
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [isEditingTitle]);
+
+  const handleEditTitle = () => {
+    setTempTitle(pageTitle);
+    setIsEditingTitle(true);
+  };
+
+  const handleSaveTitle = () => {
+    if (tempTitle.trim()) {
+      setPageTitle(tempTitle.trim());
+    } else {
+      setTempTitle(pageTitle);
+    }
+    setIsEditingTitle(false);
+  };
+
+  const handleCancelEdit = () => {
+    setTempTitle(pageTitle);
+    setIsEditingTitle(false);
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSaveTitle();
+    } else if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
+  };
 
   const created = useMemo(() => data.filter(d => !d.isTemplate), [data]);
   const templates = useMemo(() => data.filter(d => !!d.isTemplate), [data]);
@@ -116,7 +173,47 @@ export default function FamilyResources() {
         {/* Sticky header */}
         <div className="sticky top-0 z-20 -mx-6 mb-6 border-b border-white/8 bg-[rgb(7_8_10/0.85)] backdrop-blur supports-[backdrop-filter]:bg-black/60">
           <div className="px-6 py-4 flex items-center gap-3">
-            <h1 className="text-2xl font-semibold text-white" data-testid="text-page-title">Family Resources</h1>
+            <div className="flex items-center gap-3">
+              {isEditingTitle ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={titleInputRef}
+                    type="text"
+                    value={tempTitle}
+                    onChange={(e) => setTempTitle(e.target.value)}
+                    onKeyDown={handleTitleKeyDown}
+                    className="text-2xl font-semibold text-white bg-transparent border-b-2 border-[#D4AF37] outline-none focus:border-[#D4AF37] min-w-0"
+                    style={{ background: 'transparent' }}
+                    data-testid="title-input"
+                  />
+                  <button
+                    onClick={handleSaveTitle}
+                    className="p-1 text-green-400 hover:text-green-300 transition-colors"
+                    data-testid="save-title-button"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="p-1 text-red-400 hover:text-red-300 transition-colors"
+                    data-testid="cancel-title-button"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <h1 className="text-2xl font-semibold text-white" data-testid="text-page-title">{pageTitle}</h1>
+                  <button
+                    onClick={handleEditTitle}
+                    className="p-1 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
+                    data-testid="edit-title-button"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                </>
+              )}
+            </div>
 
             {/* spacer */}
             <div className="grow" />
