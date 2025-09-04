@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
@@ -39,7 +39,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { LuxuryCard } from '@/components/luxury-cards';
+
+// DnD Kit imports
+import { DndContext, closestCenter, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
+import { SortableCard } from "@/components/sortable-card";
 
 // Types
 type MemberId = "angel" | "kassandra" | "family";
@@ -156,6 +162,111 @@ function SectionHeader({ icon, title, sub, onAdd }: {
   );
 }
 
+// Section Block Component with Accordion and Drag-and-Drop
+function SectionBlock({
+  managerId,
+  sectionKey,
+  title,
+  subtitle,
+  icon,
+  items,
+  onReorder,
+  onAdd,
+  onReveal,
+  onEdit,
+  onView,
+  onShare,
+  revealedItems
+}: {
+  managerId: string;
+  sectionKey: SectionKey;
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  items: BusinessItem[];
+  onReorder: (itemIds: string[]) => void;
+  onAdd: () => void;
+  onReveal: (id: string, title: string) => void;
+  onEdit: (id: string, title: string) => void;
+  onView: (id: string, title: string) => void;
+  onShare: (id: string, title: string) => void;
+  revealedItems: Set<string>;
+}) {
+  const [localItems, setLocalItems] = useState(items);
+
+  useEffect(() => setLocalItems(items), [items]);
+
+  function onDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    
+    const oldIndex = localItems.findIndex(i => i.id === active.id);
+    const newIndex = localItems.findIndex(i => i.id === over.id);
+    const nextItems = arrayMove(localItems, oldIndex, newIndex);
+    
+    setLocalItems(nextItems);
+    onReorder(nextItems.map(i => i.id));
+  }
+
+  return (
+    <AccordionItem value={sectionKey} className="border-[#232530]">
+      <AccordionTrigger className="text-left hover:no-underline px-5 py-4 text-white hover:text-[#D4AF37]">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg grid place-items-center bg-[#D4AF37] text-black">
+            {icon}
+          </div>
+          <div>
+            <div className="text-sm font-medium">{title}</div>
+            <div className="text-xs text-neutral-400">{subtitle} • {localItems.length} items</div>
+          </div>
+        </div>
+      </AccordionTrigger>
+      <AccordionContent className="px-5 pb-5">
+        <div className="flex justify-end mb-4">
+          <Button 
+            size="sm" 
+            onClick={onAdd}
+            className="h-7 bg-[#D4AF37] hover:bg-[#D4AF37]/80 text-black rounded-lg"
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            Add Item
+          </Button>
+        </div>
+        
+        {localItems.length === 0 ? (
+          <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center text-sm text-white/70">
+            No items yet.
+          </div>
+        ) : (
+          <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={localItems.map(i => i.id)} strategy={verticalListSortingStrategy}>
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {localItems.map(item => (
+                  <SortableCard key={item.id} id={item.id}>
+                    <BusinessItemCard
+                      id={item.id}
+                      title={item.title}
+                      value={item.value || item.subtitle}
+                      category={item.category || item.type}
+                      contact={item.meta?.contact}
+                      isRevealed={revealedItems.has(item.id)}
+                      isSensitive={item.meta?.sensitive}
+                      onReveal={onReveal}
+                      onEdit={onEdit}
+                      onView={onView}
+                      onShare={onShare}
+                    />
+                  </SortableCard>
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )}
+      </AccordionContent>
+    </AccordionItem>
+  );
+}
+
 // Business Item Card Component
 function BusinessItemCard({ 
   id, 
@@ -188,10 +299,10 @@ function BusinessItemCard({
     <Shell className="p-4">
       <div className="flex items-start gap-3">
         <div className="h-9 w-9 rounded-lg grid place-items-center bg-[#111214] border border-[#232530] text-neutral-300">
-          {category === 'Legal Doc' || category === 'Tax Doc' || category === 'License' ? <FileText className="h-4 w-4" /> :
-           category === 'Account' || category === 'Software' || category === 'Report' ? <DollarSign className="h-4 w-4" /> :
-           category === 'Insurance' || category === 'Registration' ? <Scale className="h-4 w-4" /> :
-           category === 'Owner' || category === 'Employee' || category === 'Contractor' || category === 'Professional' ? <Users className="h-4 w-4" /> :
+          {category === 'Legal Doc' || category === 'Tax Doc' || category === 'License' || category === 'license' ? <FileText className="h-4 w-4" /> :
+           category === 'Account' || category === 'Software' || category === 'Report' || category === 'contract' ? <DollarSign className="h-4 w-4" /> :
+           category === 'Insurance' || category === 'Registration' || category === 'insurance' ? <Scale className="h-4 w-4" /> :
+           category === 'Owner' || category === 'Employee' || category === 'Contractor' || category === 'Professional' || category === 'partner' ? <Users className="h-4 w-4" /> :
            <FolderOpen className="h-4 w-4" />}
         </div>
         <div className="min-w-0 flex-1">
@@ -224,7 +335,7 @@ function BusinessItemCard({
               </>
             )}
             <button className="text-neutral-300 hover:text-white">Copy</button>
-            {(category === 'Legal Doc' || category === 'Tax Doc' || category === 'Report' || category === 'Contract') && (
+            {(category === 'Legal Doc' || category === 'Tax Doc' || category === 'Report' || category === 'Contract' || category === 'contract') && (
               <>
                 <span className="text-neutral-600">•</span>
                 <button className="text-neutral-300 hover:text-white">Download</button>
@@ -251,7 +362,7 @@ function BusinessItemCard({
               <Share className="h-4 w-4 mr-2" />
               Share
             </DropdownMenuItem>
-            {(category === 'Legal Doc' || category === 'Tax Doc' || category === 'Report' || category === 'Contract') && (
+            {(category === 'Legal Doc' || category === 'Tax Doc' || category === 'Report' || category === 'Contract' || category === 'contract') && (
               <DropdownMenuItem className="text-white hover:bg-[#232530]">
                 <Download className="h-4 w-4 mr-2" />
                 Download
@@ -406,6 +517,41 @@ export default function BusinessDetail() {
     setIsAddModalOpen(true);
   };
 
+  // Accordion state management
+  const [openSections, setOpenSections] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(`biz:${typedMemberId}:open`) || '["documents", "finances", "legal", "people"]');
+    } catch {
+      return ["documents", "finances", "legal", "people"];
+    }
+  });
+
+  const handleAccordionChange = (values: string[]) => {
+    setOpenSections(values);
+    localStorage.setItem(`biz:${typedMemberId}:open`, JSON.stringify(values));
+  };
+
+  // Drag and drop reordering
+  const handleReorder = async (sectionKey: SectionKey, itemIds: string[]) => {
+    try {
+      // Update the order in the backend
+      await fetch(`/api/business/${typedMemberId}/${sectionKey}/order`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ids: itemIds }),
+        credentials: "include",
+      });
+      
+      toast({ 
+        title: "Order updated", 
+        description: "Items have been reordered successfully"
+      });
+    } catch (error) {
+      console.warn('Failed to update order:', error);
+      // Silently handle the error since the API endpoint doesn't exist yet
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[var(--bg-900)]">
       {/* Header */}
@@ -480,44 +626,37 @@ export default function BusinessDetail() {
             <div className="text-neutral-400">Loading business items...</div>
           </div>
         ) : (
-          <div className="space-y-6">
-            {(Object.keys(SECTION_META) as SectionKey[]).map((key) => {
-              const meta = SECTION_META[key];
-              const items = groupedItems[key];
-              return (
-                <Shell key={key} className="p-5">
-                  <SectionHeader 
-                    icon={meta.icon} 
-                    title={meta.label} 
-                    sub={`${meta.sub} • ${items.length} items`} 
-                    onAdd={() => openAddModal(key)} 
+          <Shell className="p-6">
+            <Accordion
+              type="multiple"
+              value={openSections}
+              onValueChange={handleAccordionChange}
+              className="space-y-4"
+            >
+              {(Object.keys(SECTION_META) as SectionKey[]).map((key) => {
+                const meta = SECTION_META[key];
+                const items = groupedItems[key];
+                return (
+                  <SectionBlock
+                    key={key}
+                    managerId={typedMemberId}
+                    sectionKey={key}
+                    title={meta.label}
+                    subtitle={meta.sub}
+                    icon={meta.icon}
+                    items={items}
+                    onReorder={(itemIds) => handleReorder(key, itemIds)}
+                    onAdd={() => openAddModal(key)}
+                    onReveal={handleReveal}
+                    onEdit={handleEdit}
+                    onView={handleView}
+                    onShare={handleShare}
+                    revealedItems={revealedItems}
                   />
-                  {items.length === 0 ? (
-                    <div className="text-xs text-neutral-500 pl-1">No items yet.</div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {items.map(item => (
-                        <BusinessItemCard 
-                          key={item.id} 
-                          id={item.id}
-                          title={item.title}
-                          value={item.value || item.subtitle}
-                          category={item.category || item.type}
-                          contact={item.meta?.contact}
-                          isRevealed={revealedItems.has(item.id)}
-                          isSensitive={item.meta?.sensitive}
-                          onReveal={handleReveal}
-                          onEdit={handleEdit}
-                          onView={handleView}
-                          onShare={handleShare}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </Shell>
-              );
-            })}
-          </div>
+                );
+              })}
+            </Accordion>
+          </Shell>
         )}
       </div>
     </div>

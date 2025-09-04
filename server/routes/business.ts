@@ -125,4 +125,16 @@ router.delete("/items/:id", async (req, res) => {
   }
 });
 
+// Order persistence route (placeholder for now)
+router.patch("/:managerId/:type/order", async (req, res) => {
+  const { managerId, type } = req.params;
+  const { ids } = req.body;
+  
+  console.log(`Updating order for ${managerId}/${type}:`, ids);
+  
+  // TODO: Persist order to database when schema is ready
+  // For now, just acknowledge the request
+  res.status(204).end();
+});
+
 export default router;

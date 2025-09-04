@@ -1,0 +1,191 @@
+wire both features into your Business manager detail page:
+
+Accordion sections (collapse/expand each category)
+
+Drag-reorder of cards inside each section, with persistence to the backend
+
+Below are drop-in snippets you can paste into your project.
+
+1) UI: Accordion + Drag inside each section
+// src/pages/business/ManagerDetail.tsx (replace the section list rendering)
+import { useEffect, useState } from "react";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+// DnD Kit
+import { DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
+import { SortableCard } from "@/components/sortable-card"; // tiny wrapper below
+
+function SectionBlock({
+  managerId,
+  sectionKey,
+  title,
+  items,
+  onReorder,
+}: {
+  managerId: string;
+  sectionKey: string;           // e.g. "entity" | "contract" | ...
+  title: string;
+  items: { id: string; title: string; subtitle?: string }[];
+  onReorder: (ids: string[]) => void;
+}) {
+  const [local, setLocal] = useState(items);
+
+  useEffect(() => setLocal(items), [items]);
+
+  function onDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIndex = local.findIndex(i => i.id === active.id);
+    const newIndex = local.findIndex(i => i.id === over.id);
+    const next = arrayMove(local, oldIndex, newIndex);
+    setLocal(next);
+    onReorder(next.map(i => i.id));  // persist order
+  }
+
+  return (
+    <AccordionItem value={sectionKey}>
+      <AccordionTrigger className="text-left">
+        {title} <span className="ml-2 text-xs text-white/60">({local.length})</span>
+      </AccordionTrigger>
+      <AccordionContent>
+        {local.length === 0 ? (
+          <div className="mt-3 rounded-xl border border-white/10 p-6 text-sm text-white/70">
+            No items yet.
+          </div>
+        ) : (
+          <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={local.map(i => i.id)} strategy={verticalListSortingStrategy}>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {local.map(it => (
+                  <SortableCard key={it.id} id={it.id}>
+                    <article className="rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-4 hover:border-white/14">
+                      <div className="text-[15px] font-medium">{it.title}</div>
+                      {it.subtitle && <div className="text-xs text-white/60">{it.subtitle}</div>}
+                      {/* your actions here (View / Share / Copy / ⋮) */}
+                    </article>
+                  </SortableCard>
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )}
+      </AccordionContent>
+    </AccordionItem>
+  );
+}
+
+// In your main component’s render (replacing the old sections map):
+<Accordion
+  type="multiple"
+  defaultValue={JSON.parse(localStorage.getItem(`biz:${managerId}:open`) || "[]")}
+  onValueChange={(vals) => localStorage.setItem(`biz:${managerId}:open`, JSON.stringify(vals))}
+>
+  {sections.map(s => (
+    <SectionBlock
+      key={s.key}
+      managerId={managerId}
+      sectionKey={s.key}            // "entity" | "contract" | ...
+      title={s.title}
+      items={s.items}
+      onReorder={async (ids) => {
+        // PATCH order to backend
+        await fetch(`/api/business/${managerId}/${s.key}/order`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ ids }),
+          credentials: "include",
+        });
+      }}
+    />
+  ))}
+</Accordion>
+
+Tiny Sortable wrapper
+// src/components/sortable-card.tsx
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+export function SortableCard({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.85 : 1,
+    cursor: "grab",
+  } as React.CSSProperties;
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {children}
+    </div>
+  );
+}
+
+2) Backend: persist order
+
+Add an order_index to each business item table you want reorderable (or reuse a single business_items table if that’s your model).
+
+SQL (example)
+ALTER TABLE business_items ADD COLUMN IF NOT EXISTS order_index integer NOT NULL DEFAULT 0;
+CREATE INDEX IF NOT EXISTS idx_business_items_owner_type_order ON business_items(owner_id, type, order_index);
+
+API route to save new order
+// server/routes/business-order.ts
+import { Router } from "express";
+import { db } from "../db";
+import { businessItems } from "../../shared/schema";
+import { eq, and } from "drizzle-orm";
+
+const r = Router();
+
+/**
+ * PATCH /api/business/:managerId/:type/order
+ * { ids: ["idA","idB","idC"] } -> sets order_index = array index
+ */
+r.patch("/:managerId/:type/order", async (req, res) => {
+  const { managerId, type } = req.params;
+  const ids: string[] = req.body?.ids || [];
+  if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: "ids required" });
+
+  // update within a transaction for consistency
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < ids.length; i++) {
+      await tx
+        .update(businessItems)
+        .set({ orderIndex: i }) // make sure your schema field name matches (camel vs snake)
+        .where(and(eq(businessItems.ownerId, managerId), eq(businessItems.type, type as any), eq(businessItems.id, ids[i])));
+    }
+  });
+
+  res.status(204).end();
+});
+
+export default r;
+
+
+Wire it:
+
+// server/index.ts
+import businessOrderRouter from "./routes/business-order";
+app.use("/api/business", requireAuth, businessOrderRouter);
+
+Sort by order_index when fetching
+// GET items for a manager/type
+const rows = await db
+  .select()
+  .from(businessItems)
+  .where(and(eq(businessItems.ownerId, ownerId)))
+  .orderBy(businessItems.type, businessItems.orderIndex); // ensure order is used
+
+
+(Adjust to your actual Drizzle imports and field names; if your column is order_index, map to orderIndex in the schema.)
+
+3) Polishing (optional)
+
+Keyboard collapse state is already handled by shadcn/Radix Accordion.
+
+Add a drag handle (e.g., 6 dots) if you don’t want the whole card to be draggable — just put the {...listeners} on the handle div.
+
+If users may move items across sections, add a select in the card menu (“Move to → Contracts/Licenses/…”) that updates the item’s type, then refetch.
+
+That’s it — sections now collapse/expand and cards drag-reorder smoothly, with order saved to the DB. If you want, I can also add a “Reset order” action per section that sorts A→Z and saves a fresh order_index.
