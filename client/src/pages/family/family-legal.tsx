@@ -424,81 +424,76 @@ export default function FamilyLegal() {
           </div>
           
           <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              className="text-neutral-300 hover:text-[#D4AF37] p-2"
-              data-testid="button-help"
-            >
-              <HelpCircle className="h-5 w-5" />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--ink-400)] h-4 w-4" />
+              <input
+                type="text"
+                placeholder="Search legal documents…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] w-64"
+                data-testid="input-search"
+              />
+            </div>
+            <Button variant="ghost" size="sm" className="text-[var(--ink-300)] hover:text-[var(--gold)]">
+              <HelpCircle className="h-4 w-4 mr-2" />
+              Help
             </Button>
-            <div className="w-8 h-8 rounded-full bg-[#D4AF37] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-[var(--gold)] flex items-center justify-center">
               <span className="text-black text-sm font-medium">KC</span>
             </div>
           </div>
         </div>
-
-        {/* Search and Filters */}
-        <div className="mt-6 flex items-center gap-4">
-          <div className="relative flex-1 max-w-lg">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 h-4 w-4" />
-            <input
-              type="text"
-              placeholder="Search legal documents…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] w-full"
-              data-testid="input-search"
-            />
-          </div>
-          
-          {/* Filters */}
-          <select 
-            value={filterBy} 
-            onChange={(e) => setFilterBy(e.target.value)}
-            className="px-3 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-          >
-            <option value="all">All owners</option>
-            <option value="angel">Angel</option>
-            <option value="kassandra">Kassandra</option>
-            <option value="family">Family</option>
-          </select>
-          
-          <select className="px-3 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37]">
-            <option value="recent">Recently Updated</option>
-            <option value="az">A–Z</option>
-            <option value="za">Z–A</option>
-            <option value="oldest">Oldest First</option>
-          </select>
-          
-          {/* View Toggle */}
-          <div className="flex items-center bg-[#161616] border border-[#2A2A33] rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`px-3 py-1 rounded text-sm transition-colors ${
-                viewMode === 'grid'
-                  ? 'bg-[#D4AF37] text-black'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('timeline')}
-              className={`px-3 py-1 rounded text-sm transition-colors ${
-                viewMode === 'timeline'
-                  ? 'bg-[#D4AF37] text-black'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <Calendar className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
       </LuxuryCard>
 
-      {/* Add Button and Recommended Items Section */}
-      <div className="max-w-7xl mx-auto px-8 py-6">
-        <div className="flex items-center gap-4">
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-8 py-8">
+        {/* Filter Controls */}
+        <div className="flex items-center gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <select 
+              value={filterBy} 
+              onChange={(e) => setFilterBy(e.target.value)}
+              className="px-3 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+            >
+              <option value="all">All owners</option>
+              <option value="angel">Angel</option>
+              <option value="kassandra">Kassandra</option>
+              <option value="family">Family</option>
+            </select>
+            
+            <select className="px-3 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37]">
+              <option value="recent">Recently Updated</option>
+              <option value="az">A–Z</option>
+              <option value="za">Z–A</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+            
+            {/* View Toggle */}
+            <div className="flex items-center bg-[#161616] border border-[#2A2A33] rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`px-3 py-1 rounded text-sm transition-colors ${
+                  viewMode === 'grid'
+                    ? 'bg-[#D4AF37] text-black'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('timeline')}
+                className={`px-3 py-1 rounded text-sm transition-colors ${
+                  viewMode === 'timeline'
+                    ? 'bg-[#D4AF37] text-black'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <Calendar className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+          
           {/* Add Button */}
           <div className="relative">
             <Button 
