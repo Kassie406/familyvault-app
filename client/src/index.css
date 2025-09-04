@@ -117,9 +117,25 @@
 /* Remove default button focus/hover glow */
 button:focus,
 button:focus-visible,
-button:active {
+button:active,
+button:hover {
   outline: none !important;
   box-shadow: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Specifically target password manager buttons */
+button[data-testid^="button-manager"]:hover,
+button[data-testid^="button-manager"]:focus,
+button[data-testid^="button-manager"]:focus-visible,
+button[data-testid^="button-manager"]:active {
+  background: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 /* Optional: slim scrollbar style */
