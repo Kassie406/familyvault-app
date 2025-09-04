@@ -213,7 +213,7 @@ export default function FamilyIds() {
                         <button
                           role="menuitem"
                           className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
-                          onClick={() => handleCreateMember(value)}
+                          onClick={() => handleCreateMember(value as string)}
                         >
                           {icon && <span>{icon}</span>}
                           <span>{label}</span>
