@@ -219,8 +219,83 @@ export default function Finance() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4 min-w-0">
             <h1 className="text-3xl font-bold text-white shrink-0">Finance</h1>
+          </div>
+          
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-neutral-300">Show archived</span>
+              <Switch 
+                checked={showArchived}
+                onCheckedChange={setShowArchived}
+                className="data-[state=checked]:bg-[#D4AF37]"
+                data-testid="show-archived-toggle"
+              />
+            </div>
+            <Button variant="ghost" size="sm" className="text-neutral-300 hover:text-[#D4AF37]">
+              <HelpCircle className="h-4 w-4 mr-2" />
+              Help
+            </Button>
+            <div className="w-8 h-8 rounded-full bg-[#D4AF37] flex items-center justify-center">
+              <span className="text-black text-sm font-medium">KC</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="mt-6">
+          <div className="relative max-w-lg">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 h-4 w-4" />
+            <input
+              type="text"
+              placeholder="Search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] w-full"
+              data-testid="search-finance"
+            />
+          </div>
+        </div>
+      </LuxuryCard>
+
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-8 py-8 space-y-12">
+        {/* Advisor Collaboration Banner */}
+        <LuxuryCard className="p-8 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-[#D4AF37]/10 to-[#D4AF37]/5"></div>
+          <div className="relative z-10">
+          <div className="flex items-center gap-6">
+            <div className="w-24 h-20 rounded-lg bg-[#D4AF37]/20 flex items-center justify-center">
+              <TrendingUp className="h-12 w-12 text-[#D4AF37]" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-semibold text-white mb-2">
+                Collaborate with trusted advisors to manage your system
+              </h3>
+              <p className="text-neutral-300 mb-4">
+                Give your advisors limited access to view and update the assets they help you manage. Assign tasks and control what they can see and do.
+              </p>
+              <div className="flex gap-3">
+                <Button 
+                  className="bg-[#3498DB] text-white hover:bg-[#2980B9]"
+                  data-testid="invite-advisor-button"
+                >
+                  Invite an advisor
+                </Button>
+                <Button variant="ghost" className="text-neutral-300 hover:text-[#D4AF37]">
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+          </div>
+          </div>
+        </LuxuryCard>
+
+        {/* Bank Accounts Section */}
+        <div>
+          <div className="flex items-center gap-4 mb-6 relative z-20">
+            <h2 className="text-xl font-semibold text-white">Bank Accounts</h2>
             
-            {/* STABLE + BUTTON WITH FINANCIAL MENU - HEADER VERSION */}
+            {/* STABLE + BUTTON WITH FINANCIAL MENU - MOVED TO BANK ACCOUNTS */}
             <div 
               ref={addMenuRef} 
               className="relative inline-flex items-center isolate"
@@ -302,79 +377,6 @@ export default function Finance() {
               <span>{recommendedItems} recommended items</span>
             </div>
           </div>
-          
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-neutral-300">Show archived</span>
-              <Switch 
-                checked={showArchived}
-                onCheckedChange={setShowArchived}
-                className="data-[state=checked]:bg-[#D4AF37]"
-                data-testid="show-archived-toggle"
-              />
-            </div>
-            <Button variant="ghost" size="sm" className="text-neutral-300 hover:text-[#D4AF37]">
-              <HelpCircle className="h-4 w-4 mr-2" />
-              Help
-            </Button>
-            <div className="w-8 h-8 rounded-full bg-[#D4AF37] flex items-center justify-center">
-              <span className="text-black text-sm font-medium">KC</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Search Bar */}
-        <div className="mt-6">
-          <div className="relative max-w-lg">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 h-4 w-4" />
-            <input
-              type="text"
-              placeholder="Search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] w-full"
-              data-testid="search-finance"
-            />
-          </div>
-        </div>
-      </LuxuryCard>
-
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-8 py-8 space-y-12">
-        {/* Advisor Collaboration Banner */}
-        <LuxuryCard className="p-8 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-[#D4AF37]/10 to-[#D4AF37]/5"></div>
-          <div className="relative z-10">
-          <div className="flex items-center gap-6">
-            <div className="w-24 h-20 rounded-lg bg-[#D4AF37]/20 flex items-center justify-center">
-              <TrendingUp className="h-12 w-12 text-[#D4AF37]" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-xl font-semibold text-white mb-2">
-                Collaborate with trusted advisors to manage your system
-              </h3>
-              <p className="text-neutral-300 mb-4">
-                Give your advisors limited access to view and update the assets they help you manage. Assign tasks and control what they can see and do.
-              </p>
-              <div className="flex gap-3">
-                <Button 
-                  className="bg-[#3498DB] text-white hover:bg-[#2980B9]"
-                  data-testid="invite-advisor-button"
-                >
-                  Invite an advisor
-                </Button>
-                <Button variant="ghost" className="text-neutral-300 hover:text-[#D4AF37]">
-                  Dismiss
-                </Button>
-              </div>
-            </div>
-          </div>
-          </div>
-        </LuxuryCard>
-
-        {/* Bank Accounts Section */}
-        <div>
-          <h2 className="text-xl font-semibold text-white mb-6">Bank Accounts</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {bankAccounts.map((account) => (
               <AccountCard key={account.id} account={account} />
