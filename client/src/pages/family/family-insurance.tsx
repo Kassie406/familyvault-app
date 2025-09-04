@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { LuxuryCard } from '@/components/luxury-cards';
 
 // Insurance data based on the reference image
 const insuranceData = {
@@ -267,130 +268,170 @@ export default function FamilyInsurance() {
                     filteredAuto.length > 0 || filteredHomeowners.length > 0;
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] text-white">
-      {/* Sticky header */}
-      <div className="sticky top-0 z-20 -mx-6 border-b border-white/8 bg-black/60 backdrop-blur">
-        <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {isEditingTitle ? (
-              <div className="flex items-center gap-2">
-                <input
-                  ref={titleInputRef}
-                  type="text"
-                  value={tempTitle}
-                  onChange={(e) => setTempTitle(e.target.value)}
-                  onKeyDown={handleTitleKeyDown}
-                  className="text-[28px] font-semibold tracking-tight text-white bg-transparent border-b-2 border-[#D4AF37] outline-none focus:border-[#D4AF37] min-w-0"
-                  style={{ background: 'transparent' }}
-                  data-testid="title-input"
-                />
-                <button
-                  onClick={handleSaveTitle}
-                  className="p-1 text-green-400 hover:text-green-300 transition-colors"
-                  data-testid="save-title-button"
-                >
-                  <Check className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={handleCancelEdit}
-                  className="p-1 text-red-400 hover:text-red-300 transition-colors"
-                  data-testid="cancel-title-button"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <>
-                <h1 className="text-[28px] font-semibold tracking-tight text-white" data-testid="text-page-title">{pageTitle}</h1>
-                <button
-                  onClick={handleEditTitle}
-                  className="p-1 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
-                  data-testid="edit-title-button"
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </button>
-              </>
-            )}
+    <div className="min-h-screen bg-[var(--bg-900)]">
+      {/* Header */}
+      <LuxuryCard className="border-b border-[var(--line-700)] px-8 py-6 rounded-none"
+        style={{
+          background: 'linear-gradient(135deg, #161616 0%, #0F0F0F 100%)',
+          borderRadius: '0'
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="flex items-center gap-3">
+              {isEditingTitle ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={titleInputRef}
+                    type="text"
+                    value={tempTitle}
+                    onChange={(e) => setTempTitle(e.target.value)}
+                    onKeyDown={handleTitleKeyDown}
+                    className="text-3xl font-bold text-white bg-transparent border-b-2 border-[#D4AF37] outline-none focus:border-[#D4AF37] min-w-0"
+                    style={{ background: 'transparent' }}
+                    data-testid="title-input"
+                  />
+                  <button
+                    onClick={handleSaveTitle}
+                    className="p-1 text-green-400 hover:text-green-300 transition-colors"
+                    data-testid="save-title-button"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="p-1 text-red-400 hover:text-red-300 transition-colors"
+                    data-testid="cancel-title-button"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <h1 className="text-3xl font-bold text-white shrink-0" data-testid="page-title">{pageTitle}</h1>
+                  <button
+                    onClick={handleEditTitle}
+                    className="p-1 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
+                    data-testid="edit-title-button"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-
+          
           <div className="flex items-center gap-4">
-            {/* Search */}
-            <div className="relative w-[420px]">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--ink-400)] h-4 w-4" />
               <input
+                type="text"
+                placeholder="Search"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search"
-                className="w-full rounded-full bg-white/6 px-4 py-2 pl-10 text-sm outline-none focus:ring-2 focus:ring-amber-400/25 text-white placeholder:text-white/40"
+                className="pl-10 pr-4 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] w-64"
                 data-testid="input-search"
               />
             </div>
-
-            {/* Help & Avatar */}
-            <Button variant="ghost" size="sm" className="text-white/70 hover:text-[#D4AF37]">
+            <Button variant="ghost" size="sm" className="text-[var(--ink-300)] hover:text-[var(--gold)]">
               <HelpCircle className="h-4 w-4 mr-2" />
               Help
             </Button>
-            <div className="w-8 h-8 rounded-full bg-[#D4AF37] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-[var(--gold)] flex items-center justify-center">
               <span className="text-black text-sm font-medium">KC</span>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Section bar with + Add and recommended items */}
-      <div className="mx-auto max-w-6xl px-6 py-4 flex items-center gap-3">
-        <Shield className="h-5 w-5 text-white/70" />
-        <span className="text-white font-medium">Insurance</span>
-        
-        {/* + Add button */}
-        <div className="relative">
-          <button
-            ref={addRef}
-            type="button"
-            onClick={() => setAddMenuOpen(v => !v)}
-            className="h-6 w-6 rounded-full bg-[#D4AF37] text-black hover:bg-[#D4AF37]/80 transition flex items-center justify-center"
-            aria-expanded={addMenuOpen}
-            aria-controls="insurance-add-menu"
-            data-testid="button-add-insurance"
-          >
-            <Plus className="h-3 w-3" />
-          </button>
-
-          {addMenuOpen && (
-            <div
-              id="insurance-add-menu"
-              className="absolute left-0 mt-2 w-56 rounded-2xl border border-white/10 bg-[#101217] p-2 shadow-xl z-30"
-              data-testid="menu-add-options"
-            >
-              <div className="px-3 py-2 text-xs text-white/50">Add New Insurance</div>
-              <MenuItem icon={<Heart className="h-4 w-4" />} onClick={() => handleCreateInsuranceItem('life')}>
-                Life Insurance
-              </MenuItem>
-              <MenuItem icon={<Shield className="h-4 w-4" />} onClick={() => handleCreateInsuranceItem('medical')}>
-                Medical Insurance
-              </MenuItem>
-              <MenuItem icon={<Car className="h-4 w-4" />} onClick={() => handleCreateInsuranceItem('auto')}>
-                Auto Insurance
-              </MenuItem>
-              <MenuItem icon={<Home className="h-4 w-4" />} onClick={() => handleCreateInsuranceItem('homeowners')}>
-                Homeowners Insurance
-              </MenuItem>
-              <MenuItem icon={<Umbrella className="h-4 w-4" />} onClick={() => handleCreateInsuranceItem('umbrella')}>
-                Umbrella Insurance
-              </MenuItem>
-            </div>
-          )}
-        </div>
-
-        {/* Recommended items count */}
-        <span className="text-sm text-white/60" data-testid="text-insurance-count">
-          {totalItems} recommended items
-        </span>
-      </div>
+      </LuxuryCard>
 
       {/* Content */}
-      <div className="mx-auto max-w-6xl px-6 py-8">
+      <div className="mx-auto max-w-6xl px-6 py-8 text-white">
+        {/* Section bar with + Add and recommended items */}
+        <div className="flex items-center gap-4 mb-8">
+          <div className="flex items-center gap-3">
+            <Shield className="h-5 w-5 text-[#D4AF37]" />
+            <span className="text-white font-medium">Insurance Policies</span>
+          </div>
+          
+          {/* + Add button */}
+          <div className="relative">
+            <button
+              ref={addRef}
+              type="button"
+              onClick={() => setAddMenuOpen(v => !v)}
+              className="h-8 w-8 rounded-full bg-[#D4AF37] text-black hover:bg-[#D4AF37]/80 transition flex items-center justify-center"
+              aria-expanded={addMenuOpen}
+              aria-controls="insurance-add-menu"
+              data-testid="button-add-insurance"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+
+            {addMenuOpen && (
+              <div
+                id="insurance-add-menu"
+                className="absolute left-0 mt-2 w-64 rounded-xl border border-[#252733] bg-[#0F0F10] p-2 shadow-xl z-30"
+                data-testid="menu-add-options"
+              >
+                <div className="px-2 py-1.5 text-sm font-medium text-[#D4AF37]">Add New Insurance</div>
+                <ul className="mt-1">
+                  <li>
+                    <button
+                      className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
+                      onClick={() => handleCreateInsuranceItem('life')}
+                    >
+                      <Heart className="h-4 w-4" />
+                      <span>Life Insurance</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
+                      onClick={() => handleCreateInsuranceItem('medical')}
+                    >
+                      <Shield className="h-4 w-4" />
+                      <span>Medical Insurance</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
+                      onClick={() => handleCreateInsuranceItem('auto')}
+                    >
+                      <Car className="h-4 w-4" />
+                      <span>Auto Insurance</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
+                      onClick={() => handleCreateInsuranceItem('homeowners')}
+                    >
+                      <Home className="h-4 w-4" />
+                      <span>Homeowners Insurance</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
+                      onClick={() => handleCreateInsuranceItem('umbrella')}
+                    >
+                      <Umbrella className="h-4 w-4" />
+                      <span>Umbrella Insurance</span>
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* Recommended items count */}
+          <div className="flex items-center gap-2 bg-[#D4AF37]/10 text-[#D4AF37] px-3 py-1.5 rounded-full">
+            <span className="text-sm font-medium" data-testid="text-insurance-count">
+              🔔 {totalItems} recommended items
+            </span>
+          </div>
+        </div>
         {/* Insurance Sections */}
         {renderInsuranceSection("Life Insurance", insuranceData.lifeInsurance)}
         {renderInsuranceSection("Medical Insurance", insuranceData.medicalInsurance)}

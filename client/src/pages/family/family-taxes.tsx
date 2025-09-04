@@ -202,31 +202,24 @@ export default function FamilyTaxes() {
           </div>
           
           <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              className="text-neutral-300 hover:text-[#D4AF37] p-2"
-              data-testid="button-help"
-            >
-              <HelpCircle className="h-5 w-5" />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--ink-400)] h-4 w-4" />
+              <input
+                type="text"
+                placeholder="Search tax returns…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] w-64"
+                data-testid="input-search"
+              />
+            </div>
+            <Button variant="ghost" size="sm" className="text-[var(--ink-300)] hover:text-[var(--gold)]">
+              <HelpCircle className="h-4 w-4 mr-2" />
+              Help
             </Button>
-            <div className="w-8 h-8 rounded-full bg-[#D4AF37] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-[var(--gold)] flex items-center justify-center">
               <span className="text-black text-sm font-medium">KC</span>
             </div>
-          </div>
-        </div>
-
-        {/* Search Bar */}
-        <div className="mt-6 max-w-lg">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 h-4 w-4" />
-            <input
-              type="text"
-              placeholder="Search tax returns…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] w-full"
-              data-testid="input-search"
-            />
           </div>
         </div>
       </LuxuryCard>
