@@ -54,7 +54,6 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
     { id: 'legal', label: 'Legal', icon: Scale, href: '/family/legal' },
     { id: 'business', label: 'Business', icon: Building2, href: '/family/business' },
     { id: 'family-resources', label: 'Family Resources', icon: BookOpen, href: '/family/resources' },
-    { id: 'contacts', label: 'Contacts', icon: Phone, href: '/family/contacts' },
     { id: 'child-information', label: 'Child Information', icon: Baby, href: '/family/child-information' },
     { id: 'elderly-parents', label: 'Elderly Parents', icon: UserCheck, href: '/family/elderly-parents' },
     { id: 'getting-married', label: 'Getting Married', icon: HeartHandshake, href: '/family/getting-married' },
@@ -65,6 +64,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
     { id: 'home-buying', label: 'Home Buying', icon: HouseIcon, href: '/family/home-buying' },
     { id: 'starting-family', label: 'Starting a Family', icon: FamilyIcon, href: '/family/starting-family' },
     { id: 'when-someone-dies', label: 'When Someone Dies', icon: Leaf, href: '/family/when-someone-dies' },
+    { id: 'contacts', label: 'Contacts', icon: Phone, href: '/family/contacts' },
   ];
 
   return (
