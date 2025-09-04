@@ -1,0 +1,284 @@
+let’s bring Child Information up to the same polished, luxury look & behavior as your other pages (Passwords, Family IDs, Business). Below is a drop-in implementation for React + Vite + Tailwind + shadcn/ui that:
+
+Matches your dark/gold theme
+
+Keeps the header (+) always visible and toggles the add menu (no disappearing)
+
+Uses section cards with consistent styling & “View” actions
+
+Includes search, keyboard navigation, and empty states
+
+Wires routes for each section’s detail page
+
+Uses the same Accordion/drag-ready card grid pattern you liked (you can enable drag later)
+
+1) Page component
+// client/src/pages/child/ChildInformation.tsx
+import { useMemo, useState } from "react";
+import { Plus, Search, ChevronRight, UserPlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Link } from "react-router-dom";
+
+type SectionKey = "birth" | "medical" | "school" | "contacts";
+
+type Section = {
+  key: SectionKey;
+  title: string;
+  desc: string;
+  icon: React.ReactNode;
+  count: number;
+  href: string;
+};
+
+export default function ChildInformation() {
+  // Replace with real fetch
+  const [sections] = useState<Section[]>([
+    {
+      key: "birth",
+      title: "Birth Certificates",
+      desc: "Official birth certificates and related documents",
+      icon: <span className="i-fcs-badge" />, // optional custom icon class
+      count: 0,
+      href: "/child/birth",
+    },
+    {
+      key: "medical",
+      title: "Medical Records",
+      desc: "Vaccinations, medical history & health info",
+      icon: <span className="i-fcs-med" />,
+      count: 0,
+      href: "/child/medical",
+    },
+    {
+      key: "school",
+      title: "School Records",
+      desc: "Transcripts, report cards & enrollment docs",
+      icon: <span className="i-fcs-school" />,
+      count: 0,
+      href: "/child/school",
+    },
+    {
+      key: "contacts",
+      title: "Emergency Contacts",
+      desc: "Authorized pickup persons & emergency info",
+      icon: <span className="i-fcs-call" />,
+      count: 0,
+      href: "/child/contacts",
+    },
+  ]);
+
+  const [query, setQuery] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return sections;
+    return sections.filter(
+      s =>
+        s.title.toLowerCase().includes(q) ||
+        s.desc.toLowerCase().includes(q)
+    );
+  }, [query, sections]);
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 pb-16">
+      {/* Header */}
+      <div className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Child Information</h1>
+          <p className="mt-1 text-sm text-white/60">
+            Keep your children’s critical documents organized and ready.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="relative w-[320px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search child information…"
+              className="pl-9 bg-white/5 border-white/10 focus-visible:ring-white/20"
+            />
+          </div>
+
+          {/* Always-visible + button that toggles menu (no disappearing) */}
+          <Popover open={addOpen} onOpenChange={setAddOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="gold" className="rounded-full px-4">
+                <Plus className="mr-2 h-4 w-4" /> Add
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 p-2">
+              <div className="px-2 pb-1 text-xs uppercase tracking-wider text-white/50">
+                Add to Child Information
+              </div>
+              <MenuItem to="/child/new/person" icon={<UserPlus className="h-4 w-4" />} onClick={() => setAddOpen(false)}>
+                Child Profile
+              </MenuItem>
+              <MenuItem to="/child/new/birth" onClick={() => setAddOpen(false)}>Birth Certificate</MenuItem>
+              <MenuItem to="/child/new/medical" onClick={() => setAddOpen(false)}>Medical Record</MenuItem>
+              <MenuItem to="/child/new/school" onClick={() => setAddOpen(false)}>School Record</MenuItem>
+              <MenuItem to="/child/new/contact" onClick={() => setAddOpen(false)}>Emergency Contact</MenuItem>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+
+      {/* Sections grid */}
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        {filtered.map((s) => (
+          <SectionCard key={s.key} section={s} />
+        ))}
+      </div>
+
+      {/* Empty helper for brand-new accounts */}
+      {filtered.length === 0 && (
+        <div className="mt-20 rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center">
+          <div className="text-lg font-medium">No matches</div>
+          <div className="mt-1 text-sm text-white/60">
+            Try a different search or add a new item with the button above.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MenuItem({
+  to,
+  icon,
+  children,
+  onClick,
+}: {
+  to: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  onClick?: () => void;
+}) {
+  return (
+    <Link
+      to={to}
+      onClick={onClick}
+      className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-white/5"
+    >
+      <span className="text-white/70">{icon}</span>
+      <span>{children}</span>
+    </Link>
+  );
+}
+
+function SectionCard({ section }: { section: Section }) {
+  return (
+    <article className="group rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition hover:border-white/20">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/10 ring-1 ring-amber-400/30">
+            {/* replace with your icon set */}
+            <span className="text-amber-300">{section.icon || "•"}</span>
+          </div>
+          <div className="min-w-0">
+            <div className="truncate text-[15px] font-medium">{section.title}</div>
+            <div className="truncate text-xs text-white/60">{section.desc}</div>
+          </div>
+        </div>
+
+        <Link
+          to={section.href}
+          className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white hover:bg-white/10"
+        >
+          View
+          <ChevronRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+
+      <div className="mt-3 text-xs text-white/60">{section.count} items</div>
+    </article>
+  );
+}
+
+
+The Button variant="gold" is the same gold pill you’re using elsewhere. If you don’t have it, add this utility variant in your shadcn button.tsx (or just use variant="secondary" and Tailwind classes).
+
+2) Routes (detail pages)
+
+Add routes so each View opens a dedicated subpage (same shell/header as other detail pages):
+
+// client/src/App.tsx (or your routes file)
+<Route path="/child/birth" element={<ChildSectionPage title="Birth Certificates" createTo="/child/new/birth" />} />
+<Route path="/child/medical" element={<ChildSectionPage title="Medical Records" createTo="/child/new/medical" />} />
+<Route path="/child/school" element={<ChildSectionPage title="School Records" createTo="/child/new/school" />} />
+<Route path="/child/contacts" element={<ChildSectionPage title="Emergency Contacts" createTo="/child/new/contact" />} />
+
+// client/src/pages/child/ChildSectionPage.tsx
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { Link } from "react-router-dom";
+
+export default function ChildSectionPage({ title, createTo }: { title: string; createTo: string }) {
+  // fetch items for this section
+  // const { data } = useQuery(["child", title], fetcher)
+  const data: { id: string; title: string; subtitle?: string }[] = [];
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 pb-16">
+      <div className="flex items-center justify-between gap-3 pt-6">
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <Button asChild variant="gold">
+          <Link to={createTo}><Plus className="mr-2 h-4 w-4" />Add</Link>
+        </Button>
+      </div>
+
+      {data.length === 0 ? (
+        <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.02] p-10 text-center">
+          <div className="text-lg font-medium">No items yet</div>
+          <div className="mt-1 text-sm text-white/60">Add your first one to get started.</div>
+          <Button asChild variant="gold" className="mt-4">
+            <Link to={createTo}><Plus className="mr-2 h-4 w-4" /> Add item</Link>
+          </Button>
+        </div>
+      ) : (
+        <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {data.map((it) => (
+            <article key={it.id} className="rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-4 hover:border-white/20">
+              <div className="text-[15px] font-medium">{it.title}</div>
+              {it.subtitle && <div className="text-xs text-white/60">{it.subtitle}</div>}
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+3) API endpoints (stubs)
+
+Keep it parallel with your other modules:
+
+GET /api/child/sections → counts per section
+
+GET /api/child/:section → items for a section
+
+POST /api/child/:section → create
+
+PATCH /api/child/:section/:id → update
+
+DELETE /api/child/:section/:id → delete
+
+Return counts so the home grid shows “0 / 3 / 7 items” without loading each list.
+
+4) Styling notes / fixes included
+
+Always-visible + button (uses <Popover>; it doesn’t disappear anymore and can be clicked again to close).
+
+Consistent card aesthetic: same dark gradient, gold accents, and hover border as your other redesigned pages.
+
+Search filters client-side; switch to server search by calling your API on change/debounce if you prefer.
+
+Empty area gap from your old screenshot is removed; page uses full-bleed dark background.
+
+5) Optional: drag to reorder within section (later)
+
+Since you liked the DnD in Business, you can reuse the SortableCard + DndContext pattern inside ChildSectionPage to let users reorder records (persist an order_index).
