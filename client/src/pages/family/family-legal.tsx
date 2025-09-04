@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { Search, Plus, MoreVertical, FileText, Shield, UserCheck, Heart, HelpCircle } from 'lucide-react';
+import { Search, Plus, MoreVertical, FileText, Shield, UserCheck, Heart, HelpCircle, Grid3X3, Calendar, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -80,9 +80,60 @@ const legalData = {
   ],
 };
 
+// Timeline events data
+const timelineEvents = [
+  {
+    id: 1,
+    date: 'March 2025',
+    title: "Angel's Will notarized",
+    action: 'notarized',
+    type: 'will',
+    icon: FileText,
+    files: ['AngelWill_Final.pdf']
+  },
+  {
+    id: 2,
+    date: 'February 2025',
+    title: 'Camacho Trust amendment uploaded',
+    action: 'updated',
+    type: 'trust',
+    icon: Shield,
+    files: ['Trust_Amendment_2025.pdf']
+  },
+  {
+    id: 3,
+    date: 'January 2025',
+    title: "Kassandra's Medical Directive created",
+    action: 'created',
+    type: 'directive',
+    icon: Heart,
+    files: ['KassandraMedicalDirective.pdf']
+  },
+  {
+    id: 4,
+    date: 'December 2024',
+    title: "Angel's Power of Attorney updated",
+    action: 'updated',
+    type: 'poa',
+    icon: UserCheck,
+    files: ['AngelPOA_Updated.pdf', 'Witness_Signatures.pdf']
+  },
+  {
+    id: 5,
+    date: 'November 2024',
+    title: 'Family Trust established',
+    action: 'created',
+    type: 'trust',
+    icon: Shield,
+    files: ['CamachoFamilyTrust.pdf']
+  }
+];
+
 export default function FamilyLegal() {
   const [searchTerm, setSearchTerm] = useState('');
   const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [filterBy, setFilterBy] = useState('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'timeline'>('grid');
   const [, setLocation] = useLocation();
   const addButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -112,14 +163,24 @@ export default function FamilyLegal() {
     );
   };
 
-  const renderLegalSection = (title: string, items: any[], searchResults: any[]) => {
+  const renderLegalSection = (title: string, items: any[], searchResults: any[], sectionKey: string) => {
     if (searchTerm && searchResults.length === 0) return null;
     
     const itemsToShow = searchTerm ? searchResults : items;
     
     return (
       <div className="mb-12">
-        <h2 className="text-xl font-semibold text-white mb-6">{title}</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-white">{title}</h2>
+          <Button 
+            size="sm"
+            className="bg-[#D4AF37] text-black hover:bg-[#D4AF37]/80 h-8 px-3"
+            onClick={() => {}}
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            Add
+          </Button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {itemsToShow.map((item) => (
             <LuxuryCard 
@@ -176,6 +237,64 @@ export default function FamilyLegal() {
                   <span className="w-2 h-2 bg-[#D4AF37] rounded-full"></span>
                   <span>{item.itemCount} items • {item.status}</span>
                 </div>
+              </div>
+            </LuxuryCard>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderTimelineView = () => {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold text-white mb-6">Legal Timeline</h2>
+        <div className="space-y-4">
+          {timelineEvents.map((event) => (
+            <LuxuryCard key={event.id} className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <div 
+                    className="w-12 h-12 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: `#D4AF37` + '15' }}
+                  >
+                    <event.icon className="h-6 w-6 text-[#D4AF37]" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-[#D4AF37] font-medium text-sm">{event.date}</span>
+                    <span className="w-2 h-2 bg-[#D4AF37] rounded-full"></span>
+                    <span className="text-neutral-400 text-sm capitalize">{event.action}</span>
+                  </div>
+                  <h3 className="text-white font-semibold mb-2">{event.title}</h3>
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <Clock className="h-3 w-3" />
+                    <span>{event.files.length} file(s) • {event.files.join(', ')}</span>
+                  </div>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 text-neutral-400 hover:text-white"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="bg-[#111214] border-[#232530]" align="end">
+                    <DropdownMenuItem className="text-white hover:bg-[#232530]">
+                      View Details
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-white hover:bg-[#232530]">
+                      Download Files
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-white hover:bg-[#232530]">
+                      Share
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </LuxuryCard>
           ))}
@@ -287,9 +406,9 @@ export default function FamilyLegal() {
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="mt-6 max-w-lg">
-          <div className="relative">
+        {/* Search and Filters */}
+        <div className="mt-6 flex items-center gap-4">
+          <div className="relative flex-1 max-w-lg">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 h-4 w-4" />
             <input
               type="text"
@@ -300,17 +419,67 @@ export default function FamilyLegal() {
               data-testid="input-search"
             />
           </div>
+          
+          {/* Filters */}
+          <select 
+            value={filterBy} 
+            onChange={(e) => setFilterBy(e.target.value)}
+            className="px-3 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+          >
+            <option value="all">All owners</option>
+            <option value="angel">Angel</option>
+            <option value="kassandra">Kassandra</option>
+            <option value="family">Family</option>
+          </select>
+          
+          <select className="px-3 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37]">
+            <option value="recent">Recently Updated</option>
+            <option value="az">A–Z</option>
+            <option value="za">Z–A</option>
+            <option value="oldest">Oldest First</option>
+          </select>
+          
+          {/* View Toggle */}
+          <div className="flex items-center bg-[#161616] border border-[#2A2A33] rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-3 py-1 rounded text-sm transition-colors ${
+                viewMode === 'grid'
+                  ? 'bg-[#D4AF37] text-black'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('timeline')}
+              className={`px-3 py-1 rounded text-sm transition-colors ${
+                viewMode === 'timeline'
+                  ? 'bg-[#D4AF37] text-black'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              <Calendar className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </LuxuryCard>
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-8 py-8">
 
-        {/* Legal Document Sections */}
-        {renderLegalSection("📜 Wills", legalData.wills, filteredWills)}
-        {renderLegalSection("🏛️ Trusts", legalData.trusts, filteredTrusts)}
-        {renderLegalSection("✍️ Power of Attorney", legalData.powerOfAttorney, filteredPowerOfAttorney)}
-        {renderLegalSection("❤️ Medical Directives", legalData.medicalDirectives, filteredMedicalDirectives)}
+        {/* Content based on view mode */}
+        {viewMode === 'grid' ? (
+          <>
+            {/* Legal Document Sections */}
+            {renderLegalSection("📜 Wills", legalData.wills, filteredWills, 'wills')}
+            {renderLegalSection("🏛️ Trusts", legalData.trusts, filteredTrusts, 'trusts')}
+            {renderLegalSection("✍️ Power of Attorney", legalData.powerOfAttorney, filteredPowerOfAttorney, 'poa')}
+            {renderLegalSection("❤️ Medical Directives", legalData.medicalDirectives, filteredMedicalDirectives, 'directives')}
+          </>
+        ) : (
+          renderTimelineView()
+        )}
       </div>
 
       {/* Empty State */}
