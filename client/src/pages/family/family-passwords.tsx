@@ -49,7 +49,7 @@ export default function FamilyPasswords() {
           <button
             key={manager.id}
             onClick={() => navigateToManager(manager.id)}
-            className="text-left w-full focus:outline-none focus-visible:outline-none focus:ring-0 hover:bg-transparent"
+            className="text-left w-full focus:outline-none focus-visible:outline-none focus:ring-0 active:outline-none hover:bg-transparent"
             data-testid={`button-manager-${manager.id}`}
           >
             <Shell className="p-5 hover:-translate-y-0.5 transition-all duration-200">
