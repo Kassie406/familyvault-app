@@ -26,6 +26,7 @@ const MANAGERS: Manager[] = [
 ];
 
 export default function FamilyPasswords() {
+  // Clean version without undefined components
   const [, setLocation] = useLocation();
 
   const navigateToManager = (managerId: string) => {
@@ -48,7 +49,7 @@ export default function FamilyPasswords() {
           <button
             key={manager.id}
             onClick={() => navigateToManager(manager.id)}
-            className="text-left"
+            className="text-left bg-transparent hover:bg-transparent focus:bg-transparent active:bg-transparent"
             data-testid={`button-manager-${manager.id}`}
           >
             <Shell className="p-5 hover:-translate-y-0.5 transition-all duration-200">
