@@ -108,6 +108,40 @@ export default function FamilyIds() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4 min-w-0">
             <h1 className="text-3xl font-bold text-white shrink-0">Family IDs</h1>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--ink-400)] h-4 w-4" />
+              <input
+                type="text"
+                placeholder="Search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] w-64"
+                data-testid="search-family-ids"
+              />
+            </div>
+            <Button variant="ghost" size="sm" className="text-[var(--ink-300)] hover:text-[var(--gold)]">
+              <HelpCircle className="h-4 w-4 mr-2" />
+              Help
+            </Button>
+            <div className="w-8 h-8 rounded-full bg-[var(--gold)] flex items-center justify-center">
+              <span className="text-black text-sm font-medium">KC</span>
+            </div>
+          </div>
+        </div>
+      </LuxuryCard>
+
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-8 py-8">
+        {/* People Section */}
+        <div className="mb-12">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-[#D4AF37]" />
+              <h2 className="text-xl font-semibold text-white">People</h2>
+            </div>
             
             {/* ALWAYS-MOUNTED + BUTTON WITH STABLE POPOVER */}
             <Popover open={addMenuOpen} onOpenChange={setAddMenuOpen}>
@@ -159,38 +193,6 @@ export default function FamilyIds() {
               </div>
               <span>{recommendedItems} recommended items</span>
             </div>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--ink-400)] h-4 w-4" />
-              <input
-                type="text"
-                placeholder="Search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] w-64"
-                data-testid="search-family-ids"
-              />
-            </div>
-            <Button variant="ghost" size="sm" className="text-[var(--ink-300)] hover:text-[var(--gold)]">
-              <HelpCircle className="h-4 w-4 mr-2" />
-              Help
-            </Button>
-            <div className="w-8 h-8 rounded-full bg-[var(--gold)] flex items-center justify-center">
-              <span className="text-black text-sm font-medium">KC</span>
-            </div>
-          </div>
-        </div>
-      </LuxuryCard>
-
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-8 py-8">
-        {/* People Section */}
-        <div className="mb-12">
-          <div className="flex items-center gap-2 mb-6">
-            <Users className="h-5 w-5 text-[#D4AF37]" />
-            <h2 className="text-xl font-semibold text-white">People</h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
