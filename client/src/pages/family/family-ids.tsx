@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
   Plus, 
   Search, 
@@ -96,6 +95,33 @@ export default function FamilyIds() {
     // TODO: Implement create member functionality
   };
 
+  // Custom click outside hook for stable button behavior
+  const addMenuRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (!addMenuOpen) return;
+    
+    const handleClickOutside = (e: MouseEvent) => {
+      if (addMenuRef.current && !addMenuRef.current.contains(e.target as Node)) {
+        setAddMenuOpen(false);
+      }
+    };
+    
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setAddMenuOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [addMenuOpen]);
+
   return (
     <div className="min-h-screen bg-[var(--bg-900)]">
       {/* Header */}
@@ -143,49 +169,56 @@ export default function FamilyIds() {
               <h2 className="text-xl font-semibold text-white">People</h2>
             </div>
             
-            {/* ALWAYS-MOUNTED + BUTTON WITH STABLE POPOVER */}
-            <Popover open={addMenuOpen} onOpenChange={setAddMenuOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  size="sm"
-                  className="bg-[var(--gold)] text-black hover:bg-[#c6a02e] active:bg-[#b49122] focus-visible:ring-2 focus-visible:ring-[#D4AF37] rounded-full h-8 w-8 p-0"
-                  data-testid="add-family-id-button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setAddMenuOpen((v) => !v);
-                  }}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                sideOffset={8}
-                align="start"
-                className="w-72 rounded-xl border border-[#232530] bg-[#0F0F0F] text-white shadow-xl"
-                onInteractOutside={() => setAddMenuOpen(false)}
+            {/* ALWAYS-MOUNTED + BUTTON WITH STABLE CUSTOM DROPDOWN */}
+            <div ref={addMenuRef} className="relative inline-flex items-center">
+              {/* ALWAYS-MOUNTED TRIGGER BUTTON */}
+              <button
+                type="button"
+                aria-label="Add to Family IDs"
+                aria-expanded={addMenuOpen}
+                aria-haspopup="menu"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setAddMenuOpen((v) => !v);
+                }}
+                className="h-8 w-8 rounded-full flex items-center justify-center bg-[#D4AF37] text-black shadow hover:bg-[#caa62f] active:bg-[#b59324] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
+                data-testid="add-family-id-button"
               >
-                <div className="text-sm font-medium mb-3 text-[#D4AF37]">Add to Family IDs</div>
-                <ul className="space-y-1">
-                  {[
-                    ["Person", "person"],
-                    ["Pet", "pet"],
-                    ["Household member", "household"],
-                    ["Other", "other"],
-                  ].map(([label, type]) => (
-                    <li key={type}>
-                      <button
-                        className="w-full text-left px-3 py-2 rounded-md hover:bg-white/5 transition-colors"
-                        onClick={() => handleCreateMember(type)}
-                      >
-                        {label}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </PopoverContent>
-            </Popover>
+                <Plus className="h-4 w-4" />
+              </button>
+
+              {/* CONTROLLED DROPDOWN - NEVER UNMOUNT THE BUTTON */}
+              {addMenuOpen && (
+                <div
+                  role="menu"
+                  aria-label="Add to Family IDs"
+                  className="absolute left-0 top-10 z-50 w-64 rounded-xl border border-[#252733] bg-[#0F0F10] text-white shadow-xl p-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="px-2 py-1.5 text-sm font-medium text-[#D4AF37]">
+                    Add to Family IDs
+                  </div>
+                  <ul className="mt-1">
+                    {[
+                      ["Person", "person"],
+                      ["Pet", "pet"],
+                      ["Household member", "household"],
+                      ["Other", "other"],
+                    ].map(([label, value]) => (
+                      <li key={value}>
+                        <button
+                          role="menuitem"
+                          className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors"
+                          onClick={() => handleCreateMember(value)}
+                        >
+                          {label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
             
             <div className="flex items-center gap-2 text-sm text-neutral-300">
               <div className="w-4 h-4 rounded-full bg-[#D4AF37] flex items-center justify-center">
