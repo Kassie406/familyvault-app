@@ -23,6 +23,7 @@ import ChildSectionPage from '@/pages/family/child-section';
 import ElderlyParents from '@/pages/family/elderly-parents';
 import ElderlySectionPage from '@/pages/family/elderly-section';
 import GettingMarried from '@/pages/family/getting-married';
+import WeddingSectionPage from '@/pages/family/wedding-section';
 import InternationalTravel from '@/pages/family/international-travel';
 import Moving from '@/pages/family/moving';
 import DisasterPlanning from '@/pages/family/disaster-planning';
@@ -148,6 +149,12 @@ export default function FamilyRouter() {
         <Route path="/family/elderly/emergency" component={withSidebarLayout(() => <ElderlySectionPage title="Emergency Contacts" createTo="/family/elderly/new/emergency" />)} />
         <Route path="/family/elderly/finances" component={withSidebarLayout(() => <ElderlySectionPage title="Financial Information" createTo="/family/elderly/new/financial" />)} />
         <Route path="/family/getting-married" component={withSidebarLayout(() => <GettingMarried />)} />
+        <Route path="/family/wedding/planning" component={withSidebarLayout(() => <WeddingSectionPage title="Wedding Planning" createTo="/family/wedding/new/planning" />)} />
+        <Route path="/family/wedding/legal" component={withSidebarLayout(() => <WeddingSectionPage title="Legal Documents" createTo="/family/wedding/new/legal" />)} />
+        <Route path="/family/wedding/financial" component={withSidebarLayout(() => <WeddingSectionPage title="Financial Planning" createTo="/family/wedding/new/budget" />)} />
+        <Route path="/family/wedding/guests" component={withSidebarLayout(() => <WeddingSectionPage title="Guest Management" createTo="/family/wedding/new/guest" />)} />
+        <Route path="/family/wedding/timeline" component={withSidebarLayout(() => <WeddingSectionPage title="Timeline & Schedule" createTo="/family/wedding/new/timeline" />)} />
+        <Route path="/family/wedding/vendors" component={withSidebarLayout(() => <WeddingSectionPage title="Vendor Management" createTo="/family/wedding/new/vendor" />)} />
         <Route path="/family/international-travel" component={withSidebarLayout(() => <InternationalTravel />)} />
         <Route path="/family/moving" component={withSidebarLayout(() => <Moving />)} />
         <Route path="/family/disaster-planning" component={withSidebarLayout(() => <DisasterPlanning />)} />
