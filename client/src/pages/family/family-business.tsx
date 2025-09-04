@@ -35,29 +35,32 @@ const businessData = {
       id: '1',
       routeId: 'angel-llc',
       name: "Angel's LLC",
-      type: 'Entity',
+      category: 'Entity',
       owner: 'Angel',
-      itemCount: 8,
+      itemCount: 7,
+      docs: 'EIN, Articles, Bank Account, Contracts',
       status: 'Active',
       icon: Building2,
     },
     {
       id: '2',
-      routeId: 'kassandra-trust',
-      name: "Kassandra's Trust Enterprise",
-      type: 'Entity',
-      owner: 'Kassandra',
-      itemCount: 6,
+      routeId: 'camacho-assembly',
+      name: "Camacho Assembly LLC",
+      category: 'Entity',
+      owner: 'Family',
+      itemCount: 9,
+      docs: 'Articles, Operating Agreement, Insurance',
       status: 'Active',
       icon: Building2,
     },
     {
       id: '3',
-      routeId: 'camacho-assembly',
-      name: "Camacho Assembly LLC",
-      type: 'Entity',
-      owner: 'Family',
-      itemCount: 12,
+      routeId: 'prime-set-assembly',
+      name: "Prime Set Assembly LLC",
+      category: 'Entity',
+      owner: 'Angel',
+      itemCount: 7,
+      docs: 'EIN, Articles, Bank Account, Contracts',
       status: 'Active',
       icon: Building2,
     },
@@ -67,19 +70,21 @@ const businessData = {
       id: '4',
       routeId: 'vendor-agreements',
       name: "Vendor Agreements",
-      type: 'Contract',
+      category: 'Contract',
       owner: 'Angel',
       itemCount: 15,
+      docs: 'Supplier contracts, Purchase agreements',
       status: 'Active',
       icon: FileText,
     },
     {
       id: '5',
-      routeId: 'subcontractor-contracts',
-      name: "Subcontractor Contracts",
-      type: 'Contract',
+      routeId: 'home-depot-contracts',
+      name: "Home Depot Subcontractor Contracts",
+      category: 'Contract',
       owner: 'Angel',
       itemCount: 8,
+      docs: 'Service agreements, SOWs',
       status: 'Active',
       icon: FileText,
     },
@@ -87,9 +92,10 @@ const businessData = {
       id: '6',
       routeId: 'client-agreements',
       name: "Client Service Agreements",
-      type: 'Contract',
+      category: 'Contract',
       owner: 'Kassandra',
-      itemCount: 22,
+      itemCount: 12,
+      docs: 'Service contracts, Terms of service',
       status: 'Active',
       icon: FileText,
     },
@@ -97,11 +103,12 @@ const businessData = {
   licenses: [
     {
       id: '7',
-      routeId: 'contractor-license',
-      name: "General Contractor License",
-      type: 'License',
+      routeId: 'nj-contractor-license',
+      name: "NJ General Contractor License",
+      category: 'License',
       owner: 'Angel',
       itemCount: 4,
+      docs: 'License certificate, Renewals',
       status: 'Active',
       icon: CreditCard,
     },
@@ -109,117 +116,128 @@ const businessData = {
       id: '8',
       routeId: 'transport-permit',
       name: "Transportation Permit",
-      type: 'Permit',
+      category: 'Permit',
       owner: 'Angel',
       itemCount: 3,
+      docs: 'DOT permit, Vehicle registrations',
       status: 'Expiring Soon',
       icon: CreditCard,
     },
     {
       id: '9',
-      routeId: 'business-insurance',
-      name: "Business Insurance Policies",
-      type: 'Insurance',
+      routeId: 'wells-fargo-insurance',
+      name: "Wells Fargo Business Insurance Policy",
+      category: 'Insurance',
       owner: 'Family',
-      itemCount: 7,
+      itemCount: 5,
+      docs: 'Policy documents, Claims history',
       status: 'Active',
       icon: CreditCard,
     },
   ],
-  financial: [
+  people: [
     {
       id: '10',
-      routeId: 'business-accounts',
-      name: "Business Bank Accounts",
-      type: 'Account',
-      owner: 'Angel',
-      itemCount: 5,
+      routeId: 'employee-roster',
+      name: "Employee Roster",
+      category: 'Employee',
+      owner: 'Kassandra',
+      itemCount: 12,
+      docs: 'Employee records, Contacts',
       status: 'Active',
-      icon: Building2,
+      icon: Users,
     },
     {
       id: '11',
-      routeId: 'payroll-docs',
-      name: "Payroll Documents",
-      type: 'Payroll',
-      owner: 'Kassandra',
-      itemCount: 18,
+      routeId: 'trustees-board',
+      name: "Trustee / Board Members",
+      category: 'Board',
+      owner: 'Family',
+      itemCount: 4,
+      docs: 'Board resolutions, Meeting minutes',
       status: 'Active',
       icon: Users,
     },
     {
       id: '12',
-      routeId: 'business-taxes',
-      name: "Business Tax Filings",
-      type: 'Tax',
-      owner: 'Family',
-      itemCount: 9,
-      status: 'Active',
-      icon: FileText,
-    },
-  ],
-  people: [
-    {
-      id: '13',
-      routeId: 'employee-roster',
-      name: "Employee Roster",
-      type: 'Employee',
-      owner: 'Kassandra',
-      itemCount: 12,
-      status: 'Active',
-      icon: Users,
-    },
-    {
-      id: '14',
-      routeId: 'board-members',
-      name: "Board Members / Trustees",
-      type: 'Board',
-      owner: 'Family',
-      itemCount: 4,
-      status: 'Active',
-      icon: Users,
-    },
-    {
-      id: '15',
       routeId: 'subcontractors',
       name: "Subcontractors",
-      type: 'Contractor',
+      category: 'Contractor',
       owner: 'Angel',
       itemCount: 8,
+      docs: 'Contractor agreements, Certifications',
       status: 'Active',
       icon: Users,
     },
   ],
   assets: [
     {
-      id: '16',
-      routeId: 'vehicle-registrations',
-      name: "Vehicle Registrations",
-      type: 'Vehicle',
+      id: '13',
+      routeId: 'vehicles',
+      name: "Vehicles (VIN / Titles)",
+      category: 'Vehicle',
       owner: 'Angel',
       itemCount: 6,
+      docs: 'VIN numbers, Titles, Registration',
       status: 'Active',
       icon: Settings,
+    },
+    {
+      id: '14',
+      routeId: 'store-fixtures',
+      name: "Store Fixtures / Racking Equipment",
+      category: 'Equipment',
+      owner: 'Family',
+      itemCount: 18,
+      docs: 'Purchase receipts, Warranties',
+      status: 'Active',
+      icon: Settings,
+    },
+    {
+      id: '15',
+      routeId: 'company-tech',
+      name: "Company Laptops / Software Licenses",
+      category: 'Technology',
+      owner: 'Kassandra',
+      itemCount: 11,
+      docs: 'Software licenses, Hardware inventory',
+      status: 'Active',
+      icon: Settings,
+    },
+  ],
+  financial: [
+    {
+      id: '16',
+      routeId: 'payroll-docs',
+      name: "Payroll Docs",
+      category: 'Payroll',
+      owner: 'Kassandra',
+      itemCount: 24,
+      docs: 'Pay stubs, Tax forms, Benefits',
+      status: 'Active',
+      icon: Building2,
     },
     {
       id: '17',
-      routeId: 'store-equipment',
-      name: "Store Equipment",
-      type: 'Equipment',
+      routeId: 'business-taxes',
+      name: "Tax Filings",
+      category: 'Tax',
       owner: 'Family',
-      itemCount: 25,
+      itemCount: 9,
+      docs: 'Business returns, Quarterly filings',
       status: 'Active',
-      icon: Settings,
+      icon: FileText,
     },
     {
       id: '18',
-      routeId: 'software-licenses',
-      name: "Tech/Software Licenses",
-      type: 'Software',
-      owner: 'Kassandra',
-      itemCount: 11,
+      routeId: 'business-accounts',
+      name: "Business Bank Accounts",
+      category: 'Account',
+      owner: 'Angel',
+      itemCount: 5,
+      docs: 'Account statements, Bank info',
       status: 'Active',
-      icon: Settings,
+      icon: Building2,
     },
   ],
 };
@@ -361,17 +379,20 @@ export default function FamilyBusiness() {
                 <h3 className="font-semibold text-white mb-1 group-hover:text-[#D4AF37] transition-colors">
                   {item.name}
                 </h3>
-                <div className="text-xs text-neutral-500 mb-2">
+                <div className="text-xs text-neutral-500 mb-1">
                   Owner: <span className="text-neutral-300">{item.owner}</span>
                   <span className="text-neutral-600"> • </span>
-                  <span className="text-neutral-400">{item.type}</span>
+                  <span className="text-neutral-400">{item.category}</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-neutral-400">
-                  <span className={`w-2 h-2 rounded-full ${
-                    item.status === 'Active' ? 'bg-green-400' :
-                    item.status === 'Expiring Soon' ? 'bg-yellow-400' : 'bg-[#D4AF37]'
-                  }`}></span>
-                  <span>{item.itemCount} items • {item.status}</span>
+                <div className="text-xs text-neutral-400 mb-2">
+                  Docs: {item.itemCount} Items ({item.docs})
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <button className="text-[#D4AF37] hover:underline">View</button>
+                  <span className="text-neutral-600">•</span>
+                  <button className="text-neutral-300 hover:text-white">Share</button>
+                  <span className="text-neutral-600">•</span>
+                  <button className="text-neutral-300 hover:text-white">Copy</button>
                 </div>
               </div>
             </LuxuryCard>
@@ -475,22 +496,19 @@ export default function FamilyBusiness() {
                 <div className="absolute top-full mt-2 left-0 w-56 bg-[#111214] border border-[#232530] rounded-lg shadow-xl z-50">
                   <div className="py-1">
                     <button className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#232530] transition-colors">
-                      Add Business Entity
+                      Entity
                     </button>
                     <button className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#232530] transition-colors">
-                      Add Contract/Agreement
+                      Contract
                     </button>
                     <button className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#232530] transition-colors">
-                      Add License/Permit
+                      License
                     </button>
                     <button className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#232530] transition-colors">
-                      Add Financial Record
+                      Employee
                     </button>
                     <button className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#232530] transition-colors">
-                      Add Employee/Partner
-                    </button>
-                    <button className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#232530] transition-colors">
-                      Add Asset/Equipment
+                      Asset
                     </button>
                   </div>
                 </div>
@@ -585,9 +603,9 @@ export default function FamilyBusiness() {
             {renderBusinessSection("🏢 Company Entities", businessData.entities, 'entities')}
             {renderBusinessSection("📑 Contracts & Agreements", businessData.contracts, 'contracts')}
             {renderBusinessSection("🪪 Licenses & Permits", businessData.licenses, 'licenses')}
-            {renderBusinessSection("💰 Financial Records", businessData.financial, 'financial')}
             {renderBusinessSection("👥 Employees & Partners", businessData.people, 'people')}
             {renderBusinessSection("⚙️ Assets & Equipment", businessData.assets, 'assets')}
+            {renderBusinessSection("💵 Financial Records", businessData.financial, 'financial')}
           </>
         ) : (
           renderDashboardView()
