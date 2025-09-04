@@ -5,6 +5,7 @@ import FamilyIds from '@/pages/family/family-ids';
 import Finance from '@/pages/family/finance';
 import Property from '@/pages/family/property';
 import FamilyPasswords from '@/pages/family/family-passwords';
+import ManagerDetailPage from '@/pages/family/password-manager-detail';
 import FamilyInsurance from '@/pages/family/family-insurance';
 import FamilyTaxes from '@/pages/family/family-taxes';
 import FamilyLegal from '@/pages/family/family-legal';
@@ -109,6 +110,7 @@ export default function FamilyRouter() {
         <Route path="/family/finance" component={withSidebarLayout(() => <Finance />)} />
         <Route path="/family/property" component={withSidebarLayout(() => <Property />)} />
         <Route path="/family/passwords" component={withSidebarLayout(() => <FamilyPasswords />)} />
+        <Route path="/family/passwords/manager/:managerId" component={withSidebarLayout(() => <ManagerDetailPage />)} />
         <Route path="/family/passwords/:id" component={withSidebarLayout(() => <FamilyPasswords />)} />
         <Route path="/family/insurance" component={withSidebarLayout(() => <FamilyInsurance />)} />
         <Route path="/family/taxes" component={withSidebarLayout(() => <FamilyTaxes />)} />
