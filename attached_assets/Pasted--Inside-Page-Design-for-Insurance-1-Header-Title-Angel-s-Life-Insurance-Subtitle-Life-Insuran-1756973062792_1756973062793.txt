@@ -1,0 +1,97 @@
+🗂 Inside-Page Design for Insurance
+1. Header
+
+Title: Angel’s Life Insurance
+
+Subtitle: Life Insurance · 3 items
+
+Right side:
+
++ Add Item (gold button)
+
+Search bar (dark-gray input, placeholder “Search insurance details…”)
+
+2. Core Sections (as expandable cards)
+
+Just like “Home, Devices, Subscriptions” in Passwords, you’ll have expandable sections:
+
+📄 Policy Details
+
+Policy Number
+
+Provider Name (ex: Prudential, Aetna)
+
+Coverage Type (Life / Term / Whole / Medical / Auto / etc.)
+
+Start Date / Renewal Date
+
+Premium Amount
+
+👥 Insured Members
+
+Primary Insured
+
+Spouse / Dependents
+
+Beneficiaries
+
+💰 Financials
+
+Premium Payments (monthly, yearly)
+
+Payment Method (Bank / Card / Payroll deduction)
+
+Coverage Amount (ex: $250,000)
+
+📂 Documents
+
+Upload scanned policy docs (PDF / images)
+
+Attach claim forms, ID copies, etc.
+
+Show preview (like Family IDs attachment style).
+
+3. UI Elements
+
+Reveal / Copy buttons next to sensitive fields (Policy #, Account #).
+
+Category Tags: (Life, Medical, Auto, Umbrella, etc.) for filtering.
+
+Activity Log: “Policy renewed on X date”, “Beneficiary updated”.
+
+4. Styling
+
+Dark background (same as Passwords + Family IDs).
+
+Gold accents for icons + section headers.
+
+Expandable cards with rounded corners + hover highlight.
+
+Consistency: Copy the layout from Password Managers so users feel it’s one ecosystem.
+
+Example Layout (Angel’s Life Insurance)
+Angel’s Life Insurance (Header)    [+ Add Item] [Search]
+
+Policy Details
+- Policy #: ********   [Reveal] [Copy]
+- Provider: Prudential
+- Coverage: Term Life · $250,000
+- Start Date: Jan 1, 2023
+- Renewal Date: Jan 1, 2024
+
+Insured Members
+- Primary: Angel Johnson
+- Spouse: Kassandra Johnson
+- Beneficiaries: Emma Johnson (Child)
+
+Financials
+- Premium: $150 / month
+- Payment Method: Bank ACH (ending 1234)
+
+Documents
+- LifeInsurance2023.pdf [Preview] [Download]
+- IDProof_Angel.png [Preview] [Download]
+
+
+⚡ This way, every Insurance card acts like a mini-vault for all policy details, just like the Passwords vault.
+All modules (Passwords, Family IDs, Finance, Insurance) will now follow the same UX structure.
