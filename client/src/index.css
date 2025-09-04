@@ -170,7 +170,7 @@ button[data-testid^="button-manager"]:active {
   opacity: 1 !important;
 }
 
-/* Force the (+) button to always be visible */
+/* Force the (+) button to always be visible - BULLETPROOF VERSION */
 .stable-add-button {
   visibility: visible !important;
   opacity: 1 !important;
@@ -178,7 +178,9 @@ button[data-testid^="button-manager"]:active {
   background-color: #D4AF37 !important;
   color: black !important;
   position: relative !important;
-  z-index: 10 !important;
+  z-index: 100 !important;
+  pointer-events: auto !important;
+  transform: none !important;
 }
 
 .stable-add-button:hover {
@@ -187,14 +189,43 @@ button[data-testid^="button-manager"]:active {
   display: flex !important;
   background-color: #caa62f !important;
   color: black !important;
+  transform: none !important;
+}
+
+.stable-add-button:active {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+  background-color: #b59324 !important;
+  color: black !important;
+  transform: none !important;
+}
+
+.stable-add-button:focus {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+  transform: none !important;
 }
 
 /* Ensure no parent containers hide the button */
 .stable-add-button:not(:hover),
-div:not(:hover) .stable-add-button {
+div:not(:hover) .stable-add-button,
+div:hover .stable-add-button,
+*:hover .stable-add-button,
+*:not(:hover) .stable-add-button {
   visibility: visible !important;
   opacity: 1 !important;
   display: flex !important;
+  transform: none !important;
+}
+
+/* Override ANY CSS that might hide the button */
+[class*="stable-add-button"] {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+  transform: none !important;
 }
 
 /* Optional: slim scrollbar style */
