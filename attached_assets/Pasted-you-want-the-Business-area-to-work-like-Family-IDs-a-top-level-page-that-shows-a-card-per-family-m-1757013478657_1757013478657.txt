@@ -1,0 +1,349 @@
+you want the Business area to work like Family IDs:
+
+a top-level page that shows a card per family member (Business Manager)
+
+clicking a card opens that person’s Business Vault with sections like Company Entities, Contracts, Licenses, etc.
+
+Below is a tight plan plus drop-in code you can adapt to your project (React + Vite + Tailwind/shadcn style, but easy to tweak).
+
+Plan
+URL structure
+
+/business → “Select a manager” grid (one card per family member who has any business items)
+
+/business/:memberId → that member’s Business Vault (sections & cards)
+
+Data model (example)
+
+Add/extend these tables/collections (or Drizzle tables if you’re using it):
+
+members — { id, fullName, avatarColor, role }
+
+business_items — { id, ownerId (→members.id), type: 'entity'|'contract'|'license'|'insurance'|'partner', title, subtitle, docCount, tags[], updatedAt }
+
+(If you already store similar records, you just need the ownerId and a type field so we can bucket them.)
+
+Buckets on the member page
+
+Company Entities
+
+Contracts & Agreements
+
+Licenses & Permits
+
+Insurance
+
+Employees & Partners
+
+Other
+
+(Exactly like your second reference.)
+
+Header behavior
+
+Keep a persistent “+ Add” button in the header (doesn’t disappear).
+Clicking toggles a small menu:
+
+New Entity
+
+New Contract
+
+New License/Permit
+
+New Insurance
+
+New Partner
+
+A Search box (local to this page).
+
+Optional: Owner filter + sort (A-Z / Recently updated), same pattern you now have in Passwords.
+
+UI wiring (React)
+Routes
+// src/routes/business.tsx
+import { RouteObject } from "react-router-dom";
+import BusinessManagersPage from "@/pages/business/BusinessManagersPage";
+import BusinessVaultPage from "@/pages/business/BusinessVaultPage";
+
+export const businessRoutes: RouteObject[] = [
+  { path: "/business", element: <BusinessManagersPage /> },
+  { path: "/business/:memberId", element: <BusinessVaultPage /> },
+];
+
+Managers grid (like Family IDs)
+// src/pages/business/BusinessManagersPage.tsx
+import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+
+type Member = { id: string; name: string; initials: string; itemCount: number };
+
+export default function BusinessManagersPage() {
+  const [members, setMembers] = useState<Member[]>([]);
+
+  useEffect(() => {
+    // fetch only members who own at least one business item
+    fetch("/api/business/managers")
+      .then(r => r.json())
+      .then(setMembers);
+  }, []);
+
+  return (
+    <div className="px-6 py-5">
+      <header className="flex items-center gap-4">
+        <h1 className="text-2xl font-semibold">Business</h1>
+        <AddMenu />
+        <div className="ml-auto w-96">
+          <SearchInput placeholder="Search managers or business items" />
+        </div>
+      </header>
+
+      <p className="text-sm text-muted-foreground mt-1">
+        Select a manager to view their business vault.
+      </p>
+
+      <div className="grid mt-6 gap-4 md:grid-cols-2">
+        {members.map(m => (
+          <Link
+            to={`/business/${m.id}`}
+            key={m.id}
+            className="group rounded-2xl border border-white/5 bg-gradient-to-b from-white/3 to-white/0 hover:from-white/6 hover:border-white/10 p-4 transition"
+          >
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-full bg-amber-500/20 grid place-items-center text-amber-300 font-semibold">
+                {m.initials}
+              </div>
+              <div>
+                <div className="font-medium">{m.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {m.itemCount} items pre-populated
+                </div>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AddMenu() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        aria-label="Add"
+        onClick={() => setOpen(o => !o)}
+        className="inline-flex items-center justify-center rounded-full bg-amber-400/20 text-amber-300 hover:bg-amber-400/30 size-8"
+      >
+        +
+      </button>
+      {open && (
+        <div
+          className="absolute z-20 mt-2 w-52 rounded-xl border border-white/10 bg-black/80 backdrop-blur p-2 shadow-lg"
+          onMouseLeave={() => setOpen(false)}
+        >
+          {["New Entity","New Contract","New License/Permit","New Insurance","New Partner"].map(label => (
+            <button
+              key={label}
+              className="w-full text-left rounded-lg px-3 py-2 text-sm hover:bg-white/5"
+              onClick={() => setOpen(false)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// simple stub—replace with your shared component
+function SearchInput({ placeholder }: { placeholder: string }) {
+  return (
+    <input
+      className="w-full rounded-full bg-white/5 px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-400/30"
+      placeholder={placeholder}
+    />
+  );
+}
+
+Member vault (sections + cards)
+// src/pages/business/BusinessVaultPage.tsx
+import { useParams, Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+
+type Item = {
+  id: string;
+  type: "entity" | "contract" | "license" | "insurance" | "partner" | "other";
+  title: string;
+  subtitle?: string;
+  docCount?: number;
+  updatedAt?: string;
+};
+
+const BUCKETS: { key: Item["type"] | "other"; label: string }[] = [
+  { key: "entity",    label: "Company Entities" },
+  { key: "contract",  label: "Contracts & Agreements" },
+  { key: "license",   label: "Licenses & Permits" },
+  { key: "insurance", label: "Insurance" },
+  { key: "partner",   label: "Employees & Partners" },
+  { key: "other",     label: "Other" },
+];
+
+export default function BusinessVaultPage() {
+  const { memberId } = useParams();
+  const [ownerName, setOwnerName] = useState("");
+  const [items, setItems] = useState<Item[]>([]);
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`/api/members/${memberId}`).then(r => r.json()),
+      fetch(`/api/business/items?ownerId=${memberId}`).then(r => r.json()),
+    ]).then(([member, items]) => {
+      setOwnerName(member.name);
+      setItems(items);
+    });
+  }, [memberId]);
+
+  const grouped = useMemo(() => {
+    const out: Record<string, Item[]> = {};
+    for (const b of BUCKETS) out[b.key] = [];
+    for (const it of items) {
+      const k = BUCKETS.find(b => b.key === it.type) ? it.type : "other";
+      (out[k] ||= []).push(it);
+    }
+    return out;
+  }, [items]);
+
+  return (
+    <div className="px-6 py-5">
+      <header className="flex items-center gap-3">
+        <Link to="/business" className="text-sm text-amber-300 hover:underline">Business</Link>
+        <span className="text-muted-foreground">/</span>
+        <h1 className="text-2xl font-semibold">{ownerName}’s Business</h1>
+        <div className="ml-auto flex items-center gap-3">
+          <SearchInput placeholder="Search this vault" />
+          <AddMenu />
+        </div>
+      </header>
+
+      <div className="space-y-8 mt-6">
+        {BUCKETS.map(bucket => (
+          <section key={bucket.key}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-medium">{bucket.label}</h2>
+                <p className="text-xs text-muted-foreground">
+                  {grouped[bucket.key].length} items
+                </p>
+              </div>
+              <button className="text-sm rounded-lg px-3 py-1.5 bg-white/5 hover:bg-white/8">
+                + Add
+              </button>
+            </div>
+
+            {grouped[bucket.key].length === 0 ? (
+              <EmptyState />
+            ) : (
+              <div className="grid gap-3 mt-3 md:grid-cols-2 xl:grid-cols-3">
+                {grouped[bucket.key].map(it => (
+                  <article
+                    key={it.id}
+                    className="rounded-2xl border border-white/5 bg-gradient-to-b from-white/3 to-white/0 p-4 hover:border-white/10 transition"
+                  >
+                    <div className="font-medium">{it.title}</div>
+                    {it.subtitle && (
+                      <div className="text-xs text-muted-foreground">{it.subtitle}</div>
+                    )}
+                    <div className="mt-3 flex gap-3 text-xs text-muted-foreground">
+                      {it.docCount != null && <span>{it.docCount} docs</span>}
+                      {it.updatedAt && <span>Updated {new Date(it.updatedAt).toLocaleDateString()}</span>}
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <button className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/8 text-sm">View</button>
+                      <button className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/8 text-sm">Share</button>
+                      <button className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/8 text-sm">Copy</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AddMenu() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="inline-flex items-center justify-center rounded-full bg-amber-400/20 text-amber-300 hover:bg-amber-400/30 size-8"
+      >
+        +
+      </button>
+      {open && (
+        <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-white/10 bg-black/80 backdrop-blur p-2 shadow-lg">
+          {["Entity","Contract","License/Permit","Insurance","Partner"].map(label => (
+            <button
+              key={label}
+              className="w-full text-left rounded-lg px-3 py-2 text-sm hover:bg-white/5"
+              onClick={() => setOpen(false)}
+            >
+              New {label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SearchInput({ placeholder }: { placeholder: string }) {
+  return (
+    <input
+      className="w-80 rounded-full bg-white/5 px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-400/30"
+      placeholder={placeholder}
+    />
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="mt-3 rounded-xl border border-dashed border-white/10 p-6 text-sm text-muted-foreground">
+      No items yet. Use “+ Add” to create your first one.
+    </div>
+  );
+}
+
+Backend endpoints (examples)
+// GET /api/business/managers
+// → [{ id, name, initials, itemCount }]
+// SELECT m.id, m.name, LEFT(...) as initials, COUNT(b.id) as itemCount
+// FROM members m JOIN business_items b ON b.ownerId=m.id GROUP BY m.id;
+
+// GET /api/business/items?ownerId=:id
+// → array of items for the owner
+
+// POST /api/business/items  (body: { ownerId, type, title, ... })
+
+Style details to match your theme
+
+Cards: rounded-2xl, subtle gradient from-white/3 to-white/0, border white/5 → white/10 on hover.
+
+Header buttons (the “+”): never disappears; the dropdown toggles independently (same fix we used on Family IDs).
+
+Consistent search pill (rounded-full bg-white/5) and focus ring amber-400/30.
+
+Section “+ Add” button at the right of each section title.
+
+What I’ll need from you (to finish wiring it up)
+
+API shape for members and business items, or confirm you want me to create the endpoints in your existing Express/Drizzle server (/api/business/managers, /api/business/items).
+
+Exact icon set you’re using (so I can drop icons on the section headers).
+
+Any extra fields you want on a business card (e.g., status, tags, renewal date).
