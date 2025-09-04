@@ -293,26 +293,45 @@ export default function BusinessDetail() {
   const typedMemberId = memberId as MemberId;
   const memberName = MEMBER_NAMES[typedMemberId];
 
-  // Fetch business items from API
-  const { data: businessItems = [], isLoading } = useQuery<BusinessItem[]>({
-    queryKey: ['/api/business/items', typedMemberId],
-    queryFn: async (): Promise<BusinessItem[]> => {
-      try {
-        const res = await fetch(`/api/business/items?ownerId=${typedMemberId}`);
-        if (!res.ok) throw new Error('Failed to fetch business items');
-        return res.json();
-      } catch (error) {
-        console.warn('Using fallback business items data:', error);
-        return [];
-      }
-    },
-    enabled: !!typedMemberId
-  });
-
-  // Use mock data as fallback if API fails
+  // Use mock data as fallback immediately
   const fallbackItems = useMemo(() => {
     return ALL_BUSINESS_ITEMS.filter((item: BusinessItem) => item.ownerId === typedMemberId);
   }, [typedMemberId]);
+
+  // Fetch business items from API with robust timeout handling
+  const { data: businessItems = [], isLoading } = useQuery<BusinessItem[]>({
+    queryKey: ['/api/business/items', typedMemberId],
+    queryFn: async (): Promise<BusinessItem[]> => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      try {
+        console.log(`Fetching business items for ${typedMemberId}...`);
+        const res = await fetch(`/api/business/items?ownerId=${typedMemberId}`, {
+          signal: controller.signal,
+          credentials: 'include'
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        
+        const data = await res.json();
+        console.log(`Fetched ${data.length} items for ${typedMemberId}`);
+        return data;
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        console.warn('API failed, using fallback data:', error.message);
+        // Return fallback data instead of empty array
+        return fallbackItems;
+      }
+    },
+    enabled: !!typedMemberId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: false // Don't retry on failure, just use fallback
+  });
 
   const itemsToUse = businessItems.length > 0 ? businessItems : fallbackItems;
 
