@@ -1,102 +1,100 @@
-import React, { useMemo, useState } from 'react';
-import { useLocation } from 'wouter';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, UserPlus, Shield, Lock, Search } from 'lucide-react';
+right now your “Managers” landing screen shows just two cards and nothing else to help you: no way to add other family members’ vaults, no search, and no quick filters. Here’s a tight plan + drop-in code to fix that.
 
-// Enhanced Manager type
+What to add on this screen
+
+Search (by manager name or member): global search input top-left.
+
+Add / Invite:
+
+Add Manager (for an existing family member already in your org).
+
+Invite Member (email/SMS) → auto-creates a pending Manager card.
+
+Filters:
+
+Owner (All / Adults / Kids / Custom groups).
+
+Sort (A–Z, Most items, Recently updated).
+
+Counts & status on each card:
+
+“+ 12 items pre-populated”, last updated, and a small lock if access is restricted.
+
+Empty state if there are no managers yet (with CTA to invite).
+
+Accessibility: keyboard focus ring handled (no white glow), full card is clickable.
+
+Breadcrumb (Passwords / Managers) + optional Back to All when inside a specific manager.
+
+Example: Managers index page (React + Tailwind)
+import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Plus, UserPlus, Shield, Lock, Search } from "lucide-react";
+import Link from "next/link";
+
 type Manager = {
   id: string;
   name: string;          // e.g. "Angel"
-  label: string;         // e.g. "Angel's Password Manager"
+  label: string;         // e.g. "Angel’s Password Manager"
   items: number;         // number of credentials
   lastUpdated?: string;  // ISO date
   restricted?: boolean;  // requires elevated access
 };
 
 const managersData: Manager[] = [
-  { 
-    id: "angel", 
-    name: "Angel", 
-    label: "Angel's Password Manager", 
-    items: 12, 
-    lastUpdated: "2025-01-04T17:08:00Z" 
-  },
-  { 
-    id: "kassandra", 
-    name: "Kassandra", 
-    label: "Kassandra's Password Manager", 
-    items: 9, 
-    lastUpdated: "2025-01-03T13:00:00Z" 
-  },
+  { id: "angel", name: "Angel", label: "Angel’s Password Manager", items: 12, lastUpdated: "2025-09-02T17:08:00Z" },
+  { id: "kassandra", name: "Kassandra", label: "Kassandra’s Password Manager", items: 9, lastUpdated: "2025-09-01T13:00:00Z" },
+  // Add more…
 ];
 
-export default function FamilyPasswords() {
-  const [, setLocation] = useLocation();
-  const [query, setQuery] = useState("");
+export default function ManagersIndex() {
+  const [q, setQ] = useState("");
   const [owner, setOwner] = useState("all");
   const [sort, setSort] = useState<"az" | "items" | "recent">("az");
 
   const managers = useMemo(() => {
     let list = managersData;
 
-    // Filter by owner
     if (owner !== "all") {
       list = list.filter(m => m.name.toLowerCase() === owner);
     }
 
-    // Search filter
-    if (query.trim()) {
-      const searchKey = query.toLowerCase();
+    if (q.trim()) {
+      const k = q.toLowerCase();
       list = list.filter(m =>
-        m.label.toLowerCase().includes(searchKey) || 
-        m.name.toLowerCase().includes(searchKey)
+        m.label.toLowerCase().includes(k) || m.name.toLowerCase().includes(k)
       );
     }
 
-    // Sort
-    if (sort === "az") {
-      list = [...list].sort((a, b) => a.label.localeCompare(b.label));
-    } else if (sort === "items") {
-      list = [...list].sort((a, b) => b.items - a.items);
-    } else if (sort === "recent") {
-      list = [...list].sort((a, b) => 
-        new Date(b.lastUpdated || 0).getTime() - new Date(a.lastUpdated || 0).getTime()
-      );
-    }
+    if (sort === "az") list = [...list].sort((a,b)=>a.label.localeCompare(b.label));
+    if (sort === "items") list = [...list].sort((a,b)=>b.items - a.items);
+    if (sort === "recent") list = [...list].sort((a,b)=> (new Date(b.lastUpdated||0).getTime() - new Date(a.lastUpdated||0).getTime()));
 
     return list;
-  }, [query, owner, sort]);
-
-  const navigateToManager = (managerId: string) => {
-    setLocation(`/family/passwords/manager/${managerId}`);
-  };
+  }, [q, owner, sort]);
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8 text-[#F4F4F6]">
-      {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-white">Passwords</h1>
+        <h1 className="text-2xl font-semibold">Passwords</h1>
         <p className="text-sm text-neutral-400">Select a manager to view their vault.</p>
       </div>
 
       {/* Toolbar */}
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-12">
-        {/* Search */}
         <div className="md:col-span-6">
           <div className="flex items-center gap-2 rounded-xl border border-[#232530] bg-[#13141B] px-3 py-2">
             <Search className="h-4 w-4 text-neutral-400" />
             <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              value={q}
+              onChange={(e)=>setQ(e.target.value)}
               placeholder="Search manager or member"
-              className="h-8 border-0 bg-transparent p-0 text-sm focus-visible:ring-0 text-white placeholder:text-neutral-400"
+              className="h-8 border-0 bg-transparent p-0 text-sm focus-visible:ring-0"
             />
           </div>
         </div>
-
-        {/* Owner Filter */}
         <div className="md:col-span-3">
           <Select value={owner} onValueChange={setOwner}>
             <SelectTrigger className="h-9 bg-[#13141B] border-[#232530] text-neutral-300">
@@ -106,13 +104,12 @@ export default function FamilyPasswords() {
               <SelectItem value="all">All owners</SelectItem>
               <SelectItem value="angel">Angel</SelectItem>
               <SelectItem value="kassandra">Kassandra</SelectItem>
+              {/* Dynamically render others */}
             </SelectContent>
           </Select>
         </div>
-
-        {/* Sort */}
         <div className="md:col-span-3">
-          <Select value={sort} onValueChange={(v) => setSort(v as any)}>
+          <Select value={sort} onValueChange={(v)=>setSort(v as any)}>
             <SelectTrigger className="h-9 bg-[#13141B] border-[#232530] text-neutral-300">
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
@@ -125,8 +122,8 @@ export default function FamilyPasswords() {
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="mb-6 flex flex-wrap gap-3">
+      {/* Actions */}
+      <div className="mb-4 flex flex-wrap gap-3">
         <Button className="rounded-full bg-[#D4AF37] text-black hover:bg-[#c6a02e]">
           <Plus className="h-4 w-4 mr-2" /> Add Manager
         </Button>
@@ -135,13 +132,13 @@ export default function FamilyPasswords() {
         </Button>
       </div>
 
-      {/* Manager Cards or Empty State */}
+      {/* Cards */}
       {managers.length === 0 ? (
         <EmptyState />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {managers.map((manager) => (
-            <ManagerCard key={manager.id} manager={manager} onClick={() => navigateToManager(manager.id)} />
+          {managers.map((m) => (
+            <ManagerCard key={m.id} m={m} />
           ))}
         </div>
       )}
@@ -149,10 +146,10 @@ export default function FamilyPasswords() {
   );
 }
 
-function ManagerCard({ manager, onClick }: { manager: Manager; onClick: () => void }) {
+function ManagerCard({ m }: { m: Manager }) {
   return (
-    <button
-      onClick={onClick}
+    <Link
+      href={`/family/passwords/managers/${m.id}`}
       className="
         group block rounded-2xl border border-[#232530]
         bg-gradient-to-b from-[#161616] to-[#0F0F0F]
@@ -160,39 +157,35 @@ function ManagerCard({ manager, onClick }: { manager: Manager; onClick: () => vo
         hover:-translate-y-0.5 hover:border-[#D4AF37]
         hover:shadow-[0_16px_40px_rgba(212,175,55,0.12)]
         transition-all focus:outline-none focus-visible:outline-none
-        text-left w-full
       "
-      data-testid={`button-manager-${manager.id}`}
     >
       <div className="flex items-center gap-3 px-5 py-4">
         <div className="h-10 w-10 grid place-items-center rounded-xl bg-[#D4AF37]/15 text-[#D4AF37] border border-[#232530]">
           <Shield className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="truncate font-medium text-white">{manager.label}</div>
+          <div className="truncate font-medium">{m.label}</div>
           <div className="mt-0.5 text-xs text-neutral-400">
-            + {manager.items} items pre-populated
-            {manager.lastUpdated && (
-              <span className="ml-2 text-neutral-500">
-                • updated {new Date(manager.lastUpdated).toLocaleDateString()}
-              </span>
+            + {m.items} items pre-populated
+            {m.lastUpdated && (
+              <span className="ml-2 text-neutral-500">• updated {new Date(m.lastUpdated).toLocaleDateString()}</span>
             )}
           </div>
         </div>
-        {manager.restricted && (
+        {m.restricted && (
           <div className="flex items-center gap-1 text-xs text-neutral-400">
             <Lock className="h-3.5 w-3.5" /> Restricted
           </div>
         )}
       </div>
-    </button>
+    </Link>
   );
 }
 
 function EmptyState() {
   return (
     <div className="rounded-2xl border border-[#232530] bg-[#0F0F0F] p-8 text-center">
-      <div className="text-lg font-medium text-white">No managers yet</div>
+      <div className="text-lg font-medium">No managers yet</div>
       <p className="mt-1 text-sm text-neutral-400">
         Invite a family member or add a manager to start organizing credentials.
       </p>
@@ -207,3 +200,29 @@ function EmptyState() {
     </div>
   );
 }
+
+Where the “Add/Invite” leads
+
+Add Manager: /family/passwords/managers/new → select an existing family member from your directory (Contacts) and create a vault for them.
+
+Invite Family Member: opens a modal (email/SMS). On success, create a Pending Manager card with a “Resend invite” pill.
+
+API shape you’ll likely want
+
+// GET /api/passwords/managers?query=&owner=&sort=
+type ManagerSummary = { id:string; label:string; items:number; lastUpdated?:string; restricted?:boolean };
+
+// POST /api/passwords/managers { memberId }
+type CreateManagerReq = { memberId: string }
+
+// POST /api/invitations { name, emailOrPhone }
+
+Bonus niceties you might be missing
+
+Role badges (Parent / Kid / Guest) on the card.
+
+Quick actions menu (⋯): Share vault, Manage members, Delete.
+
+Pagination / “Load more” once you have many managers.
+
+Keyboard nav: tab between cards, Enter to open, focus ring already removed visually (we use a subtle gold hover/glow instead).
