@@ -303,7 +303,7 @@ export default function BusinessDetail() {
     queryKey: ['/api/business/items', typedMemberId],
     queryFn: async (): Promise<BusinessItem[]> => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
       
       try {
         console.log(`Fetching business items for ${typedMemberId}...`);
@@ -323,14 +323,24 @@ export default function BusinessDetail() {
         return data;
       } catch (error: any) {
         clearTimeout(timeoutId);
-        console.warn('API failed, using fallback data:', error.message);
-        // Return fallback data instead of empty array
+        
+        // Handle AbortError specifically to avoid unhandled rejections
+        if (error.name === 'AbortError') {
+          console.log('Request timed out, using fallback data');
+        } else {
+          console.warn('API failed, using fallback data:', error.message);
+        }
+        
+        // Always return fallback data instead of throwing
         return fallbackItems;
+      } finally {
+        clearTimeout(timeoutId);
       }
     },
     enabled: !!typedMemberId,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: false // Don't retry on failure, just use fallback
+    retry: false, // Don't retry on failure, just use fallback
+    refetchOnWindowFocus: false // Don't refetch when window gains focus
   });
 
   const itemsToUse = businessItems.length > 0 ? businessItems : fallbackItems;
