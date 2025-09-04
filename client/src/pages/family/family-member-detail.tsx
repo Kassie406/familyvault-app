@@ -461,8 +461,9 @@ export default function FamilyMemberDetail() {
                         </div>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent 
-                        className="w-56 bg-[#0F0F0F] border-[#232530] shadow-xl"
+                        className="w-56 bg-[#0F0F0F] border-[#232530] shadow-xl z-50"
                         align="start"
+                        sideOffset={5}
                       >
                         {sectionAddOptions[section.id]?.map((option) => (
                           <DropdownMenuItem
