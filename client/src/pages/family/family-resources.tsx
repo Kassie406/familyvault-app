@@ -1,280 +1,230 @@
-import { useState } from 'react';
-import { Search, Plus, FileText, Layout, Shield, Heart, AlertTriangle, Zap, Edit, Siren, Briefcase } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Card } from '@/components/ui/card';
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { useLocation } from "wouter";
 
-export default function FamilyResources() {
-  const [searchTerm, setSearchTerm] = useState('');
+/** TYPES */
+type Resource = {
+  id: string;
+  title: string;
+  category: "Document" | "Checklist" | "Letter" | "Guide";
+  subTitle?: string;
+  createdAt: string;   // ISO
+  updatedAt?: string;  // ISO
+  icon?: string;       // optional emoji or icon key
+  isTemplate?: boolean;
+};
 
-  // Sample created resources - replace with actual data from backend
-  const createdResources = [
-    {
-      id: 1,
-      type: 'Important Document',
-      name: 'Birth Certificate - John Doe',
-      dateCreated: '2024-01-15',
-      icon: FileText
-    },
-    {
-      id: 2,
-      type: 'Emergency Equipment',
-      name: 'Emergency Kit Inventory',
-      dateCreated: '2024-01-10',
-      icon: AlertTriangle
-    },
-    {
-      id: 3,
-      type: 'Letter to Loved One',
-      name: 'Letter to Sarah',
-      dateCreated: '2024-01-05',
-      icon: Heart
-    }
+/** MOCK LOAD (replace with fetch('/api/resources?...')) */
+async function loadResources(): Promise<Resource[]> {
+  return [
+    { id: "r1", title: "Birth Certificate - John Doe", category: "Document", subTitle: "Important Document", createdAt: "2024-01-15" },
+    { id: "r2", title: "Emergency Kit Inventory",     category: "Checklist", subTitle: "Emergency Equipment", createdAt: "2024-01-10" },
+    { id: "r3", title: "Letter to Sarah",             category: "Letter",    subTitle: "Letter to Loved One", createdAt: "2024-01-05" },
+    // templates
+    { id: "t1", title: "Household Binder Index (Template)", category: "Guide", isTemplate: true, createdAt: "2024-02-01" },
+    { id: "t2", title: "Family Emergency Plan (Template)",  category: "Checklist", isTemplate: true, createdAt: "2024-02-04" },
   ];
+}
 
-  // Total recommended items as shown in reference
-  const totalItems = 4;
+const tabs = [
+  { key: "created", label: "Created" },
+  { key: "templates", label: "Templates" },
+] as const;
+type TabKey = typeof tabs[number]["key"];
+
+/** CARD */
+function ResourceCard({ r }: { r: Resource }) {
+  const [, setLocation] = useLocation();
 
   return (
-    <div className="card p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-bold text-[var(--ink-100)]">Family Resources</h1>
-        <Button 
-          variant="ghost" 
-          className="text-[var(--ink-300)] hover:text-[var(--gold)]"
-          data-testid="button-help"
-        >
-          Help
-        </Button>
-      </div>
-
-      {/* Search Bar */}
-      <div className="relative mb-8">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--ink-400)] h-4 w-4" />
-        <Input
-          placeholder="Search"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 bg-[var(--bg-900)] border border-[var(--line-700)] text-[var(--ink-100)] focus:bg-[var(--bg-900)] focus:ring-2 focus:ring-[var(--gold)] focus:ring-opacity-50"
-          data-testid="input-search"
-        />
-      </div>
-
-      {/* Tabs Section */}
-      <Tabs defaultValue="created" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-8">
-          <TabsTrigger 
-            value="created" 
-            className="data-[state=active]:bg-[var(--gold)] data-[state=active]:text-white"
-            data-testid="tab-created"
-          >
-            Created
-          </TabsTrigger>
-          <TabsTrigger 
-            value="templates" 
-            className="data-[state=active]:bg-[var(--gold)] data-[state=active]:text-white"
-            data-testid="tab-templates"
-          >
-            Templates
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Created Tab Content */}
-        <TabsContent value="created" className="mt-8">
-          {createdResources.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="text-[var(--ink-400)] mb-4">
-                <FileText className="h-16 w-16 mx-auto" />
-              </div>
-              <h3 className="text-xl font-medium text-[var(--ink-100)] mb-2">No created resources yet</h3>
-              <p className="text-[var(--ink-300)] mb-6 max-w-md mx-auto">
-                Start creating your family resources to organize important information and documents.
-              </p>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    className="bg-[var(--gold)] hover:bg-[#B8941F] text-white"
-                    data-testid="button-create-resource"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create New Resource
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="center" className="w-56 card border-2 border-[var(--line-700)] shadow-lg rounded-lg p-2">
-                  <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-[var(--ink-100)] font-medium hover:bg-[var(--gold)]/20 hover:!text-[var(--ink-100)] focus:!text-[var(--ink-100)]" data-testid="button-important-document">
-                    Important Document
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-[var(--ink-100)] font-medium hover:bg-[var(--gold)]/20 hover:!text-[var(--ink-100)] focus:!text-[var(--ink-100)]" data-testid="button-emergency-equipment">
-                    Emergency Equipment
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-[var(--ink-100)] font-medium hover:bg-[var(--gold)]/20 hover:!text-[var(--ink-100)] focus:!text-[var(--ink-100)]" data-testid="button-letter-loved-one">
-                    Letter to Loved One
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+    <article
+      className="group rounded-2xl border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-4 hover:border-white/12 transition shadow-[0_0_0_1px_rgba(255,255,255,0.02)]"
+      role="listitem"
+      data-testid={`resource-card-${r.id}`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="grid size-9 place-items-center rounded-full bg-amber-400/15 text-amber-300 text-sm">
+            {r.icon ?? "📄"}
+          </div>
+          <div>
+            <div className="font-medium leading-tight text-white">{r.title}</div>
+            <div className="text-xs text-white/55">
+              {r.subTitle ?? r.category} • Created {new Date(r.createdAt).toLocaleDateString()}
             </div>
-          ) : (
-            <div className="space-y-4">
-              {createdResources.filter(resource => 
-                resource.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                resource.type.toLowerCase().includes(searchTerm.toLowerCase())
-              ).map((resource) => {
-                const IconComponent = resource.icon;
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 opacity-80">
+          <button
+            onClick={() => setLocation(`/family/resources/${r.id}`)}
+            className="rounded-lg bg-white/6 px-3 py-1.5 text-sm hover:bg-white/10 text-white transition-colors"
+            data-testid={`button-view-${r.id}`}
+          >
+            View
+          </button>
+          <button 
+            className="rounded-lg bg-white/6 px-3 py-1.5 text-sm hover:bg-white/10 text-white transition-colors"
+            data-testid={`button-edit-${r.id}`}
+          >
+            Edit
+          </button>
+          <button 
+            className="rounded-lg bg-white/6 px-3 py-1.5 text-sm hover:bg-white/10 text-white transition-colors"
+            data-testid={`button-share-${r.id}`}
+          >
+            Share
+          </button>
+          <button 
+            className="rounded-lg bg-white/6 px-3 py-1.5 text-sm hover:bg-white/10 text-white transition-colors"
+            data-testid={`button-more-${r.id}`}
+          >
+            ⋯
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/** PAGE */
+export default function FamilyResources() {
+  const [data, setData] = useState<Resource[]>([]);
+  const [q, setQ] = useState("");
+  const [tab, setTab] = useState<TabKey>("created");
+  const [addOpen, setAddOpen] = useState(false);
+
+  useEffect(() => { loadResources().then(setData); }, []);
+
+  const created = useMemo(() => data.filter(d => !d.isTemplate), [data]);
+  const templates = useMemo(() => data.filter(d => !!d.isTemplate), [data]);
+
+  const filtered = useMemo(() => {
+    const list = tab === "created" ? created : templates;
+    if (!q.trim()) return list;
+    const needle = q.toLowerCase();
+    return list.filter(r =>
+      r.title.toLowerCase().includes(needle) ||
+      (r.subTitle ?? "").toLowerCase().includes(needle) ||
+      r.category.toLowerCase().includes(needle)
+    );
+  }, [tab, q, created, templates]);
+
+  return (
+    <div className="min-h-screen bg-[#0F0F0F] text-white">
+      <div className="px-6 pb-16">
+        {/* Sticky header */}
+        <div className="sticky top-0 z-20 -mx-6 mb-6 border-b border-white/8 bg-[rgb(7_8_10/0.85)] backdrop-blur supports-[backdrop-filter]:bg-black/60">
+          <div className="px-6 py-4 flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-white" data-testid="text-page-title">Family Resources</h1>
+
+            {/* Persistent + menu */}
+            <div className="relative">
+              <button
+                aria-label="Add"
+                onClick={() => setAddOpen(o => !o)}
+                className="grid size-8 place-items-center rounded-full bg-amber-400/25 text-amber-200 hover:bg-amber-400/35 transition"
+                data-testid="button-add-resource"
+              >
+                +
+              </button>
+              {addOpen && (
+                <div
+                  className="absolute left-0 z-30 mt-2 w-64 rounded-xl border border-white/10 bg-[#0b0d11]/95 shadow-xl backdrop-blur"
+                  role="menu"
+                  data-testid="menu-add-options"
+                >
+                  {[
+                    { label: "New Document", icon: "📄" },
+                    { label: "New Checklist", icon: "✅" },
+                    { label: "New Letter", icon: "✉️" },
+                    { label: "New Guide", icon: "📘" },
+                    { label: "Import from Template", icon: "✨" },
+                  ].map(opt => (
+                    <button
+                      key={opt.label}
+                      className="flex w-full items-center gap-3 px-3 py-2 text-sm hover:bg-white/5 rounded-lg text-white"
+                      onClick={() => setAddOpen(false)}
+                      data-testid={`button-${opt.label.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      <span className="text-base">{opt.icon}</span>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* spacer */}
+            <div className="grow" />
+
+            {/* Search */}
+            <div className="relative w-[420px]">
+              <input
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                placeholder="Search resources, categories, or notes"
+                className="w-full rounded-full bg-white/6 px-4 py-2 text-sm outline-none ring-0 focus:ring-2 focus:ring-amber-400/25 text-white placeholder:text-white/40"
+                aria-label="Search family resources"
+                data-testid="input-search"
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/40">
+                <ChevronDown className="size-4 rotate-180" />
+              </span>
+            </div>
+          </div>
+
+          {/* Tabs with pill slider */}
+          <div className="px-6 pb-3">
+            <div className="relative inline-flex rounded-full bg-white/6 p-1" data-testid="tabs-container">
+              {tabs.map((t) => {
+                const active = tab === t.key;
                 return (
-                  <Card key={resource.id} className="p-4 hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-[var(--gold)]/10 rounded-lg">
-                        <IconComponent className="h-6 w-6 text-[var(--gold)]" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-black">{resource.name}</h3>
-                        <p className="text-sm text-[var(--ink-300)]">{resource.type}</p>
-                        <p className="text-xs text-[var(--ink-400)]">Created: {resource.dateCreated}</p>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="text-[var(--ink-400)] hover:text-[var(--gold)]"
-                        data-testid={`button-edit-${resource.id}`}
-                      >
-                        Edit
-                      </Button>
-                    </div>
-                  </Card>
+                  <button
+                    key={t.key}
+                    onClick={() => setTab(t.key)}
+                    className={`relative z-10 rounded-full px-4 py-1.5 text-sm transition ${
+                      active ? "text-black" : "text-white/75 hover:text-white"
+                    }`}
+                    data-testid={`tab-${t.key}`}
+                  >
+                    {t.label}
+                  </button>
                 );
               })}
-              
-              {/* Create New Resource Button at bottom when resources exist */}
-              <div className="pt-4 border-t">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      className="w-full bg-[var(--gold)] hover:bg-[#B8941F] text-white"
-                      data-testid="button-create-resource"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create New Resource
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="center" className="w-56 card border-2 border-[var(--line-700)] shadow-lg rounded-lg p-2">
-                    <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-[var(--ink-100)] font-medium hover:bg-[var(--gold)]/20 hover:!text-[var(--ink-100)] focus:!text-[var(--ink-100)]" data-testid="button-important-document">
-                      Important Document
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-[var(--ink-100)] font-medium hover:bg-[var(--gold)]/20 hover:!text-[var(--ink-100)] focus:!text-[var(--ink-100)]" data-testid="button-emergency-equipment">
-                      Emergency Equipment
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="px-4 py-3 rounded-md cursor-pointer text-[var(--ink-100)] font-medium hover:bg-[var(--gold)]/20 hover:!text-[var(--ink-100)] focus:!text-[var(--ink-100)]" data-testid="button-letter-loved-one">
-                      Letter to Loved One
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              <span
+                className={`absolute inset-y-1 w-28 rounded-full bg-amber-400 transition-[left]`}
+                style={{ left: tab === "created" ? 4 : 4 + 112 }}
+                aria-hidden
+              />
             </div>
-          )}
-        </TabsContent>
-
-        {/* Templates Tab Content */}
-        <TabsContent value="templates" className="mt-8">
-          <div className="space-y-8">
-            
-            {/* Important Documents Section */}
-            <div>
-              <h3 className="text-lg font-medium text-black mb-4">Important Documents</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-black">Evacuation Plan</h4>
-                    <FileText className="h-5 w-5 text-[var(--ink-400)]" />
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-blue-500">
-                    <Zap className="h-3 w-3" />
-                    <span>1 item</span>
-                    <span className="text-[var(--ink-400)]">Pre-populated</span>
-                  </div>
-                </Card>
-                
-                <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <h4 className="font-medium text-black">New Eulogy</h4>
-                      <p className="text-sm text-[var(--ink-400)]">Assisted eulogy writing</p>
-                    </div>
-                    <Edit className="h-5 w-5 text-[var(--ink-400)]" />
-                  </div>
-                </Card>
-              </div>
-            </div>
-
-            {/* Emergency Equipment Section */}
-            <div>
-              <h3 className="text-lg font-medium text-black mb-4">Emergency Equipment</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-black">Fire Extinguisher</h4>
-                    <Siren className="h-5 w-5 text-[var(--ink-400)]" />
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-blue-500">
-                    <Zap className="h-3 w-3" />
-                    <span>1 item</span>
-                    <span className="text-[var(--ink-400)]">Pre-populated</span>
-                  </div>
-                </Card>
-                
-                <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-black">Go Bag</h4>
-                    <Briefcase className="h-5 w-5 text-[var(--ink-400)]" />
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-blue-500">
-                    <Zap className="h-3 w-3" />
-                    <span>1 item</span>
-                    <span className="text-[var(--ink-400)]">Pre-populated</span>
-                  </div>
-                </Card>
-              </div>
-            </div>
-
-            {/* Letters to Loved Ones Section */}
-            <div>
-              <h3 className="text-lg font-medium text-black mb-4">Letters to Loved Ones</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-black">Letter for Angel</h4>
-                    <Edit className="h-5 w-5 text-[var(--ink-400)]" />
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-blue-500">
-                    <Zap className="h-3 w-3" />
-                    <span>2 items</span>
-                    <span className="text-[var(--ink-400)]">Pre-populated</span>
-                  </div>
-                </Card>
-              </div>
-            </div>
-
           </div>
-        </TabsContent>
-      </Tabs>
-
-      {/* Search Results - shown when there's a search term */}
-      {searchTerm && (
-        <div className="text-center py-12">
-          <div className="text-[var(--ink-400)] mb-4">
-            <Search className="h-12 w-12 mx-auto" />
-          </div>
-          <h3 className="text-lg font-medium text-black mb-2">No resources found</h3>
-          <p className="text-[var(--ink-300)]">Try adjusting your search terms or create a new resource.</p>
         </div>
-      )}
+
+        {/* Content */}
+        <div role="list" className="mx-auto grid max-w-6xl gap-3" data-testid="resources-list">
+          {filtered.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm text-white/60" data-testid="empty-state">
+              No {tab === "created" ? "created resources" : "templates"} found. Use the
+              <span className="mx-1 rounded-full bg-amber-400/25 px-2 py-0.5 text-amber-200"> + </span>
+              button to add a new one.
+            </div>
+          ) : (
+            filtered.map(r => <ResourceCard key={r.id} r={r} />)
+          )}
+        </div>
+
+        {/* Footer CTA */}
+        <div className="mx-auto mt-8 max-w-6xl">
+          <button
+            onClick={() => setAddOpen(true)}
+            className="w-full rounded-full bg-amber-400 text-black py-3 font-medium hover:brightness-95 transition"
+            data-testid="button-create-resource"
+          >
+            + Create New Resource
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
