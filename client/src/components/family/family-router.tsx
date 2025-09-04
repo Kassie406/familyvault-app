@@ -19,6 +19,7 @@ import FamilyResources from '@/pages/family/family-resources';
 import ResourceDetail from '@/pages/family/resource-detail';
 import FamilyContacts from '@/pages/family/family-contacts';
 import ChildInformation from '@/pages/family/child-information';
+import ChildSectionPage from '@/pages/family/child-section';
 import ElderlyParents from '@/pages/family/elderly-parents';
 import GettingMarried from '@/pages/family/getting-married';
 import InternationalTravel from '@/pages/family/international-travel';
@@ -132,6 +133,12 @@ export default function FamilyRouter() {
         <Route path="/family/resources/:id" component={withSidebarLayout(() => <ResourceDetail />)} />
         <Route path="/family/contacts" component={withSidebarLayout(() => <FamilyContacts />)} />
         <Route path="/family/child-information" component={withSidebarLayout(() => <ChildInformation />)} />
+        <Route path="/family/child/birth" component={withSidebarLayout(() => <ChildSectionPage title="Birth Certificates" createTo="/family/child/new/birth" />)} />
+        <Route path="/family/child/medical" component={withSidebarLayout(() => <ChildSectionPage title="Medical Records" createTo="/family/child/new/medical" />)} />
+        <Route path="/family/child/school" component={withSidebarLayout(() => <ChildSectionPage title="School Records" createTo="/family/child/new/school" />)} />
+        <Route path="/family/child/contacts" component={withSidebarLayout(() => <ChildSectionPage title="Emergency Contacts" createTo="/family/child/new/contact" />)} />
+        <Route path="/family/child/activities" component={withSidebarLayout(() => <ChildSectionPage title="Sports & Activities" createTo="/family/child/new/activity" />)} />
+        <Route path="/family/child/immunizations" component={withSidebarLayout(() => <ChildSectionPage title="Immunizations" createTo="/family/child/new/immunization" />)} />
         <Route path="/family/elderly-parents" component={withSidebarLayout(() => <ElderlyParents />)} />
         <Route path="/family/getting-married" component={withSidebarLayout(() => <GettingMarried />)} />
         <Route path="/family/international-travel" component={withSidebarLayout(() => <InternationalTravel />)} />
