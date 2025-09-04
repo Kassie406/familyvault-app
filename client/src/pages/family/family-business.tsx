@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
+import CardActions from "@/components/card-actions";
 
 type Manager = {
   id: string;
@@ -234,13 +235,18 @@ export default function FamilyBusiness() {
                     >
                       View
                     </button>
-                    <button
-                      onClick={(e) => e.stopPropagation()}
-                      className="rounded-lg bg-white/10 px-2 py-1 text-xs hover:bg-white/20 transition"
-                      data-testid={`button-more-${m.id}`}
-                    >
-                      ⋯
-                    </button>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CardActions
+                        id={m.id}
+                        kind="manager"
+                        name={m.name}
+                        onAction={(action) => {
+                          if (action === "view") {
+                            setLocation(`/family/business/${m.id}`);
+                          }
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
