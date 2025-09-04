@@ -213,77 +213,83 @@ export default function FamilyInsurance() {
     <div className="min-h-screen bg-[#0F0F0F] text-white">
       {/* Sticky header */}
       <div className="sticky top-0 z-20 -mx-6 border-b border-white/8 bg-black/60 backdrop-blur">
-        <div className="mx-auto max-w-6xl px-6 py-4 flex items-center gap-3">
+        <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
           <h1 className="text-[28px] font-semibold tracking-tight text-white" data-testid="text-page-title">Insurance</h1>
 
-          {/* Persistent + Add */}
-          <div className="relative">
-            <button
-              ref={addRef}
-              type="button"
-              onClick={() => setAddMenuOpen(v => !v)}
-              className="h-8 rounded-full bg-amber-400/20 px-3 text-amber-200 hover:bg-amber-400/30 transition"
-              aria-expanded={addMenuOpen}
-              aria-controls="insurance-add-menu"
-              data-testid="button-add-insurance"
-            >
-              + Add
-            </button>
+          <div className="flex items-center gap-4">
+            {/* Search */}
+            <div className="relative w-[420px]">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+              <input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search"
+                className="w-full rounded-full bg-white/6 px-4 py-2 pl-10 text-sm outline-none focus:ring-2 focus:ring-amber-400/25 text-white placeholder:text-white/40"
+                data-testid="input-search"
+              />
+            </div>
 
-            {addMenuOpen && (
-              <div
-                id="insurance-add-menu"
-                className="absolute left-0 mt-2 w-56 rounded-2xl border border-white/10 bg-[#101217] p-2 shadow-xl z-30"
-                data-testid="menu-add-options"
-              >
-                <div className="px-3 py-2 text-xs text-white/50">Add New Insurance</div>
-                <MenuItem icon={<Heart className="h-4 w-4" />} onClick={() => handleCreateInsuranceItem('life')}>
-                  Life Insurance
-                </MenuItem>
-                <MenuItem icon={<Shield className="h-4 w-4" />} onClick={() => handleCreateInsuranceItem('medical')}>
-                  Medical Insurance
-                </MenuItem>
-                <MenuItem icon={<Car className="h-4 w-4" />} onClick={() => handleCreateInsuranceItem('auto')}>
-                  Auto Insurance
-                </MenuItem>
-                <MenuItem icon={<Home className="h-4 w-4" />} onClick={() => handleCreateInsuranceItem('homeowners')}>
-                  Homeowners Insurance
-                </MenuItem>
-                <MenuItem icon={<Umbrella className="h-4 w-4" />} onClick={() => handleCreateInsuranceItem('umbrella')}>
-                  Umbrella Insurance
-                </MenuItem>
-              </div>
-            )}
-          </div>
-
-          {/* Metrics pill */}
-          <div className="rounded-full bg-amber-400/15 px-3 py-1 text-sm text-amber-200" data-testid="text-insurance-count">
-            {totalItems} recommended items
-          </div>
-
-          <div className="grow" />
-
-          {/* Search */}
-          <div className="relative w-[420px]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
-            <input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search"
-              className="w-full rounded-full bg-white/6 px-4 py-2 pl-10 text-sm outline-none focus:ring-2 focus:ring-amber-400/25 text-white placeholder:text-white/40"
-              data-testid="input-search"
-            />
-          </div>
-
-          {/* Help & Avatar */}
-          <Button variant="ghost" size="sm" className="text-white/70 hover:text-[#D4AF37]">
-            <HelpCircle className="h-4 w-4 mr-2" />
-            Help
-          </Button>
-          <div className="w-8 h-8 rounded-full bg-[#D4AF37] flex items-center justify-center">
-            <span className="text-black text-sm font-medium">KC</span>
+            {/* Help & Avatar */}
+            <Button variant="ghost" size="sm" className="text-white/70 hover:text-[#D4AF37]">
+              <HelpCircle className="h-4 w-4 mr-2" />
+              Help
+            </Button>
+            <div className="w-8 h-8 rounded-full bg-[#D4AF37] flex items-center justify-center">
+              <span className="text-black text-sm font-medium">KC</span>
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* Section bar with + Add and recommended items */}
+      <div className="mx-auto max-w-6xl px-6 py-4 flex items-center gap-3">
+        <Shield className="h-5 w-5 text-white/70" />
+        <span className="text-white font-medium">Insurance</span>
+        
+        {/* + Add button */}
+        <div className="relative">
+          <button
+            ref={addRef}
+            type="button"
+            onClick={() => setAddMenuOpen(v => !v)}
+            className="h-6 w-6 rounded-full bg-[#D4AF37] text-black hover:bg-[#D4AF37]/80 transition flex items-center justify-center"
+            aria-expanded={addMenuOpen}
+            aria-controls="insurance-add-menu"
+            data-testid="button-add-insurance"
+          >
+            <Plus className="h-3 w-3" />
+          </button>
+
+          {addMenuOpen && (
+            <div
+              id="insurance-add-menu"
+              className="absolute left-0 mt-2 w-56 rounded-2xl border border-white/10 bg-[#101217] p-2 shadow-xl z-30"
+              data-testid="menu-add-options"
+            >
+              <div className="px-3 py-2 text-xs text-white/50">Add New Insurance</div>
+              <MenuItem icon={<Heart className="h-4 w-4" />} onClick={() => handleCreateInsuranceItem('life')}>
+                Life Insurance
+              </MenuItem>
+              <MenuItem icon={<Shield className="h-4 w-4" />} onClick={() => handleCreateInsuranceItem('medical')}>
+                Medical Insurance
+              </MenuItem>
+              <MenuItem icon={<Car className="h-4 w-4" />} onClick={() => handleCreateInsuranceItem('auto')}>
+                Auto Insurance
+              </MenuItem>
+              <MenuItem icon={<Home className="h-4 w-4" />} onClick={() => handleCreateInsuranceItem('homeowners')}>
+                Homeowners Insurance
+              </MenuItem>
+              <MenuItem icon={<Umbrella className="h-4 w-4" />} onClick={() => handleCreateInsuranceItem('umbrella')}>
+                Umbrella Insurance
+              </MenuItem>
+            </div>
+          )}
+        </div>
+
+        {/* Recommended items count */}
+        <span className="text-sm text-white/60" data-testid="text-insurance-count">
+          {totalItems} recommended items
+        </span>
       </div>
 
       {/* Content */}
