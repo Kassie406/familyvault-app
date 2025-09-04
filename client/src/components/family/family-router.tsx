@@ -12,6 +12,7 @@ import InsuranceDetail from '@/pages/family/insurance-detail';
 import FamilyTaxes from '@/pages/family/family-taxes';
 import TaxYearDetail from '@/pages/family/tax-year-detail';
 import FamilyLegal from '@/pages/family/family-legal';
+import LegalDetail from '@/pages/family/legal-detail';
 import FamilyResources from '@/pages/family/family-resources';
 import FamilyContacts from '@/pages/family/family-contacts';
 import ChildInformation from '@/pages/family/child-information';
@@ -121,6 +122,7 @@ export default function FamilyRouter() {
         <Route path="/family/taxes" component={withSidebarLayout(() => <FamilyTaxes />)} />
         <Route path="/family/taxes/:year" component={withSidebarLayout(() => <TaxYearDetail />)} />
         <Route path="/family/legal" component={withSidebarLayout(() => <FamilyLegal />)} />
+        <Route path="/family/legal/:id" component={withSidebarLayout(() => <LegalDetail />)} />
         <Route path="/family/resources" component={withSidebarLayout(() => <FamilyResources />)} />
         <Route path="/family/contacts" component={withSidebarLayout(() => <FamilyContacts />)} />
         <Route path="/family/child-information" component={withSidebarLayout(() => <ChildInformation />)} />
