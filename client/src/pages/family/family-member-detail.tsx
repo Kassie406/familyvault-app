@@ -3,7 +3,7 @@ import { useLocation, useRoute } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
   ArrowLeft, 
   Plus, 
@@ -302,6 +302,7 @@ export default function FamilyMemberDetail() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sections, setSections] = useState(mockVaultData);
   const [revealedItems, setRevealedItems] = useState<Set<string>>(new Set());
+  const [openAddMenus, setOpenAddMenus] = useState<Record<string, boolean>>({});
 
   const memberId = match ? params?.memberId : null;
 
@@ -330,8 +331,14 @@ export default function FamilyMemberDetail() {
 
   const handleAddItem = (sectionId: string, itemType: string) => {
     console.log(`Adding ${itemType} to ${sectionId} section`);
+    // Close the popover after selection
+    setOpenAddMenus(prev => ({ ...prev, [sectionId]: false }));
     // TODO: Implement add item functionality
     // This would typically open a form modal or navigate to an add form
+  };
+
+  const toggleAddMenu = (sectionId: string) => {
+    setOpenAddMenus(prev => ({ ...prev, [sectionId]: !prev[sectionId] }));
   };
 
   const goBack = () => {
@@ -445,40 +452,54 @@ export default function FamilyMemberDetail() {
                       />
                     ))}
                     
-                    {/* Add New Item Card with Dropdown */}
-                    <div className="relative">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger className="w-full border-2 border-dashed border-[#D4AF37]/30 rounded-xl p-4 hover:border-[#D4AF37] focus:border-[#D4AF37] focus:outline-none transition-colors cursor-pointer group text-left bg-transparent">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-[#D4AF37]/20 flex items-center justify-center flex-shrink-0">
-                              <Plus className="h-5 w-5 text-[#D4AF37]" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-white font-medium">Add New Item</p>
-                              <p className="text-neutral-400 text-sm">Add to {section.title}</p>
-                            </div>
-                          </div>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent 
-                          className="w-56 bg-[#0F0F0F] border-[#232530] shadow-xl"
-                          align="start"
-                          sideOffset={5}
-                          style={{ zIndex: 9999 }}
+                    {/* Add New Item Card with Stable Popover */}
+                    <div className="border-2 border-dashed border-[#D4AF37]/30 rounded-xl p-4 hover:border-[#D4AF37] transition-colors">
+                      <div className="flex items-center gap-3">
+                        <Popover 
+                          open={openAddMenus[section.id] || false} 
+                          onOpenChange={(open) => setOpenAddMenus(prev => ({ ...prev, [section.id]: open }))}
                         >
-                          {sectionAddOptions[section.id]?.map((option) => (
-                            <DropdownMenuItem
-                              key={option.id}
-                              onClick={() => handleAddItem(section.id, option.id)}
-                              className="text-neutral-300 hover:bg-[#171822] hover:text-white focus:bg-[#171822] focus:text-white cursor-pointer"
+                          <PopoverTrigger asChild>
+                            <Button
+                              type="button"
+                              size="icon"
+                              className="w-10 h-10 rounded-lg bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 focus-visible:ring-2 focus-visible:ring-[#D4AF37] border-0"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                toggleAddMenu(section.id);
+                              }}
                             >
-                              <div className="flex items-center gap-3">
-                                <div className="text-[#D4AF37]">{option.icon}</div>
-                                {option.label}
-                              </div>
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                              <Plus className="h-5 w-5 text-[#D4AF37]" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            align="start"
+                            sideOffset={8}
+                            className="w-64 rounded-xl border border-[#232530] bg-[#0F0F0F] text-white shadow-xl"
+                            style={{ zIndex: 9999 }}
+                          >
+                            <div className="text-sm font-medium mb-3 text-[#D4AF37]">Add to {section.title}</div>
+                            <ul className="space-y-1">
+                              {sectionAddOptions[section.id]?.map((option) => (
+                                <li key={option.id}>
+                                  <button
+                                    className="w-full text-left px-3 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-3"
+                                    onClick={() => handleAddItem(section.id, option.id)}
+                                  >
+                                    <div className="text-[#D4AF37] flex-shrink-0">{option.icon}</div>
+                                    <span className="text-neutral-300">{option.label}</span>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          </PopoverContent>
+                        </Popover>
+                        <div className="flex-1">
+                          <p className="text-white font-medium">Add New Item</p>
+                          <p className="text-neutral-400 text-sm">Add to {section.title}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
