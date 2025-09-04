@@ -38,6 +38,7 @@ import StartingFamily from '@/pages/family/starting-family';
 import FamilySectionPage from '@/pages/family/family-section';
 import WhenSomeoneDies from '@/pages/family/when-someone-dies';
 import BereavementSectionPage from '@/pages/family/bereavement-section';
+import ContactSectionPage from '@/pages/family/contact-section';
 import InboxPanel from './inbox-panel';
 import RemindersPanel from './reminders-panel';
 
@@ -141,6 +142,12 @@ export default function FamilyRouter() {
         <Route path="/family/resources" component={withSidebarLayout(() => <FamilyResources />)} />
         <Route path="/family/resources/:id" component={withSidebarLayout(() => <ResourceDetail />)} />
         <Route path="/family/contacts" component={withSidebarLayout(() => <FamilyContacts />)} />
+        <Route path="/family/contacts/family" component={withSidebarLayout(() => <ContactSectionPage title="Family Members" createTo="/family/contacts/new/family" />)} />
+        <Route path="/family/contacts/emergency" component={withSidebarLayout(() => <ContactSectionPage title="Emergency Contacts" createTo="/family/contacts/new/emergency" />)} />
+        <Route path="/family/contacts/medical" component={withSidebarLayout(() => <ContactSectionPage title="Medical Contacts" createTo="/family/contacts/new/medical" />)} />
+        <Route path="/family/contacts/professional" component={withSidebarLayout(() => <ContactSectionPage title="Professional Services" createTo="/family/contacts/new/professional" />)} />
+        <Route path="/family/contacts/friends" component={withSidebarLayout(() => <ContactSectionPage title="Friends & Social" createTo="/family/contacts/new/friend" />)} />
+        <Route path="/family/contacts/services" component={withSidebarLayout(() => <ContactSectionPage title="Service Providers" createTo="/family/contacts/new/service" />)} />
         <Route path="/family/child-information" component={withSidebarLayout(() => <ChildInformation />)} />
         <Route path="/family/child/birth" component={withSidebarLayout(() => <ChildSectionPage title="Birth Certificates" createTo="/family/child/new/birth" />)} />
         <Route path="/family/child/medical" component={withSidebarLayout(() => <ChildSectionPage title="Medical Records" createTo="/family/child/new/medical" />)} />
