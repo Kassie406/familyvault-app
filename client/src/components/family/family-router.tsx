@@ -8,6 +8,7 @@ import Property from '@/pages/family/property';
 import FamilyPasswords from '@/pages/family/family-passwords';
 import ManagerDetailPage from '@/pages/family/password-manager-detail';
 import FamilyInsurance from '@/pages/family/family-insurance';
+import InsuranceDetail from '@/pages/family/insurance-detail';
 import FamilyTaxes from '@/pages/family/family-taxes';
 import FamilyLegal from '@/pages/family/family-legal';
 import FamilyResources from '@/pages/family/family-resources';
@@ -115,6 +116,7 @@ export default function FamilyRouter() {
         <Route path="/family/passwords/manager/:managerId" component={withSidebarLayout(() => <ManagerDetailPage />)} />
         <Route path="/family/passwords/:id" component={withSidebarLayout(() => <FamilyPasswords />)} />
         <Route path="/family/insurance" component={withSidebarLayout(() => <FamilyInsurance />)} />
+        <Route path="/family/insurance/:id" component={withSidebarLayout(() => <InsuranceDetail />)} />
         <Route path="/family/taxes" component={withSidebarLayout(() => <FamilyTaxes />)} />
         <Route path="/family/legal" component={withSidebarLayout(() => <FamilyLegal />)} />
         <Route path="/family/resources" component={withSidebarLayout(() => <FamilyResources />)} />

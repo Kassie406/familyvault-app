@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'wouter';
 import { Search, Plus, MoreVertical, Heart, Shield, Car, Home, Umbrella, User, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,7 @@ const insuranceData = {
   lifeInsurance: [
     {
       id: '1',
+      routeId: 'angel-life',
       name: "Angel's Life Insurance",
       itemCount: 1,
       status: 'Pre-populated',
@@ -23,6 +25,7 @@ const insuranceData = {
     },
     {
       id: '2',
+      routeId: 'kassandra-life',
       name: "kassandra's Life Insurance",
       itemCount: 1,
       status: 'Pre-populated',
@@ -32,6 +35,7 @@ const insuranceData = {
   medicalInsurance: [
     {
       id: '3',
+      routeId: 'family-medical',
       name: "cassandra Family Medical",
       itemCount: 4,
       status: 'Pre-populated',
@@ -41,6 +45,7 @@ const insuranceData = {
   autoInsurance: [
     {
       id: '4',
+      routeId: 'family-auto',
       name: "cassandra Family Car Insurance",
       itemCount: 4,
       status: 'Pre-populated',
@@ -50,6 +55,7 @@ const insuranceData = {
   homeownersInsurance: [
     {
       id: '5',
+      routeId: 'homeowners',
       name: "Homeowner's Insurance",
       itemCount: 4,
       status: 'Pre-populated',
@@ -59,6 +65,7 @@ const insuranceData = {
   umbrellaInsurance: [
     {
       id: '6',
+      routeId: 'umbrella',
       name: "Umbrella Insurance Policy",
       itemCount: 4,
       status: 'Pre-populated',
@@ -70,6 +77,7 @@ const insuranceData = {
 export default function FamilyInsurance() {
   const [searchTerm, setSearchTerm] = useState('');
   const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [, setLocation] = useLocation();
 
   // Calculate total recommended items
   const totalItems = Object.values(insuranceData)
@@ -126,7 +134,11 @@ export default function FamilyInsurance() {
         <h2 className="text-xl font-semibold text-white mb-6">{title}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {itemsToShow.map((item) => (
-            <LuxuryCard key={item.id} className="p-6 cursor-pointer group hover:scale-[1.02] transition-all">
+            <LuxuryCard 
+              key={item.id} 
+              className="p-6 cursor-pointer group hover:scale-[1.02] transition-all"
+              onClick={() => setLocation(`/family/insurance/${item.routeId}`)}
+            >
               <div className="flex items-start justify-between mb-4">
                 <div 
                   className="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm"
