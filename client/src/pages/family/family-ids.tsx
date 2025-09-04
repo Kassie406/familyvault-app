@@ -181,7 +181,7 @@ export default function FamilyIds() {
                   e.stopPropagation();
                   setAddMenuOpen((v) => !v);
                 }}
-                className="h-8 w-8 rounded-full flex items-center justify-center bg-[#D4AF37] text-black shadow hover:bg-[#caa62f] active:bg-[#b59324] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]"
+                className="h-8 w-8 rounded-full flex items-center justify-center bg-[#D4AF37] text-black shadow hover:bg-[#caa62f] active:bg-[#b59324] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] stable-add-button"
                 data-testid="add-family-id-button"
               >
                 <Plus className="h-4 w-4" />
