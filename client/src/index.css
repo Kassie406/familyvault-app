@@ -170,7 +170,7 @@ button[data-testid^="button-manager"]:active {
   opacity: 1 !important;
 }
 
-/* Force the (+) button to always be visible - BULLETPROOF VERSION */
+/* Force the (+) button to always be visible - ULTRA BULLETPROOF VERSION */
 .stable-add-button {
   visibility: visible !important;
   opacity: 1 !important;
@@ -178,9 +178,11 @@ button[data-testid^="button-manager"]:active {
   background-color: #D4AF37 !important;
   color: black !important;
   position: relative !important;
-  z-index: 100 !important;
+  z-index: 1001 !important;
   pointer-events: auto !important;
   transform: none !important;
+  isolation: isolate !important;
+  contain: layout !important;
 }
 
 .stable-add-button:hover {
