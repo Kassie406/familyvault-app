@@ -215,27 +215,17 @@ export default function FamilyIds() {
                   onMouseUp={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="px-2 py-1.5 text-sm font-medium text-[#D4AF37]">
-                    Add to Family IDs
-                  </div>
                   <ul className="mt-1">
                     {[
-                      ["Import with Plaid", "import-plaid", "🏦"],
-                      ["Add Manually", "add-manually", null],
-                      ["Bank Account", "bank-account", null],
-                      ["Investment Account", "investment-account", null],
-                      ["Loan", "loan", null],
-                      ["Credit Card", "credit-card", null],
-                      ["Cryptocurrency", "cryptocurrency", null],
-                      ["Other", "other", null],
-                    ].map(([label, value, icon]) => (
+                      ["Person", "person"],
+                      ["Pet", "pet"],
+                    ].map(([label, value]) => (
                       <li key={value}>
                         <button
                           role="menuitem"
                           className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
                           onClick={() => handleCreateMember(value as string)}
                         >
-                          {icon && <span>{icon}</span>}
                           <span>{label}</span>
                         </button>
                       </li>
