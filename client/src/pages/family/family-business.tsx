@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
+import { MoreHorizontal, Check, X } from 'lucide-react';
 import CardActions from "@/components/card-actions";
 
 type Manager = {
@@ -27,8 +28,12 @@ export default function FamilyBusiness() {
   const [managers, setManagers] = useState<Manager[]>([]);
   const [q, setQ] = useState("");
   const [addOpen, setAddOpen] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [pageTitle, setPageTitle] = useState('Business');
+  const [tempTitle, setTempTitle] = useState('Business');
   const [, setLocation] = useLocation();
   const addRef = useRef<HTMLButtonElement | null>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -94,6 +99,59 @@ export default function FamilyBusiness() {
     };
   }, []);
 
+  // Handle escape key for title editing
+  useEffect(() => {
+    if (!isEditingTitle) return;
+    
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsEditingTitle(false);
+        setTempTitle(pageTitle);
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isEditingTitle, pageTitle]);
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [isEditingTitle]);
+
+  const handleEditTitle = () => {
+    setTempTitle(pageTitle);
+    setIsEditingTitle(true);
+  };
+
+  const handleSaveTitle = () => {
+    if (tempTitle.trim()) {
+      setPageTitle(tempTitle.trim());
+    } else {
+      setTempTitle(pageTitle);
+    }
+    setIsEditingTitle(false);
+  };
+
+  const handleCancelEdit = () => {
+    setTempTitle(pageTitle);
+    setIsEditingTitle(false);
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSaveTitle();
+    } else if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
+  };
+
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     if (!needle) return managers;
@@ -117,7 +175,47 @@ export default function FamilyBusiness() {
       {/* Sticky header */}
       <div className="sticky top-0 z-20 -mx-6 border-b border-white/8 bg-black/60 backdrop-blur">
         <div className="mx-auto max-w-6xl px-6 py-4 flex items-center gap-3">
-          <h1 className="text-[28px] font-semibold tracking-tight text-white" data-testid="text-page-title">Business</h1>
+          <div className="flex items-center gap-3">
+            {isEditingTitle ? (
+              <div className="flex items-center gap-2">
+                <input
+                  ref={titleInputRef}
+                  type="text"
+                  value={tempTitle}
+                  onChange={(e) => setTempTitle(e.target.value)}
+                  onKeyDown={handleTitleKeyDown}
+                  className="text-[28px] font-semibold tracking-tight text-white bg-transparent border-b-2 border-[#D4AF37] outline-none focus:border-[#D4AF37] min-w-0"
+                  style={{ background: 'transparent' }}
+                  data-testid="title-input"
+                />
+                <button
+                  onClick={handleSaveTitle}
+                  className="p-1 text-green-400 hover:text-green-300 transition-colors"
+                  data-testid="save-title-button"
+                >
+                  <Check className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  className="p-1 text-red-400 hover:text-red-300 transition-colors"
+                  data-testid="cancel-title-button"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <h1 className="text-[28px] font-semibold tracking-tight text-white" data-testid="text-page-title">{pageTitle}</h1>
+                <button
+                  onClick={handleEditTitle}
+                  className="p-1 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
+                  data-testid="edit-title-button"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </button>
+              </>
+            )}
+          </div>
 
           <div className="grow" />
 
