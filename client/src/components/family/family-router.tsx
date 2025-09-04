@@ -33,8 +33,11 @@ import DisasterSectionPage from '@/pages/family/disaster-section';
 import EstatePlanning from '@/pages/family/estate-planning';
 import EstateSectionPage from '@/pages/family/estate-section';
 import HomeBuying from '@/pages/family/home-buying';
+import HomeBuyingSectionPage from '@/pages/family/home-buying-section';
 import StartingFamily from '@/pages/family/starting-family';
+import FamilySectionPage from '@/pages/family/family-section';
 import WhenSomeoneDies from '@/pages/family/when-someone-dies';
+import BereavementSectionPage from '@/pages/family/bereavement-section';
 import InboxPanel from './inbox-panel';
 import RemindersPanel from './reminders-panel';
 
@@ -188,8 +191,26 @@ export default function FamilyRouter() {
         <Route path="/family/estate/tax" component={withSidebarLayout(() => <EstateSectionPage title="Tax Planning" createTo="/family/estate/new/tax" />)} />
         <Route path="/family/estate/professionals" component={withSidebarLayout(() => <EstateSectionPage title="Professional Contacts" createTo="/family/estate/new/professional" />)} />
         <Route path="/family/home-buying" component={withSidebarLayout(() => <HomeBuying />)} />
+        <Route path="/family/home-buying/financial" component={withSidebarLayout(() => <HomeBuyingSectionPage title="Financial Planning" createTo="/family/home-buying/new/financial" />)} />
+        <Route path="/family/home-buying/property" component={withSidebarLayout(() => <HomeBuyingSectionPage title="Property Research" createTo="/family/home-buying/new/property" />)} />
+        <Route path="/family/home-buying/legal" component={withSidebarLayout(() => <HomeBuyingSectionPage title="Legal Documents" createTo="/family/home-buying/new/legal" />)} />
+        <Route path="/family/home-buying/professionals" component={withSidebarLayout(() => <HomeBuyingSectionPage title="Professional Contacts" createTo="/family/home-buying/new/professional" />)} />
+        <Route path="/family/home-buying/inspections" component={withSidebarLayout(() => <HomeBuyingSectionPage title="Inspections & Appraisals" createTo="/family/home-buying/new/inspection" />)} />
+        <Route path="/family/home-buying/closing" component={withSidebarLayout(() => <HomeBuyingSectionPage title="Closing Process" createTo="/family/home-buying/new/closing" />)} />
         <Route path="/family/starting-family" component={withSidebarLayout(() => <StartingFamily />)} />
+        <Route path="/family/starting-family/planning" component={withSidebarLayout(() => <FamilySectionPage title="Family Planning" createTo="/family/starting-family/new/planning" />)} />
+        <Route path="/family/starting-family/pregnancy" component={withSidebarLayout(() => <FamilySectionPage title="Pregnancy & Birth" createTo="/family/starting-family/new/pregnancy" />)} />
+        <Route path="/family/starting-family/financial" component={withSidebarLayout(() => <FamilySectionPage title="Financial Planning" createTo="/family/starting-family/new/financial" />)} />
+        <Route path="/family/starting-family/support" component={withSidebarLayout(() => <FamilySectionPage title="Support Network" createTo="/family/starting-family/new/support" />)} />
+        <Route path="/family/starting-family/medical" component={withSidebarLayout(() => <FamilySectionPage title="Medical Records" createTo="/family/starting-family/new/medical" />)} />
+        <Route path="/family/starting-family/preparation" component={withSidebarLayout(() => <FamilySectionPage title="Baby Preparation" createTo="/family/starting-family/new/preparation" />)} />
         <Route path="/family/when-someone-dies" component={withSidebarLayout(() => <WhenSomeoneDies />)} />
+        <Route path="/family/bereavement/immediate" component={withSidebarLayout(() => <BereavementSectionPage title="Immediate Tasks" createTo="/family/bereavement/new/immediate" />)} />
+        <Route path="/family/bereavement/financial" component={withSidebarLayout(() => <BereavementSectionPage title="Financial Matters" createTo="/family/bereavement/new/financial" />)} />
+        <Route path="/family/bereavement/legal" component={withSidebarLayout(() => <BereavementSectionPage title="Legal Procedures" createTo="/family/bereavement/new/legal" />)} />
+        <Route path="/family/bereavement/support" component={withSidebarLayout(() => <BereavementSectionPage title="Support Resources" createTo="/family/bereavement/new/support" />)} />
+        <Route path="/family/bereavement/notifications" component={withSidebarLayout(() => <BereavementSectionPage title="Notifications" createTo="/family/bereavement/new/notification" />)} />
+        <Route path="/family/bereavement/memorial" component={withSidebarLayout(() => <BereavementSectionPage title="Memorial & Legacy" createTo="/family/bereavement/new/memorial" />)} />
         <Route path="/family/members" component={withSidebarLayout(FamilyMembers)} />
         <Route path="/family/documents" component={withSidebarLayout(FamilyDocuments)} />
         <Route path="/family/messages" component={withSidebarLayout(FamilyMessages)} />
