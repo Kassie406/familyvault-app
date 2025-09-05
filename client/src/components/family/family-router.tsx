@@ -42,6 +42,7 @@ import ContactSectionPage from '@/pages/family/contact-section';
 import InboxPanel from './inbox-panel';
 import RemindersPanel from './reminders-panel';
 import FamilySettings from '@/pages/family/family-settings';
+import ApiManagement from '@/pages/family/api-management';
 import FloatingChatWidget from '@/components/FloatingChatWidget';
 
 // Placeholder components for family portal pages
@@ -218,6 +219,7 @@ export default function FamilyRouter() {
         <Route path="/family/photos" component={withSidebarLayout(FamilyPhotos)} />
         <Route path="/family/emergency" component={withSidebarLayout(FamilyEmergency)} />
         <Route path="/family/settings" component={withSidebarLayout(() => <FamilySettings />)} />
+        <Route path="/family/api-management" component={withSidebarLayout(() => <ApiManagement />)} />
         <Route component={withSidebarLayout(FamilyHome)} />
       </Switch>
       

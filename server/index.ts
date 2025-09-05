@@ -22,6 +22,7 @@ import sessionsRouter from "./sessions-api";
 import stepupRouter from "./stepup-routes";
 import testStepupRouter from "./test-stepup-routes";
 import businessRoutes from "./routes/business";
+import apiServicesRouter from "./routes/apiServices";
 import { escalationWorker } from "./escalation-worker";
 import { smsService } from "./sms-service";
 import { eq, desc, and } from "drizzle-orm";
