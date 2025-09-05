@@ -590,6 +590,7 @@ export const insertSuppressionSchema = createInsertSchema(suppressionList).pick(
   reason: true,
 });
 
+
 // Business Management - Company entities, contracts, licenses, etc.
 export const businessTypeEnum = pgEnum("business_type", [
   "entity",
@@ -610,6 +611,47 @@ export const businessItems = pgTable("business_items", {
   tags: text("tags").array().default([]).notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Family invite system tables  
+export const invitePermissionEnum = pgEnum("invite_permission", ["view", "edit", "admin"]);
+export const familyRoleEnum = pgEnum("family_role", ["owner", "parent", "child", "grandparent", "member", "other"]);
+
+export const invites = pgTable("invites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull(),
+  permission: invitePermissionEnum("permission").notNull().default("view"),
+  familyRole: familyRoleEnum("family_role").notNull().default("member"),
+  invitedByUserId: varchar("invited_by_user_id").notNull(),
+  token: text("token").notNull(),
+  status: text("status").notNull().default("pending"), // pending | accepted | revoked | expired | bounced
+  requireLogin: boolean("require_login").notNull().default(true),
+  message: text("message"),
+  expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  acceptedAt: timestamp("accepted_at", { mode: "date" }),
+});
+
+export const inviteLinks = pgTable("invite_links", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdByUserId: varchar("created_by_user_id").notNull(),
+  permission: invitePermissionEnum("permission").notNull().default("view"),
+  requireLogin: boolean("require_login").notNull().default(true),
+  token: text("token").notNull(),
+  expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+});
+
+export const familyMembers = pgTable("family_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  email: text("email").unique(),
+  role: familyRoleEnum("role").notNull().default("member"),
+  avatarColor: text("avatar_color").default("#3498DB"),
+  itemCount: integer("item_count").default(0).notNull(),
+  userId: varchar("user_id"), // Links to users table when they accept invite
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Family credential schemas
@@ -783,6 +825,46 @@ export type ShareLink = typeof shareLinks.$inferSelect;
 
 export type InsertCredentialShare = z.infer<typeof insertCredentialShareSchema>;
 export type CredentialShare = typeof credentialShares.$inferSelect;
+
+// Invite schemas
+export const insertInviteSchema = createInsertSchema(invites).pick({
+  email: true,
+  permission: true,
+  familyRole: true,
+  invitedByUserId: true,
+  token: true,
+  status: true,
+  requireLogin: true,
+  message: true,
+  expiresAt: true,
+});
+
+export const insertInviteLinkSchema = createInsertSchema(inviteLinks).pick({
+  createdByUserId: true,
+  permission: true,
+  requireLogin: true,
+  token: true,
+  expiresAt: true,
+});
+
+export const insertFamilyMemberSchema = createInsertSchema(familyMembers).pick({
+  name: true,
+  email: true,
+  role: true,
+  avatarColor: true,
+  itemCount: true,
+  userId: true,
+});
+
+// Invite types
+export type InsertInvite = z.infer<typeof insertInviteSchema>;
+export type Invite = typeof invites.$inferSelect;
+
+export type InsertInviteLink = z.infer<typeof insertInviteLinkSchema>;
+export type InviteLink = typeof inviteLinks.$inferSelect;
+
+export type InsertFamilyMember = z.infer<typeof insertFamilyMemberSchema>;
+export type FamilyMember = typeof familyMembers.$inferSelect;
 
 // Business type exports  
 export type BusinessItem = typeof businessItems.$inferSelect;

@@ -612,10 +612,10 @@ export class DatabaseStorage implements IStorage {
 
     if (dsar.status !== 'open') {
       timeline.push({
-        at: dsar.updatedAt,
+        at: dsar.closedAt || dsar.openedAt,
         event: `Status changed to ${dsar.status}`,
         actor: 'Admin',
-        note: dsar.notes || undefined
+        note: dsar.notes ?? undefined
       });
     }
 
