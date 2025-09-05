@@ -693,6 +693,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/threads/default - Get or create default family chat thread
+  app.get("/api/threads/default", async (req, res) => {
+    try {
+      const threadId = await getOrCreateFamilyChatId();
+      res.json({ id: threadId });
+    } catch (error) {
+      console.error("Error getting default thread:", error);
+      res.status(500).json({ error: "Failed to get default thread" });
+    }
+  });
+
   // GET /api/threads/:id/messages - Get messages in a thread (paginated)
   app.get("/api/threads/:id/messages", async (req, res) => {
     try {
