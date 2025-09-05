@@ -1,0 +1,340 @@
+you want the Upload Center on the Dashboard to handle phone-camera uploads too (both when you’re already on the phone and when you’re on desktop but want to hand off to the phone). Here’s a clean, production-ready plan plus drop-in code you can wire into your existing React/Node stack.
+
+What we’ll add
+
+“Take Photo” (photos panel)
+
+Uses the device camera directly on mobile.
+
+One-tap capture via <input accept="image/*" capture="environment">.
+
+“Scan Document” (documents panel)
+
+Same camera capture, but optimized for documents.
+
+Accepts images and PDFs; multiple images will be auto-combined to a single PDF server-side.
+
+“Mobile Upload” handoff (QR)
+
+When you’re on desktop, click Mobile Upload to get a QR code.
+
+Scan it on your phone → opens a minimal mobile uploader page tied to the same session.
+
+Desktop shows a live “waiting for files…” state and updates automatically when the phone finishes.
+
+Nice-to-haves out of the box
+
+HEIC → JPEG conversion server-side.
+
+EXIF orientation fix.
+
+Web-safe compression + thumbnails.
+
+Virus scan / MIME sniff that we already outlined for documents.
+
+Live status via WebSocket (or polling fallback).
+
+Frontend: Upload Center actions
+A) Photos — camera capture (no background hover changes needed)
+// components/upload/PhotoCaptureButton.tsx
+import { useRef } from "react";
+
+export default function PhotoCaptureButton({ onFiles }: { onFiles: (files: FileList) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <button
+        type="button"
+        className="btn btn-gold"
+        onClick={() => ref.current?.click()}
+      >
+        Take Photo
+      </button>
+
+      {/* Mobile browsers: opens camera directly */}
+      <input
+        ref={ref}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => e.target.files && onFiles(e.target.files)}
+      />
+    </>
+  );
+}
+
+
+Notes
+
+capture="environment" opens the rear camera on iOS/Android.
+
+Works on Safari iOS, Chrome Android. If a browser ignores capture, it falls back to the file picker.
+
+B) Documents — camera scan (images or PDFs)
+// components/upload/DocScanButton.tsx
+import { useRef } from "react";
+
+export default function DocScanButton({ onFiles }: { onFiles: (files: FileList) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <button type="button" className="btn btn-gold" onClick={() => ref.current?.click()}>
+        Scan Document
+      </button>
+
+      <input
+        ref={ref}
+        type="file"
+        accept="application/pdf,image/*"
+        capture="environment"
+        multiple
+        className="hidden"
+        onChange={(e) => e.target.files && onFiles(e.target.files)}
+      />
+    </>
+  );
+}
+
+
+Behavior
+
+Users can shoot one or more page photos; we’ll combine images → single PDF on the server if desired.
+
+If they choose a PDF from Files/Drive, it uploads as-is.
+
+C) “Mobile Upload” (QR handoff from desktop)
+
+Flow
+
+Desktop clicks Mobile Upload → we create a short-lived upload session.
+
+Show a QR code for https://portal…/m/u/<sessionId>.
+
+Phone opens that page and uploads via a minimal UI.
+
+Desktop listens on WebSocket channel upload-session:<sessionId>; shows progress and completes when done.
+
+Client (Desktop) button + QR modal
+// components/upload/MobileHandoff.tsx
+import { useEffect, useState } from "react";
+import QRCode from "qrcode.react";
+
+type Session = { id: string; url: string; expiresAt: string };
+
+export default function MobileHandoff({ kind }: { kind: "photos" | "documents" }) {
+  const [session, setSession] = useState<Session | null>(null);
+  const [open, setOpen] = useState(false);
+
+  async function createSession() {
+    const res = await fetch(`/api/mobile-upload/sessions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ purpose: kind }), // optional metadata
+    });
+    const data = await res.json();
+    setSession(data);
+    setOpen(true);
+  }
+
+  // Optional: listen live (WS); fallback to polling
+  useEffect(() => {
+    if (!session) return;
+    const ws = new WebSocket(`${location.origin.replace("http", "ws")}/ws?ch=upload-session:${session.id}`);
+    ws.onmessage = (msg) => {
+      const evt = JSON.parse(msg.data);
+      if (evt.type === "complete") {
+        setOpen(false);
+        // refresh list or invoke callback
+      }
+    };
+    return () => ws.close();
+  }, [session]);
+
+  return (
+    <>
+      <button className="btn btn-outline" onClick={createSession}>
+        Mobile Upload
+      </button>
+
+      {open && session && (
+        <div className="modal">
+          <div className="modal-card">
+            <h3>Mobile Upload</h3>
+            <p>Scan with your phone’s camera:</p>
+            <QRCode value={session.url} size={168} />
+            <p className="muted">Session expires {new Date(session.expiresAt).toLocaleTimeString()}</p>
+            <button onClick={() => setOpen(false)} className="btn">Close</button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+Mobile upload page
+
+Create a lightweight route like /m/u/[sessionId]:
+
+// pages/m/u/[sessionId].tsx (Next.js-style; adapt to your router)
+import { useRouter } from "next/router";
+import { useRef } from "react";
+
+export default function MobileUpload() {
+  const { sessionId } = useRouter().query as { sessionId: string };
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function onFiles(files: FileList) {
+    const form = new FormData();
+    Array.from(files).forEach(f => form.append("files", f));
+    await fetch(`/api/mobile-upload/${sessionId}/files`, { method: "POST", body: form });
+    alert("Uploaded! You can return to your desktop.");
+  }
+
+  return (
+    <main className="p-4">
+      <h1>Upload to Family Vault</h1>
+      <p className="muted">This uploads directly to your family account.</p>
+
+      <button className="btn btn-gold" onClick={() => inputRef.current?.click()}>
+        Take Photo / Choose Files
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*,application/pdf"
+        capture="environment"
+        multiple
+        className="hidden"
+        onChange={(e) => e.target.files && onFiles(e.target.files)}
+      />
+    </main>
+  );
+}
+
+Backend: endpoints to support the handoff
+// POST /api/mobile-upload/sessions
+// -> { id, url, expiresAt }
+
+
+Creates a short-lived session (e.g., TTL 15 min) stored in Redis or DB.
+
+url points to /m/u/:id (mobile page).
+
+// POST /api/mobile-upload/:id/files  (form-data)
+// Auth: session id + HMAC or signed token; verify TTL & not used.
+
+
+Streams to S3 (or your storage).
+
+Runs the same pipeline we already outlined (virus scan, mime sniff, HEIC→JPEG, EXIF fix, thumbnailing).
+
+Emits WebSocket event on upload-session:<id> with progress and then complete.
+
+// GET /api/files/:id/status  (polling fallback)
+
+
+Returns { scanStatus, thumbStatus, previewUrl?, error? }.
+
+You already have the BullMQ + AV scan/thumbnail worker spec. Reuse it here; just enqueue the mobile-uploaded files the same way.
+
+Server snippets (Express-style, abbreviated)
+// api/mobileUpload.ts
+import { Router } from "express";
+import { nanoid } from "nanoid";
+import multer from "multer";
+import { redis } from "../lib/redis";
+import { enqueueIngest } from "../queues/ingest";
+import { wsPublish } from "../ws/pub";
+
+const upload = multer({ limits: { fileSize: 15 * 1024 * 1024 } }); // 15MB per file
+
+export const mobileUpload = Router();
+
+mobileUpload.post("/sessions", async (req, res) => {
+  const id = nanoid(8);
+  const url = `${process.env.APP_URL}/m/u/${id}`;
+  const key = `mu:${id}`;
+  const expiresAt = Date.now() + 15 * 60 * 1000;
+  await redis.set(key, JSON.stringify({ id, createdAt: Date.now() }), { EX: 15 * 60 });
+  res.json({ id, url, expiresAt });
+});
+
+mobileUpload.post("/:id/files", upload.array("files"), async (req, res) => {
+  const { id } = req.params;
+  const key = `mu:${id}`;
+  const exists = await redis.get(key);
+  if (!exists) return res.status(410).json({ error: "session_expired" });
+
+  // TODO: stream to S3; create DB records; enqueue ingest jobs:
+  for (const file of req.files as Express.Multer.File[]) {
+    const recordId = await saveFileRecord(file); // -> returns fileId
+    await enqueueIngest(recordId);
+  }
+
+  // Notify desktop listeners
+  wsPublish(`upload-session:${id}`, { type: "complete" });
+
+  res.json({ ok: true });
+});
+
+
+Security
+
+Sessions are short-lived, single-purpose, bound to an authenticated desktop user who created them.
+
+Optionally mint a signed JWT embedded in the mobile URL to assert the account/family scope without login.
+
+Limit file count/size; MIME-sniff and scan every upload; reject active content.
+
+Server-side processing notes (already aligned with your pipeline)
+
+Images
+
+Convert HEIC → JPEG (or AVIF/WEBP) via sharp with libvips HEIF support.
+
+Normalize orientation, remove GPS EXIF, keep date/time only if you want.
+
+Produce thumb_256, thumb_1024 variants.
+
+Documents
+
+If multiple images arrive for a doc “scan”, bundle into single PDF (server) with pdf-lib or sharp + hummus.
+
+Generate cover thumbnail for grid view.
+
+Run ClamAV (or the scanner you set up) and set scan_status.
+
+Status fields (DB)
+
+scan_status: 'queued' | 'clean' | 'infected' | 'error'
+
+thumb_status: 'queued' | 'ready' | 'error'
+
+preview_url when ready.
+
+UI polish (tiny changes)
+
+Buttons in each card:
+
+Photos: Take Photo, Mobile Upload
+
+Documents: Scan Document, Mobile Upload
+
+Keep your dark theme; no gray hover fills (you already disabled those). For a little “alive” feel:
+
+On hover, only glow the icon (we already set this up for your stat cards).
+
+QA checklist
+
+iOS Safari opens rear camera for both actions.
+
+Android Chrome does the same; Samsung internet OK.
+
+Desktop QR handoff flow: generate → scan → upload → desktop updates → files listed.
+
+HEIC from iPhone converts cleanly.
+
+10MB/photo cap (configurable), 25MB/doc cap (as in your UI) enforced server-side too.
+
+Virus scan, thumbnail status reachable via /api/files/:id/status and WS events.

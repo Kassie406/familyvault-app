@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { usePresignedUpload } from "@/hooks/usePresignedUpload";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Upload, FileText, X, Check } from "lucide-react";
@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFileStatus } from "@/hooks/useFileStatus";
+import MobileUploadModal from "./MobileUploadModal";
 
 interface QuickDocumentUploadProps {
   familyId?: string;
@@ -72,6 +73,19 @@ export default function QuickDocumentUpload({
   const [category, setCategory] = useState("general");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadedDocId, setUploadedDocId] = useState<string | null>(null);
+  const [mobileModalOpen, setMobileModalOpen] = useState(false);
+  
+  // Refs for camera capture
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const scanInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle camera/scan capture
+  const handleCameraCapture = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    setSelectedFile(file);
+    setTitle(file.name.replace(/\.[^/.]+$/, "") || "Scanned Document");
+  };
 
   // Create document and attach file mutation
   const uploadMutation = useMutation({
@@ -247,6 +261,37 @@ export default function QuickDocumentUpload({
                   accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.webp"
                 />
               </label>
+              
+              {/* Mobile capture options */}
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => scanInputRef.current?.click()}
+                  className="h-12 border-gray-600 bg-gray-800/50 hover:bg-gray-700/50 text-white"
+                  disabled={isUploading}
+                >
+                  📷 Scan Document
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setMobileModalOpen(true)}
+                  className="h-12 border-gray-600 bg-gray-800/50 hover:bg-gray-700/50 text-white"
+                  disabled={isUploading}
+                >
+                  📱 Mobile Upload
+                </Button>
+              </div>
+
+              {/* Hidden camera input */}
+              <input
+                ref={scanInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                capture="environment"
+                onChange={(e) => handleCameraCapture(e.target.files)}
+                className="hidden"
+                disabled={isUploading}
+              />
             </div>
           </>
         ) : (
@@ -366,6 +411,14 @@ export default function QuickDocumentUpload({
           </div>
         </CardContent>
       )}
+      
+      {/* Mobile Upload Modal */}
+      <MobileUploadModal
+        open={mobileModalOpen}
+        onOpenChange={setMobileModalOpen}
+        purpose="documents"
+        familyId={familyId}
+      />
     </Card>
   );
 }

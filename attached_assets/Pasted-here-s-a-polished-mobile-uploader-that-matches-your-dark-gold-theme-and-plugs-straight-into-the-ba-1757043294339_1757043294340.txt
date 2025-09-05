@@ -1,0 +1,436 @@
+here’s a polished mobile uploader that matches your dark + gold theme and plugs straight into the backend you’re already wiring (mobile-upload sessions, file status polling, and live WebSocket updates).
+
+Below is a single React page for "/m/u/:sessionId" plus a QR modal you’ll drop into the desktop Upload Center. It’s production-lean, fully mobile-first, and uses only Tailwind + minimal utilities (no heavy libs). If you’re using shadcn/ui already, I note where you can swap their components in.
+
+Mobile Upload Page (phone)
+
+Route: /m/u/:sessionId
+Purpose: Users scan the QR from desktop → land here → capture/upload photos or documents from the phone camera → desktop updates live.
+
+// app/mobile-upload/[sessionId]/page.tsx  (Next.js) 
+// or src/pages/mobile-upload/[sessionId].tsx in React Router
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useParams } from "react-router-dom"; // swap for Next.js: import { useParams } from "next/navigation"
+import io, { Socket } from "socket.io-client";
+
+type UploadItem = {
+  id: string;             // client temp id
+  file: File;
+  name: string;
+  size: number;
+  type: string;
+  previewUrl?: string;
+  status: "queued" | "uploading" | "scanning" | "processing" | "ready" | "error";
+  progress: number;       // 0..100
+  serverId?: string;      // returned by server
+  errorMsg?: string;
+};
+
+const MAX_MB = 25; // per file cap
+const ACCEPT_DOCS = ".pdf,.doc,.docx,.txt,image/*"; // allow camera + docs
+
+export default function MobileUploadPage() {
+  // Next.js: const { sessionId } = useParams() as { sessionId: string };
+  const { sessionId } = useParams() as any;
+  const [items, setItems] = useState<UploadItem[]>([]);
+  const [connected, setConnected] = useState(false);
+  const [sending, setSending] = useState(false);
+  const socketRef = useRef<Socket | null>(null);
+
+  // Attach to WebSocket room for this session
+  useEffect(() => {
+    const s = io("/", { path: "/ws" });       // backend WS path (socket.io)
+    socketRef.current = s;
+
+    s.on("connect", () => setConnected(true));
+    s.on("disconnect", () => setConnected(false));
+
+    // Optional: listen to server pings/acks
+    s.emit("join-upload-session", { sessionId });
+
+    // Server can push per-file status updates to phone if desired
+    s.on("file-status", (payload: { clientId?: string, serverId?: string, status: UploadItem["status"], progress?: number, error?: string }) => {
+      setItems(prev =>
+        prev.map(it =>
+          (payload.clientId && it.id === payload.clientId) || (payload.serverId && it.serverId === payload.serverId)
+            ? {
+                ...it,
+                status: payload.status ?? it.status,
+                progress: payload.progress ?? it.progress,
+                errorMsg: payload.error ?? it.errorMsg,
+              }
+            : it
+        )
+      );
+    });
+
+    return () => { s.disconnect(); };
+  }, [sessionId]);
+
+  const onPick = useCallback((files: FileList | null) => {
+    if (!files?.length) return;
+    const next: UploadItem[] = [];
+    Array.from(files).forEach((file) => {
+      const mb = file.size / (1024 * 1024);
+      if (mb > MAX_MB) return; // silently skip too-big; you can toast
+      const id = crypto.randomUUID();
+      const item: UploadItem = {
+        id,
+        file,
+        name: file.name || (file.type.includes("image/") ? "Photo.jpg" : "Document"),
+        size: file.size,
+        type: file.type,
+        previewUrl: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
+        progress: 0,
+        status: "queued",
+      };
+      next.push(item);
+    });
+    setItems(prev => [...next, ...prev]);
+  }, []);
+
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const handleOpenPicker = () => inputRef.current?.click();
+
+  const handleUpload = useCallback(async () => {
+    if (!items.some(i => i.status === "queued" || i.status === "error")) return;
+    setSending(true);
+    try {
+      for (const it of items) {
+        if (!(it.status === "queued" || it.status === "error")) continue;
+
+        setItems(prev => prev.map(p => p.id === it.id ? { ...p, status: "uploading", progress: 0 } : p));
+
+        // build FormData
+        const fd = new FormData();
+        fd.append("file", it.file);
+        fd.append("clientId", it.id);
+
+        const res = await fetch(`/api/mobile-upload/${sessionId}/files`, {
+          method: "POST",
+          body: fd,
+        });
+
+        if (!res.ok) {
+          const msg = await res.text();
+          setItems(prev => prev.map(p => p.id === it.id ? { ...p, status: "error", errorMsg: msg || "Upload failed" } : p));
+          continue;
+        }
+
+        const { fileId } = await res.json(); // server returns created file id
+        setItems(prev => prev.map(p => p.id === it.id ? { ...p, status: "scanning", serverId: fileId, progress: 100 } : p));
+
+        // Let desktop know something arrived immediately
+        socketRef.current?.emit("upload-session:event", {
+          sessionId,
+          type: "uploaded",
+          fileId,
+          clientId: it.id,
+        });
+      }
+    } finally {
+      setSending(false);
+    }
+  }, [items, sessionId]);
+
+  // Optional: use Visibility API to keep screen on (iOS Safari won’t; Android works better as PWA)
+  useEffect(() => {
+    const nav: any = navigator;
+    let wakeLock: any;
+    const request = async () => {
+      try { wakeLock = await nav.wakeLock?.request("screen"); } catch {}
+    };
+    request();
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && wakeLock?.released) request();
+    });
+    return () => { try { wakeLock?.release(); } catch {} };
+  }, []);
+
+  const hasQueuedOrErr = useMemo(
+    () => items.some(i => i.status === "queued" || i.status === "error"),
+    [items]
+  );
+
+  return (
+    <main className="min-h-[100svh] bg-[#0e0f12] text-white pb-24">
+      {/* Top bar */}
+      <header className="sticky top-0 z-30 backdrop-blur supports-[backdrop-filter]:bg-black/25 bg-black/60 border-b border-white/10">
+        <div className="mx-auto max-w-[720px] px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full bg-yellow-500/15 grid place-items-center">
+              <span className="text-yellow-400">↑</span>
+            </div>
+            <div>
+              <p className="font-semibold">Mobile Upload</p>
+              <p className="text-xs text-white/60">Session • {connected ? "Live" : "Reconnecting…"}</p>
+            </div>
+          </div>
+          <button
+            onClick={handleOpenPicker}
+            className="px-3 py-1.5 rounded-lg bg-yellow-500 text-black font-medium hover:bg-yellow-400 active:scale-[0.99] transition"
+          >
+            Add files
+          </button>
+          <input
+            ref={inputRef}
+            className="hidden"
+            type="file"
+            accept={ACCEPT_DOCS}
+            multiple
+            // Camera-first for images on mobile:
+            capture="environment"
+            onChange={(e) => onPick(e.target.files)}
+          />
+        </div>
+      </header>
+
+      {/* Hero area with capture buttons */}
+      <section className="mx-auto max-w-[720px] px-4 pt-6">
+        <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+          <p className="text-sm text-white/70 mb-3">
+            Take photos or select documents. Files are scanned and processed securely.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={handleOpenPicker}
+              className="flex-1 rounded-xl border border-white/10 bg-white/5 py-3 text-sm hover:bg-white/10 transition"
+            >
+              📷 Take Photo / Choose Image
+            </button>
+            <label className="flex-1 rounded-xl border border-white/10 bg-white/5 py-3 text-sm hover:bg-white/10 transition grid place-items-center cursor-pointer">
+              <input
+                type="file"
+                className="hidden"
+                multiple
+                accept={ACCEPT_DOCS}
+                onChange={(e) => onPick(e.target.files)}
+              />
+              📄 Scan / Upload Document
+            </label>
+          </div>
+        </div>
+      </section>
+
+      {/* Files list */}
+      <section className="mx-auto max-w-[720px] px-4 mt-6 space-y-3">
+        {items.length === 0 ? (
+          <div className="text-center text-white/60 text-sm py-10">
+            No files yet. Tap <span className="text-white">Add files</span> to begin.
+          </div>
+        ) : (
+          items.map((it) => (
+            <article
+              key={it.id}
+              className="rounded-xl border border-white/10 bg-white/5 overflow-hidden flex gap-3 p-3"
+            >
+              {/* Thumb */}
+              <div className="w-16 h-16 rounded-lg bg-white/10 overflow-hidden shrink-0 grid place-items-center">
+                {it.previewUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={it.previewUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-white/60 text-xs">DOC</span>
+                )}
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="truncate text-sm font-medium">{it.name}</p>
+                  <span className="text-xs text-white/50">
+                    {(it.size / (1024 * 1024)).toFixed(2)} MB
+                  </span>
+                </div>
+
+                <div className="mt-1 flex items-center justify-between">
+                  <div className="text-xs text-white/60">
+                    {it.status === "queued" && "Queued"}
+                    {it.status === "uploading" && "Uploading…"}
+                    {it.status === "scanning" && "Scanning for viruses…"}
+                    {it.status === "processing" && "Generating preview…"}
+                    {it.status === "ready" && <span className="text-green-400">Ready ✓</span>}
+                    {it.status === "error" && <span className="text-red-400">Error</span>}
+                    {it.errorMsg && <span className="text-white/40"> — {it.errorMsg}</span>}
+                  </div>
+                  <div className="text-xs text-white/60">{it.progress}%</div>
+                </div>
+
+                {/* progress bar */}
+                <div className="mt-2 h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-yellow-500 transition-[width] duration-300"
+                    style={{ width: `${it.progress}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="grid gap-2 content-start">
+                {(it.status === "error" || it.status === "queued") && (
+                  <button
+                    onClick={() => setItems(prev => prev.map(p => p.id === it.id ? { ...p, status: "queued" } : p))}
+                    className="text-xs px-2 py-1 rounded-md bg-white/10 hover:bg-white/15"
+                  >
+                    Retry
+                  </button>
+                )}
+                <button
+                  onClick={() => setItems(prev => prev.filter(p => p.id !== it.id))}
+                  className="text-xs px-2 py-1 rounded-md bg-white/10 hover:bg-white/15"
+                >
+                  Remove
+                </button>
+              </div>
+            </article>
+          ))
+        )}
+      </section>
+
+      {/* Bottom bar */}
+      <footer className="fixed inset-x-0 bottom-0 z-30">
+        <div className="mx-auto max-w-[720px] px-4 pb-[env(safe-area-inset-bottom)]">
+          <div className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur mt-3 p-3 flex items-center gap-3">
+            <div className="text-xs text-white/60 flex-1">
+              {hasQueuedOrErr ? "Ready to upload" : "Add files to begin"}
+            </div>
+            <button
+              disabled={!hasQueuedOrErr || sending}
+              onClick={handleUpload}
+              className="px-4 py-2 rounded-xl bg-yellow-500 text-black font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-yellow-400 transition"
+            >
+              {sending ? "Uploading…" : "Upload"}
+            </button>
+          </div>
+        </div>
+      </footer>
+    </main>
+  );
+}
+
+Notes
+
+Uses <input accept="image/*" capture="environment" /> to open the camera immediately on most phones.
+
+Accepts documents and images; max per file is set to 25 MB (match your server cap).
+
+Creates local thumbnails for images so users see what they’ve captured.
+
+Emits upload-session:event so the desktop page can update instantly (and separately the worker will send status when scan/thumb are done).
+
+Desktop: “Mobile Upload” QR Modal
+
+Drop this into your Upload Center next to your existing drag-drop boxes.
+
+import React, { useEffect, useState } from "react";
+import QRCode from "qrcode"; // tiny dependency (~4kb gz). If you prefer, use <img src={`https://api.qrserver.com/v1/create-qr-code/?data=${...}`}/>
+
+type MobileSession = { id: string; url: string; expiresAt: string };
+
+export function MobileUploadButton() {
+  const [open, setOpen] = useState(false);
+  const [session, setSession] = useState<MobileSession | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+
+  const createSession = async () => {
+    const res = await fetch("/api/mobile-upload/sessions", { method: "POST" });
+    const data = (await res.json()) as MobileSession;
+    setSession(data);
+    const png = await QRCode.toDataURL(data.url, { margin: 1, width: 256, color: { dark: "#f59e0b", light: "#0e0f12" } });
+    setQrDataUrl(png);
+  };
+
+  useEffect(() => {
+    if (open && !session) createSession();
+  }, [open]);
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10"
+      >
+        📱 Mobile Upload
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" onClick={() => setOpen(false)}>
+          <div
+            className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0e0f12] p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Upload from your phone</h3>
+              <button onClick={() => setOpen(false)} className="text-white/60 hover:text-white">✕</button>
+            </div>
+
+            {qrDataUrl ? (
+              <div className="grid place-items-center gap-3">
+                <img src={qrDataUrl} alt="QR code for mobile upload" className="rounded-xl border border-white/10" />
+                <p className="text-center text-sm text-white/70">
+                  Scan with your phone camera or tap the link below:
+                </p>
+                <a href={session?.url} className="text-yellow-400 hover:underline break-all text-sm">
+                  {session?.url}
+                </a>
+              </div>
+            ) : (
+              <div className="py-12 text-center text-white/50 text-sm">Generating secure session…</div>
+            )}
+
+            <div className="mt-4 flex items-center justify-between text-xs text-white/50">
+              <span>Expires {session?.expiresAt ? `at ${new Date(session.expiresAt).toLocaleTimeString()}` : "soon"}</span>
+              <button
+                onClick={createSession}
+                className="px-2 py-1 rounded-md bg-white/10 hover:bg-white/15"
+              >
+                New session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+Backend Hooks You Already Planned (recap)
+
+POST /api/mobile-upload/sessions → { id, url, expiresAt }
+
+POST /api/mobile-upload/:id/files → { fileId } and broadcast:
+
+WebSocket room upload-session:<id>:
+
+uploaded (immediate),
+
+progress (optional),
+
+ready or error (after worker finishes).
+
+GET /api/files/:id/status → { scan_status, thumb_status, ... } for polling fallbacks.
+
+BullMQ worker + sharp to generate thumbnails, normalize orientation, convert HEIC→JPEG, etc.
+
+AV scanner (ClamAV) to mark scan_status = clean|infected|failed.
+
+Little Design Touches (match your “luxury” style)
+
+Gold accent: already applied on key CTAs and progress.
+
+Rounded cards, 2xl radii, subtle borders border-white/10, translucent surfaces.
+
+Sticky bottom action bar for a native-app feel.
+
+WakeLock attempt for long sessions on Android (PWA improves this further).
+
+What you’ll see end-to-end
+
+Desktop Upload Center → click Mobile Upload → QR modal pops.
+
+Phone scans → opens Mobile Upload page → user snaps photos or picks docs.
+
+On upload, desktop’s Upload Center gets the live update — the file row appears, status flips to Scanning → Ready once the worker completes.
+
+Same pipeline as regular uploads (quota, virus scan, thumbnails, metadata extraction).

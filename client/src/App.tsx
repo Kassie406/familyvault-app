@@ -73,6 +73,7 @@ import MarriedEstatePlanning from "@/pages/married-estate-planning";
 import DisasterEmergencyContacts from "@/pages/disaster-emergency-contacts";
 import DisasterImportantDocuments from "@/pages/disaster-important-documents";
 import DisasterMedicalInformation from "@/pages/disaster-medical-information";
+import MobileUpload from "@/pages/MobileUpload";
 import InviteAccept from "@/pages/invite-accept";
 import Inbox from "@/pages/inbox";
 import DisasterPropertyInformation from "@/pages/disaster-property-information";
@@ -223,6 +224,7 @@ function Router() {
       <Route path="/when-someone-dies-bills-obligations" component={WhenSomeoneDiesBillsObligations} />
       <Route path="/when-someone-dies-legal-responsibilities" component={WhenSomeoneDiesLegalResponsibilities} />
       <Route path="/when-someone-dies-important-deadlines" component={WhenSomeoneDiesImportantDeadlines} />
+      <Route path="/m/u/:sessionId" component={MobileUpload} />
       
       <Route component={NotFound} />
     </Switch>
