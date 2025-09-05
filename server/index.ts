@@ -11,6 +11,7 @@ import { WebAuthnService } from "./webauthn-service";
 import { AuditService, getAuditContext } from "./audit-service";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { createIoServer } from "./realtime";
 import { type AuthenticatedRequest, optionalAuth, requireAuth, loginUser, registerUser, generateToken } from "./auth";
 import { storage } from "./storage";
 import { requireRecentReauth, markStrongAuth } from "./reauth-middleware";
@@ -3263,6 +3264,10 @@ app.post('/api/public/consent', optionalAuth, async (req: AuthenticatedRequest, 
   } else {
     serveStatic(app);
   }
+
+  // Initialize WebSocket server for real-time file updates
+  createIoServer(server);
+  log('Real-time WebSocket server initialized');
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
