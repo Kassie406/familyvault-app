@@ -264,9 +264,9 @@ export default function AdminProfile() {
           <CardContent>
             <div className="space-y-4">
               <div className="p-4 bg-white rounded-lg border border-blue-200">
-                <h4 className="font-semibold text-gray-900 mb-2">Real-time Chat System</h4>
+                <h4 className="font-semibold text-gray-900 mb-2">System Monitoring Dashboard</h4>
                 <p className="text-sm text-gray-600 mb-4">
-                  Access the live chat testing interface for private family communication. This is separate from the main website chat support.
+                  Admin interface to monitor and test if the family chat system is running properly in the background. Check system health and realtime functionality.
                 </p>
                 
                 <div className="flex flex-col sm:flex-row gap-3">

@@ -113,12 +113,12 @@ export default function FamilySettings() {
                 Private Family Live Chat
               </CardTitle>
               <CardDescription className="text-[var(--ink-300)]">
-                Access real-time chat for private family communication
+                Monitor and test the family chat system status
               </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-[var(--ink-300)] mb-4">
-                Open the family live chat system for instant messaging between family members. Separate from customer support.
+                Admin testing interface to verify the family chat system is running properly in the background. Check realtime functionality and system health.
               </p>
               <Button 
                 variant="outline" 
