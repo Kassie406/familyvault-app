@@ -16,9 +16,13 @@ import {
   type DsarRequest, type InsertDsarRequest,
   type RetentionPolicy, type InsertRetentionPolicy,
   type Suppression, type InsertSuppression,
+  type Invite, type InsertInvite,
+  type InviteLink, type InsertInviteLink,
+  type FamilyMember, type InsertFamilyMember,
   users, organizations, plans, coupons, articles, consentEvents, auditLogs,
   adminSessions, securitySettings, impersonationSessions,
-  gdprConsentEvents, dsarRequests, retentionPolicies, suppressionList
+  gdprConsentEvents, dsarRequests, retentionPolicies, suppressionList,
+  invites, inviteLinks, familyMembers
 } from "@shared/schema";
 
 // Database connection
@@ -136,6 +140,31 @@ export interface IStorage {
     consentUpdates30d: number;
     totalSuppressions: number;
   }>;
+
+  // Family Invite methods
+  createInvite(invite: InsertInvite): Promise<Invite>;
+  getInvite(id: string): Promise<Invite | undefined>;
+  getInviteByToken(token: string): Promise<Invite | undefined>;
+  getInvitesByEmail(email: string): Promise<Invite[]>;
+  getUserInvites(userId: string): Promise<Invite[]>;
+  updateInvite(id: string, updates: Partial<InsertInvite>): Promise<Invite | undefined>;
+  revokeInvite(id: string): Promise<boolean>;
+  acceptInvite(token: string): Promise<Invite | undefined>;
+  
+  // Family Member methods
+  createFamilyMember(member: InsertFamilyMember): Promise<FamilyMember>;
+  getFamilyMember(id: string): Promise<FamilyMember | undefined>;
+  getFamilyMemberByEmail(email: string): Promise<FamilyMember | undefined>;
+  getAllFamilyMembers(): Promise<FamilyMember[]>;
+  updateFamilyMember(id: string, updates: Partial<InsertFamilyMember>): Promise<FamilyMember | undefined>;
+  deleteFamilyMember(id: string): Promise<boolean>;
+  
+  // Invite Link methods
+  createInviteLink(link: InsertInviteLink): Promise<InviteLink>;
+  getInviteLink(id: string): Promise<InviteLink | undefined>;
+  getInviteLinkByToken(token: string): Promise<InviteLink | undefined>;
+  getUserInviteLinks(userId: string): Promise<InviteLink[]>;
+  revokeInviteLink(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -658,6 +687,109 @@ export class DatabaseStorage implements IStorage {
       consentUpdates30d: consentUpdates30d[0]?.count || 0,
       totalSuppressions: totalSuppressions[0]?.count || 0,
     };
+  }
+
+  // Family Invite methods
+  async createInvite(invite: InsertInvite): Promise<Invite> {
+    const result = await db.insert(invites).values(invite).returning();
+    return result[0];
+  }
+
+  async getInvite(id: string): Promise<Invite | undefined> {
+    const result = await db.select().from(invites).where(eq(invites.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getInviteByToken(token: string): Promise<Invite | undefined> {
+    const result = await db.select().from(invites).where(eq(invites.token, token)).limit(1);
+    return result[0];
+  }
+
+  async getInvitesByEmail(email: string): Promise<Invite[]> {
+    return await db.select().from(invites).where(eq(invites.email, email)).orderBy(desc(invites.createdAt));
+  }
+
+  async getUserInvites(userId: string): Promise<Invite[]> {
+    return await db.select().from(invites).where(eq(invites.invitedByUserId, userId)).orderBy(desc(invites.createdAt));
+  }
+
+  async updateInvite(id: string, updates: Partial<InsertInvite>): Promise<Invite | undefined> {
+    const result = await db.update(invites).set(updates).where(eq(invites.id, id)).returning();
+    return result[0];
+  }
+
+  async revokeInvite(id: string): Promise<boolean> {
+    const result = await db.update(invites)
+      .set({ status: 'revoked' })
+      .where(eq(invites.id, id));
+    return result.rowCount > 0;
+  }
+
+  async acceptInvite(token: string): Promise<Invite | undefined> {
+    const result = await db.update(invites)
+      .set({ status: 'accepted', acceptedAt: new Date() })
+      .where(eq(invites.token, token))
+      .returning();
+    return result[0];
+  }
+
+  // Family Member methods
+  async createFamilyMember(member: InsertFamilyMember): Promise<FamilyMember> {
+    const result = await db.insert(familyMembers).values(member).returning();
+    return result[0];
+  }
+
+  async getFamilyMember(id: string): Promise<FamilyMember | undefined> {
+    const result = await db.select().from(familyMembers).where(eq(familyMembers.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getFamilyMemberByEmail(email: string): Promise<FamilyMember | undefined> {
+    if (!email) return undefined;
+    const result = await db.select().from(familyMembers).where(eq(familyMembers.email, email)).limit(1);
+    return result[0];
+  }
+
+  async getAllFamilyMembers(): Promise<FamilyMember[]> {
+    return await db.select().from(familyMembers).orderBy(desc(familyMembers.createdAt));
+  }
+
+  async updateFamilyMember(id: string, updates: Partial<InsertFamilyMember>): Promise<FamilyMember | undefined> {
+    const result = await db.update(familyMembers)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(familyMembers.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteFamilyMember(id: string): Promise<boolean> {
+    const result = await db.delete(familyMembers).where(eq(familyMembers.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Invite Link methods
+  async createInviteLink(link: InsertInviteLink): Promise<InviteLink> {
+    const result = await db.insert(inviteLinks).values(link).returning();
+    return result[0];
+  }
+
+  async getInviteLink(id: string): Promise<InviteLink | undefined> {
+    const result = await db.select().from(inviteLinks).where(eq(inviteLinks.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getInviteLinkByToken(token: string): Promise<InviteLink | undefined> {
+    const result = await db.select().from(inviteLinks).where(eq(inviteLinks.token, token)).limit(1);
+    return result[0];
+  }
+
+  async getUserInviteLinks(userId: string): Promise<InviteLink[]> {
+    return await db.select().from(inviteLinks).where(eq(inviteLinks.createdByUserId, userId)).orderBy(desc(inviteLinks.createdAt));
+  }
+
+  async revokeInviteLink(id: string): Promise<boolean> {
+    const result = await db.delete(inviteLinks).where(eq(inviteLinks.id, id));
+    return result.rowCount > 0;
   }
 }
 
