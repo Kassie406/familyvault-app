@@ -1,0 +1,82 @@
+here’s how to finish wiring this into prod, quickly and safely.
+
+Ship checklist (quick)
+
+Run the migrations (add to your Drizzle migration folder, then):
+
+drizzle-kit generate && drizzle-kit migrate
+
+
+Mount routes (already shown):
+/api/link-policies and /api/approvals in server.ts.
+
+Front-end calls: drop in the tiny fetchPolicy/savePolicy + listPending/approve/deny/requestChanges helpers I gave, and call them from your modal/drawer handlers.
+
+RBAC: ensure your auth middleware sets req.user.id and req.user.isAdmin. Gate admin routes (done in code).
+
+Telemetry: log {actor, action, target, before, after} for policy saves and approvals.
+
+Fast API smoke tests (copy–paste)
+# 1) Get workspace policy (bootstraps defaults on first call)
+curl -s http://localhost:3000/api/link-policies
+
+# 2) Save policy (admin)
+curl -s -X PUT http://localhost:3000/api/link-policies \
+ -H "Content-Type: application/json" \
+ -d '{"scopeType":"workspace","defaultScope":"org","requireExpiry":true,"maxExpiryDays":30,"requirePassword":false,"allowDownload":true,"watermark":false,"disableCopy":false,"domainAllowlist":["yourfirm.com"],"domainBlocklist":["gmail.com"]}'
+
+# 3) List pending approvals
+curl -s "http://localhost:3000/api/approvals?state=pending"
+
+# 4) Approve (admin)
+curl -s -X POST http://localhost:3000/api/approvals/<APPROVAL_ID>/approve \
+ -H "Content-Type: application/json" \
+ -d '{"role":"viewer","expiresAt":"2025-12-31T23:59:59Z"}'
+
+# 5) Deny (admin)
+curl -s -X POST http://localhost:3000/api/approvals/<APPROVAL_ID>/deny \
+ -H "Content-Type: application/json" \
+ -d '{"reason":"Outside policy"}'
+
+Minimal validation (drop-in)
+
+Use Zod to harden inputs:
+
+import { z } from "zod";
+
+export const PolicySchema = z.object({
+  scopeType: z.enum(["workspace","collection"]),
+  scopeId: z.string().nullable().optional(),
+  defaultScope: z.enum(["invited","org","anyone"]),
+  requireExpiry: z.boolean(),
+  maxExpiryDays: z.number().int().min(1).max(365).nullable().optional(),
+  allowNever: z.boolean(),
+  requirePassword: z.boolean(),
+  minPasswordLen: z.number().int().min(6).max(128).optional(),
+  allowDownload: z.boolean(),
+  watermark: z.boolean(),
+  disableCopy: z.boolean(),
+  domainAllowlist: z.array(z.string()).optional(),
+  domainBlocklist: z.array(z.string()).optional(),
+});
+
+
+Then in PUT /api/link-policies:
+
+const parsed = PolicySchema.parse(req.body);
+
+UI glue (one-liners)
+
+View all button → navigate('/documents?scope=shared&sort=recent')
+
+Manage Link Policies → open modal → fetchPolicy() on open; savePolicy() on Save.
+
+Pending Approvals → open drawer → listPending() on open; call approve/deny/requestChanges per row and optimistically remove the row.
+
+Legal/ops guardrails (quick wins)
+
+Show a short risk notice when switching default to Anyone with link and auto-enforce the policy toggles (expiry/password/watermark).
+
+Keep an audit trail table (or log stream) of policy changes and approval decisions (who/when/what/why).
+
+Add a 60-second SLA indicator in the drawer if you want responsiveness metrics for approvals.

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, boolean, json, pgEnum, decimal, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, boolean, json, pgEnum, decimal, unique, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -1057,6 +1057,53 @@ export const insertStatusAlertStateSchema = createInsertSchema(statusAlertState)
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// Link Policies - Document sharing and access control settings
+export const linkPolicies = pgTable("link_policies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  scopeType: text("scope_type").notNull(), // 'workspace' | 'collection'
+  scopeId: text("scope_id"), // null for workspace
+  defaultScope: text("default_scope").notNull(), // 'invited'|'org'|'anyone'
+  requireExpiry: boolean("require_expiry").notNull().default(true),
+  maxExpiryDays: integer("max_expiry_days").default(30),
+  allowNever: boolean("allow_never").notNull().default(false),
+  requirePassword: boolean("require_password").notNull().default(false),
+  minPasswordLen: integer("min_password_len").default(8),
+  allowDownload: boolean("allow_download").notNull().default(true),
+  watermark: boolean("watermark").notNull().default(false),
+  disableCopy: boolean("disable_copy").notNull().default(false),
+  domainAllowlist: text("domain_allowlist").array().default([]),
+  domainBlocklist: text("domain_blocklist").array().default([]),
+  updatedBy: text("updated_by").notNull(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueScopePolicy: unique().on(table.scopeType, table.scopeId),
+}));
+
+// Document Access Approvals - Workflow for document access requests
+export const approvals = pgTable("approvals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: text("document_id").notNull(),
+  requesterId: text("requester_id").notNull(),
+  requestedRole: text("requested_role").notNull(), // 'viewer'|'commenter'|'editor'
+  reason: text("reason"),
+  isExternal: boolean("is_external").notNull().default(false),
+  domain: text("domain"),
+  state: text("state").notNull().default("pending"), // 'pending'|'approved'|'denied'|'changes_requested'
+  decidedBy: text("decided_by"),
+  decidedAt: timestamp("decided_at"),
+  decisionReason: text("decision_reason"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  stateIndex: index("idx_approvals_state").on(table.state),
+  docIndex: index("idx_approvals_doc").on(table.documentId),
+}));
+
+export type LinkPolicy = typeof linkPolicies.$inferSelect;
+export type UpsertLinkPolicy = typeof linkPolicies.$inferInsert;
+export type Approval = typeof approvals.$inferSelect;
+export type UpsertApproval = typeof approvals.$inferInsert;
 
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
 export type Organization = typeof organizations.$inferSelect;

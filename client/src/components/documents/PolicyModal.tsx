@@ -5,6 +5,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { fetchPolicy, savePolicy } from '@/api/policies';
 
 interface PolicyModalProps {
   open: boolean;
@@ -28,6 +30,7 @@ interface LinkPolicies {
 }
 
 export function PolicyModal({ open, onClose }: PolicyModalProps) {
+  const { toast } = useToast();
   const [policies, setPolicies] = useState<LinkPolicies>({
     defaultScope: 'invited',
     requireExpiry: true,
@@ -46,6 +49,47 @@ export function PolicyModal({ open, onClose }: PolicyModalProps) {
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [newDomain, setNewDomain] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Load policies when modal opens
+  useEffect(() => {
+    const loadPolicies = async () => {
+      if (!open) return;
+      
+      setIsLoading(true);
+      try {
+        const data = await fetchPolicy('workspace');
+        setPolicies({
+          defaultScope: data.defaultScope || 'invited',
+          requireExpiry: data.requireExpiry ?? true,
+          defaultExpiry: 30,
+          maxExpiry: data.maxExpiryDays || 365,
+          allowNever: data.allowNever ?? false,
+          requirePasswordExternal: data.requirePassword ?? true,
+          minPasswordLength: data.minPasswordLen || 8,
+          allowDownload: data.allowDownload ?? true,
+          addWatermark: data.watermark ?? false,
+          disableCopyText: data.disableCopy ?? false,
+          domainRestrictionType: 'none',
+          restrictedDomains: [...(data.domainAllowlist || []), ...(data.domainBlocklist || [])],
+          applyToExisting: false,
+        });
+        setHasUnsavedChanges(false);
+      } catch (error) {
+        console.error('Failed to load policies:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load link policies",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPolicies();
+  }, [open, toast]);
 
   // Track changes for unsaved warning
   useEffect(() => {
@@ -82,11 +126,42 @@ export function PolicyModal({ open, onClose }: PolicyModalProps) {
     }
   };
 
-  const handleSave = () => {
-    // TODO: Replace with actual API call
-    console.log('Saving link policies:', policies);
-    setHasUnsavedChanges(false);
-    onClose();
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const payload = {
+        scopeType: 'workspace',
+        scopeId: null,
+        defaultScope: policies.defaultScope,
+        requireExpiry: policies.requireExpiry,
+        maxExpiryDays: policies.maxExpiry,
+        allowNever: policies.allowNever,
+        requirePassword: policies.requirePasswordExternal,
+        minPasswordLen: policies.minPasswordLength,
+        allowDownload: policies.allowDownload,
+        watermark: policies.addWatermark,
+        disableCopy: policies.disableCopyText,
+        domainAllowlist: policies.domainRestrictionType === 'allowlist' ? policies.restrictedDomains : [],
+        domainBlocklist: policies.domainRestrictionType === 'blocklist' ? policies.restrictedDomains : [],
+      };
+
+      await savePolicy(payload);
+      setHasUnsavedChanges(false);
+      toast({
+        title: "Success",
+        description: "Link policies saved successfully",
+      });
+      onClose();
+    } catch (error) {
+      console.error('Failed to save policies:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save link policies",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const addDomain = () => {

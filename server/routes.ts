@@ -500,6 +500,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount mobile upload routes
   app.use("/api/mobile-upload", mobileUploadRoutes);
 
+  // Mount document management routes
+  const linkPoliciesRouter = (await import("./routes/link-policies")).default;
+  const approvalsRouter = (await import("./routes/approvals")).default;
+  app.use("/api/link-policies", linkPoliciesRouter);
+  app.use("/api/approvals", approvalsRouter);
+
   // Document Management API endpoints
   
   // POST /api/documents - Create new document
