@@ -9,6 +9,7 @@ import smsRoutes from "./sms";
 import threadsListRouter from "./routes/threadsList";
 import threadMessagesRouter from "./routes/threadMessages";
 import apiServicesRouter from "./routes/apiServices";
+import documentsRouter from "./routes/documents";
 import axios from "axios";
 import { sendSMSNotification } from "./lib/twilio";
 import { sendSMSNotificationsForMessage, markUserOnline, markUserOffline } from "./lib/sms-notifications";
@@ -513,6 +514,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Mount API services routes
   app.use(apiServicesRouter);
+
+  // Mount document routes for file sharing and management
+  app.use("/api/documents", documentsRouter);
 
   // Mount threads list routes for chat dashboard
   app.use("/api/threads", threadsListRouter);

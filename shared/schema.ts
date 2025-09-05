@@ -673,3 +673,33 @@ export const linkPolicies = pgTable("link_policies", {
 
 export type LinkPolicy = typeof linkPolicies.$inferSelect;
 export type InsertLinkPolicy = typeof linkPolicies.$inferInsert;
+
+// Document sharing system
+export const documentShares = pgTable("document_shares", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  resourceId: varchar("resource_id").notNull().references(() => familyResources.id, { onDelete: "cascade" }),
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  scope: varchar("scope").notNull(), // 'family' | 'user' | 'link'
+  sharedWithUserId: varchar("shared_with_user_id").references(() => users.id),
+  policyId: varchar("policy_id").references(() => linkPolicies.id),
+  canDownload: boolean("can_download").default(true),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Document approval workflow
+export const docApprovals = pgTable("doc_approvals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  resourceId: varchar("resource_id").notNull().references(() => familyResources.id, { onDelete: "cascade" }),
+  requestedBy: varchar("requested_by").notNull().references(() => users.id),
+  status: varchar("status").default("pending"), // pending|approved|rejected
+  approverId: varchar("approver_id").references(() => users.id),
+  decidedAt: timestamp("decided_at"),
+  reason: text("reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type DocumentShare = typeof documentShares.$inferSelect;
+export type InsertDocumentShare = typeof documentShares.$inferInsert;
+export type DocApproval = typeof docApprovals.$inferSelect;
+export type InsertDocApproval = typeof docApprovals.$inferInsert;

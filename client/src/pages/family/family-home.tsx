@@ -28,6 +28,7 @@ import DashboardWidget from '@/components/family/DashboardWidget';
 import MobileNavigationBar from '@/components/family/MobileNavigationBar';
 import { PolicyModal } from '@/components/documents/PolicyModal';
 import { ApprovalsDrawer } from '@/components/documents/ApprovalsDrawer';
+import { ShareDocumentModal } from '@/components/documents/ShareDocumentModal';
 
 export default function FamilyHome() {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -38,6 +39,7 @@ export default function FamilyHome() {
   const [dashboardLayout, setDashboardLayout] = useState('default');
   const [policyModalOpen, setPolicyModalOpen] = useState(false);
   const [approvalsDrawerOpen, setApprovalsDrawerOpen] = useState(false);
+  const [shareDocumentModalOpen, setShareDocumentModalOpen] = useState(false);
   
   // Navigation hook
   const [, setLocation] = useLocation();
@@ -204,17 +206,30 @@ export default function FamilyHome() {
     },
     { 
       label: 'Documents Shared', 
-      value: 23, 
+      value: familyData?.totalDocuments || 23, 
       icon: FileText,
       href: '/inbox?filter=shared&sort=recent',
       onViewAll: () => setLocation('/documents?scope=shared&sort=recent'),
-      previewItems: [
-        { id: "1", title: "Insurance Policy.pdf", sub: "Shared with family", href: "/documents/1" },
-        { id: "2", title: "Medical Records", sub: "Updated 2 hours ago", href: "/documents/2" },
-        { id: "3", title: "Will & Testament", sub: "Secure access only", href: "/documents/3" }
-      ],
+      fetchPreview: async () => {
+        try {
+          const response = await fetch('/api/documents/recent?limit=5');
+          if (!response.ok) throw new Error('Failed to fetch documents');
+          const data = await response.json();
+          return data.items?.map((doc: any) => ({
+            id: doc.id,
+            title: doc.title || doc.fileName || 'Untitled',
+            sub: doc.shareInfo || `Updated ${new Date(doc.updatedAt).toLocaleDateString()}`,
+            href: `/documents/${doc.id}`
+          })) || [];
+        } catch (error) {
+          console.error('Error fetching recent documents:', error);
+          return [
+            { id: "1", title: "Documents will load here", sub: "Connect to see recent files", href: "#" }
+          ];
+        }
+      },
       dropdownActions: [
-        { label: "Share a Document", onClick: scrollToDocumentUpload, icon: <Share className="h-4 w-4" /> },
+        { label: "Share a Document", onClick: () => setShareDocumentModalOpen(true), icon: <Share className="h-4 w-4" /> },
         { label: "Manage Link Policies", onClick: () => setPolicyModalOpen(true), icon: <Settings className="h-4 w-4" /> },
         { label: "Pending Approvals", onClick: () => setApprovalsDrawerOpen(true), icon: <AlertCircle className="h-4 w-4" /> }
       ]
@@ -498,6 +513,11 @@ export default function FamilyHome() {
       <MobileNavigationBar onQuickAccessOpen={() => setQuickAccessOpen(true)} />
 
       {/* Document Management Modals */}
+      <ShareDocumentModal 
+        open={shareDocumentModalOpen}
+        onOpenChange={setShareDocumentModalOpen}
+      />
+      
       <PolicyModal 
         open={policyModalOpen}
         onClose={() => setPolicyModalOpen(false)}
