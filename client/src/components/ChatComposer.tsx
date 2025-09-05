@@ -133,16 +133,17 @@ export default function ChatComposer({ onSend, disabled = false }: ChatComposerP
       >
         {/* File Upload Button */}
         <button
+          id="chat-attach-btn"
           onClick={() => fileRef.current?.click()}
           disabled={uploading || sending}
-          className="p-2 rounded-lg bg-white/10 hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="shrink-0 rounded-full p-2 bg-white/5 hover:bg-white/10 active:bg-white/15 transition will-change-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
           title="Attach files (or drag & drop, or paste)"
           data-testid="button-attach-files"
         >
           {uploading ? (
-            <Loader2 className="w-4 h-4 animate-spin text-white/60" />
+            <Loader2 className="w-5 h-5 animate-spin text-[#D4AF37]" />
           ) : (
-            <Paperclip className="w-4 h-4 text-white/60" />
+            <Paperclip className="w-5 h-5 text-[#D4AF37]" />
           )}
         </button>
 
