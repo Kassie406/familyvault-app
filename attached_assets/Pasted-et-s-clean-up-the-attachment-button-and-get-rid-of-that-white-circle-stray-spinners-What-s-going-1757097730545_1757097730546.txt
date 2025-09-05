@@ -1,0 +1,127 @@
+et’s clean up the attachment button and get rid of that white circle + stray spinners.
+
+What’s going on
+
+The white circle is the browser’s default tap/active/focus styling showing through your button.
+
+The up/down arrows are the number-input spinners; your chat input is likely type="number" somewhere (or inheriting styles).
+
+Below is a drop-in, polished composer bar: a proper paperclip icon, no ugly highlight, and a guaranteed type="text" message field.
+
+1) Replace your attach + input + send markup
+// ChatComposer.tsx  (inside your composer)
+import React, { useRef, useState } from "react";
+
+export default function ChatComposer({ onSend, onAttach }: any) {
+  const [text, setText] = useState("");
+  const [pending, setPending] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function submit() {
+    const body = text.trim();
+    if (!body) return;
+    setPending(true);
+    try {
+      await onSend(body);
+      setText("");
+    } finally { setPending(false); }
+  }
+
+  return (
+    <div className="p-2 border-t border-white/10">
+      <div className="flex items-center gap-2">
+        {/* ATTACH BUTTON */}
+        <button
+          id="chat-attach-btn"
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          title="Attach files"
+          aria-label="Attach files"
+          className="
+            shrink-0 rounded-full p-2
+            bg-white/5 hover:bg-white/10 active:bg-white/15
+            transition will-change-transform
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]
+            touch-manipulation
+          "
+        >
+          {/* Paperclip SVG (gold) */}
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21.44 11.05l-8.49 8.49a5.5 5.5 0 01-7.78-7.78l9.19-9.19a4 4 0 015.66 5.66L9.64 18.21a2.5 2.5 0 11-3.54-3.54l8.49-8.49"/>
+          </svg>
+        </button>
+
+        {/* HIDDEN FILE INPUT */}
+        <input
+          ref={fileRef}
+          type="file"
+          multiple
+          className="hidden"
+          accept="image/*,.pdf,.zip,.txt,.doc,.docx"
+          onChange={e => onAttach?.(e.target.files)}
+        />
+
+        {/* MESSAGE INPUT (force text; no spinners) */}
+        <input
+          type="text"
+          inputMode="text"
+          autoComplete="off"
+          spellCheck={true}
+          placeholder="Type a message…"
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => (e.key === "Enter" && !e.shiftKey ? (e.preventDefault(), submit()) : null)}
+          className="
+            flex-1 rounded px-3 py-2
+            bg-black/30 text-white placeholder-white/40
+            border border-white/10
+            outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]
+            appearance-none
+          "
+        />
+
+        {/* SEND BUTTON */}
+        <button
+          type="button"
+          onClick={submit}
+          disabled={pending}
+          title="Send"
+          aria-label="Send"
+          className="
+            shrink-0 rounded-full w-10 h-10 grid place-items-center
+            bg-[#D4AF37] text-black
+            hover:brightness-95 active:scale-95 transition
+            disabled:opacity-60
+          "
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+2) Add tiny global CSS overrides (stops white circle & any spinners)
+
+Put this in a global stylesheet that loads after Tailwind (e.g., src/index.css):
+
+/* Remove tap highlight on mobile (the “white circle”) */
+#chat-attach-btn { -webkit-tap-highlight-color: transparent; }
+
+/* Safety: kill number-input spinners if some style flips type by mistake */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
+
+/* Ensure buttons never show default focus outline in addition to ring */
+button:focus { outline: none; }
+
+3) Why this fixes it
+
+The file input is fully hidden; users click a styled, accessible button instead.
+
+The button uses solid SVG + Tailwind states (no browser default circle).
+
+The message field is explicitly type="text" and appearance-none so the up/down arrows cannot appear.
+
+Focus rings are controlled (focus-visible:ring) and the default outline is suppressed.

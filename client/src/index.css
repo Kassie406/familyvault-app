@@ -30,6 +30,27 @@ body.chat-open #chat-fab {
 /* Ensure the chat panel always wins z-index battles */
 .chat-panel { z-index: 100 !important; }
 
+/* ===== Chat Attachment Button Fixes ===== */
+/* Remove tap highlight on mobile (the "white circle") */
+#chat-attach-btn { 
+  -webkit-tap-highlight-color: transparent; 
+}
+
+/* Safety: kill number-input spinners if some style flips type by mistake */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] { 
+  -moz-appearance: textfield; 
+}
+
+/* Ensure buttons never show default focus outline in addition to ring */
+button:focus { 
+  outline: none; 
+}
+
 @layer utilities {
   /* Completely disable any hover background (and overlays) */
   .no-hover-bg:hover,
