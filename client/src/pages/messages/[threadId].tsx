@@ -8,15 +8,46 @@ import { usePresence } from "@/hooks/usePresence";
 import { useTyping } from "@/hooks/useTyping";
 
 /** ---------------------------------------------
- * Helper Functions
+ * Helper Functions & Normalizer
  * --------------------------------------------- */
-const pickAuthorName = (m: any): string => {
+type Attachment = { id?: string; url?: string; name?: string; type?: string; size?: number };
+
+export type MessageSafe = {
+  id?: string;
+  chatId?: string;
+  senderId?: string;
+  body: string;
+  createdAt?: string | Date;
+  author?: { id?: string; name?: string; avatarUrl?: string | null } | null;
+  authorName?: string;
+  attachments: Attachment[];
+  reactions: any[];
+  mentions: any[];
+  kind?: "message" | "system";
+};
+
+const toArray = <T,>(v: T[] | null | undefined): T[] => (Array.isArray(v) ? v.filter(Boolean) : []);
+
+export function normalizeMessage(raw: any): MessageSafe {
+  return {
+    id: raw?.id,
+    chatId: raw?.chatId,
+    senderId: raw?.senderId,
+    body: String(raw?.body ?? ""),
+    createdAt: raw?.createdAt ?? new Date().toISOString(),
+    author: raw?.author ?? null,
+    authorName: raw?.authorName ?? raw?.senderName ?? "",
+    attachments: toArray<Attachment>(raw?.attachments),
+    reactions: toArray(raw?.reactions),
+    mentions: toArray(raw?.mentions),
+    kind: raw?.kind ?? "message",
+  };
+}
+
+const pickAuthorName = (m: MessageSafe): string => {
   return (
     m?.author?.name ??
     m?.authorName ??
-    m?.senderName ??
-    m?.user?.name ??
-    m?.fromName ??
     ""
   );
 };
@@ -36,17 +67,7 @@ const initialsOf = (name: string): string => {
 /** ---------------------------------------------
  * Types
  * --------------------------------------------- */
-type MessageUser = { id: string; name?: string; avatarUrl?: string | null };
-type Message = {
-  id: string;
-  body: string;
-  author?: MessageUser;        // optional
-  authorName?: string;         // optional fallback
-  senderName?: string;         // optional fallback
-  attachments: Array<{ id: string; name: string; url: string; type?: string }>;
-  createdAt: string;
-  kind?: "message" | "system";
-};
+type Message = MessageSafe; // Use the safe normalized type
 
 type Thread = {
   id: string;
@@ -229,7 +250,9 @@ const MessageSearch: React.FC<{
           </div>
         ) : (
           <div className="space-y-3">
-            {searchResults.map((message) => (
+            {searchResults.map((rawMessage) => {
+              const message = normalizeMessage(rawMessage);
+              return (
               <div
                 key={message.id}
                 className="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition cursor-pointer"
@@ -268,14 +291,16 @@ const MessageSearch: React.FC<{
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
       </div>
     </div>
   );
 };
-const MessageBubble: React.FC<{ message: Message; isMe: boolean }> = ({ message, isMe }) => {
+const MessageBubble: React.FC<{ message: any; isMe: boolean }> = ({ message: rawMessage, isMe }) => {
+  const message = normalizeMessage(rawMessage);
   const [showReactions, setShowReactions] = useState(false);
   const [reactions, setReactions] = useState<any[]>([]);
   const queryClient = useQueryClient();
@@ -368,9 +393,9 @@ const MessageBubble: React.FC<{ message: Message; isMe: boolean }> = ({ message,
           
           {message.attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
-              {message.attachments.map((attachment) => (
+              {message.attachments.map((attachment, i) => (
                 <div
-                  key={attachment.id}
+                  key={attachment.id ?? i}
                   className={`flex items-center gap-2 p-2 rounded border ${
                     isMe ? 'border-black/20 bg-black/10' : 'border-white/20 bg-white/10'
                   }`}
@@ -380,7 +405,7 @@ const MessageBubble: React.FC<{ message: Message; isMe: boolean }> = ({ message,
                   ) : (
                     <File className="h-4 w-4" />
                   )}
-                  <span className="text-xs truncate max-w-[120px]">{attachment.name}</span>
+                  <span className="text-xs truncate max-w-[120px]">{attachment.name || 'File'}</span>
                 </div>
               ))}
             </div>
@@ -693,13 +718,16 @@ export const MessagesPage: React.FC<Props> = ({ threadId: propThreadId, onBack }
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messagesData?.messages && messagesData.messages.length > 0 ? (
-          messagesData.messages.map((message) => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              isMe={message?.author?.id === currentUser?.id}
-            />
-          ))
+          messagesData.messages.map((rawMessage) => {
+            const message = normalizeMessage(rawMessage);
+            return (
+              <MessageBubble
+                key={message.id}
+                message={rawMessage}
+                isMe={message?.author?.id === currentUser?.id}
+              />
+            );
+          })
         ) : (
           <div className="flex items-center justify-center h-full text-white/40">
             <div className="text-center">
