@@ -104,6 +104,7 @@ import WhenSomeoneDiesContactManagement from "@/pages/when-someone-dies-contact-
 import WhenSomeoneDiesBillsObligations from "@/pages/when-someone-dies-bills-obligations";
 import WhenSomeoneDiesLegalResponsibilities from "@/pages/when-someone-dies-legal-responsibilities";
 import WhenSomeoneDiesImportantDeadlines from "@/pages/when-someone-dies-important-deadlines";
+import RealtimeTest from "@/pages/RealtimeTest";
 
 // Error boundary so a bad import doesn't blank the screen
 function ErrorBoundary({ children }: { children: React.ReactNode }) {
@@ -154,6 +155,7 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/notification-settings" component={NotificationSettingsPage} />
       <Route path="/threads-dashboard" component={ThreadsDashboard} />
+      <Route path="/realtime-test" component={RealtimeTest} />
       <Route path="/test-stepup" component={TestStepUp} />
       <Route path="/child-information" component={ChildInformation} />
       <Route path="/disaster-planning" component={DisasterPlanning} />
