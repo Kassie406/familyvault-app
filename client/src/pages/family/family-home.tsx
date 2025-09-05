@@ -17,6 +17,8 @@ import {
 } from '@/components/luxury-cards';
 import { StatCard } from '@/components/StatCard';
 import { InviteFamilyMemberDialog } from '@/components/InviteFamilyMemberDialog';
+import QuickDocumentUpload from '@/components/upload/QuickDocumentUpload';
+import QuickPhotoUpload from '@/components/upload/QuickPhotoUpload';
 
 export default function FamilyHome() {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -255,6 +257,39 @@ export default function FamilyHome() {
           <ActionCard icon={<MessageCircle className="h-5 w-5"/>} title="Send Message" subtitle="Chat with family" />
           <ActionCard icon={<ImageIcon className="h-5 w-5"/>} title="View Photos" subtitle="Browse family gallery" />
           <ActionCard icon={<ShieldAlert className="h-5 w-5"/>} title="Emergency Info" subtitle="Quick access to critical info" />
+        </div>
+      </div>
+
+      {/* Upload Center */}
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-[var(--ink-100)] flex items-center">
+            <Upload className="w-5 h-5 mr-2 text-[var(--gold)]" />
+            Upload Center
+          </h2>
+          <div className="text-sm text-[var(--ink-300)]">
+            Secure S3 storage with virus scanning
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Document Upload */}
+          <QuickDocumentUpload 
+            familyId="family-1"
+            onUploadComplete={(docId) => {
+              console.log('Document uploaded:', docId);
+              // Invalidate stats queries to update counts
+            }}
+          />
+          
+          {/* Photo Upload */}
+          <QuickPhotoUpload
+            familyId="family-1"
+            onUploadComplete={(photoId) => {
+              console.log('Photo uploaded:', photoId);
+              // Invalidate stats queries to update counts
+            }}
+          />
         </div>
       </div>
 
