@@ -3,6 +3,17 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  /* Completely disable any hover background (and overlays) */
+  .no-hover-bg:hover,
+  .no-hover-bg:hover::before,
+  .no-hover-bg:hover::after {
+    background-color: transparent !important;
+    background-image: none !important;
+    box-shadow: none;               /* in case a gray "wash" is coming from inset shadows */
+  }
+}
+
 /* ===== Luxury Switch (gold/black) ===== */
 .fcs-switch {
   position: relative;
