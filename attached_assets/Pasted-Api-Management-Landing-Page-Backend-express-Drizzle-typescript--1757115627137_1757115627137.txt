@@ -1,0 +1,119 @@
+Api Management Landing Page + Backend (express + Drizzle)
+· typescript
+// =============================================
+
+
+// =============================================
+// FRONTEND: Extended Audit Page with Filters
+// File: client/src/pages/family/doc-audit.tsx (updated)
+import React, { useEffect, useState } from "react";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+
+export default function DocAuditPage(){
+  const [items,setItems] = useState<any[]>([]);
+  const [q,setQ] = useState("");
+  const [user,setUser] = useState("");
+  const [dateFrom,setDateFrom] = useState("");
+  const [dateTo,setDateTo] = useState("");
+
+
+  const load = async () => {
+    const params = new URLSearchParams();
+    if(q) params.append("q",q);
+    if(user) params.append("user",user);
+    if(dateFrom) params.append("from",dateFrom);
+    if(dateTo) params.append("to",dateTo);
+    const r = await fetch(`/api/doc-audit?${params.toString()}`);
+    const d = await r.json();
+    setItems(d.items??[]);
+  };
+  useEffect(()=>{ load(); },[]);
+
+
+  return (
+    <div className="p-6 md:p-10 text-gray-200">
+      <h1 className="text-2xl font-bold mb-4">Document Access Audit</h1>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+        <Input placeholder="Search title" value={q} onChange={(e)=>setQ(e.target.value)} />
+        <Input placeholder="User ID or name" value={user} onChange={(e)=>setUser(e.target.value)} />
+        <Input type="date" value={dateFrom} onChange={(e)=>setDateFrom(e.target.value)} />
+        <Input type="date" value={dateTo} onChange={(e)=>setDateTo(e.target.value)} />
+      </div>
+      <Button variant="outline" className="border-yellow-500/30 text-yellow-400 mb-4" onClick={load}>Filter</Button>
+
+
+      <Card className="bg-zinc-900 border border-zinc-800 rounded-2xl">
+        <CardHeader><CardTitle>Recent Access</CardTitle><CardDescription className="text-gray-400">Filtered view</CardDescription></CardHeader>
+        <CardContent>
+          <table className="w-full text-sm">
+            <thead className="text-left text-gray-400"><tr><th>User</th><th>Action</th><th>When</th><th>IP</th></tr></thead>
+            <tbody>
+              {items.map((a:any)=>(
+                <tr key={a.id} className="border-t border-zinc-800">
+                  <td className="py-1">{a.userName ?? a.userId ?? "—"}</td>
+                  <td className="py-1">{a.action}</td>
+                  <td className="py-1">{new Date(a.createdAt).toLocaleString()}</td>
+                  <td className="py-1 text-gray-500">{a.ip}</td>
+                </tr>
+              ))}
+              {items.length===0 && <tr><td colSpan={4} className="text-gray-500 py-4">No events match filter</td></tr>}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+
+// =============================================
+// BACKEND: extend audit route with filters
+// File: server/routes/docAudit.ts (updated)
+import { Router } from "express";
+import { db } from "../db";
+import { docAudit } from "../db/schema/audit";
+import { desc, and, gte, lte, like, eq } from "drizzle-orm";
+import { requireAuth } from "../lib/auth";
+
+
+const rt = Router();
+rt.use(requireAuth);
+
+
+rt.get("/api/doc-audit", async (req,res)=>{
+  const { q, user, from, to, limit=100 } = req.query as any;
+  let query = db.select().from(docAudit).orderBy(desc(docAudit.createdAt)).limit(Number(limit));
+  const wheres:any[] = [];
+  if(user) wheres.push(eq(docAudit.userId,user));
+  if(from) wheres.push(gte(docAudit.createdAt,new Date(from)));
+  if(to) wheres.push(lte(docAudit.createdAt,new Date(to)));
+  // simple LIKE for action filter (view/download)
+  if(q) wheres.push(like(docAudit.action,`%${q}%`));
+  if(wheres.length) query = query.where(and(...wheres));
+  const items = await query;
+  res.json({ items });
+});
+
+
+export default rt;
+
+
+
+
+
+✅ Extended the Document Audit system:
+
+Frontend page now has filters:
+
+Search by title/action
+
+Filter by user ID/name
+
+Date range (from / to)
+
+Backend route supports filtering with q, user, from, to.
+
+Now you can quickly drill into document access history.
