@@ -1,0 +1,341 @@
+here’s a clean, scalable Threads List API for your Express + Drizzle stack that returns:
+
+threads the current user belongs to
+
+last message (text, author, time)
+
+unread count per user (via a message_reads table)
+
+presence snapshot (who’s online) pulled from Redis
+
+ready for pagination + search
+
+1) Schema additions (Drizzle)
+
+Add a lightweight message_reads table to track per-user read progress.
+
+// db/schema/chat_extras.ts
+import { pgTable, text, timestamp, integer, primaryKey, uniqueIndex } from "drizzle-orm/pg-core";
+import { messages, threads } from "./chat";
+import { users } from "../schema/users"; // your users table
+
+export const messageReads = pgTable("message_reads", {
+  // Option A: store the last read message (good for unread counts)
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  threadId: text("thread_id").notNull().references(() => threads.id, { onDelete: "cascade" }),
+  lastReadMessageId: text("last_read_message_id"), // nullable until first read
+  lastReadAt: timestamp("last_read_at", { withTimezone: true }),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.userId, t.threadId] }),
+  uniq: uniqueIndex("message_reads_user_thread_idx").on(t.userId, t.threadId),
+}));
+
+
+This “bookmark” pattern (last read message) is efficient:
+unread = count(messages.createdAt > lastReadAt) or (id after lastReadMessageId).
+
+When a user opens a thread or marks as read, you update message_reads.
+
+2) Repository helpers (Drizzle queries)
+// repositories/threadsListRepo.ts
+import { db } from "../db";
+import { threads, threadMembers, messages } from "../db/schema/chat";
+import { messageReads } from "../db/schema/chat_extras";
+import { users } from "../db/schema/users";
+import { and, desc, eq, ilike, sql } from "drizzle-orm";
+
+// get threads for a user with pagination + optional search by title/member name
+export async function listThreadsForUser(opts: {
+  userId: string;
+  familyId: string;
+  limit?: number;
+  cursor?: string;     // cursor = last thread.updatedAt ISO string or thread.id; pick one
+  q?: string;          // search query
+}) {
+  const limit = Math.min(opts.limit ?? 20, 100);
+
+  // Base: threads where the user is a member
+  // (You can extend with a search across title/member names; simple title search shown.)
+  const base = db
+    .select({
+      id: threads.id,
+      title: threads.title,
+      updatedAt: threads.updatedAt,
+    })
+    .from(threads)
+    .innerJoin(threadMembers, eq(threadMembers.threadId, threads.id))
+    .where(and(eq(threadMembers.userId, opts.userId), eq(threads.familyId, opts.familyId)));
+
+  const rows = await (opts.q
+    ? base.where(and(eq(threadMembers.userId, opts.userId), eq(threads.familyId, opts.familyId), ilike(threads.title, `%${opts.q}%`)))
+    : base
+  )
+    .orderBy(desc(threads.updatedAt))
+    .limit(limit);
+
+  const threadIds = rows.map((r) => r.id);
+  if (threadIds.length === 0) return { items: [], nextCursor: null };
+
+  // Last message per thread
+  const lastMsgs = await db
+    .select({
+      threadId: messages.threadId,
+      id: messages.id,
+      body: messages.body,
+      authorId: messages.authorId,
+      createdAt: messages.createdAt,
+    })
+    .from(messages)
+    .where(sql`${messages.threadId} = ANY(${sql.array(threadIds, "text")})`)
+    .orderBy(desc(messages.createdAt));
+
+  // pick only the newest per thread
+  const lastByThread = new Map<string, typeof lastMsgs[number]>();
+  for (const m of lastMsgs) {
+    if (!lastByThread.has(m.threadId)) lastByThread.set(m.threadId, m);
+  }
+
+  // Members of these threads (to render names/avatars & presence)
+  const members = await db
+    .select({
+      threadId: threadMembers.threadId,
+      userId: threadMembers.userId,
+      name: users.name,
+    })
+    .from(threadMembers)
+    .leftJoin(users, eq(users.id, threadMembers.userId))
+    .where(sql`${threadMembers.threadId} = ANY(${sql.array(threadIds, "text")})`);
+
+  const membersByThread = new Map<string, { userId: string; name: string | null }[]>();
+  for (const m of members) {
+    const arr = membersByThread.get(m.threadId) || [];
+    arr.push({ userId: m.userId, name: m.name });
+    membersByThread.set(m.threadId, arr);
+  }
+
+  // Unread counts — count messages after lastReadAt (or if null, total count)
+  // Query total counts per thread (fast with messages.threadId index)
+  const counts = await db
+    .select({
+      threadId: messages.threadId,
+      total: sql<number>`COUNT(*)`.as("total"),
+    })
+    .from(messages)
+    .where(sql`${messages.threadId} = ANY(${sql.array(threadIds, "text")})`)
+    .groupBy(messages.threadId);
+
+  const totalByThread = new Map<string, number>();
+  for (const c of counts) totalByThread.set(c.threadId, c.total);
+
+  // Load bookmarks (last read) for this user
+  const reads = await db
+    .select({
+      threadId: messageReads.threadId,
+      lastReadAt: messageReads.lastReadAt,
+      lastReadMessageId: messageReads.lastReadMessageId,
+    })
+    .from(messageReads)
+    .where(and(eq(messageReads.userId, opts.userId), sql`${messageReads.threadId} = ANY(${sql.array(threadIds, "text")})`));
+
+  const lastReadByThread = new Map<string, { lastReadAt: Date | null }>();
+  for (const r of reads) lastReadByThread.set(r.threadId, { lastReadAt: r.lastReadAt });
+
+  // Unread = messages where createdAt > lastReadAt
+  // For performance, we can compute approximate counts by one extra query per thread,
+  // or (faster) store a running message sequence number in messages and compare.
+  // Here, fast-and-fair approach: batch count with createdAt filter per thread.
+  const unreadByThread = new Map<string, number>();
+  for (const tId of threadIds) {
+    const lastReadAt = lastReadByThread.get(tId)?.lastReadAt;
+    if (!lastReadAt) {
+      unreadByThread.set(tId, totalByThread.get(tId) ?? 0);
+      continue;
+    }
+    const [{ count }] = await db.execute<{ count: string }>(
+      sql`SELECT COUNT(*)::int AS count FROM ${messages} WHERE ${messages.threadId} = ${tId} AND ${messages.createdAt} > ${lastReadAt}`
+    );
+    unreadByThread.set(tId, Number(count));
+  }
+
+  // Compose items
+  const items = rows.map((t) => {
+    const lm = lastByThread.get(t.id);
+    const mems = membersByThread.get(t.id) || [];
+    return {
+      id: t.id,
+      title: t.title,
+      updatedAt: t.updatedAt,
+      lastMessage: lm
+        ? {
+          id: lm.id,
+          body: lm.body ?? "",
+          authorId: lm.authorId,
+          createdAt: lm.createdAt,
+        }
+        : null,
+      members: mems,              // [{ userId, name }]
+      unreadCount: unreadByThread.get(t.id) ?? 0,
+    };
+  });
+
+  // Simple cursor = updatedAt of last item (ISO)
+  const nextCursor = items.length === limit ? items[items.length - 1].updatedAt?.toISOString?.() ?? null : null;
+
+  return { items, nextCursor };
+}
+
+
+For very large datasets, replace the per-thread unread COUNT loop with:
+
+a monotonic seq column on messages (per thread), and
+
+a lastReadSeq on message_reads.
+Then unread = lastSeq - lastReadSeq without counting.
+
+3) Presence snapshot from Redis
+
+Add an optional presence map: online user IDs per thread.
+
+// repositories/presenceRepo.ts
+import { createClient } from "redis";
+const redis = createClient({ url: process.env.REDIS_URL! });
+await redis.connect();
+
+export async function getOnlineSetForFamily(familyId: string): Promise<Set<string>> {
+  const online = await redis.sMembers(`presence:family:${familyId}`);
+  return new Set(online);
+}
+
+4) Express route: GET /threads
+// routes/threadsList.ts
+import { Router } from "express";
+import { listThreadsForUser } from "../repositories/threadsListRepo";
+import { getOnlineSetForFamily } from "../repositories/presenceRepo";
+
+const r = Router();
+
+/**
+ * GET /threads?limit=20&cursor=...&q=...
+ * Returns threads for the logged-in user with lastMessage, unreadCount, members, and presence flags.
+ */
+r.get("/threads", async (req, res) => {
+  const user = req.user as { id: string; familyId: string };
+  const limit = Number(req.query.limit ?? 20);
+  const cursor = (req.query.cursor as string) || undefined;
+  const q = (req.query.q as string) || undefined;
+
+  const [{ items, nextCursor }, onlineSet] = await Promise.all([
+    listThreadsForUser({ userId: user.id, familyId: user.familyId, limit, cursor, q }),
+    getOnlineSetForFamily(user.familyId),
+  ]);
+
+  // Decorate members with presence
+  const decorated = items.map((t) => ({
+    ...t,
+    members: t.members.map((m) => ({ ...m, online: onlineSet.has(m.userId) })),
+  }));
+
+  res.json({ threads: decorated, nextCursor });
+});
+
+export default r;
+
+
+Response shape
+
+{
+  "threads": [
+    {
+      "id": "th_abc",
+      "title": "Family Chat",
+      "updatedAt": "2025-09-05T13:10:00.000Z",
+      "lastMessage": {
+        "id": "msg_xyz",
+        "body": "Dinner at 6?",
+        "authorId": "user_mom",
+        "createdAt": "2025-09-05T13:09:59.000Z"
+      },
+      "unreadCount": 2,
+      "members": [
+        { "userId": "user_mom", "name": "Mom", "online": true },
+        { "userId": "user_dad", "name": "Dad", "online": false }
+      ]
+    }
+  ],
+  "nextCursor": "2025-09-05T13:10:00.000Z"
+}
+
+5) Mark-as-read endpoint (updates bookmark)
+
+Call this when the user opens a thread or scrolls to bottom.
+
+// routes/read.ts
+import { Router } from "express";
+import { db } from "../db";
+import { messageReads, messages } from "../db/schema/chat_extras";
+import { eq, desc } from "drizzle-orm";
+
+const r = Router();
+
+/**
+ * POST /threads/:id/read
+ * body: { lastMessageId?: string }
+ * If lastMessageId omitted, we mark to the newest message in the thread.
+ */
+r.post("/threads/:id/read", async (req, res) => {
+  const user = req.user as { id: string };
+  const threadId = req.params.id;
+  let { lastMessageId } = req.body as { lastMessageId?: string };
+
+  if (!lastMessageId) {
+    const [lm] = await db
+      .select({ id: messages.id })
+      .from(messages)
+      .where(eq(messages.threadId, threadId))
+      .orderBy(desc(messages.createdAt))
+      .limit(1);
+    lastMessageId = lm?.id;
+  }
+
+  await db
+    .insert(messageReads)
+    .values({
+      userId: user.id,
+      threadId,
+      lastReadMessageId: lastMessageId ?? null,
+      lastReadAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: [messageReads.userId, messageReads.threadId],
+      set: { lastReadMessageId: lastMessageId ?? null, lastReadAt: new Date() },
+    });
+
+  res.json({ ok: true });
+});
+
+export default r;
+
+6) Frontend usage (quick pointers)
+
+Threads list page calls GET /threads?limit=20
+Render title, lastMessage preview, badge with unreadCount.
+
+On opening a thread, POST /threads/:id/read to zero the unread count.
+
+Presence is live via WS; this endpoint gives you the initial snapshot.
+
+For performance, cache the list and update thread’s lastMessage/unread live when message:new arrives over WS.
+
+Optional enhancements
+
+Switch unread calculation to sequence numbers (fast O(1)):
+
+Add seq (per-thread autoincrement) to messages.
+
+Add lastReadSeq to message_reads.
+
+unread = lastSeq - lastReadSeq.
+
+Add search by member name: join thread_members → users and filter.
+
+Include typing info by exposing a typingUsers array from a presence service if you want it in the list.
