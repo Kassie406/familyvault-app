@@ -419,6 +419,93 @@ export const impersonationSessions = pgTable("impersonation_sessions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// File storage and processing enums
+export const scanStatusEnum = pgEnum("scan_status", ["pending","clean","infected","error","skipped"]);
+export const thumbStatusEnum = pgEnum("thumb_status", ["pending","done","error","skipped"]);
+
+// Document Files - handles actual file storage for documents
+export const documentFiles = pgTable("document_files", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  storageKey: text("storage_key").notNull().unique(),
+  fileName: text("file_name").notNull(),
+  contentType: text("content_type"),
+  size: integer("size"),
+  sha256: text("sha256"),
+  
+  // Metadata
+  title: text("title"),
+  description: text("description"),
+  category: text("category"), // 'insurance', 'medical', 'legal', 'financial', etc.
+  
+  // AV Scanning
+  scanStatus: scanStatusEnum("scan_status").notNull().default("pending"),
+  scanResult: text("scan_result"),
+  quarantined: boolean("quarantined").notNull().default(false),
+  
+  // Thumbnails (for document previews)
+  thumbStatus: thumbStatusEnum("thumb_status").notNull().default("skipped"),
+  thumbKey: text("thumb_key"),
+  thumbWidth: integer("thumb_width"),
+  thumbHeight: integer("thumb_height"),
+  
+  // Processing timestamps
+  processedAt: timestamp("processed_at"),
+  uploadedBy: varchar("uploaded_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Photo Storage - handles family photos and albums
+export const familyPhotos = pgTable("family_photos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  albumId: varchar("album_id"), // optional grouping
+  storageKey: text("storage_key").notNull().unique(),
+  fileName: text("file_name").notNull(),
+  contentType: text("content_type"),
+  size: integer("size"),
+  sha256: text("sha256"),
+  
+  // Photo metadata
+  caption: text("caption"),
+  altText: text("alt_text"),
+  tags: text("tags").array().default([]).notNull(),
+  location: text("location"),
+  takenAt: timestamp("taken_at"),
+  
+  // AV Scanning
+  scanStatus: scanStatusEnum("scan_status").notNull().default("pending"),
+  scanResult: text("scan_result"),
+  quarantined: boolean("quarantined").notNull().default(false),
+  
+  // Thumbnails and variants
+  thumbStatus: thumbStatusEnum("thumb_status").notNull().default("pending"),
+  thumbKey: text("thumb_key"), // 256px thumbnail
+  gridKey: text("grid_key"),   // 1024px grid view
+  thumbWidth: integer("thumb_width"),
+  thumbHeight: integer("thumb_height"),
+  
+  // Processing timestamps
+  processedAt: timestamp("processed_at"),
+  uploadedBy: varchar("uploaded_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Photo Albums - organize family photos
+export const photoAlbums = pgTable("photo_albums", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  coverPhotoId: varchar("cover_photo_id"),
+  isPrivate: boolean("is_private").default(false).notNull(),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -1077,6 +1164,42 @@ export const insertInviteLinkSchema = createInsertSchema(inviteLinks).pick({
   expiresAt: true,
 });
 
+export const insertDocumentFileSchema = createInsertSchema(documentFiles).pick({
+  familyId: true,
+  storageKey: true,
+  fileName: true,
+  contentType: true,
+  size: true,
+  title: true,
+  description: true,
+  category: true,
+  uploadedBy: true,
+});
+
+export const insertFamilyPhotoSchema = createInsertSchema(familyPhotos).pick({
+  familyId: true,
+  albumId: true,
+  storageKey: true,
+  fileName: true,
+  contentType: true,
+  size: true,
+  caption: true,
+  altText: true,
+  tags: true,
+  location: true,
+  takenAt: true,
+  uploadedBy: true,
+});
+
+export const insertPhotoAlbumSchema = createInsertSchema(photoAlbums).pick({
+  familyId: true,
+  name: true,
+  description: true,
+  coverPhotoId: true,
+  isPrivate: true,
+  createdBy: true,
+});
+
 // Family types
 export type InsertFamily = z.infer<typeof insertFamilySchema>;
 export type Family = typeof families.$inferSelect;
@@ -1111,6 +1234,15 @@ export type Invite = typeof invites.$inferSelect;
 
 export type InsertInviteLink = z.infer<typeof insertInviteLinkSchema>;
 export type InviteLink = typeof inviteLinks.$inferSelect;
+
+export type InsertDocumentFile = z.infer<typeof insertDocumentFileSchema>;
+export type DocumentFile = typeof documentFiles.$inferSelect;
+
+export type InsertFamilyPhoto = z.infer<typeof insertFamilyPhotoSchema>;
+export type FamilyPhoto = typeof familyPhotos.$inferSelect;
+
+export type InsertPhotoAlbum = z.infer<typeof insertPhotoAlbumSchema>;
+export type PhotoAlbum = typeof photoAlbums.$inferSelect;
 
 // Business type exports  
 export type BusinessItem = typeof businessItems.$inferSelect;
