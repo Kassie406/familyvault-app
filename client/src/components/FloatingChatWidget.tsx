@@ -251,13 +251,13 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
         aria-pressed={isOpen}
         data-state={isOpen ? "open" : "closed"}
         onClick={handleToggle}
-        className="
-          fixed bottom-6 right-6 z-50 grid place-items-center
+        className={`
+          fixed bottom-6 right-6 z-[50] grid place-items-center
           h-14 w-14 rounded-full bg-[#D4AF37] text-black shadow-xl
           transition-transform duration-150 hover:scale-105 active:scale-95
-          opacity-100 hover:opacity-100 focus:opacity-100 active:opacity-100
           outline-none focus-visible:ring-2 ring-black/20
-        "
+          ${isOpen ? "opacity-0 pointer-events-none" : "opacity-100"}
+        `}
         data-testid="button-floating-chat"
         aria-label="Open family chat"
       >
