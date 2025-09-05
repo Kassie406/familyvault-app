@@ -18,11 +18,21 @@ import {
   type Suppression, type InsertSuppression,
   type Invite, type InsertInvite,
   type InviteLink, type InsertInviteLink,
+  type Family, type InsertFamily,
   type FamilyMember, type InsertFamilyMember,
+  type FamilyBusinessItem, type InsertFamilyBusinessItem,
+  type FamilyLegalDoc, type InsertFamilyLegalDoc,
+  type FamilyLegalItem, type InsertFamilyLegalItem,
+  type FamilyInsurancePolicy, type InsertFamilyInsurancePolicy,
+  type FamilyInsuranceItem, type InsertFamilyInsuranceItem,
+  type FamilyTaxYear, type InsertFamilyTaxYear,
+  type FamilyTaxItem, type InsertFamilyTaxItem,
   users, organizations, plans, coupons, articles, consentEvents, auditLogs,
   adminSessions, securitySettings, impersonationSessions,
   gdprConsentEvents, dsarRequests, retentionPolicies, suppressionList,
-  invites, inviteLinks, familyMembers
+  invites, inviteLinks, families, familyMembers, familyBusinessItems,
+  familyLegalDocs, familyLegalItems, familyInsurancePolicies, familyInsuranceItems,
+  familyTaxYears, familyTaxItems
 } from "@shared/schema";
 
 // Database connection
@@ -141,6 +151,68 @@ export interface IStorage {
     totalSuppressions: number;
   }>;
 
+  // Family Management methods
+  createFamily(family: InsertFamily): Promise<Family>;
+  getFamily(id: string): Promise<Family | undefined>;
+  getUserFamily(userId: string): Promise<Family | undefined>;
+  updateFamily(id: string, updates: Partial<InsertFamily>): Promise<Family | undefined>;
+  deleteFamily(id: string): Promise<boolean>;
+  
+  // Family Member methods
+  createFamilyMember(member: InsertFamilyMember): Promise<FamilyMember>;
+  getFamilyMember(id: string): Promise<FamilyMember | undefined>;
+  getFamilyMemberByEmail(email: string): Promise<FamilyMember | undefined>;
+  getFamilyMembers(familyId: string): Promise<FamilyMember[]>;
+  updateFamilyMember(id: string, updates: Partial<InsertFamilyMember>): Promise<FamilyMember | undefined>;
+  deleteFamilyMember(id: string): Promise<boolean>;
+  getFamilyMemberStats(familyId: string): Promise<{totalMembers: number, recentlyAdded: FamilyMember[]}>;
+  
+  // Family Business methods
+  createFamilyBusinessItem(item: InsertFamilyBusinessItem): Promise<FamilyBusinessItem>;
+  getFamilyBusinessItems(familyId: string, ownerId?: string): Promise<FamilyBusinessItem[]>;
+  getFamilyBusinessItem(id: string): Promise<FamilyBusinessItem | undefined>;
+  updateFamilyBusinessItem(id: string, updates: Partial<InsertFamilyBusinessItem>): Promise<FamilyBusinessItem | undefined>;
+  deleteFamilyBusinessItem(id: string): Promise<boolean>;
+  
+  // Family Legal methods
+  createFamilyLegalDoc(doc: InsertFamilyLegalDoc): Promise<FamilyLegalDoc>;
+  getFamilyLegalDocs(familyId: string): Promise<FamilyLegalDoc[]>;
+  getFamilyLegalDoc(id: string): Promise<FamilyLegalDoc | undefined>;
+  updateFamilyLegalDoc(id: string, updates: Partial<InsertFamilyLegalDoc>): Promise<FamilyLegalDoc | undefined>;
+  deleteFamilyLegalDoc(id: string): Promise<boolean>;
+  
+  createFamilyLegalItem(item: InsertFamilyLegalItem): Promise<FamilyLegalItem>;
+  getFamilyLegalItems(familyId: string, legalDocId?: string): Promise<FamilyLegalItem[]>;
+  getFamilyLegalItem(id: string): Promise<FamilyLegalItem | undefined>;
+  updateFamilyLegalItem(id: string, updates: Partial<InsertFamilyLegalItem>): Promise<FamilyLegalItem | undefined>;
+  deleteFamilyLegalItem(id: string): Promise<boolean>;
+  
+  // Family Insurance methods
+  createFamilyInsurancePolicy(policy: InsertFamilyInsurancePolicy): Promise<FamilyInsurancePolicy>;
+  getFamilyInsurancePolicies(familyId: string): Promise<FamilyInsurancePolicy[]>;
+  getFamilyInsurancePolicy(id: string): Promise<FamilyInsurancePolicy | undefined>;
+  updateFamilyInsurancePolicy(id: string, updates: Partial<InsertFamilyInsurancePolicy>): Promise<FamilyInsurancePolicy | undefined>;
+  deleteFamilyInsurancePolicy(id: string): Promise<boolean>;
+  
+  createFamilyInsuranceItem(item: InsertFamilyInsuranceItem): Promise<FamilyInsuranceItem>;
+  getFamilyInsuranceItems(familyId: string, insuranceId?: string): Promise<FamilyInsuranceItem[]>;
+  getFamilyInsuranceItem(id: string): Promise<FamilyInsuranceItem | undefined>;
+  updateFamilyInsuranceItem(id: string, updates: Partial<InsertFamilyInsuranceItem>): Promise<FamilyInsuranceItem | undefined>;
+  deleteFamilyInsuranceItem(id: string): Promise<boolean>;
+  
+  // Family Tax methods
+  createFamilyTaxYear(taxYear: InsertFamilyTaxYear): Promise<FamilyTaxYear>;
+  getFamilyTaxYears(familyId: string): Promise<FamilyTaxYear[]>;
+  getFamilyTaxYear(id: string): Promise<FamilyTaxYear | undefined>;
+  updateFamilyTaxYear(id: string, updates: Partial<InsertFamilyTaxYear>): Promise<FamilyTaxYear | undefined>;
+  deleteFamilyTaxYear(id: string): Promise<boolean>;
+  
+  createFamilyTaxItem(item: InsertFamilyTaxItem): Promise<FamilyTaxItem>;
+  getFamilyTaxItems(familyId: string, taxYear?: string): Promise<FamilyTaxItem[]>;
+  getFamilyTaxItem(id: string): Promise<FamilyTaxItem | undefined>;
+  updateFamilyTaxItem(id: string, updates: Partial<InsertFamilyTaxItem>): Promise<FamilyTaxItem | undefined>;
+  deleteFamilyTaxItem(id: string): Promise<boolean>;
+
   // Family Invite methods
   createInvite(invite: InsertInvite): Promise<Invite>;
   getInvite(id: string): Promise<Invite | undefined>;
@@ -150,14 +222,6 @@ export interface IStorage {
   updateInvite(id: string, updates: Partial<InsertInvite>): Promise<Invite | undefined>;
   revokeInvite(id: string): Promise<boolean>;
   acceptInvite(token: string): Promise<Invite | undefined>;
-  
-  // Family Member methods
-  createFamilyMember(member: InsertFamilyMember): Promise<FamilyMember>;
-  getFamilyMember(id: string): Promise<FamilyMember | undefined>;
-  getFamilyMemberByEmail(email: string): Promise<FamilyMember | undefined>;
-  getAllFamilyMembers(): Promise<FamilyMember[]>;
-  updateFamilyMember(id: string, updates: Partial<InsertFamilyMember>): Promise<FamilyMember | undefined>;
-  deleteFamilyMember(id: string): Promise<boolean>;
   
   // Invite Link methods
   createInviteLink(link: InsertInviteLink): Promise<InviteLink>;
