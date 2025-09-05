@@ -1,4 +1,5 @@
 import { useState } from "react";
+import MobileUploadModal from "./MobileUploadModal";
 import { usePresignedUpload } from "@/hooks/usePresignedUpload";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Camera, Image, X, Plus } from "lucide-react";
@@ -34,6 +35,7 @@ export default function QuickPhotoUpload({
   const [location, setLocation] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [mobileModalOpen, setMobileModalOpen] = useState(false);
 
   // Upload photos mutation
   const uploadMutation = useMutation({
@@ -253,12 +255,26 @@ export default function QuickPhotoUpload({
                 Select Photos
               </Label>
               <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer bg-gray-700/20 hover:bg-gray-700/30 transition-colors">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                <div className="flex flex-col items-center justify-center pt-3 pb-3">
                   <Image className="w-8 h-8 mb-2 text-gray-400" />
                   <p className="mb-2 text-sm text-gray-400">
                     <span className="font-semibold">Click to select</span> or drag and drop
                   </p>
-                  <p className="text-xs text-gray-500">JPEG, PNG, GIF, WebP (MAX. 10MB each)</p>
+                  <p className="text-xs text-gray-500 mb-3">JPEG, PNG, GIF, WebP (MAX. 10MB each)</p>
+                  
+                  {/* Mobile Upload Button */}
+                  <Button
+                    variant="outline"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setMobileModalOpen(true);
+                    }}
+                    className="h-8 px-4 border-gray-500 bg-gray-800/70 hover:bg-gray-700/70 text-white text-sm"
+                    disabled={isUploading}
+                  >
+                    📱 Mobile Upload
+                  </Button>
                 </div>
                 <input
                   id="photo-upload"
@@ -413,6 +429,14 @@ export default function QuickPhotoUpload({
           </>
         )}
       </CardContent>
+      
+      {/* Mobile Upload Modal */}
+      <MobileUploadModal
+        open={mobileModalOpen}
+        onOpenChange={setMobileModalOpen}
+        purpose="photos"
+        familyId={familyId}
+      />
     </Card>
   );
 }
