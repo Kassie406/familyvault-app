@@ -1,0 +1,319 @@
+time to wire the Dashboard to real data and put the shared backend pieces in place. Below is a tight, copy-pasteable plan with schema + routes you can drop into your Node/Express + Drizzle setup.
+
+1) Database (Drizzle) – minimal tables to power the Dashboard + Family IDs + Invites
+
+Add/merge these in your Drizzle schema. Adjust naming if you already have some of them.
+
+// shared/schema.ts
+import { pgTable, text, timestamp, integer, uuid, pgEnum, boolean } from "drizzle-orm/pg-core";
+
+export const roleEnum = pgEnum("member_role", ["owner","parent","child","grandparent","other"]);
+export const docCatEnum = pgEnum("doc_category", ["business","legal","insurance","tax","resource","other"]);
+export const actTypeEnum = pgEnum("activity_type", [
+  "member_added","doc_added","message_sent","photo_uploaded","invite_sent"
+]);
+
+export const families = pgTable("families", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const familyMembers = pgTable("family_members", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  familyId: uuid("family_id").references(() => families.id).notNull(),
+  userId: uuid("user_id"),
+  fullName: text("full_name").notNull(),
+  role: roleEnum("role").notNull().default("other"),
+  avatarUrl: text("avatar_url"),
+  dob: timestamp("dob"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const pets = pgTable("pets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  familyId: uuid("family_id").references(() => families.id).notNull(),
+  name: text("name").notNull(),
+  species: text("species").notNull(),
+  breed: text("breed"),
+  avatarUrl: text("avatar_url"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const documents = pgTable("documents", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  familyId: uuid("family_id").references(() => families.id).notNull(),
+  ownerMemberId: uuid("owner_member_id").references(() => familyMembers.id),
+  category: docCatEnum("category").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  storageKey: text("storage_key"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const messages = pgTable("messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  familyId: uuid("family_id").references(() => families.id).notNull(),
+  senderMemberId: uuid("sender_member_id").references(() => familyMembers.id).notNull(),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const photos = pgTable("photos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  familyId: uuid("family_id").references(() => families.id).notNull(),
+  uploaderMemberId: uuid("uploader_member_id").references(() => familyMembers.id),
+  storageKey: text("storage_key").notNull(),
+  caption: text("caption"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const invitations = pgTable("invitations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  familyId: uuid("family_id").references(() => families.id).notNull(),
+  email: text("email").notNull(),
+  invitedByMemberId: uuid("invited_by_member_id").references(() => familyMembers.id).notNull(),
+  roleSuggested: roleEnum("role_suggested").default("other"),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const activities = pgTable("activities", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  familyId: uuid("family_id").references(() => families.id).notNull(),
+  actorMemberId: uuid("actor_member_id").references(() => familyMembers.id),
+  type: actTypeEnum("type").notNull(),
+  subjectKind: text("subject_kind").notNull(), // "member"|"document"|"photo"|"message"|...
+  subjectId: uuid("subject_id").notNull(),
+  title: text("title"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+
+Run your normal migration:
+
+npm run db:push   // or drizzle-kit push
+
+2) API routes (Express) – Dashboard + Activities + Family IDs + Invite
+
+Drop into server/index.ts (or your routes file). Assumes you have requireAuth that attaches req.user and family scoping helpers.
+
+// server/routes/family.ts
+import { Router } from "express";
+import { db } from "../db"; // your drizzle client
+import { eq, and, desc, sql } from "drizzle-orm";
+import { families, familyMembers, documents, messages, photos, activities, invitations, pets } from "../../shared/schema";
+import crypto from "crypto";
+
+const r = Router();
+
+// simple guard: confirm user belongs to familyId (implement your own)
+async function assertFamilyAccess(userId: string, familyId: string) {
+  // TODO: check membership; for now assume OK
+  return true;
+}
+
+// GET /api/families/:familyId/overview
+r.get("/:familyId/overview", async (req, res) => {
+  const { familyId } = req.params;
+  const userId = req.user.id;
+
+  await assertFamilyAccess(userId, familyId);
+
+  // counts
+  const [[membersCount]] = await db.execute(sql`select count(*)::int as c from ${familyMembers} where ${familyMembers.familyId} = ${familyId}`);
+  const [[docsCount]]    = await db.execute(sql`select count(*)::int as c from ${documents} where ${documents.familyId} = ${familyId}`);
+  const [[photosCount]]  = await db.execute(sql`select count(*)::int as c from ${photos} where ${photos.familyId} = ${familyId}`);
+  const [[msgsToday]]    = await db.execute(sql`
+      select count(*)::int as c 
+      from ${messages} 
+      where ${messages.familyId} = ${familyId}
+        and ${messages.createdAt}::date = now()::date
+  `);
+
+  // recent items (5 each)
+  const recentMembers = await db.select().from(familyMembers)
+    .where(eq(familyMembers.familyId, familyId))
+    .orderBy(desc(familyMembers.createdAt)).limit(5);
+
+  const recentDocs = await db.select().from(documents)
+    .where(eq(documents.familyId, familyId))
+    .orderBy(desc(documents.createdAt)).limit(5);
+
+  const recentMsgs = await db.select().from(messages)
+    .where(eq(messages.familyId, familyId))
+    .orderBy(desc(messages.createdAt)).limit(5);
+
+  const recentPhotos = await db.select().from(photos)
+    .where(eq(photos.familyId, familyId))
+    .orderBy(desc(photos.createdAt)).limit(5);
+
+  res.json({
+    counts: {
+      members: membersCount?.c ?? 0,
+      documents: docsCount?.c ?? 0,
+      messagesToday: msgsToday?.c ?? 0,
+      photos: photosCount?.c ?? 0
+    },
+    recent: {
+      members: recentMembers,
+      documents: recentDocs,
+      messages: recentMsgs.map(m => ({ id: m.id, body: m.body, createdAt: m.createdAt })),
+      photos: recentPhotos
+    }
+  });
+});
+
+// GET /api/families/:familyId/activities?type=members|documents|messages|photos&limit=5
+r.get("/:familyId/activities", async (req, res) => {
+  const { familyId } = req.params;
+  const { type, limit = 5 } = req.query as { type?: string; limit?: string };
+  const userId = req.user.id;
+
+  await assertFamilyAccess(userId, familyId);
+
+  let filter: string[] = [];
+  if (type === "members") filter = ["member_added"];
+  if (type === "documents") filter = ["doc_added"];
+  if (type === "messages") filter = ["message_sent"];
+  if (type === "photos") filter = ["photo_uploaded"];
+
+  const items = await db.select().from(activities)
+    .where(and(eq(activities.familyId, familyId), filter.length ? sql`${activities.type} = ANY(${filter})` : sql`true`))
+    .orderBy(desc(activities.createdAt))
+    .limit(Number(limit));
+
+  res.json({ items });
+});
+
+// FAMILY IDs list (people + pets)
+// GET /api/families/:familyId/members?includePets=true
+r.get("/:familyId/members", async (req, res) => {
+  const { familyId } = req.params;
+  const includePets = req.query.includePets === "true";
+  const userId = req.user.id;
+
+  await assertFamilyAccess(userId, familyId);
+
+  const members = await db.select().from(familyMembers)
+    .where(eq(familyMembers.familyId, familyId))
+    .orderBy(desc(familyMembers.createdAt));
+
+  let petList: any[] = [];
+  if (includePets) {
+    petList = await db.select().from(pets)
+      .where(eq(pets.familyId, familyId))
+      .orderBy(desc(pets.createdAt));
+  }
+
+  res.json({ members, pets: petList });
+});
+
+// POST /api/families/:familyId/invitations
+r.post("/:familyId/invitations", async (req, res) => {
+  const { familyId } = req.params;
+  const { email, roleSuggested = "other" } = req.body as { email: string; roleSuggested?: any };
+  const userId = req.user.id;
+
+  await assertFamilyAccess(userId, familyId);
+
+  // map user -> member to set invitedByMemberId, replace with your lookup
+  const [inviter] = await db.select().from(familyMembers)
+    .where(eq(familyMembers.familyId, familyId))
+    .limit(1);
+
+  const token = crypto.randomBytes(24).toString("hex");
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7); // +7 days
+
+  const [inv] = await db.insert(invitations).values({
+    familyId,
+    email,
+    invitedByMemberId: inviter?.id ?? null,
+    roleSuggested,
+    token,
+    expiresAt
+  }).returning();
+
+  // (email sending) — stub for now
+  console.log(`[INVITE] ${email} link: ${process.env.APP_URL}/invite/${token}`);
+
+  // add activity row
+  await db.insert(activities).values({
+    familyId,
+    actorMemberId: inviter?.id ?? null,
+    type: "invite_sent",
+    subjectKind: "invitation",
+    subjectId: inv.id,
+    title: `Invite sent to ${email}`
+  });
+
+  res.status(201).json({ ok: true, invitation: inv, acceptUrl: `${process.env.APP_URL}/invite/${token}` });
+});
+
+export default r;
+
+
+Register the router:
+
+// server/index.ts
+import express from "express";
+import familyRouter from "./routes/family";
+import { requireAuth } from "./auth"; // your existing middleware
+
+const app = express();
+app.use(express.json());
+app.use(requireAuth);
+
+app.use("/api/families", familyRouter);
+
+app.listen(process.env.PORT || 5000, () =>
+  console.log("Server running on", process.env.PORT || 5000)
+);
+
+3) Frontend calls (what to change now)
+Dashboard
+
+Replace mock familyStats with:
+
+const { data, isLoading } = useQuery({
+  queryKey: ["overview", familyId],
+  queryFn: () => fetch(`/api/families/${familyId}/overview`).then(r => r.json())
+});
+
+
+For each card’s “Recent ▾” dropdown:
+
+const { data } = useQuery({
+  queryKey: ["activities", familyId, "documents"], // or "members"|"messages"|"photos"
+  queryFn: () => fetch(`/api/families/${familyId}/activities?type=documents&limit=5`).then(r => r.json())
+});
+
+Family IDs
+
+List:
+
+fetch(`/api/families/${familyId}/members?includePets=true`)
+
+
+“Invite Family Member” modal → POST /api/families/:familyId/invitations with { email, roleSuggested }.
+Show returned acceptUrl in the success state + “Copy” button.
+
+4) Dev seed (fast way to see life)
+
+Add a tiny script that inserts 1 family, 4 members, 2 pets, ~10 documents, ~10 photos, and a few activities (member_added, doc_added, photo_uploaded, message_sent). Then run it once in local dev.
+
+5) QA checklist (quick)
+
+Dashboard stat counts match DB counts.
+
+“Recent” dropdowns only open when caret is clicked (no hover auto-open).
+
+Clicking a stat card navigates to the right page (Family IDs / Docs / Messages / Photos).
+
+Invite modal creates token and logs acceptance link; success toast shows “Copy link”.
+
+401/403 when accessing another family’s familyId.
