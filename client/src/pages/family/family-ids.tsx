@@ -17,6 +17,7 @@ import {
   Mail
 } from 'lucide-react';
 import { LuxuryCard } from '@/components/luxury-cards';
+import { InviteFamilyMemberDialog } from '@/components/InviteFamilyMemberDialog';
 
 interface FamilyMember {
   id: string;
@@ -41,6 +42,7 @@ export default function FamilyIds() {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [pageTitle, setPageTitle] = useState('Family IDs');
   const [tempTitle, setTempTitle] = useState('Family IDs');
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
   const familyMembers: FamilyMember[] = [
     {
@@ -102,8 +104,8 @@ export default function FamilyIds() {
     setAddMenuOpen(false);
     
     if (type === 'invite') {
-      // Navigate to invitation page or show invitation modal
-      setLocation('/invitations/new?context=family');
+      // Open the invitation modal instead of navigating
+      setInviteDialogOpen(true);
     } else {
       // TODO: Implement create member functionality for person/pet
       setLocation(`/family/ids/new?type=${type}`);
@@ -478,6 +480,12 @@ export default function FamilyIds() {
           </div>
         </div>
       </div>
+
+      {/* Invite Family Member Dialog */}
+      <InviteFamilyMemberDialog 
+        open={inviteDialogOpen}
+        onOpenChange={setInviteDialogOpen}
+      />
     </div>
   );
 }
