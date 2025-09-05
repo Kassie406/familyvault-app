@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Send, Paperclip, ImageIcon, File, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, Paperclip, ImageIcon, File, Loader2, Search, X } from "lucide-react";
 import { Link, useParams } from "wouter";
 import { ThreadHeader } from "@/components/messages/ThreadHeader";
 import { TypingBar } from "@/components/messages/TypingBar";
@@ -69,14 +69,248 @@ async function uploadFiles(files: File[]): Promise<string[]> {
   return fileIds;
 }
 
+// Enhanced messaging API calls
+async function addReaction(messageId: string, emoji: string): Promise<void> {
+  const response = await fetch(`/api/messages/${messageId}/reactions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ emoji }),
+  });
+  if (!response.ok) throw new Error("Failed to add reaction");
+}
+
+async function removeReaction(messageId: string, emoji: string): Promise<void> {
+  const response = await fetch(`/api/messages/${messageId}/reactions/${emoji}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to remove reaction");
+}
+
+async function fetchReactions(messageId: string): Promise<any[]> {
+  const response = await fetch(`/api/messages/${messageId}/reactions`);
+  if (!response.ok) throw new Error("Failed to fetch reactions");
+  const result = await response.json();
+  return result.reactions;
+}
+
+async function markAsRead(messageId: string): Promise<void> {
+  const response = await fetch(`/api/messages/${messageId}/read`, {
+    method: "POST",
+  });
+  if (!response.ok) throw new Error("Failed to mark as read");
+}
+
+async function searchMessages(query: string, threadId?: string): Promise<{ messages: Message[] }> {
+  const params = new URLSearchParams({ q: query });
+  if (threadId) params.append('threadId', threadId);
+  
+  const response = await fetch(`/api/messages/search?${params}`);
+  if (!response.ok) throw new Error("Failed to search messages");
+  return response.json();
+}
+
 /** ---------------------------------------------
  * Components
  * --------------------------------------------- */
+const MessageSearch: React.FC<{
+  threadId: string;
+  onClose: () => void;
+}> = ({ threadId, onClose }) => {
+  const [query, setQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Message[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const searchMutation = useMutation({
+    mutationFn: (searchQuery: string) => searchMessages(searchQuery, threadId),
+    onMutate: () => setIsSearching(true),
+    onSuccess: (data) => {
+      setSearchResults(data.messages);
+      setIsSearching(false);
+    },
+    onError: () => setIsSearching(false),
+  });
+
+  const handleSearch = (searchQuery: string) => {
+    setQuery(searchQuery);
+    if (searchQuery.trim().length >= 2) {
+      searchMutation.mutate(searchQuery.trim());
+    } else {
+      setSearchResults([]);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      onClose();
+    }
+  };
+
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleString([], { 
+      month: 'short', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
+  return (
+    <div className="absolute inset-0 bg-[var(--bg-900)] z-50 flex flex-col">
+      {/* Search Header */}
+      <div className="flex items-center gap-4 p-4 border-b border-white/10 bg-[var(--bg-800)]">
+        <button
+          onClick={onClose}
+          className="p-2 rounded-lg hover:bg-white/10 transition"
+          data-testid="button-close-search"
+        >
+          <X className="h-5 w-5 text-white/70" />
+        </button>
+        
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/40" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => handleSearch(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Search messages..."
+            className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/60"
+            data-testid="input-search-messages"
+            autoFocus
+          />
+        </div>
+        
+        {isSearching && (
+          <Loader2 className="h-5 w-5 animate-spin text-[#D4AF37]" />
+        )}
+      </div>
+
+      {/* Search Results */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {query.length < 2 ? (
+          <div className="text-center text-white/40 mt-8">
+            <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>Type at least 2 characters to search</p>
+          </div>
+        ) : searchResults.length === 0 && !isSearching ? (
+          <div className="text-center text-white/40 mt-8">
+            <p>No messages found for "{query}"</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {searchResults.map((message) => (
+              <div
+                key={message.id}
+                className="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition cursor-pointer"
+                data-testid={`search-result-${message.id}`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-[#D4AF37]/20 flex items-center justify-center text-xs text-[#D4AF37] font-medium flex-shrink-0">
+                    {message.author.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-medium text-white/80">{message.author.name}</span>
+                      <span className="text-xs text-white/40">{formatTime(message.createdAt)}</span>
+                    </div>
+                    
+                    <div className="text-sm text-white/90 leading-relaxed">
+                      {message.body ? (
+                        <span dangerouslySetInnerHTML={{
+                          __html: message.body.replace(
+                            new RegExp(`(${query})`, 'gi'),
+                            '<mark class="bg-[#D4AF37]/30 text-[#D4AF37] px-1 rounded">$1</mark>'
+                          )
+                        }} />
+                      ) : (
+                        <span className="text-white/50 italic">Message with attachments</span>
+                      )}
+                    </div>
+                    
+                    {message.attachments.length > 0 && (
+                      <div className="flex items-center gap-1 mt-2 text-xs text-white/60">
+                        <Paperclip className="h-3 w-3" />
+                        <span>{message.attachments.length} attachment{message.attachments.length > 1 ? 's' : ''}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 const MessageBubble: React.FC<{ message: Message; isMe: boolean }> = ({ message, isMe }) => {
+  const [showReactions, setShowReactions] = useState(false);
+  const [reactions, setReactions] = useState<any[]>([]);
+  const queryClient = useQueryClient();
+
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
+
+  // Fetch reactions for this message
+  const { data: reactionsData } = useQuery({
+    queryKey: ["reactions", message.id],
+    queryFn: () => fetchReactions(message.id),
+    refetchInterval: 5000, // Poll for reaction updates
+  });
+
+  useEffect(() => {
+    if (reactionsData) {
+      setReactions(reactionsData);
+    }
+  }, [reactionsData]);
+
+  // Mark message as read when it comes into view
+  useEffect(() => {
+    if (!isMe) {
+      markAsRead(message.id).catch(console.error);
+    }
+  }, [message.id, isMe]);
+
+  const reactionMutation = useMutation({
+    mutationFn: async ({ emoji, action }: { emoji: string; action: 'add' | 'remove' }) => {
+      if (action === 'add') {
+        await addReaction(message.id, emoji);
+      } else {
+        await removeReaction(message.id, emoji);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reactions", message.id] });
+    },
+  });
+
+  const handleReaction = (emoji: string) => {
+    const currentUserId = "current-user"; // TODO: Get from auth context
+    const userReaction = reactions.find(r => r.userId === currentUserId && r.emoji === emoji);
+    
+    if (userReaction) {
+      reactionMutation.mutate({ emoji, action: 'remove' });
+    } else {
+      reactionMutation.mutate({ emoji, action: 'add' });
+    }
+    setShowReactions(false);
+  };
+
+  // Group reactions by emoji and count them
+  const groupedReactions = reactions.reduce((acc: Record<string, { count: number; users: string[] }>, reaction) => {
+    if (!acc[reaction.emoji]) {
+      acc[reaction.emoji] = { count: 0, users: [] };
+    }
+    acc[reaction.emoji].count++;
+    acc[reaction.emoji].users.push(reaction.userId);
+    return acc;
+  }, {});
+
+  const popularEmojis = ["👍", "❤️", "😂", "😮", "😢", "😡"];
 
   return (
     <div className={`flex gap-3 group ${isMe ? 'flex-row-reverse' : ''}`}>
@@ -86,12 +320,12 @@ const MessageBubble: React.FC<{ message: Message; isMe: boolean }> = ({ message,
         </div>
       )}
       
-      <div className={`flex-1 max-w-[70%] ${isMe ? 'text-right' : ''}`}>
+      <div className={`flex-1 max-w-[70%] ${isMe ? 'text-right' : ''} relative`}>
         {!isMe && (
           <div className="text-xs text-white/60 mb-1">{message.author.name}</div>
         )}
         
-        <div className={`rounded-2xl px-4 py-3 ${
+        <div className={`rounded-2xl px-4 py-3 relative ${
           isMe 
             ? 'bg-[#D4AF37] text-black ml-auto' 
             : 'bg-white/10 text-white'
@@ -121,7 +355,49 @@ const MessageBubble: React.FC<{ message: Message; isMe: boolean }> = ({ message,
               ))}
             </div>
           )}
+
+          {/* Reaction button - appears on hover */}
+          <button
+            onClick={() => setShowReactions(!showReactions)}
+            className={`absolute -bottom-2 ${isMe ? 'left-4' : 'right-4'} opacity-0 group-hover:opacity-100 transition-opacity bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full w-6 h-6 flex items-center justify-center text-xs`}
+            data-testid={`button-add-reaction-${message.id}`}
+          >
+            😊
+          </button>
+
+          {/* Reaction picker */}
+          {showReactions && (
+            <div className={`absolute ${isMe ? 'left-4' : 'right-4'} top-full mt-2 bg-[var(--bg-800)] border border-white/10 rounded-lg p-2 flex gap-1 z-10 shadow-lg`}>
+              {popularEmojis.map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={() => handleReaction(emoji)}
+                  className="hover:bg-white/10 rounded px-2 py-1 text-lg transition-colors"
+                  data-testid={`button-reaction-${emoji}`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Display existing reactions */}
+        {Object.keys(groupedReactions).length > 0 && (
+          <div className={`flex flex-wrap gap-1 mt-2 ${isMe ? 'justify-end' : ''}`}>
+            {Object.entries(groupedReactions).map(([emoji, data]) => (
+              <button
+                key={emoji}
+                onClick={() => handleReaction(emoji)}
+                className="flex items-center gap-1 px-2 py-1 bg-white/10 hover:bg-white/20 rounded-full text-xs transition-colors"
+                data-testid={`reaction-count-${emoji}`}
+              >
+                <span>{emoji}</span>
+                <span className="text-white/80">{data.count}</span>
+              </button>
+            ))}
+          </div>
+        )}
         
         <div className="text-xs text-white/40 mt-1">
           {formatTime(message.createdAt)}
@@ -275,6 +551,7 @@ export const MessagesPage: React.FC<Props> = ({ threadId: propThreadId, onBack }
   const params = useParams<{ threadId?: string }>();
   const threadId = propThreadId || params.threadId || "family-chat";
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showSearch, setShowSearch] = useState(false);
 
   // Mock current user - in production, get from auth context
   const currentUser = { id: "me", name: "You", familyId: "family-1" };
@@ -325,7 +602,15 @@ export const MessagesPage: React.FC<Props> = ({ threadId: propThreadId, onBack }
     .filter(Boolean) as string[];
 
   return (
-    <div className="h-screen bg-[var(--bg-900)] flex flex-col">
+    <div className="h-screen bg-[var(--bg-900)] flex flex-col relative">
+      {/* Search Component */}
+      {showSearch && (
+        <MessageSearch
+          threadId={threadId}
+          onClose={() => setShowSearch(false)}
+        />
+      )}
+
       {/* Header with presence indicators */}
       <div className="flex items-center gap-4 p-4 border-b border-white/10 bg-[var(--bg-800)]">
         {onBack && (
@@ -351,6 +636,15 @@ export const MessagesPage: React.FC<Props> = ({ threadId: propThreadId, onBack }
             title={thread?.title || "Family Chat"}
           />
         </div>
+
+        {/* Search Button */}
+        <button
+          onClick={() => setShowSearch(true)}
+          className="p-2 rounded-lg hover:bg-white/10 transition"
+          data-testid="button-open-search"
+        >
+          <Search className="h-5 w-5 text-white/70" />
+        </button>
       </div>
 
       {/* Messages */}
