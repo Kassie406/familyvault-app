@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import storageRoutes from "./storage-routes";
 import fileRoutes from "./routes/files";
 import mobileUploadRoutes from "./routes/mobile-upload";
+import smsRoutes from "./sms";
 import { 
   insertInviteSchema, 
   insertFamilyMemberSchema,
@@ -763,6 +764,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch presence" });
     }
   });
+
+  // Mount SMS routes
+  app.use("/api", smsRoutes);
 
   const httpServer = createServer(app);
   return httpServer;
