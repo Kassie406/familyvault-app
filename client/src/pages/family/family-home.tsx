@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import {
   Users, FileText, MessageCircle, Calendar, Image as ImageIcon, Shield,
@@ -26,6 +26,8 @@ import QuickAccessPanel from '@/components/family/QuickAccessPanel';
 import ActivityFeed from '@/components/family/ActivityFeed';
 import DashboardWidget from '@/components/family/DashboardWidget';
 import MobileNavigationBar from '@/components/family/MobileNavigationBar';
+import { PolicyModal } from '@/components/documents/PolicyModal';
+import { ApprovalsDrawer } from '@/components/documents/ApprovalsDrawer';
 
 export default function FamilyHome() {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -34,6 +36,11 @@ export default function FamilyHome() {
   const [highlightDocumentUpload, setHighlightDocumentUpload] = useState(false);
   const [quickAccessOpen, setQuickAccessOpen] = useState(false);
   const [dashboardLayout, setDashboardLayout] = useState('default');
+  const [policyModalOpen, setPolicyModalOpen] = useState(false);
+  const [approvalsDrawerOpen, setApprovalsDrawerOpen] = useState(false);
+  
+  // Navigation hook
+  const [, setLocation] = useLocation();
   
   // Ref for the upload center section
   const uploadCenterRef = useRef<HTMLDivElement>(null);
@@ -200,6 +207,7 @@ export default function FamilyHome() {
       value: 23, 
       icon: FileText,
       href: '/inbox?filter=shared&sort=recent',
+      onViewAll: () => setLocation('/documents?scope=shared&sort=recent'),
       previewItems: [
         { id: "1", title: "Insurance Policy.pdf", sub: "Shared with family", href: "/documents/1" },
         { id: "2", title: "Medical Records", sub: "Updated 2 hours ago", href: "/documents/2" },
@@ -207,8 +215,8 @@ export default function FamilyHome() {
       ],
       dropdownActions: [
         { label: "Share a Document", onClick: scrollToDocumentUpload, icon: <Share className="h-4 w-4" /> },
-        { label: "Manage Link Policies", href: "/settings/sharing", icon: <Settings className="h-4 w-4" /> },
-        { label: "Pending Approvals", href: "/inbox?filter=pending-approval", icon: <AlertCircle className="h-4 w-4" /> }
+        { label: "Manage Link Policies", onClick: () => setPolicyModalOpen(true), icon: <Settings className="h-4 w-4" /> },
+        { label: "Pending Approvals", onClick: () => setApprovalsDrawerOpen(true), icon: <AlertCircle className="h-4 w-4" /> }
       ]
     },
     { 
@@ -488,6 +496,17 @@ export default function FamilyHome() {
 
       {/* Mobile Navigation */}
       <MobileNavigationBar onQuickAccessOpen={() => setQuickAccessOpen(true)} />
+
+      {/* Document Management Modals */}
+      <PolicyModal 
+        open={policyModalOpen}
+        onClose={() => setPolicyModalOpen(false)}
+      />
+      
+      <ApprovalsDrawer 
+        open={approvalsDrawerOpen}
+        onClose={() => setApprovalsDrawerOpen(false)}
+      />
     </div>
   );
 }

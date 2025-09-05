@@ -1,0 +1,80 @@
+Here’s a clean, sensible pattern for each of those three clicks that balances speed, clarity, and access-control.
+
+1) “View all” (top-right of the card)
+
+Navigate to a full page.
+Route: /documents?scope=shared&sort=recent
+
+What the page shows (table layout):
+
+Tabs: All, Shared by me, Shared with me, External, Expiring soon
+
+Columns: Name • Type • Owner • Shared with (people/domains) • Access (Direct/Link) • Expires • Last activity • Actions (Open / Manage access / Revoke)
+
+Filters: type, owner, tag, external domain, expires ≤ N days
+
+Bulk actions: revoke links, change expiration, move, export CSV (audit)
+
+Why page, not modal: users will browse, filter, and do bulk actions—too big for a dialog.
+
+2) “Manage Link Policies”
+
+Open a settings modal (or right drawer) scoped to this workspace/collection. Width ~720px, focus-trapped, ESC to close.
+
+Sections (toggles + selects):
+
+Default link scope: Invited only ▸ Org only ▸ Anyone with link (with warning copy)
+
+Expiration: Require expiry (default 30 days) • Max allowed expiry • “Never” allowed? (admin only)
+
+Protection: Require password for external • Min password length • Password rotate on revoke
+
+Permissions: Allow download/print • Add watermark • Disable copy text for PDFs
+
+Domain rules: Allowlist / blocklist for email domains (e.g., no *@gmail.com)
+
+Inheritance: “Apply to all subfolders and existing links” (preview shows how many links will be affected)
+
+Audit: link to /audit?topic=links
+
+CTAs: Save (primary) • Cancel • “Revoke non-compliant links” (secondary, admin only)
+
+Why modal: it’s a contained configuration task; users shouldn’t lose context from the dashboard.
+
+3) “Pending Approvals”
+
+Open a right-side drawer for quick triage; link to a full queue page for deep work.
+
+Drawer contents:
+
+Counter + filter (type: view/edit/share • internal/external)
+
+Each request: Document • Requester • Requested access • Reason • Risk flags (external domain, sensitive tag) • Suggested expiry
+
+Actions per row: Approve (set role + expiry), Deny (reason required), Ask for changes
+
+Bulk: approve/deny selected
+
+Link: “Open full approvals” → /approvals?state=pending (batch operations, history, SLA stats)
+
+Why drawer: fast, high-frequency decisions; page is available when volume is large.
+
+Cross-cutting details (for all three)
+
+RBAC: Only Owners/Admins see “Manage Link Policies” and can approve external shares; others see a disabled state with tooltip (“Admin only”).
+
+Unsaved changes guard: confirm before closing policy modal.
+
+Accessibility: focus trap, keyboard nav, ARIA labels; toasts for success/failure.
+
+Instrumentation:
+
+documents_view_all_clicked
+
+link_policies_opened/saved (with changed fields)
+
+approvals_opened/approved/denied (with reason and expiry)
+
+Legal/compliance copy: When enabling “Anyone with link,” show a brief risk note: “Links may be forwarded. Use limited expiry and watermarking for PII.” Include a link to your policy.
+
+If you want, I can sketch the React components (Modal/Drawer + routes) with Tailwind classes and exact event names so you can drop them straight into your codebase.
