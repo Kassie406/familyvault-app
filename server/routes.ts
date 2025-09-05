@@ -5,6 +5,7 @@ import storageRoutes from "./storage-routes";
 import fileRoutes from "./routes/files";
 import mobileUploadRoutes from "./routes/mobile-upload";
 import smsRoutes from "./sms";
+import axios from "axios";
 import { 
   insertInviteSchema, 
   insertFamilyMemberSchema,
@@ -730,6 +731,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // TODO: Broadcast via WebSocket to thread members
       console.log(`Broadcasting message ${message.id} to thread ${id}`);
+      
+      // Send SMS notifications to offline family members
+      try {
+        // Get thread members (excluding sender)
+        const threadMembers = await storage.getThreadMembers(id);
+        const recipientIds = threadMembers
+          .filter(member => member.userId !== userId)
+          .map(member => member.userId);
+        
+        if (recipientIds.length > 0) {
+          // Create message preview (first 50 characters)
+          const messagePreview = body ? body.substring(0, 50) + (body.length > 50 ? "..." : "") : "📎 Attachment";
+          
+          // Send SMS notifications asynchronously
+          axios.post(`http://localhost:5000/api/notify/message`, {
+            threadId: id,
+            senderName: "Family Member", // TODO: Get actual sender name
+            messagePreview,
+            recipientIds
+          }).catch(error => {
+            console.error("Failed to send SMS notifications:", error.message);
+          });
+        }
+      } catch (error) {
+        console.error("Error setting up SMS notifications:", error);
+        // Don't fail the message send if notifications fail
+      }
       
       res.status(201).json({ message });
     } catch (error) {

@@ -238,6 +238,7 @@ export interface IStorage {
   createMessageThread(thread: InsertMessageThread): Promise<MessageThread>;
   getUserThreads(userId: string): Promise<MessageThread[]>;
   addThreadMember(member: InsertThreadMember): Promise<ThreadMember>;
+  getThreadMembers(threadId: string): Promise<ThreadMember[]>;
   getThreadMessages(threadId: string, cursor?: string, limit?: number): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
   
@@ -1038,6 +1039,11 @@ export class DatabaseStorage implements IStorage {
   async addThreadMember(member: InsertThreadMember): Promise<ThreadMember> {
     const result = await db.insert(threadMembers).values(member).returning();
     return result[0];
+  }
+
+  async getThreadMembers(threadId: string): Promise<ThreadMember[]> {
+    const result = await db.select().from(threadMembers).where(eq(threadMembers.threadId, threadId));
+    return result;
   }
 
   async getThreadMessages(threadId: string, cursor?: string, limit: number = 50): Promise<Message[]> {

@@ -3,10 +3,46 @@ import crypto from "crypto";
 import { db } from "./db";
 import { users, verificationCodes, notificationPreferences } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import twilio from "twilio";
 
 const router = Router();
 
+// Initialize Twilio client
+const twilioClient = twilio(
+  process.env.TWILIO_SID!,
+  process.env.TWILIO_AUTH!
+);
+
 const hash = (s: string) => crypto.createHash("sha256").update(s).digest("hex");
+
+// SMS Sending Functions
+async function sendSMS(to: string, message: string): Promise<boolean> {
+  try {
+    await twilioClient.messages.create({
+      body: message,
+      from: process.env.TWILIO_FROM!,
+      to: to
+    });
+    console.log(`SMS sent to ${to}: ${message.substring(0, 50)}...`);
+    return true;
+  } catch (error) {
+    console.error(`Failed to send SMS to ${to}:`, error);
+    return false;
+  }
+}
+
+// Send verification code via SMS
+async function sendVerificationCode(phone: string, code: string): Promise<boolean> {
+  const message = `Your FamilyCircleSecure verification code is: ${code}. This code expires in 5 minutes.`;
+  return await sendSMS(phone, message);
+}
+
+// Send message notification with deep link
+async function sendMessageNotification(phone: string, senderName: string, threadId: string, preview: string): Promise<boolean> {
+  const deepLink = `https://portal.familycirclesecure.com/messages/${threadId}`;
+  const message = `New message from ${senderName}: ${preview}\n\nView: ${deepLink}\n\nReply STOP to opt out.`;
+  return await sendSMS(phone, message);
+}
 
 // POST /api/phone/start-verify
 router.post("/phone/start-verify", async (req, res) => {
@@ -34,8 +70,11 @@ router.post("/phone/start-verify", async (req, res) => {
         });
     });
 
-    // TODO: Send SMS with Twilio when implemented
-    console.log(`SMS verification code for ${phone}: ${code}`);
+    // Send SMS verification code
+    const smsSent = await sendVerificationCode(phone, code);
+    if (!smsSent) {
+      console.warn(`Failed to send SMS to ${phone}, but verification code was saved`);
+    }
     
     res.json({ ok: true });
   } catch (error) {
@@ -140,4 +179,58 @@ router.post("/sms/inbound", async (req, res) => {
   }
 });
 
+// Message notification endpoint
+router.post("/notify/message", async (req, res) => {
+  try {
+    const { threadId, senderName, messagePreview, recipientIds } = req.body;
+    
+    if (!threadId || !senderName || !messagePreview || !recipientIds) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const results = [];
+    
+    // Get users with verified phones and SMS enabled
+    for (const userId of recipientIds) {
+      try {
+        const [user] = await db.select({
+          phone: users.phone,
+          phoneVerified: users.phoneVerifiedAt
+        }).from(users).where(eq(users.id, userId));
+        
+        if (!user?.phone || !user?.phoneVerified) {
+          results.push({ userId, status: "no_verified_phone" });
+          continue;
+        }
+
+        const [prefs] = await db.select()
+          .from(notificationPreferences)
+          .where(eq(notificationPreferences.userId, userId));
+        
+        if (!prefs?.smsEnabled) {
+          results.push({ userId, status: "sms_disabled" });
+          continue;
+        }
+
+        // Send notification
+        const sent = await sendMessageNotification(user.phone, senderName, threadId, messagePreview);
+        
+        // TODO: Log the notification when smsNotifications table is added
+        console.log(`SMS notification ${sent ? "sent" : "failed"} to ${userId}: ${senderName}`);
+        
+        results.push({ userId, status: sent ? "sent" : "failed" });
+      } catch (error) {
+        console.error(`Error sending notification to user ${userId}:`, error);
+        results.push({ userId, status: "error" });
+      }
+    }
+    
+    res.json({ results });
+  } catch (error) {
+    console.error("Error sending message notifications:", error);
+    res.status(500).json({ error: "Failed to send notifications" });
+  }
+});
+
 export default router;
+export { sendMessageNotification, sendVerificationCode };
