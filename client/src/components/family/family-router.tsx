@@ -214,7 +214,7 @@ export default function FamilyRouter() {
         <Route path="/family/bereavement/memorial" component={withSidebarLayout(() => <BereavementSectionPage title="Memorial & Legacy" createTo="/family/bereavement/new/memorial" />)} />
         <Route path="/family/members" component={withSidebarLayout(FamilyMembers)} />
         <Route path="/family/documents" component={withSidebarLayout(FamilyDocuments)} />
-        <Route path="/family/messages/:threadId" component={withSidebarLayout((params: any) => <MessagesPage threadId={params.threadId} />)} />
+        <Route path="/family/messages/:threadId" component={withSidebarLayout(() => <MessagesPage />)} />
         <Route path="/family/messages" component={withSidebarLayout(() => <MessagesPage threadId="family-chat" />)} />
         <Route path="/family/calendar" component={withSidebarLayout(FamilyCalendar)} />
         <Route path="/family/photos" component={withSidebarLayout(FamilyPhotos)} />

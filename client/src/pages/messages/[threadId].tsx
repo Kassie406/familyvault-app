@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Send, Paperclip, ImageIcon, File, Loader2 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useParams } from "wouter";
 
 /** ---------------------------------------------
  * Types
@@ -250,7 +250,9 @@ type Props = {
   onBack?: () => void;
 };
 
-export const MessagesPage: React.FC<Props> = ({ threadId = "family", onBack }) => {
+export const MessagesPage: React.FC<Props> = ({ threadId: propThreadId, onBack }) => {
+  const params = useParams<{ threadId?: string }>();
+  const threadId = propThreadId || params.threadId || "family-chat";
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch thread info
