@@ -72,7 +72,7 @@ export function StatCard({
     <div ref={wrapRef} className="relative">
       <Link
         href={href}
-        className="group no-hover-bg block rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] focus:outline-none focus:ring-2 focus:ring-amber-400/40 transition-colors"
+        className="group no-hover-bg block rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] hover:shadow-xl hover:shadow-[#D4AF37]/10 hover:border-[#D4AF37]/30 focus:outline-none focus:ring-2 focus:ring-amber-400/40 transition-all duration-300"
         aria-describedby={`${label.replace(/\s+/g, "-").toLowerCase()}-desc`}
         data-testid={`stat-card-${label.replace(/\s+/g, "-").toLowerCase()}`}
       >
