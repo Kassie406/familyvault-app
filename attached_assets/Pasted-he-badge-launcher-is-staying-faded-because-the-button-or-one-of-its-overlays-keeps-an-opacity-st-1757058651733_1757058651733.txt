@@ -1,0 +1,73 @@
+he badge/launcher is staying “faded” because the button (or one of its overlays) keeps an opacity state after hover/click. Fix it at the source with these small, surgical changes.
+
+1) Make the FAB never change opacity
+
+Replace the launcher’s classes so opacity is pinned to 100% on all states, and use scale for hover feedback instead of opacity:
+
+<button
+  onClick={() => setOpen(v => !v)}
+  className="
+    chat-fab fixed bottom-6 right-6 z-50 grid place-items-center
+    h-14 w-14 rounded-full
+    bg-[#D4AF37] text-black shadow-xl
+    transition-transform duration-150
+    hover:scale-105 active:scale-95
+    opacity-100 hover:opacity-100 focus:opacity-100 active:opacity-100
+    outline-none focus-visible:ring-2 ring-black/20
+  "
+>
+  <IconChat className="w-6 h-6" />
+  {badge > 0 && (
+    <span
+      className="
+        pointer-events-none absolute -top-1 -right-1
+        grid place-items-center min-w-[18px] h-[18px] px-1
+        rounded-full bg-red-600 text-white text-[10px] leading-none
+      "
+    >
+      {badge}
+    </span>
+  )}
+</button>
+
+
+Key fixes
+
+No /80 (or any fractional) on the gold background. Use bg-[#D4AF37] (solid).
+
+Force opacity-100 on hover, focus, and active.
+
+Use pointer-events-none on the badge so it can’t trap hover/focus states.
+
+2) Remove/disable any hover overlays that linger
+
+If your launcher had “rings” via pseudo-elements (e.g., before:/after: or group-hover:), kill them or make them non-interactive:
+
+/* If you used before/after for glow/pulse */
+.chat-fab::before,
+.chat-fab::after { display: none; }
+
+/* Or, ensure they never affect hover/focus */
+.chat-fab::before,
+.chat-fab::after { pointer-events: none; }
+
+
+If you used Tailwind utilities like group-hover:opacity-70 on a wrapper, remove group from the wrapper around the button, or ensure the effect isn’t applied to the button:
+
+<!-- BAD (causes lingering fade) -->
+<div class="group hover:opacity-70"> <button class="...">...</button> </div>
+
+<!-- GOOD -->
+<div> <button class="... opacity-100 hover:opacity-100">...</button> </div>
+
+3) If you dim the FAB when chat is open, do it explicitly (not via hover)
+
+Sometimes people add open ? 'opacity-50' : 'opacity-100'. If you want that behavior, keep it explicit and drop all hover opacity:
+
+<button className={clsx(
+  "chat-fab ... opacity-100 hover:opacity-100 focus:opacity-100 active:opacity-100",
+  open && "brightness-95" /* subtle, no transparency */
+)}>
+
+
+After these changes the gold button will stay solid whether you click, hover off, or move across the badge. If you still see any fade, send me the exact class list on the launcher element (and its parent) and I’ll zero in on the culprit.
