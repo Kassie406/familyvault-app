@@ -1,0 +1,257 @@
+You’ll get clickable stat cards that deep-link to the right page, plus hover previews (and focus previews for keyboard users) that show the latest activity without leaving the dashboard.
+
+React + Tailwind implementation
+
+Works with any router (Next.js Link, React Router’s Link, or a plain <a>).
+A11y included (keyboard, focus trap, ARIA), dark “luxury” theme with gold accents.
+
+1) StatCard.tsx
+import {useEffect, useRef, useState} from "react";
+import { Link } from "react-router-dom"; // swap for next/link if you use Next.js
+
+type PreviewItem = {
+  id: string;
+  title: string;
+  sub?: string;
+  href?: string;
+  thumbnailUrl?: string;
+};
+
+type StatCardProps = {
+  label: string;             // e.g. "Family Members"
+  value: number | string;    // e.g. 5
+  href: string;              // where to go on click
+  icon: React.ReactNode;     // icon element
+  fetchPreview?: () => Promise<PreviewItem[]>; // called on hover/focus
+  emptyText?: string;        // fallback when no recent items
+};
+
+export function StatCard({
+  label,
+  value,
+  href,
+  icon,
+  fetchPreview,
+  emptyText = "No recent activity",
+}: StatCardProps) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState<PreviewItem[] | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const popRef  = useRef<HTMLDivElement | null>(null);
+
+  // Close popover on outside click / Esc
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (!open) return;
+      const target = e.target as Node;
+      if (cardRef.current?.contains(target) || popRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+    function onEsc(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [open]);
+
+  async function ensurePreviewLoaded() {
+    if (!fetchPreview || items !== null || loading) return;
+    try {
+      setLoading(true);
+      const data = await fetchPreview();
+      setItems(data);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Accessible open on hover/focus
+  function openPreview() {
+    setOpen(true);
+    void ensurePreviewLoaded();
+  }
+
+  return (
+    <div
+      ref={cardRef}
+      className="relative"
+      onMouseEnter={openPreview}
+      onFocus={openPreview}
+      onMouseLeave={() => setOpen(false)}
+      onBlur={(e) => {
+        // only close if focus moved outside both card & popover
+        const next = e.relatedTarget as Node | null;
+        if (!cardRef.current?.contains(next) && !popRef.current?.contains(next)) setOpen(false);
+      }}
+    >
+      <Link
+        to={href}
+        className="group block rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] transition hover:border-zinc-700 hover:shadow-[0_1px_0_0_rgba(255,255,255,0.10)_inset,0_0_0_1px_rgba(255,255,255,0.06)_inset] focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+        aria-describedby={`${label.replace(/\s+/g, "-").toLowerCase()}-desc`}
+      >
+        <div className="flex items-center gap-4">
+          <span className="grid h-10 w-10 place-content-center rounded-xl bg-amber-500/10 text-amber-400 ring-1 ring-amber-400/20">
+            {icon}
+          </span>
+          <div className="flex-1">
+            <div className="text-sm text-zinc-400" id={`${label.replace(/\s+/g, "-").toLowerCase()}-desc`}>
+              {label}
+            </div>
+            <div className="mt-1 text-2xl font-semibold tracking-tight text-zinc-50">
+              {value}
+            </div>
+          </div>
+          <svg
+            className="h-5 w-5 text-zinc-500 transition group-hover:text-amber-400"
+            viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"
+          >
+            <path d="M7.293 14.707a1 1 0 0 1 0-1.414L10.586 10 7.293 6.707a1 1 0 1 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0z"/>
+          </svg>
+        </div>
+      </Link>
+
+      {/* Hover / focus preview */}
+      {open && (
+        <div
+          ref={popRef}
+          tabIndex={-1}
+          className="absolute left-0 z-20 mt-2 w-[28rem] rounded-xl border border-zinc-800/80 bg-zinc-950/95 backdrop-blur supports-[backdrop-filter]:bg-zinc-950/80 shadow-2xl"
+        >
+          <div className="flex items-center justify-between px-4 pt-3">
+            <span className="text-xs uppercase tracking-wide text-zinc-400">{label} — Recent</span>
+            <Link
+              to={href}
+              className="text-xs text-amber-400 hover:text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400/40 rounded px-1.5 py-0.5"
+            >
+              View all
+            </Link>
+          </div>
+
+          <div className="px-2 py-2">
+            {loading && (
+              <div className="space-y-2 p-2">
+                {[0,1,2].map(i => (
+                  <div key={i} className="h-10 rounded-lg bg-zinc-800/60 animate-pulse" />
+                ))}
+              </div>
+            )}
+
+            {!loading && items?.length === 0 && (
+              <div className="p-4 text-sm text-zinc-400">{emptyText}</div>
+            )}
+
+            {!loading && items && items.length > 0 && (
+              <ul className="max-h-64 overflow-auto px-2 py-1">
+                {items.slice(0, 6).map((it) => (
+                  <li key={it.id}>
+                    <Link
+                      to={it.href ?? href}
+                      className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-zinc-900/60 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+                    >
+                      {it.thumbnailUrl ? (
+                        <img
+                          src={it.thumbnailUrl}
+                          alt=""
+                          className="h-8 w-8 rounded-md object-cover ring-1 ring-zinc-800/80"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span className="h-8 w-8 rounded-md bg-zinc-800/60 ring-1 ring-zinc-700/60" />
+                      )}
+                      <div className="min-w-0">
+                        <div className="truncate text-sm text-zinc-100">{it.title}</div>
+                        {it.sub && <div className="truncate text-xs text-zinc-400">{it.sub}</div>}
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+2) Dashboard usage
+import { StatCard } from "./StatCard";
+import { UsersIcon, DocumentIcon, ChatBubbleIcon, PhotoIcon } from "./icons"; // any icon set
+
+export default function HomeStats() {
+  return (
+    <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <StatCard
+        label="Family Members"
+        value={5}
+        href="/family-ids"
+        icon={<UsersIcon className="h-5 w-5" />}
+        fetchPreview={async () => {
+          // replace with real API call
+          return [
+            { id: "1", title: "Sarah Johnson", sub: "Owner", href: "/family-ids/sarah" },
+            { id: "2", title: "Michael Johnson", sub: "Parent", href: "/family-ids/michael" },
+            { id: "3", title: "Emma Johnson", sub: "Child", href: "/family-ids/emma" },
+          ];
+        }}
+      />
+
+      <StatCard
+        label="Documents Shared"
+        value={23}
+        href="/resources?filter=shared"
+        icon={<DocumentIcon className="h-5 w-5" />}
+        fetchPreview={async () => {
+          return [
+            { id: "d1", title: "Home Insurance.pdf", sub: "Shared with Kass", href: "/resources/doc/home-insurance" },
+            { id: "d2", title: "Garage Code.txt", sub: "Shared link", href: "/resources/doc/garage-code" },
+          ];
+        }}
+      />
+
+      <StatCard
+        label="Messages Today"
+        value={12}
+        href="/inbox?date=today"
+        icon={<ChatBubbleIcon className="h-5 w-5" />}
+        fetchPreview={async () => {
+          return [
+            { id: "t1", title: "Kass • Grocery list", sub: "You: check aisle 4", href: "/inbox/thread/1" },
+            { id: "t2", title: "Mom • Wifi again 😅", sub: "Mom: password pls", href: "/inbox/thread/2" },
+          ];
+        }}
+      />
+
+      <StatCard
+        label="Photos Uploaded"
+        value={156}
+        href="/media"
+        icon={<PhotoIcon className="h-5 w-5" />}
+        fetchPreview={async () => {
+          return [
+            { id: "p1", title: "Backyard camera", sub: "Today 10:14a", thumbnailUrl: "/thumbs/cam1.jpg", href: "/media/1" },
+            { id: "p2", title: "Family dinner", sub: "Today 9:02a", thumbnailUrl: "/thumbs/din.jpg", href: "/media/2" },
+            { id: "p3", title: "Puppy!", sub: "Yesterday", thumbnailUrl: "/thumbs/puppy.jpg", href: "/media/3" },
+          ];
+        }}
+      />
+    </section>
+  );
+}
+
+Why this works
+
+Click = deep link (Option 1): whole card is a link with a right-chevron affordance.
+
+Hover/focus = preview (Option 2): shows recent items, with “View all” link and individual row links.
+
+A11y: focus rings, Esc / outside-click close, keyboard hover via focus, ARIA descriptions.
+
+Theme: dark gradient surface, subtle inner highlights, amber accents — consistent with your luxury style.
+
+Performance: fetchPreview() runs only when first opened; popover lazy-loads with skeletons.

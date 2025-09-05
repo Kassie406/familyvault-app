@@ -8,12 +8,12 @@ import {
   Phone, DollarSign, Upload, ShieldAlert
 } from 'lucide-react';
 import { 
-  StatCard, 
   ActionCard, 
   ToolCard, 
   AnnouncementCard, 
   ActivityTimeline 
 } from '@/components/luxury-cards';
+import { StatCard } from '@/components/StatCard';
 
 export default function FamilyHome() {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -156,6 +156,11 @@ export default function FamilyHome() {
               icon={<Icon className="h-5 w-5" />}
               value={stat.value}
               label={stat.label}
+              href={`/family/${stat.label.toLowerCase().replace(/\s+/g, '-')}`}
+              fetchPreview={async () => [
+                { id: "1", title: "Sample Item", sub: "Recent activity", href: "/family/sample" },
+                { id: "2", title: "Another Item", sub: "Today", href: "/family/sample2" },
+              ]}
             />
           );
         })}
