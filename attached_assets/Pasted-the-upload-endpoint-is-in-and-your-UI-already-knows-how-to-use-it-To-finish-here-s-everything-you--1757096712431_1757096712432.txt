@@ -1,0 +1,121 @@
+the upload endpoint is in and your UI already knows how to use it. To finish, here’s everything you need for either AWS S3 or Cloudflare R2, including bucket policy/CORS and the exact env you’ll set in Replit.
+
+Pick one: AWS S3 or Cloudflare R2
+Option A — AWS S3 (with or without CloudFront)
+1) Replit secrets
+S3_PROVIDER=aws
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=xxxxxxxx
+AWS_SECRET_ACCESS_KEY=xxxxxxxx
+S3_BUCKET=your-familyvault-bucket
+# If public or using CloudFront, set the public base URL:
+S3_PUBLIC_BASE_URL=https://your-bucket.s3.us-east-1.amazonaws.com
+# (or your CloudFront domain: https://dxxxxxxxx.cloudfront.net)
+
+2) Bucket policy
+
+Public-read (simplest)
+
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "PublicRead",
+    "Effect": "Allow",
+    "Principal": "*",
+    "Action": ["s3:GetObject"],
+    "Resource": ["arn:aws:s3:::YOUR_BUCKET_NAME/*"]
+  }]
+}
+
+
+Private bucket + CloudFront OAC (recommended for production)
+
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "AllowCloudFrontRead",
+    "Effect": "Allow",
+    "Principal": { "Service": "cloudfront.amazonaws.com" },
+    "Action": "s3:GetObject",
+    "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/*",
+    "Condition": {
+      "StringEquals": {
+        "AWS:SourceArn": "arn:aws:cloudfront::YOUR_AWS_ACCOUNT_ID:distribution/YOUR_DISTRIBUTION_ID"
+      }
+    }
+  }]
+}
+
+
+Set S3_PUBLIC_BASE_URL to your CloudFront domain.
+
+3) CORS (only needed if you’ll fetch blobs with JS; not required for <img src> links)
+{
+  "CORSRules": [{
+    "AllowedOrigins": ["*"],
+    "AllowedMethods": ["GET","HEAD"],
+    "AllowedHeaders": ["*"],
+    "MaxAgeSeconds": 86400
+  }]
+}
+
+Option B — Cloudflare R2
+1) Replit secrets
+S3_PROVIDER=r2
+R2_ACCOUNT_ID=xxxxxxxxxxxxxxxxxxxx
+R2_ACCESS_KEY_ID=xxxxxxxx
+R2_SECRET_ACCESS_KEY=xxxxxxxx
+S3_BUCKET=your-familyvault-bucket
+# If the bucket is public or fronted by a custom domain, set:
+S3_PUBLIC_BASE_URL=https://cdn.yourdomain.com
+# (leave this EMPTY to keep bucket private and use presigned URLs)
+
+2) Bucket access
+
+Public: In R2 → Bucket → Public Access → Enable. (Or attach a custom domain via Cloudflare.)
+Use that domain as S3_PUBLIC_BASE_URL.
+
+Private: Leave it private; our code will return 1-hour presigned URLs automatically when S3_PUBLIC_BASE_URL is not set.
+
+3) CORS (only if you fetch with JS; not needed for <img> tags)
+
+Set a rule equivalent to:
+
+Allowed Origins: *
+Allowed Methods: GET, HEAD
+Allowed Headers: *
+Max Age: 86400
+
+How this ties to your code
+
+Uploads go to chat/YYYY-MM-DD/uuid.ext.
+
+If S3_PUBLIC_BASE_URL is set → UI gets permanent public URLs.
+
+If it’s omitted → UI gets a presigned one-hour URL (safe for private buckets).
+
+No client changes needed: the same /api/uploads + /api/messages contract still applies.
+
+Sanity test (1 minute)
+
+Add the env vars, restart the server.
+
+In chat → 📎 → upload an image → send.
+
+Network tab:
+
+POST /api/uploads → 200 with a URL to your chosen provider
+
+POST /api/messages → 200 with attachments[]
+
+Image renders; link opens from S3/R2/CloudFront.
+
+Security & policy notes (lawyer brain on 🧑‍⚖️)
+
+Keep size/type limits (already in place).
+
+If attachments may contain personal data, prefer private buckets + presigned URLs.
+
+Document a retention policy (e.g., purge orphaned uploads after 7–30 days).
+
+If you ever SMS links, disclose data charges and avoid auto-sending media without explicit consent (TCPA).
