@@ -8,22 +8,24 @@ import uploadsRouter from "./routes/uploads";
 import smsRoutes from "./sms";
 import threadsListRouter from "./routes/threadsList";
 import threadMessagesRouter from "./routes/threadMessages";
+import apiServicesRouter from "./routes/apiServices";
 import axios from "axios";
 import { sendSMSNotification } from "./lib/twilio";
 import { sendSMSNotificationsForMessage, markUserOnline, markUserOffline } from "./lib/sms-notifications";
 import { getOrCreateFamilyChatId } from "./lib/chat-default";
 import { initializeRealtime, getRealtimeManager } from "./lib/realtime.js";
+// Schema imports - using proper type names
 import { 
-  insertInviteSchema, 
-  insertFamilyMemberSchema,
-  insertFamilySchema,
-  insertFamilyBusinessItemSchema,
-  insertFamilyLegalItemSchema,
-  insertFamilyInsuranceItemSchema,
-  insertFamilyTaxItemSchema,
-  insertMessageThreadSchema,
-  insertThreadMemberSchema,
-  insertMessageSchema
+  InsertInvite,
+  InsertFamilyMember,
+  InsertFamily,
+  InsertFamilyBusinessItem,
+  InsertFamilyLegalItem,
+  InsertFamilyInsuranceItem,
+  InsertFamilyTaxItem,
+  InsertMessageThread,
+  InsertThreadMember,
+  InsertMessage
 } from "@shared/schema";
 import crypto from "crypto";
 
@@ -508,6 +510,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const approvalsRouter = (await import("./routes/approvals")).default;
   app.use("/api/link-policies", linkPoliciesRouter);
   app.use("/api/approvals", approvalsRouter);
+  
+  // Mount API services routes
+  app.use(apiServicesRouter);
 
   // Mount threads list routes for chat dashboard
   app.use("/api/threads", threadsListRouter);
