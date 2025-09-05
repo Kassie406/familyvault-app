@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -23,6 +23,10 @@ import QuickPhotoUpload from '@/components/upload/QuickPhotoUpload';
 export default function FamilyHome() {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [highlightDocumentUpload, setHighlightDocumentUpload] = useState(false);
+  
+  // Ref for the upload center section
+  const uploadCenterRef = useRef<HTMLDivElement>(null);
 
   // Fetch family stats from API
   const { data: familyData, isLoading: statsLoading } = useQuery<{
@@ -200,6 +204,24 @@ export default function FamilyHome() {
     }
   ];
 
+  // Function to scroll to upload center and highlight document upload
+  const scrollToDocumentUpload = () => {
+    setHighlightDocumentUpload(true);
+    
+    // Scroll to upload center
+    if (uploadCenterRef.current) {
+      uploadCenterRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+    }
+    
+    // Remove highlight after animation
+    setTimeout(() => {
+      setHighlightDocumentUpload(false);
+    }, 3000);
+  };
+
   return (
     <div className="flex-1 overflow-auto bg-[var(--bg-900)]">
       {/* Luxury Header with Gradient */}
@@ -253,7 +275,12 @@ export default function FamilyHome() {
       <div>
         <h2 className="text-xl font-semibold text-[var(--ink-100)] mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <ActionCard icon={<Upload className="h-5 w-5"/>} title="Upload Document" subtitle="Add new family document" />
+          <ActionCard 
+            icon={<Upload className="h-5 w-5"/>} 
+            title="Upload Document" 
+            subtitle="Add new family document"
+            onClick={scrollToDocumentUpload}
+          />
           <ActionCard icon={<MessageCircle className="h-5 w-5"/>} title="Send Message" subtitle="Chat with family" />
           <ActionCard icon={<ImageIcon className="h-5 w-5"/>} title="View Photos" subtitle="Browse family gallery" />
           <ActionCard icon={<ShieldAlert className="h-5 w-5"/>} title="Emergency Info" subtitle="Quick access to critical info" />
@@ -261,7 +288,7 @@ export default function FamilyHome() {
       </div>
 
       {/* Upload Center */}
-      <div>
+      <div ref={uploadCenterRef}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-[var(--ink-100)] flex items-center">
             <Upload className="w-5 h-5 mr-2 text-[var(--gold)]" />
@@ -276,6 +303,7 @@ export default function FamilyHome() {
           {/* Document Upload */}
           <QuickDocumentUpload 
             familyId="family-1"
+            className={highlightDocumentUpload ? "golden-glow" : ""}
             onUploadComplete={(docId) => {
               console.log('Document uploaded:', docId);
               // Invalidate stats queries to update counts

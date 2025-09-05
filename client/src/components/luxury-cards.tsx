@@ -26,9 +26,22 @@ export function LuxuryCard({ children, className = "", ...props }: React.HTMLAtt
 // Enhanced StatCard with hover previews - moved to separate component file
 
 /** ActionCard — pill-style quick actions with gold icon circle */
-export function ActionCard({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
+export function ActionCard({ 
+  icon, 
+  title, 
+  subtitle, 
+  onClick 
+}: { 
+  icon: React.ReactNode; 
+  title: string; 
+  subtitle: string; 
+  onClick?: () => void;
+}) {
   return (
-    <LuxuryCard className="p-6 cursor-pointer group hover:scale-[1.02] transition-transform">
+    <LuxuryCard 
+      className="p-6 cursor-pointer group hover:scale-[1.02] transition-transform"
+      onClick={onClick}
+    >
       <div className="flex items-center justify-between mb-4">
         <div 
           className="w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-all group-hover:shadow-lg"
