@@ -9,11 +9,53 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useFileStatus } from "@/hooks/useFileStatus";
 
 interface QuickDocumentUploadProps {
   familyId?: string;
   onUploadComplete?: (documentId: string) => void;
   className?: string;
+}
+
+// Status indicator component
+function FileStatusIndicator({ fileId, fileName }: { fileId: string; fileName: string }) {
+  const { status, connected } = useFileStatus(fileId, 'document');
+  
+  if (!status) return null;
+  
+  return (
+    <div className="mt-2 p-2 bg-gray-700/30 rounded text-sm">
+      <div className="flex items-center justify-between">
+        <span className="text-gray-300">{fileName}</span>
+        <div className="flex items-center gap-2">
+          {connected && <div className="w-2 h-2 bg-green-400 rounded-full" title="Real-time connected" />}
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-4 mt-1 text-xs">
+        <span className={`px-2 py-1 rounded ${
+          status.scanStatus === 'clean' ? 'bg-green-600/20 text-green-400' :
+          status.scanStatus === 'infected' ? 'bg-red-600/20 text-red-400' :
+          status.scanStatus === 'pending' ? 'bg-yellow-600/20 text-yellow-400' :
+          'bg-gray-600/20 text-gray-400'
+        }`}>
+          Scan: {status.scanStatus}
+        </span>
+        
+        <span className={`px-2 py-1 rounded ${
+          status.thumbStatus === 'done' ? 'bg-green-600/20 text-green-400' :
+          status.thumbStatus === 'pending' ? 'bg-yellow-600/20 text-yellow-400' :
+          'bg-gray-600/20 text-gray-400'
+        }`}>
+          Thumb: {status.thumbStatus}
+        </span>
+        
+        {status.ready && <span className="text-green-400">✓ Ready</span>}
+        {status.blocked && <span className="text-red-400">⚠ Blocked</span>}
+        {status.processing && <span className="text-yellow-400">⏳ Processing</span>}
+      </div>
+    </div>
+  );
 }
 
 export default function QuickDocumentUpload({ 
@@ -29,6 +71,7 @@ export default function QuickDocumentUpload({
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("general");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadedDocId, setUploadedDocId] = useState<string | null>(null);
 
   // Create document and attach file mutation
   const uploadMutation = useMutation({
@@ -83,6 +126,9 @@ export default function QuickDocumentUpload({
         title: "Document uploaded successfully",
         description: `"${doc.title || title}" has been added to your family vault.`,
       });
+      
+      // Track uploaded document for real-time status
+      setUploadedDocId(doc.id);
       
       // Reset form
       setTitle("");
@@ -310,6 +356,16 @@ export default function QuickDocumentUpload({
           </>
         )}
       </CardContent>
+      
+      {/* Real-time status display for last uploaded file */}
+      {uploadedDocId && (
+        <CardContent className="pt-0">
+          <div className="border-t border-gray-700/50 pt-4">
+            <h4 className="text-sm font-medium text-gray-300 mb-2">Last Upload Status</h4>
+            <FileStatusIndicator fileId={uploadedDocId} fileName={title || "Uploaded Document"} />
+          </div>
+        </CardContent>
+      )}
     </Card>
   );
 }

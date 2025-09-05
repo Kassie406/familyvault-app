@@ -53,7 +53,7 @@ export function useFileStatus(fileId: string, type: 'document' | 'photo' = 'docu
       return response.json();
     },
     enabled: !!fileId,
-    refetchInterval: status?.processing ? 5000 : false, // Poll every 5s if processing
+    refetchInterval: (data) => data?.processing ? 5000 : false, // Poll every 5s if processing
   });
 
   // WebSocket connection for real-time updates
@@ -155,7 +155,7 @@ export function useFamilyFilesStatus(familyId: string) {
       return response.json();
     },
     enabled: !!familyId,
-    refetchInterval: familyStatus?.summary.processing > 0 ? 10000 : false, // Poll every 10s if any processing
+    refetchInterval: (data) => (data?.summary?.processing || 0) > 0 ? 10000 : false, // Poll every 10s if any processing
   });
 
   // WebSocket connection for real-time updates

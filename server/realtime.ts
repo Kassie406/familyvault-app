@@ -11,6 +11,10 @@ export function createIoServer(httpServer: HttpServer) {
   const pub = new IORedis(redisUrl);
   const sub = new IORedis(redisUrl);
 
+  // Add error handlers to prevent crashes
+  pub.on('error', (err) => console.error('[realtime] Redis pub error:', err));
+  sub.on('error', (err) => console.error('[realtime] Redis sub error:', err));
+
   io = new Server(httpServer, {
     cors: { 
       origin: process.env.WEB_ORIGIN ?? true, 
