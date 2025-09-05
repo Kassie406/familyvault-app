@@ -1,0 +1,123 @@
+here’s the final drop-in package for typing indicators, so your devs can paste directly into your repo.
+
+1. hooks/useTyping.ts
+// hooks/useTyping.ts
+import { useEffect, useRef, useState } from "react";
+import io, { Socket } from "socket.io-client";
+
+type TypingEvent = { userId: string; threadId: string; isTyping: boolean };
+
+export function useTyping(threadId: string, selfUser: { id: string; familyId: string }) {
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const socketRef = useRef<Socket | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const s = io("/", { path: "/ws", auth: { user: { id: selfUser.id, familyId: selfUser.familyId } } });
+    socketRef.current = s;
+
+    // join the thread room
+    s.emit("thread:join", { threadId });
+
+    // handle incoming typing events
+    const onTyping = ({ userId, threadId: tId, isTyping }: TypingEvent) => {
+      if (tId !== threadId || userId === selfUser.id) return;
+      setTypingUsers(prev => {
+        const next = new Set(prev);
+        if (isTyping) next.add(userId);
+        else next.delete(userId);
+        return next;
+      });
+    };
+    s.on("typing", onTyping);
+
+    return () => {
+      s.off("typing", onTyping);
+      s.emit("thread:leave", { threadId });
+      s.disconnect();
+    };
+  }, [threadId, selfUser.id, selfUser.familyId]);
+
+  // call onChange/onKeyDown
+  const notifyTyping = () => {
+    socketRef.current?.emit("typing", { threadId, isTyping: true });
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      socketRef.current?.emit("typing", { threadId, isTyping: false });
+    }, 1500);
+  };
+
+  const stopTyping = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    socketRef.current?.emit("typing", { threadId, isTyping: false });
+  };
+
+  return { typingUsers, notifyTyping, stopTyping };
+}
+
+2. components/messages/TypingBar.tsx
+// components/messages/TypingBar.tsx
+export function TypingBar({ names }: { names: string[] }) {
+  if (names.length === 0) return null;
+
+  const label =
+    names.length === 1 ? `${names[0]} is typing…` :
+    names.length === 2 ? `${names[0]} and ${names[1]} are typing…` :
+    `${names[0]}, ${names[1]} and others are typing…`;
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 text-xs border-t border-white/10 bg-black/40">
+      <span className="inline-block h-2 w-2 rounded-full bg-[#D4AF37] animate-pulse" />
+      <span className="text-white/70">{label}</span>
+    </div>
+  );
+}
+
+3. Integration into MessagesPage
+import { useTyping } from "@/hooks/useTyping";
+import { TypingBar } from "@/components/messages/TypingBar";
+
+export default function MessagesPage({ threadId, selfUser, familyId, threadMembers }) {
+  const { typingUsers, notifyTyping, stopTyping } = useTyping(threadId, selfUser);
+
+  const typingNames = (threadMembers || [])
+    .filter(m => typingUsers.has(m.id) && m.id !== selfUser.id)
+    .map(m => m.name ?? m.id);
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* …header and messages list… */}
+
+      <TypingBar names={typingNames} />
+
+      <div className="border-t border-white/10 p-2">
+        <textarea
+          className="w-full rounded-lg bg-black/50 text-white p-2"
+          onChange={(e) => notifyTyping()}
+          onKeyDown={() => notifyTyping()}
+          onBlur={() => stopTyping()}
+        />
+        <button
+          onClick={() => {
+            // your existing send logic
+            stopTyping();
+          }}
+          className="mt-2 px-3 py-1 rounded-lg bg-[#D4AF37] text-black font-medium"
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
+✅ With this:
+
+Users see “Sarah is typing…” or similar under the chat.
+
+Socket.IO ensures realtime updates.
+
+Debounced so it doesn’t spam.
+
+Consistent with your luxury black+gold theme.

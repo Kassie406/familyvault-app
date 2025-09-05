@@ -2,6 +2,10 @@ import React, { useEffect, useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Send, Paperclip, ImageIcon, File, Loader2 } from "lucide-react";
 import { Link, useParams } from "wouter";
+import { ThreadHeader } from "@/components/messages/ThreadHeader";
+import { TypingBar } from "@/components/messages/TypingBar";
+import { usePresence } from "@/hooks/usePresence";
+import { useTyping } from "@/hooks/useTyping";
 
 /** ---------------------------------------------
  * Types
@@ -130,7 +134,9 @@ const MessageBubble: React.FC<{ message: Message; isMe: boolean }> = ({ message,
 const MessageComposer: React.FC<{
   threadId: string;
   onMessageSent?: () => void;
-}> = ({ threadId, onMessageSent }) => {
+  onTyping?: () => void;
+  onStopTyping?: () => void;
+}> = ({ threadId, onMessageSent, onTyping, onStopTyping }) => {
   const [body, setBody] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
@@ -155,7 +161,20 @@ const MessageComposer: React.FC<{
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if ((body.trim() || files.length > 0) && !sending) {
+      onStopTyping?.();
       sendMutation.mutate();
+    }
+  };
+
+  const handleBodyChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setBody(e.target.value);
+    onTyping?.();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e as any);
     }
   };
 
@@ -198,7 +217,9 @@ const MessageComposer: React.FC<{
         <div className="flex-1">
           <textarea
             value={body}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={handleBodyChange}
+            onKeyDown={handleKeyDown}
+            onBlur={onStopTyping}
             placeholder="Type a message..."
             rows={2}
             className="w-full resize-none rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/60"
@@ -255,6 +276,9 @@ export const MessagesPage: React.FC<Props> = ({ threadId: propThreadId, onBack }
   const threadId = propThreadId || params.threadId || "family-chat";
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Mock current user - in production, get from auth context
+  const currentUser = { id: "me", name: "You", familyId: "family-1" };
+
   // Fetch thread info
   const { data: thread, isLoading: threadLoading } = useQuery({
     queryKey: ["thread", threadId],
@@ -267,6 +291,10 @@ export const MessagesPage: React.FC<Props> = ({ threadId: propThreadId, onBack }
     queryFn: () => fetchMessages(threadId),
     refetchInterval: 5000, // Poll every 5 seconds for new messages
   });
+
+  // Presence and typing hooks
+  const { online, lastSeen } = usePresence(currentUser.familyId, currentUser);
+  const { typingUsers, notifyTyping, stopTyping } = useTyping(threadId, currentUser);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -284,9 +312,21 @@ export const MessagesPage: React.FC<Props> = ({ threadId: propThreadId, onBack }
     );
   }
 
+  // Mock thread members for demo - in production, get from thread data
+  const threadMembers = [
+    { id: "user-1", name: "Alice" },
+    { id: "user-2", name: "Bob" },
+    { id: currentUser.id, name: currentUser.name },
+  ];
+
+  // Get typing user names
+  const typingNames = Array.from(typingUsers)
+    .map(userId => threadMembers.find(m => m.id === userId)?.name)
+    .filter(Boolean) as string[];
+
   return (
     <div className="h-screen bg-[var(--bg-900)] flex flex-col">
-      {/* Header */}
+      {/* Header with presence indicators */}
       <div className="flex items-center gap-4 p-4 border-b border-white/10 bg-[var(--bg-800)]">
         {onBack && (
           <button 
@@ -304,14 +344,12 @@ export const MessagesPage: React.FC<Props> = ({ threadId: propThreadId, onBack }
         </Link>
         
         <div className="flex-1">
-          <h1 className="text-lg font-semibold text-white">
-            {thread?.title || "Family Chat"}
-          </h1>
-          {thread?.memberNames && (
-            <p className="text-sm text-white/60">
-              {thread.memberNames.join(", ")}
-            </p>
-          )}
+          <ThreadHeader
+            members={threadMembers}
+            online={online}
+            lastSeen={lastSeen}
+            title={thread?.title || "Family Chat"}
+          />
         </div>
       </div>
 
@@ -322,7 +360,7 @@ export const MessagesPage: React.FC<Props> = ({ threadId: propThreadId, onBack }
             <MessageBubble
               key={message.id}
               message={message}
-              isMe={message.author.id === "me"} // TODO: Replace with actual user check
+              isMe={message.author.id === currentUser.id}
             />
           ))
         ) : (
@@ -336,8 +374,15 @@ export const MessagesPage: React.FC<Props> = ({ threadId: propThreadId, onBack }
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Typing indicator */}
+      <TypingBar names={typingNames} />
+
       {/* Composer */}
-      <MessageComposer threadId={threadId} />
+      <MessageComposer 
+        threadId={threadId} 
+        onTyping={notifyTyping}
+        onStopTyping={stopTyping}
+      />
     </div>
   );
 };

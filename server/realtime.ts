@@ -38,6 +38,64 @@ export function createIoServer(httpServer: HttpServer) {
   // Handle client connections
   io.on("connection", (socket) => {
     console.log(`[realtime] Client connected: ${socket.id}`);
+    
+    // Get authenticated user from socket handshake
+    const user = socket.handshake.auth?.user as { id: string; familyId: string; name?: string } | undefined;
+    
+    if (user) {
+      // Store user info in socket for later use
+      (socket as any).user = user;
+      
+      // Join family room for presence updates
+      socket.join(`family:${user.familyId}`);
+      
+      // Mark user as online
+      socket.to(`family:${user.familyId}`).emit("presence:online", { userId: user.id });
+      
+      console.log(`[realtime] User ${user.id} (${user.name}) connected to family ${user.familyId}`);
+    }
+
+    // Presence heartbeat
+    socket.on("presence:ping", () => {
+      if (user) {
+        // Refresh presence - user is still active
+        console.log(`[realtime] Presence ping from ${user.id}`);
+      }
+    });
+
+    // Join/leave family room
+    socket.on("family:join", ({ familyId }) => {
+      if (user && familyId === user.familyId) {
+        socket.join(`family:${familyId}`);
+        console.log(`[realtime] User ${user.id} joined family room ${familyId}`);
+      }
+    });
+
+    // Thread management
+    socket.on("thread:join", ({ threadId }) => {
+      if (user && typeof threadId === 'string') {
+        socket.join(`thread:${threadId}`);
+        console.log(`[realtime] User ${user.id} joined thread ${threadId}`);
+      }
+    });
+
+    socket.on("thread:leave", ({ threadId }) => {
+      if (user && typeof threadId === 'string') {
+        socket.leave(`thread:${threadId}`);
+        console.log(`[realtime] User ${user.id} left thread ${threadId}`);
+      }
+    });
+
+    // Typing indicators
+    socket.on("typing", ({ threadId, isTyping }) => {
+      if (user && typeof threadId === 'string') {
+        socket.to(`thread:${threadId}`).emit("typing", {
+          userId: user.id,
+          threadId,
+          isTyping: !!isTyping,
+        });
+      }
+    });
 
     // Client requests to watch a specific file for updates
     socket.on("file:watch", ({ fileId }) => {
@@ -87,6 +145,19 @@ export function createIoServer(httpServer: HttpServer) {
     });
 
     socket.on("disconnect", () => {
+      if (user) {
+        // Mark user as offline and update lastSeenAt
+        socket.to(`family:${user.familyId}`).emit("presence:offline", { userId: user.id });
+        
+        // Update lastSeenAt in database (best effort)
+        import("./storage").then(({ storage }) => {
+          storage.updateUserLastSeen(user.id, new Date()).catch(err => 
+            console.warn(`[realtime] Failed to update lastSeenAt for ${user.id}:`, err)
+          );
+        });
+        
+        console.log(`[realtime] User ${user.id} disconnected from family ${user.familyId}`);
+      }
       console.log(`[realtime] Client disconnected: ${socket.id}`);
     });
   });

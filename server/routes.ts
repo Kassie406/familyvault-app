@@ -737,6 +737,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Presence API endpoint
+  app.get("/api/presence/family", async (req, res) => {
+    try {
+      // TODO: Get familyId from authenticated user
+      const familyId = "family-1";
+      
+      // For now, return mock data - in production get from Redis/DB
+      const online: string[] = []; // Would come from Redis Set
+      
+      // Get users in family with lastSeenAt
+      const users = await storage.getAllUsers(); // TODO: Filter by familyId
+      const familyUsers = users.map(u => ({
+        id: u.id,
+        name: u.name || u.username,
+        lastSeenAt: u.lastSeenAt?.toISOString() || null
+      }));
+      
+      res.json({
+        online,
+        users: familyUsers
+      });
+    } catch (error) {
+      console.error("Error fetching presence:", error);
+      res.status(500).json({ error: "Failed to fetch presence" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
