@@ -1,0 +1,113 @@
+hen here’s how we’ll integrate presence + last seen into your existing chat UI (the MessagesPage we scaffolded earlier).
+
+1. Backend recap
+
+Add lastSeenAt to User in Prisma (already drafted).
+
+Wire Socket.IO presence events + Redis TTL as explained.
+
+Add GET /api/presence/family endpoint to return { online: string[], users: {id,name,lastSeenAt}[] }.
+
+2. React hook for presence
+// hooks/usePresence.ts
+import { useEffect, useState } from "react";
+import io from "socket.io-client";
+
+export function usePresence(familyId: string, selfUser: { id: string; name?: string }) {
+  const [online, setOnline] = useState<Set<string>>(new Set());
+  const [lastSeen, setLastSeen] = useState<Record<string, string | null>>({});
+
+  useEffect(() => {
+    let active = true;
+
+    // Initial fetch
+    fetch("/api/presence/family")
+      .then(r => r.json())
+      .then(data => {
+        if (!active) return;
+        setOnline(new Set(data.online));
+        const map: Record<string, string | null> = {};
+        for (const u of data.users) map[u.id] = u.lastSeenAt;
+        setLastSeen(map);
+      });
+
+    // Socket
+    const socket = io("/", { path: "/ws", auth: { user: { id: selfUser.id, familyId } } });
+    socket.emit("presence:ping");
+    const ping = setInterval(() => socket.emit("presence:ping"), 20_000);
+
+    socket.on("presence:online", ({ userId }) => setOnline(prev => new Set(prev).add(userId)));
+    socket.on("presence:offline", ({ userId }) =>
+      setOnline(prev => {
+        const s = new Set(prev);
+        s.delete(userId);
+        return s;
+      })
+    );
+
+    return () => {
+      active = false;
+      clearInterval(ping);
+      socket.disconnect();
+    };
+  }, [familyId, selfUser.id]);
+
+  return { online, lastSeen };
+}
+
+3. Thread header component
+// components/messages/ThreadHeader.tsx
+import { formatDistanceToNow } from "date-fns";
+
+function Dot({ online }: { online: boolean }) {
+  return (
+    <span
+      className={`inline-block h-2.5 w-2.5 rounded-full ${
+        online ? "bg-emerald-400 shadow-[0_0_0_2px_rgba(212,175,55,.35)]" : "bg-gray-400"
+      }`}
+    />
+  );
+}
+
+export function ThreadHeader({ members, online, lastSeen }: {
+  members: { id: string; name: string }[];
+  online: Set<string>;
+  lastSeen: Record<string, string | null>;
+}) {
+  return (
+    <div className="flex items-center gap-4 border-b border-white/10 px-4 py-2">
+      {members.map(m => (
+        <div key={m.id} className="flex items-center gap-2">
+          <Dot online={online.has(m.id)} />
+          <span className="text-sm text-white">{m.name}</span>
+          {!online.has(m.id) && lastSeen[m.id] && (
+            <span className="text-xs text-gray-400">
+              (last seen {formatDistanceToNow(new Date(lastSeen[m.id]!))} ago)
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+4. Use inside MessagesPage
+import { usePresence } from "@/hooks/usePresence";
+import { ThreadHeader } from "@/components/messages/ThreadHeader";
+
+export default function MessagesPage({ threadId, selfUser, familyId }) {
+  const { online, lastSeen } = usePresence(familyId, selfUser);
+
+  // you already fetch thread details -> `members`
+  // const members = data.memberIds.map((id, i) => ({ id, name: data.memberNames[i] }));
+
+  return (
+    <div className="flex flex-col h-full">
+      <ThreadHeader members={/* thread members here */} online={online} lastSeen={lastSeen} />
+      {/* rest of your message list + composer */}
+    </div>
+  );
+}
+
+
+✅ Result: When a family member opens the chat, they’ll see green dots for online users and “last seen X min ago” for offline ones.

@@ -247,6 +247,9 @@ export interface IStorage {
   getThread(threadId: string): Promise<MessageThread | undefined>;
   getMessages(threadId: string, limit: number, cursor?: string): Promise<{ messages: Message[]; nextCursor?: string }>;
   updateThread(threadId: string, updates: { updatedAt: Date }): Promise<MessageThread | undefined>;
+  
+  // Presence methods
+  updateUserLastSeen(userId: string, timestamp: Date): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1113,6 +1116,19 @@ export class DatabaseStorage implements IStorage {
       .where(eq(messageThreads.id, threadId))
       .returning();
     return result[0];
+  }
+
+  // Presence methods
+  async updateUserLastSeen(userId: string, timestamp: Date): Promise<boolean> {
+    try {
+      await db.update(users)
+        .set({ lastSeenAt: timestamp })
+        .where(eq(users.id, userId));
+      return true;
+    } catch (error) {
+      console.error("Failed to update lastSeenAt:", error);
+      return false;
+    }
   }
 }
 
