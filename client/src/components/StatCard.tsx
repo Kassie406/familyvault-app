@@ -17,7 +17,7 @@ type StatCardProps = {
   icon: React.ReactNode;     // icon element
   fetchPreview?: () => Promise<PreviewItem[]>; // called on button click
   emptyText?: string;        // fallback when no recent items
-  dropdownActions?: { label: string; href: string; icon?: React.ReactNode }[]; // action menu items
+  dropdownActions?: { label: string; href?: string; onClick?: () => void; icon?: React.ReactNode }[]; // action menu items
 };
 
 export function StatCard({
@@ -159,19 +159,38 @@ export function StatCard({
             <ul className="space-y-1">
               {dropdownActions.map((action, index) => (
                 <li key={index}>
-                  <Link
-                    href={action.href}
-                    className="flex items-center gap-3 rounded-lg px-2 py-2
-                               text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-amber-400
-                               transition-colors cursor-pointer"
-                  >
-                    {action.icon && (
-                      <span className="text-amber-400 opacity-70">
-                        {action.icon}
-                      </span>
-                    )}
-                    <span className="leading-tight">{action.label}</span>
-                  </Link>
+                  {action.href ? (
+                    <Link
+                      href={action.href}
+                      className="flex items-center gap-3 rounded-lg px-2 py-2
+                                 text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-amber-400
+                                 transition-colors cursor-pointer"
+                    >
+                      {action.icon && (
+                        <span className="text-amber-400 opacity-70">
+                          {action.icon}
+                        </span>
+                      )}
+                      <span className="leading-tight">{action.label}</span>
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        action.onClick?.();
+                        setOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 rounded-lg px-2 py-2
+                                 text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-amber-400
+                                 transition-colors cursor-pointer text-left"
+                    >
+                      {action.icon && (
+                        <span className="text-amber-400 opacity-70">
+                          {action.icon}
+                        </span>
+                      )}
+                      <span className="leading-tight">{action.label}</span>
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
