@@ -58,6 +58,8 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [chatId, setChatId] = useState<string | undefined>("family-chat");
+  const [message, setMessage] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
@@ -203,7 +205,7 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
     
     // Handle both author object and authorId string from API
     const authorName = message.author?.name || 
-                      (message.authorId === currentUser.id ? currentUser.name : 'Family Member');
+                      (message.author?.id === currentUser.id ? currentUser.name : 'Family Member');
     const authorInitials = authorName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U';
     
     return (
