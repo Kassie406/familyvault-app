@@ -1,0 +1,236 @@
+wire the SMS notifications straight into your Express + Drizzle chat stack. Below is a drop-in plan with code you can paste in. It covers: minimal DB changes, secure env, an Express route that creates a chat message and fires an SMS (only if the recipient wants it), delivery-status webhooks, and basic throttling so nobody gets spammed.
+
+0) Env (Replit “Secrets”)
+
+Add:
+
+TWILIO_SID (starts with AC…)
+
+TWILIO_AUTH
+
+TWILIO_FROM (E.164, e.g., +12025550123)
+
+Optional:
+
+APP_BASE_URL (your server URL for Twilio webhooks)
+
+1) Drizzle: minimal schema changes
+
+SQL migration
+
+-- users: phone + prefs
+ALTER TABLE users
+  ADD COLUMN phone_e164 VARCHAR(20),
+  ADD COLUMN sms_opt_in BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN sms_last_sent_at TIMESTAMP NULL;
+
+-- messages: keep the basics (if not already there)
+-- id, chat_id, sender_id, recipient_id, body, created_at
+
+
+drizzle schema (TypeScript)
+
+// db/schema.ts
+import { pgTable, text, timestamp, boolean, varchar } from "drizzle-orm/pg-core";
+
+export const users = pgTable("users", {
+  id: text("id").primaryKey(),
+  name: text("name"),
+  phoneE164: varchar("phone_e164", { length: 20 }),
+  smsOptIn: boolean("sms_opt_in").notNull().default(false),
+  smsLastSentAt: timestamp("sms_last_sent_at"),
+  // …other fields
+});
+
+export const messages = pgTable("messages", {
+  id: text("id").primaryKey(),
+  chatId: text("chat_id").notNull(),
+  senderId: text("sender_id").notNull(),
+  recipientId: text("recipient_id").notNull(),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+2) Twilio client (server)
+// lib/twilio.ts
+import twilio from "twilio";
+
+export const twilioClient = twilio(
+  process.env.TWILIO_SID!,
+  process.env.TWILIO_AUTH!
+);
+
+export const TWILIO_FROM = process.env.TWILIO_FROM!;
+
+3) Express: create message + SMS notify
+
+This route saves the message, then notifies the recipient via SMS if:
+
+they’ve opted in
+
+they have a phone_e164
+
+they’re offline (optional; see isUserOnline() stub)
+
+we didn’t text them too recently (1-minute cool-down per user)
+
+// routes/messages.ts
+import { Router } from "express";
+import { db } from "../db"; // your drizzle db instance
+import { messages, users } from "../db/schema";
+import { eq } from "drizzle-orm";
+import { twilioClient, TWILIO_FROM } from "../lib/twilio";
+
+const router = Router();
+
+// naive presence cache; replace with your Socket.IO presence service
+const onlineUsers = new Set<string>();
+export function markOnline(userId: string) { onlineUsers.add(userId); }
+export function markOffline(userId: string) { onlineUsers.delete(userId); }
+function isUserOnline(userId: string) { return onlineUsers.has(userId); }
+
+// simple cooldown (1 min) to avoid spam
+function canSendNow(last?: Date | null) {
+  if (!last) return true;
+  return Date.now() - last.getTime() > 60_000;
+}
+
+router.post("/", async (req, res) => {
+  try {
+    const { chatId, senderId, recipientId, body } = req.body as {
+      chatId: string; senderId: string; recipientId: string; body: string;
+    };
+
+    if (!body?.trim()) return res.status(400).json({ error: "Empty message" });
+
+    // 1) store message
+    const [msg] = await db.insert(messages).values({
+      id: crypto.randomUUID(),
+      chatId, senderId, recipientId, body: body.trim(),
+    }).returning();
+
+    // 2) fetch recipient prefs
+    const [rcpt] = await db.select().from(users).where(eq(users.id, recipientId));
+    if (rcpt?.smsOptIn && rcpt.phoneE164 && !isUserOnline(recipientId) && canSendNow(rcpt.smsLastSentAt)) {
+      const preview = body.length > 120 ? body.slice(0, 117) + "..." : body;
+      const text = `New message from ${senderId}: ${preview}\nOpen: ${process.env.APP_BASE_URL ?? ""}/chat/${chatId}`;
+
+      // 3) send SMS
+      await twilioClient.messages.create({
+        from: TWILIO_FROM,
+        to: rcpt.phoneE164,
+        body: text,
+        statusCallback: process.env.APP_BASE_URL
+          ? `${process.env.APP_BASE_URL}/twilio/status` : undefined,
+      });
+
+      // 4) update cooldown timestamp
+      await db.update(users)
+        .set({ smsLastSentAt: new Date() })
+        .where(eq(users.id, recipientId));
+    }
+
+    // 5) broadcast over sockets if you have them (pseudo)
+    // io.to(chatId).emit("message:new", msg);
+
+    res.json({ ok: true, message: msg });
+  } catch (e:any) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+export default router;
+
+
+Mount it:
+
+// server.ts
+import express from "express";
+import messagesRouter from "./routes/messages";
+
+const app = express();
+app.use(express.json());
+app.use("/api/messages", messagesRouter);
+
+// Twilio webhook (see §4)
+import twilioWebhook from "./routes/twilio-webhook";
+app.post("/twilio/status", twilioWebhook);
+
+app.listen(3000, () => console.log("API running on :3000"));
+
+4) Delivery-status webhook (optional but recommended)
+// routes/twilio-webhook.ts
+import { Request, Response } from "express";
+
+export default function twilioWebhook(req: Request, res: Response) {
+  const {
+    MessageSid, MessageStatus, To, ErrorCode
+  } = req.body || {};
+  console.log("Twilio status:", { MessageSid, MessageStatus, To, ErrorCode });
+  // Optionally persist to DB for audits
+  res.sendStatus(204);
+}
+
+
+Express note: Twilio posts application/x-www-form-urlencoded. If you use only express.json(), add:
+
+import bodyParser from "body-parser";
+app.post("/twilio/status", bodyParser.urlencoded({ extended: false }), twilioWebhook);
+
+5) Profile + settings (front-end)
+
+Add fields on the Profile page:
+
+Phone number input (auto-format to E.164; store as phone_e164)
+
+Checkbox “Send me SMS notifications when I’m offline” (sms_opt_in)
+
+Optional Verify flow: use Twilio Verify if you want 2-step phone confirmation.
+
+In Chat UI, you can also add a per-chat toggle “SMS this participant if offline” if you want sender-side control.
+
+6) Presence detection
+
+If you already use Socket.IO:
+
+On connection, call markOnline(userId), and on disconnect, markOffline(userId).
+
+Consider a short grace period (e.g., 30s) after disconnect before treating as offline.
+
+7) Anti-spam / rate limits (simple)
+
+The per-recipient 60-second cooldown above stops floods.
+
+If you want stricter rules, add a table sms_notifications(user_id, sent_at) and enforce:
+
+max 5 texts per user per hour
+
+max 30 per day
+
+Respect STOP/START/HELP automatically (Twilio handles keywords, but good to disclose).
+
+8) Compliance (A2P 10DLC)
+
+For U.S. long codes:
+
+Complete Brand + Campaign registration in Twilio (use case: “Account Notifications”).
+
+Use a Messaging Service and attach your number.
+
+Add opt-out language somewhere users consent (e.g., “Msg&data rates may apply. Reply STOP to opt out.”).
+
+9) Quick manual test (before wiring UI)
+curl -X POST http://localhost:3000/api/messages \
+  -H "Content-Type: application/json" \
+  -d '{
+    "chatId":"abc",
+    "senderId":"alice",
+    "recipientId":"bob",
+    "body":"Hey Bob — are you free for dinner?"
+  }'
+
+
+Ensure bob exists in users with phone_e164="+1XXXXXXXXXX" and sms_opt_in=true.
+
+If you’re on a trial Twilio account, that recipient number must be verified.
