@@ -57,6 +57,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/cookie-parser": "^1.4.9",
     "@types/csurf": "^1.11.5",
+    "@types/ioredis": "^4.28.10",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/memoizee": "^0.4.12",
     "@types/mime-types": "^3.0.1",
