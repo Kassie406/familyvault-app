@@ -200,8 +200,7 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
     .map(userId => familyMembers.find(m => m.id === userId)?.name)
     .filter(Boolean) as string[];
   const recentMessages = messages.slice(-3); // Show last 3 in preview
-  // No unread count when chat is open since user is actively viewing
-  const unreadCount = isOpen ? 0 : Math.min(messages.length, 3);
+  const unreadCount = messages.length > 0 ? Math.min(messages.length, 9) : 0;
   
   // Message bubble component
   const MessageBubble = ({ message, isMe }: { message: Message; isMe: boolean }) => {
