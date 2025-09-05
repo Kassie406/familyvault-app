@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import storageRoutes from "./storage-routes";
 import fileRoutes from "./routes/files";
+import mobileUploadRoutes from "./routes/mobile-upload";
 import { 
   insertInviteSchema, 
   insertFamilyMemberSchema,
@@ -485,6 +486,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount file status routes for real-time updates
   app.use("/api/files", fileRoutes);
+
+  // Mount mobile upload routes
+  app.use("/api/mobile-upload", mobileUploadRoutes);
 
   // Document Management API endpoints
   
