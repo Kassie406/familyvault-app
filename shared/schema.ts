@@ -14,6 +14,8 @@ export const users = pgTable("users", {
   name: text("name"),
   role: roleEnum("role").default("MEMBER").notNull(),
   orgId: varchar("org_id"),
+  phone: text("phone").unique(),
+  phoneVerifiedAt: timestamp("phone_verified_at"),
   lastSeenAt: timestamp("last_seen_at"),
   // mfaSecret: text("mfa_secret"), // TOTP secret for two-factor authentication - TODO: Add back after DB migration
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -543,6 +545,36 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   editedAt: timestamp("edited_at"),
   deletedAt: timestamp("deleted_at"),
+});
+
+// SMS notification tables
+export const notificationPreferences = pgTable("notification_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique(),
+  smsEnabled: boolean("sms_enabled").default(false).notNull(),
+  quietStart: integer("quiet_start"), // minutes 0..1440
+  quietEnd: integer("quiet_end"),     // minutes 0..1440  
+  perThreadMute: json("per_thread_mute"), // {"thread_123": true}
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const smsDeliveryLog = pgTable("sms_delivery_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  threadId: varchar("thread_id").notNull(),
+  messageId: varchar("message_id").notNull(),
+  toPhone: text("to_phone").notNull(),
+  providerId: text("provider_id"),
+  status: text("status"), // queued/sent/delivered/failed
+  error: text("error"),
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+});
+
+export const verificationCodes = pgTable("verification_codes", {
+  userId: varchar("user_id").primaryKey(),
+  codeHash: text("code_hash").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
 });
 
 // Insert schemas
@@ -1313,6 +1345,40 @@ export type ThreadMember = typeof threadMembers.$inferSelect;
 
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
+
+// SMS notification types
+export const insertNotificationPreferenceSchema = createInsertSchema(notificationPreferences).pick({
+  userId: true,
+  smsEnabled: true,
+  quietStart: true,
+  quietEnd: true,
+  perThreadMute: true,
+});
+
+export const insertSmsDeliveryLogSchema = createInsertSchema(smsDeliveryLog).pick({
+  userId: true,
+  threadId: true,
+  messageId: true,
+  toPhone: true,
+  providerId: true,
+  status: true,
+  error: true,
+});
+
+export const insertVerificationCodeSchema = createInsertSchema(verificationCodes).pick({
+  userId: true,
+  codeHash: true,
+  expiresAt: true,
+});
+
+export type InsertNotificationPreference = z.infer<typeof insertNotificationPreferenceSchema>;
+export type NotificationPreference = typeof notificationPreferences.$inferSelect;
+
+export type InsertSmsDeliveryLog = z.infer<typeof insertSmsDeliveryLogSchema>;
+export type SmsDeliveryLog = typeof smsDeliveryLog.$inferSelect;
+
+export type InsertVerificationCode = z.infer<typeof insertVerificationCodeSchema>;
+export type VerificationCode = typeof verificationCodes.$inferSelect;
 
 // Business type exports  
 export type BusinessItem = typeof businessItems.$inferSelect;

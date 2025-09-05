@@ -1,0 +1,68 @@
+since you’re good with the Drizzle + Express setup, here’s the final puzzle piece: a message create route that shows exactly how to wire the SMS enqueue step into your chat system.
+
+📌 Express route: POST /threads/:id/messages
+import { Router } from "express";
+import { db } from "../db";
+import { messages, threads } from "../db/schema/chat"; // adapt to your schema
+import { enqueueSms } from "../queue/smsNotify";
+import { eq } from "drizzle-orm";
+
+const r = Router();
+
+r.post("/threads/:id/messages", async (req, res) => {
+  const user = req.user; // from your auth middleware
+  const { body, fileIds = [] } = req.body;
+  const { id: threadId } = req.params;
+
+  if (!body && (!fileIds || fileIds.length === 0)) {
+    return res.status(400).json({ error: "empty_message" });
+  }
+
+  // 1. Validate thread exists
+  const [thread] = await db.select().from(threads).where(eq(threads.id, threadId));
+  if (!thread) return res.status(404).json({ error: "thread_not_found" });
+
+  // 2. Insert new message
+  const [msg] = await db
+    .insert(messages)
+    .values({
+      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      threadId,
+      authorId: user.id,
+      body: body || "",
+      fileIds,
+      createdAt: new Date(),
+    })
+    .returning();
+
+  // 3. Figure out recipients (all members except sender)
+  const memberIds: string[] = thread.memberIds; // adjust to your schema
+  const recipients = memberIds.filter((m) => m !== user.id);
+
+  // 4. Enqueue SMS notify jobs
+  for (const rId of recipients) {
+    await enqueueSms({
+      userId: rId,
+      threadId,
+      messageId: msg.id,
+      senderName: user.name || "Someone",
+      preview: body || "[Attachment]",
+      magicToken: await signMagicToken({ sub: rId, threadId }), // your JWT signer
+    });
+  }
+
+  // 5. Return response
+  res.status(201).json({ message: msg });
+});
+
+export default r;
+
+🔑 Key bits
+
+enqueueSms(...) is the worker job you already have (BullMQ + Twilio).
+
+signMagicToken(...) creates a short-lived JWT that lets the recipient open the thread securely via dynamic link or web fallback.
+
+thread.memberIds → adapt depending on how you store members (array column vs join table).
+
+Rate limiting, quiet hours, and presence are enforced inside the worker, not here.
