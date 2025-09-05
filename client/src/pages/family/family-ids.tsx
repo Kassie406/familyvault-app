@@ -367,7 +367,7 @@ export default function FamilyIds() {
                         className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
                         onClick={() => {
                           setAddMenuOpen(false);
-                          setLocation('/settings/access?scope=family');
+                          setLocation('/family/settings');
                         }}
                       >
                         <span className="text-[#D4AF37]"><Settings className="h-4 w-4" /></span>
