@@ -1,0 +1,194 @@
+Awesome—let’s swap your uploads to S3 / Cloudflare R2 while keeping the same /api/uploads endpoint so your chat UI doesn’t change.
+
+I’ll show a single implementation that works for AWS S3 or R2 via env flags.
+
+0) Env (Replit “Secrets”)
+
+Pick one provider.
+
+If using AWS S3
+S3_PROVIDER=aws
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=xxxxxxxx
+AWS_SECRET_ACCESS_KEY=xxxxxxxx
+S3_BUCKET=your-bucket-name
+S3_PUBLIC_BASE_URL=https://your-bucket.s3.us-east-1.amazonaws.com   # or your CloudFront domain
+
+If using Cloudflare R2 (S3-compatible)
+S3_PROVIDER=r2
+R2_ACCOUNT_ID=xxxxxxxxxxxxxxxxxxxx
+R2_ACCESS_KEY_ID=xxxxxxxx
+R2_SECRET_ACCESS_KEY=xxxxxxxx
+S3_BUCKET=your-bucket-name
+S3_PUBLIC_BASE_URL=https://cdn.yourdomain.com                         # your R2 public/custom domain
+
+
+R2 tip: in the dashboard, create a public bucket or attach a custom domain; for private buckets, use signed URLs (see below).
+
+1) Install SDKs
+npm i @aws-sdk/client-s3 @aws-sdk/s3-request-presigner multer mime-types
+
+2) S3 client helper
+
+Create src/lib/s3.ts:
+
+// src/lib/s3.ts
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+const provider = process.env.S3_PROVIDER || "aws";
+const bucket = process.env.S3_BUCKET!;
+const publicBase = process.env.S3_PUBLIC_BASE_URL; // e.g., CloudFront or public bucket domain
+
+let client: S3Client;
+
+if (provider === "r2") {
+  client = new S3Client({
+    region: "auto",
+    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflare.com`,
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+    },
+    forcePathStyle: true,
+  });
+} else {
+  client = new S3Client({
+    region: process.env.AWS_REGION!,
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    },
+  });
+}
+
+export async function uploadBufferToS3(
+  key: string,
+  buffer: Buffer,
+  contentType: string
+) {
+  // Do NOT set ACL here; manage public access via bucket policy / CDN.
+  await client.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType,
+      // ContentDisposition: contentType.startsWith("image/") ? "inline" : "attachment"
+    })
+  );
+
+  if (publicBase) {
+    // Public bucket or CDN in front
+    return `${publicBase.replace(/\/+$/, "")}/${encodeURI(key)}`;
+  }
+  // Private bucket: return presigned GET valid for 1 hour
+  return await getSignedUrl(
+    client,
+    new GetObjectCommand({ Bucket: bucket, Key: key }),
+    { expiresIn: 3600 }
+  );
+}
+
+3) Upload route (swap disk for S3)
+
+Replace your previous /api/uploads with this memory-based uploader.
+
+// src/routes/uploads.ts
+import { Router } from "express";
+import multer from "multer";
+import { extension as extFromMime } from "mime-types";
+import crypto from "crypto";
+import { uploadBufferToS3 } from "../lib/s3";
+
+const router = Router();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+const ALLOWED = new Set([
+  "image/png","image/jpeg","image/webp","image/gif",
+  "application/pdf","text/plain","application/zip",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+]);
+
+router.post("/", upload.array("files", 5), async (req, res) => {
+  const files = (req.files as Express.Multer.File[] | undefined) || [];
+  const out: any[] = [];
+
+  for (const f of files) {
+    if (!ALLOWED.has(f.mimetype)) continue;
+    const ext = "." + (extFromMime(f.mimetype) || "bin");
+    const key = `chat/${new Date().toISOString().slice(0,10)}/${crypto.randomUUID()}${ext}`;
+    const url = await uploadBufferToS3(key, f.buffer, f.mimetype);
+    out.push({ url, name: f.originalname, mime: f.mimetype, size: f.size });
+  }
+
+  res.json({ files: out });
+});
+
+export default router;
+
+
+Mount it (unchanged):
+
+// server.ts
+import uploadsRouter from "./routes/uploads";
+app.use("/api/uploads", uploadsRouter);
+
+
+Your /api/messages route from earlier already accepts attachments and stores them; no changes needed.
+
+4) Bucket access (read)
+S3 public read policy (if you want public URLs)
+{
+  "Version":"2012-10-17",
+  "Statement":[
+    {"Sid":"PublicRead","Effect":"Allow","Principal":"*",
+     "Action":["s3:GetObject"],"Resource":["arn:aws:s3:::YOUR_BUCKET_NAME/*"]}
+  ]
+}
+
+
+Prefer placing a CloudFront distribution in front and using that domain as S3_PUBLIC_BASE_URL.
+
+R2
+
+For public: enable Public Access on the bucket (or attach a custom domain / Cloudflare route) and set S3_PUBLIC_BASE_URL to that domain.
+
+For private: leave it private and use the presigned URL path returned by the helper (works out of the box above).
+
+Images shown via <img src="…"> don’t require CORS. If you later fetch blobs with JS, add a permissive GET CORS rule.
+
+5) Client side
+
+No change to your chat UI from earlier. The composer still POSTs to /api/uploads and gets back:
+
+{
+  "files":[{"url":"https://cdn.../chat/2025-09-05/uuid.png","name":"foo.png","mime":"image/png","size":12345}]
+}
+
+
+Those objects are passed as attachments to /api/messages, and your bubble renderer shows images/files.
+
+6) Quick test
+
+In the widget, click 📎 → pick an image → see a small preview.
+
+Send.
+
+In network tab:
+
+POST /api/uploads → 200
+
+POST /api/messages → 200 (payload contains attachments)
+
+The image renders; link opens the S3/R2 URL.
+
+Security & compliance notes (quick)
+
+Keep size/type limits (already in code).
+
+Consider malware scanning (e.g., queue + AV) before exposing files in highly sensitive deployments.
+
+Private buckets + signed URLs are safer for PII; set S3_PUBLIC_BASE_URL blank to force presigned links.
+
+Add a retention job to remove orphaned files (no message_attachments row).

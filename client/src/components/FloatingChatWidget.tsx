@@ -4,6 +4,7 @@ import { MessageCircle, X, Send, Minimize2, Paperclip, Users, Loader2 } from "lu
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePresence } from "@/hooks/usePresence";
 import { useTyping } from "@/hooks/useTyping";
+import ChatComposer from "@/components/ChatComposer";
 
 // Types matching the message system
 type Message = {
@@ -56,8 +57,6 @@ interface FloatingChatWidgetProps {
 export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [message, setMessage] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
   const [chatId, setChatId] = useState<string | undefined>("family-chat");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -154,23 +153,11 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!message.trim() && files.length === 0) return;
-    
-    console.log("Sending message:", { message: message.trim(), chatId, files });
-    
-    // For now, no file upload in widget
-    sendMutation.mutate({ body: message.trim(), fileIds: [] });
+  const handleSend = async (text: string, files: any[]) => {
+    const fileIds = files.map(f => f.id);
+    sendMutation.mutate({ body: text, fileIds });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    } else {
-      notifyTyping();
-    }
-  };
 
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -240,6 +227,28 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
             <div className="text-sm leading-relaxed whitespace-pre-wrap">
               {message.body}
             </div>
+
+            {/* File Attachments */}
+            {message.fileIds && message.fileIds.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {message.fileIds.map((fileId, index) => (
+                  <div key={fileId} className="bg-black/20 rounded p-2">
+                    <a 
+                      href={`/uploads/${fileId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`flex items-center gap-2 text-xs ${
+                        isMe ? 'text-black/80 hover:text-black' : 'text-[#D4AF37] hover:text-[#D4AF37]/80'
+                      }`}
+                      data-testid={`link-attachment-${index}`}
+                    >
+                      <Paperclip className="w-3 h-3" />
+                      <span className="truncate">📎 Attachment</span>
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className={`text-xs mt-1 ${isMe ? 'text-black/60' : 'text-white/50'}`}>
               {message.createdAt ? formatTime(message.createdAt) : ''}
             </div>
@@ -357,35 +366,11 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
             </div>
           )}
 
-          {/* Message Input */}
-          <div className="border-t border-white/10 p-3">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onFocus={() => notifyTyping()}
-                onBlur={() => stopTyping()}
-                placeholder="Type a message..."
-                className="flex-1 bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/60"
-                data-testid="input-chat-message"
-                disabled={sendMutation.isPending}
-              />
-              <button
-                onClick={handleSendMessage}
-                disabled={!message.trim() || sendMutation.isPending}
-                className="bg-[#D4AF37] hover:bg-[#D4AF37]/90 disabled:opacity-50 disabled:cursor-not-allowed text-black p-2 rounded-lg transition-colors"
-                data-testid="button-send-message"
-              >
-                {sendMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </div>
+          {/* Message Composer */}
+          <ChatComposer 
+            onSend={handleSend}
+            disabled={sendMutation.isPending}
+          />
         </div>, 
         document.body
       )}

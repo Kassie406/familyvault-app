@@ -96,6 +96,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
+// Serve uploaded files
+app.use("/uploads", express.static("uploads", { maxAge: "7d", index: false }));
+
 // Health check and test endpoints - MUST come before any SPA fallback
 app.get('/api/healthz', (req, res) => res.json({ ok: true, t: Date.now() }));
 
