@@ -1,0 +1,109 @@
+That “gray wash” isn’t coming from the icon/text; it’s a background that’s being applied somewhere up the tree on hover (often by a generic hover:bg-*, a shadcn Card hover style, or a before overlay).
+
+Here’s a bullet-proof way to kill any hover background while still letting the icon glow gold.
+
+1) Add a one-line utility to nuke hover backgrounds
+
+In your global CSS (Tailwind layer), add this:
+
+/* src/styles/globals.css (or wherever you put Tailwind layers) */
+@layer utilities {
+  /* Completely disable any hover background (and overlays) */
+  .no-hover-bg:hover,
+  .no-hover-bg:hover::before,
+  .no-hover-bg:hover::after {
+    background-color: transparent !important;
+    background-image: none !important;
+    box-shadow: none;               /* in case a gray “wash” is coming from inset shadows */
+  }
+}
+
+
+This wins over any hover:bg-…, hover:bg-muted, hover:bg-accent, shadcn hover:bg-accent/50, or a component library’s :before highlight.
+
+2) Apply it to the stat card wrapper
+
+Replace your card wrapper with something like this (keep your own classes, just add no-hover-bg and remove any hover:bg-* you find):
+
+<Link
+  to={to}
+  className="
+    group no-hover-bg block rounded-2xl
+    border border-zinc-800/80
+    bg-gradient-to-b from-zinc-900/60 to-zinc-950/70
+    p-5
+    shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset]
+    focus:outline-none focus:ring-2 focus:ring-amber-400/40
+    transition-colors
+  "
+>
+  <div className="flex items-center gap-3">
+    <Icon className="h-6 w-6 text-amber-400/70 group-hover:text-amber-400 transition-colors" />
+    <span className="text-sm font-medium text-zinc-400 group-hover:text-amber-400 transition-colors">
+      {label}
+    </span>
+  </div>
+
+  <p className="mt-3 text-3xl font-semibold text-white">{value}</p>
+</Link>
+
+
+no-hover-bg guarantees no gray background on hover.
+
+Icon + label still glow gold with group-hover:text-amber-400.
+
+Keep the focus ring for accessibility.
+
+3) If you use shadcn/ui Card or a component with a built-in hover
+
+Some shadcn components add a hover fill through bg-accent/… or a ::before overlay. Wrap the component (or extend it) like this:
+
+<Card className="group no-hover-bg [&_*]:transition-colors">
+  <CardHeader className="no-hover-bg">
+    <CardTitle className="text-zinc-400 group-hover:text-amber-400">Family Members</CardTitle>
+  </CardHeader>
+  <CardContent className="no-hover-bg">
+    <span className="text-3xl text-white">5</span>
+  </CardContent>
+</Card>
+
+
+If you see the gray still, use DevTools (hover the card, right-click → Inspect) and check if a ::before/::after or a higher-specificity class is adding the bg. If so, apply no-hover-bg to that element as well, or add:
+
+.no-hover-bg [class*="hover:bg-"]:hover,
+.no-hover-bg [data-state="hover"]:hover {
+  background: transparent !important;
+}
+
+4) Optional: centralize this in a shared component
+type StatCardProps = {
+  to: string;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  label: string;
+  value: React.ReactNode;
+};
+
+export function StatCard({ to, icon: Icon, label, value }: StatCardProps) {
+  return (
+    <Link
+      to={to}
+      className="group no-hover-bg block rounded-2xl border border-zinc-800/80
+                 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5
+                 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset]
+                 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+    >
+      <div className="flex items-center gap-3">
+        <Icon className="h-6 w-6 text-amber-400/70 group-hover:text-amber-400 transition-colors" />
+        <span className="text-sm font-medium text-zinc-400 group-hover:text-amber-400 transition-colors">
+          {label}
+        </span>
+      </div>
+      <p className="mt-3 text-3xl font-semibold text-white">{value}</p>
+    </Link>
+  );
+}
+
+
+Now every stat card across dashboards stays jet-black on hover, with just the gold icon/text glow.
+
+If the gray persists after this, send me the computed style (DevTools → “Styles” while hovering). I’ll point out the exact rule to kill.
