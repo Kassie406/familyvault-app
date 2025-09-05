@@ -1,0 +1,98 @@
+Api Management Landing Page + Backend (express + Drizzle)
+· typescript
+// =============================================
+import { desc, and, gte, lte, like, eq } from "drizzle-orm";
+import { requireAuth } from "../lib/auth";
+
+
+const rt = Router();
+rt.use(requireAuth);
+
+
+rt.get("/api/doc-audit", async (req,res)=>{
+  const { q, user, from, to, limit=100 } = req.query as any;
+  let query = db.select().from(docAudit).orderBy(desc(docAudit.createdAt)).limit(Number(limit));
+  const wheres:any[] = [];
+  if(user) wheres.push(eq(docAudit.userId,user));
+  if(from) wheres.push(gte(docAudit.createdAt,new Date(from)));
+  if(to) wheres.push(lte(docAudit.createdAt,new Date(to)));
+  // simple LIKE for action filter (view/download)
+  if(q) wheres.push(like(docAudit.action,`%${q}%`));
+  if(wheres.length) query = query.where(and(...wheres));
+  const items = await query;
+  res.json({ items });
+});
+
+
+export default rt;
+
+
+
+
+// =============================================
+// FRONTEND: Per-Document Audit Tab
+// File: client/src/components/documents/DocumentAuditTab.tsx
+import React, { useEffect, useState } from "react";
+
+
+export default function DocumentAuditTab({ documentId }:{ documentId:string }){
+  const [items,setItems] = useState<any[]>([]);
+  useEffect(()=>{ fetch(`/api/doc-audit?docId=${documentId}`).then(r=>r.json()).then(d=>setItems(d.items??[])); },[documentId]);
+  return (
+    <div className="space-y-2 text-sm">
+      <h3 className="font-semibold text-gray-300 mb-2">Access Log</h3>
+      <table className="w-full text-xs">
+        <thead className="text-left text-gray-400"><tr><th>User</th><th>Action</th><th>When</th><th>IP</th></tr></thead>
+        <tbody>
+          {items.map((a:any)=>(
+            <tr key={a.id} className="border-t border-zinc-800">
+              <td className="py-1">{a.userName ?? a.userId ?? "—"}</td>
+              <td className="py-1">{a.action}</td>
+              <td className="py-1">{new Date(a.createdAt).toLocaleString()}</td>
+              <td className="py-1 text-gray-500">{a.ip}</td>
+            </tr>
+          ))}
+          {items.length===0 && <tr><td colSpan={4} className="text-gray-500 py-4">No events yet</td></tr>}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+
+// =============================================
+// BACKEND: extend audit route for per-document filter
+// File: server/routes/docAudit.ts (update)
+rt.get("/api/doc-audit", async (req,res)=>{
+  const { q, user, from, to, docId, limit=100 } = req.query as any;
+  let query = db.select().from(docAudit).orderBy(desc(docAudit.createdAt)).limit(Number(limit));
+  const wheres:any[] = [];
+  if(docId) wheres.push(eq(docAudit.documentId,docId));
+  if(user) wheres.push(eq(docAudit.userId,user));
+  if(from) wheres.push(gte(docAudit.createdAt,new Date(from)));
+  if(to) wheres.push(lte(docAudit.createdAt,new Date(to)));
+  if(q) wheres.push(like(docAudit.action,`%${q}%`));
+  if(wheres.length) query = query.where(and(...wheres));
+  const items = await query;
+  res.json({ items });
+});
+
+
+// =============================================
+// FRONTEND: usage in Document detail page
+// Example: inside DocumentDetail.tsx tabs
+// <TabsContent value="audit"><DocumentAuditTab documentId={doc.id}/></TabsContent>
+
+
+
+
+
+✅ Added a per-document Audit Tab:
+
+Component DocumentAuditTab → shows access log for a single document (user, action, when, IP).
+
+Backend route now supports ?docId=<id> to filter audits by document.
+
+Usage: drop <DocumentAuditTab documentId={doc.id} /> into your document detail tabs.
+
+Now you can see both a global audit log and per-document history.
