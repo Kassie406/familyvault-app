@@ -151,18 +151,21 @@ export function StatCard({
         {!loading && items && items.length > 0 && (
           <ul className="px-2 pb-3">
             {items.slice(0, 5).map((it) => (
-              <li
-                key={it.id}
-                className="flex items-center gap-2 rounded-lg px-2 py-2
-                           text-sm text-zinc-300"
-              >
-                <span className="inline-block h-2.5 w-2.5 rounded-full bg-zinc-600" />
-                <div className="flex-1">
-                  <div className="leading-tight">{it.title}</div>
-                  {it.sub && (
-                    <div className="text-[11px] text-zinc-500">{it.sub}</div>
-                  )}
-                </div>
+              <li key={it.id}>
+                <Link
+                  href={it.href ?? href}
+                  className="flex items-center gap-2 rounded-lg px-2 py-2
+                             text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-amber-400
+                             transition-colors cursor-pointer"
+                >
+                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-zinc-600" />
+                  <div className="flex-1">
+                    <div className="leading-tight">{it.title}</div>
+                    {it.sub && (
+                      <div className="text-[11px] text-zinc-500">{it.sub}</div>
+                    )}
+                  </div>
+                </Link>
               </li>
             ))}
           </ul>
