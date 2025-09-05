@@ -13,7 +13,8 @@ import {
   MoreHorizontal,
   Edit2,
   Check,
-  X
+  X,
+  Mail
 } from 'lucide-react';
 import { LuxuryCard } from '@/components/luxury-cards';
 
@@ -99,7 +100,14 @@ export default function FamilyIds() {
   const handleCreateMember = (type: string) => {
     console.log(`Creating new ${type}`);
     setAddMenuOpen(false);
-    // TODO: Implement create member functionality
+    
+    if (type === 'invite') {
+      // Navigate to invitation page or show invitation modal
+      setLocation('/invitations/new?context=family');
+    } else {
+      // TODO: Implement create member functionality for person/pet
+      setLocation(`/family/ids/new?type=${type}`);
+    }
   };
 
   // Custom click outside hook for stable button behavior
@@ -317,20 +325,36 @@ export default function FamilyIds() {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <ul className="mt-1">
-                    {[
-                      ["Person", "person"],
-                      ["Pet", "pet"],
-                    ].map(([label, value]) => (
-                      <li key={value}>
-                        <button
-                          role="menuitem"
-                          className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
-                          onClick={() => handleCreateMember(value as string)}
-                        >
-                          <span>{label}</span>
-                        </button>
-                      </li>
-                    ))}
+                    <li>
+                      <button
+                        role="menuitem"
+                        className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
+                        onClick={() => handleCreateMember("person")}
+                      >
+                        <span className="text-[#D4AF37]"><User className="h-4 w-4" /></span>
+                        <span>Person</span>
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        role="menuitem"
+                        className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
+                        onClick={() => handleCreateMember("pet")}
+                      >
+                        <span className="text-[#D4AF37]"><PawPrint className="h-4 w-4" /></span>
+                        <span>Pet</span>
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        role="menuitem"
+                        className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
+                        onClick={() => handleCreateMember("invite")}
+                      >
+                        <span className="text-[#D4AF37]"><Mail className="h-4 w-4" /></span>
+                        <span>Invite Family Member</span>
+                      </button>
+                    </li>
                   </ul>
                 </div>
               )}
