@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import { Link } from "wouter";
 
 type PreviewItem = {
@@ -83,14 +83,14 @@ export function StatCard({
     >
       <Link
         href={href}
-        className="group block rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+        className="group block rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] focus:outline-none focus:ring-2 focus:ring-amber-400/40 hover:!bg-gradient-to-b hover:!from-zinc-900/60 hover:!to-zinc-950/70"
         aria-describedby={`${label.replace(/\s+/g, "-").toLowerCase()}-desc`}
         data-testid={`stat-card-${label.replace(/\s+/g, "-").toLowerCase()}`}
       >
         <div className="flex items-center gap-3">
-          <span className="h-6 w-6 text-amber-400/70 group-hover:text-amber-400 transition-colors">
-            {icon}
-          </span>
+          {React.cloneElement(icon as React.ReactElement, {
+            className: "h-6 w-6 text-amber-400/70 group-hover:text-amber-400 transition-colors"
+          })}
           <span className="text-sm font-medium text-zinc-400 group-hover:text-amber-400 transition-colors" id={`${label.replace(/\s+/g, "-").toLowerCase()}-desc`}>
             {label}
           </span>
