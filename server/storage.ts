@@ -1043,14 +1043,13 @@ export class DatabaseStorage implements IStorage {
   async getThreadMessages(threadId: string, cursor?: string, limit: number = 50): Promise<Message[]> {
     let query = db.select().from(messages)
       .where(eq(messages.threadId, threadId))
-      .orderBy(desc(messages.createdAt))
-      .limit(limit);
+      .orderBy(desc(messages.createdAt));
 
     if (cursor) {
       query = query.where(eq(messages.id, cursor));
     }
 
-    return await query;
+    return await query.limit(limit);
   }
 
   async createMessage(message: InsertMessage): Promise<Message> {
