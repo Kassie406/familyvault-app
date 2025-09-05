@@ -1,0 +1,126 @@
+you now have a full audit trail system with:
+
+Global and per-document audit views
+
+Filters and search
+
+Secure logging of every view/download
+
+CSV export for compliance
+
+📌 Current state of your Documents Shared module:
+
+Quick Actions → Share a Document, Manage Link Policies, Pending Approvals
+
+Recent Items → Signed URLs with audit logging
+
+Approvals → Full approve/reject flow with reason
+
+Audit → Global page, per-document tab, filters, CSV export
+
+Next optional enhancements I can prep for you:
+
+PDF export of audits (compliance-ready reports)
+
+Watermark-on-view for sensitive docs (e.g. overlay family name / timestamp)
+
+Notifications → alert approvers when a new approval request comes in
+
+👉 Want me to go ahead and add the PDF export route next, so you can generate polished compliance reports directly?
+
+You said:
+yes
+ChatGPT said:
+Api Management Landing Page + Backend (express + Drizzle)
+· typescript
+// =============================================
+
+
+// =============================================
+// BACKEND: extend audit route for per-document filter
+// File: server/routes/docAudit.ts (update)
+rt.get("/api/doc-audit", async (req,res)=>{
+  const { q, user, from, to, docId, limit=100 } = req.query as any;
+  let query = db.select().from(docAudit).orderBy(desc(docAudit.createdAt)).limit(Number(limit));
+  const wheres:any[] = [];
+  if(docId) wheres.push(eq(docAudit.documentId,docId));
+  if(user) wheres.push(eq(docAudit.userId,user));
+  if(from) wheres.push(gte(docAudit.createdAt,new Date(from)));
+  if(to) wheres.push(lte(docAudit.createdAt,new Date(to)));
+  if(q) wheres.push(like(docAudit.action,`%${q}%`));
+  if(wheres.length) query = query.where(and(...wheres));
+  const items = await query;
+  res.json({ items });
+});
+
+
+// =============================================
+// FRONTEND: usage in Document detail page
+// Example: inside DocumentDetail.tsx tabs
+// <TabsContent value="audit"><DocumentAuditTab documentId={doc.id}/></TabsContent>
+
+
+
+
+// =============================================
+// BACKEND: Export audit logs as CSV
+// File: server/routes/docAudit.ts (extend)
+import { Parser } from "json2csv";
+
+
+rt.get("/api/doc-audit/export.csv", async (req,res)=>{
+  const { docId, limit=1000 } = req.query as any;
+  let query = db.select().from(docAudit).orderBy(desc(docAudit.createdAt)).limit(Number(limit));
+  if(docId) query = query.where(eq(docAudit.documentId,docId));
+  const items = await query;
+  const parser = new Parser({ fields:["id","documentId","userId","action","ip","userAgent","createdAt"] });
+  const csv = parser.parse(items);
+  res.header("Content-Type","text/csv");
+  res.attachment("doc-audit.csv");
+  res.send(csv);
+});
+
+
+// =============================================
+// FRONTEND: Export button on Audit page
+// File: client/src/pages/family/doc-audit.tsx (add near header)
+<Button asChild variant="outline" className="border-yellow-500/30 text-yellow-400 ml-2">
+  <a href="/api/doc-audit/export.csv" target="_blank">Export CSV</a>
+</Button>
+
+
+// =============================================
+// OPTIONAL: Export PDF (using server-side pdfkit or reportlab)
+// Could add a route /api/doc-audit/export.pdf later if needed for compliance.
+
+
+
+
+// =============================================
+// BACKEND: Export audit logs as PDF
+// File: server/routes/docAudit.ts (extend)
+import PDFDocument from "pdfkit";
+
+
+rt.get("/api/doc-audit/export.pdf", async (req,res)=>{
+  const { docId, limit=500 } = req.query as any;
+  let query = db.select().from(docAudit).orderBy(desc(docAudit.createdAt)).limit(Number(limit));
+  if(docId) query = query.where(eq(docAudit.documentId,docId));
+  const items = await query;
+
+
+  const doc = new PDFDocument({ margin:40, size:"A4" });
+  res.setHeader("Content-Type","application/pdf");
+  res.setHeader("Content-Disposition","attachment; filename=doc-audit.pdf");
+  doc.pipe(res);
+
+
+  doc.fontSize(18).fill
+
+✅ Added PDF export for audit logs:
+
+Backend route /api/doc-audit/export.pdf → generates a PDF report with headers (User, Action, When, IP) and audit rows.
+
+Frontend button → “Export PDF” alongside CSV export.
+
+Now you can generate compliance-ready audit reports in both CSV and PDF formats.
