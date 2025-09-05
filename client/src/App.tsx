@@ -31,6 +31,7 @@ import TrustOverview from "@/pages/trust-overview";
 import Reviews from "@/pages/reviews";
 import Pricing from "@/pages/pricing";
 import ScheduleDemo from "@/pages/schedule-demo";
+import { ThreadsDashboard } from "@/pages/ThreadsDashboard";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import SignupOptions from "@/pages/signup-options";
@@ -152,6 +153,7 @@ function Router() {
       <Route path="/signup-options" component={SignupOptions} />
       <Route path="/settings" component={Settings} />
       <Route path="/notification-settings" component={NotificationSettingsPage} />
+      <Route path="/threads-dashboard" component={ThreadsDashboard} />
       <Route path="/test-stepup" component={TestStepUp} />
       <Route path="/child-information" component={ChildInformation} />
       <Route path="/disaster-planning" component={DisasterPlanning} />
