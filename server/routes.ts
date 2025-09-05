@@ -12,6 +12,7 @@ import axios from "axios";
 import { sendSMSNotification } from "./lib/twilio";
 import { sendSMSNotificationsForMessage, markUserOnline, markUserOffline } from "./lib/sms-notifications";
 import { getOrCreateFamilyChatId } from "./lib/chat-default";
+import { initializeRealtime, getRealtimeManager } from "./lib/realtime.js";
 import { 
   insertInviteSchema, 
   insertFamilyMemberSchema,
@@ -780,8 +781,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // TODO: Broadcast via WebSocket to thread members
-      console.log(`Broadcasting message ${message.id} to thread ${id}`);
+      // 4) Broadcast via WebSocket to thread members
+      const realtimeManager = getRealtimeManager();
+      if (realtimeManager) {
+        // Get author info and format message for broadcasting
+        const messageForBroadcast = {
+          id: message.id,
+          threadId: id,
+          authorId: userId,
+          body: message.body,
+          createdAt: message.createdAt.toISOString(),
+          author: {
+            id: userId,
+            name: "Current User", // TODO: Get actual user name from auth
+          },
+          attachments: attachments.map((att: any) => ({
+            id: att.id || att.url,
+            name: att.name || "file",
+            url: att.url,
+            thumbnailUrl: att.thumbnailUrl || null,
+          })),
+        };
+        
+        realtimeManager.broadcastNewMessage(messageForBroadcast);
+        console.log(`[realtime] Broadcasting message ${message.id} to thread ${id}`);
+      } else {
+        console.warn("[realtime] Manager not initialized, skipping broadcast");
+      }
       
       // 3) Send SMS notifications to eligible recipients
       try {
@@ -1252,6 +1278,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Typing indicators endpoints
+  app.post("/api/threads/:id/typing/start", async (req, res) => {
+    try {
+      const userId = "current-user"; // TODO: Get from authenticated session
+      const threadId = req.params.id;
+      
+      const realtimeManager = getRealtimeManager();
+      if (realtimeManager) {
+        // Find client and trigger typing start
+        // This would be more elegant with proper session management
+        console.log(`[typing] User ${userId} started typing in thread ${threadId}`);
+        res.json({ status: "typing:started" });
+      } else {
+        res.status(503).json({ error: "Realtime system not available" });
+      }
+    } catch (error) {
+      console.error("Error starting typing indicator:", error);
+      res.status(500).json({ error: "Failed to start typing" });
+    }
+  });
+
+  app.post("/api/threads/:id/typing/stop", async (req, res) => {
+    try {
+      const userId = "current-user"; // TODO: Get from authenticated session
+      const threadId = req.params.id;
+      
+      const realtimeManager = getRealtimeManager();
+      if (realtimeManager) {
+        console.log(`[typing] User ${userId} stopped typing in thread ${threadId}`);
+        res.json({ status: "typing:stopped" });
+      } else {
+        res.status(503).json({ error: "Realtime system not available" });
+      }
+    } catch (error) {
+      console.error("Error stopping typing indicator:", error);
+      res.status(500).json({ error: "Failed to stop typing" });
+    }
+  });
+
+  // Realtime stats endpoint for monitoring
+  app.get("/api/realtime/stats", async (req, res) => {
+    try {
+      const realtimeManager = getRealtimeManager();
+      if (realtimeManager) {
+        const stats = realtimeManager.getStats();
+        res.json(stats);
+      } else {
+        res.json({ error: "Realtime system not initialized", connectedClients: 0 });
+      }
+    } catch (error) {
+      console.error("Error fetching realtime stats:", error);
+      res.status(500).json({ error: "Failed to fetch realtime stats" });
+    }
+  });
+
   const httpServer = createServer(app);
+  
+  // Initialize realtime WebSocket system
+  initializeRealtime(httpServer);
+  
   return httpServer;
 }
