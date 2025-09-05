@@ -248,9 +248,10 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
       <div className="fixed bottom-6 right-6 z-50">
         <button
           onClick={handleToggle}
-          className="group relative bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-black rounded-full p-4 shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95"
+          className="group relative bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-black rounded-full p-4 shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 opacity-100"
           data-testid="button-floating-chat"
           aria-label="Open family chat"
+          style={{ opacity: 1, visibility: 'visible' }}
         >
           <MessageCircle className="h-6 w-6" />
           
