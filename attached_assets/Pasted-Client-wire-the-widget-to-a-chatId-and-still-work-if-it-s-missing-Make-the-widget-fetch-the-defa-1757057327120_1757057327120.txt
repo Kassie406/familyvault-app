@@ -1,0 +1,76 @@
+Client: wire the widget to a chatId (and still work if it’s missing)
+
+Make the widget fetch the default chat id when it mounts, and pass that id to send/join. If you already know the family chat id, you can pass it as a prop and skip the fetch.
+
+// components/ChatWidget.tsx
+import React, { useEffect, useState } from "react";
+import { io } from "socket.io-client";
+
+type Props = { presetChatId?: string; userId: string };
+
+export default function ChatWidget({ presetChatId, userId }: Props) {
+  const [chatId, setChatId] = useState<string | undefined>(presetChatId);
+  const [text, setText] = useState("");
+  const [messages, setMessages] = useState<any[]>([]);
+  const [socket, setSocket] = useState<any>(null);
+
+  useEffect(() => {
+    async function bootstrap() {
+      if (!chatId) {
+        const r = await fetch("/api/threads/default");     // see route below
+        const j = await r.json();
+        setChatId(j.id);
+      }
+    }
+    bootstrap();
+  }, []);
+
+  useEffect(() => {
+    if (!chatId) return;
+    // load existing
+    fetch(`/api/messages?chatId=${chatId}`)
+      .then(r => r.json())
+      .then(j => setMessages(j || []));
+    // sockets
+    const s = io("/", { auth: { userId } });
+    s.emit("room:join", chatId);
+    s.on("message:new", (m: any) => {
+      if (m.chatId === chatId) setMessages(prev => [...prev, m]);
+    });
+    setSocket(s);
+    return () => { s.emit("room:leave", chatId); s.disconnect(); };
+  }, [chatId]);
+
+  async function send() {
+    const body = text.trim();
+    if (!body || !chatId) return;
+    setText("");
+    const res = await fetch("/api/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chatId, senderId: userId, body }),
+    });
+    const j = await res.json();
+    if (j?.message) setMessages(prev => [...prev, j.message]); // optimistic
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto px-2 py-3 space-y-2">
+        {messages.map(m => (
+          <div key={m.id} className="bg-white/5 rounded-lg px-3 py-2">{m.body}</div>
+        ))}
+      </div>
+      <div className="p-2 flex gap-2">
+        <input
+          className="flex-1 rounded bg-black/30 px-3 py-2"
+          placeholder="Type a message…"
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => (e.key === "Enter" ? send() : null)}
+        />
+        <button onClick={send} className="px-3 py-2 rounded bg-[#D4AF37] text-black">Send</button>
+      </div>
+    </div>
+  );
+}

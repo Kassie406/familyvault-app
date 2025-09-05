@@ -57,28 +57,53 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
   const [isExpanded, setIsExpanded] = useState(false);
   const [message, setMessage] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+  const [chatId, setChatId] = useState<string | undefined>("family-chat");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   
-  const threadId = "family-chat";
+  // Fetch default chat ID when component mounts
+  useEffect(() => {
+    async function fetchDefaultChatId() {
+      try {
+        const response = await fetch("/api/threads/default");
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Fetched default chat ID:", data.id);
+          setChatId(data.id);
+        }
+      } catch (error) {
+        console.error("Failed to fetch default chat ID:", error);
+        // Fallback to hardcoded value
+        setChatId("family-chat");
+      }
+    }
+    fetchDefaultChatId();
+  }, []);
   
   // Real-time hooks
   const { online, lastSeen } = usePresence(currentUser.familyId, currentUser);
-  const { typingUsers, notifyTyping, stopTyping } = useTyping(threadId, currentUser);
+  const { typingUsers, notifyTyping, stopTyping } = useTyping(chatId || "family-chat", currentUser);
   
   // Message queries
   const { data: messagesData, isLoading } = useQuery<{ messages: Message[] }>({
-    queryKey: [`/api/threads/${threadId}/messages`],
-    enabled: isOpen,
+    queryKey: [`/api/threads/${chatId}/messages`],
+    enabled: isOpen && !!chatId,
     refetchInterval: isExpanded ? 2000 : 10000, // More frequent when expanded
   });
   
   const sendMutation = useMutation({
-    mutationFn: async ({ body, fileIds }: { body: string; fileIds: string[] }) => 
-      sendMessage(threadId, body, fileIds),
+    mutationFn: async ({ body, fileIds }: { body: string; fileIds: string[] }) => {
+      if (!chatId) {
+        // Use fallback route if no chatId
+        return sendMessage(null, body, fileIds);
+      }
+      return sendMessage(chatId, body, fileIds);
+    },
     onSuccess: (message: Message) => {
       // Invalidate queries for both specific thread and fallback route
-      queryClient.invalidateQueries({ queryKey: [`/api/threads/${threadId}/messages`] });
+      if (chatId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/threads/${chatId}/messages`] });
+      }
       queryClient.invalidateQueries({ queryKey: [`/api/messages`] });
       setMessage("");
       setFiles([]);
@@ -88,9 +113,9 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
     onError: (error: Error) => {
       console.error("Failed to send message:", error);
       // Try sending via fallback route if specific thread fails
-      if (threadId && error.message.includes("Failed to send message")) {
+      if (chatId && error.message.includes("Failed to send message")) {
         sendMessage(null, message, []).then(() => {
-          queryClient.invalidateQueries({ queryKey: [`/api/threads/${threadId}/messages`] });
+          queryClient.invalidateQueries({ queryKey: [`/api/threads/${chatId}/messages`] });
           setMessage("");
           setFiles([]);
           stopTyping();
@@ -124,6 +149,8 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
 
   const handleSendMessage = async () => {
     if (!message.trim() && files.length === 0) return;
+    
+    console.log("Sending message:", { message: message.trim(), chatId, files });
     
     // For now, no file upload in widget
     sendMutation.mutate({ body: message.trim(), fileIds: [] });
