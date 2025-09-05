@@ -245,27 +245,33 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
   return (
     <>
       {/* Main Chat Button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button
-          onClick={handleToggle}
-          className="group relative bg-[#D4AF37] hover:bg-[#D4AF37] text-black rounded-full p-4 shadow-2xl"
-          data-testid="button-floating-chat"
-          aria-label="Open family chat"
-          style={{ opacity: '1 !important', visibility: 'visible !important', backgroundColor: '#D4AF37 !important' }}
-        >
-          <MessageCircle className="h-6 w-6" />
-          
-          {/* Pulse animation ring */}
-          <div className="absolute inset-0 rounded-full bg-[#D4AF37]/30 animate-ping opacity-75"></div>
-          
-          {/* Notification badge */}
-          {unreadCount > 0 && (
-            <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-              {unreadCount}
-            </div>
-          )}
-        </button>
-      </div>
+      <button
+        onClick={handleToggle}
+        className="
+          chat-fab fixed bottom-6 right-6 z-50 grid place-items-center
+          h-14 w-14 rounded-full
+          bg-[#D4AF37] text-black shadow-xl
+          transition-transform duration-150
+          hover:scale-105 active:scale-95
+          opacity-100 hover:opacity-100 focus:opacity-100 active:opacity-100
+          outline-none focus-visible:ring-2 ring-black/20
+        "
+        data-testid="button-floating-chat"
+        aria-label="Open family chat"
+      >
+        <MessageCircle className="w-6 h-6" />
+        {unreadCount > 0 && (
+          <span
+            className="
+              pointer-events-none absolute -top-1 -right-1
+              grid place-items-center min-w-[18px] h-[18px] px-1
+              rounded-full bg-red-600 text-white text-[10px] leading-none
+            "
+          >
+            {unreadCount}
+          </span>
+        )}
+      </button>
 
       {/* Chat Interface */}
       {isOpen && (
