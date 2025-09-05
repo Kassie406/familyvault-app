@@ -1,0 +1,151 @@
+Backend-api-stubs-messaging.ts (express + Socket
+· typescript
+// backend-api-stubs-messaging.ts
+    return res.json({ id: t.id, title: t.title, memberIds: t.memberIds, memberNames: t.memberIds, createdAt: t.createdAt, updatedAt: t.updatedAt });
+  });
+
+
+  app.use("/api/threads", threadsRouter);
+
+
+  /** -----------------------------------------
+   * Messages Router
+   * ----------------------------------------- */
+  const messagesRouter = Router({ mergeParams: true });
+
+
+  // GET /api/threads/:threadId/messages?limit=&cursor=
+  messagesRouter.get("/", (req, res) => {
+    const { threadId } = req.params as { threadId: string };
+    const list = messages.get(threadId) || [];
+    const limit = Math.min(parseInt(String(req.query.limit || 50), 10) || 50, 200);
+    // naive cursor by index for stub
+    const cursor = req.query.cursor ? list.findIndex((m) => m.id === req.query.cursor) + 1 : 0;
+    const slice = list.slice(cursor, cursor + limit);
+    const nextCursor = cursor + limit < list.length ? list[cursor + limit - 1]?.id : null;
+    return res.json({ messages: slice.map(shapeMessage), nextCursor });
+  });
+
+
+  // POST /api/threads/:threadId/messages  { body, fileIds }
+  messagesRouter.post("/", (req, res) => {
+    const { threadId } = req.params as { threadId: string };
+    const t = threads.get(threadId);
+    if (!t) return res.status(404).json({ error: "thread_not_found" });
+
+
+    const { body, fileIds } = req.body as { body?: string; fileIds?: string[] };
+    if ((!body || !body.trim()) && !(fileIds && fileIds.length)) {
+      return res.status(400).json({ error: "empty_message" });
+    }
+
+
+    const now = new Date().toISOString();
+    const msg: Message = {
+      id: cuid(),
+      threadId,
+      authorId: "me", // TODO: replace with req.user.id
+      body: (body || "").trim(),
+      fileIds: fileIds || [],
+      createdAt: now,
+    };
+
+
+    const arr = messages.get(threadId) || [];
+    arr.push(msg);
+    messages.set(threadId, arr);
+    t.updatedAt = now;
+
+
+    // Broadcast over WS
+    broadcastNewMessage(msg);
+
+
+    return res.status(201).json({ message: shapeMessage(msg) });
+  });
+
+
+  app.use("/api/threads/:threadId/messages", messagesRouter);
+
+
+  /** -----------------------------------------
+   * Minimal Files status (optional stub)
+   * ----------------------------------------- */
+  const filesRouter = Router();
+  // GET /api/files/:id/status -> status for a file (used by polling)
+  filesRouter.get("/:id/status", (req, res) => {
+    const f = files.get(req.params.id);
+    if (!f) return res.status(404).json({ error: "not_found" });
+    return res.json({ id: f.id, name: f.name, url: f.url, status: f.status || "ready" });
+  });
+  app.use("/api/files", filesRouter);
+
+
+  return { app, server, io };
+}
+
+
+/** -----------------------------------------
+ * Standalone start (optional):
+ *   ts-node backend-api-stubs-messaging.ts
+ * ----------------------------------------- */
+if (require.main === module) {
+  const { server } = createMessagingServer();
+  const PORT = process.env.PORT ? Number(process.env.PORT) : 5000;
+  server.listen(PORT, () => {
+    console.log(`[messaging] listening on http://localhost:${PORT}`);
+  });
+}
+
+
+
+All set. I dropped a single ready-to-run server stub into the canvas:
+
+What you got
+
+Express + Socket.IO scaffolding
+
+Threads API
+
+POST /api/threads (create/resolve)
+
+GET /api/threads/:id (details)
+
+Messages API
+
+GET /api/threads/:threadId/messages (paged)
+
+POST /api/threads/:threadId/messages (create + WS broadcast)
+
+Files status stub
+
+GET /api/files/:id/status (polling fallback)
+
+WebSocket rooms
+
+Clients emit('thread:join', {threadId}) to receive message:new
+
+File name in canvas:
+
+backend-api-stubs-messaging.ts (Express + Socket.IO)
+
+How to run locally
+# install
+npm i express socket.io
+
+# ts-node or build
+npm i -D ts-node typescript @types/node @types/express
+npx ts-node backend-api-stubs-messaging.ts
+# => http://localhost:5000 (WS path: /ws)
+
+Hook-up notes
+
+Replace in-memory stores (threads, messages, files) with DB calls (Drizzle/Prisma).
+
+On your chat pages, join the room:
+
+socket.emit('thread:join', { threadId })
+socket.on('message:new', ({ message }) => setMessages(m => [...m, message]))
+
+
+When a message is created via REST, the server broadcasts message:new to thread:${threadId}.
