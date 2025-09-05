@@ -1,0 +1,151 @@
+What each card does (and where it goes)
+1) Family Members → Family IDs (People view)
+
+Primary click on card:
+/family-ids?tab=people&sort=recent (highlights People)
+
+Dropdown items
+
+Add person → /family-ids/new?type=person
+
+Invite family member → /invitations/new?context=family
+
+Manage roles & access → /settings/access?scope=family
+
+Recent activity (same preview) → “View all” → /family-ids/activity?scope=people
+
+Why this is good: It reuses your Family IDs source of truth. No duplicate concepts. The stat now feels like a quick portal into the People area.
+
+2) Documents Shared → Inbox / Sharing
+
+Primary click on card:
+/inbox?filter=shared&sort=recent
+(If you prefer a dedicated page: /sharing)
+
+Dropdown items
+
+Share a document → /share/new (opens the same flow you already have for share links)
+
+Manage link policies → /settings/sharing (expiry defaults, require login, audit)
+
+Pending approvals (if you add approvals) → /inbox?filter=pending-approval
+
+Recent activity → /inbox/activity?filter=shared
+
+Nice addition: On this page show “Shared by me” vs “Shared with me."
+
+3) Messages Today → Messages
+
+Primary click on card:
+/messages?view=threads&sort=latest
+
+Dropdown items
+
+New message → /messages/new (or opens the composer modal)
+
+Family group chat → /messages/thread/family
+
+Mentions & alerts → /messages?filter=mentions
+
+Recent activity → /messages/activity?date=today
+
+Optional: Tie message counts to family groups and managers so the user can filter quickly.
+
+4) Photos Uploaded → Photos / Gallery
+
+Primary click on card:
+/photos?sort=recent
+
+Dropdown items
+
+Upload photos → /photos/upload (dropzone modal is great here)
+
+Albums → /photos/albums
+
+Shared galleries → /photos?filter=shared
+
+Recent activity → /photos/activity?date=today
+
+Bonus: On the gallery page, surface “From shared links” vs “Private” filters to connect with Documents/Sharing.
+
+How the preview + “View all” ties in
+
+Your preview panel already shows “RECENT” items. For each panel:
+
+“View all” routes to the “Recent activity” endpoint listed above.
+
+Each item in the preview is clickable and deep-links to exactly where it lives (person profile, shared doc, message thread, photo).
+
+Recommended routes & permissions (quick map)
+/family-ids
+  ?tab=people            # main People grid
+  /new?type=person       # quick add flow
+  /person/:id            # profile with all items
+  /activity?scope=people # audit stream
+
+/inbox                   # documents & items shared with/to you
+  ?filter=shared
+  /activity?filter=shared
+
+/messages
+  ?view=threads
+  /new
+  /thread/:id
+  ?filter=mentions
+  /activity?date=today
+
+/photos
+  ?sort=recent
+  /upload
+  /albums
+  /activity?date=today
+
+/settings
+  /access?scope=family   # roles/ACL
+  /sharing               # link defaults, expirations, require-login
+
+
+Permissions:
+
+Family Manager & Owner: all actions.
+
+Member: view most stats, limited actions (e.g., can’t change sharing defaults).
+
+Card hover and interactions (keeping your style)
+
+No hover background. Icons glow gold; label can softly tint—already done.
+
+Preview only opens via the “Recent” chevron button (not on hover).
+
+Outside click + Esc close the preview (already implemented).
+
+Card click = primary route above.
+
+Empty states (so it never feels broken)
+
+0 Family Members → prompt “Add Person” + link to /family-ids/new?type=person.
+
+0 Shared Documents → invite to “Share a document”.
+
+0 Messages Today → show “Start a message”.
+
+0 Photos → show “Upload photos”.
+
+Analytics (super helpful later)
+
+Track:
+
+statcard.click (which card)
+
+statcard.preview.open/close
+
+statcard.preview.item_click (target type/id)
+
+quick_action.click (e.g., “Add person”, “Upload photos”)
+
+TL;DR mapping
+Card	Primary Route	Key Dropdowns
+Family Members	/family-ids?tab=people&sort=recent	Add person • Invite family member • Manage access • View all activity
+Documents Shared	/inbox?filter=shared&sort=recent	Share a document • Manage link policies • Pending approvals • View all
+Messages Today	/messages?view=threads&sort=latest	New message • Family group chat • Mentions • View all
+Photos Uploaded	/photos?sort=recent	Upload • Albums • Shared galleries • View all
