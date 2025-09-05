@@ -1,0 +1,343 @@
+let’s add an “Invite Family Member” modal that matches your aesthetic and works like the Google/Drive share dialog you referenced.
+
+Below is a tight plan + a production-ready React (shadcn/ui + Tailwind) example you can drop into your app.
+
+What the modal should do
+
+Entry points
+
+“Invite Family Member” item in the + menu on Family IDs (and anywhere else you want).
+
+Optional: a persistent + Invite button in the page header.
+
+Core pieces
+
+Email chips input – add one or more emails; validate as you type.
+
+Permission – Can view / Can edit / Admin.
+
+Family role – Owner, Parent, Child, Grandparent, Household member, Other (this maps them into Family IDs automatically).
+
+Notify by email toggle (default on).
+
+Pending invites list (resend / revoke).
+
+Share link block – create/copy a restricted invite link with expiry (e.g., 7d) and scope (Only invited, Anyone with link).
+
+Send button + keyboard shortcuts (Enter to send, Esc to close).
+
+Audit + safety – rate-limit, show errors inline, success toast.
+
+Nice touches
+
+Avatar pills for known contacts as you type (from Family IDs / Contacts).
+
+“Advanced” row: expiry (1d / 7d / 30d / never), message field, and a “Require login” switch (default on).
+
+Keep the + trigger visible while the menu/modal is open (you already asked for that behavior elsewhere).
+
+Data model & API (quick)
+
+DB tables
+
+invites: id, email, permission, family_role, invited_by, token, status (pending/accepted/revoked), expires_at, created_at.
+
+invite_links: id, created_by, scope (org/family), permission, expires_at, token.
+
+notifications: enqueue email messages.
+
+Endpoints
+
+POST /api/family/invites → create invite(s)
+
+GET /api/family/invites?status=pending → list pending
+
+POST /api/family/invites/:id/resend
+
+DELETE /api/family/invites/:id → revoke
+
+POST /api/family/invite-links → create link
+
+GET /api/family/invite-links/current → fetch active link
+
+React implementation (shadcn/ui)
+
+Uses your dark/gold theme. The icon glows gold on hover; no background hover color (matches your earlier requirement).
+
+// components/InviteFamilyMemberDialog.tsx
+import * as React from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { X, Mail, Copy, Link as LinkIcon, Loader2 } from "lucide-react";
+import clsx from "clsx";
+
+type Invite = {
+  email: string;
+  permission: "view" | "edit" | "admin";
+  familyRole: "owner" | "parent" | "child" | "grandparent" | "member" | "other";
+};
+
+export function InviteFamilyMemberDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const [chip, setChip] = React.useState("");
+  const [emails, setEmails] = React.useState<string[]>([]);
+  const [permission, setPermission] = React.useState<Invite["permission"]>("view");
+  const [familyRole, setFamilyRole] = React.useState<Invite["familyRole"]>("member");
+  const [notify, setNotify] = React.useState(true);
+  const [message, setMessage] = React.useState("");
+  const [creating, setCreating] = React.useState(false);
+
+  const addChip = React.useCallback(() => {
+    const e = chip.trim();
+    if (!e) return;
+    const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+    if (!valid) return; // show inline error if you like
+    if (!emails.includes(e)) setEmails((prev) => [...prev, e]);
+    setChip("");
+  }, [chip, emails]);
+
+  const removeChip = (e: string) => setEmails((prev) => prev.filter((x) => x !== e));
+
+  const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (ev) => {
+    if (ev.key === "Enter" || ev.key === ",") {
+      ev.preventDefault();
+      addChip();
+    } else if (ev.key === "Backspace" && !chip && emails.length) {
+      removeChip(emails[emails.length - 1]);
+    }
+  };
+
+  // link block
+  const [link, setLink] = React.useState<string | null>(null);
+  const [creatingLink, setCreatingLink] = React.useState(false);
+  async function createLink() {
+    try {
+      setCreatingLink(true);
+      const res = await fetch("/api/family/invite-links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ permission, expiresInDays: 7, requireLogin: true }),
+      });
+      const data = await res.json();
+      setLink(data.url);
+    } finally {
+      setCreatingLink(false);
+    }
+  }
+
+  async function sendInvites() {
+    if (!emails.length) return;
+    setCreating(true);
+    try {
+      const res = await fetch("/api/family/invites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invites: emails.map((email) => ({ email, permission, familyRole })),
+          notify,
+          message: message || undefined,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      // show toast success
+      setEmails([]);
+      setChip("");
+      setMessage("");
+      onOpenChange(false);
+    } catch (e) {
+      // show toast error
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl border border-zinc-800 bg-[#0c0c0e]/95 text-zinc-200">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold">Invite family members</DialogTitle>
+        </DialogHeader>
+
+        {/* Email chips */}
+        <div className="space-y-2">
+          <Label>Add name or emails</Label>
+          <div
+            className={clsx(
+              "flex min-h-[44px] w-full flex-wrap items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-2",
+              "focus-within:border-zinc-600"
+            )}
+          >
+            {emails.map((e) => (
+              <Badge key={e} variant="secondary" className="bg-zinc-800 text-zinc-200 hover:bg-zinc-700">
+                <Mail className="mr-1 h-3 w-3 text-amber-400" />
+                {e}
+                <button className="ml-2 opacity-70 hover:opacity-100" onClick={() => removeChip(e)}>
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+            <Input
+              value={chip}
+              onChange={(e) => setChip(e.target.value)}
+              onKeyDown={onKeyDown}
+              placeholder="name@family.com"
+              className="h-7 flex-1 border-0 bg-transparent p-0 text-sm outline-none focus-visible:ring-0"
+            />
+          </div>
+          <p className="text-xs text-zinc-500">Press Enter to add multiple addresses.</p>
+        </div>
+
+        {/* Permission + Role + Notify */}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="space-y-1">
+            <Label>Permission</Label>
+            <Select value={permission} onValueChange={(v) => setPermission(v as any)}>
+              <SelectTrigger className="rounded-xl border-zinc-800 bg-zinc-900/60">
+                <SelectValue placeholder="Can view" />
+              </SelectTrigger>
+              <SelectContent className="border-zinc-800 bg-[#111]">
+                <SelectItem value="view">Can view</SelectItem>
+                <SelectItem value="edit">Can edit</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <Label>Family role</Label>
+            <Select value={familyRole} onValueChange={(v) => setFamilyRole(v as any)}>
+              <SelectTrigger className="rounded-xl border-zinc-800 bg-zinc-900/60">
+                <SelectValue placeholder="Member" />
+              </SelectTrigger>
+              <SelectContent className="border-zinc-800 bg-[#111]">
+                <SelectItem value="owner">Owner</SelectItem>
+                <SelectItem value="parent">Parent</SelectItem>
+                <SelectItem value="child">Child</SelectItem>
+                <SelectItem value="grandparent">Grandparent</SelectItem>
+                <SelectItem value="member">Household member</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-end justify-between rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-2">
+            <div>
+              <Label className="mb-0">Notify by email</Label>
+              <p className="text-xs text-zinc-500">Sends a styled invite</p>
+            </div>
+            <Switch checked={notify} onCheckedChange={setNotify} />
+          </div>
+        </div>
+
+        {/* Optional message */}
+        <div className="space-y-1">
+          <Label>Message (optional)</Label>
+          <Input
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Add a short note…"
+            className="rounded-xl border-zinc-800 bg-zinc-900/60"
+          />
+        </div>
+
+        {/* Link share */}
+        <div className="rounded-xl border border-zinc-800 p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <LinkIcon className="h-4 w-4 text-amber-400" />
+              <p className="text-sm font-medium">Share read-only link (expires in 7 days)</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {!link ? (
+                <Button size="sm" variant="secondary" onClick={createLink} disabled={creatingLink} className="bg-zinc-800">
+                  {creatingLink ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Create link
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="bg-zinc-800"
+                  onClick={() => link && navigator.clipboard.writeText(link)}
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy
+                </Button>
+              )}
+            </div>
+          </div>
+          {link ? <p className="mt-2 truncate text-xs text-zinc-500">{link}</p> : null}
+        </div>
+
+        <DialogFooter className="mt-2">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="hover:text-amber-400">
+            Cancel
+          </Button>
+          <Button disabled={!emails.length || creating} onClick={sendInvites} className="bg-amber-500 text-black hover:bg-amber-400">
+            {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Send
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+Triggering it
+
+// In your Family IDs page header
+import { useState } from "react";
+import { InviteFamilyMemberDialog } from "@/components/InviteFamilyMemberDialog";
+import { Plus } from "lucide-react";
+
+export function InviteButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="inline-flex h-9 items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900 px-3 text-sm text-zinc-200 shadow-sm hover:text-amber-400"
+        aria-haspopup="dialog"
+      >
+        <Plus className="h-4 w-4 text-amber-400 transition-colors group-hover:text-amber-400" />
+        Invite family member
+      </button>
+      <InviteFamilyMemberDialog open={open} onOpenChange={setOpen} />
+    </>
+  );
+}
+
+Accessibility & behavior
+
+Dialog is focus-trapped; Esc closes; Enter sends when email field is focused.
+
+Chips are keyboard-friendly (Backspace removes last when input is empty).
+
+No gray hover backgrounds; only icon/text glow gold on hover to keep your luxury look.
+
+Works with your Family IDs: choosing a Family role pre-creates the person in that section after they accept.
+
+What happens on “Send”
+
+Create invite rows and email notifications server-side.
+
+If the person already exists in Family IDs, link the invite to their profile.
+
+When they accept, provision:
+
+account with chosen permission
+
+placement under the selected Family role
+
+audit entry (“Invited by …”)
