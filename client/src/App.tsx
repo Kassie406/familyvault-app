@@ -1,4 +1,3 @@
-import { BrowserRouter, Routes, Route as ReactRoute, Navigate } from "react-router-dom";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -115,32 +114,23 @@ function ErrorBoundary({ children }: { children: React.ReactNode }) {
 
 function AdminRouter() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* All admin pages live under /admin */}
-        <ReactRoute path="/admin" element={<AdminLayout />}>
-          <ReactRoute index element={<Navigate to="dashboard" replace />} />
-          <ReactRoute path="dashboard" element={<AdminDashboard />} />
-          <ReactRoute path="profile" element={<AdminProfile />} />
-          <ReactRoute path="settings" element={<AdminSettings />} />
-          <ReactRoute path="_probe" element={<div style={{padding:24}}>ROUTE PROBE OK</div>} />
-          <ReactRoute path="incidents" element={<AdminIncidents />} />
-          <ReactRoute path="security-settings" element={<AdminSecuritySettings />} />
-          <ReactRoute path="stepup-test" element={<AdminStepUpTest />} />
-          <ReactRoute path="database-status" element={<DatabaseStatus />} />
-          <ReactRoute path="auth-status" element={<AuthStatus />} />
-          <ReactRoute path="smtp-status" element={<SMTPStatus />} />
-          <ReactRoute path="webhooks-status" element={<WebhooksStatus />} />
-          <ReactRoute path="stripe-status" element={<StripeStatus />} />
-          <ReactRoute path="storage-status" element={<StorageStatus />} />
-          {/* keep wildcard LAST so it does not swallow real routes */}
-          <ReactRoute path="*" element={<Navigate to="dashboard" replace />} />
-        </ReactRoute>
-        <ReactRoute path="/admin/login" element={<AdminLogin />} />
-        {/* Fallback for anything else */}
-        <ReactRoute path="*" element={<Navigate to="/admin/dashboard" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <Switch>
+      <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin/dashboard" component={AdminDashboard} />
+      <Route path="/admin/profile" component={AdminProfile} />
+      <Route path="/admin/settings" component={AdminSettings} />
+      <Route path="/admin/_probe" component={() => <div style={{padding:24}}>ROUTE PROBE OK</div>} />
+      <Route path="/admin/incidents" component={AdminIncidents} />
+      <Route path="/admin/security-settings" component={AdminSecuritySettings} />
+      <Route path="/admin/stepup-test" component={AdminStepUpTest} />
+      <Route path="/admin/database-status" component={DatabaseStatus} />
+      <Route path="/admin/auth-status" component={AuthStatus} />
+      <Route path="/admin/smtp-status" component={SMTPStatus} />
+      <Route path="/admin/webhooks-status" component={WebhooksStatus} />
+      <Route path="/admin/stripe-status" component={StripeStatus} />
+      <Route path="/admin/storage-status" component={StorageStatus} />
+      <Route path="/admin" component={AdminDashboard} />
+    </Switch>
   );
 }
 
