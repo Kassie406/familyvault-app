@@ -548,25 +548,26 @@ type Props = {
 };
 
 export const MessagesPage: React.FC<Props> = ({ threadId: propThreadId, onBack }) => {
-  const params = useParams<{ threadId?: string }>();
-  const threadId = propThreadId || params.threadId || "family-chat";
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [showSearch, setShowSearch] = useState(false);
+  try {
+    const params = useParams<{ threadId?: string }>();
+    const threadId = propThreadId || params.threadId || "family-chat";
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [showSearch, setShowSearch] = useState(false);
 
-  // Mock current user - in production, get from auth context
-  const currentUser = { id: "current-user", name: "You", familyId: "family-1" };
-  
-  // Early return if currentUser is not available
-  if (!currentUser) {
-    return (
-      <div className="h-screen bg-[var(--bg-900)] flex items-center justify-center">
-        <div className="flex items-center gap-3 text-white/60">
-          <Loader2 className="h-6 w-6 animate-spin text-[#D4AF37]" />
-          <span>Loading user...</span>
+    // Mock current user - in production, get from auth context
+    const currentUser = { id: "current-user", name: "You", familyId: "family-1" };
+    
+    // Early return if currentUser is not available
+    if (!currentUser || !currentUser.id) {
+      return (
+        <div className="h-screen bg-[var(--bg-900)] flex items-center justify-center">
+          <div className="flex items-center gap-3 text-white/60">
+            <Loader2 className="h-6 w-6 animate-spin text-[#D4AF37]" />
+            <span>Loading user...</span>
+          </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
   // Fetch thread info
   const { data: thread, isLoading: threadLoading } = useQuery({
@@ -605,7 +606,7 @@ export const MessagesPage: React.FC<Props> = ({ threadId: propThreadId, onBack }
   const threadMembers = [
     { id: "user-1", name: "Alice" },
     { id: "user-2", name: "Bob" },
-    { id: currentUser.id, name: currentUser.name },
+    { id: currentUser?.id || "current-user", name: currentUser?.name || "You" },
   ];
 
   // Get typing user names
@@ -691,6 +692,19 @@ export const MessagesPage: React.FC<Props> = ({ threadId: propThreadId, onBack }
       />
     </div>
   );
+  } catch (error) {
+    console.error("Error in MessagesPage:", error);
+    return (
+      <div className="h-screen bg-[var(--bg-900)] flex items-center justify-center">
+        <div className="flex items-center gap-3 text-white/60">
+          <div className="text-center">
+            <div className="text-lg mb-2 text-red-400">Error loading messages</div>
+            <div className="text-sm">Please refresh the page</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 };
 
 export default MessagesPage;
