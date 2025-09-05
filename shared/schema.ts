@@ -534,6 +534,7 @@ export const threadMembers = pgTable("thread_members", {
   userId: varchar("user_id").notNull(),
   role: threadMemberRoleEnum("role").default("member").notNull(),
   joinedAt: timestamp("joined_at").defaultNow().notNull(),
+  lastReadMessageId: varchar("last_read_message_id"), // For precise unread count tracking
 }, (table) => ({
   uniqueThreadUser: unique().on(table.threadId, table.userId),
 }));

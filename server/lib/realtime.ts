@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { Server } from "http";
 import { markUserOnline, markUserOffline } from "./presence.js";
+import { redisPresence } from "./redis-presence.js";
 
 interface ClientConnection {
   ws: WebSocket;
@@ -135,8 +136,9 @@ class RealtimeManager {
     this.clients.set(clientId, client);
     (ws as any).clientId = clientId;
     
-    // Mark user as online
-    markUserOnline(message.familyId, message.userId);
+    // Mark user as online with Redis presence
+    redisPresence.markOnline(message.familyId, message.userId);
+    markUserOnline(message.familyId, message.userId); // Keep legacy for now
     
     // Broadcast presence update
     this.broadcastToFamily(message.familyId, {
@@ -253,13 +255,14 @@ class RealtimeManager {
     }));
   }
 
-  private handleClientDisconnect(ws: WebSocket) {
+  private async handleClientDisconnect(ws: WebSocket) {
     const clientId = this.getClientId(ws);
     const client = this.clients.get(clientId);
     
     if (client) {
-      // Mark user as offline
-      markUserOffline(client.familyId, client.userId);
+      // Mark user as offline with Redis presence
+      await redisPresence.markOffline(client.familyId, client.userId);
+      markUserOffline(client.familyId, client.userId); // Keep legacy for now
       
       // Clear all typing indicators
       for (const threadId of Array.from(client.threadIds)) {
@@ -307,7 +310,11 @@ class RealtimeManager {
     }
   }
 
-  broadcastPresenceUpdate(familyId: string, userId: string, online: boolean, userName?: string) {
+  async broadcastPresenceUpdate(familyId: string, userId: string, online: boolean, userName?: string) {
+    // Send heartbeat to Redis if user is online
+    if (online) {
+      await redisPresence.updateHeartbeat(familyId, userId);
+    }
     const broadcast: PresenceBroadcast = {
       type: "presence:update",
       userId,

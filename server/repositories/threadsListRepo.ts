@@ -1,6 +1,6 @@
 import { db } from "../db.js";
 import { messageThreads, threadMembers, messages, messageReadReceipts, users } from "@shared/schema";
-import { and, desc, eq, ilike, sql, gt, count, max } from "drizzle-orm";
+import { and, desc, eq, ilike, sql, gt, count, max, inArray } from "drizzle-orm";
 
 export interface ThreadListItem {
   id: string;
@@ -145,59 +145,98 @@ export async function listThreadsForUser(opts: {
 async function calculateUnreadCounts(userId: string, threadIds: string[]): Promise<Map<string, number>> {
   const unreadMap = new Map<string, number>();
 
-  // For each thread, count messages that don't have read receipts for this user
-  for (const threadId of threadIds) {
-    const [result] = await db
-      .select({
-        totalMessages: count(messages.id),
-        readMessages: count(messageReadReceipts.messageId),
-      })
-      .from(messages)
-      .leftJoin(
-        messageReadReceipts,
-        and(
-          eq(messageReadReceipts.messageId, messages.id),
-          eq(messageReadReceipts.userId, userId)
-        )
+  // Get lastReadMessageId for each thread for this user
+  const threadMemberships = await db
+    .select({
+      threadId: threadMembers.threadId,
+      lastReadMessageId: threadMembers.lastReadMessageId,
+    })
+    .from(threadMembers)
+    .where(
+      and(
+        eq(threadMembers.userId, userId),
+        inArray(threadMembers.threadId, threadIds)
       )
-      .where(eq(messages.threadId, threadId));
+    );
 
-    const unreadCount = (result?.totalMessages || 0) - (result?.readMessages || 0);
-    unreadMap.set(threadId, Math.max(0, unreadCount));
+  const membershipMap = new Map(
+    threadMemberships.map(m => [m.threadId, m.lastReadMessageId])
+  );
+
+  // For each thread, count messages created after lastReadMessageId
+  for (const threadId of threadIds) {
+    const lastReadMessageId = membershipMap.get(threadId);
+    
+    if (!lastReadMessageId) {
+      // No lastReadMessageId means user hasn't read anything - count all messages
+      const [result] = await db
+        .select({ count: count(messages.id) })
+        .from(messages)
+        .where(eq(messages.threadId, threadId));
+      
+      unreadMap.set(threadId, result?.count || 0);
+    } else {
+      // Count messages created after the last read message
+      // Get timestamp of lastReadMessage first
+      const [lastReadMessage] = await db
+        .select({ createdAt: messages.createdAt })
+        .from(messages)
+        .where(eq(messages.id, lastReadMessageId));
+
+      if (lastReadMessage) {
+        const [result] = await db
+          .select({ count: count(messages.id) })
+          .from(messages)
+          .where(
+            and(
+              eq(messages.threadId, threadId),
+              gt(messages.createdAt, lastReadMessage.createdAt)
+            )
+          );
+        
+        unreadMap.set(threadId, result?.count || 0);
+      } else {
+        // lastReadMessageId doesn't exist anymore, count all messages
+        const [result] = await db
+          .select({ count: count(messages.id) })
+          .from(messages)
+          .where(eq(messages.threadId, threadId));
+        
+        unreadMap.set(threadId, result?.count || 0);
+      }
+    }
   }
 
   return unreadMap;
 }
 
-// Helper to mark thread as read (mark all messages as read)
+// Helper to mark thread as read using lastReadMessageId approach
 export async function markThreadAsRead(threadId: string, userId: string): Promise<void> {
-  // Get all unread messages in the thread
-  const unreadMessages = await db
+  // Get the latest message in the thread
+  const [latestMessage] = await db
     .select({ id: messages.id })
     .from(messages)
-    .leftJoin(
-      messageReadReceipts,
-      and(
-        eq(messageReadReceipts.messageId, messages.id),
-        eq(messageReadReceipts.userId, userId)
-      )
-    )
+    .where(eq(messages.threadId, threadId))
+    .orderBy(desc(messages.createdAt))
+    .limit(1);
+
+  if (!latestMessage) {
+    // No messages in thread, nothing to mark as read
+    return;
+  }
+
+  // Update the user's lastReadMessageId for this thread
+  await db
+    .update(threadMembers)
+    .set({
+      lastReadMessageId: latestMessage.id,
+    })
     .where(
       and(
-        eq(messages.threadId, threadId),
-        sql`${messageReadReceipts.messageId} IS NULL`
+        eq(threadMembers.threadId, threadId),
+        eq(threadMembers.userId, userId)
       )
     );
-
-  // Create read receipts for unread messages
-  if (unreadMessages.length > 0) {
-    const receipts = unreadMessages.map(msg => ({
-      userId,
-      messageId: msg.id,
-    }));
-
-    await db.insert(messageReadReceipts).values(receipts).onConflictDoNothing();
-  }
 }
 
 // This is now handled by the dedicated presence system in server/lib/presence.ts
