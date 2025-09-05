@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import {
   Home as HomeIcon, Inbox, AlarmClock, Users, DollarSign, 
   Key, Umbrella, Receipt, Scale, Building2, BookOpen, 
   Phone, Heart, Baby, UserCheck, HeartHandshake, Plane, Package,
-  AlertTriangle, FileText, Home as HouseIcon, Users as FamilyIcon, Leaf
+  AlertTriangle, FileText, Home as HouseIcon, Users as FamilyIcon, Leaf,
+  Menu, X
 } from 'lucide-react';
 
 interface SidebarLayoutProps {
@@ -13,6 +14,8 @@ interface SidebarLayoutProps {
 
 export default function SidebarLayout({ children }: SidebarLayoutProps) {
   const [location] = useLocation();
+  const [isMobile, setIsMobile] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState(() => {
     // Determine active section based on current path
     if (location === '/family' || location === '/') return 'dashboard';
@@ -40,6 +43,35 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
     if (location.startsWith('/family/when-someone-dies')) return 'when-someone-dies';
     return 'dashboard';
   });
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth >= 768) {
+        setSidebarOpen(false); // Close mobile sidebar when switching to desktop
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Close sidebar when clicking outside on mobile
+  useEffect(() => {
+    if (!isMobile || !sidebarOpen) return;
+    
+    const handleClickOutside = (e: MouseEvent) => {
+      const sidebar = document.getElementById('mobile-sidebar');
+      if (sidebar && !sidebar.contains(e.target as Node)) {
+        setSidebarOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMobile, sidebarOpen]);
 
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, href: '/family' },
@@ -69,58 +101,152 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
 
   return (
     <div className="flex h-screen bg-[var(--bg-900)]">
-      {/* Sidebar */}
-      <div className="w-64 bg-[var(--bg-850)] border-r border-[var(--line-700)] flex flex-col fixed h-full z-30">
-        {/* Sidebar Header */}
-        <div className="p-6 border-b border-[var(--line-700)]">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-[#D4AF37] rounded-lg">
-              <Heart className="w-5 h-5 text-black" />
+      {/* Mobile Header */}
+      {isMobile && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-[var(--bg-850)] border-b border-[var(--line-700)] p-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 text-[var(--ink-100)] hover:text-[var(--gold)] transition-colors"
+              data-testid="mobile-sidebar-toggle"
+            >
+              {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-[#D4AF37] rounded-lg">
+                <Heart className="w-5 h-5 text-black" />
+              </div>
+              <h2 className="text-lg font-semibold text-[var(--ink-100)]">Family Circle</h2>
             </div>
-            <h2 className="text-lg font-semibold text-[var(--ink-100)]">Family Circle Secure</h2>
+            <div className="w-10" /> {/* Spacer for centering */}
           </div>
         </div>
+      )}
 
-        {/* Sidebar Navigation */}
-        <nav className="flex-1 py-4 overflow-y-auto">
-          {sidebarItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = item.id === activeSection;
-            return (
-              <Link
-                key={item.id}
-                to={item.href}
-                onClick={() => setActiveSection(item.id)}
-                className={`flex items-center px-6 py-3 text-sm font-medium transition-all duration-200 relative group ${
-                  isActive
-                    ? 'text-[var(--gold)] border-r-2 border-[var(--gold)] bg-[var(--bg-800)]'
-                    : 'text-[var(--ink-300)] hover:text-[var(--gold)] hover:bg-[var(--bg-800)]'
-                }`}
-                data-testid={`sidebar-${item.id}`}
-              >
-                <Icon className={`w-5 h-5 mr-3 transition-colors ${
-                  isActive ? 'text-[var(--gold)]' : 'text-[var(--ink-300)] group-hover:text-[var(--gold)]'
-                }`} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+      {/* Desktop Sidebar */}
+      <div className={`${isMobile ? 'hidden' : 'w-64 bg-[var(--bg-850)] border-r border-[var(--line-700)] flex flex-col fixed h-full z-30'}`}>
+        {/* Desktop Sidebar Header */}
+        {!isMobile && (
+          <div className="p-6 border-b border-[var(--line-700)]">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-[#D4AF37] rounded-lg">
+                <Heart className="w-5 h-5 text-black" />
+              </div>
+              <h2 className="text-lg font-semibold text-[var(--ink-100)]">Family Circle Secure</h2>
+            </div>
+          </div>
+        )}
 
-        {/* Sidebar Footer */}
-        <div className="p-6 border-t border-[var(--line-700)]">
-          <Link
-            to="/family/referrals"
-            className="flex items-center text-sm font-medium text-[#2ECC71] hover:text-[var(--gold)] transition-colors group"
-          >
-            <DollarSign className="w-4 h-4 mr-2 group-hover:text-[#D4AF37]" />
-            Refer & earn
-          </Link>
-        </div>
+        {/* Desktop Sidebar Navigation */}
+        {!isMobile && (
+          <nav className="flex-1 py-4 overflow-y-auto">
+            {sidebarItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = item.id === activeSection;
+              return (
+                <Link
+                  key={item.id}
+                  to={item.href}
+                  onClick={() => setActiveSection(item.id)}
+                  className={`flex items-center px-6 py-3 text-sm font-medium transition-all duration-200 relative group ${
+                    isActive
+                      ? 'text-[var(--gold)] border-r-2 border-[var(--gold)] bg-[var(--bg-800)]'
+                      : 'text-[var(--ink-300)] hover:text-[var(--gold)] hover:bg-[var(--bg-800)]'
+                  }`}
+                  data-testid={`sidebar-${item.id}`}
+                >
+                  <Icon className={`w-5 h-5 mr-3 transition-colors ${
+                    isActive ? 'text-[var(--gold)]' : 'text-[var(--ink-300)] group-hover:text-[var(--gold)]'
+                  }`} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
+
+        {/* Desktop Sidebar Footer */}
+        {!isMobile && (
+          <div className="p-6 border-t border-[var(--line-700)]">
+            <Link
+              to="/family/referrals"
+              className="flex items-center text-sm font-medium text-[#2ECC71] hover:text-[var(--gold)] transition-colors group"
+            >
+              <DollarSign className="w-4 h-4 mr-2 group-hover:text-[#D4AF37]" />
+              Refer & earn
+            </Link>
+          </div>
+        )}
       </div>
 
+      {/* Mobile Sidebar Overlay */}
+      {isMobile && sidebarOpen && (
+        <div className="fixed inset-0 z-40 bg-black bg-opacity-50 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* Mobile Sidebar */}
+      {isMobile && (
+        <div
+          id="mobile-sidebar"
+          className={`fixed top-0 left-0 h-full w-80 bg-[var(--bg-850)] border-r border-[var(--line-700)] z-50 transform transition-transform duration-300 ease-in-out ${
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          {/* Mobile Sidebar Header */}
+          <div className="p-6 border-b border-[var(--line-700)] pt-20">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-[#D4AF37] rounded-lg">
+                <Heart className="w-5 h-5 text-black" />
+              </div>
+              <h2 className="text-lg font-semibold text-[var(--ink-100)]">Family Circle</h2>
+            </div>
+          </div>
+
+          {/* Mobile Sidebar Navigation */}
+          <nav className="flex-1 py-4 overflow-y-auto max-h-[calc(100vh-200px)]">
+            {sidebarItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = item.id === activeSection;
+              return (
+                <Link
+                  key={item.id}
+                  to={item.href}
+                  onClick={() => {
+                    setActiveSection(item.id);
+                    setSidebarOpen(false); // Close sidebar on mobile after selection
+                  }}
+                  className={`flex items-center px-6 py-4 text-sm font-medium transition-all duration-200 relative group touch-manipulation ${
+                    isActive
+                      ? 'text-[var(--gold)] border-r-2 border-[var(--gold)] bg-[var(--bg-800)]'
+                      : 'text-[var(--ink-300)] hover:text-[var(--gold)] hover:bg-[var(--bg-800)] active:bg-[var(--bg-700)]'
+                  }`}
+                  data-testid={`mobile-sidebar-${item.id}`}
+                >
+                  <Icon className={`w-6 h-6 mr-4 transition-colors ${
+                    isActive ? 'text-[var(--gold)]' : 'text-[var(--ink-300)] group-hover:text-[var(--gold)]'
+                  }`} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Mobile Sidebar Footer */}
+          <div className="p-6 border-t border-[var(--line-700)]">
+            <Link
+              to="/family/referrals"
+              onClick={() => setSidebarOpen(false)}
+              className="flex items-center text-sm font-medium text-[#2ECC71] hover:text-[var(--gold)] transition-colors group touch-manipulation"
+            >
+              <DollarSign className="w-5 h-5 mr-3 group-hover:text-[#D4AF37]" />
+              Refer & earn
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
-      <div className="flex-1 ml-64">
+      <div className={`flex-1 ${isMobile ? 'pt-16' : 'ml-64'}`}>
         {children}
       </div>
     </div>
