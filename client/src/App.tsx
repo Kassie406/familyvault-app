@@ -64,6 +64,7 @@ import ElderlyEmergencyContacts from "@/pages/elderly-emergency-contacts";
 import ElderlyLegalDocuments from "@/pages/elderly-legal-documents";
 import ElderlyPropertyInfo from "@/pages/elderly-property-info";
 import ElderlyCareTeamAccess from "@/pages/elderly-care-team-access";
+import MessagesPage from "@/pages/messages/[threadId]";
 import MarriedLegalDocs from "@/pages/married-legal-docs";
 import MarriedFinancialPlanning from "@/pages/married-financial-planning";
 import MarriedLivingArrangements from "@/pages/married-living-arrangements";

@@ -1,0 +1,279 @@
+here are Next.js API route versions (App Router) plus auth wiring and realtime options that work cleanly in serverless (Vercel or similar).
+
+I’ll give you:
+
+Minimal NextAuth-style session guard
+
+/api/threads (POST), /api/threads/[threadId] (GET)
+
+/api/threads/[threadId]/messages (GET, POST)
+
+/api/files/[id]/status (GET)
+
+Two realtime choices:
+
+Serverless-friendly (recommended): Pusher Channels (or Ably/Supabase Realtime)
+
+Socket.IO: keep the separate Express server you already have (works great if you’re not fully serverless)
+
+0) Auth helper (NextAuth session guard)
+
+Adjust to your auth; this assumes you can get a user id. If you use NextAuth, this helper wraps getServerSession.
+
+lib/auth.ts
+
+import { NextRequest } from "next/server";
+
+// Swap this with real NextAuth getServerSession or your JWT verification
+export async function requireUser(req: NextRequest): Promise<{ id: string; familyId: string }> {
+  // EXAMPLE ONLY:
+  const userId = req.headers.get("x-mock-user") || "user_me";
+  const familyId = req.headers.get("x-mock-family") || "family_1";
+  if (!userId) throw new Error("UNAUTHENTICATED");
+  return { id: userId, familyId };
+}
+
+1) In-memory store (swap to DB later)
+
+This mirrors the Express stub so you can smoke-test quickly.
+
+lib/memoryStore.ts
+
+export type Thread = { id: string; title?: string; memberIds: string[]; createdAt: string; updatedAt: string; familyId: string };
+export type Message = { id: string; threadId: string; body: string; authorId: string; fileIds: string[]; createdAt: string };
+export type FileRef = { id: string; name: string; url?: string; status?: "pending"|"ready"|"failed" };
+
+export const threads = new Map<string, Thread>();
+export const messages = new Map<string, Message[]>();
+export const files = new Map<string, FileRef>();
+
+export function cuid() { return "c_" + Math.random().toString(36).slice(2) + Date.now().toString(36); }
+
+export function getOrCreateFamilyThread(familyId: string, memberIds: string[]): Thread {
+  const existing = Array.from(threads.values()).find(
+    (t) => t.familyId === familyId &&
+           t.memberIds.length === memberIds.length &&
+           t.memberIds.every((id) => memberIds.includes(id))
+  );
+  if (existing) return existing;
+  const now = new Date().toISOString();
+  const t: Thread = { id: cuid(), title: "Family Chat", memberIds, createdAt: now, updatedAt: now, familyId };
+  threads.set(t.id, t);
+  messages.set(t.id, []);
+  return t;
+}
+
+2) API routes (Next.js App Router)
+2.1 POST /api/threads — create/resolve thread
+
+app/api/threads/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "@/lib/auth";
+import { getOrCreateFamilyThread } from "@/lib/memoryStore";
+
+export async function POST(req: NextRequest) {
+  try {
+    const user = await requireUser(req);
+    const { memberIds, title } = await req.json() as { memberIds?: string[]; title?: string };
+    if (!memberIds || memberIds.length === 0) {
+      return NextResponse.json({ error: "memberIds required" }, { status: 400 });
+    }
+    const thread = getOrCreateFamilyThread(user.familyId, memberIds);
+    if (title) thread.title = title;
+    thread.updatedAt = new Date().toISOString();
+
+    return NextResponse.json({ thread: { id: thread.id, title: thread.title, memberIds: thread.memberIds, createdAt: thread.createdAt, updatedAt: thread.updatedAt } }, { status: 201 });
+  } catch (e: any) {
+    const msg = e?.message || "Server error";
+    const code = msg === "UNAUTHENTICATED" ? 401 : 500;
+    return NextResponse.json({ error: msg }, { status: code });
+  }
+}
+
+2.2 GET /api/threads/[threadId] — thread details
+
+app/api/threads/[threadId]/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "@/lib/auth";
+import { threads } from "@/lib/memoryStore";
+
+export async function GET(req: NextRequest, { params }: { params: { threadId: string } }) {
+  try {
+    const user = await requireUser(req);
+    const t = threads.get(params.threadId);
+    if (!t || t.familyId !== user.familyId) {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
+    // TODO: resolve member names from your Users table
+    return NextResponse.json({
+      id: t.id,
+      title: t.title,
+      memberIds: t.memberIds,
+      memberNames: t.memberIds, // placeholder
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt
+    });
+  } catch (e: any) {
+    const msg = e?.message || "Server error";
+    const code = msg === "UNAUTHENTICATED" ? 401 : 500;
+    return NextResponse.json({ error: msg }, { status: code });
+  }
+}
+
+2.3 GET|POST /api/threads/[threadId]/messages — list/send
+
+app/api/threads/[threadId]/messages/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "@/lib/auth";
+import { threads, messages, cuid, files } from "@/lib/memoryStore";
+
+// GET list (cursor optional)
+export async function GET(req: NextRequest, { params }: { params: { threadId: string } }) {
+  try {
+    const user = await requireUser(req);
+    const t = threads.get(params.threadId);
+    if (!t || t.familyId !== user.familyId) return NextResponse.json({ error: "thread_not_found" }, { status: 404 });
+
+    const list = messages.get(t.id) || [];
+    const { searchParams } = new URL(req.url);
+    const limit = Math.min(parseInt(String(searchParams.get("limit") ?? "50"), 10) || 50, 200);
+    const cursorId = searchParams.get("cursor");
+    const cursor = cursorId ? list.findIndex((m) => m.id === cursorId) + 1 : 0;
+
+    const slice = list.slice(cursor, cursor + limit).map((m) => ({
+      id: m.id,
+      body: m.body,
+      author: { id: m.authorId, name: m.authorId }, // TODO: resolve names
+      attachments: m.fileIds.map((fid) => {
+        const f = files.get(fid);
+        return { id: fid, name: f?.name ?? fid, url: f?.url };
+      }),
+      createdAt: m.createdAt,
+    }));
+    const nextCursor = cursor + limit < list.length ? list[cursor + limit - 1]?.id : null;
+
+    return NextResponse.json({ messages: slice, nextCursor });
+  } catch (e: any) {
+    const msg = e?.message || "Server error";
+    const code = msg === "UNAUTHENTICATED" ? 401 : 500;
+    return NextResponse.json({ error: msg }, { status: code });
+  }
+}
+
+// POST create
+export async function POST(req: NextRequest, { params }: { params: { threadId: string } }) {
+  try {
+    const user = await requireUser(req);
+    const t = threads.get(params.threadId);
+    if (!t || t.familyId !== user.familyId) return NextResponse.json({ error: "thread_not_found" }, { status: 404 });
+
+    const { body, fileIds } = await req.json() as { body?: string; fileIds?: string[] };
+    if ((!body || !body.trim()) && !(fileIds && fileIds.length)) {
+      return NextResponse.json({ error: "empty_message" }, { status: 400 });
+    }
+    const now = new Date().toISOString();
+    const arr = messages.get(t.id) || [];
+    const msg = { id: cuid(), threadId: t.id, authorId: user.id, body: (body || "").trim(), fileIds: fileIds || [], createdAt: now };
+    arr.push(msg);
+    messages.set(t.id, arr);
+
+    // Realtime broadcast (see section 3)
+    await broadcastMessage({ threadId: t.id, message: {
+      id: msg.id,
+      body: msg.body,
+      author: { id: user.id, name: user.id },
+      attachments: (msg.fileIds || []).map(fid => {
+        const f = files.get(fid);
+        return { id: fid, name: f?.name ?? fid, url: f?.url };
+      }),
+      createdAt: msg.createdAt,
+    }});
+
+    return NextResponse.json({ message: { ...msg } }, { status: 201 });
+  } catch (e: any) {
+    const msg = e?.message || "Server error";
+    const code = msg === "UNAUTHENTICATED" ? 401 : 500;
+    return NextResponse.json({ error: msg }, { status: code });
+  }
+}
+
+/** Realtime broadcaster interface — implemented in section 3 (Pusher) */
+async function broadcastMessage(_payload: any) {
+  // no-op; replaced below when you add Pusher/Ably
+}
+
+2.4 GET /api/files/[id]/status — poll file status
+
+app/api/files/[id]/status/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "@/lib/auth";
+import { files } from "@/lib/memoryStore";
+
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    await requireUser(req);
+    const f = files.get(params.id);
+    if (!f) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return NextResponse.json({ id: f.id, name: f.name, url: f.url, status: f.status || "ready" });
+  } catch (e: any) {
+    const msg = e?.message || "Server error";
+    const code = msg === "UNAUTHENTICATED" ? 401 : 500;
+    return NextResponse.json({ error: msg }, { status: code });
+  }
+}
+
+3) Realtime options
+Option A (recommended serverless): Pusher Channels
+
+Install
+
+npm i @pusher/pusher @pusher/push-notifications-server
+
+
+.env
+
+PUSHER_APP_ID=xxx
+PUSHER_KEY=xxx
+PUSHER_SECRET=xxx
+PUSHER_CLUSTER=us3
+
+
+lib/pusher.ts
+
+import Pusher from "@pusher/pusher";
+
+export const pusher = new Pusher({
+  appId: process.env.PUSHER_APP_ID!,
+  key: process.env.PUSHER_KEY!,
+  secret: process.env.PUSHER_SECRET!,
+  cluster: process.env.PUSHER_CLUSTER!,
+  useTLS: true,
+});
+
+
+Broadcast from the messages POST handler
+Replace the broadcastMessage no-op in app/api/threads/[threadId]/messages/route.ts with:
+
+import { pusher } from "@/lib/pusher";
+
+async function broadcastMessage(payload: { threadId: string; message: any }) {
+  await pusher.trigger(`thread-${payload.threadId}`, "message:new", payload);
+}
+
+
+Client subscribe
+
+import Pusher from "pusher-js";
+
+const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, { cluster: "us3" });
+const channel = pusher.subscribe(`thread-${threadId}`);
+channel.bind("message:new", ({ message }) => {
+  setMessages((prev) => [...prev, message]);
+});
+
+
+This works great on Vercel—no custom Node server required.

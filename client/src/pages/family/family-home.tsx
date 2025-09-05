@@ -19,7 +19,7 @@ import { StatCard } from '@/components/StatCard';
 import { InviteFamilyMemberDialog } from '@/components/InviteFamilyMemberDialog';
 import QuickDocumentUpload from '@/components/upload/QuickDocumentUpload';
 import QuickPhotoUpload from '@/components/upload/QuickPhotoUpload';
-import { FamilyMessaging } from '@/components/messaging/FamilyMessaging';
+import { NewMessageModal } from '@/components/messaging/NewMessageModal';
 
 export default function FamilyHome() {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -405,8 +405,8 @@ export default function FamilyHome() {
       />
 
       {/* Family Messaging Modal */}
-      <FamilyMessaging 
-        isOpen={messagingOpen}
+      <NewMessageModal 
+        open={messagingOpen}
         onClose={() => setMessagingOpen(false)}
       />
     </div>

@@ -240,6 +240,13 @@ export interface IStorage {
   addThreadMember(member: InsertThreadMember): Promise<ThreadMember>;
   getThreadMessages(threadId: string, cursor?: string, limit?: number): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
+  
+  // Advanced messaging methods for new API
+  findThreadByMembers(memberIds: string[]): Promise<MessageThread | undefined>;
+  createThread(data: { title: string; memberIds: string[]; createdAt: Date; updatedAt: Date }): Promise<MessageThread>;
+  getThread(threadId: string): Promise<MessageThread | undefined>;
+  getMessages(threadId: string, limit: number, cursor?: string): Promise<{ messages: Message[]; nextCursor?: string }>;
+  updateThread(threadId: string, updates: { updatedAt: Date }): Promise<MessageThread | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1045,6 +1052,66 @@ export class DatabaseStorage implements IStorage {
 
   async createMessage(message: InsertMessage): Promise<Message> {
     const result = await db.insert(messages).values(message).returning();
+    return result[0];
+  }
+
+  // Advanced messaging methods for new API
+  async findThreadByMembers(memberIds: string[]): Promise<MessageThread | undefined> {
+    // For now, assume family thread - in production, implement proper member matching
+    const result = await db.select().from(messageThreads)
+      .where(eq(messageThreads.kind, "family"))
+      .limit(1);
+    return result[0];
+  }
+
+  async createThread(data: { title: string; memberIds: string[]; createdAt: Date; updatedAt: Date }): Promise<MessageThread> {
+    const thread = await db.insert(messageThreads).values({
+      kind: "family",
+      title: data.title,
+      familyId: "family-1", // TODO: Get from user context
+      createdBy: "me", // TODO: Get from user context
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt
+    }).returning();
+
+    // Add members to thread
+    for (const memberId of data.memberIds) {
+      await db.insert(threadMembers).values({
+        threadId: thread[0].id,
+        userId: memberId,
+        role: "member"
+      });
+    }
+
+    return thread[0];
+  }
+
+  async getThread(threadId: string): Promise<MessageThread | undefined> {
+    const result = await db.select().from(messageThreads)
+      .where(eq(messageThreads.id, threadId))
+      .limit(1);
+    return result[0];
+  }
+
+  async getMessages(threadId: string, limit: number, cursor?: string): Promise<{ messages: Message[]; nextCursor?: string }> {
+    let query = db.select().from(messages)
+      .where(eq(messages.threadId, threadId))
+      .orderBy(desc(messages.createdAt))
+      .limit(limit + 1); // Get one extra to determine if there's a next page
+
+    const result = await query;
+    const hasMore = result.length > limit;
+    const messageList = hasMore ? result.slice(0, limit) : result;
+    const nextCursor = hasMore ? result[limit - 1].id : undefined;
+
+    return { messages: messageList, nextCursor };
+  }
+
+  async updateThread(threadId: string, updates: { updatedAt: Date }): Promise<MessageThread | undefined> {
+    const result = await db.update(messageThreads)
+      .set(updates)
+      .where(eq(messageThreads.id, threadId))
+      .returning();
     return result[0];
   }
 }
