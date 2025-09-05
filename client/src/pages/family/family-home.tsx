@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 import {
   Users, FileText, MessageCircle, Calendar, Image as ImageIcon, Shield,
   Heart, Clock, Star, Bell, Plus, ArrowRight, Activity,
@@ -20,6 +21,23 @@ import { InviteFamilyMemberDialog } from '@/components/InviteFamilyMemberDialog'
 export default function FamilyHome() {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+
+  // Fetch family stats from API
+  const { data: familyData, isLoading: statsLoading } = useQuery<{
+    totalMembers: number;
+    recentlyAdded: Array<{
+      id: string;
+      name: string;
+      createdAt: string;
+    }>;
+  }>({
+    queryKey: ['/api/family/stats'],
+  });
+
+  // Fetch family members from API
+  const { data: familyMembers, isLoading: membersLoading } = useQuery({
+    queryKey: ['/api/family/members'],
+  });
 
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, href: '/family', isActive: true },
@@ -111,17 +129,19 @@ export default function FamilyHome() {
     }
   ];
 
+  // Create dynamic stats based on API data
   const familyStats = [
     { 
       label: 'Family Members', 
-      value: 5, 
+      value: familyData?.totalMembers || 0, 
       icon: Users,
       href: '/family/ids?tab=people&sort=recent',
-      previewItems: [
-        { id: "1", title: "John Smith", sub: "Added today", href: "/family/ids/person/1" },
-        { id: "2", title: "Sarah Johnson", sub: "Updated profile", href: "/family/ids/person/2" },
-        { id: "3", title: "Mike Wilson", sub: "Emergency contact added", href: "/family/ids/person/3" }
-      ],
+      previewItems: familyData?.recentlyAdded?.map((member: any) => ({
+        id: member.id,
+        title: member.name,
+        sub: `Added ${new Date(member.createdAt).toLocaleDateString()}`,
+        href: `/family/ids/person/${member.id}`
+      })) || [],
       dropdownActions: [
         { label: "Add Person", href: "/family/ids/new?type=person", icon: <UserPlus className="h-4 w-4" /> },
         { label: "Invite Family Member", onClick: () => setInviteDialogOpen(true), icon: <Mail className="h-4 w-4" /> },
