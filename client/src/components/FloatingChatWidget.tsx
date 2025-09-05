@@ -200,23 +200,29 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
     .map(userId => familyMembers.find(m => m.id === userId)?.name)
     .filter(Boolean) as string[];
   const recentMessages = messages.slice(-3); // Show last 3 in preview
-  const unreadCount = messages.length > 0 ? Math.min(messages.length, 9) : 0;
+  // No unread count when chat is open since user is actively viewing
+  const unreadCount = isOpen ? 0 : Math.min(messages.length, 3);
   
   // Message bubble component
   const MessageBubble = ({ message, isMe }: { message: Message; isMe: boolean }) => {
-    if (!message || !message.author) return null;
+    if (!message || !message.body) return null;
+    
+    // Handle both author object and authorId string from API
+    const authorName = message.author?.name || 
+                      (message.authorId === currentUser.id ? currentUser.name : 'Family Member');
+    const authorInitials = authorName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U';
     
     return (
       <div className={`flex gap-3 group ${isMe ? 'flex-row-reverse' : ''} mb-3`}>
         {!isMe && (
           <div className="w-6 h-6 rounded-full bg-[#D4AF37]/20 flex items-center justify-center text-xs text-[#D4AF37] font-medium">
-            {message.author.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
+            {authorInitials}
           </div>
         )}
         
         <div className={`flex-1 max-w-[85%] ${isMe ? 'text-right' : ''}`}>
           {!isMe && (
-            <div className="text-xs text-white/60 mb-1">{message.author.name || 'Unknown'}</div>
+            <div className="text-xs text-white/60 mb-1">{authorName}</div>
           )}
           
           <div className={`rounded-2xl px-3 py-2 ${
@@ -225,7 +231,7 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
               : 'bg-white/10 text-white'
           }`}>
             <div className="text-sm leading-relaxed whitespace-pre-wrap">
-              {message.body || ''}
+              {message.body}
             </div>
             <div className={`text-xs mt-1 ${isMe ? 'text-black/60' : 'text-white/50'}`}>
               {message.createdAt ? formatTime(message.createdAt) : ''}
