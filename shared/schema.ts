@@ -619,6 +619,7 @@ export const familyRoleEnum = pgEnum("family_role", ["owner", "parent", "child",
 
 export const invites = pgTable("invites", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
   email: text("email").notNull(),
   permission: invitePermissionEnum("permission").notNull().default("view"),
   familyRole: familyRoleEnum("family_role").notNull().default("member"),
@@ -642,14 +643,139 @@ export const inviteLinks = pgTable("invite_links", {
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });
 
-export const familyMembers = pgTable("family_members", {
+// Core family management
+export const families = pgTable("families", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
-  email: text("email").unique(),
+  ownerId: varchar("owner_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const familyMembers = pgTable("family_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  name: text("name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  dateOfBirth: timestamp("date_of_birth"),
+  relationshipToOwner: text("relationship_to_owner"), // "spouse", "child", "parent", etc.
   role: familyRoleEnum("role").notNull().default("member"),
   avatarColor: text("avatar_color").default("#3498DB"),
   itemCount: integer("item_count").default(0).notNull(),
+  emergencyContact: boolean("emergency_contact").default(false),
+  profileImageUrl: text("profile_image_url"),
+  address: json("address"), // {street, city, state, zip, country}
+  medicalInfo: json("medical_info"), // {conditions, medications, allergies, doctors}
+  identificationInfo: json("identification_info"), // {ssn, passport, license, etc}
   userId: varchar("user_id"), // Links to users table when they accept invite
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Family Business Items (detailed breakdown)
+export const familyBusinessItems = pgTable("family_business_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  ownerId: varchar("owner_id").notNull(), // family member who owns this business item
+  type: businessTypeEnum("type").notNull(),
+  title: text("title").notNull(),
+  subtitle: text("subtitle"),
+  section: text("section").notNull(), // "documents", "finances", "legal", "people", "other"
+  category: text("category").notNull(),
+  value: text("value"),
+  meta: json("meta"), // Additional metadata like contact info, sensitive flags
+  docCount: integer("doc_count").default(0),
+  tags: text("tags").array().default([]).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Family Legal Documents
+export const familyLegalDocs = pgTable("family_legal_docs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  type: text("type").notNull(), // "will", "trust", "power-of-attorney", etc.
+  title: text("title").notNull(),
+  status: text("status").default("draft").notNull(), // "draft", "active", "expired"
+  documentUrl: text("document_url"),
+  notarizedDate: timestamp("notarized_date"),
+  expirationDate: timestamp("expiration_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Family Legal Document Items (detailed breakdown)
+export const familyLegalItems = pgTable("family_legal_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  legalDocId: varchar("legal_doc_id").notNull(),
+  section: text("section").notNull(), // "documents", "executors", "notes", "attachments", "other"
+  category: text("category").notNull(),
+  title: text("title").notNull(),
+  value: text("value"),
+  meta: json("meta"), // Additional metadata like contact info, sensitive flags
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Family Insurance Policies
+export const familyInsurancePolicies = pgTable("family_insurance_policies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  type: text("type").notNull(), // "health", "life", "auto", "home", "disability"
+  title: text("title").notNull(),
+  provider: text("provider").notNull(),
+  policyNumber: text("policy_number"),
+  coverageAmount: decimal("coverage_amount"),
+  premiumAmount: decimal("premium_amount"),
+  premiumFrequency: text("premium_frequency"), // "monthly", "quarterly", "annually"
+  startDate: timestamp("start_date"),
+  renewalDate: timestamp("renewal_date"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Family Insurance Items (detailed breakdown)
+export const familyInsuranceItems = pgTable("family_insurance_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  insuranceId: varchar("insurance_id").notNull(),
+  section: text("section").notNull(), // "policy", "members", "financials", "documents"
+  category: text("category").notNull(),
+  title: text("title").notNull(),
+  value: text("value"),
+  meta: json("meta"), // Additional metadata like sensitive flags
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Family Tax Years
+export const familyTaxYears = pgTable("family_tax_years", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  taxYear: text("tax_year").notNull(),
+  status: text("status").default("pending").notNull(), // "pending", "filed", "processed", "audit"
+  federalRefund: decimal("federal_refund"),
+  stateRefund: decimal("state_refund"),
+  preparer: text("preparer"), // "self", "cpa", "software"
+  filedDate: timestamp("filed_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Family Tax Items (detailed breakdown)
+export const familyTaxItems = pgTable("family_tax_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  taxYear: text("tax_year").notNull(),
+  section: text("section").notNull(), // "documents", "forms", "payments", "notes", "other"
+  category: text("category").notNull(),
+  title: text("title").notNull(),
+  value: text("value"),
+  meta: json("meta"), // Additional metadata like sensitive flags
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -827,7 +953,110 @@ export type InsertCredentialShare = z.infer<typeof insertCredentialShareSchema>;
 export type CredentialShare = typeof credentialShares.$inferSelect;
 
 // Invite schemas
+export const insertFamilySchema = createInsertSchema(families).pick({
+  name: true,
+  ownerId: true,
+});
+
+export const insertFamilyMemberSchema = createInsertSchema(familyMembers).pick({
+  familyId: true,
+  name: true,
+  email: true,
+  phone: true,
+  dateOfBirth: true,
+  relationshipToOwner: true,
+  role: true,
+  avatarColor: true,
+  itemCount: true,
+  emergencyContact: true,
+  profileImageUrl: true,
+  address: true,
+  medicalInfo: true,
+  identificationInfo: true,
+  userId: true,
+  isActive: true,
+});
+
+export const insertFamilyBusinessItemSchema = createInsertSchema(familyBusinessItems).pick({
+  familyId: true,
+  ownerId: true,
+  type: true,
+  title: true,
+  subtitle: true,
+  section: true,
+  category: true,
+  value: true,
+  meta: true,
+  docCount: true,
+  tags: true,
+});
+
+export const insertFamilyLegalDocSchema = createInsertSchema(familyLegalDocs).pick({
+  familyId: true,
+  type: true,
+  title: true,
+  status: true,
+  documentUrl: true,
+  notarizedDate: true,
+  expirationDate: true,
+});
+
+export const insertFamilyLegalItemSchema = createInsertSchema(familyLegalItems).pick({
+  familyId: true,
+  legalDocId: true,
+  section: true,
+  category: true,
+  title: true,
+  value: true,
+  meta: true,
+});
+
+export const insertFamilyInsurancePolicySchema = createInsertSchema(familyInsurancePolicies).pick({
+  familyId: true,
+  type: true,
+  title: true,
+  provider: true,
+  policyNumber: true,
+  coverageAmount: true,
+  premiumAmount: true,
+  premiumFrequency: true,
+  startDate: true,
+  renewalDate: true,
+  isActive: true,
+});
+
+export const insertFamilyInsuranceItemSchema = createInsertSchema(familyInsuranceItems).pick({
+  familyId: true,
+  insuranceId: true,
+  section: true,
+  category: true,
+  title: true,
+  value: true,
+  meta: true,
+});
+
+export const insertFamilyTaxYearSchema = createInsertSchema(familyTaxYears).pick({
+  familyId: true,
+  taxYear: true,
+  status: true,
+  federalRefund: true,
+  stateRefund: true,
+  preparer: true,
+  filedDate: true,
+});
+
+export const insertFamilyTaxItemSchema = createInsertSchema(familyTaxItems).pick({
+  familyId: true,
+  taxYear: true,
+  section: true,
+  category: true,
+  title: true,
+  value: true,
+  meta: true,
+});
+
 export const insertInviteSchema = createInsertSchema(invites).pick({
+  familyId: true,
   email: true,
   permission: true,
   familyRole: true,
@@ -847,14 +1076,33 @@ export const insertInviteLinkSchema = createInsertSchema(inviteLinks).pick({
   expiresAt: true,
 });
 
-export const insertFamilyMemberSchema = createInsertSchema(familyMembers).pick({
-  name: true,
-  email: true,
-  role: true,
-  avatarColor: true,
-  itemCount: true,
-  userId: true,
-});
+// Family types
+export type InsertFamily = z.infer<typeof insertFamilySchema>;
+export type Family = typeof families.$inferSelect;
+
+export type InsertFamilyMember = z.infer<typeof insertFamilyMemberSchema>;
+export type FamilyMember = typeof familyMembers.$inferSelect;
+
+export type InsertFamilyBusinessItem = z.infer<typeof insertFamilyBusinessItemSchema>;
+export type FamilyBusinessItem = typeof familyBusinessItems.$inferSelect;
+
+export type InsertFamilyLegalDoc = z.infer<typeof insertFamilyLegalDocSchema>;
+export type FamilyLegalDoc = typeof familyLegalDocs.$inferSelect;
+
+export type InsertFamilyLegalItem = z.infer<typeof insertFamilyLegalItemSchema>;
+export type FamilyLegalItem = typeof familyLegalItems.$inferSelect;
+
+export type InsertFamilyInsurancePolicy = z.infer<typeof insertFamilyInsurancePolicySchema>;
+export type FamilyInsurancePolicy = typeof familyInsurancePolicies.$inferSelect;
+
+export type InsertFamilyInsuranceItem = z.infer<typeof insertFamilyInsuranceItemSchema>;
+export type FamilyInsuranceItem = typeof familyInsuranceItems.$inferSelect;
+
+export type InsertFamilyTaxYear = z.infer<typeof insertFamilyTaxYearSchema>;
+export type FamilyTaxYear = typeof familyTaxYears.$inferSelect;
+
+export type InsertFamilyTaxItem = z.infer<typeof insertFamilyTaxItemSchema>;
+export type FamilyTaxItem = typeof familyTaxItems.$inferSelect;
 
 // Invite types
 export type InsertInvite = z.infer<typeof insertInviteSchema>;
@@ -862,9 +1110,6 @@ export type Invite = typeof invites.$inferSelect;
 
 export type InsertInviteLink = z.infer<typeof insertInviteLinkSchema>;
 export type InviteLink = typeof inviteLinks.$inferSelect;
-
-export type InsertFamilyMember = z.infer<typeof insertFamilyMemberSchema>;
-export type FamilyMember = typeof familyMembers.$inferSelect;
 
 // Business type exports  
 export type BusinessItem = typeof businessItems.$inferSelect;
