@@ -168,6 +168,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Invitation Acceptance API endpoints
+  
+  // GET /api/invitations/:token - Get invitation details for acceptance
+  app.get("/api/invitations/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const invite = await storage.getInviteByToken(token);
+      
+      if (!invite) {
+        return res.status(404).json({ ok: false, error: "invalid_token" });
+      }
+      
+      const now = new Date();
+      if (invite.expiresAt && invite.expiresAt < now) {
+        return res.status(410).json({ ok: false, error: "expired" });
+      }
+      
+      if (invite.acceptedAt) {
+        return res.status(409).json({ ok: false, error: "already_accepted" });
+      }
+      
+      if (invite.status === 'revoked') {
+        return res.status(410).json({ ok: false, error: "revoked" });
+      }
+      
+      // Get family info for the invite preview
+      const family = await storage.getFamily(invite.familyId);
+      
+      res.json({
+        ok: true,
+        invite: {
+          id: invite.id,
+          familyId: invite.familyId,
+          familyName: family?.name || "Family",
+          role: invite.familyRole,
+          message: invite.message,
+          expiresAt: invite.expiresAt,
+          status: "pending"
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching invite:", error);
+      res.status(500).json({ ok: false, error: "server_error" });
+    }
+  });
+
+  // POST /api/invitations/:token/accept - Accept invitation
+  app.post("/api/invitations/:token/accept", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { acceptingUserId, displayName } = req.body;
+      
+      const invite = await storage.getInviteByToken(token);
+      
+      if (!invite) {
+        return res.status(404).json({ ok: false, error: "invalid_token" });
+      }
+      
+      const now = new Date();
+      if (invite.expiresAt && invite.expiresAt < now) {
+        return res.status(410).json({ ok: false, error: "expired" });
+      }
+      
+      if (invite.acceptedAt) {
+        return res.status(409).json({ ok: false, error: "already_accepted" });
+      }
+      
+      if (invite.status === 'revoked') {
+        return res.status(410).json({ ok: false, error: "revoked" });
+      }
+      
+      // Create family member
+      const memberData = {
+        familyId: invite.familyId,
+        name: displayName || invite.email.split('@')[0],
+        email: invite.email,
+        role: invite.familyRole,
+        userId: acceptingUserId || null,
+        relationshipToOwner: invite.familyRole,
+        phone: null,
+        dateOfBirth: null,
+        avatarColor: '#3498DB',
+        itemCount: 0,
+        emergencyContact: false,
+        profileImageUrl: null,
+        address: null,
+        medicalInfo: null,
+        identificationInfo: null,
+        isActive: true
+      };
+      
+      const member = await storage.createFamilyMember(memberData);
+      
+      // Mark invitation as accepted
+      await storage.acceptInvite(token);
+      
+      res.json({
+        ok: true,
+        familyId: invite.familyId,
+        member: {
+          id: member.id,
+          name: member.name,
+          role: member.role
+        }
+      });
+    } catch (error) {
+      console.error("Error accepting invite:", error);
+      res.status(500).json({ ok: false, error: "server_error" });
+    }
+  });
+
   // Family Invite API endpoints
 
   // POST /api/family/invites - Create a new invitation
@@ -189,6 +300,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       expiresAt.setDate(expiresAt.getDate() + (expiresInDays || 7));
 
       const inviteData = {
+        familyId: "family-1", // TODO: Get from user's family
         email: email.toLowerCase(),
         permission,
         familyRole,

@@ -73,6 +73,7 @@ import MarriedEstatePlanning from "@/pages/married-estate-planning";
 import DisasterEmergencyContacts from "@/pages/disaster-emergency-contacts";
 import DisasterImportantDocuments from "@/pages/disaster-important-documents";
 import DisasterMedicalInformation from "@/pages/disaster-medical-information";
+import InviteAccept from "@/pages/invite-accept";
 import DisasterPropertyInformation from "@/pages/disaster-property-information";
 import DisasterPetRecords from "@/pages/disaster-pet-records";
 import DisasterEmergencyPlan from "@/pages/disaster-emergency-plan";
@@ -143,6 +144,7 @@ function AdminRouter() {
 function Router() {
   return (
     <Switch>
+      <Route path="/invite/:token" component={InviteAccept} />
       <Route path="/" component={Home} />
       <Route path="/security" component={Security} />
       <Route path="/security-documentation" component={SecurityDocumentation} />
