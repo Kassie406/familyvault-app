@@ -356,7 +356,10 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
                 disabled={sendMutation.isPending}
               />
               <button
-                onClick={handleSendMessage}
+                onClick={() => {
+                  console.log("Send button clicked!", { message, chatId });
+                  handleSendMessage();
+                }}
                 disabled={!message.trim() || sendMutation.isPending}
                 className="bg-[#D4AF37] hover:bg-[#D4AF37]/90 disabled:opacity-50 disabled:cursor-not-allowed text-black p-2 rounded-lg transition-colors"
                 data-testid="button-send-message"
