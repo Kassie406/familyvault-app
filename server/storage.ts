@@ -980,6 +980,17 @@ export class DatabaseStorage implements IStorage {
     // Temporary mock implementation
     return [];
   }
+
+  async getFamily(id: string): Promise<Family | undefined> {
+    // Temporary mock implementation
+    return {
+      id: id,
+      name: "Johnson Family",
+      ownerId: "user-1",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+  }
 }
 
 export const storage = new DatabaseStorage();

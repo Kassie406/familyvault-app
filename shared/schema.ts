@@ -624,13 +624,14 @@ export const invites = pgTable("invites", {
   permission: invitePermissionEnum("permission").notNull().default("view"),
   familyRole: familyRoleEnum("family_role").notNull().default("member"),
   invitedByUserId: varchar("invited_by_user_id").notNull(),
-  token: text("token").notNull(),
+  token: text("token").notNull().unique(),
   status: text("status").notNull().default("pending"), // pending | accepted | revoked | expired | bounced
   requireLogin: boolean("require_login").notNull().default(true),
   message: text("message"),
   expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
   acceptedAt: timestamp("accepted_at", { mode: "date" }),
+  acceptedBy: varchar("accepted_by"),
 });
 
 export const inviteLinks = pgTable("invite_links", {
