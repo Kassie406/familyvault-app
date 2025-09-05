@@ -248,15 +248,15 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
       <div className="fixed bottom-6 right-6 z-50">
         <button
           onClick={handleToggle}
-          className="group relative bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-black rounded-full p-4 shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 opacity-100"
+          className="group relative bg-[#D4AF37] hover:bg-[#D4AF37] text-black rounded-full p-4 shadow-2xl"
           data-testid="button-floating-chat"
           aria-label="Open family chat"
-          style={{ opacity: 1, visibility: 'visible' }}
+          style={{ opacity: '1 !important', visibility: 'visible !important', backgroundColor: '#D4AF37 !important' }}
         >
           <MessageCircle className="h-6 w-6" />
           
           {/* Pulse animation ring */}
-          <div className="absolute inset-0 rounded-full bg-[#D4AF37]/30 animate-ping opacity-75 group-hover:opacity-0 transition-opacity"></div>
+          <div className="absolute inset-0 rounded-full bg-[#D4AF37]/30 animate-ping opacity-75"></div>
           
           {/* Notification badge */}
           {unreadCount > 0 && (
