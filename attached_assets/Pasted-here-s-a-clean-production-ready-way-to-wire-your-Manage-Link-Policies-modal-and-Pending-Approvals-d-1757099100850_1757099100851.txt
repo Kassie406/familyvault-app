@@ -1,0 +1,360 @@
+here’s a clean, production-ready way to wire your Manage Link Policies modal and Pending Approvals drawer to real API routes using Express + Drizzle. It’s drop-in: add the DB migration/schema, mount the routes, and paste the tiny client calls into your components.
+
+1) Database
+SQL migration
+-- Link policies at workspace or collection scope
+CREATE TABLE link_policies (
+  id            TEXT PRIMARY KEY,
+  scope_type    TEXT NOT NULL CHECK (scope_type IN ('workspace','collection')),
+  scope_id      TEXT,                               -- NULL for workspace
+  default_scope TEXT NOT NULL CHECK (default_scope IN ('invited','org','anyone')),
+  require_expiry BOOLEAN NOT NULL DEFAULT TRUE,
+  max_expiry_days INTEGER DEFAULT 30,
+  allow_never    BOOLEAN NOT NULL DEFAULT FALSE,
+  require_password BOOLEAN NOT NULL DEFAULT FALSE,
+  min_password_len INTEGER DEFAULT 8,
+  allow_download BOOLEAN NOT NULL DEFAULT TRUE,
+  watermark       BOOLEAN NOT NULL DEFAULT FALSE,
+  disable_copy    BOOLEAN NOT NULL DEFAULT FALSE,
+  domain_allowlist TEXT[],
+  domain_blocklist TEXT[],
+  updated_by     TEXT NOT NULL,
+  updated_at     TIMESTAMP NOT NULL DEFAULT NOW(),
+  UNIQUE (scope_type, scope_id)
+);
+
+-- Access approval queue
+CREATE TABLE approvals (
+  id            TEXT PRIMARY KEY,
+  document_id   TEXT NOT NULL,
+  requester_id  TEXT NOT NULL,
+  requested_role TEXT NOT NULL CHECK (requested_role IN ('viewer','commenter','editor')),
+  reason        TEXT,
+  is_external   BOOLEAN NOT NULL DEFAULT FALSE,
+  domain        TEXT,
+  state         TEXT NOT NULL DEFAULT 'pending' CHECK (state IN ('pending','approved','denied','changes_requested')),
+  decided_by    TEXT,
+  decided_at    TIMESTAMP,
+  decision_reason TEXT,
+  expires_at    TIMESTAMP,
+  created_at    TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_approvals_state ON approvals (state);
+CREATE INDEX idx_approvals_doc ON approvals (document_id);
+
+Drizzle schema (TS)
+// db/schema-link.ts
+import { pgTable, text, boolean, integer, timestamp } from "drizzle-orm/pg-core";
+
+export const linkPolicies = pgTable("link_policies", {
+  id: text("id").primaryKey(),
+  scopeType: text("scope_type").notNull(),   // 'workspace' | 'collection'
+  scopeId: text("scope_id"),                 // null for workspace
+  defaultScope: text("default_scope").notNull(), // 'invited'|'org'|'anyone'
+  requireExpiry: boolean("require_expiry").notNull().default(true),
+  maxExpiryDays: integer("max_expiry_days"),
+  allowNever: boolean("allow_never").notNull().default(false),
+  requirePassword: boolean("require_password").notNull().default(false),
+  minPasswordLen: integer("min_password_len"),
+  allowDownload: boolean("allow_download").notNull().default(true),
+  watermark: boolean("watermark").notNull().default(false),
+  disableCopy: boolean("disable_copy").notNull().default(false),
+  domainAllowlist: text("domain_allowlist").array(),
+  domainBlocklist: text("domain_blocklist").array(),
+  updatedBy: text("updated_by").notNull(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const approvals = pgTable("approvals", {
+  id: text("id").primaryKey(),
+  documentId: text("document_id").notNull(),
+  requesterId: text("requester_id").notNull(),
+  requestedRole: text("requested_role").notNull(),
+  reason: text("reason"),
+  isExternal: boolean("is_external").notNull().default(false),
+  domain: text("domain"),
+  state: text("state").notNull().default("pending"),
+  decidedBy: text("decided_by"),
+  decidedAt: timestamp("decided_at"),
+  decisionReason: text("decision_reason"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+2) API routes (Express)
+
+Assumes you already have documents + users tables and an auth middleware that gives you req.user.id and req.user.isAdmin.
+
+// routes/link-policies.ts
+import { Router } from "express";
+import { db } from "../db";
+import { linkPolicies } from "../db/schema-link";
+import { and, eq } from "drizzle-orm";
+import crypto from "crypto";
+
+const router = Router();
+
+// GET /api/link-policies?scope=workspace|collection&scopeId=...
+router.get("/", async (req, res) => {
+  const scope = String(req.query.scope || "workspace");
+  const scopeId = scope === "collection" ? String(req.query.scopeId || "") : null;
+
+  const [row] = await db.select().from(linkPolicies)
+    .where(and(eq(linkPolicies.scopeType, scope), eq(linkPolicies.scopeId, scopeId)));
+  // fallback: create a sensible default on first access
+  if (!row) {
+    const [created] = await db.insert(linkPolicies).values({
+      id: crypto.randomUUID(),
+      scopeType: scope,
+      scopeId,
+      defaultScope: "invited",
+      requireExpiry: true,
+      maxExpiryDays: 30,
+      allowNever: false,
+      requirePassword: false,
+      minPasswordLen: 8,
+      allowDownload: true,
+      watermark: false,
+      disableCopy: false,
+      domainAllowlist: [],
+      domainBlocklist: [],
+      updatedBy: "system",
+    }).returning();
+    return res.json(created);
+  }
+  res.json(row);
+});
+
+// PUT /api/link-policies  (admin only)
+router.put("/", async (req: any, res) => {
+  if (!req.user?.isAdmin) return res.status(403).json({ error: "Admin only" });
+
+  const {
+    scopeType, scopeId = null,
+    defaultScope, requireExpiry, maxExpiryDays, allowNever,
+    requirePassword, minPasswordLen,
+    allowDownload, watermark, disableCopy,
+    domainAllowlist = [], domainBlocklist = []
+  } = req.body || {};
+
+  const [existing] = await db.select().from(linkPolicies)
+    .where(and(eq(linkPolicies.scopeType, scopeType), eq(linkPolicies.scopeId, scopeId)));
+
+  if (existing) {
+    const [row] = await db.update(linkPolicies).set({
+      defaultScope, requireExpiry, maxExpiryDays, allowNever,
+      requirePassword, minPasswordLen,
+      allowDownload, watermark, disableCopy,
+      domainAllowlist, domainBlocklist,
+      updatedBy: req.user.id, updatedAt: new Date(),
+    }).where(eq(linkPolicies.id, existing.id)).returning();
+    return res.json(row);
+  } else {
+    const [row] = await db.insert(linkPolicies).values({
+      id: crypto.randomUUID(),
+      scopeType, scopeId,
+      defaultScope, requireExpiry, maxExpiryDays, allowNever,
+      requirePassword, minPasswordLen,
+      allowDownload, watermark, disableCopy,
+      domainAllowlist, domainBlocklist,
+      updatedBy: req.user.id,
+    }).returning();
+    return res.json(row);
+  }
+});
+
+// POST /api/link-policies/reconcile (admin: preview or revoke non-compliant links)
+// For now, return a stub count; later wire into your sharing subsystem.
+router.post("/reconcile", async (req: any, res) => {
+  if (!req.user?.isAdmin) return res.status(403).json({ error: "Admin only" });
+  // TODO: scan active links and return {wouldRevoke:n} or perform revoke
+  res.json({ ok: true, wouldRevoke: 0 });
+});
+
+export default router;
+
+// routes/approvals.ts
+import { Router } from "express";
+import { db } from "../db";
+import { approvals } from "../db/schema-link";
+import { documents, users } from "../db/schema"; // adjust names
+import { eq, and } from "drizzle-orm";
+
+const router = Router();
+
+// GET /api/approvals?state=pending
+router.get("/", async (req, res) => {
+  const state = String(req.query.state || "pending");
+  const rows = await db
+    .select({
+      id: approvals.id,
+      documentId: approvals.documentId,
+      requestedRole: approvals.requestedRole,
+      reason: approvals.reason,
+      createdAt: approvals.createdAt,
+      isExternal: approvals.isExternal,
+      domain: approvals.domain,
+      requesterId: approvals.requesterId,
+      requesterName: users.name,
+      docTitle: documents.title,
+    })
+    .from(approvals)
+    .leftJoin(users, eq(users.id, approvals.requesterId))
+    .leftJoin(documents, eq(documents.id, approvals.documentId))
+    .where(eq(approvals.state, state))
+    .orderBy(approvals.createdAt);
+  res.json(rows);
+});
+
+// POST /api/approvals/:id/approve {role, expiresAt}
+router.post("/:id/approve", async (req: any, res) => {
+  if (!req.user?.isAdmin) return res.status(403).json({ error: "Admin only" });
+
+  const id = String(req.params.id);
+  const { role, expiresAt } = req.body || {};
+
+  // 1) mark approved
+  const [row] = await db.update(approvals).set({
+    state: "approved",
+    decidedBy: req.user.id,
+    decidedAt: new Date(),
+    expiresAt: expiresAt ? new Date(expiresAt) : null,
+  }).where(and(eq(approvals.id, id), eq(approvals.state, "pending"))).returning();
+
+  if (!row) return res.status(404).json({ error: "Not found or already processed" });
+
+  // 2) grant access in your sharing system (pseudo):
+  // await grantDocumentAccess({ documentId: row.documentId, userId: row.requesterId, role, expiresAt });
+
+  res.json({ ok: true });
+});
+
+// POST /api/approvals/:id/deny {reason}
+router.post("/:id/deny", async (req: any, res) => {
+  if (!req.user?.isAdmin) return res.status(403).json({ error: "Admin only" });
+  const id = String(req.params.id);
+  const { reason } = req.body || {};
+
+  const [row] = await db.update(approvals).set({
+    state: "denied",
+    decidedBy: req.user.id,
+    decidedAt: new Date(),
+    decisionReason: reason || null,
+  }).where(and(eq(approvals.id, id), eq(approvals.state, "pending"))).returning();
+
+  if (!row) return res.status(404).json({ error: "Not found or already processed" });
+  res.json({ ok: true });
+});
+
+// POST /api/approvals/:id/request-changes {message}
+router.post("/:id/request-changes", async (req: any, res) => {
+  if (!req.user?.isAdmin) return res.status(403).json({ error: "Admin only" });
+  const id = String(req.params.id);
+  const { message } = req.body || {};
+
+  const [row] = await db.update(approvals).set({
+    state: "changes_requested",
+    decidedBy: req.user.id,
+    decidedAt: new Date(),
+    decisionReason: message || null,
+  }).where(and(eq(approvals.id, id), eq(approvals.state, "pending"))).returning();
+
+  if (!row) return res.status(404).json({ error: "Not found or already processed" });
+  // Optionally notify requester here
+  res.json({ ok: true });
+});
+
+export default router;
+
+
+Mount the routes
+
+// server.ts
+import linkPoliciesRouter from "./routes/link-policies";
+import approvalsRouter from "./routes/approvals";
+
+app.use("/api/link-policies", linkPoliciesRouter);
+app.use("/api/approvals", approvalsRouter);
+
+3) Front-end wiring (drop into your components)
+Policies (modal) – load/save
+// api/policies.ts
+export async function fetchPolicy(scopeType: 'workspace'|'collection', scopeId?: string) {
+  const q = new URLSearchParams({ scope: scopeType, ...(scopeType==='collection' ? { scopeId: scopeId! } : {}) });
+  const r = await fetch(`/api/link-policies?${q.toString()}`);
+  if (!r.ok) throw new Error("Failed to load policy");
+  return r.json();
+}
+export async function savePolicy(payload: any) {
+  const r = await fetch(`/api/link-policies`, {
+    method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
+  });
+  if (!r.ok) throw new Error("Failed to save policy");
+  return r.json();
+}
+
+
+In your PolicyModal:
+
+// onOpen
+const data = await fetchPolicy(scopeType, scopeId);
+setForm(data);
+
+// onSave
+await savePolicy({ ...form, scopeType, scopeId: scopeType==='collection' ? scopeId : null });
+toast.success("Policies saved");
+onClose();
+
+Approvals (drawer) – list + actions
+// api/approvals.ts
+export async function listPending() {
+  const r = await fetch(`/api/approvals?state=pending`); if (!r.ok) throw new Error("Load failed");
+  return r.json();
+}
+export async function approve(id: string, role: 'viewer'|'commenter'|'editor', expiresAt?: string) {
+  const r = await fetch(`/api/approvals/${id}/approve`, {
+    method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ role, expiresAt })
+  });
+  if (!r.ok) throw new Error("Approve failed");
+}
+export async function deny(id: string, reason?: string) {
+  const r = await fetch(`/api/approvals/${id}/deny`, {
+    method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ reason })
+  });
+  if (!r.ok) throw new Error("Deny failed");
+}
+export async function requestChanges(id: string, message?: string) {
+  const r = await fetch(`/api/approvals/${id}/request-changes`, {
+    method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ message })
+  });
+  if (!r.ok) throw new Error("Request changes failed");
+}
+
+
+In your ApprovalsDrawer:
+
+useEffect(() => { if (open) listPending().then(setRows).catch(() => toast.error("Failed to load")); }, [open]);
+
+// handlers
+await approve(row.id, selectedRole, selectedExpiry);
+setRows(prev => prev.filter(r => r.id !== row.id)); // optimistic
+toast.success("Approved");
+
+await deny(row.id, reason);
+setRows(prev => prev.filter(r => r.id !== row.id));
+toast("Denied");
+
+await requestChanges(row.id, msg);
+setRows(prev => prev.filter(r => r.id !== row.id));
+toast("Requested changes");
+
+4) Guardrails & compliance (quick)
+
+RBAC: Gate PUT /api/link-policies and all /api/approvals/* with admin checks (done above).
+
+Audit logging: Log who/when/what for policy changes and approvals/denials.
+
+External sharing: When default scope is anyone, display risk copy and auto-set expiry/watermark if enabled.
+
+Data retention: Keep approval records for your policy window (e.g., 1–2 years).

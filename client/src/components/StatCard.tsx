@@ -18,6 +18,7 @@ type StatCardProps = {
   fetchPreview?: () => Promise<PreviewItem[]>; // called on button click
   emptyText?: string;        // fallback when no recent items
   dropdownActions?: { label: string; href?: string; onClick?: () => void; icon?: React.ReactNode }[]; // action menu items
+  onViewAll?: () => void;    // custom "View all" handler
 };
 
 export function StatCard({
@@ -28,6 +29,7 @@ export function StatCard({
   fetchPreview,
   emptyText = "No recent activity",
   dropdownActions = [],
+  onViewAll,
 }: StatCardProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -155,12 +157,24 @@ export function StatCard({
                 <ChevronDown className="h-4 w-4 rotate-180" />
               </button>
             )}
-            <Link
-              href={href}
-              className="text-[10px] font-medium text-amber-400 hover:underline touch-manipulation"
-            >
-              View all
-            </Link>
+            {onViewAll ? (
+              <button
+                onClick={() => {
+                  onViewAll();
+                  setOpen(false);
+                }}
+                className="text-[10px] font-medium text-amber-400 hover:underline touch-manipulation"
+              >
+                View all
+              </button>
+            ) : (
+              <Link
+                href={href}
+                className="text-[10px] font-medium text-amber-400 hover:underline touch-manipulation"
+              >
+                View all
+              </Link>
+            )}
           </div>
         </div>
 
