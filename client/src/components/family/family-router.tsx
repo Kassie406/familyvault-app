@@ -43,6 +43,7 @@ import InboxPanel from './inbox-panel';
 import RemindersPanel from './reminders-panel';
 import FamilySettings from '@/pages/family/family-settings';
 import MessagesPage from '@/pages/messages/[threadId]';
+import FloatingChatWidget from '@/components/FloatingChatWidget';
 
 // Placeholder components for family portal pages
 function FamilyMembers() {
@@ -226,6 +227,9 @@ export default function FamilyRouter() {
       {/* Slide-over Panels - rendered above all routes */}
       <InboxPanel />
       <RemindersPanel />
+      
+      {/* Floating Chat Widget - Family Portal Only */}
+      <FloatingChatWidget />
     </>
   );
 }
