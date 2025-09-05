@@ -15,7 +15,10 @@ export const users = pgTable("users", {
   role: roleEnum("role").default("MEMBER").notNull(),
   orgId: varchar("org_id"),
   phone: text("phone").unique(),
+  phoneE164: varchar("phone_e164", { length: 20 }), // E.164 formatted phone for SMS
   phoneVerifiedAt: timestamp("phone_verified_at"),
+  smsOptIn: boolean("sms_opt_in").notNull().default(false), // SMS notifications preference
+  smsLastSentAt: timestamp("sms_last_sent_at"), // Cooldown tracking
   lastSeenAt: timestamp("last_seen_at"),
   // mfaSecret: text("mfa_secret"), // TOTP secret for two-factor authentication - TODO: Add back after DB migration
   createdAt: timestamp("created_at").defaultNow().notNull(),

@@ -6,6 +6,8 @@ import fileRoutes from "./routes/files";
 import mobileUploadRoutes from "./routes/mobile-upload";
 import smsRoutes from "./sms";
 import axios from "axios";
+import { sendSMSNotification } from "./lib/twilio";
+import { sendSMSNotificationsForMessage, markUserOnline, markUserOffline } from "./lib/sms-notifications";
 import { 
   insertInviteSchema, 
   insertFamilyMemberSchema,
@@ -709,60 +711,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST /api/threads/:id/messages - Send a message
+  // POST /api/threads/:id/messages - Send a message with SMS notifications
   app.post("/api/threads/:id/messages", async (req, res) => {
     try {
       const { id } = req.params;
-      const { body, fileIds = [] } = req.body;
+      const { body, fileIds = [], replyToId } = req.body;
       const userId = "current-user"; // TODO: Get from authenticated user
       
-      if (!body && (!fileIds || fileIds.length === 0)) {
+      if (!body?.trim() && (!fileIds || fileIds.length === 0)) {
         return res.status(400).json({ error: "Message body or files required" });
       }
 
       const messageData = {
         threadId: id,
         authorId: userId,
-        body,
-        fileIds
+        body: body?.trim(),
+        fileIds,
+        replyToId
       };
 
+      // 1) Store message in database
       const message = await storage.createMessage(messageData);
       
       // TODO: Broadcast via WebSocket to thread members
       console.log(`Broadcasting message ${message.id} to thread ${id}`);
       
-      // Send SMS notifications to offline family members
+      // 2) Send SMS notifications to eligible recipients
       try {
-        // Get thread members (excluding sender)
-        const threadMembers = await storage.getThreadMembers(id);
-        const recipientIds = threadMembers
-          .filter(member => member.userId !== userId)
-          .map(member => member.userId);
-        
-        if (recipientIds.length > 0) {
-          // Create message preview (first 50 characters)
-          const messagePreview = body ? body.substring(0, 50) + (body.length > 50 ? "..." : "") : "📎 Attachment";
-          
-          // Send SMS notifications asynchronously
-          axios.post(`http://localhost:5000/api/notify/message`, {
-            threadId: id,
-            senderName: "Family Member", // TODO: Get actual sender name
-            messagePreview,
-            recipientIds
-          }).catch(error => {
-            console.error("Failed to send SMS notifications:", error.message);
-          });
-        }
-      } catch (error) {
-        console.error("Error setting up SMS notifications:", error);
-        // Don't fail the message send if notifications fail
+        await sendSMSNotificationsForMessage(id, userId, body || "📎 Attachment");
+      } catch (smsError) {
+        console.error("SMS notification error:", smsError);
+        // Don't fail the message send if SMS fails
       }
-      
+
       res.status(201).json({ message });
     } catch (error) {
-      console.error("Error sending message:", error);
-      res.status(500).json({ error: "Failed to send message" });
+      console.error("Error creating message:", error);
+      res.status(500).json({ error: "Failed to create message" });
     }
   });
 
@@ -1113,6 +1098,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching widget data:", error);
       res.status(500).json({ error: "Failed to fetch widget data" });
+    }
+  });
+
+  // Twilio webhook handler for SMS delivery status
+  app.post("/api/twilio/status", async (req, res) => {
+    try {
+      const {
+        MessageSid,
+        MessageStatus,
+        To,
+        ErrorCode,
+        ErrorMessage
+      } = req.body || {};
+
+      console.log("Twilio delivery status:", {
+        MessageSid,
+        MessageStatus,
+        To,
+        ErrorCode,
+        ErrorMessage
+      });
+
+      // Log delivery status for monitoring/debugging
+      if (MessageStatus === 'failed' || ErrorCode) {
+        console.error(`SMS delivery failed for ${To}:`, {
+          messageId: MessageSid,
+          error: ErrorMessage || `Code: ${ErrorCode}`
+        });
+      } else if (MessageStatus === 'delivered') {
+        console.log(`SMS delivered successfully to ${To}: ${MessageSid}`);
+      }
+
+      // Optionally store delivery status in database for auditing
+      // await storage.logSMSDeliveryStatus({ MessageSid, MessageStatus, To, ErrorCode });
+
+      res.sendStatus(204); // Acknowledge receipt
+    } catch (error) {
+      console.error("Error processing Twilio webhook:", error);
+      res.sendStatus(500);
+    }
+  });
+
+  // User presence endpoints for SMS optimization
+  app.post("/api/presence/online", async (req, res) => {
+    try {
+      const userId = "current-user"; // TODO: Get from authenticated session
+      markUserOnline(userId);
+      res.json({ status: "online" });
+    } catch (error) {
+      console.error("Error marking user online:", error);
+      res.status(500).json({ error: "Failed to update presence" });
+    }
+  });
+
+  app.post("/api/presence/offline", async (req, res) => {
+    try {
+      const userId = "current-user"; // TODO: Get from authenticated session
+      markUserOffline(userId);
+      res.json({ status: "offline" });
+    } catch (error) {
+      console.error("Error marking user offline:", error);
+      res.status(500).json({ error: "Failed to update presence" });
     }
   });
 
