@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -7,7 +7,8 @@ import {
   Inbox, AlarmClock, CreditCard, Home as HomeIcon, Key, 
   Umbrella, Receipt, Scale, Building2, BookOpen, 
   Phone, DollarSign, Upload, ShieldAlert,
-  UserPlus, Mail, Settings, Share, Camera, FolderOpen, AlertCircle
+  UserPlus, Mail, Settings, Share, Camera, FolderOpen, AlertCircle,
+  Zap, Grid, BarChart3
 } from 'lucide-react';
 import { 
   ActionCard, 
@@ -20,15 +21,35 @@ import { InviteFamilyMemberDialog } from '@/components/InviteFamilyMemberDialog'
 import QuickDocumentUpload from '@/components/upload/QuickDocumentUpload';
 import QuickPhotoUpload from '@/components/upload/QuickPhotoUpload';
 import { NewMessageModal } from '@/components/messaging/NewMessageModal';
+import NotificationCenter from '@/components/family/NotificationCenter';
+import QuickAccessPanel from '@/components/family/QuickAccessPanel';
+import ActivityFeed from '@/components/family/ActivityFeed';
+import DashboardWidget from '@/components/family/DashboardWidget';
+import MobileNavigationBar from '@/components/family/MobileNavigationBar';
 
 export default function FamilyHome() {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [messagingOpen, setMessagingOpen] = useState(false);
   const [highlightDocumentUpload, setHighlightDocumentUpload] = useState(false);
+  const [quickAccessOpen, setQuickAccessOpen] = useState(false);
+  const [dashboardLayout, setDashboardLayout] = useState('default');
   
   // Ref for the upload center section
   const uploadCenterRef = useRef<HTMLDivElement>(null);
+
+  // Quick access keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setQuickAccessOpen(true);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Fetch family stats from API
   const { data: familyData, isLoading: statsLoading } = useQuery<{
@@ -225,15 +246,47 @@ export default function FamilyHome() {
   };
 
   return (
-    <div className="flex-1 overflow-auto bg-[var(--bg-900)]">
-      {/* Luxury Header with Gradient */}
+    <div className="flex-1 overflow-auto bg-[var(--bg-900)] pb-20 md:pb-0">
+      {/* Enhanced Header with Portal Controls */}
       <div className="rich-hero relative overflow-hidden">
+        {/* Top Navigation Bar */}
+        <div className="relative z-20 flex items-center justify-between p-4 border-b border-white/10">
+          <div className="flex items-center gap-4">
+            <h2 className="text-xl font-semibold text-white">Family Dashboard</h2>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setDashboardLayout(dashboardLayout === 'default' ? 'compact' : 'default')}
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                data-testid="button-toggle-layout"
+              >
+                <Grid className="h-4 w-4 text-white/70" />
+              </button>
+              <button
+                onClick={() => setQuickAccessOpen(true)}
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                data-testid="button-quick-access"
+              >
+                <Zap className="h-4 w-4 text-white/70" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <NotificationCenter />
+            <Link href="/family/settings">
+              <button className="p-2 rounded-lg hover:bg-white/10 transition-colors">
+                <Settings className="h-4 w-4 text-white/70" />
+              </button>
+            </Link>
+          </div>
+        </div>
+
         {/* Gold Heart Crest Background */}
         <div className="absolute inset-0 flex items-center justify-center opacity-10">
           <Heart className="w-32 h-32 text-[#D4AF37]" />
         </div>
         
-        <div className="relative z-10 text-center py-16 px-8">
+        <div className="relative z-10 text-center py-12 px-8">
           <div className="flex items-center justify-center mb-6">
             <div className="p-4 bg-[#D4AF37] rounded-full shadow-lg">
               <Heart className="w-10 h-10 text-black" />
@@ -328,46 +381,62 @@ export default function FamilyHome() {
         </div>
       </div>
 
-      {/* Recent Activity & Announcements */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Activity */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-[var(--ink-100)] flex items-center">
-              <Activity className="w-5 h-5 mr-2 text-[var(--gold)]" />
-              Recent Activity
-            </h2>
-            <Link to="/family/activity" className="text-sm text-[var(--gold)] hover:text-[var(--ink-100)] transition-colors">
-              View all
-            </Link>
-          </div>
-          <ActivityTimeline
-            items={[
-              { title: "Medical Records Updated", meta: "Sarah updated emergency contact info · 2 hours ago", tone: "info" },
-              { title: "New Family Message", meta: "Dad shared vacation photos · 4 hours ago", tone: "ok" },
-              { title: "Upcoming Event", meta: "Family dinner Sunday 6 PM · 1 day ago", tone: "info" },
-              { title: "Safety Check Complete", meta: "All family confirmed safe · 2 days ago", tone: "ok" },
-            ]}
-          />
-        </div>
-
-        {/* Family Announcements */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-[var(--ink-100)] flex items-center">
-              <Bell className="w-5 h-5 mr-2 text-[var(--gold)]" />
-              Family Announcements
-            </h2>
-            <Link to="/family/announcements" className="text-sm text-[var(--gold)] hover:text-[var(--ink-100)] transition-colors">
-              View all
-            </Link>
-          </div>
-          <div className="space-y-3">
-            <AnnouncementCard title="Family Vacation Planning" body="Submit preferred dates for the summer trip by Friday" meta="Posted by Mom · 3 days ago" />
-            <AnnouncementCard title="Updated Family Calendar" body="New events: Sarah's graduation, reunion in July" meta="Posted by Dad · 1 week ago" />
+      {/* Enhanced Dashboard Layout */}
+      {dashboardLayout === 'default' ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Enhanced Activity Feed */}
+          <ActivityFeed limit={8} showFilters={false} />
+          
+          {/* Announcements & Important Info */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-[var(--ink-100)] flex items-center">
+                <Bell className="w-5 h-5 mr-2 text-[var(--gold)]" />
+                Family Updates
+              </h2>
+            </div>
+            <div className="space-y-4">
+              <AnnouncementCard 
+                title="Insurance Renewal Due"
+                body="Your family insurance policy expires in 15 days. Click to review and renew."
+                meta="Due: March 15, 2024"
+              />
+              <AnnouncementCard 
+                title="Family Meeting Scheduled"
+                body="Monthly family check-in this Sunday at 6 PM. We'll discuss vacation plans and budget updates."
+                meta="This Sunday, 6:00 PM"
+              />
+              <AnnouncementCard 
+                title="Password Security Review"
+                body="2 family accounts need password updates for better security."
+                meta="Action required"
+              />
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        /* Compact Layout */
+        <div className="space-y-6">
+          <ActivityFeed limit={5} showFilters={true} className="mb-6" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <AnnouncementCard 
+              title="Quick Reminder"
+              body="Insurance due in 15 days"
+              meta="Due: March 15"
+            />
+            <AnnouncementCard 
+              title="Family Meeting"
+              body="Sunday at 6 PM"
+              meta="This Sunday"
+            />
+            <AnnouncementCard 
+              title="Security Check"
+              body="2 accounts need updates"
+              meta="Action needed"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Family Tools */}
       <div>
@@ -409,6 +478,15 @@ export default function FamilyHome() {
         open={messagingOpen}
         onClose={() => setMessagingOpen(false)}
       />
+
+      {/* Quick Access Panel */}
+      <QuickAccessPanel 
+        isOpen={quickAccessOpen}
+        onClose={() => setQuickAccessOpen(false)}
+      />
+
+      {/* Mobile Navigation */}
+      <MobileNavigationBar onQuickAccessOpen={() => setQuickAccessOpen(true)} />
     </div>
   );
 }

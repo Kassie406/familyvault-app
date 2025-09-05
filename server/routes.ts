@@ -912,6 +912,210 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount SMS routes
   app.use("/api", smsRoutes);
 
+  // Portal Enhancement API endpoints
+  
+  // GET /api/notifications - Get user notifications
+  app.get("/api/notifications", async (req, res) => {
+    try {
+      // Mock notifications data - in production, this would fetch from database
+      const notifications = [
+        {
+          id: "notif-1",
+          type: "message",
+          title: "New Family Message",
+          message: "Dad shared vacation photos in family chat",
+          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+          read: false,
+          actionUrl: "/family/messages/thread/family",
+          priority: "medium",
+          author: { name: "Dad", avatar: null }
+        },
+        {
+          id: "notif-2", 
+          type: "document",
+          title: "Document Upload",
+          message: "Medical records updated by Sarah",
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          read: false,
+          actionUrl: "/family/documents",
+          priority: "low",
+          author: { name: "Sarah", avatar: null }
+        },
+        {
+          id: "notif-3",
+          type: "reminder",
+          title: "Insurance Renewal",
+          message: "Your family insurance policy expires in 15 days",
+          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          read: true,
+          actionUrl: "/family/insurance",
+          priority: "high",
+          author: { name: "System", avatar: null }
+        }
+      ];
+      
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
+  // POST /api/notifications/:id/read - Mark notification as read
+  app.post("/api/notifications/:id/read", async (req, res) => {
+    try {
+      const { id } = req.params;
+      // In production, this would update the notification in database
+      console.log(`Marking notification ${id} as read`);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ error: "Failed to mark notification as read" });
+    }
+  });
+
+  // POST /api/notifications/mark-all-read - Mark all notifications as read
+  app.post("/api/notifications/mark-all-read", async (req, res) => {
+    try {
+      // In production, this would update all user notifications in database
+      console.log("Marking all notifications as read");
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      res.status(500).json({ error: "Failed to mark all notifications as read" });
+    }
+  });
+
+  // GET /api/family/activity - Get family activity feed
+  app.get("/api/family/activity", async (req, res) => {
+    try {
+      const { filter = 'all', timeRange = '24h', limit = 10 } = req.query;
+      
+      // Mock activity data - in production, this would fetch from database
+      const activities = [
+        {
+          id: "activity-1",
+          type: "message",
+          title: "New message in family chat",
+          description: "Dad: 'Looking forward to our vacation!'",
+          timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+          author: { id: "dad", name: "Dad" },
+          priority: "low"
+        },
+        {
+          id: "activity-2",
+          type: "document_upload",
+          title: "Document uploaded",
+          description: "Medical records updated",
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          author: { id: "sarah", name: "Sarah" },
+          metadata: { filename: "medical-records.pdf" },
+          priority: "medium"
+        },
+        {
+          id: "activity-3",
+          type: "member_join",
+          title: "New family member added",
+          description: "Welcome Alex to the family portal",
+          timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+          author: { id: "mom", name: "Mom" },
+          priority: "medium"
+        },
+        {
+          id: "activity-4",
+          type: "security_login",
+          title: "Secure login",
+          description: "Dad logged in from new device",
+          timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+          author: { id: "dad", name: "Dad" },
+          metadata: { location: "Chicago, IL" },
+          priority: "low"
+        }
+      ];
+      
+      // Apply filters
+      let filteredActivities = activities;
+      if (filter !== 'all') {
+        filteredActivities = activities.filter(activity => activity.type === filter);
+      }
+      
+      // Apply limit
+      const limitNum = parseInt(limit as string, 10);
+      filteredActivities = filteredActivities.slice(0, limitNum);
+      
+      res.json(filteredActivities);
+    } catch (error) {
+      console.error("Error fetching family activity:", error);
+      res.status(500).json({ error: "Failed to fetch family activity" });
+    }
+  });
+
+  // GET /api/family/stats - Get family statistics
+  app.get("/api/family/stats", async (req, res) => {
+    try {
+      // Mock stats data - in production, this would calculate from database
+      const stats = {
+        totalMembers: 4,
+        recentlyAdded: [
+          { id: "alex", name: "Alex Johnson", createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
+          { id: "sarah", name: "Sarah Johnson", createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() }
+        ]
+      };
+      
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching family stats:", error);
+      res.status(500).json({ error: "Failed to fetch family stats" });
+    }
+  });
+
+  // GET /api/dashboard/widget/:type - Get dashboard widget data
+  app.get("/api/dashboard/widget/:type", async (req, res) => {
+    try {
+      const { type } = req.params;
+      
+      // Mock widget data based on type
+      let data = {};
+      
+      switch (type) {
+        case 'stats':
+          data = {
+            totalMembers: 4,
+            totalDocuments: 23,
+            unreadMessages: 3,
+            upcomingEvents: 2,
+            securityScore: 95,
+            storageUsed: 2.4,
+            lastBackup: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+          };
+          break;
+        case 'activity':
+          data = {
+            recentActivities: [
+              { type: "message", title: "New family message", timestamp: "2 min ago" },
+              { type: "document", title: "Document uploaded", timestamp: "1 hour ago" }
+            ]
+          };
+          break;
+        case 'reminders':
+          data = {
+            items: [
+              { title: "Insurance renewal", dueDate: "2024-03-15", priority: "high" },
+              { title: "Doctor appointment", dueDate: "2024-03-10", priority: "medium" }
+            ]
+          };
+          break;
+        default:
+          data = { message: "Widget type not found" };
+      }
+      
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching widget data:", error);
+      res.status(500).json({ error: "Failed to fetch widget data" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
