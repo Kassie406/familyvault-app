@@ -1,0 +1,110 @@
+You’ve got a classic “undefined author” crash.
+
+What’s happening
+
+In client/src/pages/messages/[threadId].tsx you render initials with:
+
+message.author.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+
+
+Some messages don’t include an author object (e.g., system messages, partial API payloads, or a join that didn’t run), so message.author is undefined → reading .name throws.
+
+Drop-in front-end fix (safe initials + fallbacks)
+
+Add these helpers once in the file (or a utils/text.ts):
+
+const pickAuthorName = (m: any): string => {
+  return (
+    m?.author?.name ??
+    m?.authorName ??
+    m?.senderName ??
+    m?.user?.name ??
+    m?.fromName ??
+    ""
+  );
+};
+
+const initialsOf = (name: string): string => {
+  const trimmed = (name || "").trim();
+  if (!trimmed) return "??";
+  return trimmed
+    .split(/\s+/)
+    .map((part) => part[0])
+    .filter(Boolean)
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+};
+
+
+Replace your crashing block (lines ~317–321) with this defensive version:
+
+{!isMe && (
+  <div className="w-8 h-8 rounded-full bg-[#D4AF37]/20 flex items-center justify-center text-xs text-[#D4AF37] font-medium mt-1">
+    {initialsOf(pickAuthorName(message))}
+  </div>
+)}
+
+
+That alone stops the crash even when author is missing.
+
+Bonus: if you show avatars elsewhere, use message.author?.avatarUrl ?? message.avatarUrl ?? null.
+
+Strengthen the types (prevents regressions)
+
+Make author optional in your message type:
+
+type MessageUser = { id: string; name?: string; avatarUrl?: string | null };
+type ChatMessage = {
+  id: string;
+  chatId: string;
+  senderId: string;
+  recipientId?: string;
+  body: string;
+  createdAt: string;
+  author?: MessageUser;        // optional
+  authorName?: string;         // optional fallback
+  senderName?: string;         // optional fallback
+  kind?: "message" | "system";
+};
+
+
+Then the compiler nudges you toward optional chaining.
+
+Back-end improvement (populate author name in the API)
+
+If your API currently returns only senderId, join users so the client always has a name fallback:
+
+// GET /api/messages/:threadId
+const rows = await db
+  .select({
+    id: messages.id,
+    chatId: messages.chatId,
+    senderId: messages.senderId,
+    body: messages.body,
+    createdAt: messages.createdAt,
+    authorName: users.name,            // <— alias provided even if you don’t send full author object
+    authorAvatar: users.avatarUrl,
+  })
+  .from(messages)
+  .leftJoin(users, eq(users.id, messages.senderId))
+  .where(eq(messages.chatId, threadId))
+  .orderBy(messages.createdAt);
+
+
+And in your serializer:
+
+res.json(rows.map(r => ({
+  ...r,
+  author: r.authorName ? { id: r.senderId, name: r.authorName, avatarUrl: r.authorAvatar } : undefined
+})));
+
+Why this happens (so it doesn’t again)
+
+System/automation messages often lack author.
+
+Race conditions: UI renders before the user join finishes.
+
+Lean API payloads: endpoint returns only senderId.
+
+Always guard UI reads with optional chaining and sensible defaults; ensure the API supplies at least one of author.name or authorName.

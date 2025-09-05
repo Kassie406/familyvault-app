@@ -8,14 +8,44 @@ import { usePresence } from "@/hooks/usePresence";
 import { useTyping } from "@/hooks/useTyping";
 
 /** ---------------------------------------------
+ * Helper Functions
+ * --------------------------------------------- */
+const pickAuthorName = (m: any): string => {
+  return (
+    m?.author?.name ??
+    m?.authorName ??
+    m?.senderName ??
+    m?.user?.name ??
+    m?.fromName ??
+    ""
+  );
+};
+
+const initialsOf = (name: string): string => {
+  const trimmed = (name || "").trim();
+  if (!trimmed) return "??";
+  return trimmed
+    .split(/\s+/)
+    .map((part) => part[0])
+    .filter(Boolean)
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+};
+
+/** ---------------------------------------------
  * Types
  * --------------------------------------------- */
+type MessageUser = { id: string; name?: string; avatarUrl?: string | null };
 type Message = {
   id: string;
   body: string;
-  author: { id: string; name: string };
+  author?: MessageUser;        // optional
+  authorName?: string;         // optional fallback
+  senderName?: string;         // optional fallback
   attachments: Array<{ id: string; name: string; url: string; type?: string }>;
   createdAt: string;
+  kind?: "message" | "system";
 };
 
 type Thread = {
@@ -207,12 +237,12 @@ const MessageSearch: React.FC<{
               >
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-full bg-[#D4AF37]/20 flex items-center justify-center text-xs text-[#D4AF37] font-medium flex-shrink-0">
-                    {message.author.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                    {initialsOf(pickAuthorName(message))}
                   </div>
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-white/80">{message.author.name}</span>
+                      <span className="text-sm font-medium text-white/80">{pickAuthorName(message)}</span>
                       <span className="text-xs text-white/40">{formatTime(message.createdAt)}</span>
                     </div>
                     
@@ -316,13 +346,13 @@ const MessageBubble: React.FC<{ message: Message; isMe: boolean }> = ({ message,
     <div className={`flex gap-3 group ${isMe ? 'flex-row-reverse' : ''}`}>
       {!isMe && (
         <div className="w-8 h-8 rounded-full bg-[#D4AF37]/20 flex items-center justify-center text-xs text-[#D4AF37] font-medium mt-1">
-          {message.author.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+          {initialsOf(pickAuthorName(message))}
         </div>
       )}
       
       <div className={`flex-1 max-w-[70%] ${isMe ? 'text-right' : ''} relative`}>
         {!isMe && (
-          <div className="text-xs text-white/60 mb-1">{message.author.name}</div>
+          <div className="text-xs text-white/60 mb-1">{pickAuthorName(message)}</div>
         )}
         
         <div className={`rounded-2xl px-4 py-3 relative ${
