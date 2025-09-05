@@ -32,7 +32,16 @@ export function StatCard({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<PreviewItem[] | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Close on outside click or ESC
   useEffect(() => {
@@ -93,9 +102,10 @@ export function StatCard({
             type="button"
             aria-expanded={open}
             aria-controls={`stat-preview-${label.replace(/\s+/g, "-").toLowerCase()}`}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1
+            className="inline-flex items-center gap-1 rounded-md px-3 py-2
                        text-xs font-medium text-zinc-400 hover:text-amber-400
-                       focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+                       focus:outline-none focus:ring-2 focus:ring-amber-400/40
+                       touch-manipulation min-h-[44px] md:min-h-0 md:px-2 md:py-1"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -112,42 +122,58 @@ export function StatCard({
         <p className="mt-3 text-3xl font-semibold text-white">{value}</p>
       </Link>
 
-      {/* Anchored preview panel (no hover logic anywhere) */}
+      {/* Anchored preview panel (responsive) */}
       <div
         id={`stat-preview-${label.replace(/\s+/g, "-").toLowerCase()}`}
         role="region"
         aria-label={`${label} — recent`}
         data-open={open ? "true" : "false"}
-        className="
-          pointer-events-auto absolute left-0 right-0 top-full z-20 mt-2
+        className={`
+          pointer-events-auto absolute z-20 mt-2
           rounded-xl border border-zinc-800/80 bg-zinc-950/95 backdrop-blur
-          shadow-lg transition-all w-[28rem]
+          shadow-lg transition-all
           opacity-0 translate-y-2 scale-[0.98] hidden
           data-[open=true]:block data-[open=true]:opacity-100 data-[open=true]:translate-y-0 data-[open=true]:scale-100
-        "
+          ${
+            isMobile 
+              ? 'fixed left-4 right-4 top-1/2 -translate-y-1/2 max-h-[80vh] overflow-y-auto'
+              : 'left-0 right-0 top-full w-[28rem] max-w-[90vw]'
+          }
+        `}
       >
         <div className="flex items-center justify-between px-4 pt-3 pb-1">
           <span className="text-[10px] font-semibold tracking-wider text-zinc-400">
             {label.toUpperCase()} — RECENT
           </span>
-          <Link
-            href={href}
-            className="text-[10px] font-medium text-amber-400 hover:underline"
-          >
-            View all
-          </Link>
+          <div className="flex items-center gap-2">
+            {isMobile && (
+              <button
+                onClick={() => setOpen(false)}
+                className="p-1 text-zinc-400 hover:text-amber-400 touch-manipulation"
+                aria-label="Close"
+              >
+                <ChevronDown className="h-4 w-4 rotate-180" />
+              </button>
+            )}
+            <Link
+              href={href}
+              className="text-[10px] font-medium text-amber-400 hover:underline touch-manipulation"
+            >
+              View all
+            </Link>
+          </div>
         </div>
 
         {loading && (
           <div className="space-y-2 p-2">
             {[0,1,2].map(i => (
-              <div key={i} className="h-10 rounded-lg bg-zinc-800/60 animate-pulse" />
+              <div key={i} className={`${isMobile ? 'h-12' : 'h-10'} rounded-lg bg-zinc-800/60 animate-pulse`} />
             ))}
           </div>
         )}
 
         {!loading && items?.length === 0 && (
-          <div className="p-4 text-sm text-zinc-400">{emptyText}</div>
+          <div className={`p-4 text-sm text-zinc-400 ${isMobile ? 'text-center py-8' : ''}`}>{emptyText}</div>
         )}
 
         {/* Quick Actions */}
@@ -162,9 +188,7 @@ export function StatCard({
                   {action.href ? (
                     <Link
                       href={action.href}
-                      className="flex items-center gap-3 rounded-lg px-2 py-2
-                                 text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-amber-400
-                                 transition-colors cursor-pointer"
+                      className={`flex items-center gap-3 rounded-lg px-2 text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-amber-400 transition-colors cursor-pointer touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
                     >
                       {action.icon && (
                         <span className="text-amber-400 opacity-70">
@@ -179,9 +203,7 @@ export function StatCard({
                         action.onClick?.();
                         setOpen(false);
                       }}
-                      className="w-full flex items-center gap-3 rounded-lg px-2 py-2
-                                 text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-amber-400
-                                 transition-colors cursor-pointer text-left"
+                      className={`w-full flex items-center gap-3 rounded-lg px-2 text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-amber-400 transition-colors cursor-pointer text-left touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
                     >
                       {action.icon && (
                         <span className="text-amber-400 opacity-70">
@@ -210,9 +232,7 @@ export function StatCard({
                 <li key={it.id}>
                   <Link
                     href={it.href ?? href}
-                    className="flex items-center gap-2 rounded-lg px-2 py-2
-                               text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-amber-400
-                               transition-colors cursor-pointer"
+                    className={`flex items-center gap-2 rounded-lg px-2 text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-amber-400 transition-colors cursor-pointer touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
                   >
                     <span className="inline-block h-2.5 w-2.5 rounded-full bg-zinc-600" />
                     <div className="flex-1">
