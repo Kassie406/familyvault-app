@@ -38,6 +38,24 @@ export default function FamilyHome() {
   // Ref for the upload center section
   const uploadCenterRef = useRef<HTMLDivElement>(null);
 
+  // Function to scroll to upload center and highlight document upload
+  const scrollToDocumentUpload = () => {
+    setHighlightDocumentUpload(true);
+    
+    // Scroll to upload center
+    if (uploadCenterRef.current) {
+      uploadCenterRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+    }
+    
+    // Remove highlight after animation
+    setTimeout(() => {
+      setHighlightDocumentUpload(false);
+    }, 3000);
+  };
+
   // Quick access keyboard shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -188,7 +206,7 @@ export default function FamilyHome() {
         { id: "3", title: "Will & Testament", sub: "Secure access only", href: "/documents/3" }
       ],
       dropdownActions: [
-        { label: "Share a Document", href: "/share/new", icon: <Share className="h-4 w-4" /> },
+        { label: "Share a Document", onClick: scrollToDocumentUpload, icon: <Share className="h-4 w-4" /> },
         { label: "Manage Link Policies", href: "/settings/sharing", icon: <Settings className="h-4 w-4" /> },
         { label: "Pending Approvals", href: "/inbox?filter=pending-approval", icon: <AlertCircle className="h-4 w-4" /> }
       ]
@@ -227,23 +245,6 @@ export default function FamilyHome() {
     }
   ];
 
-  // Function to scroll to upload center and highlight document upload
-  const scrollToDocumentUpload = () => {
-    setHighlightDocumentUpload(true);
-    
-    // Scroll to upload center
-    if (uploadCenterRef.current) {
-      uploadCenterRef.current.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
-      });
-    }
-    
-    // Remove highlight after animation
-    setTimeout(() => {
-      setHighlightDocumentUpload(false);
-    }, 3000);
-  };
 
   return (
     <div className="flex-1 overflow-auto bg-[var(--bg-900)] pb-20 md:pb-0">
@@ -363,7 +364,7 @@ export default function FamilyHome() {
           {/* Document Upload */}
           <QuickDocumentUpload 
             familyId="family-1"
-            className={highlightDocumentUpload ? "golden-glow" : ""}
+            className={highlightDocumentUpload ? "upload-highlight" : ""}
             onUploadComplete={(docId) => {
               console.log('Document uploaded:', docId);
               // Invalidate stats queries to update counts

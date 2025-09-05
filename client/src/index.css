@@ -51,6 +51,45 @@ button:focus {
   outline: none; 
 }
 
+/* ===== Golden Glow Highlight Animation ===== */
+@keyframes goldenGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4);
+    border-color: rgba(212, 175, 55, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 30px 10px rgba(212, 175, 55, 0.6);
+    border-color: #D4AF37;
+    transform: scale(1.02);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4);
+    border-color: rgba(212, 175, 55, 0.3);
+    transform: scale(1);
+  }
+}
+
+/* Upload Document Highlight Class */
+.upload-highlight {
+  animation: goldenGlow 2s ease-in-out;
+  position: relative;
+  z-index: 10;
+}
+
+.upload-highlight::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  background: linear-gradient(45deg, 
+    rgba(212, 175, 55, 0.2) 0%, 
+    rgba(212, 175, 55, 0.1) 50%, 
+    rgba(212, 175, 55, 0.2) 100%);
+  border-radius: inherit;
+  z-index: -1;
+  animation: goldenGlow 2s ease-in-out;
+}
+
 @layer utilities {
   /* Completely disable any hover background (and overlays) */
   .no-hover-bg:hover,
