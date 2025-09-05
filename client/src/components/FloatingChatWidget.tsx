@@ -253,9 +253,15 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
           bg-[#D4AF37] text-black shadow-xl
           transition-transform duration-150
           hover:scale-105 active:scale-95
-          opacity-100 hover:opacity-100 focus:opacity-100 active:opacity-100
+          opacity-100 hover:opacity-100 focus:opacity-100 active:opacity-100 focus-visible:opacity-100
           outline-none focus-visible:ring-2 ring-black/20
         "
+        style={{ 
+          opacity: '1 !important', 
+          backgroundColor: '#D4AF37 !important',
+          filter: 'none !important',
+          transform: isOpen ? 'scale(0.95)' : 'scale(1)'
+        }}
         data-testid="button-floating-chat"
         aria-label="Open family chat"
       >
