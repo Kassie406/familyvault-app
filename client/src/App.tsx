@@ -63,7 +63,6 @@ import ElderlyEmergencyContacts from "@/pages/elderly-emergency-contacts";
 import ElderlyLegalDocuments from "@/pages/elderly-legal-documents";
 import ElderlyPropertyInfo from "@/pages/elderly-property-info";
 import ElderlyCareTeamAccess from "@/pages/elderly-care-team-access";
-import MessagesPage from "@/pages/messages/[threadId]";
 import MarriedLegalDocs from "@/pages/married-legal-docs";
 import MarriedFinancialPlanning from "@/pages/married-financial-planning";
 import MarriedLivingArrangements from "@/pages/married-living-arrangements";
@@ -216,8 +215,6 @@ function Router() {
       <Route path="/when-someone-dies-legal-responsibilities" component={WhenSomeoneDiesLegalResponsibilities} />
       <Route path="/when-someone-dies-important-deadlines" component={WhenSomeoneDiesImportantDeadlines} />
       <Route path="/m/u/:sessionId" component={MobileUpload} />
-      <Route path="/messages/:threadId" component={({params}) => <MessagesPage threadId={params.threadId} />} />
-      <Route path="/messages" component={() => <MessagesPage threadId="family-chat" />} />
       
       <Route component={NotFound} />
     </Switch>
