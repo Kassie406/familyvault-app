@@ -735,12 +735,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/threads/:id/messages", async (req, res) => {
     try {
       const { id } = req.params;
-      const { body, fileIds = [], replyToId } = req.body;
+      const { body, attachments = [], replyToId } = req.body;
       const userId = "current-user"; // TODO: Get from authenticated user
       
-      if (!body?.trim() && (!fileIds || fileIds.length === 0)) {
+      if (!body?.trim() && (!attachments || attachments.length === 0)) {
         return res.status(400).json({ error: "Message body or files required" });
       }
+
+      // Extract file IDs for backward compatibility
+      const fileIds = attachments.map((att: any) => att.id || att.url);
 
       const messageData = {
         threadId: id,
@@ -753,10 +756,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 1) Store message in database
       const message = await storage.createMessage(messageData);
       
+      // 2) Store attachment metadata if any attachments
+      for (const att of attachments) {
+        await storage.createMessageAttachment({
+          messageId: message.id,
+          url: att.url,
+          name: att.name || "file",
+          mime: att.mime || "application/octet-stream",
+          size: att.size || 0,
+          width: att.width ?? null,
+          height: att.height ?? null,
+          thumbnailUrl: att.thumbnailUrl ?? null,
+          thumbWidth: att.thumbWidth ?? null,
+          thumbHeight: att.thumbHeight ?? null,
+        });
+      }
+      
       // TODO: Broadcast via WebSocket to thread members
       console.log(`Broadcasting message ${message.id} to thread ${id}`);
       
-      // 2) Send SMS notifications to eligible recipients
+      // 3) Send SMS notifications to eligible recipients
       try {
         await sendSMSNotificationsForMessage(id, userId, body || "📎 Attachment");
       } catch (smsError) {
