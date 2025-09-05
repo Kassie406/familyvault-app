@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { User, Mail, Shield, Calendar, Edit2, Save, X } from 'lucide-react';
+import { User, Mail, Shield, Calendar, Edit2, Save, X, MessageCircle, ExternalLink } from 'lucide-react';
 
 export default function AdminProfile() {
   const { toast } = useToast();
@@ -246,6 +246,66 @@ export default function AdminProfile() {
                 <Label>Last Updated</Label>
                 <div className="p-3 bg-gray-50 rounded-md text-gray-900">
                   {user?.updatedAt ? new Date(user.updatedAt).toLocaleDateString() : 'Never'}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Private Family Live Chat Card */}
+        <Card className="border-2 border-blue-200 bg-blue-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3">
+              <MessageCircle className="h-6 w-6 text-blue-600" />
+              Private Family Live Chat
+              <Badge variant="secondary" className="ml-auto">Admin Only</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="p-4 bg-white rounded-lg border border-blue-200">
+                <h4 className="font-semibold text-gray-900 mb-2">Real-time Chat System</h4>
+                <p className="text-sm text-gray-600 mb-4">
+                  Access the live chat testing interface for private family communication. This is separate from the main website chat support.
+                </p>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button 
+                    onClick={() => window.open('/realtime-test', '_blank')}
+                    className="flex items-center gap-2"
+                    data-testid="button-open-family-chat"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Open Family Chat
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/realtime-test`);
+                      toast({
+                        title: "Link Copied",
+                        description: "Family chat link copied to clipboard",
+                      });
+                    }}
+                    className="flex items-center gap-2"
+                    data-testid="button-copy-chat-link"
+                  >
+                    Copy Link
+                  </Button>
+                </div>
+              </div>
+
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Shield className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-blue-900">Security Notice</p>
+                    <p className="text-sm text-blue-700">
+                      This chat system is for family members only. Not intended for public customer support.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
