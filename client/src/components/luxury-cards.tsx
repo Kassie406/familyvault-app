@@ -1,5 +1,6 @@
 import React from "react";
 import { Users, FileText, MessageCircle, Upload, ImageIcon, ShieldAlert } from "lucide-react";
+import { StatCard } from "@/components/StatCard";
 
 const GOLD = "#D4AF37";
 
@@ -22,23 +23,7 @@ export function LuxuryCard({ children, className = "", ...props }: React.HTMLAtt
 }
 
 /** StatCard — big number + label + icon (for Members, Docs, etc.) */
-export function StatCard({ icon, value, label }: { icon: React.ReactNode; value: number | string; label: string }) {
-  return (
-    <LuxuryCard className="p-6">
-      <div className="flex items-center space-x-4">
-        <div className="p-3 rounded-lg" style={{ background: `${GOLD}15` }}>
-          <div className="text-[#D4AF37]">
-            {icon}
-          </div>
-        </div>
-        <div>
-          <div className="text-2xl font-bold text-white">{value}</div>
-          <div className="text-sm text-neutral-300">{label}</div>
-        </div>
-      </div>
-    </LuxuryCard>
-  );
-}
+// Enhanced StatCard with hover previews - moved to separate component file
 
 /** ActionCard — pill-style quick actions with gold icon circle */
 export function ActionCard({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
@@ -139,10 +124,50 @@ export function DashboardPreview() {
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard icon={<Users className="h-5 w-5"/>} value={5} label="Family Members" />
-        <StatCard icon={<FileText className="h-5 w-5"/>} value={23} label="Documents Shared" />
-        <StatCard icon={<MessageCircle className="h-5 w-5"/>} value={12} label="Messages Today" />
-        <StatCard icon={<ImageIcon className="h-5 w-5"/>} value={156} label="Photos Uploaded" />
+        <StatCard 
+          icon={<Users className="h-5 w-5"/>} 
+          value={5} 
+          label="Family Members" 
+          href="/family/family-ids"
+          fetchPreview={async () => [
+            { id: "1", title: "Sarah Johnson", sub: "Owner", href: "/family/family-ids/sarah" },
+            { id: "2", title: "Michael Johnson", sub: "Parent", href: "/family/family-ids/michael" },
+            { id: "3", title: "Emma Johnson", sub: "Child", href: "/family/family-ids/emma" },
+          ]}
+        />
+        <StatCard 
+          icon={<FileText className="h-5 w-5"/>} 
+          value={23} 
+          label="Documents Shared" 
+          href="/family/resources?filter=shared"
+          fetchPreview={async () => [
+            { id: "d1", title: "Home Insurance.pdf", sub: "Shared with Kass", href: "/family/resources/doc/home-insurance" },
+            { id: "d2", title: "Garage Code.txt", sub: "Shared link", href: "/family/resources/doc/garage-code" },
+            { id: "d3", title: "Medical Records.pdf", sub: "Shared with Family", href: "/family/resources/doc/medical-records" },
+          ]}
+        />
+        <StatCard 
+          icon={<MessageCircle className="h-5 w-5"/>} 
+          value={12} 
+          label="Messages Today" 
+          href="/family/inbox?date=today"
+          fetchPreview={async () => [
+            { id: "t1", title: "Kass • Grocery list", sub: "You: check aisle 4", href: "/family/inbox/thread/1" },
+            { id: "t2", title: "Mom • Wifi again 😅", sub: "Mom: password pls", href: "/family/inbox/thread/2" },
+            { id: "t3", title: "Dad • Weekend plans", sub: "Dad: BBQ this Saturday?", href: "/family/inbox/thread/3" },
+          ]}
+        />
+        <StatCard 
+          icon={<ImageIcon className="h-5 w-5"/>} 
+          value={156} 
+          label="Photos Uploaded" 
+          href="/family/media"
+          fetchPreview={async () => [
+            { id: "p1", title: "Backyard camera", sub: "Today 10:14a", href: "/family/media/1" },
+            { id: "p2", title: "Family dinner", sub: "Today 9:02a", href: "/family/media/2" },
+            { id: "p3", title: "Puppy!", sub: "Yesterday", href: "/family/media/3" },
+          ]}
+        />
       </div>
 
       {/* Quick actions */}
