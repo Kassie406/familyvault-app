@@ -1,5 +1,5 @@
 import { Link } from 'wouter';
-import { Settings, Users, Shield, Key, Mail, ArrowLeft } from 'lucide-react';
+import { Settings, Users, Shield, Key, Mail, ArrowLeft, MessageCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -101,6 +101,32 @@ export default function FamilySettings() {
               </p>
               <Button variant="outline" className="border-[var(--gold)] text-[var(--gold)] hover:bg-[var(--gold)] hover:text-black">
                 Password Settings
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Private Family Live Chat */}
+          <Card className="border-[var(--line-700)] bg-[var(--bg-850)]">
+            <CardHeader>
+              <CardTitle className="flex items-center text-white">
+                <MessageCircle className="h-5 w-5 text-[var(--gold)] mr-3" />
+                Private Family Live Chat
+              </CardTitle>
+              <CardDescription className="text-[var(--ink-300)]">
+                Access real-time chat for private family communication
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-[var(--ink-300)] mb-4">
+                Open the family live chat system for instant messaging between family members. Separate from customer support.
+              </p>
+              <Button 
+                variant="outline" 
+                className="border-[var(--gold)] text-[var(--gold)] hover:bg-[var(--gold)] hover:text-black"
+                onClick={() => window.open('/realtime-test', '_blank')}
+                data-testid="button-family-chat"
+              >
+                Open Family Chat
               </Button>
             </CardContent>
           </Card>
