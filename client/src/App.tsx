@@ -216,6 +216,8 @@ function Router() {
       <Route path="/when-someone-dies-legal-responsibilities" component={WhenSomeoneDiesLegalResponsibilities} />
       <Route path="/when-someone-dies-important-deadlines" component={WhenSomeoneDiesImportantDeadlines} />
       <Route path="/m/u/:sessionId" component={MobileUpload} />
+      <Route path="/messages/:threadId" component={({params}) => <MessagesPage threadId={params.threadId} />} />
+      <Route path="/messages" component={() => <MessagesPage threadId="family-chat" />} />
       
       <Route component={NotFound} />
     </Switch>
