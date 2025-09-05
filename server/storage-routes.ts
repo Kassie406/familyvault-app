@@ -3,6 +3,8 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
 import { z } from "zod";
+import rateLimit from "express-rate-limit";
+import slowDown from "express-slow-down";
 
 // S3 Client Configuration
 const s3 = new S3Client({
@@ -16,6 +18,41 @@ const s3 = new S3Client({
 });
 
 const storage = Router();
+
+// Security: Rate limiting for upload endpoints
+const uploadRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // limit each IP to 20 uploads per windowMs
+  message: {
+    error: "Too many upload requests, please try again later"
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Security: Slow down aggressive upload requests
+const uploadSlowDown = slowDown({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  delayAfter: 5, // Allow 5 requests per windowMs without delay
+  delayMs: (used, req) => (used - 5) * 1000, // Add 1s delay per request after 5th
+  maxDelayMs: 10000, // Max 10s delay
+});
+
+// Security: Apply rate limiting to all storage routes
+storage.use(uploadRateLimit);
+storage.use(uploadSlowDown);
+
+// Security: Set secure headers for all responses
+storage.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
 
 // Request validation schema
 const presignRequestSchema = z.object({
