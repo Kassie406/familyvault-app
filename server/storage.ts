@@ -855,6 +855,131 @@ export class DatabaseStorage implements IStorage {
     const result = await db.delete(inviteLinks).where(eq(inviteLinks.id, id));
     return result.rowCount > 0;
   }
+
+  // Temporary implementations for family management (until full implementation)
+  async createFamily(family: InsertFamily): Promise<Family> {
+    // Temporary mock implementation
+    return {
+      id: "family-1",
+      name: family.name,
+      ownerId: family.ownerId,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+  }
+
+  async getUserFamily(userId: string): Promise<Family | undefined> {
+    // Temporary mock implementation
+    return {
+      id: "family-1",
+      name: "Johnson Family",
+      ownerId: userId,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+  }
+
+  async getFamilyMembers(familyId: string): Promise<FamilyMember[]> {
+    // Temporary mock implementation
+    return [
+      {
+        id: "member-1",
+        familyId: familyId,
+        name: "John Smith",
+        email: "john@example.com",
+        phone: "(555) 123-4567",
+        dateOfBirth: new Date("1990-01-01"),
+        relationshipToOwner: "self",
+        role: "owner",
+        avatarColor: "#3498DB",
+        itemCount: 5,
+        emergencyContact: false,
+        profileImageUrl: null,
+        address: null,
+        medicalInfo: null,
+        identificationInfo: null,
+        userId: "user-1",
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "member-2",
+        familyId: familyId,
+        name: "Sarah Johnson",
+        email: "sarah@example.com",
+        phone: "(555) 123-4568",
+        dateOfBirth: new Date("1992-05-15"),
+        relationshipToOwner: "spouse",
+        role: "member",
+        avatarColor: "#E74C3C",
+        itemCount: 3,
+        emergencyContact: true,
+        profileImageUrl: null,
+        address: null,
+        medicalInfo: null,
+        identificationInfo: null,
+        userId: "user-2",
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ];
+  }
+
+  async getFamilyMemberStats(familyId: string): Promise<{totalMembers: number, recentlyAdded: FamilyMember[]}> {
+    const members = await this.getFamilyMembers(familyId);
+    return {
+      totalMembers: members.length,
+      recentlyAdded: members.slice(0, 3)
+    };
+  }
+
+  async createFamilyMember(member: InsertFamilyMember): Promise<FamilyMember> {
+    // Temporary mock implementation
+    return {
+      id: "new-member-" + Date.now(),
+      ...member,
+      avatarColor: member.avatarColor || "#3498DB",
+      itemCount: member.itemCount || 0,
+      emergencyContact: member.emergencyContact || false,
+      isActive: member.isActive !== false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+  }
+
+  async getFamilyBusinessItems(familyId: string, ownerId?: string): Promise<FamilyBusinessItem[]> {
+    // Temporary mock implementation
+    return [];
+  }
+
+  async createFamilyBusinessItem(item: InsertFamilyBusinessItem): Promise<FamilyBusinessItem> {
+    // Temporary mock implementation
+    return {
+      id: "business-" + Date.now(),
+      ...item,
+      docCount: item.docCount || 0,
+      tags: item.tags || [],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+  }
+
+  async getFamilyLegalItems(familyId: string, legalDocId?: string): Promise<FamilyLegalItem[]> {
+    // Temporary mock implementation
+    return [];
+  }
+
+  async getFamilyInsuranceItems(familyId: string, insuranceId?: string): Promise<FamilyInsuranceItem[]> {
+    // Temporary mock implementation
+    return [];
+  }
+
+  async getFamilyTaxItems(familyId: string, taxYear?: string): Promise<FamilyTaxItem[]> {
+    // Temporary mock implementation
+    return [];
+  }
 }
 
 export const storage = new DatabaseStorage();

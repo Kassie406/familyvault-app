@@ -1,10 +1,173 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertInviteSchema, insertFamilyMemberSchema } from "@shared/schema";
+import { 
+  insertInviteSchema, 
+  insertFamilyMemberSchema,
+  insertFamilySchema,
+  insertFamilyBusinessItemSchema,
+  insertFamilyLegalItemSchema,
+  insertFamilyInsuranceItemSchema,
+  insertFamilyTaxItemSchema
+} from "@shared/schema";
 import crypto from "crypto";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Family Management API endpoints
+  
+  // GET /api/family - Get user's family
+  app.get("/api/family", async (req, res) => {
+    try {
+      // TODO: Get userId from authenticated session
+      const userId = "current-user"; 
+      const family = await storage.getUserFamily(userId);
+      
+      if (!family) {
+        return res.status(404).json({ error: "Family not found" });
+      }
+      
+      res.json(family);
+    } catch (error) {
+      console.error("Error fetching family:", error);
+      res.status(500).json({ error: "Failed to fetch family" });
+    }
+  });
+
+  // POST /api/family - Create new family
+  app.post("/api/family", async (req, res) => {
+    try {
+      const { name } = req.body;
+      const userId = "current-user"; // TODO: Get from authenticated session
+      
+      if (!name) {
+        return res.status(400).json({ error: "Family name is required" });
+      }
+
+      const familyData = { name, ownerId: userId };
+      const family = await storage.createFamily(familyData);
+      
+      res.status(201).json(family);
+    } catch (error) {
+      console.error("Error creating family:", error);
+      res.status(500).json({ error: "Failed to create family" });
+    }
+  });
+
+  // GET /api/family/members - Get family members
+  app.get("/api/family/members", async (req, res) => {
+    try {
+      const familyId = "family-1"; // TODO: Get from user's family
+      const members = await storage.getFamilyMembers(familyId);
+      
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching family members:", error);
+      res.status(500).json({ error: "Failed to fetch family members" });
+    }
+  });
+
+  // POST /api/family/members - Create new family member
+  app.post("/api/family/members", async (req, res) => {
+    try {
+      const memberData = req.body;
+      const familyId = "family-1"; // TODO: Get from user's family
+      
+      const member = await storage.createFamilyMember({ ...memberData, familyId });
+      
+      res.status(201).json(member);
+    } catch (error) {
+      console.error("Error creating family member:", error);
+      res.status(500).json({ error: "Failed to create family member" });
+    }
+  });
+
+  // GET /api/family/stats - Get family dashboard statistics
+  app.get("/api/family/stats", async (req, res) => {
+    try {
+      const familyId = "family-1"; // TODO: Get from user's family
+      const stats = await storage.getFamilyMemberStats(familyId);
+      
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching family stats:", error);
+      res.status(500).json({ error: "Failed to fetch family stats" });
+    }
+  });
+
+  // Family Business API endpoints
+  // GET /api/family/business - Get family business items
+  app.get("/api/family/business", async (req, res) => {
+    try {
+      const familyId = "family-1"; // TODO: Get from user's family
+      const { ownerId } = req.query;
+      
+      const items = await storage.getFamilyBusinessItems(familyId, ownerId as string);
+      res.json(items);
+    } catch (error) {
+      console.error("Error fetching business items:", error);
+      res.status(500).json({ error: "Failed to fetch business items" });
+    }
+  });
+
+  // POST /api/family/business - Create family business item
+  app.post("/api/family/business", async (req, res) => {
+    try {
+      const itemData = req.body;
+      const familyId = "family-1"; // TODO: Get from user's family
+      
+      const item = await storage.createFamilyBusinessItem({ ...itemData, familyId });
+      res.status(201).json(item);
+    } catch (error) {
+      console.error("Error creating business item:", error);
+      res.status(500).json({ error: "Failed to create business item" });
+    }
+  });
+
+  // Family Legal API endpoints
+  // GET /api/family/legal - Get family legal items
+  app.get("/api/family/legal", async (req, res) => {
+    try {
+      const familyId = "family-1"; // TODO: Get from user's family
+      const { legalDocId } = req.query;
+      
+      const items = await storage.getFamilyLegalItems(familyId, legalDocId as string);
+      res.json(items);
+    } catch (error) {
+      console.error("Error fetching legal items:", error);
+      res.status(500).json({ error: "Failed to fetch legal items" });
+    }
+  });
+
+  // Family Insurance API endpoints
+  // GET /api/family/insurance - Get family insurance items
+  app.get("/api/family/insurance", async (req, res) => {
+    try {
+      const familyId = "family-1"; // TODO: Get from user's family
+      const { insuranceId } = req.query;
+      
+      const items = await storage.getFamilyInsuranceItems(familyId, insuranceId as string);
+      res.json(items);
+    } catch (error) {
+      console.error("Error fetching insurance items:", error);
+      res.status(500).json({ error: "Failed to fetch insurance items" });
+    }
+  });
+
+  // Family Tax API endpoints
+  // GET /api/family/taxes - Get family tax items
+  app.get("/api/family/taxes", async (req, res) => {
+    try {
+      const familyId = "family-1"; // TODO: Get from user's family
+      const { taxYear } = req.query;
+      
+      const items = await storage.getFamilyTaxItems(familyId, taxYear as string);
+      res.json(items);
+    } catch (error) {
+      console.error("Error fetching tax items:", error);
+      res.status(500).json({ error: "Failed to fetch tax items" });
+    }
+  });
+
   // Family Invite API endpoints
 
   // POST /api/family/invites - Create a new invitation
