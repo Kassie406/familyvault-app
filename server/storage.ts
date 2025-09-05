@@ -27,12 +27,15 @@ import {
   type FamilyInsuranceItem, type InsertFamilyInsuranceItem,
   type FamilyTaxYear, type InsertFamilyTaxYear,
   type FamilyTaxItem, type InsertFamilyTaxItem,
+  type MessageThread, type InsertMessageThread,
+  type ThreadMember, type InsertThreadMember,
+  type Message, type InsertMessage,
   users, organizations, plans, coupons, articles, consentEvents, auditLogs,
   adminSessions, securitySettings, impersonationSessions,
   gdprConsentEvents, dsarRequests, retentionPolicies, suppressionList,
   invites, inviteLinks, families, familyMembers, familyBusinessItems,
   familyLegalDocs, familyLegalItems, familyInsurancePolicies, familyInsuranceItems,
-  familyTaxYears, familyTaxItems
+  familyTaxYears, familyTaxItems, messageThreads, threadMembers, messages
 } from "@shared/schema";
 
 // Database connection
@@ -229,6 +232,14 @@ export interface IStorage {
   getInviteLinkByToken(token: string): Promise<InviteLink | undefined>;
   getUserInviteLinks(userId: string): Promise<InviteLink[]>;
   revokeInviteLink(id: string): Promise<boolean>;
+  
+  // Messaging methods
+  getFamilyThread(familyId: string): Promise<MessageThread | undefined>;
+  createMessageThread(thread: InsertMessageThread): Promise<MessageThread>;
+  getUserThreads(userId: string): Promise<MessageThread[]>;
+  addThreadMember(member: InsertThreadMember): Promise<ThreadMember>;
+  getThreadMessages(threadId: string, cursor?: string, limit?: number): Promise<Message[]>;
+  createMessage(message: InsertMessage): Promise<Message>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -990,6 +1001,51 @@ export class DatabaseStorage implements IStorage {
       createdAt: new Date(),
       updatedAt: new Date()
     };
+  }
+
+  // Messaging implementations
+  async getFamilyThread(familyId: string): Promise<MessageThread | undefined> {
+    const result = await db.select().from(messageThreads)
+      .where(eq(messageThreads.familyId, familyId) && eq(messageThreads.kind, "family"))
+      .limit(1);
+    return result[0];
+  }
+
+  async createMessageThread(thread: InsertMessageThread): Promise<MessageThread> {
+    const result = await db.insert(messageThreads).values(thread).returning();
+    return result[0];
+  }
+
+  async getUserThreads(userId: string): Promise<MessageThread[]> {
+    const result = await db.select()
+      .from(messageThreads)
+      .innerJoin(threadMembers, eq(messageThreads.id, threadMembers.threadId))
+      .where(eq(threadMembers.userId, userId))
+      .orderBy(desc(messageThreads.updatedAt));
+    return result.map(row => row.message_threads);
+  }
+
+  async addThreadMember(member: InsertThreadMember): Promise<ThreadMember> {
+    const result = await db.insert(threadMembers).values(member).returning();
+    return result[0];
+  }
+
+  async getThreadMessages(threadId: string, cursor?: string, limit: number = 50): Promise<Message[]> {
+    let query = db.select().from(messages)
+      .where(eq(messages.threadId, threadId))
+      .orderBy(desc(messages.createdAt))
+      .limit(limit);
+
+    if (cursor) {
+      query = query.where(eq(messages.id, cursor));
+    }
+
+    return await query;
+  }
+
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const result = await db.insert(messages).values(message).returning();
+    return result[0];
   }
 }
 

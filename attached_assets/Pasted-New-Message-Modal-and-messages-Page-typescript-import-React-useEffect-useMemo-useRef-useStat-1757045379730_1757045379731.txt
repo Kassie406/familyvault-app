@@ -1,0 +1,153 @@
+New Message Modal-and-messages Page
+· typescript
+import React, { useEffect, useMemo, useRef, useState } from "react";
+          </div>
+        ))}
+      </div>
+
+
+      {/* Composer */}
+      <div className="border-t border-white/10 p-3">
+        {pendingFiles.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {pendingFiles.map((f, i) => (
+              <div key={i} className="flex items-center gap-2 rounded-xl border border-white/10 bg-neutral-950/60 px-3 py-2 text-xs text-white/80">
+                <ImageIcon className="h-4 w-4 text-white/50" />
+                <span className="max-w-[220px] truncate">{f.name}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex items-end gap-2">
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            rows={2}
+            placeholder="Write a message…"
+            className="min-h-[44px] flex-1 resize-none rounded-xl border border-white/10 bg-neutral-950/60 p-3 text-sm text-white placeholder-white/40 outline-none focus:ring-2 focus:ring-yellow-500/40"
+          />
+          <input ref={fileRef} type="file" multiple className="hidden" onChange={onFiles} />
+          <button onClick={onAttach} className="rounded-xl border border-white/10 bg-neutral-950/60 p-2 text-white/80 hover:bg-white/10">
+            <Paperclip className="h-5 w-5" />
+          </button>
+          <button
+            onClick={doSend}
+            disabled={sending || (!body.trim() && pendingFiles.length === 0)}
+            className={classNames(
+              "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium",
+              sending ? "bg-yellow-500/40 text-white" : "bg-yellow-500 text-black hover:bg-yellow-400"
+            )}
+          >
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Send
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ---------------------------
+// Demo wrapper for canvas preview (you can delete)
+// ---------------------------
+export default function MessagesDemo() {
+  const [open, setOpen] = useState(false);
+  const [lastThread, setLastThread] = useState<ThreadSummary | null>(null);
+  const [lastMessage, setLastMessage] = useState<Message | null>(null);
+
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6 p-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-white">Messages – Demo</h1>
+        <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 rounded-xl bg-yellow-500 px-4 py-2 text-sm font-medium text-black hover:bg-yellow-400">
+          <Plus className="h-4 w-4" /> New Message
+        </button>
+      </div>
+
+
+      <MessagesPage onBack={undefined} />
+
+
+      <NewMessageModal
+        open={open}
+        onClose={() => setOpen(false)}
+        onSent={(msg, thread) => {
+          setLastMessage(msg);
+          setLastThread(thread);
+        }}
+      />
+
+
+      {(lastMessage || lastThread) && (
+        <div className="rounded-2xl border border-white/10 bg-neutral-900/60 p-4 text-sm text-white/80">
+          <div className="font-medium text-white">Last sent (demo state)</div>
+          <pre className="mt-2 overflow-auto rounded-xl bg-black/40 p-3 text-xs">{JSON.stringify({ lastThread, lastMessage }, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+
+Boom — dropped in a ready-to-use modal composer + thread page scaffold. I put both in one React file so you can try it immediately:
+
+NewMessageModal – a clean modal to compose a message, attach files, and send.
+
+MessagesPage – a thread view with messages list, simple bubbles, attachments, and a bottom composer.
+
+I also included small mock APIs and a mock “socket” hook so you can see flow without wiring your backend yet. Replace those with your real endpoints when ready.
+
+Where to find it
+
+I added the code to your canvas as NewMessageModal-and-MessagesPage.tsx (default export shows a demo; you can remove that wrapper later).
+
+How to integrate fast
+
+Trigger the modal from your Quick Actions → Send Message card:
+
+const [open, setOpen] = useState(false);
+
+<button onClick={() => setOpen(true)}>Send Message</button>
+
+<NewMessageModal
+  open={open}
+  onClose={() => setOpen(false)}
+  onSent={(msg, thread) => {
+    // optional: route to /messages/:threadId
+    router.push(`/messages/${thread.id}`);
+  }}
+/>
+
+
+Add a Messages route:
+
+// /app/messages/[threadId]/page.tsx (Next.js) or a route in your router
+export default function MessagesRoute({ params }) {
+  return <MessagesPage threadId={params.threadId} />;
+}
+
+
+If you omit threadId, the page auto-resolves the Family thread.
+
+What you’ll need to swap for real endpoints
+
+Inside the file you’ll see these fakes—replace with your backend:
+
+resolveFamilyThread()  // POST /api/threads { kind: 'family' }
+listMessages(threadId) // GET /api/threads/:id/messages
+sendMessage(threadId, body, fileIds) // POST /api/threads/:id/messages
+uploadFiles(files) // your existing Upload Center endpoint
+
+Realtime (optional)
+
+There’s a mocked socket hook useMockSocket. When you have your WebSocket running, replace it with your client and subscribe to message:new while joined to the thread room.
+
+Styling
+
+Pure Tailwind, so it looks native with your current theme.
+
+Button/hover states follow your gold accent.
+
+Attachments show little chips in the composer and tiled previews in messages.
