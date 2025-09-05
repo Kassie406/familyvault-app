@@ -19,10 +19,12 @@ import { StatCard } from '@/components/StatCard';
 import { InviteFamilyMemberDialog } from '@/components/InviteFamilyMemberDialog';
 import QuickDocumentUpload from '@/components/upload/QuickDocumentUpload';
 import QuickPhotoUpload from '@/components/upload/QuickPhotoUpload';
+import { FamilyMessaging } from '@/components/messaging/FamilyMessaging';
 
 export default function FamilyHome() {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [messagingOpen, setMessagingOpen] = useState(false);
   const [highlightDocumentUpload, setHighlightDocumentUpload] = useState(false);
   
   // Ref for the upload center section
@@ -281,7 +283,12 @@ export default function FamilyHome() {
             subtitle="Add new family document"
             onClick={scrollToDocumentUpload}
           />
-          <ActionCard icon={<MessageCircle className="h-5 w-5"/>} title="Send Message" subtitle="Chat with family" />
+          <ActionCard 
+            icon={<MessageCircle className="h-5 w-5"/>} 
+            title="Send Message" 
+            subtitle="Chat with family" 
+            onClick={() => setMessagingOpen(true)}
+          />
           <ActionCard icon={<ImageIcon className="h-5 w-5"/>} title="View Photos" subtitle="Browse family gallery" />
           <ActionCard icon={<ShieldAlert className="h-5 w-5"/>} title="Emergency Info" subtitle="Quick access to critical info" />
         </div>
@@ -395,6 +402,12 @@ export default function FamilyHome() {
       <InviteFamilyMemberDialog 
         open={inviteDialogOpen}
         onOpenChange={setInviteDialogOpen}
+      />
+
+      {/* Family Messaging Modal */}
+      <FamilyMessaging 
+        isOpen={messagingOpen}
+        onClose={() => setMessagingOpen(false)}
       />
     </div>
   );

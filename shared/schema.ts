@@ -506,6 +506,44 @@ export const photoAlbums = pgTable("photo_albums", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Messaging System - Real-time family communication
+export const threadKindEnum = pgEnum("thread_kind", ["family", "dm", "group"]);
+export const threadMemberRoleEnum = pgEnum("thread_member_role", ["owner", "member"]);
+
+// Message Threads - conversation containers
+export const messageThreads = pgTable("message_threads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  kind: threadKindEnum("kind").notNull(),
+  title: text("title"),
+  familyId: varchar("family_id").notNull(),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Thread Members - who can access each thread
+export const threadMembers = pgTable("thread_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  threadId: varchar("thread_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  role: threadMemberRoleEnum("role").default("member").notNull(),
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueThreadUser: unique().on(table.threadId, table.userId),
+}));
+
+// Messages - actual chat messages
+export const messages = pgTable("messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  threadId: varchar("thread_id").notNull(),
+  authorId: varchar("author_id").notNull(),
+  body: text("body"),
+  fileIds: text("file_ids").array().default([]).notNull(), // References to uploaded files
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  editedAt: timestamp("edited_at"),
+  deletedAt: timestamp("deleted_at"),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -1200,6 +1238,27 @@ export const insertPhotoAlbumSchema = createInsertSchema(photoAlbums).pick({
   createdBy: true,
 });
 
+// Messaging insert schemas
+export const insertMessageThreadSchema = createInsertSchema(messageThreads).pick({
+  kind: true,
+  title: true,
+  familyId: true,
+  createdBy: true,
+});
+
+export const insertThreadMemberSchema = createInsertSchema(threadMembers).pick({
+  threadId: true,
+  userId: true,
+  role: true,
+});
+
+export const insertMessageSchema = createInsertSchema(messages).pick({
+  threadId: true,
+  authorId: true,
+  body: true,
+  fileIds: true,
+});
+
 // Family types
 export type InsertFamily = z.infer<typeof insertFamilySchema>;
 export type Family = typeof families.$inferSelect;
@@ -1243,6 +1302,16 @@ export type FamilyPhoto = typeof familyPhotos.$inferSelect;
 
 export type InsertPhotoAlbum = z.infer<typeof insertPhotoAlbumSchema>;
 export type PhotoAlbum = typeof photoAlbums.$inferSelect;
+
+// Messaging types
+export type InsertMessageThread = z.infer<typeof insertMessageThreadSchema>;
+export type MessageThread = typeof messageThreads.$inferSelect;
+
+export type InsertThreadMember = z.infer<typeof insertThreadMemberSchema>;
+export type ThreadMember = typeof threadMembers.$inferSelect;
+
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type Message = typeof messages.$inferSelect;
 
 // Business type exports  
 export type BusinessItem = typeof businessItems.$inferSelect;

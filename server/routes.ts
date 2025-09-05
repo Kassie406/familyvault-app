@@ -11,7 +11,10 @@ import {
   insertFamilyBusinessItemSchema,
   insertFamilyLegalItemSchema,
   insertFamilyInsuranceItemSchema,
-  insertFamilyTaxItemSchema
+  insertFamilyTaxItemSchema,
+  insertMessageThreadSchema,
+  insertThreadMemberSchema,
+  insertMessageSchema
 } from "@shared/schema";
 import crypto from "crypto";
 
@@ -616,6 +619,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error attaching photo:", error);
       res.status(500).json({ error: "Failed to attach photo" });
+    }
+  });
+
+  // Family Messaging API endpoints
+  // POST /api/threads - Create/resolve a thread (family, DM, group)
+  app.post("/api/threads", async (req, res) => {
+    try {
+      const { kind, title, memberIds } = req.body;
+      const familyId = "family-1"; // TODO: Get from user's family
+      const userId = "current-user"; // TODO: Get from authenticated user
+      
+      if (!kind || !["family", "dm", "group"].includes(kind)) {
+        return res.status(400).json({ error: "Invalid thread kind" });
+      }
+
+      // For family threads, check if one already exists
+      if (kind === "family") {
+        const existingThread = await storage.getFamilyThread(familyId);
+        if (existingThread) {
+          return res.json({ thread: existingThread });
+        }
+      }
+
+      const threadData = {
+        kind,
+        title: title || (kind === "family" ? "Family Chat" : null),
+        familyId,
+        createdBy: userId
+      };
+
+      const thread = await storage.createMessageThread(threadData);
+      
+      // Add creator as member
+      await storage.addThreadMember({
+        threadId: thread.id,
+        userId,
+        role: "owner"
+      });
+
+      // Add additional members for DM/group
+      if (memberIds && memberIds.length > 0) {
+        for (const memberId of memberIds) {
+          await storage.addThreadMember({
+            threadId: thread.id,
+            userId: memberId,
+            role: "member"
+          });
+        }
+      }
+
+      res.status(201).json({ thread });
+    } catch (error) {
+      console.error("Error creating thread:", error);
+      res.status(500).json({ error: "Failed to create thread" });
+    }
+  });
+
+  // GET /api/threads - List user's threads
+  app.get("/api/threads", async (req, res) => {
+    try {
+      const userId = "current-user"; // TODO: Get from authenticated user
+      const threads = await storage.getUserThreads(userId);
+      res.json({ threads });
+    } catch (error) {
+      console.error("Error fetching threads:", error);
+      res.status(500).json({ error: "Failed to fetch threads" });
+    }
+  });
+
+  // GET /api/threads/:id/messages - Get messages in a thread (paginated)
+  app.get("/api/threads/:id/messages", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { cursor, limit = 50 } = req.query;
+      
+      const messages = await storage.getThreadMessages(
+        id, 
+        cursor as string, 
+        parseInt(limit as string)
+      );
+      
+      res.json({ messages });
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  });
+
+  // POST /api/threads/:id/messages - Send a message
+  app.post("/api/threads/:id/messages", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { body, fileIds = [] } = req.body;
+      const userId = "current-user"; // TODO: Get from authenticated user
+      
+      if (!body && (!fileIds || fileIds.length === 0)) {
+        return res.status(400).json({ error: "Message body or files required" });
+      }
+
+      const messageData = {
+        threadId: id,
+        authorId: userId,
+        body,
+        fileIds
+      };
+
+      const message = await storage.createMessage(messageData);
+      
+      // TODO: Broadcast via WebSocket to thread members
+      console.log(`Broadcasting message ${message.id} to thread ${id}`);
+      
+      res.status(201).json({ message });
+    } catch (error) {
+      console.error("Error sending message:", error);
+      res.status(500).json({ error: "Failed to send message" });
     }
   });
 
