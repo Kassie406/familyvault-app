@@ -1,0 +1,60 @@
+what you’re seeing is the launcher keeping a “dimmed” state after it’s clicked (focus/pressed/open state or an overlay). Here’s a one-time patch that forces the button to stay solid gold on every state and prevents the badge/overlay from trapping hover/focus.
+
+Drop-in CSS override (works regardless of Tailwind classes)
+
+Add this to a global stylesheet that loads after Tailwind (e.g., src/index.css):
+
+/* Chat FAB: never fade, ever */
+#chat-fab,
+#chat-fab:hover,
+#chat-fab:active,
+#chat-fab:focus,
+#chat-fab[aria-expanded="true"],
+#chat-fab[aria-pressed="true"],
+#chat-fab[data-state="open"] {
+  opacity: 1 !important;
+  filter: none !important;
+  background-color: #D4AF37 !important; /* solid gold */
+}
+
+/* Badge and any halo/pulse overlay must not intercept pointer/hover */
+#chat-fab .fab-badge { pointer-events: none !important; }
+#chat-fab::before,
+#chat-fab::after { display: none !important; } /* kill lingering glow rings */
+
+Button markup (ensure solid background + explicit state attributes)
+
+Update your launcher to match this:
+
+<button
+  id="chat-fab"
+  aria-expanded={open}
+  aria-pressed={open}
+  data-state={open ? "open" : "closed"}
+  onClick={() => setOpen(v => !v)}
+  className="
+    fixed bottom-6 right-6 z-50 grid place-items-center
+    h-14 w-14 rounded-full bg-[#D4AF37] text-black shadow-xl
+    transition-transform duration-150 hover:scale-105 active:scale-95
+    opacity-100 hover:opacity-100 focus:opacity-100 active:opacity-100
+    outline-none focus-visible:ring-2 ring-black/20
+  "
+>
+  <IconChat className="w-6 h-6" />
+  {badge > 0 && (
+    <span className="fab-badge absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1
+                     grid place-items-center rounded-full bg-red-600 text-white text-[10px]">
+      {badge}
+    </span>
+  )}
+</button>
+
+Why this fixes it
+
+Some style in your stack was applying opacity on :focus, :active, or when open was true (e.g., open ? 'opacity-60' : 'opacity-100', group-hover:opacity-70, or a pulsing ::before overlay).
+
+The CSS above overrides all those states with opacity: 1 and removes pseudo-element halos so the button can’t appear translucent after you click it.
+
+The badge is pointer-events: none, so it can’t “steal” hover/focus and leave the button stuck in a faded state.
+
+If you still see dimming, search your codebase for any of these on the launcher or its parent and remove them: opacity-xx, bg-[#D4AF37]/xx, group-hover:opacity-xx, backdrop-…, or any [data-state=open] .chat-fab { opacity: … }.

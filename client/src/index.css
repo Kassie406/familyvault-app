@@ -3,6 +3,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Chat FAB: never fade, ever */
+#chat-fab,
+#chat-fab:hover,
+#chat-fab:active,
+#chat-fab:focus,
+#chat-fab[aria-expanded="true"],
+#chat-fab[aria-pressed="true"],
+#chat-fab[data-state="open"] {
+  opacity: 1 !important;
+  filter: none !important;
+  background-color: #D4AF37 !important; /* solid gold */
+}
+
+/* Badge and any halo/pulse overlay must not intercept pointer/hover */
+#chat-fab .fab-badge { pointer-events: none !important; }
+#chat-fab::before,
+#chat-fab::after { display: none !important; } /* kill lingering glow rings */
+
 @layer utilities {
   /* Completely disable any hover background (and overlays) */
   .no-hover-bg:hover,
