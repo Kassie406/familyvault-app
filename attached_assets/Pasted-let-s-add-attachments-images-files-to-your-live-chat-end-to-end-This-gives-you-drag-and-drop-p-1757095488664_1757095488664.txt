@@ -1,0 +1,326 @@
+let’s add attachments (images/files) to your live chat, end-to-end. This gives you: drag-and-drop, paste from clipboard, file picker, upload progress, server storage, DB records, and rendering in the thread. I’ll show a local disk version (fast to ship) and note the S3/R2 swap for prod.
+
+1) Database
+
+SQL (Drizzle migration)
+
+-- messages table already exists
+CREATE TABLE message_attachments (
+  id TEXT PRIMARY KEY,
+  message_id TEXT NOT NULL,
+  url TEXT NOT NULL,
+  name TEXT NOT NULL,
+  mime TEXT NOT NULL,
+  size BIGINT NOT NULL,
+  width INT NULL,
+  height INT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_msg_attachments_msg ON message_attachments (message_id);
+
+
+Drizzle schema
+
+// db/schema.ts
+import { pgTable, text, bigint, integer, timestamp } from "drizzle-orm/pg-core";
+export const messageAttachments = pgTable("message_attachments", {
+  id: text("id").primaryKey(),
+  messageId: text("message_id").notNull(),
+  url: text("url").notNull(),
+  name: text("name").notNull(),
+  mime: text("mime").notNull(),
+  size: bigint("size", { mode: "number" }).notNull(),
+  width: integer("width"),
+  height: integer("height"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+2) Server: upload endpoint (local disk) + static hosting
+npm i multer mime-types
+
+// server.ts (top-level additions)
+import path from "path";
+import fs from "fs";
+const UPLOAD_DIR = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+// serve uploaded files
+app.use("/uploads", express.static(UPLOAD_DIR, { maxAge: "7d", index: false }));
+
+// routes/uploads.ts
+import { Router } from "express";
+import multer from "multer";
+import { lookup as mimeLookup, extension as extFromMime } from "mime-types";
+import crypto from "crypto";
+import path from "path";
+
+const router = Router();
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname) || "." + (extFromMime(file.mimetype) || "bin");
+    cb(null, crypto.randomUUID() + ext.toLowerCase());
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (_req, file, cb) => {
+    const okTypes = [
+      "image/png","image/jpeg","image/webp","image/gif",
+      "application/pdf","text/plain","application/zip",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ];
+    if (okTypes.includes(file.mimetype)) cb(null, true);
+    else cb(new Error("Unsupported file type: " + file.mimetype));
+  },
+});
+
+router.post("/", upload.array("files", 5), async (req, res) => {
+  const files = (req.files as Express.Multer.File[] | undefined) || [];
+  const base = "/uploads";
+  const items = files.map(f => ({
+    name: f.originalname,
+    mime: f.mimetype,
+    size: f.size,
+    url: `${base}/${f.filename}`,
+    width: undefined,
+    height: undefined,
+  }));
+  res.json({ files: items });
+});
+
+export default router;
+
+
+Mount it
+
+// server.ts
+import uploadsRouter from "./routes/uploads";
+app.use("/api/uploads", uploadsRouter);
+
+
+S3/R2 later: replace multer.diskStorage with multer.memoryStorage, then PutObject with @aws-sdk/client-s3 and return the public URL. The rest stays the same.
+
+3) Server: accept attachments when creating a message
+// routes/messages.ts (POST) – allow attachments array from client
+import { messageAttachments } from "../db/schema";
+// ...
+router.post("/", async (req, res) => {
+  let { chatId, senderId, body, attachments } = req.body || {};
+  if (!chatId) chatId = await getOrCreateFamilyChatId();
+  if (!senderId || (!body?.trim() && !attachments?.length)) {
+    return res.status(400).json({ error: "Message must have text or attachments" });
+  }
+
+  const [row] = await db.insert(messages).values({
+    id: crypto.randomUUID(),
+    chatId,
+    senderId,
+    body: (body ?? "").trim(),
+  }).returning();
+
+  const atts = Array.isArray(attachments) ? attachments : [];
+  for (const a of atts) {
+    await db.insert(messageAttachments).values({
+      id: crypto.randomUUID(),
+      messageId: row.id,
+      url: a.url,
+      name: a.name || "file",
+      mime: a.mime || "application/octet-stream",
+      size: a.size || 0,
+      width: a.width ?? null,
+      height: a.height ?? null,
+    });
+  }
+
+  // hydrate payload with attachments for immediate echo
+  const payload = { ...row, attachments: atts, reactions: [] };
+  io.to(chatId).emit("message:new", payload);
+  res.json({ message: payload });
+});
+
+
+Add attachments to GET
+
+// routes/messages.ts (GET) – join attachments
+import { messageAttachments } from "../db/schema";
+import { sql } from "drizzle-orm";
+// after you fetch 'rows', resolve attachments per message:
+const ids = rows.map(r => r.id);
+let attachmentsByMessage: Record<string, any[]> = {};
+if (ids.length) {
+  const atts = await db.select().from(messageAttachments)
+    .where(sql`${messageAttachments.messageId} = ANY(${ids})`);
+  attachmentsByMessage = atts.reduce((acc, a) => {
+    (acc[a.messageId] ||= []).push(a);
+    return acc;
+  }, {} as Record<string, any[]>);
+}
+const result = rows.reverse().map(r => ({
+  ...r,
+  attachments: attachmentsByMessage[r.id] ?? [],
+  reactions: [],
+  author: r.authorName ? { id: r.senderId, name: r.authorName } : undefined,
+}));
+res.json(result);
+
+4) Client: composer with file picker, paste, drag-drop, and progress
+// components/ChatComposer.tsx
+import React, { useRef, useState } from "react";
+
+type Uploaded = { url: string; name: string; mime: string; size: number; width?: number; height?: number };
+
+export default function ChatComposer({ onSend }: { onSend: (text: string, atts: Uploaded[]) => Promise<void> }) {
+  const [text, setText] = useState("");
+  const [pending, setPending] = useState(false);
+  const [files, setFiles] = useState<Uploaded[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleFiles(sel: FileList | null) {
+    if (!sel || sel.length === 0) return;
+    const form = new FormData();
+    Array.from(sel).forEach(f => form.append("files", f));
+    const res = await fetch("/api/uploads", { method: "POST", body: form });
+    const j = await res.json();
+    const newOnes: Uploaded[] = j.files || [];
+    setFiles(prev => [...prev, ...newOnes]);
+  }
+
+  async function submit() {
+    if (pending) return;
+    const body = text.trim();
+    if (!body && files.length === 0) return;
+    setPending(true);
+    try {
+      await onSend(body, files);
+      setText("");
+      setFiles([]);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="p-2 border-t border-white/10">
+      {/* attachment previews */}
+      {files.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-2">
+          {files.map((f, i) => (
+            <div key={i} className="flex items-center gap-2 bg-white/5 rounded px-2 py-1">
+              {f.mime.startsWith("image/") ? (
+                <img src={f.url} alt={f.name} className="w-10 h-10 object-cover rounded" />
+              ) : (
+                <span className="text-xs">📎</span>
+              )}
+              <span className="text-xs truncate max-w-[120px]">{f.name}</span>
+              <button className="text-xs opacity-70 hover:opacity-100" onClick={() => setFiles(prev => prev.filter((_, idx) => idx !== i))}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div
+        className="flex items-center gap-2"
+        onDragOver={(e) => { e.preventDefault(); }}
+        onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}
+        onPaste={(e) => {
+          const items = e.clipboardData?.files;
+          if (items && items.length) handleFiles(items);
+        }}
+      >
+        <button
+          onClick={() => fileRef.current?.click()}
+          className="rounded bg-white/10 hover:bg-white/15 px-2 py-2"
+          title="Attach files"
+        >📎</button>
+
+        <input
+          ref={fileRef}
+          type="file"
+          multiple
+          className="hidden"
+          accept="image/*,.pdf,.zip,.txt,.docx"
+          onChange={(e) => handleFiles(e.target.files)}
+        />
+
+        <input
+          className="flex-1 rounded bg-black/30 px-3 py-2"
+          placeholder="Type a message…  (attach with 📎, paste, or drop)"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey ? (e.preventDefault(), submit()) : undefined}
+        />
+
+        <button
+          onClick={submit}
+          disabled={pending}
+          className="rounded-full w-10 h-10 grid place-items-center bg-[#D4AF37] text-black disabled:opacity-60"
+          title="Send"
+        >➤</button>
+      </div>
+    </div>
+  );
+}
+
+
+Use it in your widget
+
+// ChatWidget.tsx (replace your existing composer with this)
+import ChatComposer from "./ChatComposer";
+
+async function handleSend(body: string, atts: any[]) {
+  if (!chatId) return;
+  // optimistic UI
+  const temp = { id: `tmp-${Date.now()}`, chatId, senderId: userId, body, attachments: atts, _pending: true };
+  setMsgs(prev => [...prev, temp]);
+  const res = await fetch("/api/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chatId, senderId: userId, body, attachments: atts }),
+  });
+  const j = await res.json();
+  setMsgs(prev => prev.map(m => (m.id === temp.id ? j.message : m)));
+}
+
+return (
+  <div className="flex flex-col h-full">
+    {/* ... messages list ... */}
+    <ChatComposer onSend={handleSend} />
+  </div>
+);
+
+5) Message rendering (images + files)
+// MessageBubble.tsx (snippet for attachments section)
+{(message.attachments?.length ?? 0) > 0 && (
+  <div className="mt-2 flex flex-wrap gap-2">
+    {message.attachments.map((a: any, i: number) =>
+      a.mime?.startsWith("image/") ? (
+        <a key={a.id ?? i} href={a.url} target="_blank" rel="noreferrer"
+           className="block">
+          <img src={a.url} alt={a.name} className="max-h-40 rounded-lg border border-white/10" />
+        </a>
+      ) : (
+        <a key={a.id ?? i} href={a.url} target="_blank" rel="noreferrer"
+           className="flex items-center gap-2 bg-white/5 hover:bg-white/10 rounded px-2 py-1 text-xs">
+          📎 <span className="truncate max-w-[180px]">{a.name}</span>
+        </a>
+      )
+    )}
+  </div>
+)}
+
+Notes & guardrails
+
+Security: We restrict types and size; files are served from /uploads (no directory listing). For tighter control, store to S3/R2 with private buckets + signed URLs.
+
+Privacy/compliance: If you’ll send links via SMS, do not auto-forward attachments by text unless users consent (MMS requires different setup). In-app links are fine.
+
+Retention: Decide how long to retain uploaded files; add a cron to purge orphaned uploads (no message_attachments reference).
+
+Thumbnails: For heavy images, add sharp to make thumbnails and store width/height.
+
+That’s it—you’ll be able to attach images/files from the widget (picker, paste, or drop), see previews, and render them in the timeline.

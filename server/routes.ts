@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import storageRoutes from "./storage-routes";
 import fileRoutes from "./routes/files";
 import mobileUploadRoutes from "./routes/mobile-upload";
+import uploadsRouter from "./routes/uploads";
 import smsRoutes from "./sms";
 import axios from "axios";
 import { sendSMSNotification } from "./lib/twilio";
@@ -491,6 +492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount storage routes for file uploads
   app.use("/api/storage", storageRoutes);
+  app.use("/api/uploads", uploadsRouter);
 
   // Mount file status routes for real-time updates
   app.use("/api/files", fileRoutes);

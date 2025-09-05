@@ -35,6 +35,7 @@ import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import SignupOptions from "@/pages/signup-options";
 import Settings from "@/pages/settings";
+import NotificationSettingsPage from "@/pages/NotificationSettingsPage";
 import ChildInformation from "@/pages/child-information";
 import DisasterPlanning from "@/pages/disaster-planning";
 import ElderlyParents from "@/pages/elderly-parents";
@@ -150,6 +151,7 @@ function Router() {
       <Route path="/share/:token" component={Share} />
       <Route path="/signup-options" component={SignupOptions} />
       <Route path="/settings" component={Settings} />
+      <Route path="/notification-settings" component={NotificationSettingsPage} />
       <Route path="/test-stepup" component={TestStepUp} />
       <Route path="/child-information" component={ChildInformation} />
       <Route path="/disaster-planning" component={DisasterPlanning} />
