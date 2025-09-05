@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../db";
-import { docApprovals, familyResources, users } from "@shared/schema";
+import { docApprovals } from "@shared/schema";
 import { eq, desc, and } from "drizzle-orm";
 
 const router = Router();
@@ -22,16 +22,19 @@ router.get("/pending", async (req: any, res: any) => {
         status: docApprovals.status,
         reason: docApprovals.reason,
         createdAt: docApprovals.createdAt,
-        documentTitle: familyResources.title,
-        requesterName: users.email, // Use email as display name for now
       })
       .from(docApprovals)
-      .innerJoin(familyResources, eq(docApprovals.resourceId, familyResources.id))
-      .innerJoin(users, eq(docApprovals.requestedBy, users.id))
       .where(eq(docApprovals.status, "pending"))
       .orderBy(desc(docApprovals.createdAt));
 
-    res.json({ items: pendingApprovals });
+    // Add friendly display data for the UI
+    const enrichedApprovals = pendingApprovals.map(approval => ({
+      ...approval,
+      documentTitle: `Document ${approval.resourceId}`,
+      requesterName: approval.requestedBy,
+    }));
+
+    res.json({ items: enrichedApprovals });
   } catch (error) {
     console.error("Error fetching pending approvals:", error);
     res.status(500).json({ error: "Failed to fetch pending approvals" });
