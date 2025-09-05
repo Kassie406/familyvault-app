@@ -6,15 +6,6 @@ import type { Server as HttpServer } from "http";
 let io: Server | null = null;
 
 export function createIoServer(httpServer: HttpServer) {
-  // Use Redis for Socket.IO adapter (same Redis as BullMQ for efficiency)
-  const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
-  const pub = new IORedis(redisUrl);
-  const sub = new IORedis(redisUrl);
-
-  // Add error handlers to prevent crashes
-  pub.on('error', (err) => console.error('[realtime] Redis pub error:', err));
-  sub.on('error', (err) => console.error('[realtime] Redis sub error:', err));
-
   io = new Server(httpServer, {
     cors: { 
       origin: process.env.WEB_ORIGIN ?? true, 
@@ -23,8 +14,26 @@ export function createIoServer(httpServer: HttpServer) {
     path: "/socket.io/", // Avoid conflicts with Vite HMR
   });
 
-  // Use Redis adapter for multi-instance scaling
-  io.adapter(createAdapter(pub, sub));
+  // Use Redis adapter for multi-instance scaling (optional)
+  if (process.env.REDIS_URL) {
+    try {
+      const redisUrl = process.env.REDIS_URL;
+      const pub = new IORedis(redisUrl);
+      const sub = new IORedis(redisUrl);
+
+      // Add error handlers to prevent crashes
+      pub.on('error', (err) => console.error('[realtime] Redis pub error:', err));
+      sub.on('error', (err) => console.error('[realtime] Redis sub error:', err));
+
+      // Use Redis adapter for multi-instance scaling
+      io.adapter(createAdapter(pub, sub));
+      console.log('[realtime] Using Redis adapter for scaling');
+    } catch (error) {
+      console.warn('[realtime] Redis not available, using default adapter:', error);
+    }
+  } else {
+    console.log('[realtime] No Redis URL provided, using default in-memory adapter');
+  }
 
   // Handle client connections
   io.on("connection", (socket) => {
