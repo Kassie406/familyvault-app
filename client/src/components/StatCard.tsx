@@ -83,29 +83,19 @@ export function StatCard({
     >
       <Link
         href={href}
-        className="group block rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] transition hover:border-zinc-700 hover:shadow-[0_1px_0_0_rgba(255,255,255,0.10)_inset,0_0_0_1px_rgba(255,255,255,0.06)_inset] focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+        className="group block rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] focus:outline-none focus:ring-2 focus:ring-amber-400/40"
         aria-describedby={`${label.replace(/\s+/g, "-").toLowerCase()}-desc`}
         data-testid={`stat-card-${label.replace(/\s+/g, "-").toLowerCase()}`}
       >
-        <div className="flex items-center gap-4">
-          <span className="grid h-10 w-10 place-content-center rounded-xl bg-amber-500/10 text-amber-400 ring-1 ring-amber-400/20">
+        <div className="flex items-center gap-3">
+          <span className="h-6 w-6 text-amber-400/70 group-hover:text-amber-400 transition-colors">
             {icon}
           </span>
-          <div className="flex-1">
-            <div className="text-sm text-zinc-400" id={`${label.replace(/\s+/g, "-").toLowerCase()}-desc`}>
-              {label}
-            </div>
-            <div className="mt-1 text-2xl font-semibold tracking-tight text-zinc-50">
-              {value}
-            </div>
-          </div>
-          <svg
-            className="h-5 w-5 text-zinc-500 transition group-hover:text-amber-400"
-            viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"
-          >
-            <path d="M7.293 14.707a1 1 0 0 1 0-1.414L10.586 10 7.293 6.707a1 1 0 1 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0z"/>
-          </svg>
+          <span className="text-sm font-medium text-zinc-400 group-hover:text-amber-400 transition-colors" id={`${label.replace(/\s+/g, "-").toLowerCase()}-desc`}>
+            {label}
+          </span>
         </div>
+        <p className="mt-3 text-3xl font-semibold text-white">{value}</p>
       </Link>
 
       {/* Hover / focus preview */}
@@ -144,7 +134,7 @@ export function StatCard({
                   <li key={it.id}>
                     <Link
                       href={it.href ?? href}
-                      className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-zinc-900/60 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+                      className="group flex items-center gap-3 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
                     >
                       {it.thumbnailUrl ? (
                         <img
@@ -157,7 +147,7 @@ export function StatCard({
                         <span className="h-8 w-8 rounded-md bg-zinc-800/60 ring-1 ring-zinc-700/60" />
                       )}
                       <div className="min-w-0">
-                        <div className="truncate text-sm text-zinc-100">{it.title}</div>
+                        <div className="truncate text-sm text-zinc-400 group-hover:text-amber-400 transition-colors">{it.title}</div>
                         {it.sub && <div className="truncate text-xs text-zinc-400">{it.sub}</div>}
                       </div>
                     </Link>
