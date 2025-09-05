@@ -1,0 +1,173 @@
+Api Management Landing Page + Backend (express + Drizzle)
+· typescript
+// =============================================
+  const end = plaintext.slice(-4);
+  return `••••${end}`;
+}
+
+
+// =============================================
+// BACKEND: Express routes
+// File: server/routes/apiServices.ts
+import { Router } from "express";
+import { db } from "../db"; // your drizzle db instance
+import { apiServices, apiCredentials } from "../db/schema/api";
+import { encryptSecret, decryptSecret, mask } from "../lib/crypto";
+import { eq, and } from "drizzle-orm";
+
+
+function adminOnly(req, res, next) {
+  // implement your auth. Here we assume req.user.role
+  if (req.user?.role !== "admin") return res.status(403).json({ error: "forbidden" });
+  next();
+}
+
+
+export const router = Router();
+
+
+// List services
+router.get("/api/api-services", adminOnly, async (req, res) => {
+  const items = await db.select().from(apiServices).orderBy(apiServices.name);
+  res.json({ items: items.map(i => ({ ...i, variables: i.variables ? JSON.parse(i.variables) : [] })) });
+});
+
+
+// Create service
+router.post("/api/api-services", adminOnly, async (req, res) => {
+  const { name, category, description, baseUrl, status, variables = [], notes } = req.body;
+  const [row] = await db.insert(apiServices).values({ name, category, description, baseUrl, status, variables: JSON.stringify(variables), notes }).returning();
+  res.json(row);
+});
+
+
+// Update service
+router.put("/api/api-services/:id", adminOnly, async (req, res) => {
+  const { id } = req.params;
+  const { name, category, description, baseUrl, status, variables = [], notes } = req.body;
+  await db.update(apiServices).set({ name, category, description, baseUrl, status, variables: JSON.stringify(variables), notes, updatedAt: new Date() }).where(eq(apiServices.id, id));
+  res.json({ ok: true });
+});
+
+
+// List credentials (masked)
+router.get("/api/api-credentials", adminOnly, async (req, res) => {
+  const { serviceId } = req.query as { serviceId: string };
+  const items = await db.select().from(apiCredentials).where(eq(apiCredentials.serviceId, serviceId));
+  res.json({ items: items.map(i => ({ id: i.id, serviceId: i.serviceId, label: i.label, type: i.type, masked: i.masked, lastUsedAt: i.lastUsedAt })) });
+});
+
+
+// Create credential
+router.post("/api/api-credentials", adminOnly, async (req, res) => {
+  const { serviceId, label, type, secret } = req.body;
+  const enc = encryptSecret(secret);
+  const masked = mask(secret);
+  const [row] = await db.insert(apiCredentials).values({ serviceId, label, type, ciphertext: enc.ciphertext, iv: enc.iv, tag: enc.tag, masked }).returning();
+  res.json({ id: row.id });
+});
+
+
+// Rotate credential (update secret)
+router.put("/api/api-credentials/:id", adminOnly, async (req, res) => {
+  const { id } = req.params;
+  const { secret } = req.body;
+  const enc = encryptSecret(secret);
+  await db.update(apiCredentials).set({ ciphertext: enc.ciphertext, iv: enc.iv, tag: enc.tag, masked: mask(secret), updatedAt: new Date() }).where(eq(apiCredentials.id, id));
+  res.json({ ok: true });
+});
+
+
+// Reveal once (copy to clipboard client-side). Consider rate limit + audit.
+router.post("/api/api-credentials/:id/reveal", adminOnly, async (req, res) => {
+  const { id } = req.params;
+  const [row] = await db.select().from(apiCredentials).where(eq(apiCredentials.id, id));
+  if (!row) return res.status(404).json({ error: "not found" });
+  const plaintext = decryptSecret({ ciphertext: row.ciphertext, iv: row.iv, tag: row.tag });
+  // TODO: insert into audit table with req.user.id, ip, ts
+  res.json({ plaintext });
+});
+
+
+export default router;
+
+
+// =============================================
+// SECURITY CHECKLIST (keep in repo as docs/security/API-credentials.md)
+// 1) Store SECRETS_KEY as a 64‑char hex in your env (never commit).
+// 2) Limit routes with adminOnly + 2FA for admin.
+// 3) Add rate‑limits to /reveal and always log who revealed.
+// 4) Prefer not to reveal at all; use server‑side integrations that read from vault.
+// 5) Nightly job to scan for unused credentials and rotate regularly.
+
+
+
+Love this direction. I built you a complete API Management landing page + backend you can drop into your stack right now:
+
+A dedicated page at /family/api-management (dark + gold, card/table layout).
+
+CRUD for services and credentials.
+
+Masked display (••••abcd), copy/reveal with audit hook.
+
+AES-256-GCM encryption at rest for all secrets.
+
+Admin-only routes, ready for your auth middleware.
+
+One-click “Rotate credential” flow.
+
+Update snippet for your Family Settings button so it navigates to this page instead of opening a modal.
+
+Open the canvas I just created to grab the code:
+
+Frontend: client/src/pages/family/api-management.tsx (full React page with shadcn/ui)
+
+Family Settings tweak: change “View API List” to a Link → /family/api-management
+
+Drizzle schema: server/db/schema/api.ts
+
+Crypto util: server/lib/crypto.ts
+
+Express routes: server/routes/apiServices.ts
+
+Security checklist at bottom of the file for production hardening
+
+How to wire it up (quick)
+
+ENV: add a 32-byte key
+
+SECRETS_KEY=<generate 32 bytes and hex encode>
+# e.g. node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+
+Server: mount the router
+
+// server/index.ts
+import apiServiceRouter from './routes/apiServices';
+app.use(apiServiceRouter);
+
+
+DB: run your Drizzle migration for api_services and api_credentials.
+
+Client: replace the old alert/modal action with
+Link href="/family/api-management"><Button>View API List</Button></Link>
+
+What you get on the page
+
+Services grid: Twilio, Cloudflare R2/S3, OpenAI, Redis, etc.
+
+Edit service (name, base URL, status, category, variables, notes).
+
+Credentials table per service: label, type, masked value, last used, actions.
+
+Add credential (username/password/token/key/secret).
+
+Rotate and Copy (reveal) with toasts.
+
+If you want, I can also:
+
+Hook the reveal endpoint to an audit table + rate limit.
+
+Add role/permission gating so only Owner/Admin from your Roles & Access can view.
+
+Import your current env (Twilio, R2/S3, Redis, OpenAI) and seed the page with those entries.
