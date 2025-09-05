@@ -1,0 +1,128 @@
+e next logical step is to define the API contract + backend shape so your dev team knows exactly what endpoints and events to wire to the modal + thread page. Here’s a clean draft:
+
+🔌 REST API Contracts
+1. Threads
+
+Create or find a thread (resolve by memberIds):
+
+POST /api/threads
+{
+  "memberIds": ["user_123", "user_456"],
+  "title": "optional custom title"
+}
+→ 201 Created
+{
+  "id": "thread_abc",
+  "title": "Family Chat",
+  "memberIds": ["user_123", "user_456"],
+  "createdAt": "...",
+  "updatedAt": "..."
+}
+
+
+Get thread details:
+
+GET /api/threads/:threadId
+→ 200 OK
+{
+  "id": "thread_abc",
+  "title": "Family Chat",
+  "memberIds": ["user_123", "user_456"],
+  "memberNames": ["Sarah", "Michael"],
+  "createdAt": "...",
+  "updatedAt": "..."
+}
+
+2. Messages
+
+List messages:
+
+GET /api/threads/:threadId/messages?limit=50&cursor=…
+→ 200 OK
+{
+  "messages": [
+    {
+      "id": "msg_1",
+      "body": "Hello world",
+      "author": { "id": "user_123", "name": "Sarah" },
+      "attachments": [{ "id": "file_1", "name": "photo.jpg", "url": "/files/photo.jpg" }],
+      "createdAt": "2025-09-05T01:00:00Z"
+    }
+  ],
+  "nextCursor": "..."
+}
+
+
+Send message:
+
+POST /api/threads/:threadId/messages
+{
+  "body": "Dinner at 6?",
+  "fileIds": ["file_1","file_2"]
+}
+→ 201 Created
+{
+  "id": "msg_2",
+  "body": "Dinner at 6?",
+  "author": { "id": "user_456", "name": "Dad" },
+  "attachments": [],
+  "createdAt": "2025-09-05T01:05:00Z"
+}
+
+3. Files (shared with Upload Center)
+
+Upload file (pre-signed URL flow):
+
+POST /api/files
+{ "filename": "photo.jpg", "mimetype": "image/jpeg", "size": 12345 }
+→ 200 OK
+{
+  "uploadUrl": "https://s3.amazonaws.com/bucket/photo.jpg?...",
+  "file": {
+    "id": "file_1",
+    "name": "photo.jpg",
+    "status": "pending"
+  }
+}
+
+
+Poll or subscribe to file status:
+
+GET /api/files/:id/status
+→ { "id": "file_1", "status": "ready", "thumbUrl": "/thumbs/file_1.jpg" }
+
+📡 WebSocket Events
+
+All clients subscribed to a thread channel (e.g. thread:thread_abc) receive:
+
+message:new
+
+{
+  "threadId": "thread_abc",
+  "message": {
+    "id": "msg_2",
+    "body": "Dinner at 6?",
+    "author": { "id": "user_456", "name": "Dad" },
+    "createdAt": "2025-09-05T01:05:00Z"
+  }
+}
+
+
+file:status (optional, to update in-flight attachments live)
+
+{
+  "fileId": "file_1",
+  "status": "ready",
+  "thumbUrl": "/thumbs/file_1.jpg"
+}
+
+🗄️ Schema fields you’ll need
+
+Thread: id, title, memberIds[], timestamps.
+
+Message: id, threadId, body, authorId, fileIds[], createdAt.
+
+File: id, name, mimetype, status (pending | ready | failed), thumbUrl?.
+
+👉 This way your NewMessageModal and ThreadPage we scaffolded earlier will plug directly into these APIs.
+Next step would be to stub /api/threads + /api/threads/:id/messages in your backend (Node/Express, Nest, Next.js API routes, etc.), then layer in file pipeline + WS broadcasting.
