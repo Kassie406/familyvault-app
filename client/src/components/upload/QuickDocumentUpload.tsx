@@ -246,12 +246,26 @@ export default function QuickDocumentUpload({
                 Select File
               </Label>
               <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer bg-gray-700/20 hover:bg-gray-700/30 transition-colors">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                <div className="flex flex-col items-center justify-center pt-3 pb-3">
                   <Upload className="w-8 h-8 mb-2 text-gray-400" />
                   <p className="mb-2 text-sm text-gray-400">
                     <span className="font-semibold">Click to upload</span> or drag and drop
                   </p>
-                  <p className="text-xs text-gray-500">PDF, DOC, DOCX, TXT, Images (MAX. 25MB)</p>
+                  <p className="text-xs text-gray-500 mb-3">PDF, DOC, DOCX, TXT, Images (MAX. 25MB)</p>
+                  
+                  {/* Mobile Upload Button */}
+                  <Button
+                    variant="outline"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setMobileModalOpen(true);
+                    }}
+                    className="h-8 px-4 border-gray-500 bg-gray-800/70 hover:bg-gray-700/70 text-white text-sm"
+                    disabled={isUploading}
+                  >
+                    📱 Mobile Upload
+                  </Button>
                 </div>
                 <input
                   id="file-upload"
@@ -261,26 +275,6 @@ export default function QuickDocumentUpload({
                   accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.webp"
                 />
               </label>
-              
-              {/* Mobile capture options */}
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => scanInputRef.current?.click()}
-                  className="h-12 border-gray-600 bg-gray-800/50 hover:bg-gray-700/50 text-white"
-                  disabled={isUploading}
-                >
-                  📷 Scan Document
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setMobileModalOpen(true)}
-                  className="h-12 border-gray-600 bg-gray-800/50 hover:bg-gray-700/50 text-white"
-                  disabled={isUploading}
-                >
-                  📱 Mobile Upload
-                </Button>
-              </div>
 
               {/* Hidden camera input */}
               <input
