@@ -1,0 +1,315 @@
+import { useState } from "react";
+import { usePresignedUpload } from "@/hooks/usePresignedUpload";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Upload, FileText, X, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+interface QuickDocumentUploadProps {
+  familyId?: string;
+  onUploadComplete?: (documentId: string) => void;
+  className?: string;
+}
+
+export default function QuickDocumentUpload({ 
+  familyId = "family-1", 
+  onUploadComplete,
+  className 
+}: QuickDocumentUploadProps) {
+  const { uploadFile, progress, uploading, error, reset } = usePresignedUpload();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("general");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Create document and attach file mutation
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      // Step 1: Create document metadata
+      const createRes = await fetch("/api/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ 
+          title: title || file.name,
+          description,
+          category,
+          familyId 
+        }),
+      });
+      
+      if (!createRes.ok) {
+        throw new Error("Failed to create document");
+      }
+      
+      const doc = await createRes.json();
+
+      // Step 2: Upload file to S3/R2
+      const { key, publicUrl } = await uploadFile(file, {
+        type: "document",
+        familyId
+      });
+
+      // Step 3: Attach file to document
+      const attachRes = await fetch(`/api/documents/${doc.id}/attach-file`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          storageKey: key,
+          fileName: file.name,
+          contentType: file.type || "application/octet-stream",
+          size: file.size,
+          publicUrl,
+        }),
+      });
+
+      if (!attachRes.ok) {
+        throw new Error("Failed to attach file");
+      }
+
+      return doc;
+    },
+    onSuccess: (doc) => {
+      toast({
+        title: "Document uploaded successfully",
+        description: `"${doc.title || title}" has been added to your family vault.`,
+      });
+      
+      // Reset form
+      setTitle("");
+      setDescription("");
+      setCategory("general");
+      setSelectedFile(null);
+      reset();
+      
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/family/stats"] });
+      
+      onUploadComplete?.(doc.id);
+    },
+    onError: (err) => {
+      toast({
+        title: "Upload failed",
+        description: err instanceof Error ? err.message : "Failed to upload document",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      if (!title) {
+        setTitle(file.name.replace(/\.[^/.]+$/, "")); // Remove extension
+      }
+    }
+  };
+
+  const handleUpload = () => {
+    if (!selectedFile) return;
+    uploadMutation.mutate(selectedFile);
+  };
+
+  const handleCancel = () => {
+    setSelectedFile(null);
+    setTitle("");
+    setDescription("");
+    setCategory("general");
+    reset();
+  };
+
+  const isUploading = uploading || uploadMutation.isPending;
+  const showProgress = isUploading && progress > 0;
+
+  return (
+    <Card className={`bg-gray-800/50 border-gray-700/50 ${className}`}>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-white">
+          <FileText className="h-5 w-5 text-yellow-400" />
+          Upload Document
+        </CardTitle>
+        <CardDescription className="text-gray-400">
+          Add important documents to your family vault
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {!selectedFile ? (
+          <>
+            {/* File Selection */}
+            <div>
+              <Label htmlFor="title" className="text-gray-300">
+                Document Title (optional)
+              </Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Insurance Policy, Medical Records, etc."
+                className="bg-gray-700/50 border-gray-600/50 text-white placeholder-gray-400"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="category" className="text-gray-300">
+                Category
+              </Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="bg-gray-700/50 border-gray-600/50 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">General</SelectItem>
+                  <SelectItem value="insurance">Insurance</SelectItem>
+                  <SelectItem value="medical">Medical</SelectItem>
+                  <SelectItem value="legal">Legal</SelectItem>
+                  <SelectItem value="financial">Financial</SelectItem>
+                  <SelectItem value="educational">Educational</SelectItem>
+                  <SelectItem value="personal">Personal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="file-upload" className="text-gray-300 mb-2 block">
+                Select File
+              </Label>
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer bg-gray-700/20 hover:bg-gray-700/30 transition-colors">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <Upload className="w-8 h-8 mb-2 text-gray-400" />
+                  <p className="mb-2 text-sm text-gray-400">
+                    <span className="font-semibold">Click to upload</span> or drag and drop
+                  </p>
+                  <p className="text-xs text-gray-500">PDF, DOC, DOCX, TXT, Images (MAX. 25MB)</p>
+                </div>
+                <input
+                  id="file-upload"
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.webp"
+                />
+              </label>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* File Selected View */}
+            <div className="bg-gray-700/30 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-8 w-8 text-blue-400" />
+                  <div>
+                    <p className="font-medium text-white">{selectedFile.name}</p>
+                    <p className="text-sm text-gray-400">
+                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+                </div>
+                {!isUploading && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancel}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+
+              {/* Form Fields */}
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="final-title" className="text-gray-300">
+                    Title
+                  </Label>
+                  <Input
+                    id="final-title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Document title"
+                    className="bg-gray-600/50 border-gray-500/50 text-white"
+                    disabled={isUploading}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="final-description" className="text-gray-300">
+                    Description (optional)
+                  </Label>
+                  <Input
+                    id="final-description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Brief description..."
+                    className="bg-gray-600/50 border-gray-500/50 text-white"
+                    disabled={isUploading}
+                  />
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              {showProgress && (
+                <div className="mt-4">
+                  <div className="flex justify-between text-sm text-gray-400 mb-1">
+                    <span>Uploading...</span>
+                    <span>{progress}%</span>
+                  </div>
+                  <Progress value={progress} className="h-2" />
+                </div>
+              )}
+
+              {/* Error Display */}
+              {error && (
+                <div className="mt-3 p-3 bg-red-900/30 border border-red-500/30 rounded-lg">
+                  <p className="text-sm text-red-400">{error}</p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 mt-4">
+                <Button
+                  onClick={handleCancel}
+                  variant="outline"
+                  disabled={isUploading}
+                  className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUpload}
+                  disabled={isUploading || !selectedFile}
+                  className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-black font-medium"
+                >
+                  {isUploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Document
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

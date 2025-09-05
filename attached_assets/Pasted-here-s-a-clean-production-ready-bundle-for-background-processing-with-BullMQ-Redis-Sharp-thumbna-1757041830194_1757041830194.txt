@@ -1,0 +1,348 @@
+here’s a clean, production-ready bundle for background processing with BullMQ (Redis), Sharp thumbnails, and DB fields to track AV scan + thumbnail status. It slots into the API you already have (Node + Express + Drizzle + S3/R2).
+
+0) Environment
+
+Add these to .env:
+
+# Redis (for BullMQ)
+REDIS_URL=redis://localhost:6379
+
+# S3 / R2
+S3_ENDPOINT=https://<your-s3-or-r2-endpoint>
+S3_REGION=auto
+S3_ACCESS_KEY=...
+S3_SECRET_KEY=...
+S3_FORCE_PATH_STYLE=true
+S3_BUCKET_DOCS=familyvault-docs
+S3_BUCKET_PHOTOS=familyvault-photos
+PUBLIC_CDN_BASE=https://cdn.familycirclesecure.com
+
+# Antivirus (pick one)
+# Option A: clamd TCP (recommended if you can run clamd)
+CLAMAV_HOST=127.0.0.1
+CLAMAV_PORT=3310
+
+# Option B: external REST AV service (if you use a managed scanner)
+# CLOUD_AV_URL=https://av.yourdomain.com/scan
+# CLOUD_AV_TOKEN=...
+
+
+Install deps:
+
+npm i bullmq ioredis sharp @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
+# (optional) clamdscanner client
+npm i clamav.js
+
+1) Drizzle schema changes (file tracking)
+
+Add status fields to document_files (and reuse the same shape for photos if you store photos separately).
+
+// db/schema/files.ts (extend your existing document_files table)
+import { pgTable, uuid, text, integer, timestamp, pgEnum, boolean } from "drizzle-orm/pg-core";
+
+export const scanStatusEnum = pgEnum("scan_status", ["pending","clean","infected","error","skipped"]);
+export const thumbStatusEnum = pgEnum("thumb_status", ["pending","done","error","skipped"]);
+
+export const documentFiles = pgTable("document_files", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  documentId: uuid("document_id").notNull(),
+  storageKey: text("storage_key").notNull(),
+  mime: text("mime"),
+  size: integer("size"),
+  sha256: text("sha256"),
+
+  // AV
+  scanStatus: scanStatusEnum("scan_status").notNull().default("pending"),
+  scanResult: text("scan_result"),          // engine message / signature name
+  quarantined: boolean("quarantined").notNull().default(false),
+
+  // Thumbnails (grid and thumb can share one 'thumbKey' or multiple sizes if you want)
+  thumbStatus: thumbStatusEnum("thumb_status").notNull().default("skipped"),
+  thumbKey: text("thumb_key"),              // s3 key for derived image
+  thumbWidth: integer("thumb_width"),
+  thumbHeight: integer("thumb_height"),
+
+  processedAt: timestamp("processed_at", { mode: "date" }), // when both jobs done
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+});
+
+
+SQL migration (quick reference):
+
+ALTER TABLE document_files
+  ADD COLUMN scan_status scan_status NOT NULL DEFAULT 'pending',
+  ADD COLUMN scan_result TEXT,
+  ADD COLUMN quarantined BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN thumb_status thumb_status NOT NULL DEFAULT 'skipped',
+  ADD COLUMN thumb_key TEXT,
+  ADD COLUMN thumb_width INT,
+  ADD COLUMN thumb_height INT,
+  ADD COLUMN processed_at TIMESTAMPTZ;
+
+
+If you have a photos table without a separate files table, you can add similar scan_* and thumb_* fields directly to photos.
+
+Run: drizzle-kit generate && drizzle-kit push
+
+2) Queue setup (BullMQ)
+
+Create a shared queue module:
+
+// jobs/queues.ts
+import { Queue, Worker, QueueEvents, JobsOptions } from "bullmq";
+import IORedis from "ioredis";
+
+export const connection = new IORedis(process.env.REDIS_URL!, {
+  maxRetriesPerRequest: null,
+  enableReadyCheck: true,
+});
+
+export type FileJobData = {
+  fileId: string;           // document_files.id
+  storageKey: string;       // s3 key
+  mime?: string | null;
+  bucket: string;
+  familyId?: string;
+};
+
+export const FILE_QUEUE = "file-jobs";          // one queue, multiple job names
+
+export const fileQueue = new Queue<FileJobData>(FILE_QUEUE, { connection });
+export const fileQueueEvents = new QueueEvents(FILE_QUEUE, { connection });
+
+// Reasonable defaults
+export const defaultJobOpts: JobsOptions = {
+  attempts: 5,
+  backoff: { type: "exponential", delay: 2000 },
+  removeOnComplete: 1000,
+  removeOnFail: 1000,
+};
+
+
+Enqueue jobs when a file is attached (in your /documents/:id/attach-file handler):
+
+// After inserting documentFiles row:
+await fileQueue.add("av-scan", {
+  fileId: file.id,
+  storageKey: body.key,
+  mime: body.contentType ?? null,
+  bucket: signed.bucket,
+  familyId: currentFamilyId,
+}, defaultJobOpts);
+
+// Only images get thumbnails
+if ((body.contentType || "").startsWith("image/")) {
+  await fileQueue.add("thumbnail", {
+    fileId: file.id,
+    storageKey: body.key,
+    mime: body.contentType ?? null,
+    bucket: signed.bucket,
+    familyId: currentFamilyId,
+  }, defaultJobOpts);
+}
+
+3) S3 helper (download/upload)
+// lib/s3.ts
+import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+
+export const s3 = new S3Client({
+  region: process.env.S3_REGION ?? "auto",
+  endpoint: process.env.S3_ENDPOINT,
+  forcePathStyle: process.env.S3_FORCE_PATH_STYLE === "true",
+  credentials: { accessKeyId: process.env.S3_ACCESS_KEY!, secretAccessKey: process.env.S3_SECRET_KEY! },
+});
+
+export async function getObjectBuffer(bucket: string, key: string): Promise<Buffer> {
+  const res = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+  const chunks: Buffer[] = [];
+  for await (const part of (res.Body as any)) chunks.push(Buffer.from(part));
+  return Buffer.concat(chunks);
+}
+
+export async function putObjectBuffer(bucket: string, key: string, buf: Buffer, contentType?: string) {
+  await s3.send(new PutObjectCommand({
+    Bucket: bucket, Key: key, Body: buf, ContentType: contentType ?? "application/octet-stream", ACL: "private",
+  }));
+}
+
+4) Worker: AV Scan and Thumbnail
+
+Create a single worker file that processes both job types:
+
+// jobs/fileWorker.ts
+import { Worker, JobsOptions } from "bullmq";
+import { connection, FILE_QUEUE } from "./queues";
+import { getObjectBuffer, putObjectBuffer } from "../lib/s3";
+import { db } from "../db"; // your drizzle client
+import { documentFiles } from "../db/schema/files";
+import { eq } from "drizzle-orm";
+import crypto from "crypto";
+import sharp from "sharp";
+
+// Optional clamd scanner
+import { createScanner } from "clamav.js";
+
+// Helpers
+function sha256(buf: Buffer) {
+  return crypto.createHash("sha256").update(buf).digest("hex");
+}
+
+async function scanWithClamAV(buf: Buffer): Promise<{ status: "clean" | "infected" | "error"; reason?: string }> {
+  try {
+    const host = process.env.CLAMAV_HOST;
+    const port = process.env.CLAMAV_PORT ? Number(process.env.CLAMAV_PORT) : 3310;
+    if (!host) return { status: "skipped" as any }; // fall back if not configured
+
+    const scanner = await createScanner({ host, port, timeout: 30000 });
+    const res = await scanner.scanBuffer(buf);
+    if (res.isInfected) return { status: "infected", reason: res.viruses?.join(",") || "infected" };
+    return { status: "clean" };
+  } catch (e: any) {
+    return { status: "error", reason: e?.message || "scan error" };
+  }
+}
+
+// (Optional) REST AV
+async function scanWithCloudAV(buf: Buffer): Promise<{ status: "clean" | "infected" | "error"; reason?: string }> {
+  // implement if you have CLOUD_AV_URL — omitted for brevity
+  return { status: "skipped" as any };
+}
+
+async function doAvScan(jobData: any) {
+  const { fileId, bucket, storageKey } = jobData;
+  const buf = await getObjectBuffer(bucket, storageKey);
+
+  // compute sha
+  const digest = sha256(buf);
+
+  // Pick scanner
+  let result = await scanWithClamAV(buf);
+  if ((result as any).status === "skipped") {
+    result = await scanWithCloudAV(buf);
+  }
+
+  // default to clean if neither configured (you can invert to "error" if you want to enforce AV)
+  if ((result as any).status === "skipped") result = { status: "clean" };
+
+  const quarantined = result.status === "infected";
+
+  await db.update(documentFiles)
+    .set({
+      sha256: digest,
+      scanStatus: result.status as any,
+      scanResult: result.reason ?? null,
+      quarantined,
+    })
+    .where(eq(documentFiles.id, fileId));
+
+  // If infected, you might also move the file to a quarantine prefix or restrict access elsewhere.
+}
+
+async function doThumbnail(jobData: any) {
+  const { fileId, bucket, storageKey, mime } = jobData;
+
+  if (!String(mime || "").startsWith("image/")) {
+    await db.update(documentFiles)
+      .set({ thumbStatus: "skipped" })
+      .where(eq(documentFiles.id, fileId));
+    return;
+  }
+
+  const src = await getObjectBuffer(bucket, storageKey);
+
+  const maxW = 1024; // grid size
+  const thumbW = 256; // small card thumb
+
+  const grid = await sharp(src).rotate().resize({ width: maxW, withoutEnlargement: true }).jpeg({ quality: 82 }).toBuffer();
+  const thumb = await sharp(src).rotate().resize({ width: thumbW, withoutEnlargement: true }).jpeg({ quality: 78 }).toBuffer();
+
+  // Choose a single thumbKey or two keys; here we store the small thumb and you can derive grid similarly if desired
+  const base = storageKey.replace(/^(.+)\.(\w+)$/, "$1"); // drop extension
+  const thumbKey = `${base}.thumb.jpg`;
+  const gridKey = `${base}.grid.jpg`;
+
+  await putObjectBuffer(bucket, gridKey, grid, "image/jpeg");
+  await putObjectBuffer(bucket, thumbKey, thumb, "image/jpeg");
+
+  const meta = await sharp(thumb).metadata();
+
+  await db.update(documentFiles)
+    .set({
+      thumbStatus: "done",
+      thumbKey,
+      thumbWidth: meta.width ?? 0,
+      thumbHeight: meta.height ?? 0,
+      processedAt: new Date(),
+    })
+    .where(eq(documentFiles.id, fileId));
+}
+
+// Worker
+export const worker = new Worker(FILE_QUEUE, async (job) => {
+  if (job.name === "av-scan") {
+    await doAvScan(job.data);
+    return;
+  }
+  if (job.name === "thumbnail") {
+    await doThumbnail(job.data);
+    return;
+  }
+}, {
+  connection,
+  concurrency: 5,                // tune based on CPU/memory
+});
+
+worker.on("completed", (job) => {
+  console.log(`[worker] completed ${job.name} id=${job.id}`);
+});
+worker.on("failed", (job, err) => {
+  console.error(`[worker] failed ${job?.name} id=${job?.id}:`, err?.message);
+});
+
+
+Start the worker (separate process from the API):
+
+node dist/jobs/fileWorker.js
+# or add an npm script:  "worker": "ts-node jobs/fileWorker.ts"
+
+5) Guard downloads if quarantined
+
+Wherever you serve or link to files, hide or block if infected:
+
+// example in GET /api/documents/:docId (when returning files)
+files.map(f => ({
+  id: f.id,
+  mime: f.mime,
+  size: f.size,
+  scanStatus: f.scanStatus,
+  quarantined: f.quarantined,
+  // Only surface URLs for clean files
+  canDownload: !f.quarantined && f.scanStatus === "clean",
+  // signedUrl: canDownload ? await signDownload(f.storageKey) : null
+}));
+
+6) Dashboard counters & activity (optional sugar)
+
+Insert an activity row after thumbnail success (PHOTO_THUMBNAIL_READY or DOC_FILE_ADDED) to keep your “Recent ▾” lively.
+
+In the Photos grid, prefer thumbKey/gridKey if available; fall back to the original.
+
+7) Operational notes
+
+clamd: If you run ClamAV, keep the daemon warm (memory heavy). Put it on a small sidecar or a separate service.
+
+Retries: The queue attempts/backoff will handle transient S3 or AV hiccups.
+
+Throughput: Raise concurrency once you’re comfortable; thumbnails are CPU-bound.
+
+Costs: JPEG at ~80 quality is a good balance. For HEIC → JPEG, Sharp handles it if system has libvips support.
+
+Cleanup: If you delete a file, also delete its thumbKey/gridKey.
+
+That’s it—drop these in and you’ll have robust background processing:
+
+Every uploaded file is scanned,
+
+Images get thumbnails automatically,
+
+UI reflects scan/thumbnail status safely.

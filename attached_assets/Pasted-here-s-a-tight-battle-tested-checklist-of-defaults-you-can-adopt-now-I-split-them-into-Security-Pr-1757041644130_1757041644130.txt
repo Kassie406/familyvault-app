@@ -1,0 +1,229 @@
+here’s a tight, battle-tested checklist of defaults you can adopt now. I split them into Security/Privacy, Performance/Scaling, and Developer-Ops & UX so you can hand this to your devs as requirements.
+
+5) Notes & good defaults
+A) Security & Privacy (do these first)
+
+1) Authentication & Session
+
+Use HTTP-only, Secure, SameSite=Lax cookies for sessions.
+
+Set short session idle (e.g., 30 min) + refresh token (7–14 days).
+
+Enforce step-up auth (TOTP/WebAuthn/password re-auth) before revealing secrets/credentials.
+
+2) Authorization
+
+Scope every request by familyId and caller’s role:
+
+viewer → read only
+
+editor → create/update own family content
+
+admin → delete, manage roles & sharing
+
+3) Upload constraints
+
+In /api/storage/presign, whitelist MIME & size per type:
+
+document: application/pdf, image/*, text/plain, <= 25 MB
+
+photo: image/jpeg|png|heic, <= 10 MB
+
+Reject unknown types; show friendly errors.
+
+4) Malware scanning (docs/photos)
+
+Queue each uploaded file for AV scan (e.g., ClamAV or Cloudflare AV).
+
+Mark file as quarantined until clean; block download if not clean.
+
+5) PII / legal care (you’re a paralegal)
+
+Keep audit logs for: invite create/accept, share create/revoke, credential reveal/copy, document download.
+
+Data retention: define a policy (e.g., deleted items retained in cold storage for 30 days, then purged).
+
+Add export my data and delete my account endpoints (compliance).
+
+Display last access & active sessions; allow remote sign-out.
+
+6) Transport & browser protections
+
+Enforce HTTPS and set headers:
+
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+
+X-Content-Type-Options: nosniff
+
+Referrer-Policy: strict-origin-when-cross-origin
+
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+CSP (tune sources):
+
+Content-Security-Policy:
+  default-src 'self';
+  img-src 'self' data: https://cdn.familycirclesecure.com;
+  script-src 'self';
+  style-src 'self' 'unsafe-inline';
+  connect-src 'self' https://api.your-s3-endpoint.com;
+  frame-ancestors 'none';
+
+
+Set download Content-Disposition when serving files to avoid inline execution.
+
+7) Secrets management
+
+Store all creds in env (not in repo). Rotate S3 keys quarterly; least-privilege IAM per bucket.
+
+8) Rate-limit & abuse controls
+
+IP + user based limits for login, invite, reveal/copy, share endpoints (e.g., 5/min/credential; 50/10 min/invite).
+
+B) Performance, Storage & Scaling
+
+1) CDN & caching
+
+Serve photos/doc previews from a CDN domain (PUBLIC_CDN_BASE).
+
+Cache document lists for 15–30s per family in memory (or Redis).
+
+Use cursor pagination everywhere (documents/photos/messages).
+
+2) Image pipeline
+
+Store originals, generate:
+
+thumb (256px), grid (1024px) using a worker (Sharp, Cloudflare Images, or Lambda).
+
+Save derived keys in DB for fast gallery loads.
+
+3) Background jobs
+
+Pick a lightweight queue: BullMQ (Redis) or Cloudflare Queues.
+
+Jobs: AV scan, image resize, email invites, audit exports, stale link cleanup.
+
+4) Storage layout
+
+Key pattern: family/{familyId}/{type}s/{YYYY}/{MM}/{uuid}-{sanitized-name}
+
+Keep a per-family soft quota (e.g., 5 GB default); show usage in settings.
+
+5) Database
+
+Indices you’ll want early:
+
+documents(family_id, created_at desc)
+
+photos(family_id, created_at desc)
+
+activities(family_id, created_at desc)
+
+invitations(token unique)
+
+Nightly VACUUM/ANALYZE or managed Postgres settings.
+
+6) Observability
+
+Centralized logs (pino → Logtail/Datadog).
+
+Metrics: request rate, latency, error %, queue depth, upload failures, AV results.
+
+Traces around presign → upload → attach to spot bottlenecks.
+
+C) Developer-Ops & UX defaults
+
+1) Environments
+
+dev, staging, prod with isolated DB and buckets.
+
+Feature flags for risky changes (ConfigCat/Unleash).
+
+2) Migrations
+
+One migration per change; never hot-edit tables in prod.
+
+Blue/green strategy for breaking changes (deploy DB first with backward-compatible schema, then app).
+
+3) Backups & recovery
+
+Daily DB backups retained 30 days; test a restore monthly.
+
+Versioned buckets and lifecycle rules (e.g., temp uploads purge after 7d).
+
+4) Accessibility
+
+All interactive elements reachable via keyboard; visible focus ring.
+
+Modals trap focus; Escape closes; ARIA labels on buttons like “Recent”, “Invite”.
+
+5) UX polish
+
+Optimistic UI for list adds (documents/photos), with rollback on failure.
+
+Toasts for success/fail.
+
+Non-blocking loaders (skeletons for cards/grids).
+
+Clear empty states (“No photos yet—Upload to get started”).
+
+6) Internationalization/Localization (future-proof)
+
+Wrap strings in a small i18n layer; store locale per user.
+
+Date/time localized; always store UTC.
+
+7) Legal pages
+
+Public Privacy Policy and Terms.
+
+In-product Data Processing Addendum if/when you serve EU residents.
+
+Email footers with physical address and unsubscribe (for non-transactional emails).
+
+Drop-in snippets
+
+Express security headers (helmet-lite):
+
+app.use((_, res, next) => {
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.setHeader("Content-Security-Policy",
+    "default-src 'self'; img-src 'self' data: https://cdn.familycirclesecure.com; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://your-s3-endpoint; frame-ancestors 'none'"
+  );
+  next();
+});
+
+
+Basic rate limit (express-rate-limit):
+
+import rateLimit from "express-rate-limit";
+
+const sensitiveLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5, // 5/min/user/IP
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.post("/api/passwords/credentials/:id/reveal", sensitiveLimiter, revealHandler);
+
+
+S3 bucket policy (private by default):
+Keep buckets private; rely on pre-signed URLs and CDN origin access where applicable.
+
+Rollout order (recommended)
+
+Apply headers, auth, rate limits.
+
+Enforce upload MIME/size + quarantine/AV queue.
+
+Add image thumbnails worker + CDN caching.
+
+Turn on audit logs for sensitive flows.
+
+Stand up backups and test a restore.
+
+Add metrics & alerts (error rate spikes, queue stuck, AV failures).

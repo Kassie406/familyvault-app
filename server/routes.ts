@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import storageRoutes from "./storage-routes";
 import { 
   insertInviteSchema, 
   insertFamilyMemberSchema,
@@ -475,6 +476,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching family members:", error);
       res.status(500).json({ error: "Failed to fetch family members" });
+    }
+  });
+
+  // Mount storage routes for file uploads
+  app.use("/api/storage", storageRoutes);
+
+  // Document Management API endpoints
+  
+  // POST /api/documents - Create new document
+  app.post("/api/documents", async (req, res) => {
+    try {
+      const { title, description, category, familyId } = req.body;
+      
+      // TODO: Get actual user ID from session
+      const uploadedBy = "current-user";
+      
+      if (!title || !familyId) {
+        return res.status(400).json({ error: "Title and familyId are required" });
+      }
+
+      const documentId = crypto.randomUUID();
+      
+      // For now, just return a mock document - in production you'd save to database
+      const document = {
+        id: documentId,
+        title,
+        description,
+        category: category || "general",
+        familyId,
+        uploadedBy,
+        createdAt: new Date().toISOString(),
+      };
+
+      res.json(document);
+    } catch (error) {
+      console.error("Error creating document:", error);
+      res.status(500).json({ error: "Failed to create document" });
+    }
+  });
+
+  // POST /api/documents/:id/attach-file - Attach file to document
+  app.post("/api/documents/:id/attach-file", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { storageKey, fileName, contentType, size, publicUrl } = req.body;
+      
+      if (!storageKey || !fileName) {
+        return res.status(400).json({ error: "Storage key and filename are required" });
+      }
+
+      // TODO: Save file attachment to documentFiles table
+      // For now, just return success
+      const attachment = {
+        id: crypto.randomUUID(),
+        documentId: id,
+        storageKey,
+        fileName,
+        contentType,
+        size,
+        publicUrl,
+        createdAt: new Date().toISOString(),
+      };
+
+      res.json({ success: true, attachment });
+    } catch (error) {
+      console.error("Error attaching file:", error);
+      res.status(500).json({ error: "Failed to attach file" });
+    }
+  });
+
+  // Photo Management API endpoints
+  
+  // POST /api/photos - Create new photo
+  app.post("/api/photos", async (req, res) => {
+    try {
+      const { familyId, albumId, caption, altText, location, takenAt } = req.body;
+      
+      // TODO: Get actual user ID from session
+      const uploadedBy = "current-user";
+      
+      if (!familyId) {
+        return res.status(400).json({ error: "familyId is required" });
+      }
+
+      const photoId = crypto.randomUUID();
+      
+      // For now, just return a mock photo - in production you'd save to database
+      const photo = {
+        id: photoId,
+        familyId,
+        albumId: albumId || null,
+        caption: caption || null,
+        altText: altText || null,
+        location: location || null,
+        takenAt: takenAt || null,
+        uploadedBy,
+        createdAt: new Date().toISOString(),
+      };
+
+      res.json(photo);
+    } catch (error) {
+      console.error("Error creating photo:", error);
+      res.status(500).json({ error: "Failed to create photo" });
+    }
+  });
+
+  // POST /api/photos/:id/attach - Attach file to photo
+  app.post("/api/photos/:id/attach", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { storageKey, fileName, contentType, size, publicUrl } = req.body;
+      
+      if (!storageKey || !fileName) {
+        return res.status(400).json({ error: "Storage key and filename are required" });
+      }
+
+      // TODO: Save file attachment to familyPhotos table
+      // For now, just return success
+      const attachment = {
+        id,
+        storageKey,
+        fileName,
+        contentType,
+        size,
+        publicUrl,
+        updatedAt: new Date().toISOString(),
+      };
+
+      res.json({ success: true, photo: attachment });
+    } catch (error) {
+      console.error("Error attaching photo:", error);
+      res.status(500).json({ error: "Failed to attach photo" });
     }
   });
 
