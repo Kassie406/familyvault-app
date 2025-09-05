@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { listPending, approve, deny, requestChanges } from '@/api/approvals';
 
 interface ApprovalsDrawerProps {
   open: boolean;
@@ -66,11 +68,55 @@ const mockRequests: ApprovalRequest[] = [
 ];
 
 export function ApprovalsDrawer({ open, onClose }: ApprovalsDrawerProps) {
-  const [requests, setRequests] = useState<ApprovalRequest[]>(mockRequests);
+  const { toast } = useToast();
+  const [requests, setRequests] = useState<ApprovalRequest[]>([]);
   const [filter, setFilter] = useState<'all' | 'view' | 'edit' | 'share'>('all');
   const [selectedRequests, setSelectedRequests] = useState<string[]>([]);
   const [denyReason, setDenyReason] = useState('');
   const [showDenyDialog, setShowDenyDialog] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Load pending approvals when drawer opens
+  useEffect(() => {
+    const loadApprovals = async () => {
+      if (!open) return;
+      
+      setIsLoading(true);
+      try {
+        const data = await listPending();
+        // Transform API data to match our interface
+        const transformedData = data.map((item: any) => ({
+          id: item.id,
+          document: { 
+            name: item.docTitle || 'Unknown Document', 
+            type: 'pdf' as const 
+          },
+          requester: { 
+            name: item.requesterName || 'Unknown User', 
+            email: item.requesterId 
+          },
+          requestedAccess: item.requestedRole as 'view' | 'edit' | 'share',
+          reason: item.reason || 'No reason provided',
+          riskFlags: item.isExternal ? ['external-domain'] : [],
+          suggestedExpiry: 7,
+          requestedAt: item.createdAt,
+          isExternal: item.isExternal || false,
+        }));
+        setRequests(transformedData);
+      } catch (error) {
+        console.error('Failed to load approvals:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load pending approvals",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadApprovals();
+  }, [open, toast]);
 
   // Handle escape key
   useEffect(() => {
@@ -93,35 +139,84 @@ export function ApprovalsDrawer({ open, onClose }: ApprovalsDrawerProps) {
     filter === 'all' || req.requestedAccess === filter
   );
 
-  const handleApprove = (requestId: string, customExpiry?: number) => {
+  const handleApprove = async (requestId: string, customExpiry?: number) => {
     const request = requests.find(r => r.id === requestId);
-    if (request) {
-      console.log('Approving request:', {
-        requestId,
-        expiry: customExpiry || request.suggestedExpiry,
-        access: request.requestedAccess
-      });
-      // TODO: Replace with actual API call
+    if (!request) return;
+
+    try {
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + (customExpiry || request.suggestedExpiry));
+      
+      await approve(requestId, request.requestedAccess as 'viewer' | 'commenter' | 'editor', expirationDate.toISOString());
+      
+      // Optimistically remove from list
       setRequests(prev => prev.filter(r => r.id !== requestId));
+      
+      toast({
+        title: "Approved",
+        description: `Access request approved for ${request.requester.name}`,
+      });
+    } catch (error) {
+      console.error('Failed to approve request:', error);
+      toast({
+        title: "Error",
+        description: "Failed to approve access request",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleDeny = (requestId: string) => {
+  const handleDeny = async (requestId: string) => {
     if (!denyReason.trim()) {
-      alert('Please provide a reason for denial');
+      toast({
+        title: "Error",
+        description: "Please provide a reason for denial",
+        variant: "destructive",
+      });
       return;
     }
     
-    console.log('Denying request:', { requestId, reason: denyReason });
-    // TODO: Replace with actual API call
-    setRequests(prev => prev.filter(r => r.id !== requestId));
-    setShowDenyDialog(null);
-    setDenyReason('');
+    try {
+      await deny(requestId, denyReason);
+      
+      // Optimistically remove from list
+      setRequests(prev => prev.filter(r => r.id !== requestId));
+      setShowDenyDialog(null);
+      setDenyReason('');
+      
+      toast({
+        title: "Denied",
+        description: "Access request has been denied",
+      });
+    } catch (error) {
+      console.error('Failed to deny request:', error);
+      toast({
+        title: "Error",
+        description: "Failed to deny access request",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleAskChanges = (requestId: string) => {
-    console.log('Asking for changes:', requestId);
-    // TODO: Replace with actual API call - typically opens a message dialog
+  const handleAskChanges = async (requestId: string, message: string = 'Please provide more information about your access request.') => {
+    try {
+      await requestChanges(requestId, message);
+      
+      // Optimistically remove from list
+      setRequests(prev => prev.filter(r => r.id !== requestId));
+      
+      toast({
+        title: "Changes Requested",
+        description: "Requester has been notified to provide more information",
+      });
+    } catch (error) {
+      console.error('Failed to request changes:', error);
+      toast({
+        title: "Error",
+        description: "Failed to request changes",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleBulkAction = (action: 'approve' | 'deny') => {
