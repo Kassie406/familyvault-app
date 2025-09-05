@@ -1,119 +1,94 @@
 import { Router } from "express";
 import { db } from "../db";
-import { approvals } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { docApprovals, familyResources, users } from "@shared/schema";
+import { eq, desc, and } from "drizzle-orm";
 
 const router = Router();
 
-// GET /api/approvals?state=pending
-router.get("/", async (req, res) => {
+// GET /api/approvals/pending - Get all pending approvals for current user
+router.get("/pending", async (req: any, res: any) => {
   try {
-    const state = String(req.query.state || "pending");
-    
-    // For development, return mock data with proper structure
-    // In production, this would join with users and documents tables
-    const mockRows = [
-      {
-        id: "approval-1",
-        documentId: "doc-123",
-        requestedRole: "viewer",
-        reason: "Need to review quarterly financial reports for board meeting",
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-        isExternal: false,
-        domain: null,
-        requesterId: "user-456",
-        requesterName: "Sarah Chen",
-        docTitle: "Q4 Financial Report"
-      },
-      {
-        id: "approval-2", 
-        documentId: "doc-456",
-        requestedRole: "editor",
-        reason: "Updating company policy document with new compliance requirements",
-        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-        isExternal: true,
-        domain: "contractor.com",
-        requesterId: "user-789",
-        requesterName: "Mike Torres",
-        docTitle: "HR Policy Manual"
-      },
-      {
-        id: "approval-3",
-        documentId: "doc-789", 
-        requestedRole: "viewer",
-        reason: "External audit review",
-        createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
-        isExternal: true,
-        domain: "auditor.com",
-        requesterId: "user-101",
-        requesterName: "Jennifer Kim",
-        docTitle: "Legal Contracts Archive"
-      }
-    ];
+    // For development, use mock user data - this matches the pattern used by other endpoints
+    const userId = "current-user";
+    const familyId = "family-1";
 
-    res.json(mockRows);
+    // Get pending approvals where the current user can approve
+    // For this implementation, we'll assume any authenticated user can approve
+    const pendingApprovals = await db
+      .select({
+        id: docApprovals.id,
+        resourceId: docApprovals.resourceId,
+        requestedBy: docApprovals.requestedBy,
+        status: docApprovals.status,
+        reason: docApprovals.reason,
+        createdAt: docApprovals.createdAt,
+        documentTitle: familyResources.title,
+        requesterName: users.email, // Use email as display name for now
+      })
+      .from(docApprovals)
+      .innerJoin(familyResources, eq(docApprovals.resourceId, familyResources.id))
+      .innerJoin(users, eq(docApprovals.requestedBy, users.id))
+      .where(eq(docApprovals.status, "pending"))
+      .orderBy(desc(docApprovals.createdAt));
+
+    res.json({ items: pendingApprovals });
   } catch (error) {
-    console.error("Error fetching approvals:", error);
-    res.status(500).json({ error: "Failed to fetch approvals" });
+    console.error("Error fetching pending approvals:", error);
+    res.status(500).json({ error: "Failed to fetch pending approvals" });
   }
 });
 
-// POST /api/approvals/:id/approve {role, expiresAt}
-router.post("/:id/approve", async (req: any, res) => {
+// POST /api/approvals/:id/decision - Approve or reject an approval request
+router.post("/:id/decision", async (req: any, res: any) => {
   try {
-    // For development, we'll skip admin check for now
-    // if (!req.user?.isAdmin) return res.status(403).json({ error: "Admin only" });
+    // For development, use mock user data - this matches the pattern used by other endpoints
+    const userId = "current-user";
+    const approvalId = req.params.id;
+    const { decision, reason } = req.body;
 
-    const id = String(req.params.id);
-    const { role, expiresAt } = req.body || {};
 
-    // For development, simulate approval success
-    // In production, this would:
-    // 1) Update the approval record in the database
-    // 2) Grant access in your sharing system
-    
-    console.log(`Approved access request ${id} with role ${role}${expiresAt ? ` expiring at ${expiresAt}` : ''}`);
-    
-    res.json({ ok: true });
+    if (!decision || !['approve', 'reject'].includes(decision)) {
+      return res.status(400).json({ error: "Decision must be 'approve' or 'reject'" });
+    }
+
+    if (decision === 'reject' && !reason?.trim()) {
+      return res.status(400).json({ error: "Reason is required when rejecting" });
+    }
+
+    // Check if the approval exists and is still pending
+    const [existingApproval] = await db
+      .select()
+      .from(docApprovals)
+      .where(and(
+        eq(docApprovals.id, approvalId),
+        eq(docApprovals.status, "pending")
+      ));
+
+    if (!existingApproval) {
+      return res.status(404).json({ error: "Approval not found or already processed" });
+    }
+
+    // Update the approval status
+    const status = decision === 'approve' ? 'approved' : 'rejected';
+    const [updatedApproval] = await db
+      .update(docApprovals)
+      .set({
+        status,
+        approverId: userId,
+        decidedAt: new Date(),
+        reason: reason || null,
+      })
+      .where(eq(docApprovals.id, approvalId))
+      .returning();
+
+    res.json({ 
+      success: true, 
+      approval: updatedApproval,
+      message: `Document access ${status} successfully` 
+    });
   } catch (error) {
-    console.error("Error approving request:", error);
-    res.status(500).json({ error: "Failed to approve request" });
-  }
-});
-
-// POST /api/approvals/:id/deny {reason}
-router.post("/:id/deny", async (req: any, res) => {
-  try {
-    // For development, we'll skip admin check for now  
-    // if (!req.user?.isAdmin) return res.status(403).json({ error: "Admin only" });
-    
-    const id = String(req.params.id);
-    const { reason } = req.body || {};
-
-    console.log(`Denied access request ${id}${reason ? ` with reason: ${reason}` : ''}`);
-
-    res.json({ ok: true });
-  } catch (error) {
-    console.error("Error denying request:", error);
-    res.status(500).json({ error: "Failed to deny request" });
-  }
-});
-
-// POST /api/approvals/:id/request-changes {message}
-router.post("/:id/request-changes", async (req: any, res) => {
-  try {
-    // For development, we'll skip admin check for now
-    // if (!req.user?.isAdmin) return res.status(403).json({ error: "Admin only" });
-    
-    const id = String(req.params.id);
-    const { message } = req.body || {};
-
-    console.log(`Requested changes for access request ${id}${message ? ` with message: ${message}` : ''}`);
-
-    res.json({ ok: true });
-  } catch (error) {
-    console.error("Error requesting changes:", error);
-    res.status(500).json({ error: "Failed to request changes" });
+    console.error("Error processing approval decision:", error);
+    res.status(500).json({ error: "Failed to process approval decision" });
   }
 });
 
