@@ -555,6 +555,18 @@ export const MessagesPage: React.FC<Props> = ({ threadId: propThreadId, onBack }
 
   // Mock current user - in production, get from auth context
   const currentUser = { id: "current-user", name: "You", familyId: "family-1" };
+  
+  // Early return if currentUser is not available
+  if (!currentUser) {
+    return (
+      <div className="h-screen bg-[var(--bg-900)] flex items-center justify-center">
+        <div className="flex items-center gap-3 text-white/60">
+          <Loader2 className="h-6 w-6 animate-spin text-[#D4AF37]" />
+          <span>Loading user...</span>
+        </div>
+      </div>
+    );
+  }
 
   // Fetch thread info
   const { data: thread, isLoading: threadLoading } = useQuery({
@@ -570,8 +582,8 @@ export const MessagesPage: React.FC<Props> = ({ threadId: propThreadId, onBack }
   });
 
   // Presence and typing hooks
-  const { online, lastSeen } = usePresence(currentUser?.familyId || "family-1", currentUser || { id: "current-user", name: "You", familyId: "family-1" });
-  const { typingUsers, notifyTyping, stopTyping } = useTyping(threadId, currentUser || { id: "current-user", name: "You", familyId: "family-1" });
+  const { online, lastSeen } = usePresence(currentUser.familyId, currentUser);
+  const { typingUsers, notifyTyping, stopTyping } = useTyping(threadId, currentUser);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -654,7 +666,7 @@ export const MessagesPage: React.FC<Props> = ({ threadId: propThreadId, onBack }
             <MessageBubble
               key={message.id}
               message={message}
-              isMe={message.author.id === currentUser?.id}
+              isMe={message?.author?.id === currentUser?.id}
             />
           ))
         ) : (
