@@ -21,6 +21,15 @@
 #chat-fab::before,
 #chat-fab::after { display: none !important; } /* kill lingering glow rings */
 
+/* Hide the launcher whenever the chat is open */
+body.chat-open #chat-fab {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Ensure the chat panel always wins z-index battles */
+.chat-panel { z-index: 100 !important; }
+
 @layer utilities {
   /* Completely disable any hover background (and overlays) */
   .no-hover-bg:hover,
