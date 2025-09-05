@@ -41,6 +41,7 @@ import BereavementSectionPage from '@/pages/family/bereavement-section';
 import ContactSectionPage from '@/pages/family/contact-section';
 import InboxPanel from './inbox-panel';
 import RemindersPanel from './reminders-panel';
+import FamilySettings from '@/pages/family/family-settings';
 
 // Placeholder components for family portal pages
 function FamilyMembers() {
@@ -97,14 +98,6 @@ function FamilyEmergency() {
   );
 }
 
-function FamilySettings() {
-  return (
-    <div className="bg-white rounded-xl p-8 shadow-sm">
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">Family Settings</h1>
-      <p className="text-gray-600">Configure family portal preferences and security settings.</p>
-    </div>
-  );
-}
 
 // Layout wrapper for family pages
 function withSidebarLayout(Component: () => JSX.Element) {
@@ -224,7 +217,7 @@ export default function FamilyRouter() {
         <Route path="/family/calendar" component={withSidebarLayout(FamilyCalendar)} />
         <Route path="/family/photos" component={withSidebarLayout(FamilyPhotos)} />
         <Route path="/family/emergency" component={withSidebarLayout(FamilyEmergency)} />
-        <Route path="/family/settings" component={withSidebarLayout(FamilySettings)} />
+        <Route path="/family/settings" component={withSidebarLayout(() => <FamilySettings />)} />
         <Route component={withSidebarLayout(FamilyHome)} />
       </Switch>
       

@@ -125,7 +125,7 @@ export default function FamilyHome() {
       dropdownActions: [
         { label: "Add Person", href: "/family/ids/new?type=person", icon: <UserPlus className="h-4 w-4" /> },
         { label: "Invite Family Member", onClick: () => setInviteDialogOpen(true), icon: <Mail className="h-4 w-4" /> },
-        { label: "Manage Roles & Access", href: "/settings/access?scope=family", icon: <Settings className="h-4 w-4" /> }
+        { label: "Manage Roles & Access", href: "/family/settings", icon: <Settings className="h-4 w-4" /> }
       ]
     },
     { 
