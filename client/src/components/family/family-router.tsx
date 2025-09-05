@@ -42,7 +42,6 @@ import ContactSectionPage from '@/pages/family/contact-section';
 import InboxPanel from './inbox-panel';
 import RemindersPanel from './reminders-panel';
 import FamilySettings from '@/pages/family/family-settings';
-import MessagesPage from '@/pages/messages/[threadId]';
 import FloatingChatWidget from '@/components/FloatingChatWidget';
 
 // Placeholder components for family portal pages
@@ -215,8 +214,6 @@ export default function FamilyRouter() {
         <Route path="/family/bereavement/memorial" component={withSidebarLayout(() => <BereavementSectionPage title="Memorial & Legacy" createTo="/family/bereavement/new/memorial" />)} />
         <Route path="/family/members" component={withSidebarLayout(FamilyMembers)} />
         <Route path="/family/documents" component={withSidebarLayout(FamilyDocuments)} />
-        <Route path="/family/messages/:threadId" component={withSidebarLayout(() => <MessagesPage />)} />
-        <Route path="/family/messages" component={withSidebarLayout(() => <MessagesPage threadId="family-chat" />)} />
         <Route path="/family/calendar" component={withSidebarLayout(FamilyCalendar)} />
         <Route path="/family/photos" component={withSidebarLayout(FamilyPhotos)} />
         <Route path="/family/emergency" component={withSidebarLayout(FamilyEmergency)} />
