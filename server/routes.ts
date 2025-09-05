@@ -7,6 +7,7 @@ import mobileUploadRoutes from "./routes/mobile-upload";
 import uploadsRouter from "./routes/uploads";
 import smsRoutes from "./sms";
 import threadsListRouter from "./routes/threadsList";
+import threadMessagesRouter from "./routes/threadMessages";
 import axios from "axios";
 import { sendSMSNotification } from "./lib/twilio";
 import { sendSMSNotificationsForMessage, markUserOnline, markUserOffline } from "./lib/sms-notifications";
@@ -509,6 +510,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount threads list routes for chat dashboard
   app.use("/api/threads", threadsListRouter);
+
+  // Mount thread messages routes for individual conversation views
+  app.use("/api/threads", threadMessagesRouter);
 
   // Document Management API endpoints
   
