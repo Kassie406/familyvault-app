@@ -1,0 +1,248 @@
+Presence (“who’s online”) + “last seen” makes the chat feel alive and useful. Here’s a clean way to add it without hurting performance or privacy.
+
+What we’ll build
+
+Live presence (ephemeral): show which family members are online right now.
+
+Last seen (persistent): when someone goes offline, record lastSeenAt and display “Last seen 12m ago”.
+
+Typing (optional): already easy once presence is wired.
+
+General rule: presence ≠ database. Store online state in Redis (TTL), store last seen in Prisma.
+
+Data model (Prisma)
+
+Add one field to your existing User:
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  name       String?
+  familyId   String
+  // ...
+  lastSeenAt DateTime?   // updated when disconnect/timeout
+}
+
+
+Run:
+
+npx prisma migrate dev -n "add_last_seen"
+
+Presence design (Socket.IO + Redis)
+
+On connect: add the user to a Redis Set for their family, and set a heartbeat key with TTL.
+
+On heartbeat (client → server every 20s): refresh the TTL so they stay “online”.
+
+On disconnect or heartbeat timeout: remove from the Set; update lastSeenAt in DB.
+
+Redis keys
+
+presence:family:{familyId} → Set of userIds currently online
+
+presence:user:{userId} → String with JSON { familyId, name } and EX=60 (TTL 60s)
+
+Server code (TypeScript, Socket.IO)
+// presence.ts
+import { Server } from "socket.io";
+import { createClient } from "redis";
+import { prisma } from "./prisma"; // your Prisma client
+
+const redis = createClient({ url: process.env.REDIS_URL! });
+await redis.connect();
+
+type AuthUser = { id: string; familyId: string; name?: string };
+
+export function wirePresence(io: Server) {
+  io.on("connection", async (socket) => {
+    // You should validate and attach the authed user to the socket (JWT/Session)
+    const user = socket.handshake.auth?.user as AuthUser | undefined;
+    if (!user) return socket.disconnect(true);
+
+    const famKey = `presence:family:${user.familyId}`;
+    const userKey = `presence:user:${user.id}`;
+
+    // mark online
+    await redis.sAdd(famKey, user.id);
+    await redis.set(userKey, JSON.stringify({ familyId: user.familyId, name: user.name || "" }), { EX: 60 });
+
+    // notify room (optional)
+    io.to(`family:${user.familyId}`).emit("presence:online", { userId: user.id });
+
+    // join a family-wide room so dashboards can get live updates
+    socket.join(`family:${user.familyId}`);
+
+    // heartbeat (every ~20s from client)
+    socket.on("presence:ping", async () => {
+      await redis.set(userKey, JSON.stringify({ familyId: user.familyId, name: user.name || "" }), { EX: 60 });
+    });
+
+    // allow thread joins for chat pages (you likely already do this)
+    socket.on("thread:join", ({ threadId }: { threadId: string }) => {
+      socket.join(`thread:${threadId}`);
+    });
+
+    socket.on("disconnect", async () => {
+      // soft removal: let TTL expire; but also try to clean up now
+      await redis.sRem(famKey, user.id).catch(() => {});
+      // best-effort: record last seen
+      await prisma.user.update({ where: { id: user.id }, data: { lastSeenAt: new Date() } }).catch(() => {});
+      io.to(`family:${user.familyId}`).emit("presence:offline", { userId: user.id });
+    });
+  });
+}
+
+
+Why both Set + key?
+The Set quickly lists who’s online; the per-user TTL key ensures automatic cleanup if the client vanishes (mobile background).
+
+Presence API (for initial paint)
+
+Provide an HTTP endpoint so the UI can fetch online users when the page opens; live updates then come via WS.
+
+// GET /api/presence/family
+// returns { online: string[], lastSeen: Record<userId, isoString|null> }
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
+import { createClient } from "redis";
+
+const redis = createClient({ url: process.env.REDIS_URL! });
+await redis.connect();
+
+export async function GET(req: NextRequest) {
+  const { familyId } = await requireUser(req);
+  const famKey = `presence:family:${familyId}`;
+  const online = await redis.sMembers(famKey);
+
+  // lastSeen for others in family
+  const users = await prisma.user.findMany({
+    where: { familyId },
+    select: { id: true, name: true, lastSeenAt: true },
+  });
+
+  return NextResponse.json({
+    online,
+    users: users.map(u => ({ id: u.id, name: u.name, lastSeenAt: u.lastSeenAt }))
+  });
+}
+
+Client (React) presence hook
+// usePresence.ts
+import { useEffect, useState } from "react";
+import io from "socket.io-client";
+
+export function usePresence(familyId: string, selfUser: { id: string; name?: string }) {
+  const [online, setOnline] = useState<Set<string>>(new Set());
+  const [lastSeen, setLastSeen] = useState<Record<string, string | null>>({});
+
+  useEffect(() => {
+    let active = true;
+
+    // initial fetch
+    fetch("/api/presence/family")
+      .then(r => r.json())
+      .then(data => {
+        if (!active) return;
+        setOnline(new Set(data.online));
+        const map: Record<string, string | null> = {};
+        for (const u of data.users) map[u.id] = u.lastSeenAt;
+        setLastSeen(map);
+      });
+
+    // socket
+    const socket = io("/", { path: "/ws", auth: { user: { id: selfUser.id, familyId } } });
+    socket.emit("presence:ping"); // mark present immediately
+    const ping = setInterval(() => socket.emit("presence:ping"), 20_000);
+
+    // family channel updates
+    socket.emit("join", { room: `family:${familyId}` });
+    socket.on("presence:online", ({ userId }) => setOnline(prev => new Set(prev).add(userId)));
+    socket.on("presence:offline", ({ userId }) =>
+      setOnline(prev => {
+        const s = new Set(prev);
+        s.delete(userId);
+        return s;
+      })
+    );
+
+    return () => {
+      active = false;
+      clearInterval(ping);
+      socket.disconnect();
+    };
+  }, [familyId, selfUser.id]);
+
+  return { online, lastSeen };
+}
+
+UI: how it looks
+In the thread header:
+
+Avatars of participants with a small gold ring if online.
+
+A subtle line:
+
+If any online (excluding me): “Online now: Sarah, Michael”
+
+Else: “Last seen — Sarah 12m, Michael 1h”
+
+// ThreadHeader.tsx (snippet)
+function Dot({ online }: { online: boolean }) {
+  return (
+    <span
+      className={`inline-block h-2.5 w-2.5 rounded-full ${
+        online ? "bg-emerald-400 shadow-[0_0_0_2px_rgba(212,175,55,.35)]" : "bg-white/30"
+      }`}
+      title={online ? "Online" : "Offline"}
+    />
+  );
+}
+
+
+Render each member with <Dot online={online.has(memberId)} /> and a tooltip like title="Last seen 12m ago" using lastSeen[memberId].
+
+Typing indicator (quick add)
+
+Server:
+
+socket.on("typing", ({ threadId, isTyping }) => {
+  socket.to(`thread:${threadId}`).emit("typing", { userId: user.id, isTyping });
+});
+
+
+Client (composer):
+
+useEffect(() => {
+  if (!socket || !threadId) return;
+  let t: any;
+  const onInput = () => {
+    socket.emit("typing", { threadId, isTyping: true });
+    clearTimeout(t);
+    t = setTimeout(() => socket.emit("typing", { threadId, isTyping: false }), 1500);
+  };
+  // call onInput on keypress/change
+  return () => clearTimeout(t);
+}, [socket, threadId]);
+
+Privacy & UX guardrails
+
+Family-only visibility: only show presence of users in the same familyId.
+
+Idle users: rely on TTL (60s). If no heartbeat for 60s, they drop to offline; at that moment write lastSeenAt (on next interaction or through a background worker that scans expired keys).
+
+Battery: heartbeat every 20s is fine; avoid sub-10s.
+
+Mobile background: page may suspend; that’s OK—TTL expires and they go offline gracefully.
+
+Rate-limit typing events (debounce 1.5s like above).
+
+Is it a good idea?
+
+Yes—presence + last seen is a clear win for your use case:
+
+Families quickly know if it’s a good time to ask something.
+
+“Last seen” anchors expectations when someone’s offline.
+
+It’s lightweight with Redis TTL and doesn’t spam the DB.
