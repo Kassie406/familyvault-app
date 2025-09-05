@@ -1,12 +1,208 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { insertInviteSchema, insertFamilyMemberSchema } from "@shared/schema";
+import crypto from "crypto";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Additional API routes can be added here
-  // Authentication routes are already set up in server/index.ts
+  // Family Invite API endpoints
+
+  // POST /api/family/invites - Create a new invitation
+  app.post("/api/family/invites", async (req, res) => {
+    try {
+      const { email, permission, familyRole, message, expiresInDays } = req.body;
+
+      if (!email || !permission || !familyRole) {
+        return res.status(400).json({ 
+          error: "Missing required fields: email, permission, familyRole" 
+        });
+      }
+
+      // Generate secure token
+      const token = crypto.randomBytes(32).toString('hex');
+      
+      // Set expiration (default 7 days)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + (expiresInDays || 7));
+
+      const inviteData = {
+        email: email.toLowerCase(),
+        permission,
+        familyRole,
+        invitedByUserId: "current-user", // TODO: Get from authenticated user
+        token,
+        status: "pending",
+        requireLogin: true,
+        message: message || null,
+        expiresAt,
+      };
+
+      const invite = await storage.createInvite(inviteData);
+
+      // TODO: Send invitation email here
+      console.log(`Invitation created for ${email} with token: ${token}`);
+
+      res.status(201).json({
+        id: invite.id,
+        email: invite.email,
+        permission: invite.permission,
+        familyRole: invite.familyRole,
+        status: invite.status,
+        expiresAt: invite.expiresAt,
+        inviteUrl: `${req.protocol}://${req.get('host')}/accept-invite/${token}`,
+      });
+    } catch (error) {
+      console.error("Error creating invite:", error);
+      res.status(500).json({ error: "Failed to create invitation" });
+    }
+  });
+
+  // GET /api/family/invites - List all invitations for current user
+  app.get("/api/family/invites", async (req, res) => {
+    try {
+      const userId = "current-user"; // TODO: Get from authenticated user
+      const invites = await storage.getUserInvites(userId);
+      
+      res.json(invites.map(invite => ({
+        id: invite.id,
+        email: invite.email,
+        permission: invite.permission,
+        familyRole: invite.familyRole,
+        status: invite.status,
+        expiresAt: invite.expiresAt,
+        createdAt: invite.createdAt,
+        acceptedAt: invite.acceptedAt,
+      })));
+    } catch (error) {
+      console.error("Error fetching invites:", error);
+      res.status(500).json({ error: "Failed to fetch invitations" });
+    }
+  });
+
+  // POST /api/family/invites/:id/resend - Resend an invitation
+  app.post("/api/family/invites/:id/resend", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const invite = await storage.getInvite(id);
+      
+      if (!invite) {
+        return res.status(404).json({ error: "Invitation not found" });
+      }
+
+      if (invite.status !== 'pending') {
+        return res.status(400).json({ error: "Can only resend pending invitations" });
+      }
+
+      // Generate new token and extend expiration
+      const newToken = crypto.randomBytes(32).toString('hex');
+      const newExpiresAt = new Date();
+      newExpiresAt.setDate(newExpiresAt.getDate() + 7);
+
+      await storage.updateInvite(id, {
+        token: newToken,
+        expiresAt: newExpiresAt,
+      });
+
+      // TODO: Send invitation email with new token
+      console.log(`Invitation resent for ${invite.email} with new token: ${newToken}`);
+
+      res.json({
+        message: "Invitation resent successfully",
+        inviteUrl: `${req.protocol}://${req.get('host')}/accept-invite/${newToken}`,
+      });
+    } catch (error) {
+      console.error("Error resending invite:", error);
+      res.status(500).json({ error: "Failed to resend invitation" });
+    }
+  });
+
+  // POST /api/family/invites/:id/revoke - Revoke an invitation
+  app.post("/api/family/invites/:id/revoke", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.revokeInvite(id);
+      
+      if (!success) {
+        return res.status(404).json({ error: "Invitation not found" });
+      }
+
+      res.json({ message: "Invitation revoked successfully" });
+    } catch (error) {
+      console.error("Error revoking invite:", error);
+      res.status(500).json({ error: "Failed to revoke invitation" });
+    }
+  });
+
+  // GET /accept-invite/:token - Accept invitation page endpoint
+  app.get("/accept-invite/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const invite = await storage.getInviteByToken(token);
+      
+      if (!invite) {
+        return res.status(404).json({ error: "Invalid or expired invitation" });
+      }
+
+      if (invite.status !== 'pending') {
+        return res.status(400).json({ error: "Invitation already processed" });
+      }
+
+      if (new Date() > invite.expiresAt) {
+        return res.status(400).json({ error: "Invitation has expired" });
+      }
+
+      // Accept the invitation
+      await storage.acceptInvite(token);
+
+      // Create family member record
+      const avatarColors = ['#3498DB', '#E74C3C', '#2ECC71', '#F39C12', '#9B59B6', '#1ABC9C'];
+      const randomColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
+
+      const familyMember = await storage.createFamilyMember({
+        name: invite.email.split('@')[0], // Default name from email
+        email: invite.email,
+        role: invite.familyRole,
+        avatarColor: randomColor,
+        itemCount: 0,
+        userId: null, // Will be linked when user registers
+      });
+
+      res.json({
+        success: true,
+        message: "Invitation accepted successfully",
+        familyMember: {
+          id: familyMember.id,
+          name: familyMember.name,
+          email: familyMember.email,
+          role: familyMember.role,
+        },
+      });
+    } catch (error) {
+      console.error("Error accepting invite:", error);
+      res.status(500).json({ error: "Failed to accept invitation" });
+    }
+  });
+
+  // GET /api/family/members - List all family members
+  app.get("/api/family/members", async (req, res) => {
+    try {
+      const members = await storage.getAllFamilyMembers();
+      
+      res.json(members.map(member => ({
+        id: member.id,
+        name: member.name,
+        email: member.email,
+        role: member.role,
+        avatarColor: member.avatarColor,
+        itemCount: member.itemCount,
+        createdAt: member.createdAt,
+      })));
+    } catch (error) {
+      console.error("Error fetching family members:", error);
+      res.status(500).json({ error: "Failed to fetch family members" });
+    }
+  });
 
   const httpServer = createServer(app);
-
   return httpServer;
 }
