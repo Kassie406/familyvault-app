@@ -794,6 +794,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhanced Messaging API endpoints
+
+  // Mark message as read
+  app.post("/api/messages/:messageId/read", async (req, res) => {
+    try {
+      const { messageId } = req.params;
+      const userId = "current-user"; // TODO: Get from authenticated user
+      
+      const receipt = await storage.markMessageAsRead(messageId, userId);
+      res.json({ receipt });
+    } catch (error) {
+      console.error("Error marking message as read:", error);
+      res.status(500).json({ error: "Failed to mark message as read" });
+    }
+  });
+
+  // Get message read receipts
+  app.get("/api/messages/:messageId/receipts", async (req, res) => {
+    try {
+      const { messageId } = req.params;
+      const receipts = await storage.getMessageReadReceipts(messageId);
+      res.json({ receipts });
+    } catch (error) {
+      console.error("Error fetching read receipts:", error);
+      res.status(500).json({ error: "Failed to fetch read receipts" });
+    }
+  });
+
+  // Get unread message count for a thread
+  app.get("/api/threads/:threadId/unread-count", async (req, res) => {
+    try {
+      const { threadId } = req.params;
+      const userId = "current-user"; // TODO: Get from authenticated user
+      
+      const count = await storage.getUnreadMessagesCount(userId, threadId);
+      res.json({ count });
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
+      res.status(500).json({ error: "Failed to fetch unread count" });
+    }
+  });
+
+  // Add reaction to message
+  app.post("/api/messages/:messageId/reactions", async (req, res) => {
+    try {
+      const { messageId } = req.params;
+      const { emoji } = req.body;
+      const userId = "current-user"; // TODO: Get from authenticated user
+      
+      if (!emoji) {
+        return res.status(400).json({ error: "Emoji is required" });
+      }
+
+      const reaction = await storage.addMessageReaction({
+        messageId,
+        userId,
+        emoji
+      });
+      
+      res.json({ reaction });
+    } catch (error) {
+      console.error("Error adding reaction:", error);
+      res.status(500).json({ error: "Failed to add reaction" });
+    }
+  });
+
+  // Remove reaction from message
+  app.delete("/api/messages/:messageId/reactions/:emoji", async (req, res) => {
+    try {
+      const { messageId, emoji } = req.params;
+      const userId = "current-user"; // TODO: Get from authenticated user
+      
+      const removed = await storage.removeMessageReaction(messageId, userId, emoji);
+      res.json({ removed });
+    } catch (error) {
+      console.error("Error removing reaction:", error);
+      res.status(500).json({ error: "Failed to remove reaction" });
+    }
+  });
+
+  // Get message reactions
+  app.get("/api/messages/:messageId/reactions", async (req, res) => {
+    try {
+      const { messageId } = req.params;
+      const reactions = await storage.getMessageReactions(messageId);
+      res.json({ reactions });
+    } catch (error) {
+      console.error("Error fetching reactions:", error);
+      res.status(500).json({ error: "Failed to fetch reactions" });
+    }
+  });
+
+  // Search messages
+  app.get("/api/messages/search", async (req, res) => {
+    try {
+      const { q: query, threadId } = req.query;
+      const userId = "current-user"; // TODO: Get from authenticated user
+      
+      if (!query || typeof query !== 'string' || query.trim().length < 2) {
+        return res.status(400).json({ error: "Query must be at least 2 characters" });
+      }
+
+      const messages = await storage.searchMessages(
+        userId, 
+        query.trim(), 
+        threadId as string | undefined
+      );
+      
+      res.json({ messages });
+    } catch (error) {
+      console.error("Error searching messages:", error);
+      res.status(500).json({ error: "Failed to search messages" });
+    }
+  });
+
   // Mount SMS routes
   app.use("/api", smsRoutes);
 

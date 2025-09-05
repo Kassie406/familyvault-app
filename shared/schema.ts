@@ -542,10 +542,32 @@ export const messages = pgTable("messages", {
   authorId: varchar("author_id").notNull(),
   body: text("body"),
   fileIds: text("file_ids").array().default([]).notNull(), // References to uploaded files
+  replyToId: varchar("reply_to_id"), // For message threading
   createdAt: timestamp("created_at").defaultNow().notNull(),
   editedAt: timestamp("edited_at"),
   deletedAt: timestamp("deleted_at"),
 });
+
+// Message Read Receipts - track when users read messages
+export const messageReadReceipts = pgTable("message_read_receipts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  messageId: varchar("message_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  readAt: timestamp("read_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueMessageUser: unique().on(table.messageId, table.userId),
+}));
+
+// Message Reactions - emoji reactions to messages
+export const messageReactions = pgTable("message_reactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  messageId: varchar("message_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  emoji: varchar("emoji", { length: 10 }).notNull(), // 👍, ❤️, 😂, etc
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueMessageUserEmoji: unique().on(table.messageId, table.userId, table.emoji),
+}));
 
 // SMS notification tables
 export const notificationPreferences = pgTable("notification_preferences", {
@@ -1290,6 +1312,18 @@ export const insertMessageSchema = createInsertSchema(messages).pick({
   authorId: true,
   body: true,
   fileIds: true,
+  replyToId: true,
+});
+
+export const insertMessageReadReceiptSchema = createInsertSchema(messageReadReceipts).pick({
+  messageId: true,
+  userId: true,
+});
+
+export const insertMessageReactionSchema = createInsertSchema(messageReactions).pick({
+  messageId: true,
+  userId: true,
+  emoji: true,
 });
 
 // Family types
@@ -1345,6 +1379,12 @@ export type ThreadMember = typeof threadMembers.$inferSelect;
 
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
+
+export type InsertMessageReadReceipt = z.infer<typeof insertMessageReadReceiptSchema>;
+export type MessageReadReceipt = typeof messageReadReceipts.$inferSelect;
+
+export type InsertMessageReaction = z.infer<typeof insertMessageReactionSchema>;
+export type MessageReaction = typeof messageReactions.$inferSelect;
 
 // SMS notification types
 export const insertNotificationPreferenceSchema = createInsertSchema(notificationPreferences).pick({

@@ -30,12 +30,15 @@ import {
   type MessageThread, type InsertMessageThread,
   type ThreadMember, type InsertThreadMember,
   type Message, type InsertMessage,
+  type MessageReadReceipt, type InsertMessageReadReceipt,
+  type MessageReaction, type InsertMessageReaction,
   users, organizations, plans, coupons, articles, consentEvents, auditLogs,
   adminSessions, securitySettings, impersonationSessions,
   gdprConsentEvents, dsarRequests, retentionPolicies, suppressionList,
   invites, inviteLinks, families, familyMembers, familyBusinessItems,
   familyLegalDocs, familyLegalItems, familyInsurancePolicies, familyInsuranceItems,
-  familyTaxYears, familyTaxItems, messageThreads, threadMembers, messages
+  familyTaxYears, familyTaxItems, messageThreads, threadMembers, messages,
+  messageReadReceipts, messageReactions
 } from "@shared/schema";
 
 // Database connection
@@ -241,6 +244,15 @@ export interface IStorage {
   getThreadMembers(threadId: string): Promise<ThreadMember[]>;
   getThreadMessages(threadId: string, cursor?: string, limit?: number): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
+  
+  // Enhanced messaging methods
+  markMessageAsRead(messageId: string, userId: string): Promise<MessageReadReceipt>;
+  getMessageReadReceipts(messageId: string): Promise<MessageReadReceipt[]>;
+  getUnreadMessagesCount(userId: string, threadId: string): Promise<number>;
+  addMessageReaction(reaction: InsertMessageReaction): Promise<MessageReaction>;
+  removeMessageReaction(messageId: string, userId: string, emoji: string): Promise<boolean>;
+  getMessageReactions(messageId: string): Promise<MessageReaction[]>;
+  searchMessages(userId: string, query: string, threadId?: string): Promise<Message[]>;
   
   // Advanced messaging methods for new API
   findThreadByMembers(memberIds: string[]): Promise<MessageThread | undefined>;
@@ -1121,6 +1133,82 @@ export class DatabaseStorage implements IStorage {
       .where(eq(messageThreads.id, threadId))
       .returning();
     return result[0];
+  }
+
+  // Enhanced messaging methods
+  async markMessageAsRead(messageId: string, userId: string): Promise<MessageReadReceipt> {
+    const result = await db.insert(messageReadReceipts)
+      .values({ messageId, userId })
+      .onConflictDoUpdate({
+        target: [messageReadReceipts.messageId, messageReadReceipts.userId],
+        set: { readAt: sql`NOW()` }
+      })
+      .returning();
+    return result[0];
+  }
+
+  async getMessageReadReceipts(messageId: string): Promise<MessageReadReceipt[]> {
+    return await db.select()
+      .from(messageReadReceipts)
+      .where(eq(messageReadReceipts.messageId, messageId));
+  }
+
+  async getUnreadMessagesCount(userId: string, threadId: string): Promise<number> {
+    const result = await db.select({
+      count: sql<number>`count(*)`
+    }).from(messages)
+      .leftJoin(messageReadReceipts, 
+        sql`${messages.id} = ${messageReadReceipts.messageId} AND ${messageReadReceipts.userId} = ${userId}`)
+      .where(sql`${messages.threadId} = ${threadId} 
+                 AND ${messages.authorId} != ${userId} 
+                 AND ${messageReadReceipts.id} IS NULL`);
+    
+    return result[0]?.count || 0;
+  }
+
+  async addMessageReaction(reaction: InsertMessageReaction): Promise<MessageReaction> {
+    const result = await db.insert(messageReactions)
+      .values(reaction)
+      .onConflictDoUpdate({
+        target: [messageReactions.messageId, messageReactions.userId, messageReactions.emoji],
+        set: { createdAt: sql`NOW()` }
+      })
+      .returning();
+    return result[0];
+  }
+
+  async removeMessageReaction(messageId: string, userId: string, emoji: string): Promise<boolean> {
+    const result = await db.delete(messageReactions)
+      .where(sql`${messageReactions.messageId} = ${messageId} 
+                 AND ${messageReactions.userId} = ${userId} 
+                 AND ${messageReactions.emoji} = ${emoji}`);
+    return result.changes > 0;
+  }
+
+  async getMessageReactions(messageId: string): Promise<MessageReaction[]> {
+    return await db.select()
+      .from(messageReactions)
+      .where(eq(messageReactions.messageId, messageId))
+      .orderBy(messageReactions.createdAt);
+  }
+
+  async searchMessages(userId: string, query: string, threadId?: string): Promise<Message[]> {
+    let dbQuery = db.select()
+      .from(messages)
+      .innerJoin(threadMembers, eq(messages.threadId, threadMembers.threadId))
+      .where(sql`${threadMembers.userId} = ${userId} 
+                 AND ${messages.body} ILIKE ${`%${query}%`}
+                 AND ${messages.deletedAt} IS NULL`);
+
+    if (threadId) {
+      dbQuery = dbQuery.where(eq(messages.threadId, threadId));
+    }
+
+    const result = await dbQuery
+      .orderBy(desc(messages.createdAt))
+      .limit(50);
+
+    return result.map(row => row.messages);
   }
 
   // Presence methods
