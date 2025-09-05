@@ -747,13 +747,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For now, return mock data - in production get from Redis/DB
       const online: string[] = []; // Would come from Redis Set
       
-      // Get users in family with lastSeenAt
-      const users = await storage.getAllUsers(); // TODO: Filter by familyId
-      const familyUsers = users.map(u => ({
-        id: u.id,
-        name: u.name || u.username,
-        lastSeenAt: u.lastSeenAt?.toISOString() || null
-      }));
+      // For now, return mock family users data - TODO: Get from database
+      const familyUsers = [
+        {
+          id: "current-user",
+          name: "You",
+          lastSeenAt: new Date().toISOString()
+        }
+      ];
       
       res.json({
         online,
