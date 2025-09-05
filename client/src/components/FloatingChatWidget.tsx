@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { MessageCircle, X, Send, Minimize2, Paperclip, Users, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePresence } from "@/hooks/usePresence";
@@ -60,6 +61,12 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
   const [chatId, setChatId] = useState<string | undefined>("family-chat");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+
+  // Add body flag when chat opens
+  useEffect(() => {
+    document.body.classList.toggle("chat-open", isOpen);
+    return () => document.body.classList.remove("chat-open");
+  }, [isOpen]);
   
   // Fetch default chat ID when component mounts
   useEffect(() => {
@@ -271,8 +278,8 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
       </button>
 
       {/* Chat Interface */}
-      {isOpen && (
-        <div className={`fixed right-6 z-40 bg-black/95 backdrop-blur-md border border-[#D4AF37]/30 rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 ${
+      {isOpen && createPortal(
+        <div className={`chat-panel fixed right-6 z-[100] bg-black/95 backdrop-blur-md border border-[#D4AF37]/30 rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 ${
           isExpanded 
             ? 'bottom-6 w-96 h-[600px]' 
             : 'bottom-24 w-80 h-80'
@@ -379,7 +386,8 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
               </button>
             </div>
           </div>
-        </div>
+        </div>, 
+        document.body
       )}
 
       {/* Backdrop */}
