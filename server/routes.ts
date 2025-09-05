@@ -8,6 +8,7 @@ import smsRoutes from "./sms";
 import axios from "axios";
 import { sendSMSNotification } from "./lib/twilio";
 import { sendSMSNotificationsForMessage, markUserOnline, markUserOffline } from "./lib/sms-notifications";
+import { getOrCreateFamilyChatId } from "./lib/chat-default";
 import { 
   insertInviteSchema, 
   insertFamilyMemberSchema,
@@ -747,6 +748,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json({ message });
     } catch (error) {
       console.error("Error creating message:", error);
+      res.status(500).json({ error: "Failed to create message" });
+    }
+  });
+
+  // POST /api/messages - Send a message to default family chat (fallback for widget)
+  app.post("/api/messages", async (req, res) => {
+    try {
+      const { body, fileIds = [], replyToId } = req.body;
+      const userId = "current-user"; // TODO: Get from authenticated user
+      
+      if (!body?.trim() && (!fileIds || fileIds.length === 0)) {
+        return res.status(400).json({ error: "Message body or files required" });
+      }
+
+      // Get or create the default family chat
+      const threadId = await getOrCreateFamilyChatId();
+
+      const messageData = {
+        threadId,
+        authorId: userId,
+        body: body?.trim(),
+        fileIds,
+        replyToId
+      };
+
+      // 1) Store message in database
+      const message = await storage.createMessage(messageData);
+      
+      // TODO: Broadcast via WebSocket to thread members
+      console.log(`Broadcasting message ${message.id} to thread ${threadId}`);
+      
+      // 2) Send SMS notifications to eligible recipients
+      try {
+        await sendSMSNotificationsForMessage(threadId, userId, body || "📎 Attachment");
+      } catch (smsError) {
+        console.error("SMS notification error:", smsError);
+        // Don't fail the message send if SMS fails
+      }
+
+      res.status(201).json({ message });
+    } catch (error) {
+      console.error("Error creating message in default chat:", error);
       res.status(500).json({ error: "Failed to create message" });
     }
   });

@@ -27,8 +27,11 @@ async function fetchMessages(threadId: string): Promise<{ messages: Message[] }>
   return response.json();
 }
 
-async function sendMessage(threadId: string, body: string, fileIds: string[]): Promise<Message> {
-  const response = await fetch(`/api/threads/${threadId}/messages`, {
+async function sendMessage(threadId: string | null, body: string, fileIds: string[]): Promise<Message> {
+  // Use fallback route if no threadId is provided
+  const url = threadId ? `/api/threads/${threadId}/messages` : `/api/messages`;
+  
+  const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ body, fileIds }),
@@ -74,11 +77,26 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
     mutationFn: async ({ body, fileIds }: { body: string; fileIds: string[] }) => 
       sendMessage(threadId, body, fileIds),
     onSuccess: (message: Message) => {
+      // Invalidate queries for both specific thread and fallback route
       queryClient.invalidateQueries({ queryKey: [`/api/threads/${threadId}/messages`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/messages`] });
       setMessage("");
       setFiles([]);
       stopTyping();
       scrollToBottom();
+    },
+    onError: (error: Error) => {
+      console.error("Failed to send message:", error);
+      // Try sending via fallback route if specific thread fails
+      if (threadId && error.message.includes("Failed to send message")) {
+        sendMessage(null, message, []).then(() => {
+          queryClient.invalidateQueries({ queryKey: [`/api/threads/${threadId}/messages`] });
+          setMessage("");
+          setFiles([]);
+          stopTyping();
+          scrollToBottom();
+        }).catch(console.error);
+      }
     },
   });
 

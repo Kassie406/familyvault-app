@@ -521,6 +521,7 @@ export const messageThreads = pgTable("message_threads", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   kind: threadKindEnum("kind").notNull(),
   title: text("title"),
+  key: text("key").unique(), // Unique key for default threads like "family-global"
   familyId: varchar("family_id").notNull(),
   createdBy: varchar("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
