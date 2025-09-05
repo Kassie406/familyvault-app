@@ -158,34 +158,38 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
   const unreadCount = messages.length > 0 ? Math.min(messages.length, 9) : 0;
   
   // Message bubble component
-  const MessageBubble = ({ message, isMe }: { message: Message; isMe: boolean }) => (
-    <div className={`flex gap-3 group ${isMe ? 'flex-row-reverse' : ''} mb-3`}>
-      {!isMe && (
-        <div className="w-6 h-6 rounded-full bg-[#D4AF37]/20 flex items-center justify-center text-xs text-[#D4AF37] font-medium">
-          {message.author.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-        </div>
-      )}
-      
-      <div className={`flex-1 max-w-[85%] ${isMe ? 'text-right' : ''}`}>
+  const MessageBubble = ({ message, isMe }: { message: Message; isMe: boolean }) => {
+    if (!message || !message.author) return null;
+    
+    return (
+      <div className={`flex gap-3 group ${isMe ? 'flex-row-reverse' : ''} mb-3`}>
         {!isMe && (
-          <div className="text-xs text-white/60 mb-1">{message.author.name}</div>
+          <div className="w-6 h-6 rounded-full bg-[#D4AF37]/20 flex items-center justify-center text-xs text-[#D4AF37] font-medium">
+            {message.author.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
+          </div>
         )}
         
-        <div className={`rounded-2xl px-3 py-2 ${
-          isMe 
-            ? 'bg-[#D4AF37] text-black ml-auto' 
-            : 'bg-white/10 text-white'
-        }`}>
-          <div className="text-sm leading-relaxed whitespace-pre-wrap">
-            {message.body}
-          </div>
-          <div className={`text-xs mt-1 ${isMe ? 'text-black/60' : 'text-white/50'}`}>
-            {formatTime(message.createdAt)}
+        <div className={`flex-1 max-w-[85%] ${isMe ? 'text-right' : ''}`}>
+          {!isMe && (
+            <div className="text-xs text-white/60 mb-1">{message.author.name || 'Unknown'}</div>
+          )}
+          
+          <div className={`rounded-2xl px-3 py-2 ${
+            isMe 
+              ? 'bg-[#D4AF37] text-black ml-auto' 
+              : 'bg-white/10 text-white'
+          }`}>
+            <div className="text-sm leading-relaxed whitespace-pre-wrap">
+              {message.body || ''}
+            </div>
+            <div className={`text-xs mt-1 ${isMe ? 'text-black/60' : 'text-white/50'}`}>
+              {message.createdAt ? formatTime(message.createdAt) : ''}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <>
@@ -267,7 +271,7 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
                   <MessageBubble
                     key={message.id}
                     message={message}
-                    isMe={message.author.id === currentUser.id}
+                    isMe={message?.author?.id === currentUser?.id}
                   />
                 ))}
                 <div ref={messagesEndRef} />
