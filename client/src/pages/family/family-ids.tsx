@@ -14,7 +14,8 @@ import {
   Edit2,
   Check,
   X,
-  Mail
+  Mail,
+  Settings
 } from 'lucide-react';
 import { LuxuryCard } from '@/components/luxury-cards';
 import { InviteFamilyMemberDialog } from '@/components/InviteFamilyMemberDialog';
@@ -355,6 +356,22 @@ export default function FamilyIds() {
                       >
                         <span className="text-[#D4AF37]"><Mail className="h-4 w-4" /></span>
                         <span>Invite Family Member</span>
+                      </button>
+                    </li>
+                    <li>
+                      <hr className="border-[#2A2A33] my-1" />
+                    </li>
+                    <li>
+                      <button
+                        role="menuitem"
+                        className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
+                        onClick={() => {
+                          setAddMenuOpen(false);
+                          setLocation('/settings/access?scope=family');
+                        }}
+                      >
+                        <span className="text-[#D4AF37]"><Settings className="h-4 w-4" /></span>
+                        <span>Manage Roles & Access</span>
                       </button>
                     </li>
                   </ul>
