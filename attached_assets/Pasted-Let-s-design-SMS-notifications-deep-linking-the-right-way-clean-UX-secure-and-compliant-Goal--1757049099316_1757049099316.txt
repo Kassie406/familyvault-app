@@ -1,0 +1,296 @@
+Let’s design SMS notifications + deep linking the right way—clean UX, secure, and compliant.
+
+Goal
+
+When someone gets a new family chat message:
+
+If they’re offline and have SMS notifications enabled, send a text:
+
+Includes sender name, brief preview, and a deep link.
+
+On iOS/Android with the app installed → opens the thread.
+
+If not installed → go to store, then deep link into the correct thread after install (deferred deep link).
+
+If no app at all → open the web thread (authenticated magic link).
+
+Architecture at a glance
+
+Preferences (per user): notifications.sms.enabled, quietHours, lastNotifiedAt, verifiedPhone.
+
+Phone verification (one-time): code via SMS; store verified_at.
+
+Event trigger: message created → enqueue “notify” job.
+
+Notification worker (BullMQ / queue): decides who to notify (offline, opted-in, outside quiet hours, rate-limited).
+
+Delivery: SMS via Twilio (or MessageBird/etc.) using:
+
+Universal/App Links for iOS/Android.
+
+Dynamic Link (Firebase/Branch) for install → open the right thread.
+
+Fallback magic link (signed URL) to web thread.
+
+Compliance: TCPA consent, opt-out “STOP”, “HELP”, logs.
+
+Data model additions (Prisma)
+model User {
+  id              String   @id @default(cuid())
+  name            String?
+  email           String   @unique
+  familyId        String
+  phone           String?  @unique
+  phoneVerifiedAt DateTime?
+  lastSeenAt      DateTime?
+  notifications   NotificationPreference?
+}
+
+model NotificationPreference {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  smsEnabled    Boolean  @default(false)
+  quietStart    Int?     // minutes from 0..1440; e.g. 1320 = 10:00pm
+  quietEnd      Int?     // minutes from 0..1440; e.g. 480  = 8:00am
+  perThreadMute Json?    // { "thread_123": true, "thread_abc": false }
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model SmsDeliveryLog {
+  id         String   @id @default(cuid())
+  userId     String
+  threadId   String
+  messageId  String
+  toPhone    String
+  sentAt     DateTime @default(now())
+  providerId String?  // Twilio SID
+  status     String?  // queued/sent/delivered/failed
+  error      String?
+}
+
+Phone verification flow (one-time)
+
+User enters phone → POST /api/phone/start-verify
+
+Generate 6-digit code; send via SMS.
+
+Store hash & 5-min expiry in DB/Redis.
+
+User enters code → POST /api/phone/confirm
+
+Verify; set phoneVerifiedAt; notifications.smsEnabled = true (or separate toggle).
+
+Show TCPA consent text and link to Terms/Privacy.
+
+SMS templates
+
+Start verify:
+FamilyCircleSecure: Your verification code is 123456. Expires in 5 minutes.
+
+Success confirmation:
+FamilyCircleSecure: Phone verified. Reply STOP to opt out, HELP for help.
+
+When to send SMS
+
+In the message-create handler (or in a queue worker):
+
+For each recipient (excluding author):
+
+Is in same family ✅
+
+Has smsEnabled && phoneVerifiedAt ✅
+
+Is offline (no presence heartbeat) ✅
+
+Not in quiet hours (respect local timezone if stored) ✅
+
+Rate-limit (e.g., max 1 SMS / 2 minutes per thread per user; group bursts into one) ✅
+
+Not muted for this thread ✅
+
+Then enqueue an SMS job with:
+
+toPhone, threadId, messageId, senderName, previewText
+
+The link strategy (deep link + fallbacks)
+1) Mobile deep link format
+
+App scheme (backup): fcs://thread/<threadId>
+
+iOS Universal Link: https://portal.familycirclesecure.com/ul/thread/<threadId>?mt=<signed>
+
+Android App Link: same HTTPS host.
+
+Server config
+
+iOS: host /.well-known/apple-app-site-association (AASA) with your app’s appID and paths.
+
+Android: host /.well-known/assetlinks.json with package + SHA256 cert digest.
+
+2) Deferred deep linking (install then open)
+
+Use a dynamic link provider (Firebase Dynamic Links or Branch):
+
+Short link in SMS, e.g., https://fcs.page.link/AbCd
+
+Rules:
+
+iOS: if app installed → open app with threadId.
+
+If not installed → App Store → on first open, SDK reads link and opens thread.
+
+Android similar.
+
+Web fallback: if on desktop, open web thread via signed magic link.
+
+3) Web magic link (secure)
+
+Signed, short-lived JWT (e.g., 10 minutes) that encodes:
+
+sub = userId to authenticate
+
+familyId, threadId, nonce
+
+URL: https://portal.familycirclesecure.com/magic?token=<jwt>
+
+On server: verify token → set session → redirect to /messages/<threadId>.
+
+Prevent sharing by including oneTime=true or store nonce as used once.
+
+Which link to put in SMS?
+
+Dynamic link first choice for mobile: it handles install or open.
+
+Add fallback URL param to the dynamic link pointing to your magic link on web.
+
+Example payload to link service:
+
+link=https://portal.familycirclesecure.com/ul/thread/<threadId>?mt=<shortJWT>
+
+fallback=https://portal.familycirclesecure.com/magic?token=<shortJWT>
+
+SMS content (transactional, short, readable)
+
+Template
+
+FamilyCircleSecure • New message from {senderFirstName}:
+“{preview up to 60 chars}”
+Open: {short_dynamic_link}
+Reply STOP to opt out, HELP for help.
+
+
+Keep under ~140 chars where possible (providers handle longer, but concise is better).
+
+Avoid sensitive data in SMS (no secrets or codes beyond verify flow).
+
+Backend: notification worker (BullMQ sketch)
+// queue job data
+type SmsJob = {
+  userId: string;
+  toPhone: string;
+  threadId: string;
+  messageId: string;
+  senderName: string;
+  preview: string;
+  signedToken: string; // for magic/universal link
+};
+
+smsQueue.process(async (job) => {
+  const { toPhone, threadId, preview, senderName, signedToken } = job.data;
+
+  // Build dynamic link
+  const dl = await createDynamicLink({
+    link: `https://portal.familycirclesecure.com/ul/thread/${threadId}?mt=${signedToken}`,
+    fallback: `https://portal.familycirclesecure.com/magic?token=${signedToken}`,
+    ios: { bundleId: "com.familycirclesecure.app", appStoreId: "XXXXXXXX" },
+    android: { packageName: "com.familycirclesecure.app" },
+  });
+
+  const body = `FamilyCircleSecure • New message from ${senderName}: “${preview}”\nOpen: ${dl.short}\nReply STOP to opt out, HELP for help.`;
+
+  const tw = await twilio.messages.create({
+    to: toPhone,
+    from: process.env.TWILIO_FROM!,
+    body,
+  });
+
+  await prisma.smsDeliveryLog.create({
+    data: { userId: job.data.userId, threadId, messageId: job.data.messageId, toPhone, providerId: tw.sid, status: "sent" }
+  });
+});
+
+
+Rate limiting
+
+Use Redis key: notify:{userId}:{threadId} with TTL=120s.
+
+If exists, coalesce: update a “pending summary”; send one combined SMS after TTL if multiple messages arrived (optional enhancement).
+
+Quiet hours logic
+
+Store minutes-from-midnight:
+
+quietStart=1320 (10:00 PM), quietEnd=480 (8:00 AM)
+
+Function:
+
+function isQuiet(nowLocalMinutes: number, start?: number|null, end?: number|null) {
+  if (start == null || end == null) return false;
+  return start < end
+    ? nowLocalMinutes >= start && nowLocalMinutes < end
+    : nowLocalMinutes >= start || nowLocalMinutes < end; // crosses midnight
+}
+
+
+Store user timezone if possible, or derive from profile.
+
+User settings UI (what to add)
+
+Toggle: “Text me when I get new messages” (with consent text).
+
+Field: Phone number (E.164 formatting) + Verify button.
+
+Quiet Hours (Off / 10pm–7am / Custom).
+
+Per-thread “Mute” in the thread kebab menu.
+
+“Test SMS” button (sends a test link to verify it’s working).
+
+Legal & compliance checklist (important)
+
+Explicit consent before sending marketing or recurring notifications; your use is transactional, but still:
+
+Display consent language when enabling SMS.
+
+Keep record of consent (timestamp, IP/user id, wording version).
+
+Include STOP and HELP keywords handling:
+
+Incoming SMS webhook must set smsEnabled=false and confirm.
+
+“HELP” returns a brief help + contact link.
+
+Provide Terms & Privacy links at the point of opt-in.
+
+DNC / Opt-out respected across all future messages.
+
+Regional rules if you expand internationally (GDPR, CASL).
+
+Avoid sensitive content in SMS.
+
+Implementation order (fast path)
+
+DB: add NotificationPreference, SmsDeliveryLog; add phone + phoneVerifiedAt.
+
+UI: Settings page for phone verification & SMS toggle + Quiet Hours.
+
+Phone verify APIs and Twilio account + number.
+
+Dynamic Links (Firebase or Branch) + AASA / assetlinks.json.
+
+Queue: add notification worker; wire message-created → enqueue.
+
+STOP/HELP inbound webhook.
+
+Rate limit + quiet hours guard.
