@@ -229,24 +229,36 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
             </div>
 
             {/* File Attachments */}
-            {message.fileIds && message.fileIds.length > 0 && (
+            {message.attachments && message.attachments.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
-                {message.fileIds.map((fileId, index) => (
-                  <div key={fileId} className="bg-black/20 rounded p-2">
-                    <a 
-                      href={`/uploads/${fileId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`flex items-center gap-2 text-xs ${
-                        isMe ? 'text-black/80 hover:text-black' : 'text-[#D4AF37] hover:text-[#D4AF37]/80'
-                      }`}
-                      data-testid={`link-attachment-${index}`}
-                    >
-                      <Paperclip className="w-3 h-3" />
-                      <span className="truncate">📎 Attachment</span>
+                {message.attachments.map((attachment: any, index: number) => 
+                  attachment.mime?.startsWith("image/") ? (
+                    <a key={attachment.id ?? index} href={attachment.url} target="_blank" rel="noreferrer" className="block">
+                      <img
+                        src={attachment.thumbnailUrl || attachment.url}
+                        alt={attachment.name}
+                        className="max-h-40 rounded-lg border border-white/10"
+                        loading="lazy"
+                        data-testid={`image-attachment-${index}`}
+                      />
                     </a>
-                  </div>
-                ))}
+                  ) : (
+                    <div key={attachment.id ?? index} className="bg-black/20 rounded p-2">
+                      <a 
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`flex items-center gap-2 text-xs ${
+                          isMe ? 'text-black/80 hover:text-black' : 'text-[#D4AF37] hover:text-[#D4AF37]/80'
+                        }`}
+                        data-testid={`link-attachment-${index}`}
+                      >
+                        <Paperclip className="w-3 h-3" />
+                        <span className="truncate max-w-[180px]">{attachment.name}</span>
+                      </a>
+                    </div>
+                  )
+                )}
               </div>
             )}
             <div className={`text-xs mt-1 ${isMe ? 'text-black/60' : 'text-white/50'}`}>

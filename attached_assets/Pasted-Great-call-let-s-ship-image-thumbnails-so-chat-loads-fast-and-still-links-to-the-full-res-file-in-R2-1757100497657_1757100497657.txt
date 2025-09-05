@@ -1,0 +1,200 @@
+Great call—let’s ship image thumbnails so chat loads fast and still links to the full-res file in R2. Below is a complete, drop-in implementation that:
+
+Generates a web-optimized image (≤1600px, WebP) and a thumbnail (≈400px, WebP).
+
+Keeps animated GIFs original (but makes a static thumbnail from frame 0).
+
+Stores metadata in DB and returns both URLs to the client.
+
+Works with your existing Cloudflare R2 setup (no UI changes beyond using the new thumbnailUrl when rendering).
+
+1) Install
+npm i sharp
+# (optional types)
+npm i -D @types/sharp
+
+2) DB migration (add thumb fields)
+ALTER TABLE message_attachments
+  ADD COLUMN thumbnail_url TEXT,
+  ADD COLUMN thumb_width INT,
+  ADD COLUMN thumb_height INT;
+
+
+Drizzle schema update
+
+// db/schema.ts
+export const messageAttachments = pgTable("message_attachments", {
+  id: text("id").primaryKey(),
+  messageId: text("message_id").notNull(),
+  url: text("url").notNull(),
+  name: text("name").notNull(),
+  mime: text("mime").notNull(),
+  size: bigint("size", { mode: "number" }).notNull(),
+  width: integer("width"),
+  height: integer("height"),
+  thumbnailUrl: text("thumbnail_url"),
+  thumbWidth: integer("thumb_width"),
+  thumbHeight: integer("thumb_height"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+3) Upload route → generate & upload images/thumbnails to R2
+// src/routes/uploads.ts
+import { Router } from "express";
+import multer from "multer";
+import { extension as extFromMime } from "mime-types";
+import sharp from "sharp";
+import crypto from "crypto";
+import { uploadBufferToS3 } from "../lib/s3";  // already built
+
+const router = Router();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+const ALLOWED = new Set([
+  "image/png","image/jpeg","image/webp","image/gif",
+  "application/pdf","text/plain","application/zip",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+]);
+
+const today = () => new Date().toISOString().slice(0,10);
+
+router.post("/", upload.array("files", 5), async (req, res) => {
+  const files = (req.files as Express.Multer.File[] | undefined) || [];
+  const out: any[] = [];
+
+  for (const f of files) {
+    if (!ALLOWED.has(f.mimetype)) continue;
+
+    const keyBase = `chat/${today()}/${crypto.randomUUID()}`;
+
+    // Images (except animated GIF) → webp main + webp thumbnail
+    if (f.mimetype.startsWith("image/") && f.mimetype !== "image/gif") {
+      const img = sharp(f.buffer, { limitInputPixels: 268402689 }); // ~16k x 16k
+      const meta = await img.metadata();
+
+      const mainBuf = await img
+        .rotate()                                         // respect EXIF
+        .resize({ width: 1600, withoutEnlargement: true })
+        .webp({ quality: 82 })
+        .toBuffer();
+
+      const thumbBuf = await sharp(f.buffer)
+        .rotate()
+        .resize({ width: 400, withoutEnlargement: true })
+        .webp({ quality: 78 })
+        .toBuffer();
+
+      const mainUrl  = await uploadBufferToS3(`${keyBase}.webp`, mainBuf, "image/webp");
+      const thumbUrl = await uploadBufferToS3(`${keyBase}.thumb.webp`, thumbBuf, "image/webp");
+
+      // compute thumb dims
+      const tMeta = await sharp(thumbBuf).metadata();
+
+      out.push({
+        url: mainUrl,
+        thumbnailUrl: thumbUrl,
+        name: f.originalname,
+        mime: "image/webp",
+        size: mainBuf.length,
+        width: meta.width ?? null,
+        height: meta.height ?? null,
+        thumbWidth: tMeta.width ?? null,
+        thumbHeight: tMeta.height ?? null,
+      });
+      continue;
+    }
+
+    // Animated GIF → keep original; make a static webp thumbnail (frame 0)
+    if (f.mimetype === "image/gif") {
+      const ext = ".gif";
+      const mainUrl = await uploadBufferToS3(`${keyBase}${ext}`, f.buffer, f.mimetype);
+
+      const thumbBuf = await sharp(f.buffer, { animated: true })
+        .extractFrame(0)
+        .resize({ width: 400, withoutEnlargement: true })
+        .webp({ quality: 78 })
+        .toBuffer();
+
+      const thumbUrl = await uploadBufferToS3(`${keyBase}.thumb.webp`, thumbBuf, "image/webp");
+
+      out.push({
+        url: mainUrl,
+        thumbnailUrl: thumbUrl,
+        name: f.originalname,
+        mime: f.mimetype,
+        size: f.size,
+        width: null, height: null, thumbWidth: null, thumbHeight: null
+      });
+      continue;
+    }
+
+    // Non-images → upload as-is (no thumbnail)
+    const ext = "." + (extFromMime(f.mimetype) || "bin");
+    const url = await uploadBufferToS3(`${keyBase}${ext}`, f.buffer, f.mimetype);
+    out.push({ url, thumbnailUrl: null, name: f.originalname, mime: f.mimetype, size: f.size,
+               width: null, height: null, thumbWidth: null, thumbHeight: null });
+  }
+
+  res.json({ files: out });
+});
+
+export default router;
+
+4) Messages POST → persist thumb fields
+// src/routes/messages.ts (inside POST handler after inserting message)
+for (const a of atts) {
+  await db.insert(messageAttachments).values({
+    id: crypto.randomUUID(),
+    messageId: row.id,
+    url: a.url,
+    name: a.name || "file",
+    mime: a.mime || "application/octet-stream",
+    size: a.size || 0,
+    width: a.width ?? null,
+    height: a.height ?? null,
+    thumbnailUrl: a.thumbnailUrl ?? null,
+    thumbWidth: a.thumbWidth ?? null,
+    thumbHeight: a.thumbHeight ?? null,
+  });
+}
+
+
+GET messages (already joining attachments): ensure you select the new fields and send them through.
+
+5) Client rendering (use thumbnail when present)
+// MessageBubble.tsx – attachment section
+{(message.attachments?.length ?? 0) > 0 && (
+  <div className="mt-2 flex flex-wrap gap-2">
+    {message.attachments.map((a: any, i: number) =>
+      a.mime?.startsWith("image/") ? (
+        <a key={a.id ?? i} href={a.url} target="_blank" rel="noreferrer" className="block">
+          <img
+            src={a.thumbnailUrl || a.url}
+            alt={a.name}
+            className="max-h-40 rounded-lg border border-white/10"
+            loading="lazy"
+          />
+        </a>
+      ) : (
+        <a key={a.id ?? i} href={a.url} target="_blank" rel="noreferrer"
+           className="flex items-center gap-2 bg-white/5 hover:bg-white/10 rounded px-2 py-1 text-xs">
+          📎 <span className="truncate max-w-[180px]">{a.name}</span>
+        </a>
+      )
+    )}
+  </div>
+)}
+
+Notes / guardrails
+
+R2 caching: Your custom domain will serve with default cache headers. If you want stronger caching, front with a Cloudflare Cache Rule matching /chat/* and set a long TTL (e.g., 30d).
+
+Privacy: You’re converting images to WebP; originals aren’t kept for PNG/JPEG (smaller, faster). If you must keep originals, upload both and store originalUrl.
+
+Size limits: Still capped at 10 MB per file (increase in multer if you like).
+
+Security: ALLOWED list prevents unexpected types; keep it tight.
+
+GIFs: We keep GIFs animated by storing the original; the thumbnail is a static first frame (fast).
+
+This ships a noticeable UX win (fast image loads) with minimal risk.

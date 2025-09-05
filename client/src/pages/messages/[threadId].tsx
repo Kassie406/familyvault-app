@@ -393,21 +393,37 @@ const MessageBubble: React.FC<{ message: any; isMe: boolean }> = ({ message: raw
           
           {message.attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
-              {message.attachments.map((attachment, i) => (
-                <div
-                  key={attachment.id ?? i}
-                  className={`flex items-center gap-2 p-2 rounded border ${
-                    isMe ? 'border-black/20 bg-black/10' : 'border-white/20 bg-white/10'
-                  }`}
-                >
-                  {attachment.type?.startsWith('image/') ? (
-                    <ImageIcon className="h-4 w-4" />
-                  ) : (
-                    <File className="h-4 w-4" />
-                  )}
-                  <span className="text-xs truncate max-w-[120px]">{attachment.name || 'File'}</span>
-                </div>
-              ))}
+              {message.attachments.map((attachment: any, i) => 
+                attachment.type?.startsWith('image/') ? (
+                  <a key={attachment.id ?? i} href={attachment.url} target="_blank" rel="noreferrer" className="block">
+                    <img
+                      src={attachment.thumbnailUrl || attachment.url}
+                      alt={attachment.name}
+                      className="max-h-40 rounded-lg border border-white/10"
+                      loading="lazy"
+                      data-testid={`image-attachment-${i}`}
+                    />
+                  </a>
+                ) : (
+                  <div
+                    key={attachment.id ?? i}
+                    className={`flex items-center gap-2 p-2 rounded border ${
+                      isMe ? 'border-black/20 bg-black/10' : 'border-white/20 bg-white/10'
+                    }`}
+                  >
+                    <a 
+                      href={attachment.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2"
+                      data-testid={`link-attachment-${i}`}
+                    >
+                      <File className="h-4 w-4" />
+                      <span className="text-xs truncate max-w-[120px]">{attachment.name || 'File'}</span>
+                    </a>
+                  </div>
+                )
+              )}
             </div>
           )}
 

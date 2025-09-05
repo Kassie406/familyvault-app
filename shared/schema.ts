@@ -572,6 +572,22 @@ export const messageReactions = pgTable("message_reactions", {
   uniqueMessageUserEmoji: unique().on(table.messageId, table.userId, table.emoji),
 }));
 
+// Message Attachments - files and images attached to messages
+export const messageAttachments = pgTable("message_attachments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  messageId: varchar("message_id").notNull(),
+  url: text("url").notNull(),
+  name: text("name").notNull(),
+  mime: text("mime").notNull(),
+  size: integer("size").notNull(),
+  width: integer("width"),
+  height: integer("height"),
+  thumbnailUrl: text("thumbnail_url"),
+  thumbWidth: integer("thumb_width"),
+  thumbHeight: integer("thumb_height"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // SMS notification tables
 export const notificationPreferences = pgTable("notification_preferences", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1376,6 +1392,19 @@ export const insertMessageReactionSchema = createInsertSchema(messageReactions).
   emoji: true,
 });
 
+export const insertMessageAttachmentSchema = createInsertSchema(messageAttachments).pick({
+  messageId: true,
+  url: true,
+  name: true,
+  mime: true,
+  size: true,
+  width: true,
+  height: true,
+  thumbnailUrl: true,
+  thumbWidth: true,
+  thumbHeight: true,
+});
+
 // Family types
 export type InsertFamily = z.infer<typeof insertFamilySchema>;
 export type Family = typeof families.$inferSelect;
@@ -1435,6 +1464,9 @@ export type MessageReadReceipt = typeof messageReadReceipts.$inferSelect;
 
 export type InsertMessageReaction = z.infer<typeof insertMessageReactionSchema>;
 export type MessageReaction = typeof messageReactions.$inferSelect;
+
+export type InsertMessageAttachment = z.infer<typeof insertMessageAttachmentSchema>;
+export type MessageAttachment = typeof messageAttachments.$inferSelect;
 
 // SMS notification types
 export const insertNotificationPreferenceSchema = createInsertSchema(notificationPreferences).pick({

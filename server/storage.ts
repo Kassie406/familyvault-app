@@ -32,13 +32,14 @@ import {
   type Message, type InsertMessage,
   type MessageReadReceipt, type InsertMessageReadReceipt,
   type MessageReaction, type InsertMessageReaction,
+  type MessageAttachment, type InsertMessageAttachment,
   users, organizations, plans, coupons, articles, consentEvents, auditLogs,
   adminSessions, securitySettings, impersonationSessions,
   gdprConsentEvents, dsarRequests, retentionPolicies, suppressionList,
   invites, inviteLinks, families, familyMembers, familyBusinessItems,
   familyLegalDocs, familyLegalItems, familyInsurancePolicies, familyInsuranceItems,
   familyTaxYears, familyTaxItems, messageThreads, threadMembers, messages,
-  messageReadReceipts, messageReactions
+  messageReadReceipts, messageReactions, messageAttachments
 } from "@shared/schema";
 
 // Database connection
@@ -244,6 +245,8 @@ export interface IStorage {
   getThreadMembers(threadId: string): Promise<ThreadMember[]>;
   getThreadMessages(threadId: string, cursor?: string, limit?: number): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
+  createMessageAttachment(attachment: InsertMessageAttachment): Promise<MessageAttachment>;
+  getMessageAttachments(messageId: string): Promise<MessageAttachment[]>;
   
   // Enhanced messaging methods
   markMessageAsRead(messageId: string, userId: string): Promise<MessageReadReceipt>;
@@ -1058,7 +1061,7 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async getThreadMessages(threadId: string, cursor?: string, limit: number = 50): Promise<Message[]> {
+  async getThreadMessages(threadId: string, cursor?: string, limit: number = 50): Promise<any[]> {
     let query = db.select().from(messages)
       .where(eq(messages.threadId, threadId))
       .orderBy(desc(messages.createdAt));
@@ -1067,12 +1070,35 @@ export class DatabaseStorage implements IStorage {
       query = query.where(eq(messages.id, cursor));
     }
 
-    return await query.limit(limit);
+    const messageList = await query.limit(limit);
+    
+    // Fetch attachments for each message
+    const messagesWithAttachments = await Promise.all(
+      messageList.map(async (message) => {
+        const attachments = await this.getMessageAttachments(message.id);
+        return {
+          ...message,
+          attachments
+        };
+      })
+    );
+
+    return messagesWithAttachments;
   }
 
   async createMessage(message: InsertMessage): Promise<Message> {
     const result = await db.insert(messages).values(message).returning();
     return result[0];
+  }
+
+  async createMessageAttachment(attachment: InsertMessageAttachment): Promise<MessageAttachment> {
+    const result = await db.insert(messageAttachments).values(attachment).returning();
+    return result[0];
+  }
+
+  async getMessageAttachments(messageId: string): Promise<MessageAttachment[]> {
+    const result = await db.select().from(messageAttachments).where(eq(messageAttachments.messageId, messageId));
+    return result;
   }
 
   // Advanced messaging methods for new API
