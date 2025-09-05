@@ -5,7 +5,8 @@ import {
   Heart, Clock, Star, Bell, Plus, ArrowRight, Activity,
   Inbox, AlarmClock, CreditCard, Home as HomeIcon, Key, 
   Umbrella, Receipt, Scale, Building2, BookOpen, 
-  Phone, DollarSign, Upload, ShieldAlert
+  Phone, DollarSign, Upload, ShieldAlert,
+  UserPlus, Mail, Settings, Share, Camera, FolderOpen, AlertCircle
 } from 'lucide-react';
 import { 
   ActionCard, 
@@ -109,10 +110,70 @@ export default function FamilyHome() {
   ];
 
   const familyStats = [
-    { label: 'Family Members', value: 5, icon: Users },
-    { label: 'Documents Shared', value: 23, icon: FileText },
-    { label: 'Messages Today', value: 12, icon: MessageCircle },
-    { label: 'Photos Uploaded', value: 156, icon: ImageIcon }
+    { 
+      label: 'Family Members', 
+      value: 5, 
+      icon: Users,
+      href: '/family/ids?tab=people&sort=recent',
+      previewItems: [
+        { id: "1", title: "John Smith", sub: "Added today", href: "/family/ids/person/1" },
+        { id: "2", title: "Sarah Johnson", sub: "Updated profile", href: "/family/ids/person/2" },
+        { id: "3", title: "Mike Wilson", sub: "Emergency contact added", href: "/family/ids/person/3" }
+      ],
+      dropdownActions: [
+        { label: "Add Person", href: "/family/ids/new?type=person", icon: <UserPlus className="h-4 w-4" /> },
+        { label: "Invite Family Member", href: "/invitations/new?context=family", icon: <Mail className="h-4 w-4" /> },
+        { label: "Manage Roles & Access", href: "/settings/access?scope=family", icon: <Settings className="h-4 w-4" /> }
+      ]
+    },
+    { 
+      label: 'Documents Shared', 
+      value: 23, 
+      icon: FileText,
+      href: '/inbox?filter=shared&sort=recent',
+      previewItems: [
+        { id: "1", title: "Insurance Policy.pdf", sub: "Shared with family", href: "/documents/1" },
+        { id: "2", title: "Medical Records", sub: "Updated 2 hours ago", href: "/documents/2" },
+        { id: "3", title: "Will & Testament", sub: "Secure access only", href: "/documents/3" }
+      ],
+      dropdownActions: [
+        { label: "Share a Document", href: "/share/new", icon: <Share className="h-4 w-4" /> },
+        { label: "Manage Link Policies", href: "/settings/sharing", icon: <Settings className="h-4 w-4" /> },
+        { label: "Pending Approvals", href: "/inbox?filter=pending-approval", icon: <AlertCircle className="h-4 w-4" /> }
+      ]
+    },
+    { 
+      label: 'Messages Today', 
+      value: 12, 
+      icon: MessageCircle,
+      href: '/messages?view=threads&sort=latest',
+      previewItems: [
+        { id: "1", title: "Family Group Chat", sub: "5 new messages", href: "/messages/thread/family" },
+        { id: "2", title: "Dad: Vacation Plans", sub: "Just now", href: "/messages/thread/2" },
+        { id: "3", title: "Sarah: Doctor Visit", sub: "30 min ago", href: "/messages/thread/3" }
+      ],
+      dropdownActions: [
+        { label: "New Message", href: "/messages/new", icon: <Plus className="h-4 w-4" /> },
+        { label: "Family Group Chat", href: "/messages/thread/family", icon: <Users className="h-4 w-4" /> },
+        { label: "Mentions & Alerts", href: "/messages?filter=mentions", icon: <Bell className="h-4 w-4" /> }
+      ]
+    },
+    { 
+      label: 'Photos Uploaded', 
+      value: 156, 
+      icon: ImageIcon,
+      href: '/photos?sort=recent',
+      previewItems: [
+        { id: "1", title: "Family Vacation 2024", sub: "12 new photos", href: "/photos/album/vacation-2024" },
+        { id: "2", title: "Birthday Party", sub: "Uploaded yesterday", href: "/photos/album/birthday" },
+        { id: "3", title: "School Graduation", sub: "Shared album", href: "/photos/album/graduation" }
+      ],
+      dropdownActions: [
+        { label: "Upload Photos", href: "/photos/upload", icon: <Camera className="h-4 w-4" /> },
+        { label: "Albums", href: "/photos/albums", icon: <FolderOpen className="h-4 w-4" /> },
+        { label: "Shared Galleries", href: "/photos?filter=shared", icon: <Share className="h-4 w-4" /> }
+      ]
+    }
   ];
 
   return (
@@ -156,11 +217,9 @@ export default function FamilyHome() {
               icon={<Icon className="h-5 w-5" />}
               value={stat.value}
               label={stat.label}
-              href={`/family/${stat.label.toLowerCase().replace(/\s+/g, '-')}`}
-              fetchPreview={async () => [
-                { id: "1", title: "Sample Item", sub: "Recent activity", href: "/family/sample" },
-                { id: "2", title: "Another Item", sub: "Today", href: "/family/sample2" },
-              ]}
+              href={stat.href}
+              fetchPreview={async () => stat.previewItems}
+              dropdownActions={stat.dropdownActions}
             />
           );
         })}

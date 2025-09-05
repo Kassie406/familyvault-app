@@ -17,6 +17,7 @@ type StatCardProps = {
   icon: React.ReactNode;     // icon element
   fetchPreview?: () => Promise<PreviewItem[]>; // called on button click
   emptyText?: string;        // fallback when no recent items
+  dropdownActions?: { label: string; href: string; icon?: React.ReactNode }[]; // action menu items
 };
 
 export function StatCard({
@@ -26,6 +27,7 @@ export function StatCard({
   icon,
   fetchPreview,
   emptyText = "No recent activity",
+  dropdownActions = [],
 }: StatCardProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -148,27 +150,63 @@ export function StatCard({
           <div className="p-4 text-sm text-zinc-400">{emptyText}</div>
         )}
 
-        {!loading && items && items.length > 0 && (
-          <ul className="px-2 pb-3">
-            {items.slice(0, 5).map((it) => (
-              <li key={it.id}>
-                <Link
-                  href={it.href ?? href}
-                  className="flex items-center gap-2 rounded-lg px-2 py-2
-                             text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-amber-400
-                             transition-colors cursor-pointer"
-                >
-                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-zinc-600" />
-                  <div className="flex-1">
-                    <div className="leading-tight">{it.title}</div>
-                    {it.sub && (
-                      <div className="text-[11px] text-zinc-500">{it.sub}</div>
+        {/* Quick Actions */}
+        {dropdownActions.length > 0 && (
+          <div className="px-2 pt-1 pb-3 border-b border-zinc-800/60">
+            <div className="text-[10px] font-semibold tracking-wider text-zinc-400 mb-2 px-2">
+              QUICK ACTIONS
+            </div>
+            <ul className="space-y-1">
+              {dropdownActions.map((action, index) => (
+                <li key={index}>
+                  <Link
+                    href={action.href}
+                    className="flex items-center gap-3 rounded-lg px-2 py-2
+                               text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-amber-400
+                               transition-colors cursor-pointer"
+                  >
+                    {action.icon && (
+                      <span className="text-amber-400 opacity-70">
+                        {action.icon}
+                      </span>
                     )}
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
+                    <span className="leading-tight">{action.label}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Recent Items */}
+        {!loading && items && items.length > 0 && (
+          <div className="px-2 pb-3">
+            {dropdownActions.length > 0 && (
+              <div className="text-[10px] font-semibold tracking-wider text-zinc-400 mb-2 px-2 pt-3">
+                RECENT ITEMS
+              </div>
+            )}
+            <ul className="space-y-1">
+              {items.slice(0, 5).map((it) => (
+                <li key={it.id}>
+                  <Link
+                    href={it.href ?? href}
+                    className="flex items-center gap-2 rounded-lg px-2 py-2
+                               text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-amber-400
+                               transition-colors cursor-pointer"
+                  >
+                    <span className="inline-block h-2.5 w-2.5 rounded-full bg-zinc-600" />
+                    <div className="flex-1">
+                      <div className="leading-tight">{it.title}</div>
+                      {it.sub && (
+                        <div className="text-[11px] text-zinc-500">{it.sub}</div>
+                      )}
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </div>
     </div>
