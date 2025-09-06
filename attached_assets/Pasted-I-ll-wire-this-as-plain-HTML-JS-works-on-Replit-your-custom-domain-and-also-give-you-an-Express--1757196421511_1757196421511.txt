@@ -1,0 +1,262 @@
+I’ll wire this as plain HTML/JS (works on Replit + your custom domain) and also give you an Express middleware you can drop in later if you move to a Node server.
+
+1) File layout (copy/paste structure)
+/public
+  /assets
+    auth.js            <-- session gate (import on every protected page)
+    supa.js            <-- creates the Supabase client
+  login.html           <-- sends magic link
+  auth-callback.html   <-- completes magic-link, then redirects
+  dashboard.html       <-- your portal home (PROTECTED)
+  ...other protected pages...
+
+2) Supabase client (public/assets/supa.js)
+<!-- public/assets/supa.js -->
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+  // TODO: move to env later; for now hardcode to finish setup
+  const SUPABASE_URL  = 'https://zzconzlitecbawulnbey.supabase.co'
+  const SUPABASE_ANON = 'PASTE_YOUR_ANON_KEY_HERE'
+
+  export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON)
+</script>
+
+
+Keep anon key only (never service_role) in the browser.
+
+3) Session gate (public/assets/auth.js)
+<!-- public/assets/auth.js -->
+<script type="module">
+  import { supabase } from './supa.js'
+
+  // Redirect path to your login page
+  const LOGIN_PATH = '/login.html'
+
+  // Runs before page shows sensitive data
+  async function requireSession() {
+    const { data: { session }, error } = await supabase.auth.getSession()
+    if (error) {
+      console.error('getSession error', error)
+      return window.location.replace(LOGIN_PATH)
+    }
+
+    if (!session) {
+      return window.location.replace(LOGIN_PATH)
+    }
+  }
+
+  // expose helpers
+  async function logout() {
+    await supabase.auth.signOut()
+    window.location.replace(LOGIN_PATH)
+  }
+
+  // Attach to window (so buttons can call logout())
+  window.FCS = { supabase, logout }
+
+  // BLOCK PAGE until we know
+  await requireSession()
+</script>
+
+
+Use it at the very TOP of every protected page (before anything else renders):
+
+<!-- Example: dashboard.html (protected) -->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Dashboard</title>
+  <script type="module" src="/assets/auth.js"></script>
+</head>
+<body>
+  <!-- your portal UI here -->
+  <button onclick="FCS.logout()">Log out</button>
+</body>
+</html>
+
+4) Login page (public/login.html)
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Sign in • Family Portal</title>
+</head>
+<body>
+  <h1>Sign in</h1>
+  <input id="email" type="email" placeholder="you@email.com" />
+  <button id="send">Send Magic Link</button>
+
+  <script type="module">
+    import { supabase } from '/assets/supa.js'
+
+    document.getElementById('send').addEventListener('click', async () => {
+      const email = document.getElementById('email').value.trim()
+      if (!email) return alert('Enter your email')
+
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth-callback.html`
+        }
+      })
+      if (error) return alert(`Auth error: ${error.message}`)
+      alert('Check your email for the sign-in link.')
+    })
+  </script>
+</body>
+</html>
+
+5) Callback page (public/auth-callback.html)
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Completing sign-in…</title>
+</head>
+<body>
+  <p>Completing sign-in…</p>
+
+  <script type="module">
+    import { supabase } from '/assets/supa.js'
+    // Finishes the magic link flow & sets the session
+    await supabase.auth.getSession()
+    // Go to your portal home
+    window.location.replace('/dashboard.html')
+  </script>
+</body>
+</html>
+
+6) Supabase Auth settings (one-time)
+
+In Supabase → Authentication → URL configuration set:
+
+Site URL:
+https://portal.familycirclesecure.com
+
+Additional Redirect URLs: (one per line)
+
+https://portal.familycirclesecure.com
+https://portal.familycirclesecure.com/auth-callback.html
+
+
+Keep your Replit *.replit.dev URLs while testing if you want:
+
+https://YOUR-REPL-NAME.YOUR-USERNAME.replit.dev
+https://YOUR-REPL-NAME.YOUR-USERNAME.replit.dev/auth-callback.html
+
+
+Provider Email must be Enabled.
+
+7) Data safety (RLS) — do this now
+
+Enable Row Level Security on your data tables so even if someone viewed the UI, they can’t read anything without a session.
+
+Example: profiles tied to user id
+create table if not exists profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  full_name text,
+  avatar_url text,
+  updated_at timestamptz default now()
+);
+alter table profiles enable row level security;
+
+create policy "profiles_select_own"
+on profiles for select using (auth.uid() = id);
+
+create policy "profiles_upsert_own"
+on profiles for insert with check (auth.uid() = id);
+
+create policy "profiles_update_own"
+on profiles for update using (auth.uid() = id);
+
+Example: family-scoped data (user belongs to a family)
+
+Assume tables:
+
+create table memberships (
+  user_id uuid references auth.users(id),
+  family_id uuid,
+  primary key (user_id, family_id)
+);
+
+create table docs (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid not null,
+  title text,
+  content text
+);
+alter table docs enable row level security;
+
+create policy "family_can_read_docs"
+on docs for select using (
+  exists (select 1 from memberships m
+          where m.user_id = auth.uid() and m.family_id = docs.family_id)
+);
+
+create policy "family_can_write_docs"
+on docs for insert with check (
+  exists (select 1 from memberships m
+          where m.user_id = auth.uid() and m.family_id = docs.family_id)
+);
+
+create policy "family_can_update_docs"
+on docs for update using (
+  exists (select 1 from memberships m
+          where m.user_id = auth.uid() and m.family_id = docs.family_id)
+);
+
+Storage bucket (private)
+
+Storage → Create bucket: family-files (uncheck “Public”).
+
+Add policies to allow only members of the file’s family_id to read/write, or serve files via signed URLs from your server.
+
+8) (Optional) Express middleware (if you add a Node server)
+// server/authMiddleware.js
+import cookie from 'cookie'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+)
+
+export async function requireSession(req, res, next) {
+  const cookies = cookie.parse(req.headers.cookie || '')
+  const accessToken = cookies['sb-access-token'] || req.headers['authorization']?.replace('Bearer ', '')
+  if (!accessToken) return res.redirect('/login.html')
+
+  const { data: { user }, error } = await supabase.auth.getUser(accessToken)
+  if (error || !user) return res.redirect('/login.html')
+
+  req.user = user
+  next()
+}
+
+
+Use it:
+
+import express from 'express'
+import { requireSession } from './authMiddleware.js'
+const app = express()
+
+app.use(express.static('public'))
+
+app.get(['/','/dashboard.html','/inbox.html', /* protected routes */], requireSession, (req, res, next) => {
+  next() // file served by static middleware after auth passes
+})
+
+app.listen(3000)
+
+9) Quick test checklist
+
+Go to https://portal.familycirclesecure.com/login.html → enter email → Send Magic Link.
+
+Email opens → lands on /auth-callback.html → redirects to /dashboard.html.
+
+Try hitting /dashboard.html in a fresh incognito tab → should redirect to login.
+
+Open DevTools → Network when sending magic link; verify a 200 to
+https://zzconzlitecbawulnbey.supabase.co/auth/v1/otp.
