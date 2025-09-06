@@ -286,7 +286,7 @@ export default function FamilyHome() {
           icon: <Plus className="h-4 w-4" /> 
         },
         { 
-          label: "Family Group Chat", 
+          label: "Family Video Meetings", 
           onClick: async () => {
             // Check for active family meeting
             try {
