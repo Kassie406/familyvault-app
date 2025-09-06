@@ -16,7 +16,9 @@ import {
   Menu,
   Download,
   Repeat,
-  ChevronDown
+  ChevronDown,
+  CheckSquare,
+  Flag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -42,16 +44,32 @@ interface CalendarEvent {
   calendar?: string;
 }
 
+interface Task {
+  id: string;
+  title: string;
+  dueDate?: Date;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  completed: boolean;
+  description?: string;
+  color?: string;
+  calendar?: string;
+}
+
 type ViewType = 'month' | 'week' | 'day';
 
 interface CalendarState {
   view: ViewType;
   currentDate: Date;
   events: CalendarEvent[];
+  tasks: Task[];
   selectedEvent: CalendarEvent | null;
+  selectedTask: Task | null;
   isEventModalOpen: boolean;
+  isTaskModalOpen: boolean;
   eventModalMode: 'create' | 'edit';
+  taskModalMode: 'create' | 'edit';
   newEventDate: Date | null;
+  newTaskDate: Date | null;
   sidebarOpen: boolean;
 }
 
@@ -326,10 +344,36 @@ export default function GoogleStyleCalendar() {
         calendar: 'Holidays in United States'
       }
     ],
+    tasks: [
+      {
+        id: 'task-1',
+        title: 'Plan weekend trip',
+        dueDate: new Date(2025, 1, 5),
+        priority: 'high',
+        completed: false,
+        description: 'Research destinations and book accommodation',
+        color: '#D4AF37',
+        calendar: 'Personal Tasks'
+      },
+      {
+        id: 'task-2', 
+        title: 'Buy groceries',
+        dueDate: new Date(2025, 0, 31),
+        priority: 'medium',
+        completed: false,
+        description: 'Milk, bread, eggs, vegetables',
+        color: '#3B82F6',
+        calendar: 'Personal Tasks'
+      }
+    ],
     selectedEvent: null,
+    selectedTask: null,
     isEventModalOpen: false,
+    isTaskModalOpen: false,
     eventModalMode: 'create',
+    taskModalMode: 'create',
     newEventDate: null,
+    newTaskDate: null,
     sidebarOpen: true
   });
 
@@ -439,8 +483,61 @@ export default function GoogleStyleCalendar() {
   };
 
   const handleCreateOptionClick = (type: 'event' | 'task' | 'appointment') => {
-    // For now, all options open the event modal - can be extended later
-    openEventModal('create', undefined, state.currentDate);
+    if (type === 'task') {
+      openTaskModal('create', undefined, state.currentDate);
+    } else {
+      // For events and appointments, open the event modal
+      openEventModal('create', undefined, state.currentDate);
+    }
+  };
+
+  // Task functions
+  const openTaskModal = (mode: 'create' | 'edit', task?: Task, date?: Date) => {
+    setState(prev => ({
+      ...prev,
+      isTaskModalOpen: true,
+      taskModalMode: mode,
+      selectedTask: task || null,
+      newTaskDate: date || null
+    }));
+    setCreateDropdownOpen(false); // Close dropdown when opening modal
+  };
+
+  const closeTaskModal = () => {
+    setState(prev => ({
+      ...prev,
+      isTaskModalOpen: false,
+      selectedTask: null,
+      newTaskDate: null
+    }));
+  };
+
+  const createTask = (taskData: Omit<Task, 'id'>) => {
+    const newTask: Task = {
+      ...taskData,
+      id: Date.now().toString()
+    };
+    
+    setState(prev => ({
+      ...prev,
+      tasks: [...prev.tasks, newTask]
+    }));
+  };
+
+  const updateTask = (id: string, taskData: Omit<Task, 'id'>) => {
+    setState(prev => ({
+      ...prev,
+      tasks: prev.tasks.map(task => 
+        task.id === id ? { ...taskData, id } : task
+      )
+    }));
+  };
+
+  const deleteTask = (id: string) => {
+    setState(prev => ({
+      ...prev,
+      tasks: prev.tasks.filter(task => task.id !== id)
+    }));
   };
 
   // ICS Export function
@@ -811,6 +908,230 @@ export default function GoogleStyleCalendar() {
           onDelete={deleteEvent}
         />
       )}
+
+      {/* Task Modal */}
+      {state.isTaskModalOpen && (
+        <TaskModal
+          mode={state.taskModalMode}
+          task={state.selectedTask}
+          defaultDate={state.newTaskDate}
+          onClose={closeTaskModal}
+          onCreate={createTask}
+          onUpdate={updateTask}
+          onDelete={deleteTask}
+        />
+      )}
+    </div>
+  );
+}
+
+// Task Modal Component
+function TaskModal({
+  mode,
+  task,
+  defaultDate,
+  onClose,
+  onCreate,
+  onUpdate,
+  onDelete
+}: {
+  mode: 'create' | 'edit';
+  task?: Task | null;
+  defaultDate?: Date | null;
+  onClose: () => void;
+  onCreate: (taskData: Omit<Task, 'id'>) => void;
+  onUpdate: (id: string, taskData: Omit<Task, 'id'>) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [title, setTitle] = useState(task?.title || '');
+  const [dueDate, setDueDate] = useState(
+    task?.dueDate ? toLocalISOString(task.dueDate).split('T')[0] : 
+    defaultDate ? toLocalISOString(defaultDate).split('T')[0] : 
+    toLocalISOString(new Date()).split('T')[0]
+  );
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>(task?.priority || 'medium');
+  const [completed, setCompleted] = useState(task?.completed || false);
+  const [description, setDescription] = useState(task?.description || '');
+  const [color, setColor] = useState(task?.color || eventColors[0]);
+  
+  const priorityOptions = [
+    { value: 'low', label: 'Low', color: '#10B981' },
+    { value: 'medium', label: 'Medium', color: '#3B82F6' },
+    { value: 'high', label: 'High', color: '#F59E0B' },
+    { value: 'urgent', label: 'Urgent', color: '#EF4444' }
+  ] as const;
+
+  const handleSave = () => {
+    if (!title.trim()) return;
+    
+    const taskData = {
+      title: title.trim(),
+      dueDate: dueDate ? new Date(dueDate + 'T23:59:59') : undefined,
+      priority,
+      completed,
+      description: description.trim(),
+      color,
+      calendar: mode === 'create' ? 'Personal Tasks' : task?.calendar || 'Personal Tasks'
+    };
+
+    if (mode === 'create') {
+      onCreate(taskData);
+    } else if (task) {
+      onUpdate(task.id, taskData);
+    }
+    
+    onClose();
+  };
+
+  const handleDelete = () => {
+    if (task) {
+      onDelete(task.id);
+      onClose();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="w-full max-w-md bg-zinc-900 border border-zinc-700 rounded-2xl p-6" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <CheckSquare className="h-5 w-5 text-[#D4AF37]" />
+            <h2 className="text-lg font-semibold text-white">
+              {mode === 'create' ? 'New Task' : 'Edit Task'}
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-zinc-800 rounded-lg transition-colors"
+          >
+            <X className="h-4 w-4 text-gray-400" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <div className="space-y-4">
+          {/* Title */}
+          <div>
+            <input
+              type="text"
+              placeholder="Add task title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+              autoFocus
+            />
+          </div>
+
+          {/* Completed Toggle */}
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="completed"
+              checked={completed}
+              onChange={(e) => setCompleted(e.target.checked)}
+              className="w-4 h-4 text-[#D4AF37] rounded focus:ring-[#D4AF37] bg-zinc-800 border-zinc-600"
+            />
+            <label htmlFor="completed" className="text-sm text-gray-300">
+              Mark as completed
+            </label>
+          </div>
+
+          {/* Due Date */}
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Due Date</label>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+            />
+          </div>
+
+          {/* Priority */}
+          <div className="flex items-center gap-3">
+            <Flag className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            <div className="flex-1">
+              <label className="block text-xs text-gray-400 mb-1">Priority</label>
+              <select 
+                value={priority} 
+                onChange={(e) => setPriority(e.target.value as typeof priority)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+              >
+                {priorityOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="flex items-start gap-3">
+            <FileText className="h-4 w-4 text-gray-400 flex-shrink-0 mt-2" />
+            <textarea
+              placeholder="Add description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] resize-none"
+            />
+          </div>
+
+          {/* Color */}
+          <div>
+            <label className="block text-xs text-gray-400 mb-2">Color</label>
+            <div className="flex gap-2">
+              {eventColors.map(colorOption => (
+                <button
+                  key={colorOption}
+                  onClick={() => setColor(colorOption)}
+                  className={`w-6 h-6 rounded-full border-2 ${
+                    color === colorOption ? 'border-white' : 'border-zinc-600'
+                  }`}
+                  style={{ backgroundColor: colorOption }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-between mt-6 pt-4 border-t border-zinc-800">
+          {mode === 'edit' ? (
+            <Button
+              onClick={handleDelete}
+              variant="outline"
+              size="sm"
+              className="text-red-400 border-red-400/30 hover:bg-red-400/10"
+            >
+              Delete
+            </Button>
+          ) : (
+            <div />
+          )}
+          
+          <div className="flex gap-2">
+            <Button
+              onClick={onClose}
+              variant="outline"
+              size="sm"
+              className="border-zinc-600 text-gray-300 hover:bg-zinc-800"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              size="sm"
+              className="bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90"
+              disabled={!title.trim()}
+            >
+              Save
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
