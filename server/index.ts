@@ -23,6 +23,9 @@ import stepupRouter from "./stepup-routes";
 import testStepupRouter from "./test-stepup-routes";
 import businessRoutes from "./routes/business";
 import apiServicesRouter from "./routes/apiServices";
+import session from 'express-session';
+import passport from 'passport';
+import { customAuthRouter } from "./custom-auth";
 import { escalationWorker } from "./escalation-worker";
 import { startRemindersWorker } from "./lib/reminders-worker";
 import { smsService } from "./sms-service";
@@ -97,6 +100,25 @@ app.use(limiter, speedLimiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+// Session configuration for custom auth
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'fallback-session-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+  }
+}));
+
+// Passport initialization
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Mount custom authentication routes
+app.use(customAuthRouter);
 
 // Serve uploaded files
 app.use("/uploads", express.static("uploads", { maxAge: "7d", index: false }));
