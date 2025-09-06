@@ -277,7 +277,14 @@ export default function FamilyHome() {
         }
       },
       dropdownActions: [
-        { label: "New Message", href: "/messages/new", icon: <Plus className="h-4 w-4" /> },
+        { 
+          label: "New Message", 
+          onClick: () => {
+            // Trigger floating chat widget to open
+            window.dispatchEvent(new Event('openFamilyChat'));
+          }, 
+          icon: <Plus className="h-4 w-4" /> 
+        },
         { label: "Family Group Chat", href: "/messages/thread/family", icon: <Users className="h-4 w-4" /> },
         { label: "Mentions & Alerts", href: "/messages?filter=mentions", icon: <Bell className="h-4 w-4" /> }
       ]

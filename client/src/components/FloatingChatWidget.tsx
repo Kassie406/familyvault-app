@@ -68,6 +68,17 @@ export default function FloatingChatWidget({ onOpenChat }: FloatingChatWidgetPro
     document.body.classList.toggle("chat-open", isOpen);
     return () => document.body.classList.remove("chat-open");
   }, [isOpen]);
+
+  // Listen for custom event to open chat
+  useEffect(() => {
+    const handleOpenChat = () => {
+      setIsOpen(true);
+      setIsExpanded(true);
+    };
+
+    window.addEventListener('openFamilyChat', handleOpenChat);
+    return () => window.removeEventListener('openFamilyChat', handleOpenChat);
+  }, []);
   
   // Fetch default chat ID when component mounts
   useEffect(() => {
