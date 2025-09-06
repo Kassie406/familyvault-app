@@ -202,6 +202,7 @@ export default function ApiManagement() {
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
       case 'messaging': return '📱';
+      case 'communications': return '📹';
       case 'storage': return '☁️';
       case 'database': return '🗄️';
       case 'payment': return '💳';
@@ -287,6 +288,7 @@ export default function ApiManagement() {
                       </SelectTrigger>
                       <SelectContent className="bg-[var(--bg-800)] border-[var(--line-600)]">
                         <SelectItem value="messaging">Messaging</SelectItem>
+                        <SelectItem value="communications">Communications</SelectItem>
                         <SelectItem value="storage">Storage</SelectItem>
                         <SelectItem value="database">Database</SelectItem>
                         <SelectItem value="payment">Payment</SelectItem>
