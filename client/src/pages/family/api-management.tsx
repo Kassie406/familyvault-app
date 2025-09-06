@@ -75,10 +75,13 @@ export default function ApiManagement() {
   // Mutations
   const createServiceMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest('/api/api-services', {
+      const response = await fetch('/api/api-services', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
+      if (!response.ok) throw new Error('Failed to create service');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/api-services'] });
@@ -93,10 +96,13 @@ export default function ApiManagement() {
 
   const updateServiceMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      return await apiRequest(`/api/api-services/${id}`, {
+      const response = await fetch(`/api/api-services/${id}`, {
         method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
+      if (!response.ok) throw new Error('Failed to update service');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/api-services'] });
@@ -111,10 +117,13 @@ export default function ApiManagement() {
 
   const createCredentialMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest('/api/api-credentials', {
+      const response = await fetch('/api/api-credentials', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...data, serviceId: selectedService }),
       });
+      if (!response.ok) throw new Error('Failed to create credential');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/api-credentials', selectedService] });
@@ -128,10 +137,12 @@ export default function ApiManagement() {
   });
 
   const revealCredentialMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return await apiRequest(`/api/api-credentials/${id}/reveal`, {
+    mutationFn: async (id: string): Promise<{ plaintext: string }> => {
+      const response = await fetch(`/api/api-credentials/${id}/reveal`, {
         method: 'POST',
       });
+      if (!response.ok) throw new Error('Failed to reveal credential');
+      return response.json();
     },
     onSuccess: (data: { plaintext: string }) => {
       navigator.clipboard.writeText(data.plaintext);
@@ -142,8 +153,8 @@ export default function ApiManagement() {
     },
   });
 
-  const services = servicesData?.items || [];
-  const credentials = credentialsData?.items || [];
+  const services = (servicesData as any)?.items || [];
+  const credentials = (credentialsData as any)?.items || [];
 
   const resetServiceForm = () => {
     setServiceForm({
@@ -151,7 +162,7 @@ export default function ApiManagement() {
       category: '',
       description: '',
       baseUrl: '',
-      status: 'active',
+      status: 'active' as const,
       variables: '',
       notes: '',
     });
@@ -204,7 +215,7 @@ export default function ApiManagement() {
       case 'messaging': return '📱';
       case 'communications': return '📹';
       case 'storage': return '☁️';
-      case 'database': return '🗄️';
+      case 'database': return '🐘'; // PostgreSQL elephant for Supabase
       case 'payment': return '💳';
       case 'ai': return '🤖';
       case 'email': return '📧';
@@ -287,15 +298,15 @@ export default function ApiManagement() {
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent className="bg-[var(--bg-800)] border-[var(--line-600)]">
-                        <SelectItem value="messaging">Messaging</SelectItem>
-                        <SelectItem value="communications">Communications</SelectItem>
-                        <SelectItem value="storage">Storage</SelectItem>
-                        <SelectItem value="database">Database</SelectItem>
-                        <SelectItem value="payment">Payment</SelectItem>
-                        <SelectItem value="ai">AI/ML</SelectItem>
-                        <SelectItem value="email">Email</SelectItem>
-                        <SelectItem value="analytics">Analytics</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
+                        <SelectItem value="messaging">📱 Messaging</SelectItem>
+                        <SelectItem value="communications">📹 Communications</SelectItem>
+                        <SelectItem value="storage">☁️ Storage</SelectItem>
+                        <SelectItem value="database">🐘 Database</SelectItem>
+                        <SelectItem value="payment">💳 Payment</SelectItem>
+                        <SelectItem value="ai">🤖 AI/ML</SelectItem>
+                        <SelectItem value="email">📧 Email</SelectItem>
+                        <SelectItem value="analytics">📊 Analytics</SelectItem>
+                        <SelectItem value="other">🔧 Other</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -575,6 +586,19 @@ export default function ApiManagement() {
                         <p className="text-xs text-[var(--ink-400)] mt-1">
                           This will be encrypted and stored securely
                         </p>
+                        
+                        {/* Supabase-specific help */}
+                        {services.find((s: ApiService) => s.id === selectedService)?.name === "Supabase" && (
+                          <div className="mt-3 p-3 bg-[var(--gold)]/10 border border-[var(--gold)]/20 rounded-lg">
+                            <h4 className="text-sm font-medium text-[var(--gold)] mb-2">🐘 Supabase Credentials Guide</h4>
+                            <div className="text-xs text-[var(--ink-300)] space-y-1">
+                              <p><strong>SUPABASE_URL:</strong> Your project URL from Supabase dashboard (e.g., https://xxxxx.supabase.co)</p>
+                              <p><strong>SUPABASE_ANON_KEY:</strong> Public anonymous key for client-side operations</p>
+                              <p><strong>SUPABASE_SERVICE_ROLE_KEY:</strong> Private key for server-side operations (admin access)</p>
+                              <p className="pt-1 text-[var(--gold)]/80">💡 Find these in your Supabase Project → Settings → API</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex gap-2 pt-4">
