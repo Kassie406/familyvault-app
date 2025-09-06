@@ -245,7 +245,7 @@ export default function FamilyHome() {
       ]
     },
     { 
-      label: 'Messages Today', 
+      label: 'Messages & Meetings', 
       value: 12, 
       icon: MessageCircle,
       href: '/messages?view=threads&sort=latest',
