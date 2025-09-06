@@ -535,6 +535,107 @@ export type InsertMessageReaction = typeof messageReactions.$inferInsert;
 export type MessageAttachment = typeof messageAttachments.$inferSelect;
 export type InsertMessageAttachment = typeof messageAttachments.$inferInsert;
 
+// Calendar System Tables
+export const calendars = pgTable("calendars", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  name: varchar("name").notNull(),
+  color: varchar("color").default("#D4AF37"), // Gold default
+  isSystem: boolean("is_system").default(false), // e.g., Holidays
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const calendarEvents = pgTable("calendar_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  calendarId: varchar("calendar_id").notNull().references(() => calendars.id, { onDelete: "cascade" }),
+  creatorUserId: varchar("creator_user_id").notNull().references(() => users.id),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  location: varchar("location"),
+  startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+  endAt: timestamp("end_at", { withTimezone: true }).notNull(),
+  allDay: boolean("all_day").default(false).notNull(),
+  timezone: varchar("timezone").default("UTC").notNull(), // IANA TZ
+  recurrence: jsonb("recurrence"), // {freq, interval, byDay, byMonth, byMonthDay, bySetPos, count, until}
+  visibility: varchar("visibility").default("family"), // 'private' | 'family' | 'public'
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("calendar_events_calendar_start_idx").on(table.calendarId, table.startAt),
+  index("calendar_events_start_idx").on(table.startAt),
+]);
+
+export const calendarEventAttendees = pgTable("calendar_event_attendees", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id").notNull().references(() => calendarEvents.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  role: varchar("role").default("viewer"), // 'owner' | 'editor' | 'viewer'
+  rsvp: varchar("rsvp").default("none"), // 'yes' | 'no' | 'maybe' | 'none'
+}, (table) => [
+  unique("unique_event_attendee").on(table.eventId, table.userId)
+]);
+
+export const calendarEventReminders = pgTable("calendar_event_reminders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id").notNull().references(() => calendarEvents.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  minutesBefore: integer("minutes_before").notNull(),
+  channel: varchar("channel").default("push"), // 'push' | 'email' | 'sms'
+  sentAt: timestamp("sent_at"),
+}, (table) => [
+  unique("unique_event_reminder").on(table.eventId, table.userId, table.minutesBefore)
+]);
+
+export const calendarEventSnoozes = pgTable("calendar_event_snoozes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id").notNull().references(() => calendarEvents.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  snoozeUntil: timestamp("snooze_until", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  unique("unique_event_snooze").on(table.eventId, table.userId)
+]);
+
+export const calendarSyncAccounts = pgTable("calendar_sync_accounts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  provider: varchar("provider").notNull(), // 'google' | 'microsoft' | 'icloud' | 'caldav'
+  extCalendarId: varchar("ext_calendar_id"), // provider calendar id
+  scopes: text("scopes"),
+  accessToken: text("access_token").notNull(), // encrypt at rest
+  refreshToken: text("refresh_token"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const calendarSyncDelta = pgTable("calendar_sync_delta", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  provider: varchar("provider").notNull(),
+  lastCursor: text("last_cursor"), // Google: syncToken / updatedMin
+  lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
+}, (table) => [
+  unique("unique_user_provider_sync").on(table.userId, table.provider)
+]);
+
+// Calendar Types
+export type Calendar = typeof calendars.$inferSelect;
+export type InsertCalendar = typeof calendars.$inferInsert;
+export type CalendarEvent = typeof calendarEvents.$inferSelect;
+export type InsertCalendarEvent = typeof calendarEvents.$inferInsert;
+export type CalendarEventAttendee = typeof calendarEventAttendees.$inferSelect;
+export type InsertCalendarEventAttendee = typeof calendarEventAttendees.$inferInsert;
+export type CalendarEventReminder = typeof calendarEventReminders.$inferSelect;
+export type InsertCalendarEventReminder = typeof calendarEventReminders.$inferInsert;
+export type CalendarEventSnooze = typeof calendarEventSnoozes.$inferSelect;
+export type InsertCalendarEventSnooze = typeof calendarEventSnoozes.$inferInsert;
+export type CalendarSyncAccount = typeof calendarSyncAccounts.$inferSelect;
+export type InsertCalendarSyncAccount = typeof calendarSyncAccounts.$inferInsert;
+export type CalendarSyncDelta = typeof calendarSyncDelta.$inferSelect;
+export type InsertCalendarSyncDelta = typeof calendarSyncDelta.$inferInsert;
+
 // Additional missing tables
 export const documentFiles = pgTable("document_files", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
