@@ -859,12 +859,12 @@ function WeekView({
       </div>
 
       {/* Time grid */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 300px)' }}>
-        <div className="grid grid-cols-8" style={{ height: `${24 * 64 + 32}px` }}>
+      <div className="flex-1 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 280px)', minHeight: '400px' }}>
+        <div className="grid grid-cols-8" style={{ height: `${24 * 68 + 40}px` }}>
           {/* Time labels */}
           <div className="border-r border-zinc-800 bg-zinc-900">
             {/* GMT indicator */}
-            <div className="h-8 border-b border-zinc-800 p-2 text-xs text-gray-500 flex items-center">
+            <div className="h-10 border-b border-zinc-800 p-2 text-xs text-gray-500 flex items-center">
               GMT+01
             </div>
             {hours.map(hour => (
@@ -880,7 +880,7 @@ function WeekView({
               {hours.map(hour => (
                 <div
                   key={hour}
-                  className="h-16 border-b border-zinc-800 hover:bg-zinc-800/30 cursor-pointer"
+                  className="h-16 border-b border-zinc-800 hover:bg-zinc-800/30 cursor-pointer flex-shrink-0"
                   onClick={() => {
                     const clickDate = new Date(day);
                     clickDate.setHours(hour, 0, 0, 0);
