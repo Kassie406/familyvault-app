@@ -15,6 +15,7 @@ type StatCardProps = {
   value: number | string;    // e.g. 5
   href: string;              // where to go on click
   icon: React.ReactNode;     // icon element
+  secondaryIcon?: React.ReactNode; // optional secondary icon after label
   fetchPreview?: () => Promise<PreviewItem[]>; // called on button click
   emptyText?: string;        // fallback when no recent items
   dropdownActions?: { label: string; href?: string; onClick?: () => void; icon?: React.ReactNode }[]; // action menu items
@@ -26,6 +27,7 @@ export function StatCard({
   value,
   href,
   icon,
+  secondaryIcon,
   fetchPreview,
   emptyText = "No recent activity",
   dropdownActions = [],
@@ -94,8 +96,11 @@ export function StatCard({
             {React.cloneElement(icon as React.ReactElement, {
               className: "h-6 w-6 text-amber-400/70 group-hover:text-amber-400 group-hover:shadow-lg group-hover:shadow-[#D4AF37]/30 transition-all"
             })}
-            <span className="text-sm font-bold text-white group-hover:text-[#D4AF37] transition-colors" id={`${label.replace(/\s+/g, "-").toLowerCase()}-desc`}>
+            <span className="text-sm font-bold text-white group-hover:text-[#D4AF37] transition-colors flex items-center gap-2" id={`${label.replace(/\s+/g, "-").toLowerCase()}-desc`}>
               {label}
+              {secondaryIcon && React.cloneElement(secondaryIcon as React.ReactElement, {
+                className: "h-4 w-4 text-amber-400/70 group-hover:text-amber-400 transition-all"
+              })}
             </span>
           </div>
 
