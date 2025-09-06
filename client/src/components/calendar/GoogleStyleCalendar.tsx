@@ -275,10 +275,25 @@ const startOfDay = (date: Date): Date => {
 };
 
 export default function GoogleStyleCalendar() {
-  const [state, setState] = useState<CalendarState>({
-    view: 'month',
-    currentDate: new Date(),
-    events: [
+  // URL State Management - Initialize from URL parameters
+  const initializeStateFromURL = (): CalendarState => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const view = (urlParams.get('view') as ViewType) || 'month';
+    const dateParam = urlParams.get('date');
+    const sidebarParam = urlParams.get('sidebar');
+    
+    let currentDate = new Date();
+    if (dateParam) {
+      const parsedDate = new Date(dateParam);
+      if (!isNaN(parsedDate.getTime())) {
+        currentDate = parsedDate;
+      }
+    }
+    
+    return {
+      view: ['month', 'week', 'day'].includes(view) ? view : 'month',
+      currentDate,
+      events: [
       {
         id: '1',
         title: 'Family Movie Night',
@@ -378,8 +393,11 @@ export default function GoogleStyleCalendar() {
     newEventDate: null,
     newTaskDate: null,
     newAppointmentDate: null,
-    sidebarOpen: true
-  });
+    sidebarOpen: sidebarParam === 'false' ? false : true
+    };
+  };
+
+  const [state, setState] = useState<CalendarState>(() => initializeStateFromURL());
 
   // Calendar visibility state - exactly like your image
   const [myCals, setMyCals] = useState<Record<string, boolean>>({
@@ -398,6 +416,83 @@ export default function GoogleStyleCalendar() {
 
   // Dropdown state for Create button
   const [createDropdownOpen, setCreateDropdownOpen] = useState(false);
+
+  // URL State Synchronization - Update URL when state changes
+  useEffect(() => {
+    const params = new URLSearchParams();
+    params.set('view', state.view);
+    params.set('date', state.currentDate.toISOString().split('T')[0]);
+    params.set('sidebar', state.sidebarOpen.toString());
+    
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, '', newUrl);
+  }, [state.view, state.currentDate, state.sidebarOpen]);
+
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeydown = (event: KeyboardEvent) => {
+      // Ignore if user is typing in an input or modal is open
+      if (event.target instanceof HTMLInputElement || 
+          event.target instanceof HTMLTextAreaElement ||
+          state.isEventModalOpen || state.isTaskModalOpen || state.isAppointmentModalOpen ||
+          createDropdownOpen) {
+        return;
+      }
+
+      switch (event.key) {
+        case 'ArrowLeft':
+          event.preventDefault();
+          navigatePrevious();
+          break;
+        case 'ArrowRight':
+          event.preventDefault();
+          navigateNext();
+          break;
+        case 't':
+        case 'T':
+          event.preventDefault();
+          goToToday();
+          break;
+        case 'm':
+        case 'M':
+          event.preventDefault();
+          changeView('month');
+          break;
+        case 'w':
+        case 'W':
+          event.preventDefault();
+          changeView('week');
+          break;
+        case 'd':
+        case 'D':
+          event.preventDefault();
+          changeView('day');
+          break;
+        case 'c':
+        case 'C':
+          event.preventDefault();
+          setCreateDropdownOpen(!createDropdownOpen);
+          break;
+        case 's':
+        case 'S':
+          if (event.ctrlKey || event.metaKey) {
+            event.preventDefault();
+            exportToICS();
+          } else {
+            event.preventDefault();
+            toggleSidebar();
+          }
+          break;
+        case 'Escape':
+          event.preventDefault();
+          setCreateDropdownOpen(false);
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeydown);
+    return () => document.removeEventListener('keydown', handleKeydown);
+  }, [state.view, state.isEventModalOpen, state.isTaskModalOpen, state.isAppointmentModalOpen, createDropdownOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
