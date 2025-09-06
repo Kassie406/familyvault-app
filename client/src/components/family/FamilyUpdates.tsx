@@ -13,7 +13,8 @@ import {
   CreditCard,
   Heart,
   Users,
-  Bell
+  Bell,
+  PauseCircle
 } from 'lucide-react';
 import { LuxuryCard } from '@/components/luxury-cards';
 import { apiRequest } from '@/lib/queryClient';
@@ -94,9 +95,29 @@ export default function FamilyUpdates() {
   // Dismiss update mutation
   const dismissMutation = useMutation({
     mutationFn: async (updateId: string) => {
-      return apiRequest(`/api/updates/${updateId}/dismiss`, {
-        method: 'POST'
+      const response = await fetch(`/api/updates/${updateId}/dismiss`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/updates'] });
+    }
+  });
+
+  // Snooze update mutation
+  const snoozeMutation = useMutation({
+    mutationFn: async (updateId: string) => {
+      const response = await fetch(`/api/updates/${updateId}/snooze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/updates'] });
@@ -105,6 +126,10 @@ export default function FamilyUpdates() {
 
   const handleDismiss = (updateId: string) => {
     dismissMutation.mutate(updateId);
+  };
+
+  const handleSnooze = (updateId: string) => {
+    snoozeMutation.mutate(updateId);
   };
 
   if (isLoading || userLoading) {
@@ -207,12 +232,27 @@ export default function FamilyUpdates() {
                   variant="ghost"
                   size="sm"
                   className="text-white/40 hover:text-white/70 hover:bg-white/5 transition-all duration-200 h-8 w-8 p-0"
-                  onClick={() => handleDismiss(update.id)}
-                  disabled={dismissMutation.isPending}
-                  data-testid={`dismiss-button-${update.id}`}
+                  onClick={() => handleSnooze(update.id)}
+                  disabled={snoozeMutation.isPending}
+                  data-testid={`snooze-button-${update.id}`}
+                  title="Snooze for 7 days"
                 >
-                  <X className="h-3 w-3" />
+                  <PauseCircle className="h-3 w-3" />
                 </Button>
+                
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-white/40 hover:text-white/70 hover:bg-white/5 transition-all duration-200 h-8 w-8 p-0"
+                    onClick={() => handleDismiss(update.id)}
+                    disabled={dismissMutation.isPending}
+                    data-testid={`dismiss-button-${update.id}`}
+                    title="Dismiss for everyone"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
             </div>
           </div>

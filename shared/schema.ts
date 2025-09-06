@@ -75,6 +75,18 @@ export const familyUpdates = pgTable("family_updates", {
 export type InsertFamilyUpdate = typeof familyUpdates.$inferInsert;
 export type FamilyUpdate = typeof familyUpdates.$inferSelect;
 
+// Family Update Snooze table - per-user snoozing of updates
+export const familyUpdateSnooze = pgTable("family_update_snooze", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  updateId: varchar("update_id").notNull().references(() => familyUpdates.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull(),
+  until: timestamp("until").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type InsertFamilyUpdateSnooze = typeof familyUpdateSnooze.$inferInsert;
+export type FamilyUpdateSnooze = typeof familyUpdateSnooze.$inferSelect;
+
 // Family Members
 export const familyMembers = pgTable("family_members", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
