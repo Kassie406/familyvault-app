@@ -439,7 +439,7 @@ export default function FamilyHome() {
                   <p className="text-xs text-gray-500">Recent family updates</p>
                 </div>
               </div>
-              <div className="overflow-y-auto h-[calc(100%-80px)]">
+              <div className="overflow-y-auto h-[calc(100%-80px)] custom-scrollbar">
                 <ActivityFeed limit={6} showFilters={false} />
               </div>
             </div>
@@ -462,7 +462,7 @@ export default function FamilyHome() {
                   <p className="text-xs text-gray-500">Important notifications</p>
                 </div>
               </div>
-              <div className="overflow-y-auto h-[calc(100%-80px)]">
+              <div className="overflow-y-auto h-[calc(100%-80px)] custom-scrollbar">
                 <FamilyUpdates />
               </div>
             </div>
