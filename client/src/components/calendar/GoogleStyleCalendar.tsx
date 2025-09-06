@@ -24,6 +24,8 @@ interface RecurrenceRule {
   freq: 'DAILY' | 'WEEKLY' | 'MONTHLY';
   interval: number;
   byWeekday?: string[]; // ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']
+  count?: number;
+  until?: Date;
 }
 
 interface CalendarEvent {
@@ -70,6 +72,43 @@ const calendarSources = [
   { id: 'work', name: 'Work', color: '#EF4444', visible: false },
   { id: 'holidays', name: 'Holidays', color: '#10B981', visible: true }
 ];
+
+// Right Shortcuts Component
+function RightShortcuts({ onCreate, className }: { onCreate: () => void; className?: string }) {
+  return (
+    <aside className={`hidden xl:flex xl:flex-col p-4 ${className || ''}`}>
+      <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-4">
+        <div className="text-sm font-medium mb-3 text-gray-300">Shortcuts</div>
+        <div className="flex flex-col gap-2">
+          <Button
+            onClick={onCreate}
+            className="w-full justify-start bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90"
+            size="sm"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Create event
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full justify-start border-zinc-700 text-gray-300 hover:bg-zinc-800"
+            size="sm"
+          >
+            <CalIcon className="h-4 w-4 mr-2" />
+            Tasks
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full justify-start border-zinc-700 text-gray-300 hover:bg-zinc-800"
+            size="sm"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Notes
+          </Button>
+        </div>
+      </div>
+    </aside>
+  );
+}
 
 // Utility functions
 const formatDate = (date: Date): string => {
@@ -156,6 +195,7 @@ const toLocalISOString = (date: Date): string => {
 };
 
 export default function GoogleStyleCalendar() {
+  const [query, setQuery] = useState('');
   const [state, setState] = useState<CalendarState>({
     view: 'month',
     currentDate: new Date(),
@@ -182,6 +222,13 @@ export default function GoogleStyleCalendar() {
     eventModalMode: 'create',
     newEventDate: null,
     sidebarOpen: true
+  });
+
+  // Filter events by search query
+  const filteredEvents = state.events.filter(event => {
+    if (!query.trim()) return true;
+    const searchText = `${event.title || ''} ${event.location || ''} ${event.notes || ''}`.toLowerCase();
+    return searchText.includes(query.toLowerCase());
   });
 
   const [calendarVisibility, setCalendarVisibility] = useState<Record<string, boolean>>(
@@ -249,6 +296,12 @@ export default function GoogleStyleCalendar() {
       }
       if (recurrence.freq === 'WEEKLY' && recurrence.byWeekday?.length) {
         rrule += `;BYDAY=${recurrence.byWeekday.join(',')}`;
+      }
+      if (recurrence.count) {
+        rrule += `;COUNT=${recurrence.count}`;
+      }
+      if (recurrence.until) {
+        rrule += `;UNTIL=${formatICSDate(recurrence.until)}`;
       }
       return rrule;
     };
@@ -343,10 +396,10 @@ export default function GoogleStyleCalendar() {
   };
 
   return (
-    <div className="h-full bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden flex">
-      {/* Sidebar */}
+    <div className="h-full bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden grid grid-cols-12">
+      {/* Left Sidebar */}
       {state.sidebarOpen && (
-        <div className="w-64 bg-zinc-900 border-r border-zinc-800 p-4">
+        <div className="col-span-3 bg-zinc-900 border-r border-zinc-800 p-4">
         {/* Mini Calendar */}
         <div className="mb-6">
           <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
@@ -389,7 +442,7 @@ export default function GoogleStyleCalendar() {
       )}
 
       {/* Main Calendar */}
-      <div className="flex-1 flex flex-col">
+      <div className={`${state.sidebarOpen ? 'col-span-7' : 'col-span-10'} flex flex-col`}>
         {/* Toolbar */}
         <div className="border-b border-zinc-800 p-4">
           <div className="flex items-center justify-between">
@@ -440,6 +493,16 @@ export default function GoogleStyleCalendar() {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Search */}
+              <div className="hidden md:flex items-center">
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search events..."
+                  className="w-48 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                />
+              </div>
+
               {/* View Switcher */}
               <div className="flex items-center bg-zinc-800 rounded-lg p-1">
                 {(['month', 'week', 'day'] as ViewType[]).map(view => (
@@ -487,7 +550,7 @@ export default function GoogleStyleCalendar() {
           {state.view === 'month' && (
             <MonthView 
               currentDate={state.currentDate}
-              events={state.events}
+              events={filteredEvents}
               onDateClick={(date) => openEventModal('create', undefined, date)}
               onEventClick={(event) => openEventModal('edit', event)}
             />
@@ -495,7 +558,7 @@ export default function GoogleStyleCalendar() {
           {state.view === 'week' && (
             <WeekView 
               currentDate={state.currentDate}
-              events={state.events}
+              events={filteredEvents}
               onTimeSlotClick={(date) => openEventModal('create', undefined, date)}
               onEventClick={(event) => openEventModal('edit', event)}
             />
@@ -503,13 +566,19 @@ export default function GoogleStyleCalendar() {
           {state.view === 'day' && (
             <DayView 
               currentDate={state.currentDate}
-              events={state.events}
+              events={filteredEvents}
               onTimeSlotClick={(date) => openEventModal('create', undefined, date)}
               onEventClick={(event) => openEventModal('edit', event)}
             />
           )}
         </div>
       </div>
+
+      {/* Right Shortcuts Sidebar */}
+      <RightShortcuts 
+        onCreate={() => openEventModal('create', undefined, state.currentDate)}
+        className={state.sidebarOpen ? 'col-span-2' : 'col-span-2'}
+      />
 
       {/* Event Modal */}
       {state.isEventModalOpen && (
@@ -833,6 +902,18 @@ function EventModal({
   const [interval, setInterval] = useState(event?.recurrence?.interval || 1);
   const [byWeekday, setByWeekday] = useState<string[]>(event?.recurrence?.byWeekday || []);
   
+  // Recurrence end options
+  const [endMode, setEndMode] = useState(
+    event?.recurrence?.count ? 'count' :
+    event?.recurrence?.until ? 'until' : 'never'
+  );
+  const [count, setCount] = useState(event?.recurrence?.count || 10);
+  const [until, setUntil] = useState(
+    event?.recurrence?.until
+      ? toLocalISOString(event.recurrence.until)
+      : toLocalISOString(addDays(new Date(start), 30))
+  );
+  
   const weekLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const weekCodes = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
   
@@ -842,6 +923,21 @@ function EventModal({
         ? prev.filter(d => d !== code)
         : [...prev, code]
     );
+  };
+  
+  const buildRecurrenceRule = (): RecurrenceRule | undefined => {
+    if (recur === 'none') return undefined;
+    const rule: RecurrenceRule = { freq, interval };
+    if (freq === 'WEEKLY' && byWeekday.length) {
+      rule.byWeekday = byWeekday;
+    }
+    if (endMode === 'count') {
+      rule.count = Math.max(1, Number(count) || 1);
+    }
+    if (endMode === 'until') {
+      rule.until = new Date(until);
+    }
+    return rule;
   };
 
   const handleSave = () => {
@@ -855,11 +951,7 @@ function EventModal({
       location: location.trim(),
       notes: notes.trim(),
       color,
-      recurrence: recur === 'custom' ? {
-        freq,
-        interval,
-        byWeekday: freq === 'WEEKLY' ? byWeekday : undefined
-      } : undefined
+      recurrence: buildRecurrenceRule()
     };
 
     if (mode === 'create') {
@@ -1026,6 +1118,59 @@ function EventModal({
                     ))}
                   </div>
                 )}
+                
+                {/* End options */}
+                <div className="space-y-3">
+                  <div className="text-xs text-gray-400">Ends</div>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input 
+                        type="radio" 
+                        name="endMode" 
+                        checked={endMode === 'never'} 
+                        onChange={() => setEndMode('never')} 
+                        className="text-[#D4AF37] focus:ring-[#D4AF37]" 
+                      />
+                      <span className="text-gray-300">Never</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input 
+                        type="radio" 
+                        name="endMode" 
+                        checked={endMode === 'count'} 
+                        onChange={() => setEndMode('count')} 
+                        className="text-[#D4AF37] focus:ring-[#D4AF37]" 
+                      />
+                      <span className="text-gray-300">After</span>
+                      <input 
+                        type="number" 
+                        min={1} 
+                        value={count} 
+                        onChange={(e) => setCount(parseInt(e.target.value) || 1)}
+                        className="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white text-center focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                        disabled={endMode !== 'count'}
+                      />
+                      <span className="text-gray-300">occurrences</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input 
+                        type="radio" 
+                        name="endMode" 
+                        checked={endMode === 'until'} 
+                        onChange={() => setEndMode('until')} 
+                        className="text-[#D4AF37] focus:ring-[#D4AF37]" 
+                      />
+                      <span className="text-gray-300">On date</span>
+                      <input 
+                        type="date" 
+                        value={until.split('T')[0]} 
+                        onChange={(e) => setUntil(e.target.value + 'T23:59')}
+                        className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                        disabled={endMode !== 'until'}
+                      />
+                    </label>
+                  </div>
+                </div>
               </div>
             )}
           </div>
