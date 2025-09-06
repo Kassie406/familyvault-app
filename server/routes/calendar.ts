@@ -5,6 +5,7 @@ import { and, eq, gte, lte, desc } from "drizzle-orm";
 import { z } from "zod";
 import { expandRecurringEvents } from "../lib/recurrence";
 import { getRealtimeManager } from "../lib/realtime";
+import { generateICSContent, generateICSFilename, setICSHeaders } from "../lib/ics-export";
 
 export const calendarRouter = Router();
 
@@ -315,5 +316,115 @@ calendarRouter.delete("/api/events/:id/snooze", requireFamilyAuth, async (req: a
   } catch (error) {
     console.error("Error removing snooze:", error);
     res.status(500).json({ error: "Failed to remove snooze" });
+  }
+});
+
+// GET /api/calendars/:id/export - Export calendar as ICS
+calendarRouter.get("/api/calendars/:id/export", requireFamilyAuth, async (req: any, res) => {
+  try {
+    const { id } = req.params;
+    const { from, to } = req.query;
+    
+    // Verify calendar belongs to user's family
+    const calendar = await db
+      .select()
+      .from(calendars)
+      .where(and(
+        eq(calendars.id, id),
+        eq(calendars.familyId, req.user.familyId)
+      ))
+      .limit(1);
+    
+    if (!calendar.length) {
+      return res.status(403).json({ error: "Calendar not found or access denied" });
+    }
+    
+    // Get events for the calendar
+    const conditions = [eq(calendarEvents.calendarId, id)];
+    
+    if (from && to) {
+      conditions.push(
+        gte(calendarEvents.endAt, new Date(from as string)),
+        lte(calendarEvents.startAt, new Date(to as string))
+      );
+    }
+    
+    const events = await db
+      .select()
+      .from(calendarEvents)
+      .where(and(...conditions))
+      .orderBy(calendarEvents.startAt);
+    
+    // Generate ICS content
+    const icsContent = generateICSContent(events, {
+      calendarName: calendar[0].name,
+      timeZone: "UTC",
+      includeRecurrence: true
+    });
+    
+    // Set headers and send file
+    const filename = generateICSFilename(calendar[0].name);
+    setICSHeaders(res, filename);
+    
+    res.send(icsContent);
+  } catch (error) {
+    console.error("Error exporting calendar:", error);
+    res.status(500).json({ error: "Failed to export calendar" });
+  }
+});
+
+// GET /api/export/all-calendars - Export all family calendars as ICS
+calendarRouter.get("/api/export/all-calendars", requireFamilyAuth, async (req: any, res) => {
+  try {
+    const { from, to } = req.query;
+    
+    // Get all events for the family's calendars
+    const conditions = [];
+    
+    if (from && to) {
+      conditions.push(
+        gte(calendarEvents.endAt, new Date(from as string)),
+        lte(calendarEvents.startAt, new Date(to as string))
+      );
+    }
+    
+    const events = await db
+      .select({
+        id: calendarEvents.id,
+        title: calendarEvents.title,
+        description: calendarEvents.description,
+        location: calendarEvents.location,
+        startAt: calendarEvents.startAt,
+        endAt: calendarEvents.endAt,
+        allDay: calendarEvents.allDay,
+        timezone: calendarEvents.timezone,
+        recurrence: calendarEvents.recurrence,
+        createdAt: calendarEvents.createdAt,
+        updatedAt: calendarEvents.updatedAt,
+        calendarName: calendars.name
+      })
+      .from(calendarEvents)
+      .innerJoin(calendars, eq(calendarEvents.calendarId, calendars.id))
+      .where(and(
+        eq(calendars.familyId, req.user.familyId),
+        ...conditions
+      ))
+      .orderBy(calendarEvents.startAt);
+    
+    // Generate ICS content
+    const icsContent = generateICSContent(events, {
+      calendarName: "FamilyVault - All Calendars",
+      timeZone: "UTC",
+      includeRecurrence: true
+    });
+    
+    // Set headers and send file
+    const filename = generateICSFilename("familyvault-all-calendars");
+    setICSHeaders(res, filename);
+    
+    res.send(icsContent);
+  } catch (error) {
+    console.error("Error exporting all calendars:", error);
+    res.status(500).json({ error: "Failed to export calendars" });
   }
 });
