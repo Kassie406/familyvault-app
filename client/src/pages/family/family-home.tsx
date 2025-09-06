@@ -285,7 +285,39 @@ export default function FamilyHome() {
           }, 
           icon: <Plus className="h-4 w-4" /> 
         },
-        { label: "Family Group Chat", href: "/messages/thread/family", icon: <Users className="h-4 w-4" /> },
+        { 
+          label: "Family Group Chat", 
+          onClick: async () => {
+            // Check for active family meeting
+            try {
+              const response = await fetch('/api/family/meeting/status');
+              const meetingData = await response.json();
+              
+              if (meetingData.activeMeeting) {
+                // Join existing meeting
+                window.open(`/family/meeting/${meetingData.activeMeeting.id}`, '_blank');
+              } else {
+                // No active meeting - show create meeting dialog
+                if (confirm('No active family meeting found. Would you like to start a new family meeting?')) {
+                  const createResponse = await fetch('/api/family/meeting/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                      title: 'Family Group Meeting',
+                      type: 'group_chat'
+                    })
+                  });
+                  const newMeeting = await createResponse.json();
+                  window.open(`/family/meeting/${newMeeting.id}`, '_blank');
+                }
+              }
+            } catch (error) {
+              console.error('Error checking meeting status:', error);
+              alert('Unable to access family meeting. Please try again.');
+            }
+          }, 
+          icon: <Users className="h-4 w-4" /> 
+        },
         { label: "Mentions & Alerts", href: "/messages?filter=mentions", icon: <Bell className="h-4 w-4" /> }
       ]
     },

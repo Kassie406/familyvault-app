@@ -14,6 +14,7 @@ import threadMessagesRouter from "./routes/threadMessages";
 import apiServicesRouter from "./routes/apiServices";
 import documentsRouter from "./routes/documents";
 import { calendarRouter } from "./routes/calendar";
+import familyMeetingsRouter from "./routes/family-meetings";
 import axios from "axios";
 import { sendSMSNotification } from "./lib/twilio";
 import { sendSMSNotificationsForMessage, markUserOnline, markUserOffline } from "./lib/sms-notifications";
@@ -531,6 +532,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount calendar routes
   app.use(calendarRouter);
+
+  // Mount family meetings routes for group chat meetings
+  app.use("/api/family", familyMeetingsRouter);
 
   // Mount threads list routes for chat dashboard
   app.use("/api/threads", threadsListRouter);
