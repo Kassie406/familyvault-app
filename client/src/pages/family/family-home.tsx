@@ -248,9 +248,9 @@ export default function FamilyHome() {
       label: 'Messages & Video Meetings', 
       value: 12, 
       icon: ({ className }: { className?: string }) => (
-        <div className={`flex items-center gap-1 ${className}`}>
-          <MessageCircle className="h-4 w-4" />
-          <Video className="h-3 w-3" />
+        <div className={`flex items-center gap-2 ${className}`}>
+          <MessageCircle className="h-5 w-5" />
+          <Video className="h-5 w-5" />
         </div>
       ),
       href: '/messages?view=threads&sort=latest',
