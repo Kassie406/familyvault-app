@@ -1,0 +1,123 @@
+Api Management Landing Page + Backend (express + Drizzle)
+· typescript
+// =============================================
+import WebSocket, { WebSocketServer } from "ws";
+import { attachToFamily } from "./hub";
+
+
+export function initRealtime(server: any, getUserFromReq: (req:any)=>Promise<{id:string; familyId:string;}|null>) {
+  const wss = new WebSocketServer({ server, path: "/realtime" });
+  wss.on("connection", async (ws, req) => {
+    // Reuse your auth (cookie/JWT). Implement getUserFromReq accordingly.
+    const user = await getUserFromReq(req);
+    if (!user) { ws.close(); return; }
+    attachToFamily(ws, user.familyId);
+    // Optional: let client know it's connected
+    ws.send(JSON.stringify({ type: "hello", ok: true }));
+  });
+  return wss;
+}
+
+
+// =============================================
+// SERVER: Log + broadcast activity in one helper
+// File: server/lib/activity.ts (updated)
+import { db } from "../db";
+import { familyActivity } from "../db/schema/activity";
+import { broadcastFamily } from "../realtime/hub";
+
+
+export async function logActivity({ familyId, userId, type, meta }:{ familyId:string; userId?:string; type:string; meta?:any; }){
+  const [row] = await db.insert(familyActivity).values({ familyId, userId, type, meta }).returning();
+  // Push to all family sockets
+  broadcastFamily(familyId, { type: "activity:new", item: row });
+  return row;
+}
+
+
+// =============================================
+// CLIENT: subscribe to realtime and update ActivityFeed live
+// File: client/src/components/family/ActivityFeed.tsx (update)
+import React, { useEffect, useState } from "react";
+
+
+function wsUrl(path:string){
+  const { protocol, host } = window.location;
+  const wsProto = protocol === "https:" ? "wss:" : "ws:";
+  return `${wsProto}//${host}${path}`;
+}
+
+
+export default function ActivityFeed(){
+  const [items,setItems] = useState<any[]>([]);
+
+
+  useEffect(()=>{ fetch("/api/activity/recent").then(r=>r.json()).then(d=>setItems(d.items??[])); },[]);
+
+
+  useEffect(()=>{
+    const ws = new WebSocket(wsUrl("/realtime"));
+    ws.onmessage = (ev) => {
+      try {
+        const msg = JSON.parse(ev.data);
+        if (msg.type === "activity:new" && msg.item) {
+          setItems(prev => [msg.item, ...prev].slice(0, 20));
+        }
+      } catch {}
+    };
+    return () => ws.close();
+  },[]);
+
+
+  return (
+    <div className="p-4">
+      {items.length===0 && <div className="text-gray-500 text-sm">No recent activity</div>}
+      <ul className="space-y-2">
+        {items.map((a:any)=>(
+          <li key={a.id} className="text-sm text-gray-300 flex justify-between">
+            <span>{format(a)}</span>
+            <span className="text-gray-500">{new Date(a.createdAt).toLocaleString()}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+
+// keep your existing format() helper above
+
+
+// =============================================
+// OPTIONAL (Scaling): Redis Pub/Sub for multi-instance
+// If you scale to multiple servers, replace in-memory broadcast with Redis:
+// - Publish `{type:"activity:new", familyId, item}` to `family:activity` channel.
+// - Each node subscribes and calls broadcastFamily(familyId, payload).
+
+
+
+
+
+Done — live updates are in. Here’s what I added:
+
+Server
+
+A tiny family WebSocket hub that tracks connections per familyId and can broadcast to everyone in that family.
+
+Hook for your existing WS server at /realtime.
+
+Updated logActivity(...) to insert + broadcast { type: "activity:new", item } to the family after each activity.
+
+Client
+
+The ActivityFeed now opens a WebSocket to /realtime and, on activity:new, prepends the new item to the list (keeps latest 20). No reloads needed.
+
+Scaling tip
+
+If you run multiple server instances, swap the in-memory broadcast with Redis Pub/Sub: publish family:activity and have each node relay to its local websockets.
+
+If you want, I can also push realtime updates for:
+
+Uploads (as soon as /complete fires),
+
+Share created, Approval decisions, and Chat messages—they’ll just work because they all use logActivity.

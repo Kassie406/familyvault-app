@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { io, type Socket } from 'socket.io-client';
 import { 
   Activity, 
   Filter, 
@@ -101,8 +102,8 @@ export function ActivityFeed({ limit = 10, showFilters = true, className = '' }:
   const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h');
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
 
-  // Fetch activity data
-  const { data: activities = [], isLoading, refetch } = useQuery<ActivityItem[]>({
+  // Fetch initial activity data
+  const { data: initialActivities = [], isLoading, refetch } = useQuery<ActivityItem[]>({
     queryKey: ['/api/family/activity', filter, timeRange, limit],
     queryFn: () => {
       const params = new URLSearchParams();
@@ -111,12 +112,54 @@ export function ActivityFeed({ limit = 10, showFilters = true, className = '' }:
       params.append('limit', limit.toString());
       return fetch(`/api/family/activity?${params.toString()}`).then(res => res.json());
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
   });
+
+  // State for real-time activities
+  const [realtimeActivities, setRealtimeActivities] = useState<ActivityItem[]>([]);
+  
+  // Combine initial and real-time activities
+  const activities = realtimeActivities.length > 0 
+    ? [...realtimeActivities, ...(initialActivities || [])].slice(0, limit)
+    : initialActivities || [];
 
   const filteredActivities = filter === 'all' 
     ? activities.slice(0, limit)
     : activities.filter(activity => activity.type === filter).slice(0, limit);
+
+  // Real-time Socket.IO connection for live activity updates
+  useEffect(() => {
+    const socket: Socket = io({
+      path: "/socket.io/",
+      auth: {
+        user: {
+          id: "current-user", // TODO: Get from auth context
+          familyId: "family-1", // TODO: Get from user's family
+          name: "Current User"
+        }
+      }
+    });
+
+    // Listen for real-time family activity updates
+    socket.on("family:activity", (data) => {
+      if (data.type === "activity:new" && data.activity) {
+        const newActivity = data.activity as ActivityItem;
+        setRealtimeActivities(prev => {
+          // Avoid duplicates and keep most recent 20 activities
+          const filtered = prev.filter(activity => activity.id !== newActivity.id);
+          return [newActivity, ...filtered].slice(0, 20);
+        });
+        console.log("[ActivityFeed] Received real-time activity:", newActivity.title);
+      }
+    });
+
+    // Join family room for activity updates
+    socket.emit("family:join", { familyId: "family-1" });
+
+    // Cleanup on unmount
+    return () => {
+      socket.disconnect();
+    };
+  }, []); // Run once on mount
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
