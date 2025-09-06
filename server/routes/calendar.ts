@@ -3,6 +3,7 @@ import { db } from "../db";
 import { calendars, calendarEvents, calendarEventSnoozes } from "@shared/schema";
 import { and, eq, gte, lte, desc } from "drizzle-orm";
 import { z } from "zod";
+import { expandRecurringEvents } from "../lib/recurrence";
 
 export const calendarRouter = Router();
 
@@ -87,8 +88,17 @@ calendarRouter.get("/api/events", requireFamilyAuth, async (req: any, res) => {
       .where(and(...conditions))
       .orderBy(calendarEvents.startAt);
     
-    // TODO: Expand recurrence rules here
-    res.json(events);
+    // Expand recurrence rules for the requested date range
+    const expandedEvents = expandRecurringEvents(
+      events.map(event => ({
+        ...event,
+        recurrence: event.recurrence as any // Cast to our recurrence type
+      })),
+      new Date(from as string),
+      new Date(to as string)
+    );
+    
+    res.json(expandedEvents);
   } catch (error) {
     console.error("Error fetching events:", error);
     res.status(500).json({ error: "Failed to fetch events" });
