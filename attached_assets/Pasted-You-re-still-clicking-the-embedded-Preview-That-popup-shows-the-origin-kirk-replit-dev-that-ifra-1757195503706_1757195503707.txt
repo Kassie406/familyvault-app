@@ -1,0 +1,68 @@
+You’re still clicking the embedded Preview. That popup shows the origin
+…kirk.replit.dev → that iframe origin is not whitelisted in Supabase, so the browser blocks the request before it reaches Supabase → “Failed to fetch”.
+
+Do this:
+
+1) Use the clean app URL (not the embed)
+
+In Replit, on the Preview pane, click Open in new tab (↗ icon).
+
+Your address bar should now be something like
+https://familyvault.<your-username>.replit.dev (or .repl.co).
+Use this tab for all auth testing.
+
+2) Whitelist that clean URL in Supabase
+
+Supabase → Authentication → URL configuration:
+
+Site URL: https://familyvault.<your-username>.replit.dev
+
+Additional Redirect URLs:
+
+https://familyvault.<your-username>.replit.dev
+https://familyvault.<your-username>.replit.dev/auth/callback
+
+
+(Do not add the transient kirk.replit.dev one—Replit rotates it.)
+
+3) Make sure your Supabase client actually has the URL/key in the browser
+
+If your code uses process.env…, that won’t exist in the browser unless you’re bundling with Vite and using VITE_ vars. Quick, safe fix:
+
+import { createClient } from '@supabase/supabase-js'
+
+// TEMP: hardcode to prove it works; then switch to envs once your bundler is set
+const supabaseUrl = 'https://zzconzlitecbawulnbey.supabase.co'
+const supabaseAnon = 'eyJhbGciOi...<your_anon_key>...'
+
+export const supabase = createClient(supabaseUrl, supabaseAnon)
+// Later: replace with import.meta.env.VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
+
+
+Then your magic-link call:
+
+await supabase.auth.signInWithOtp({
+  email,
+  options: { emailRedirectTo: `${window.location.origin}/auth/callback` }
+})
+
+4) Test correctly
+
+Open the new-tab app (not embedded).
+
+Press F12 → Network.
+
+Click Send Magic Link.
+
+You should see a request to
+https://zzconzlitecbawulnbey.supabase.co/auth/v1/otp
+
+If it’s CORS blocked → step 2 URLs aren’t set right.
+
+If the request URL is undefined → envs not loaded → use the hardcoded test above.
+
+If 401/403 → wrong anon key → re-copy from Project → API.
+
+If 200 → check your email and follow the link; it should land on /auth/callback.
+
+If you want, tell me what the Network entry shows (URL + status). I’ll pinpoint the next tweak in one step.
