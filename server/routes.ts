@@ -1315,6 +1315,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/updates/snoozed/count - Get count of active snoozed updates for current user
+  app.get("/api/updates/snoozed/count", async (req, res) => {
+    try {
+      const userId = "user-1"; // TODO: Get from authenticated user
+      const count = await storage.getUserSnoozedCount(userId);
+      
+      res.json({ count });
+    } catch (error) {
+      console.error("Error getting snoozed count:", error);
+      res.status(500).json({ error: "Failed to get snoozed count" });
+    }
+  });
+
   // POST /api/updates/generate - Generate updates for testing (development only)
   app.post("/api/updates/generate", async (req, res) => {
     try {

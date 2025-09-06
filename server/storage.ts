@@ -280,6 +280,7 @@ export interface IStorage {
   snoozeFamilyUpdate(updateId: string, userId: string, until?: Date): Promise<FamilyUpdateSnooze>;
   unsnoozeFamilyUpdate(updateId: string, userId: string): Promise<boolean>;
   getUserSnoozedUpdates(userId: string): Promise<FamilyUpdateSnooze[]>;
+  getUserSnoozedCount(userId: string): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1416,6 +1417,22 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error getting user snoozed updates:', error);
       return [];
+    }
+  }
+
+  async getUserSnoozedCount(userId: string): Promise<number> {
+    try {
+      const result = await db.select({ count: sql<number>`count(*)` })
+        .from(familyUpdateSnooze)
+        .where(and(
+          eq(familyUpdateSnooze.userId, userId),
+          sql`${familyUpdateSnooze.until} > NOW()`
+        ));
+      
+      return result[0]?.count || 0;
+    } catch (error) {
+      console.error('Error getting user snoozed count:', error);
+      return 0;
     }
   }
 }
