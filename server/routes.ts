@@ -38,6 +38,7 @@ import {
   InsertMessage
 } from "@shared/schema";
 import crypto from "crypto";
+import PDFDocument from "pdfkit";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Family Management API endpoints
@@ -1660,36 +1661,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "ICE data not found" });
       }
 
-      // Simple text-based PDF generation (placeholder)
-      // In a real implementation, you'd use a PDF generation library
-      const pdfContent = `Family Emergency Information (ICE)
-
-Emergency Contacts:
-Primary: ${iceData.emergencyContacts?.primary || 'Not provided'}
-Doctor: ${iceData.emergencyContacts?.doctor || 'Not provided'}
-Neighbor: ${iceData.emergencyContacts?.neighbor || 'Not provided'}
-
-Medical Information:
-Allergies: ${iceData.medicalInfo?.allergies || 'None listed'}
-Conditions: ${iceData.medicalInfo?.conditions || 'None listed'}
-Medications: ${iceData.medicalInfo?.medications || 'None listed'}
-
-Blood Types:
-Dad: ${iceData.bloodTypes?.dad || 'Not provided'}
-Mom: ${iceData.bloodTypes?.mom || 'Not provided'}
-Kids: ${iceData.bloodTypes?.kids || 'Not provided'}
-
-Additional Notes:
-${iceData.additionalNotes || 'None provided'}
-
-Generated: ${new Date().toLocaleString()}`;
-
+      // Generate PDF using pdfkit
+      const doc = new PDFDocument({ size: "A4", margin: 40 });
+      
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'attachment; filename="family-ice-information.pdf"');
       
-      // For now, return as text file - in production would generate actual PDF
-      res.setHeader('Content-Type', 'text/plain');
-      res.send(pdfContent);
+      // Pipe the PDF to response
+      doc.pipe(res);
+
+      // PDF Header
+      doc.fontSize(20).fillColor('#D4AF37').text("In Case of Emergency (ICE)", { align: "center" });
+      doc.moveDown();
+      doc.fontSize(12).fillColor('gray').text(`Generated: ${new Date().toLocaleString()}`, { align: "center" });
+      doc.moveDown(2);
+
+      // Helper functions for consistent formatting
+      const section = (title: string) => { 
+        doc.fontSize(14).fillColor('black').text(title, { underline: true });
+        doc.moveDown(0.5);
+      };
+      
+      const field = (label: string, value?: string) => { 
+        doc.fontSize(11).fillColor('gray').text(`${label}: `, { continued: true }); 
+        doc.fillColor('black').text(value || "Not provided"); 
+      };
+
+      // Emergency Contacts Section
+      section("Emergency Contacts");
+      if (iceData.emergencyContacts) {
+        field("Primary Contact", iceData.emergencyContacts.primary);
+        field("Doctor", iceData.emergencyContacts.doctor);
+        field("Neighbor/Friend", iceData.emergencyContacts.neighbor);
+      } else {
+        doc.fontSize(11).fillColor('gray').text("No emergency contacts configured");
+      }
+      doc.moveDown(2);
+
+      // Medical Information Section
+      section("Medical Information");
+      if (iceData.medicalInfo) {
+        field("Allergies", iceData.medicalInfo.allergies);
+        field("Medical Conditions", iceData.medicalInfo.conditions);
+        field("Current Medications", iceData.medicalInfo.medications);
+      } else {
+        doc.fontSize(11).fillColor('gray').text("No medical information provided");
+      }
+      doc.moveDown(2);
+
+      // Blood Types Section
+      section("Blood Types");
+      if (iceData.bloodTypes) {
+        field("Father", iceData.bloodTypes.dad);
+        field("Mother", iceData.bloodTypes.mom);
+        field("Children", iceData.bloodTypes.kids);
+      } else {
+        doc.fontSize(11).fillColor('gray').text("No blood type information provided");
+      }
+      doc.moveDown(2);
+
+      // Additional Notes Section
+      if (iceData.additionalNotes) {
+        section("Additional Notes");
+        doc.fontSize(11).fillColor('black').text(iceData.additionalNotes, { 
+          width: 500,
+          align: 'left'
+        });
+      }
+
+      // Footer
+      doc.moveDown(4);
+      doc.fontSize(10).fillColor('#D4AF37').text("© 2025 Family Portal - Emergency Information", { 
+        align: "center" 
+      });
+
+      // Finalize PDF
+      doc.end();
     } catch (error) {
       console.error("Error generating ICE PDF:", error);
       res.status(500).json({ error: "Failed to generate ICE PDF" });

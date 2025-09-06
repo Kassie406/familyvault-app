@@ -476,32 +476,24 @@ export default function FamilyHome() {
         </h2>
         
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-          {/* Shared Calendar - Temporarily disabled to troubleshoot */}
+          {/* Shared Calendar */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 mb-4">
               <Calendar className="h-5 w-5 text-[#D4AF37]" />
               <h3 className="text-lg font-semibold text-white">Shared Calendar</h3>
-              <div className="text-sm text-gray-400">Coming soon</div>
+              <div className="text-sm text-gray-400">Stay synchronized</div>
             </div>
-            <div className="bg-[var(--bg-800)] rounded-2xl p-8 text-center border border-white/10">
-              <Calendar className="h-12 w-12 text-[#D4AF37] mx-auto mb-4" />
-              <p className="text-white font-medium">Calendar Component</p>
-              <p className="text-gray-400 text-sm">Ready for integration</p>
-            </div>
+            <SharedCalendar />
           </div>
           
-          {/* ICE Section - Temporarily disabled to troubleshoot */}
+          {/* ICE Section */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 mb-4">
               <ShieldAlert className="h-5 w-5 text-[#D4AF37]" />
               <h3 className="text-lg font-semibold text-white">In Case of Emergency</h3>
               <div className="text-sm text-gray-400">Critical information</div>
             </div>
-            <div className="bg-[var(--bg-800)] rounded-2xl p-8 text-center border border-white/10">
-              <ShieldAlert className="h-12 w-12 text-[#D4AF37] mx-auto mb-4" />
-              <p className="text-white font-medium">ICE Section</p>
-              <p className="text-gray-400 text-sm">Emergency info ready</p>
-            </div>
+            <ICESection />
           </div>
         </div>
       </div>
