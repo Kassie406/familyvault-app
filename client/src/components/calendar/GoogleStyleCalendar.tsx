@@ -73,7 +73,11 @@ const Circle = ({ className, style }: { className: string; style?: any }) => (
 );
 
 // Right Shortcuts Component
-function RightShortcuts({ onCreate, className }: { onCreate: () => void; className?: string }) {
+function RightShortcuts({ onCreate, onAddHolidays, className }: { 
+  onCreate: () => void; 
+  onAddHolidays: () => void;
+  className?: string;
+}) {
   return (
     <aside className={`hidden xl:flex xl:flex-col p-4 ${className || ''}`}>
       <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-4">
@@ -86,6 +90,15 @@ function RightShortcuts({ onCreate, className }: { onCreate: () => void; classNa
           >
             <Plus className="h-4 w-4 mr-2" />
             Create event
+          </Button>
+          <Button
+            onClick={onAddHolidays}
+            variant="outline"
+            className="w-full justify-start border-zinc-700 text-gray-300 hover:bg-zinc-800"
+            size="sm"
+          >
+            <CalIcon className="h-4 w-4 mr-2" />
+            Add US Holidays (5 yrs)
           </Button>
           <Button
             variant="outline"
@@ -193,6 +206,84 @@ const toLocalISOString = (date: Date): string => {
   return localDate.toISOString().slice(0, 16);
 };
 
+// ---- Holiday helpers ----
+const nthWeekdayOfMonth = (year: number, monthIndex: number, weekday: number, n: number) => {
+  // monthIndex: 0-11, weekday: 0=Sun..6=Sat, n: 1..4 (or -1 for last)
+  const first = new Date(year, monthIndex, 1);
+  const firstWeekday = first.getDay();
+  let day = 1 + ((7 + weekday - firstWeekday) % 7); // first target weekday in month
+
+  if (n > 0) {
+    day += (n - 1) * 7;
+  } else if (n === -1) {
+    // last weekday of month
+    const last = new Date(year, monthIndex + 1, 0); // last day of month
+    const lastWeekday = last.getDay();
+    day = last.getDate() - ((7 + lastWeekday - weekday) % 7);
+  }
+  return new Date(year, monthIndex, day);
+};
+
+const observedDate = (d: Date) => {
+  // If holiday falls on Sat -> observed Friday; if Sun -> observed Monday
+  const wd = d.getDay();
+  if (wd === 6) return new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1);
+  if (wd === 0) return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+  return d;
+};
+
+const makeAllDay = (d: Date) => ({
+  start: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0),
+  end:   new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59),
+});
+
+function genUSHolidaysForYear(year: number): CalendarEvent[] {
+  // Federal holidays (official)
+  const list: { title: string; date: Date }[] = [];
+
+  // Fixed-date (observed): New Year's Day, Juneteenth, Independence Day, Veterans Day, Christmas
+  list.push({ title: "New Year's Day",      date: observedDate(new Date(year, 0, 1))  });
+  list.push({ title: "Juneteenth National Independence Day", date: observedDate(new Date(year, 5, 19)) });
+  list.push({ title: "Independence Day",    date: observedDate(new Date(year, 6, 4))  });
+  list.push({ title: "Veterans Day",        date: observedDate(new Date(year, 10, 11)) });
+  list.push({ title: "Christmas Day",       date: observedDate(new Date(year, 11, 25)) });
+
+  // Floating (weekday rules)
+  list.push({ title: "Birthday of Martin Luther King, Jr.", date: nthWeekdayOfMonth(year, 0, 1, 3) }); // Jan, Mon(1), 3rd
+  list.push({ title: "Washington's Birthday",               date: nthWeekdayOfMonth(year, 1, 1, 3) }); // Feb, Mon, 3rd
+  list.push({ title: "Memorial Day",                        date: nthWeekdayOfMonth(year, 4, 1, -1) }); // May, Mon, last
+  list.push({ title: "Labor Day",                           date: nthWeekdayOfMonth(year, 8, 1, 1)  }); // Sep, Mon, 1st
+  list.push({ title: "Columbus Day",                        date: nthWeekdayOfMonth(year, 9, 1, 2)  }); // Oct, Mon, 2nd
+  list.push({ title: "Thanksgiving Day",                    date: nthWeekdayOfMonth(year, 10, 4, 4) }); // Nov, Thu(4), 4th
+
+  // Convert to your event objects
+  return list.map(({ title, date }, index) => {
+    const { start, end } = makeAllDay(date);
+    return {
+      id: `holiday-${year}-${index}`,
+      title,
+      start,
+      end,
+      allDay: true,
+      color: "#10B981", // green
+      calendar: "Holidays in United States"
+    };
+  });
+}
+
+/** Generate and return holidays for a range of years */
+function genUSHolidays(yearStart = new Date().getFullYear(), years = 5): CalendarEvent[] {
+  const events: CalendarEvent[] = [];
+  for (let y = yearStart; y < yearStart + years; y++) {
+    events.push(...genUSHolidaysForYear(y));
+  }
+  return events;
+}
+
+const startOfDay = (date: Date): Date => {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+};
+
 export default function GoogleStyleCalendar() {
   const [state, setState] = useState<CalendarState>({
     view: 'month',
@@ -272,6 +363,20 @@ export default function GoogleStyleCalendar() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [createDropdownOpen]);
+
+  // Add US Holidays function
+  const addUSHolidays = (startYear = new Date().getFullYear(), years = 5) => {
+    const holidays = genUSHolidays(startYear, years);
+    setState(prev => {
+      // avoid duplicates by (title + start date) key
+      const seen = new Set(prev.events.map(e => `${e.title}|${startOfDay(e.start).toDateString()}`));
+      const fresh = holidays.filter(e => !seen.has(`${e.title}|${startOfDay(e.start).toDateString()}`));
+      return {
+        ...prev,
+        events: [...prev.events, ...fresh]
+      };
+    });
+  };
 
   // Filter events by calendar visibility (memoized for performance)
   const filteredEvents = useMemo(() => {
@@ -453,10 +558,10 @@ export default function GoogleStyleCalendar() {
   };
 
   return (
-    <div className="h-full bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden grid grid-cols-12">
+    <div className="h-full bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden flex">
       {/* Left Sidebar */}
       {state.sidebarOpen && (
-        <div className="col-span-3 bg-zinc-900 border-r border-zinc-800 p-4">
+        <div className="w-64 bg-zinc-900 border-r border-zinc-800 p-4 flex-shrink-0">
         {/* Mini Calendar */}
         <div className="mb-6">
           <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
@@ -538,7 +643,7 @@ export default function GoogleStyleCalendar() {
       )}
 
       {/* Main Calendar */}
-      <div className={`${state.sidebarOpen ? 'col-span-9' : 'col-span-12'} flex flex-col`}>
+      <div className="flex-1 flex flex-col">
         {/* Toolbar */}
         <div className="border-b border-zinc-800 p-4">
           <div className="flex items-center justify-between">
@@ -688,6 +793,11 @@ export default function GoogleStyleCalendar() {
         </div>
       </div>
 
+      {/* Right Shortcuts Panel */}
+      <RightShortcuts 
+        onCreate={() => openEventModal('create', undefined, state.currentDate)} 
+        onAddHolidays={() => addUSHolidays()}
+      />
 
       {/* Event Modal */}
       {state.isEventModalOpen && (
