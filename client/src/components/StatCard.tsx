@@ -92,9 +92,9 @@ export function StatCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {React.cloneElement(icon as React.ReactElement, {
-              className: "h-6 w-6 text-amber-400/70 group-hover:text-amber-400 transition-colors"
+              className: "h-6 w-6 text-amber-400/70 group-hover:text-amber-400 group-hover:shadow-lg group-hover:shadow-[#D4AF37]/30 transition-all"
             })}
-            <span className="text-sm font-medium text-zinc-400 group-hover:text-amber-400 transition-colors" id={`${label.replace(/\s+/g, "-").toLowerCase()}-desc`}>
+            <span className="text-sm font-bold text-white group-hover:text-[#D4AF37] transition-colors" id={`${label.replace(/\s+/g, "-").toLowerCase()}-desc`}>
               {label}
             </span>
           </div>
@@ -105,7 +105,7 @@ export function StatCard({
             aria-expanded={open}
             aria-controls={`stat-preview-${label.replace(/\s+/g, "-").toLowerCase()}`}
             className="inline-flex items-center gap-1 rounded-md px-3 py-2
-                       text-xs font-medium text-zinc-400 hover:text-amber-400
+                       text-xs font-medium text-zinc-500 hover:text-amber-400
                        focus:outline-none focus:ring-2 focus:ring-amber-400/40
                        touch-manipulation min-h-[44px] md:min-h-0 md:px-2 md:py-1"
             onClick={(e) => {
@@ -121,7 +121,7 @@ export function StatCard({
           </button>
         </div>
 
-        <p className="mt-3 text-3xl font-semibold text-white">{value}</p>
+        <p className="mt-3 text-3xl font-bold text-[#D4AF37]">{value}</p>
       </Link>
 
       {/* Anchored preview panel (responsive) */}
