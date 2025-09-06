@@ -1,0 +1,198 @@
+Here’s a clean way to hook Shared Lists to auth so only signed-in family members can see/edit their own lists. I’ll assume you already have (or can issue) a session JWT cookie at login. If you use Clerk/Supabase/Firebase, I note where to swap the verify step.
+
+1) What the session should contain
+
+When a user signs in, issue a signed JWT cookie (e.g., app_session) with:
+
+{
+  "userId": "usr_123",
+  "familyId": "fam_abc",   // all multi-tenant scoping uses this
+  "name": "Kassandra",
+  "exp": 1699999999
+}
+
+
+Store it as HTTP-only, Secure, SameSite=Lax.
+
+2) Backend: reuse your existing Express server
+
+Add auth verification + CRUD routes. This version uses in-memory Map to keep code short—you can swap to a DB later.
+
+// server.js (same Express app you used for LiveKit token endpoint)
+import express from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import jwt from "jsonwebtoken";
+
+const app = express();
+app.use(express.json());
+app.use(cookieParser());
+
+// CORS: allow your frontends
+app.use(cors({
+  origin: ["https://your-frontend.example", "http://localhost:5173"],
+  credentials: true
+}));
+
+// ===== Auth middleware =====
+const { AUTH_SECRET = "dev_secret_change_me" } = process.env;
+// If using Clerk/Supabase/Firebase, replace this with their official verify helper.
+function verifySession(req, res, next) {
+  const token = req.cookies?.app_session || req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Not authenticated" });
+  try {
+    const payload = jwt.verify(token, AUTH_SECRET);
+    req.user = { userId: payload.userId, familyId: payload.familyId, name: payload.name };
+    next();
+  } catch {
+    return res.status(401).json({ error: "Invalid/expired session" });
+  }
+}
+
+// ===== Simple data store (swap with DB later) =====
+/** Map<familyId, Array<{id,text,assignee,due,done}> > */
+const LISTS = new Map();
+
+// Utility: get array for family
+function listForFamily(familyId) {
+  if (!LISTS.has(familyId)) LISTS.set(familyId, []);
+  return LISTS.get(familyId);
+}
+
+// ===== Lists API =====
+app.get("/api/lists", verifySession, (req, res) => {
+  res.json(listForFamily(req.user.familyId));
+});
+
+app.post("/api/lists", verifySession, (req, res) => {
+  const { text, assignee = "Unassigned", due = "" } = req.body || {};
+  if (!text || typeof text !== "string") return res.status(400).json({ error: "text required" });
+  const item = { id: crypto.randomUUID(), text: text.trim(), assignee, due, done: false };
+  const arr = listForFamily(req.user.familyId);
+  arr.unshift(item);
+  res.status(201).json(item);
+});
+
+app.patch("/api/lists/:id/toggle", verifySession, (req, res) => {
+  const arr = listForFamily(req.user.familyId);
+  const i = arr.findIndex(x => x.id === req.params.id);
+  if (i < 0) return res.status(404).json({ error: "not found" });
+  arr[i].done = !arr[i].done;
+  res.json(arr[i]);
+});
+
+app.delete("/api/lists/:id", verifySession, (req, res) => {
+  const arr = listForFamily(req.user.familyId);
+  const i = arr.findIndex(x => x.id === req.params.id);
+  if (i < 0) return res.status(404).json({ error: "not found" });
+  const [deleted] = arr.splice(i, 1);
+  res.json(deleted);
+});
+
+// Keep your existing /token (LiveKit) route here…
+
+const port = process.env.PORT || 3001;
+app.listen(port, () => console.log("API listening on", port));
+
+
+Using Clerk/Supabase/Firebase? Replace verifySession with their provided middleware and read familyId from your user’s profile/claims.
+
+3) Frontend: wire the modal to the API (with cookies)
+
+Here’s a tiny adapter to drop into the SharedLists.jsx I gave you. It fetches on open and persists changes.
+
+// Add helpers at the top of SharedLists.jsx
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3001";
+
+async function api(path, opts={}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    credentials: "include", // send session cookie
+    headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+    ...opts,
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+Replace the local state with server data when the modal opens
+
+In SharedLists component, change the items handling like this:
+
+// 1) Start with empty; load on modal open
+const [items, setItems] = useState([]);
+
+// 2) When open toggles true, fetch
+useEffect(() => {
+  if (!open) return;
+  api("/api/lists").then(setItems).catch(console.error);
+}, [open]);
+
+// 3) Pass handlers to modal (same names as before)
+
+Update the modal callbacks to hit the API
+
+In the <SharedListsModal …> props you pass:
+
+<SharedListsModal
+  items={items}
+  onClose={() => setOpen(false)}
+  onAdd={async (draft) => {
+    const created = await api("/api/lists", { method: "POST", body: JSON.stringify(draft) });
+    setItems(prev => [created, ...prev]);
+  }}
+  onToggle={async (id) => {
+    const updated = await api(`/api/lists/${id}/toggle`, { method: "PATCH" });
+    setItems(prev => prev.map(i => i.id === id ? updated : i));
+  }}
+  onDelete={async (id) => {
+    await api(`/api/lists/${id}`, { method: "DELETE" });
+    setItems(prev => prev.filter(i => i.id !== id));
+  }}
+/>
+
+
+The rest of the UI code stays the same.
+
+4) Issuing the session cookie (example)
+
+Where you handle login/signup, after verifying the user, issue a JWT:
+
+import jwt from "jsonwebtoken";
+
+app.post("/auth/mock-login", (req, res) => {
+  // Replace with real auth lookup
+  const { userId = "usr_demo", familyId = "fam_demo", name = "Kassandra" } = req.body;
+
+  const token = jwt.sign({ userId, familyId, name }, process.env.AUTH_SECRET, { expiresIn: "7d" });
+
+  res.cookie("app_session", token, {
+    httpOnly: true,
+    secure: true,        // set to true in production (HTTPS)
+    sameSite: "lax",
+    maxAge: 7 * 24 * 3600 * 1000
+  });
+  res.json({ ok: true });
+});
+
+
+Front-end can call /auth/mock-login once after you create the account (only for testing).
+
+5) Lock it down (quick checklist)
+
+✅ Per-family scoping: every query uses req.user.familyId.
+
+✅ No secrets in the browser: session via cookie, server verifies.
+
+✅ CORS: restrict to your domains.
+
+✅ Validation: check text length; sanitize inputs if you display user strings as HTML.
+
+✅ Rate limit (optional): add express-rate-limit to /api/lists*.
+
+✅ DB later: when ready, swap in a DB (SQLite/Postgres/Supabase). Tables:
+
+families(id, name)
+
+users(id, family_id, name, role)
+
+list_items(id, family_id, text, assignee, due_date, done, created_at)
