@@ -51,6 +51,7 @@ import PhotosUpload from '@/pages/photos-upload';
 import PhotosAlbums from '@/pages/photos-albums';
 import PhotosShared from '@/pages/photos-shared';
 import FamilyMeeting from '@/pages/family-meeting';
+import AuthCallback from '@/auth/AuthCallback';
 
 // Placeholder components for family portal pages
 function FamilyMembers() {
@@ -117,6 +118,9 @@ export default function FamilyRouter() {
     <>
       {/* Main Family Routes */}
       <Switch>
+        {/* Auth callback route for magic link completion */}
+        <Route path="/auth/callback" component={AuthCallback} />
+        
         <Route path="/" component={withSidebarLayout(FamilyHome)} />
         <Route path="/family" component={withSidebarLayout(FamilyHome)} />
         <Route path="/family/ids" component={withSidebarLayout(() => <FamilyIds />)} />
