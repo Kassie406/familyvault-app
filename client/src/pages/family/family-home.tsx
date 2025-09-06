@@ -10,7 +10,8 @@ import {
   Umbrella, Receipt, Scale, Building2, BookOpen, 
   Phone, DollarSign, Upload, ShieldAlert,
   UserPlus, Mail, Settings, Share, Camera, FolderOpen, AlertCircle,
-  Zap, Grid, BarChart3, Video
+  Zap, Grid, BarChart3, Video, ListTodo, CalendarDays, User,
+  X, CheckCircle2, Trash2
 } from 'lucide-react';
 import { 
   ActionCard, 
@@ -36,6 +37,7 @@ import { ICECard } from '@/components/family/ICECard';
 import { PolicyModal } from '@/components/documents/PolicyModal';
 import { ApprovalsDrawer } from '@/components/documents/ApprovalsDrawer';
 import { ShareDocumentModal } from '@/components/documents/ShareDocumentModal';
+import { SharedListsModal } from '@/components/family/SharedListsModal';
 
 export default function FamilyHome() {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -47,6 +49,7 @@ export default function FamilyHome() {
   const [policyModalOpen, setPolicyModalOpen] = useState(false);
   const [approvalsDrawerOpen, setApprovalsDrawerOpen] = useState(false);
   const [shareDocumentModalOpen, setShareDocumentModalOpen] = useState(false);
+  const [sharedListsOpen, setSharedListsOpen] = useState(false);
   
   // Navigation hook
   const [, setLocation] = useLocation();
@@ -365,6 +368,42 @@ export default function FamilyHome() {
         { label: "Albums", href: "/photos/albums", icon: <FolderOpen className="h-4 w-4" /> },
         { label: "Shared Galleries", href: "/photos?filter=shared", icon: <Share className="h-4 w-4" /> }
       ]
+    },
+    { 
+      label: 'Shared Lists', 
+      value: 8, 
+      icon: ListTodo,
+      href: '#',
+      onClick: () => setSharedListsOpen(true),
+      fetchPreview: async () => {
+        try {
+          const response = await fetch('/api/lists?limit=5');
+          if (!response.ok) throw new Error('Failed to fetch lists');
+          const data = await response.json();
+          return data.slice(0, 5).map((item: any) => {
+            const dueInfo = item.due ? new Date(item.due) > new Date() ? 
+              `Due ${new Date(item.due).toLocaleDateString()}` : 'Overdue' : '';
+            return {
+              id: item.id,
+              title: item.text,
+              sub: item.assignee ? `Assigned to ${item.assignee}` + (dueInfo ? ` • ${dueInfo}` : '') : dueInfo,
+              href: '#'
+            };
+          });
+        } catch (error) {
+          console.error('Error fetching lists:', error);
+          return [
+            { id: "1", title: "Buy groceries", sub: "Assigned to Mom • Due today", href: "#" },
+            { id: "2", title: "Vacuum living room", sub: "Assigned to Alex", href: "#" },
+            { id: "3", title: "Pack school bags", sub: "Due tomorrow", href: "#" }
+          ];
+        }
+      },
+      dropdownActions: [
+        { label: "Quick Add", onClick: () => setSharedListsOpen(true), icon: <Plus className="h-4 w-4" /> },
+        { label: "View All Lists", onClick: () => setSharedListsOpen(true), icon: <ListTodo className="h-4 w-4" /> },
+        { label: "Family Assignments", onClick: () => setSharedListsOpen(true), icon: <User className="h-4 w-4" /> }
+      ]
     }
   ];
 
@@ -434,17 +473,19 @@ export default function FamilyHome() {
 
       {/* Family Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-        {familyStats.map((stat) => {
+        {familyStats.map((stat, index) => {
           const Icon = stat.icon;
+          const keyValue = typeof stat.label === 'string' ? stat.label : `stat-${index}`;
           return (
             <StatCard 
-              key={stat.label}
+              key={keyValue}
               icon={<Icon className="h-5 w-5" />}
               value={stat.value}
               label={stat.label}
               href={stat.href}
               fetchPreview={async () => stat.previewItems || []}
               dropdownActions={stat.dropdownActions}
+              onClick={stat.onClick}
             />
           );
         })}
@@ -628,6 +669,12 @@ export default function FamilyHome() {
       <ApprovalsDrawer 
         open={approvalsDrawerOpen}
         onClose={() => setApprovalsDrawerOpen(false)}
+      />
+
+      {/* Shared Lists Modal */}
+      <SharedListsModal 
+        open={sharedListsOpen}
+        onClose={() => setSharedListsOpen(false)}
       />
     </div>
   );

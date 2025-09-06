@@ -1,0 +1,270 @@
+Awesome — I’ll set you up with a ready-to-use Supabase version so Shared Lists are private per-family and only visible to signed-in members.
+
+Step 1) Create Supabase project
+
+Make a project at supabase.com.
+
+Copy:
+
+Project URL → VITE_SUPABASE_URL
+
+anon public key → VITE_SUPABASE_ANON_KEY
+
+Add these to your Replit env vars.
+
+Step 2) Run this SQL (Table + RLS)
+
+In Supabase → SQL Editor, paste & run:
+
+-- Profiles: one row per user, stores the family they belong to
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  family_id text not null,
+  name text,
+  created_at timestamptz default now()
+);
+
+alter table public.profiles enable row level security;
+
+-- Let a user read & edit only their own profile
+create policy "read own profile"
+on public.profiles for select
+using ( id = auth.uid() );
+
+create policy "update own profile"
+on public.profiles for update
+using ( id = auth.uid() );
+
+-- Shared list items, scoped by family_id
+create table if not exists public.list_items (
+  id uuid primary key default gen_random_uuid(),
+  family_id text not null,
+  user_id uuid references auth.users(id),
+  text text not null,
+  assignee text,
+  due_date date,
+  done boolean default false,
+  created_at timestamptz default now()
+);
+
+alter table public.list_items enable row level security;
+
+-- Any action only if the user's profile.family_id matches the row's family_id
+create policy "family can read"
+on public.list_items for select
+using (
+  exists (
+    select 1 from public.profiles p
+    where p.id = auth.uid()
+      and p.family_id = list_items.family_id
+  )
+);
+
+create policy "family can insert"
+on public.list_items for insert
+with check (
+  exists (
+    select 1 from public.profiles p
+    where p.id = auth.uid()
+      and p.family_id = list_items.family_id
+  )
+);
+
+create policy "family can update"
+on public.list_items for update
+using (
+  exists (
+    select 1 from public.profiles p
+    where p.id = auth.uid()
+      and p.family_id = list_items.family_id
+  )
+);
+
+create policy "family can delete"
+on public.list_items for delete
+using (
+  exists (
+    select 1 from public.profiles p
+    where p.id = auth.uid()
+      and p.family_id = list_items.family_id
+  )
+);
+
+
+For each user you create, set their profiles.family_id to the same value (e.g., "fam_gds"). Members with the same family_id see the same lists.
+
+Step 3) Add Supabase to your React app
+npm i @supabase/supabase-js
+
+
+Create lib/supabase.js:
+
+import { createClient } from "@supabase/supabase-js";
+export const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
+Step 4) Replace the SharedLists data layer (uses RLS)
+
+In your SharedLists.jsx, add these helpers and swap the API calls:
+
+import { supabase } from "../lib/supabase";
+
+/* Load user's family_id from their profile */
+async function getFamilyId() {
+  const { data: { user }, error: uErr } = await supabase.auth.getUser();
+  if (uErr || !user) throw new Error("Not signed in");
+  const { data: prof, error } = await supabase
+    .from("profiles")
+    .select("family_id")
+    .eq("id", user.id)
+    .single();
+  if (error) throw error;
+  return prof.family_id;
+}
+
+/* CRUD bound by RLS to family_id */
+export async function loadItems() {
+  const fam = await getFamilyId();
+  const { data, error } = await supabase
+    .from("list_items")
+    .select("*")
+    .eq("family_id", fam)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function addItem({ text, assignee, due }) {
+  const fam = await getFamilyId();
+  const { data, error } = await supabase
+    .from("list_items")
+    .insert({
+      family_id: fam,
+      text,
+      assignee: assignee || "Unassigned",
+      due_date: due || null,
+      done: false,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function toggleItem(id) {
+  // Flip done = not done
+  const { data: row, error } = await supabase
+    .from("list_items")
+    .update({ done: supabase.rpc ? undefined : null }) // placeholder for clients; we’ll fetch & invert below
+    .eq("id", id)
+    .select()
+    .single();
+  // If your client can't atomically invert, do 2-step:
+  if (error || !row) {
+    // read current, then update
+    const { data: current } = await supabase.from("list_items").select("done").eq("id", id).single();
+    const { data: updated, error: e2 } = await supabase
+      .from("list_items")
+      .update({ done: !current.done })
+      .eq("id", id)
+      .select()
+      .single();
+    if (e2) throw e2;
+    return updated;
+  }
+  return row;
+}
+
+export async function deleteItem(id) {
+  const { data, error } = await supabase
+    .from("list_items")
+    .delete()
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+
+Now, in the component where the modal opens, replace the previous handlers:
+
+// when modal opens, load from Supabase
+useEffect(() => {
+  if (!open) return;
+  loadItems().then(setItems).catch(console.error);
+}, [open]);
+
+<SharedListsModal
+  items={items}
+  onClose={() => setOpen(false)}
+  onAdd={async (draft) => {
+    const created = await addItem(draft);
+    setItems(prev => [created, ...prev]);
+  }}
+  onToggle={async (id) => {
+    const updated = await toggleItem(id);
+    setItems(prev => prev.map(i => i.id === id ? updated : i));
+  }}
+  onDelete={async (id) => {
+    await deleteItem(id);
+    setItems(prev => prev.filter(i => i.id !== id));
+  }}
+/>
+
+Step 5) Sign-in flow (simple email link or password)
+
+You can wire any Supabase auth UI. Quick example for magic link:
+
+// SignIn.jsx
+import { supabase } from "../lib/supabase";
+import { useState } from "react";
+
+export default function SignIn() {
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+
+  async function sendLink(e) {
+    e.preventDefault();
+    const { error } = await supabase.auth.signInWithOtp({ email });
+    if (error) alert(error.message);
+    else setSent(true);
+  }
+
+  return sent ? (
+    <p>Check your email for the sign-in link.</p>
+  ) : (
+    <form onSubmit={sendLink} className="space-x-2">
+      <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@email.com" />
+      <button type="submit">Send link</button>
+    </form>
+  );
+}
+
+
+After a new user signs in the first time, set their profiles.family_id (one-time) so they join the right family group.
+
+Example (admin tool or API route):
+
+// Call this once per new user after you know their family
+await supabase.from("profiles").upsert({
+  id: user.id,
+  family_id: "fam_gds",
+  name: user.email
+});
+
+Step 6) Keep your LiveKit token server
+
+You can keep your existing Express server for LiveKit tokens. No change needed. Supabase handles lists via RLS directly from the frontend (safe with the anon key), while the LiveKit secret stays server-only.
+
+What you get now
+
+✅ Authenticated users only (Supabase Auth)
+
+✅ Data isolation per family (RLS policies)
+
+✅ No backend code needed for lists (frontend calls Supabase directly)
+
+✅ Your existing backend stays for LiveKit tokens

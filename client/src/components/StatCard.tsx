@@ -16,6 +16,7 @@ type StatCardProps = {
   href: string;              // where to go on click
   icon: React.ReactNode;     // icon element
   secondaryIcon?: React.ReactNode; // optional secondary icon after label
+  onClick?: () => void;      // optional click handler instead of href
   fetchPreview?: () => Promise<PreviewItem[]>; // called on button click
   emptyText?: string;        // fallback when no recent items
   dropdownActions?: { label: string; href?: string; onClick?: () => void; icon?: React.ReactNode }[]; // action menu items
@@ -28,6 +29,7 @@ export function StatCard({
   href,
   icon,
   secondaryIcon,
+  onClick,
   fetchPreview,
   emptyText = "No recent activity",
   dropdownActions = [],
@@ -83,15 +85,19 @@ export function StatCard({
     }
   }
 
+  const baseClassName = "group no-hover-bg rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] hover:shadow-xl hover:shadow-[#D4AF37]/10 hover:border-[#D4AF37]/30 focus:outline-none focus:ring-2 focus:ring-amber-400/40 transition-all duration-300";
+  
   return (
     <div ref={wrapRef} className="relative">
-      <Link
-        href={href}
-        className="group no-hover-bg block rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] hover:shadow-xl hover:shadow-[#D4AF37]/10 hover:border-[#D4AF37]/30 focus:outline-none focus:ring-2 focus:ring-amber-400/40 transition-all duration-300"
-        aria-describedby={`${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'stat-card'}-desc`}
-        data-testid={`stat-card-${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'custom'}`}
-      >
-        <div className="flex items-center justify-between">
+      {onClick ? (
+        <button
+          onClick={onClick}
+          type="button"
+          className={`${baseClassName} w-full text-left`}
+          aria-describedby={`${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'stat-card'}-desc`}
+          data-testid={`stat-card-${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'custom'}`}
+        >
+          <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {React.cloneElement(icon as React.ReactElement, {
               className: "h-6 w-6 text-amber-400/70 group-hover:text-amber-400 group-hover:shadow-lg group-hover:shadow-[#D4AF37]/30 transition-all"
@@ -128,8 +134,55 @@ export function StatCard({
           </button>
         </div>
 
-        <p className="mt-3 text-3xl font-bold text-[#D4AF37]">{value}</p>
-      </Link>
+          <p className="mt-3 text-3xl font-bold text-[#D4AF37]">{value}</p>
+        </button>
+      ) : (
+        <Link
+          href={href}
+          className={`${baseClassName} block`}
+          aria-describedby={`${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'stat-card'}-desc`}
+          data-testid={`stat-card-${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'custom'}`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {React.cloneElement(icon as React.ReactElement, {
+                className: "h-6 w-6 text-amber-400/70 group-hover:text-amber-400 group-hover:shadow-lg group-hover:shadow-[#D4AF37]/30 transition-all"
+              })}
+              <span className="text-sm font-bold text-white group-hover:text-[#D4AF37] transition-colors flex items-center gap-2" id={`${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'stat-card'}-desc`}>
+                {label}
+                {secondaryIcon && (
+                  <span className="h-4 w-4 text-amber-400/70 group-hover:text-amber-400 transition-all flex items-center">
+                    {secondaryIcon}
+                  </span>
+                )}
+              </span>
+            </div>
+
+            {/* The ONLY trigger for the preview */}
+            <button
+              type="button"
+              aria-expanded={open}
+              aria-controls={`stat-preview-${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'custom'}`}
+              className="inline-flex items-center gap-1 rounded-md px-3 py-2
+                         text-xs font-medium text-zinc-500 hover:text-amber-400
+                         focus:outline-none focus:ring-2 focus:ring-amber-400/40
+                         touch-manipulation min-h-[44px] md:min-h-0 md:px-2 md:py-1"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                togglePreview();
+              }}
+            >
+              Recent
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
+              />
+            </button>
+          </div>
+
+          <p className="mt-3 text-3xl font-bold text-[#D4AF37]">{value}</p>
+        </Link>
+      )}
 
       {/* Anchored preview panel (responsive) */}
       <div
