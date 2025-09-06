@@ -1,0 +1,124 @@
+Api Management Landing Page + Backend (express + Drizzle)
+· typescript
+// =============================================
+  }
+
+
+  // 4) Birthdays in next 7 days
+  for (const u of familyUsers){
+    if (!u.birthDate) continue;
+    const upcoming = new Date(now.getFullYear(), new Date(u.birthDate).getMonth(), new Date(u.birthDate).getDate());
+    const in7 = addDays(now, 7);
+    if (upcoming >= now && upcoming <= in7){
+      await db.insert(familyUpdates).values({
+        familyId,
+        type: "birthday",
+        title: `${u.name}'s birthday is coming up!`,
+        body: `Celebrate on ${upcoming.toLocaleDateString()}.`,
+        severity: "info",
+        dueAt: upcoming,
+        meta: { userId: u.id }
+      });
+    }
+  }
+}
+
+
+// =============================================
+// FRONTEND: FamilyUpdates component
+// File: client/src/components/family/FamilyUpdates.tsx
+import React, { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+
+
+function dot(severity: string){
+  return severity === "urgent" ? "bg-red-500" : severity === "warning" ? "bg-yellow-400" : "bg-yellow-400";
+}
+
+
+export default function FamilyUpdates(){
+  const [items,setItems] = useState<any[]>([]);
+  const load = async () => { const r = await fetch("/api/updates"); const d = await r.json(); setItems(d.items??[]); };
+  useEffect(()=>{ load(); },[]);
+
+
+  const dismiss = async (id:string) => { const r = await fetch(`/api/updates/${id}/dismiss`, { method:"POST" }); if(r.ok) setItems(prev=>prev.filter(x=>x.id!==id)); };
+
+
+  return (
+    <div className="space-y-3">
+      {items.length===0 && <div className="text-gray-500 text-sm">No updates right now</div>}
+      {items.map(u=> (
+        <div key={u.id} className="rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-3">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className={`inline-block h-2 w-2 rounded-full ${dot(u.severity)}`}/>
+                <div className="font-semibold">{u.title}</div>
+              </div>
+              {u.body && <div className="text-sm text-gray-400 mt-1">{u.body}</div>}
+              <div className="text-xs text-gray-500 mt-1">{u.dueAt ? `Due: ${new Date(u.dueAt).toLocaleString()}` : "Action recommended"}</div>
+            </div>
+            <div className="flex gap-2">
+              {u.actionUrl && <a href={u.actionUrl}><Button variant="outline" className="border-yellow-500/30 text-yellow-400">Open</Button></a>}
+              <Button variant="ghost" className="text-gray-400 hover:text-gray-200" onClick={()=>dismiss(u.id)}>Dismiss</Button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
+// =============================================
+// FRONTEND: Integrate into dashboard section
+// File: client/src/pages/family/dashboard.tsx
+// <Card className="bg-zinc-900 border border-zinc-800 rounded-2xl">
+//   <CardHeader><CardTitle>Family Updates</CardTitle></CardHeader>
+//   <CardContent><FamilyUpdates/></CardContent>
+// </Card>
+
+
+// =============================================
+// REALTIME (optional): push updates via WebSocket using the same hub
+// In worker or wherever you insert an update, after insert broadcast:
+// broadcastFamily(familyId, { type: "updates:new", item })
+// And on client, subscribe similarly to ActivityFeed to prepend new notices.
+
+
+
+
+
+Great choice. I set up Family Updates as a dedicated Reminders & Notices system (separate from the live Activity feed). It’s designed for things like insurance renewals, upcoming meetings, birthdays, security nudges, and doc expirations.
+
+What’s included (already added to the canvas)
+
+DB table family_updates with fields for type, title, body, severity (info|warning|urgent), dueAt, actionUrl, meta, and isDismissed.
+
+API routes
+
+GET /api/updates – list top, non-dismissed updates.
+
+POST /api/updates – create a manual notice.
+
+POST /api/updates/:id/dismiss – hide a notice.
+
+Auto-generation worker (daily)
+
+Insurance renewals (from Insurance docs with meta.renewalDate).
+
+Security reminders (accounts missing 2FA).
+
+Birthdays in the next 7 days.
+
+Stub to add meetings / other rules.
+
+Frontend component FamilyUpdates
+
+Dark+gold cards, “Open” (link) + “Dismiss” buttons.
+
+Drop-in snippet for your dashboard card.
+
+Optional realtime push via your existing WebSocket hub (updates:new), same pattern as Activity.

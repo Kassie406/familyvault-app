@@ -25,6 +25,7 @@ import NotificationCenter from '@/components/family/NotificationCenter';
 import QuickAccessPanel from '@/components/family/QuickAccessPanel';
 import ActivityFeed from '@/components/family/ActivityFeed';
 import DashboardWidget from '@/components/family/DashboardWidget';
+import FamilyUpdates from '@/components/family/FamilyUpdates';
 import MobileNavigationBar from '@/components/family/MobileNavigationBar';
 import { PolicyModal } from '@/components/documents/PolicyModal';
 import { ApprovalsDrawer } from '@/components/documents/ApprovalsDrawer';
@@ -416,26 +417,10 @@ export default function FamilyHome() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-[var(--ink-100)] flex items-center">
                 <Bell className="w-5 h-5 mr-2 text-[var(--gold)]" />
-                Family Updates
+                Family Updates (Reminders & Notices)
               </h2>
             </div>
-            <div className="space-y-4">
-              <AnnouncementCard 
-                title="Insurance Renewal Due"
-                body="Your family insurance policy expires in 15 days. Click to review and renew."
-                meta="Due: March 15, 2024"
-              />
-              <AnnouncementCard 
-                title="Family Meeting Scheduled"
-                body="Monthly family check-in this Sunday at 6 PM. We'll discuss vacation plans and budget updates."
-                meta="This Sunday, 6:00 PM"
-              />
-              <AnnouncementCard 
-                title="Password Security Review"
-                body="2 family accounts need password updates for better security."
-                meta="Action required"
-              />
-            </div>
+            <FamilyUpdates />
           </div>
         </div>
       ) : (
