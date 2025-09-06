@@ -94,17 +94,23 @@ interface CalendarState {
   sidebarOpen: boolean;
 }
 
-// Color options for events
-const eventColors = [
-  '#D4AF37', // Gold (default)
-  '#EF4444', // Red
-  '#10B981', // Green  
-  '#3B82F6', // Blue
-  '#8B5CF6', // Purple
-  '#F59E0B', // Amber
-  '#EC4899', // Pink
-  '#6B7280'  // Gray
-];
+// Calendar color mapping - each calendar has its specific color
+const calendarColors: Record<string, string> = {
+  'Family Events': '#D4AF37', // Gold/Yellow
+  'Personal': '#EF4444', // Red
+  'Work': '#10B981', // Green
+  'Birthdays': '#3B82F6', // Blue
+  'Holidays in United States': '#8B5CF6', // Purple
+  'Personal Tasks': '#F59E0B', // Amber
+  'Medical Appointments': '#EF4444', // Red
+  'Business Appointments': '#3B82F6', // Blue
+  'Personal Appointments': '#10B981', // Green
+};
+
+// Get color for a specific calendar
+const getCalendarColor = (calendarName: string): string => {
+  return calendarColors[calendarName] || '#D4AF37'; // Default to gold
+};
 
 // Calendar labels and icons
 const Circle = ({ className, style }: { className: string; style?: any }) => (
@@ -299,7 +305,7 @@ export default function GoogleStyleCalendar() {
         title: 'Family Movie Night',
         start: new Date(2025, 0, 30, 19, 0),
         end: new Date(2025, 0, 30, 21, 30),
-        color: '#D4AF37',
+        color: getCalendarColor('Family Events'),
         location: 'Living Room',
         calendar: 'Family Events'
       },
@@ -308,7 +314,7 @@ export default function GoogleStyleCalendar() {
         title: 'Soccer Practice',
         start: new Date(2025, 0, 31, 16, 0),
         end: new Date(2025, 0, 31, 17, 30),
-        color: '#3B82F6',
+        color: getCalendarColor('Personal'),
         location: 'Community Center',
         calendar: 'Personal'
       },
@@ -317,7 +323,7 @@ export default function GoogleStyleCalendar() {
         title: 'Birthday Party',
         start: new Date(2025, 1, 2, 14, 0),
         end: new Date(2025, 1, 2, 17, 0),
-        color: '#EF4444',
+        color: getCalendarColor('Birthdays'),
         location: 'Park',
         calendar: 'Birthdays'
       },
@@ -326,7 +332,7 @@ export default function GoogleStyleCalendar() {
         title: 'Martin Luther King Jr. Day',
         start: new Date(2025, 0, 20, 0, 0),
         end: new Date(2025, 0, 20, 23, 59),
-        color: '#10B981',
+        color: getCalendarColor('Holidays in United States'),
         allDay: true,
         calendar: 'Holidays in United States'
       }
@@ -339,7 +345,7 @@ export default function GoogleStyleCalendar() {
         priority: 'high',
         completed: false,
         description: 'Research destinations and book accommodation',
-        color: '#D4AF37',
+        color: getCalendarColor('Personal Tasks'),
         calendar: 'Personal Tasks'
       },
       {
@@ -349,7 +355,7 @@ export default function GoogleStyleCalendar() {
         priority: 'medium',
         completed: false,
         description: 'Milk, bread, eggs, vegetables',
-        color: '#3B82F6',
+        color: getCalendarColor('Personal Tasks'),
         calendar: 'Personal Tasks'
       }
     ],
@@ -364,7 +370,7 @@ export default function GoogleStyleCalendar() {
         appointmentType: 'medical',
         notes: 'Annual checkup',
         reminderMinutes: 30,
-        color: '#EF4444',
+        color: getCalendarColor('Medical Appointments'),
         calendar: 'Medical Appointments'
       },
       {
@@ -377,7 +383,7 @@ export default function GoogleStyleCalendar() {
         appointmentType: 'business',
         notes: 'Project discussion and planning',
         reminderMinutes: 15,
-        color: '#3B82F6',
+        color: getCalendarColor('Business Appointments'),
         calendar: 'Business Appointments'
       }
     ],
@@ -846,7 +852,7 @@ export default function GoogleStyleCalendar() {
                     onChange={() => setMyCals(prev => ({ ...prev, [calName]: !prev[calName] }))}
                     className="accent-[#D4AF37] focus:ring-[#D4AF37]"
                   />
-                  <Circle className="h-3 w-3" style={{ backgroundColor: eventColors[i % eventColors.length] }} />
+                  <Circle className="h-3 w-3" style={{ backgroundColor: getCalendarColor(calName) }} />
                   <span className="text-gray-300">{calName}</span>
                 </label>
               ))}
@@ -879,7 +885,7 @@ export default function GoogleStyleCalendar() {
                     onChange={() => setOtherCals(prev => ({ ...prev, [calName]: !prev[calName] }))}
                     className="accent-[#D4AF37] focus:ring-[#D4AF37]"
                   />
-                  <Circle className="h-3 w-3" style={{ backgroundColor: eventColors[(i + Object.keys(myCals).length) % eventColors.length] }} />
+                  <Circle className="h-3 w-3" style={{ backgroundColor: getCalendarColor(calName) }} />
                   <span className="text-gray-300">{calName}</span>
                 </label>
               ))}
@@ -1110,7 +1116,7 @@ function TaskModal({
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>(task?.priority || 'medium');
   const [completed, setCompleted] = useState(task?.completed || false);
   const [description, setDescription] = useState(task?.description || '');
-  const [color, setColor] = useState(task?.color || eventColors[0]);
+  const [color, setColor] = useState(task?.color || getCalendarColor('Personal Tasks'));
   
   const priorityOptions = [
     { value: 'low', label: 'Low', color: '#10B981' },
@@ -1237,20 +1243,15 @@ function TaskModal({
             />
           </div>
 
-          {/* Color */}
+          {/* Color - Auto-assigned based on calendar */}
           <div>
             <label className="block text-xs text-gray-400 mb-2">Color</label>
-            <div className="flex gap-2">
-              {eventColors.map(colorOption => (
-                <button
-                  key={colorOption}
-                  onClick={() => setColor(colorOption)}
-                  className={`w-6 h-6 rounded-full border-2 ${
-                    color === colorOption ? 'border-white' : 'border-zinc-600'
-                  }`}
-                  style={{ backgroundColor: colorOption }}
-                />
-              ))}
+            <div className="flex items-center gap-3">
+              <div
+                className="w-6 h-6 rounded-full border-2 border-white"
+                style={{ backgroundColor: color }}
+              />
+              <span className="text-sm text-gray-300">Auto-assigned based on calendar</span>
             </div>
           </div>
         </div>
@@ -1338,7 +1339,7 @@ function AppointmentModal({
   );
   const [notes, setNotes] = useState(appointment?.notes || '');
   const [reminderMinutes, setReminderMinutes] = useState(appointment?.reminderMinutes || 15);
-  const [color, setColor] = useState(appointment?.color || eventColors[0]);
+  const [color, setColor] = useState(appointment?.color || getCalendarColor('Personal Appointments'));
   
   const appointmentTypeOptions = [
     { value: 'medical', label: 'Medical', color: '#EF4444' },
@@ -1517,20 +1518,15 @@ function AppointmentModal({
             />
           </div>
 
-          {/* Color */}
+          {/* Color - Auto-assigned based on calendar */}
           <div>
             <label className="block text-xs text-gray-400 mb-2">Color</label>
-            <div className="flex gap-2">
-              {eventColors.map(colorOption => (
-                <button
-                  key={colorOption}
-                  onClick={() => setColor(colorOption)}
-                  className={`w-6 h-6 rounded-full border-2 ${
-                    color === colorOption ? 'border-white' : 'border-zinc-600'
-                  }`}
-                  style={{ backgroundColor: colorOption }}
-                />
-              ))}
+            <div className="flex items-center gap-3">
+              <div
+                className="w-6 h-6 rounded-full border-2 border-white"
+                style={{ backgroundColor: color }}
+              />
+              <span className="text-sm text-gray-300">Auto-assigned based on calendar</span>
             </div>
           </div>
         </div>
@@ -1877,7 +1873,16 @@ function EventModal({
   );
   const [location, setLocation] = useState(event?.location || '');
   const [notes, setNotes] = useState(event?.notes || '');
-  const [color, setColor] = useState(event?.color || eventColors[0]);
+  const [selectedCalendar, setSelectedCalendar] = useState(event?.calendar || 'Family Events');
+  const [color, setColor] = useState(event?.color || getCalendarColor(event?.calendar || 'Family Events'));
+  
+  // Update color when calendar changes
+  useEffect(() => {
+    setColor(getCalendarColor(selectedCalendar));
+  }, [selectedCalendar]);
+  
+  // Available calendars for selection
+  const availableCalendars = ['Family Events', 'Personal', 'Work', 'Birthdays'];
   
   // Recurrence state
   const [recur, setRecur] = useState(event?.recurrence ? 'custom' : 'none');
@@ -1935,7 +1940,7 @@ function EventModal({
       notes: notes.trim(),
       color,
       recurrence: buildRecurrenceRule(),
-      calendar: mode === 'create' ? 'Family Events' : event?.calendar || 'Family Events'
+      calendar: selectedCalendar
     };
 
     if (mode === 'create') {
@@ -2045,6 +2050,25 @@ function EventModal({
               rows={3}
               className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] resize-none"
             />
+          </div>
+
+          {/* Calendar Selection */}
+          <div className="flex items-center gap-3">
+            <CalIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            <div className="flex-1">
+              <label className="block text-xs text-gray-400 mb-1">Calendar</label>
+              <select 
+                value={selectedCalendar} 
+                onChange={(e) => setSelectedCalendar(e.target.value)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+              >
+                {availableCalendars.map(calendar => (
+                  <option key={calendar} value={calendar}>
+                    {calendar}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Recurrence */}
@@ -2159,20 +2183,15 @@ function EventModal({
             )}
           </div>
 
-          {/* Color */}
+          {/* Color - Auto-assigned based on calendar */}
           <div>
             <label className="block text-xs text-gray-400 mb-2">Color</label>
-            <div className="flex gap-2">
-              {eventColors.map(colorOption => (
-                <button
-                  key={colorOption}
-                  onClick={() => setColor(colorOption)}
-                  className={`w-6 h-6 rounded-full border-2 ${
-                    color === colorOption ? 'border-white' : 'border-zinc-600'
-                  }`}
-                  style={{ backgroundColor: colorOption }}
-                />
-              ))}
+            <div className="flex items-center gap-3">
+              <div
+                className="w-6 h-6 rounded-full border-2 border-white"
+                style={{ backgroundColor: color }}
+              />
+              <span className="text-sm text-gray-300">Auto-assigned based on calendar</span>
             </div>
           </div>
         </div>
