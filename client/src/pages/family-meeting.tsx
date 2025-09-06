@@ -4,11 +4,14 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { LiveKitRoom, GridLayout, ParticipantTile, RoomAudioRenderer, ControlBar, PreJoin } from "@livekit/components-react";
+import "@livekit/components-styles";
 
 interface Meeting {
   id: string;
+  roomName: string;
   title: string;
   createdBy: string;
   createdAt: string;
@@ -20,6 +23,14 @@ interface Meeting {
     status: 'connected' | 'disconnected';
   }>;
   shareableLink: string;
+  livekitUrl: string;
+}
+
+interface LiveKitToken {
+  token: string;
+  serverUrl: string;
+  roomName: string;
+  meeting: Meeting;
 }
 
 export default function FamilyMeeting() {
@@ -28,26 +39,56 @@ export default function FamilyMeeting() {
   const [micEnabled, setMicEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [hasJoined, setHasJoined] = useState(false);
+  const [livekitToken, setLivekitToken] = useState<LiveKitToken | null>(null);
+  const [isGettingToken, setIsGettingToken] = useState(false);
+  
+  // Check for token in URL params
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlToken = urlParams.get('token');
 
   // Fetch meeting details
   const { data: meeting, isLoading } = useQuery({
     queryKey: [`/api/family/meeting/${meetingId}`],
     queryFn: async () => {
-      // TODO: Replace with real API call
-      return {
-        id: meetingId,
-        title: "Family Group Meeting",
-        createdBy: "Mom",
-        createdAt: new Date().toISOString(),
-        status: 'active',
-        participants: [
-          { id: "user-1", name: "Mom", joinedAt: new Date().toISOString(), status: 'connected' },
-          { id: "user-2", name: "Dad", joinedAt: new Date().toISOString(), status: 'connected' },
-        ],
-        shareableLink: `${window.location.origin}/family/meeting/${meetingId}?join=true`
-      } as Meeting;
-    }
+      const response = await fetch(`/api/family/meeting/${meetingId}`);
+      if (!response.ok) {
+        throw new Error('Meeting not found');
+      }
+      return response.json() as Meeting;
+    },
+    retry: false
   });
+
+  // Generate or use existing token for LiveKit
+  useEffect(() => {
+    if (urlToken && meeting) {
+      // Use token from URL
+      setLivekitToken({
+        token: urlToken,
+        serverUrl: meeting.livekitUrl,
+        roomName: meeting.roomName,
+        meeting
+      });
+    } else if (meeting && !livekitToken && !isGettingToken) {
+      // Get fresh token from API
+      setIsGettingToken(true);
+      fetch(`/api/family/meeting/${meetingId}/token`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          setLivekitToken(data);
+          setIsGettingToken(false);
+        })
+        .catch(error => {
+          console.error('Failed to get LiveKit token:', error);
+          toast({
+            title: "Connection Error",
+            description: "Failed to get meeting token. Please try refreshing.",
+            variant: "destructive"
+          });
+          setIsGettingToken(false);
+        });
+    }
+  }, [meeting, urlToken, livekitToken, isGettingToken, meetingId, toast]);
 
   const copyMeetingLink = async () => {
     if (!meeting) return;
@@ -67,11 +108,13 @@ export default function FamilyMeeting() {
   };
 
   const joinMeeting = () => {
-    setHasJoined(true);
-    toast({
-      title: "Joined Meeting",
-      description: "You've joined the family group chat.",
-    });
+    if (livekitToken) {
+      setHasJoined(true);
+      toast({
+        title: "Joined Meeting",
+        description: "You've joined the family video meeting.",
+      });
+    }
   };
 
   const leaveMeeting = () => {
@@ -80,12 +123,14 @@ export default function FamilyMeeting() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || (meeting && !livekitToken && !isGettingToken)) {
     return (
       <div className="min-h-screen bg-[var(--bg-900)] text-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--gold)] mx-auto mb-4"></div>
-          <p className="text-white/70">Loading family meeting...</p>
+          <p className="text-white/70">
+            {isLoading ? 'Loading family meeting...' : 'Preparing secure connection...'}
+          </p>
         </div>
       </div>
     );
@@ -213,57 +258,48 @@ export default function FamilyMeeting() {
 
                 <Button
                   onClick={joinMeeting}
-                  className="bg-[var(--gold)] text-black hover:bg-[var(--gold)]/90 w-full py-3"
+                  disabled={!livekitToken}
+                  className="bg-[var(--gold)] text-black hover:bg-[var(--gold)]/90 w-full py-3 disabled:opacity-50"
                   data-testid="button-join-meeting"
                 >
                   <Users className="h-5 w-5 mr-2" />
-                  Join Meeting
+                  {livekitToken ? 'Join Meeting' : 'Preparing...'}
                 </Button>
               </CardContent>
             </Card>
           </div>
         ) : (
-          /* In-Meeting Screen */
-          <div className="text-center">
-            <Card className="bg-[var(--bg-800)] border-white/10 max-w-4xl mx-auto">
-              <CardContent className="p-8">
-                <div className="w-24 h-24 bg-[var(--gold)] rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Users className="h-12 w-12 text-black" />
+          /* LiveKit Video Meeting */
+          <div className="h-full">
+            {livekitToken ? (
+              <LiveKitRoom
+                serverUrl={livekitToken.serverUrl}
+                token={livekitToken.token}
+                connect
+                audio={micEnabled}
+                video={videoEnabled}
+                data-lk-theme="default"
+                className="h-full"
+                style={{ height: 'calc(100vh - 140px)' }}
+              >
+                <RoomAudioRenderer />
+                <div className="flex flex-col h-full">
+                  <div className="flex-1 p-3">
+                    <GridLayout className="h-full rounded-2xl border border-zinc-800 bg-zinc-900/50">
+                      <ParticipantTile />
+                    </GridLayout>
+                  </div>
+                  <div className="border-t border-zinc-800 p-2 bg-zinc-900/60">
+                    <ControlBar variation="minimal" />
+                  </div>
                 </div>
-                <h2 className="text-2xl font-semibold text-white mb-4">Family Group Chat Active</h2>
-                <p className="text-white/70 mb-8">
-                  You're now connected to the family meeting. This is where the video/audio interface would be integrated.
-                </p>
-                
-                {/* Meeting Controls */}
-                <div className="flex items-center justify-center gap-4 mb-8">
-                  <Button
-                    variant="outline"
-                    onClick={() => setMicEnabled(!micEnabled)}
-                    className={`border-white/20 ${micEnabled ? 'text-white hover:bg-white/10' : 'bg-red-600/20 text-red-400'}`}
-                  >
-                    {micEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setVideoEnabled(!videoEnabled)}
-                    className={`border-white/20 ${videoEnabled ? 'text-white hover:bg-white/10' : 'bg-red-600/20 text-red-400'}`}
-                  >
-                    {videoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
-                  </Button>
-                  <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                    <Settings className="h-5 w-5" />
-                  </Button>
-                </div>
-
-                <div className="bg-white/5 rounded-lg p-4">
-                  <p className="text-white/60 text-sm">
-                    💡 <strong>Integration Note:</strong> This interface would integrate with video calling services 
-                    like Zoom, Google Meet, or WebRTC for actual video/audio functionality.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+              </LiveKitRoom>
+            ) : (
+              <div className="text-center py-20">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--gold)] mx-auto mb-4"></div>
+                <p className="text-white/70">Connecting to secure meeting room...</p>
+              </div>
+            )}
           </div>
         )}
       </div>
