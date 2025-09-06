@@ -1,0 +1,77 @@
+we’ll make portal.familycirclesecure.com truly members-only. Here’s the clean, reliable setup:
+
+Make the portal invite-only (Supabase)
+
+Auth → Providers → Email
+
+Turn OFF “Allow new users to sign up.”
+
+Turn ON “Confirm email” (magic link).
+
+Invite members only
+
+In Supabase → Authentication → Users → Invite user, enter approved emails.
+
+They’ll receive your magic-link email and can sign in. No public signups.
+
+Brand the emails
+
+Auth → SMTP: add your SMTP (or Supabase SMTP).
+
+Set “Sender” as no-reply@familycirclesecure.com.
+
+Add DNS SPF/DKIM for your domain so emails land in inbox.
+
+App redirects
+
+Auth → URL Configuration: set your site URL to https://portal.familycirclesecure.com.
+
+Add redirect URLs for magic links (e.g., https://portal.familycirclesecure.com/).
+
+Gate every page behind login
+
+Wrap your app with the RequireAuth component I gave you.
+
+Not signed in → see Sign In.
+
+Signed in → see Dashboard.
+
+Family isolation (privacy)
+
+Ensure each invited user gets a profiles.family_id. (One-time when they first sign in.)
+
+RLS policies already make data visible only to users with the same family_id.
+
+Lock down your backend (LiveKit + APIs)
+
+For your LiveKit /token endpoint, verify Supabase session before issuing a token:
+
+Send the Supabase access_token from the client as Authorization: Bearer <token>.
+
+On the server, verify it via Supabase Admin or a JWT check before creating the LiveKit token.
+
+CORS: allow only https://portal.familycirclesecure.com.
+
+HTTPS only, session cookies Secure + SameSite=Lax.
+
+Optional hardening (nice to have)
+
+Allowlist invites only (you’re already doing this with “Disable signups”).
+
+Rate limit auth + API routes.
+
+Bot protection on the email form (hCaptcha/Turnstile).
+
+Short sessions (e.g., 7 days) + visible Sign out button.
+
+Quick checklist to finish
+
+ Point DNS: portal.familycirclesecure.com → your hosting (Vercel/Netlify/Replit).
+
+ Supabase: disable public signups; set SMTP + branded sender; configure URL redirects.
+
+ Use RequireAuth wrapper in your app.
+
+ On first login, upsert profiles.family_id for each invited member.
+
+ Verify Supabase token in your LiveKit token server; restrict CORS to the portal domain.
