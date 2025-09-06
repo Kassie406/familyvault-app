@@ -1,4 +1,5 @@
-import { RRule, RRuleSet, rrulestr } from "rrule";
+import * as rrule from "rrule";
+const { RRule, rrulestr } = rrule as any;
 
 export interface RecurrenceRule {
   freq: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
