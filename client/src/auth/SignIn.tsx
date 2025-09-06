@@ -9,28 +9,19 @@ export default function SignIn() {
     e.preventDefault();
     
     try {
-      console.log("Attempting to send magic link to:", email);
-      console.log("Supabase URL:", import.meta.env.VITE_SUPABASE_URL);
-      console.log("Supabase Anon Key:", import.meta.env.VITE_SUPABASE_ANON_KEY ? "Present" : "Missing");
-      
       const { data, error } = await supabase.auth.signInWithOtp({ 
         email,
         options: {
-          emailRedirectTo: window.location.origin
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
       
-      console.log("Supabase response:", { data, error });
-      
       if (error) {
-        console.error("Supabase error:", error);
         alert(`Authentication error: ${error.message}`);
       } else {
-        console.log("Magic link sent successfully");
         setSent(true);
       }
     } catch (err) {
-      console.error("Unexpected error:", err);
       alert(`Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   }
