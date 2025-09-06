@@ -553,7 +553,10 @@ export class DatabaseStorage implements IStorage {
 
   async getActiveImpersonationSession(actorId: string): Promise<ImpersonationSession | undefined> {
     const result = await db.select().from(impersonationSessions)
-      .where(sql`${impersonationSessions.actorId} = ${actorId} AND ${impersonationSessions.status} = 'active'`)
+      .where(and(
+        eq(impersonationSessions.actorId, actorId),
+        eq(impersonationSessions.status, 'active')
+      ))
       .limit(1);
     return result[0];
   }
@@ -588,7 +591,10 @@ export class DatabaseStorage implements IStorage {
 
   async getExpiredImpersonationSessions(): Promise<ImpersonationSession[]> {
     return await db.select().from(impersonationSessions)
-      .where(sql`${impersonationSessions.status} = 'active' AND ${impersonationSessions.expiresAt} < NOW()`);
+      .where(and(
+        eq(impersonationSessions.status, 'active'),
+        sql`${impersonationSessions.expiresAt} < NOW()`
+      ));
   }
 
   // GDPR Compliance methods
