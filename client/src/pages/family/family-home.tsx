@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { formatDistanceToNow } from 'date-fns';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
@@ -248,11 +249,33 @@ export default function FamilyHome() {
       value: 12, 
       icon: MessageCircle,
       href: '/messages?view=threads&sort=latest',
-      previewItems: [
-        { id: "1", title: "Family Group Chat", sub: "5 new messages", href: "/messages/thread/family" },
-        { id: "2", title: "Dad: Vacation Plans", sub: "Just now", href: "/messages/thread/2" },
-        { id: "3", title: "Sarah: Doctor Visit", sub: "30 min ago", href: "/messages/thread/3" }
-      ],
+      fetchPreview: async () => {
+        try {
+          const response = await fetch('/api/threads?limit=5');
+          if (!response.ok) throw new Error('Failed to fetch threads');
+          const data = await response.json();
+          return data.threads?.map((thread: any) => {
+            const unreadText = thread.unreadCount > 0 ? `${thread.unreadCount} new message${thread.unreadCount > 1 ? 's' : ''}` : 'No new messages';
+            const lastMessageTime = thread.lastMessage?.createdAt 
+              ? formatDistanceToNow(new Date(thread.lastMessage.createdAt)) + ' ago'
+              : 'No recent activity';
+            
+            return {
+              id: thread.id,
+              title: thread.title || 'Family Group Chat',
+              sub: thread.unreadCount > 0 ? unreadText : lastMessageTime,
+              href: `/messages/thread/${thread.id}`
+            };
+          }) || [
+            { id: "1", title: "No recent messages", sub: "Start a conversation", href: "/messages/new" }
+          ];
+        } catch (error) {
+          console.error('Error fetching recent threads:', error);
+          return [
+            { id: "1", title: "Messages will load here", sub: "Connect to see recent conversations", href: "/messages" }
+          ];
+        }
+      },
       dropdownActions: [
         { label: "New Message", href: "/messages/new", icon: <Plus className="h-4 w-4" /> },
         { label: "Family Group Chat", href: "/messages/thread/family", icon: <Users className="h-4 w-4" /> },
