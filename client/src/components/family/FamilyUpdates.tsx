@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { LuxuryCard } from '@/components/luxury-cards';
 import { apiRequest } from '@/lib/queryClient';
+import ComposeUpdateModal from './ComposeUpdateModal';
 
 type FamilyUpdateType = {
   id: string;
@@ -78,8 +79,11 @@ function formatDueDate(dueAt: string | null) {
 export default function FamilyUpdates() {
   const queryClient = useQueryClient();
   
+  // TODO: Get from actual user role/permissions
+  const isAdmin = true; // For now, show to all users for testing
+  
   // Fetch family updates
-  const { data: updates = [], isLoading } = useQuery<FamilyUpdateType[]>({
+  const { data: updates = [], isLoading, refetch } = useQuery<FamilyUpdateType[]>({
     queryKey: ['/api/updates'],
     queryFn: async () => {
       const response = await fetch('/api/updates');
@@ -129,7 +133,15 @@ export default function FamilyUpdates() {
   }
 
   return (
-    <div className="space-y-3" data-testid="family-updates-list">
+    <div className="space-y-3">
+      {/* Admin compose button */}
+      {isAdmin && (
+        <div className="flex justify-end mb-2">
+          <ComposeUpdateModal afterCreate={() => refetch()} />
+        </div>
+      )}
+      
+      <div className="space-y-3" data-testid="family-updates-list">
       {updates.map((update) => {
         const Icon = getUpdateIcon(update.type);
         const dueText = formatDueDate(update.dueAt);
@@ -207,6 +219,7 @@ export default function FamilyUpdates() {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
