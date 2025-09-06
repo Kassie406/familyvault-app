@@ -29,6 +29,8 @@ import FamilyUpdates from '@/components/family/FamilyUpdates';
 import MobileNavigationBar from '@/components/family/MobileNavigationBar';
 import { SharedCalendar } from '@/components/family/SharedCalendar';
 import { ICESection } from '@/components/family/ICESection';
+import { SharedCalendarCard } from '@/components/family/SharedCalendarCard';
+import { ICECard } from '@/components/family/ICECard';
 import { PolicyModal } from '@/components/documents/PolicyModal';
 import { ApprovalsDrawer } from '@/components/documents/ApprovalsDrawer';
 import { ShareDocumentModal } from '@/components/documents/ShareDocumentModal';
@@ -336,7 +338,7 @@ export default function FamilyHome() {
         </div>
       </div>
       
-      <div className="p-8 space-y-12">
+      <div className="p-8 space-y-6">
 
       {/* Family Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -356,12 +358,18 @@ export default function FamilyHome() {
         })}
       </div>
 
-      {/* Quick Actions */}
-      <div>
-        <h2 className="text-2xl font-semibold text-[var(--ink-100)] mb-4 relative">
-          <span className="border-b-2 border-[#D4AF37]/30 pb-1">Quick Actions</span>
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Row 2: Quick Actions */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-lg bg-[#D4AF37]/10">
+            <Zap className="h-5 w-5 text-[#D4AF37]" />
+          </div>
+          <div>
+            <h3 className="text-gray-200 font-semibold">Quick Actions</h3>
+            <p className="text-xs text-gray-500">Frequently used features</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <ActionCard 
             icon={<Upload className="h-5 w-5"/>} 
             title="Upload Document" 
@@ -379,19 +387,21 @@ export default function FamilyHome() {
         </div>
       </div>
 
-      {/* Upload Center */}
-      <div ref={uploadCenterRef}>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold text-[var(--ink-100)] flex items-center relative">
-            <Upload className="w-5 h-5 mr-2 text-[var(--gold)]" />
-            <span className="border-b-2 border-[#D4AF37]/30 pb-1">Upload Center</span>
-          </h2>
-          <div className="text-sm text-[var(--ink-300)]">
-            Secure S3 storage with virus scanning
+      {/* Row 3: Upload Center (full width) */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4" ref={uploadCenterRef}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-[#D4AF37]/10">
+              <Upload className="h-5 w-5 text-[#D4AF37]" />
+            </div>
+            <div>
+              <h3 className="text-gray-200 font-semibold">Upload Center</h3>
+              <p className="text-xs text-gray-500">Secure S3 storage with virus scanning</p>
+            </div>
           </div>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Document Upload */}
           <QuickDocumentUpload 
             familyId="family-1"
@@ -413,90 +423,42 @@ export default function FamilyHome() {
         </div>
       </div>
 
-      {/* Enhanced Dashboard Layout */}
-      {dashboardLayout === 'default' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Enhanced Activity Feed */}
-          <div className="min-h-[600px]">
-            <ActivityFeed limit={8} showFilters={false} />
-          </div>
-          
-          {/* Announcements & Important Info */}
-          <div className="min-h-[600px]">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-semibold text-[var(--ink-100)] flex items-center relative">
-                <Bell className="w-5 h-5 mr-2 text-[var(--gold)]" />
-                <span className="border-b-2 border-[#D4AF37]/30 pb-1">Family Updates</span>
-              </h2>
+      {/* Row 4: Family Activity + Family Updates + Shared Calendar */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Family Activity */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-lg bg-[#D4AF37]/10">
+              <Activity className="h-5 w-5 text-[#D4AF37]" />
             </div>
-            <FamilyUpdates />
+            <div>
+              <h3 className="text-gray-200 font-semibold">Family Activity</h3>
+              <p className="text-xs text-gray-500">Recent family updates</p>
+            </div>
           </div>
+          <ActivityFeed limit={6} showFilters={false} />
         </div>
-      ) : (
-        /* Compact Layout */
-        <div className="space-y-8">
-          <ActivityFeed limit={5} showFilters={true} className="mb-6" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <AnnouncementCard 
-              title="Quick Reminder"
-              body="Insurance due in 15 days"
-              meta="Due: March 15"
-            />
-            <AnnouncementCard 
-              title="Family Meeting"
-              body="Sunday at 6 PM"
-              meta="This Sunday"
-            />
-            <AnnouncementCard 
-              title="Security Check"
-              body="2 accounts need updates"
-              meta="Action needed"
-            />
-          </div>
-        </div>
-      )}
 
-      {/* Family Tools */}
-      <div>
-        <h2 className="text-2xl font-semibold text-[var(--ink-100)] mb-4 relative">
-          <span className="border-b-2 border-[#D4AF37]/30 pb-1">Family Tools</span>
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <ToolCard icon={<Users className="h-6 w-6"/>} title="Family Members" description="Manage profiles, contacts, and emergency details." cta="Manage profiles →" />
-          <ToolCard icon={<FileText className="h-6 w-6"/>} title="Document Vault" description="Securely store and share IDs, medical, legal papers." cta="View documents →" />
-          <ToolCard icon={<ShieldAlert className="h-6 w-6"/>} title="Emergency Center" description="Quick access to emergency info and safety plans." cta="Access emergency info →" />
+        {/* Family Updates */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-lg bg-[#D4AF37]/10">
+              <Bell className="h-5 w-5 text-[#D4AF37]" />
+            </div>
+            <div>
+              <h3 className="text-gray-200 font-semibold">Family Updates</h3>
+              <p className="text-xs text-gray-500">Important notifications</p>
+            </div>
+          </div>
+          <FamilyUpdates />
         </div>
+
+        {/* Shared Calendar Card */}
+        <SharedCalendarCard />
       </div>
 
-      {/* Enhanced Family Coordination */}
-      <div className="space-y-8">
-        <h2 className="text-2xl font-semibold text-[var(--ink-100)] flex items-center relative">
-          <Calendar className="w-5 h-5 mr-2 text-[var(--gold)]" />
-          <span className="border-b-2 border-[#D4AF37]/30 pb-1">Family Coordination</span>
-        </h2>
-        
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-          {/* Shared Calendar */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 mb-4">
-              <Calendar className="h-5 w-5 text-[#D4AF37]" />
-              <h3 className="text-lg font-semibold text-white">Shared Calendar</h3>
-              <div className="text-sm text-gray-400">Stay synchronized</div>
-            </div>
-            <SharedCalendar />
-          </div>
-          
-          {/* ICE Section */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 mb-4">
-              <ShieldAlert className="h-5 w-5 text-[#D4AF37]" />
-              <h3 className="text-lg font-semibold text-white">In Case of Emergency</h3>
-              <div className="text-sm text-gray-400">Critical information</div>
-            </div>
-            <ICESection />
-          </div>
-        </div>
-      </div>
+      {/* Row 5: ICE (In Case of Emergency) - Full Width */}
+      <ICECard />
 
       {/* Luxury Footer */}
       <div className="bg-gradient-to-r from-[#0A0A1A] to-[#111111] rounded-xl mt-12 relative overflow-hidden">
