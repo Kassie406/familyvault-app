@@ -1,6 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
+import { sql, desc, eq } from "drizzle-orm";
+import { familyActivity } from "@shared/schema";
 import storageRoutes from "./storage-routes";
 import fileRoutes from "./routes/files";
 import mobileUploadRoutes from "./routes/mobile-upload";
@@ -1099,58 +1102,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/family/activity", async (req, res) => {
     try {
       const { filter = 'all', timeRange = '24h', limit = 10 } = req.query;
+      const familyId = "family-1"; // TODO: Get from user's family
       
-      // Mock activity data - in production, this would fetch from database
-      const activities = [
-        {
-          id: "activity-1",
-          type: "message",
-          title: "New message in family chat",
-          description: "Dad: 'Looking forward to our vacation!'",
-          timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          author: { id: "dad", name: "Dad" },
-          priority: "low"
-        },
-        {
-          id: "activity-2",
-          type: "document_upload",
-          title: "Document uploaded",
-          description: "Medical records updated",
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          author: { id: "sarah", name: "Sarah" },
-          metadata: { filename: "medical-records.pdf" },
-          priority: "medium"
-        },
-        {
-          id: "activity-3",
-          type: "member_join",
-          title: "New family member added",
-          description: "Welcome Alex to the family portal",
-          timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-          author: { id: "mom", name: "Mom" },
-          priority: "medium"
-        },
-        {
-          id: "activity-4",
-          type: "security_login",
-          title: "Secure login",
-          description: "Dad logged in from new device",
-          timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-          author: { id: "dad", name: "Dad" },
-          metadata: { location: "Chicago, IL" },
-          priority: "low"
-        }
-      ];
+      // Fetch real activity data from database
+      const activities = await db.select({
+        id: familyActivity.id,
+        type: familyActivity.activityType,
+        title: familyActivity.title,
+        description: familyActivity.description,
+        timestamp: familyActivity.createdAt,
+        userId: familyActivity.userId,
+        metadata: familyActivity.metadata,
+        priority: familyActivity.priority
+      })
+      .from(familyActivity)
+      .where(eq(familyActivity.familyId, familyId))
+      .orderBy(desc(familyActivity.createdAt))
+      .limit(parseInt(limit as string, 10));
+
+      // Transform data to match expected format
+      const formattedActivities = activities.map(activity => ({
+        id: activity.id,
+        type: activity.type,
+        title: activity.title,
+        description: activity.description,
+        timestamp: activity.timestamp?.toISOString() || new Date().toISOString(),
+        author: { id: activity.userId, name: activity.userId },
+        metadata: activity.metadata || {},
+        priority: activity.priority
+      }));
       
-      // Apply filters
-      let filteredActivities = activities;
-      if (filter !== 'all') {
-        filteredActivities = activities.filter(activity => activity.type === filter);
-      }
-      
-      // Apply limit
-      const limitNum = parseInt(limit as string, 10);
-      filteredActivities = filteredActivities.slice(0, limitNum);
+      // Apply type filter if specified
+      const filteredActivities = filter !== 'all' 
+        ? formattedActivities.filter(activity => activity.type === filter)
+        : formattedActivities;
       
       res.json(filteredActivities);
     } catch (error) {
