@@ -245,10 +245,17 @@ export default function FamilyHome() {
       ]
     },
     { 
-      label: 'Messages & Video Meetings', 
+      label: (
+        <span className="flex items-center gap-1">
+          Messages &nbsp;&amp;&nbsp;
+          <span className="inline-flex items-center">
+            Video Meetings
+            <Video size={16} className="ml-1" color="#D4AF37" />
+          </span>
+        </span>
+      ), 
       value: 12, 
       icon: MessageCircle,
-      secondaryIcon: <Video />,
       href: '/messages?view=threads&sort=latest',
       fetchPreview: async () => {
         try {
