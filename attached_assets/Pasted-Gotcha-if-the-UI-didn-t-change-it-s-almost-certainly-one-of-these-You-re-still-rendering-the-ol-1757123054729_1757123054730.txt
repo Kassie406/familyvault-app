@@ -1,0 +1,85 @@
+Gotcha — if the UI didn’t change, it’s almost certainly one of these:
+
+You’re still rendering the old component (not the new panel).
+
+Tailwind didn’t rebuild the classes (new file path isn’t included in content globs).
+
+A cascading style is overriding the card styles.
+
+Here’s a quick, surgical fix list.
+
+1) Make sure you’re rendering the new panel
+
+In your dashboard page, replace whatever you currently render for Family Updates with:
+
+// client/src/pages/family/dashboard.tsx (or wherever your card is)
+import FamilyUpdatesPanel from "@/components/family/FamilyUpdatesPanel";
+
+<Card className="bg-zinc-900 border border-zinc-800 rounded-2xl">
+  <FamilyUpdatesPanel />
+</Card>
+
+
+Remove/disable the previous FamilyUpdates, SnoozedList, or inline markup so we only have one source of truth.
+
+2) Ensure Tailwind picks up the new files
+
+If Tailwind didn’t see the new component path, the new classes won’t exist (so it looks unchanged).
+
+tailwind.config.js
+module.exports = {
+  content: [
+    "./client/index.html",
+    "./client/src/**/*.{ts,tsx,js,jsx}",     // ✅ make sure this covers:
+    "./client/src/components/**/*.{ts,tsx}", //   components/family/**/*
+    "./client/src/pages/**/*.{ts,tsx}",
+  ],
+  theme: { extend: {} },
+  plugins: [],
+};
+
+
+Then restart your dev server so Tailwind rebuilds.
+
+3) Verify global CSS is applied
+
+Make sure your global stylesheet (with Tailwind base/components/utilities + shadcn styles) is imported:
+
+// client/src/main.tsx or _app.tsx
+import "./styles/globals.css";  // must include @tailwind base; @tailwind components; @tailwind utilities;
+
+4) Clear any stale markup and check for overrides
+
+Open DevTools → Inspect a card:
+
+You should see rounded-2xl border border-zinc-800 bg-zinc-900 p-4.
+
+If those classes appear but look wrong, search “Styles” for any overriding CSS (e.g., .card { border-radius: 0 }).
+
+5) Minimal style diff (drop into your panel if needed)
+
+If you want to force the styling beyond any overrides, this is the exact wrapper used in the consolidated panel:
+
+<div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 flex justify-between items-start">
+  {/* left (title/body/meta) */}
+  {/* right (actions) */}
+</div>
+
+
+And the “Open” button variant:
+
+<Button
+  size="sm"
+  variant="outline"
+  className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+>
+  Open
+</Button>
+
+6) Quick sanity checks
+
+Restart the dev server (or Replit “Run”) after config changes.
+
+Confirm the import path is correct: @/components/family/FamilyUpdatesPanel resolves to the new file.
+
+If you’re using module aliases, ensure tsconfig.json has "@/*": ["client/src/*"] (or your project’s structure).
