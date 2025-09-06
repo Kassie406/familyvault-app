@@ -22,6 +22,7 @@ import StripeStatus from "@/pages/admin/stripe-status";
 import StorageStatus from "@/pages/admin/storage-status";
 import AdminLayout from "@/components/admin/admin-layout";
 import FamilyRouter from "@/components/family/family-router";
+import RequireAuth from "@/auth/RequireAuth";
 import Home from "@/pages/home";
 import Security from "@/pages/security";
 import PromoBanner from "@/components/marketing/promo-banner";
@@ -263,7 +264,9 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
-          <FamilyRouter />
+          <RequireAuth>
+            <FamilyRouter />
+          </RequireAuth>
         </TooltipProvider>
       </QueryClientProvider>
     );
