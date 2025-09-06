@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface SnoozedItem {
   id: string;
@@ -20,6 +21,7 @@ interface SnoozedListProps {
 export default function SnoozedList({ onRestored }: SnoozedListProps) {
   const [items, setItems] = useState<SnoozedItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const load = async () => {
     try {
@@ -47,9 +49,24 @@ export default function SnoozedList({ onRestored }: SnoozedListProps) {
       if (response.ok) {
         setItems(prev => prev.filter(x => x.updateId !== updateId));
         onRestored?.(updateId);
+        toast({
+          title: "Snooze reset — notice restored",
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Could not reset snooze",
+          description: "Please try again",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Failed to unsnooze update:", error);
+      toast({
+        title: "Could not reset snooze",
+        description: "Please try again",
+        variant: "destructive",
+      });
     }
   };
 
