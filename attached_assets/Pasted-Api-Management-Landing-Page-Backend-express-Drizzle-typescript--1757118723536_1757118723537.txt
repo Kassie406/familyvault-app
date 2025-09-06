@@ -1,0 +1,137 @@
+Api Management Landing Page + Backend (express + Drizzle)
+· typescript
+// =============================================
+// File: server/lib/ical.ts
+import ical from "node-ical"; // add to deps
+
+
+export async function fetchIcalEvents(icalUrl: string){
+  const data = await ical.async.fromURL(icalUrl);
+  const items: any[] = [];
+  for (const k of Object.keys(data)){
+    const ev: any = (data as any)[k];
+    if (ev.type !== 'VEVENT') continue;
+    items.push({ uid: ev.uid, title: ev.summary, start: ev.start, end: ev.end, location: ev.location });
+  }
+  return items;
+}
+
+
+// =============================================
+// WORKER: Daily generator with settings + iCal
+// File: server/workers/generateUpdates.ts (augment)
+import { familySettings } from "../db/schema/familySettings";
+import { familyUpdates } from "../db/schema/updates";
+import { eq } from "drizzle-orm";
+import { fetchIcalEvents } from "../lib/ical";
+import { broadcastFamily } from "../realtime/hub";
+
+
+export async function generateDailyUpdatesWithSettings(familyId:string){
+  const [s] = await db.select().from(familySettings).where(eq(familySettings.familyId, familyId));
+  const now = new Date();
+
+
+  // iCal import → create meeting updates for next 7 days
+  if (s?.calendarIcalUrl){
+    const events = await fetchIcalEvents(s.calendarIcalUrl);
+    const in7 = new Date(now.getTime() + 7*24*3600*1000);
+    for (const e of events){
+      if (e.start >= now && e.start <= in7){
+        const [row] = await db.insert(familyUpdates).values({
+          familyId,
+          type: "meeting",
+          title: e.title ?? "Family Event",
+          body: e.location ? `Location: ${e.location}` : undefined,
+          severity: "info",
+          dueAt: e.start,
+          actionUrl: "/family/calendar",
+          meta: { uid: e.uid }
+        }).returning();
+        // realtime push
+        broadcastFamily(familyId, { type: "updates:new", item: row });
+      }
+    }
+  }
+
+
+  // Use settings for lead times / toggles for insurance / birthdays / security
+  // Example: call your previous generateDailyUpdates but pass overrides
+  // (e.g., days from s.insuranceLeadDays, etc.)
+}
+
+
+// =============================================
+// REALTIME: flip on for create/dismiss
+// File: server/routes/updates.ts (augment)
+import { broadcastFamily } from "../realtime/hub";
+
+
+ru.post("/api/updates", async (req,res)=>{
+  const { type, title, body, severity = "info", dueAt, actionUrl, meta } = req.body;
+  const [row] = await db.insert(familyUpdates).values({
+    familyId: req.user!.familyId,
+    createdBy: req.user!.id,
+    type, title, body, severity, dueAt: dueAt ? new Date(dueAt) : null, actionUrl, meta
+  }).returning();
+  broadcastFamily(req.user!.familyId, { type: "updates:new", item: row });
+  res.json(row);
+});
+
+
+ru.post("/api/updates/:id/dismiss", async (req,res)=>{
+  await db.update(familyUpdates).set({ isDismissed: true }).where(eq(familyUpdates.id, req.params.id));
+  broadcastFamily(req.user!.familyId, { type: "updates:dismiss", id: req.params.id });
+  res.json({ ok:true });
+});
+
+
+// =============================================
+// CLIENT: Realtime subscription in FamilyUpdates component (optional)
+// File: client/src/components/family/FamilyUpdates.tsx (augment)
+function wsUrl(path:string){ const { protocol, host } = window.location; return (protocol==="https:"?"wss:":"ws:") + "//" + host + path; }
+
+
+useEffect(()=>{
+  const ws = new WebSocket(wsUrl("/realtime"));
+  ws.onmessage = (ev)=>{
+    try{
+      const msg = JSON.parse(ev.data);
+      if(msg.type === "updates:new" && msg.item){ setItems(prev => [msg.item, ...prev].slice(0,10)); }
+      if(msg.type === "updates:dismiss" && msg.id){ setItems(prev => prev.filter(x=>x.id!==msg.id)); }
+    }catch{}
+  };
+  return ()=> ws.close();
+},[]);
+
+
+
+
+
+Sweet — I added all three add-ons and flipped realtime on:
+
+1) Per-Family Settings (lead times, auto-gen toggles, iCal URL)
+
+DB: family_settings (insurance/doc/birthday lead days; enable/disable Insurance/Doc Expiry/Security/Birthdays; calendarIcalUrl).
+
+API: GET /api/family/settings, PUT /api/family/settings.
+
+UI: FamilyUpdateSettings component (sliders/switches + iCal URL field). Drop it into Family Settings (admins only).
+
+2) Calendar Integration (iCal import)
+
+Lib: server/lib/ical.ts using node-ical.
+
+Worker: generateDailyUpdatesWithSettings(familyId) pulls events for the next 7 days and creates meeting updates (title, location, due time). Uses the iCal URL from your family settings.
+
+You can run this alongside your daily cron.
+
+3) Realtime Updates
+
+Create/Dismiss now broadcast over your existing WebSocket hub:
+
+On POST /api/updates → { type: "updates:new", item }
+
+On POST /api/updates/:id/dismiss → { type: "updates:dismiss", id }
+
+Client: FamilyUpdates subscribes to /realtime and live-prepends or removes items accordingly.
