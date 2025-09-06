@@ -13,11 +13,19 @@ import {
   List,
   Eye,
   EyeOff,
-  Menu
+  Menu,
+  Download,
+  Repeat
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // Types
+interface RecurrenceRule {
+  freq: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+  interval: number;
+  byWeekday?: string[]; // ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']
+}
+
 interface CalendarEvent {
   id: string;
   title: string;
@@ -27,6 +35,7 @@ interface CalendarEvent {
   location?: string;
   notes?: string;
   color?: string;
+  recurrence?: RecurrenceRule;
 }
 
 type ViewType = 'month' | 'week' | 'day';
@@ -225,6 +234,56 @@ export default function GoogleStyleCalendar() {
     }));
   };
 
+  // ICS Export function
+  const exportToICS = () => {
+    const formatICSDate = (date: Date): string => {
+      return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    };
+
+    const formatRecurrence = (recurrence?: RecurrenceRule): string => {
+      if (!recurrence) return '';
+      
+      let rrule = `RRULE:FREQ=${recurrence.freq}`;
+      if (recurrence.interval > 1) {
+        rrule += `;INTERVAL=${recurrence.interval}`;
+      }
+      if (recurrence.freq === 'WEEKLY' && recurrence.byWeekday?.length) {
+        rrule += `;BYDAY=${recurrence.byWeekday.join(',')}`;
+      }
+      return rrule;
+    };
+
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Family Vault//Family Calendar//EN',
+      'CALSCALE:GREGORIAN',
+      ...state.events.map(event => [
+        'BEGIN:VEVENT',
+        `UID:${event.id}@familyvault.com`,
+        `DTSTAMP:${formatICSDate(new Date())}`,
+        `DTSTART:${formatICSDate(event.start)}`,
+        `DTEND:${formatICSDate(event.end)}`,
+        `SUMMARY:${event.title}`,
+        event.location ? `LOCATION:${event.location}` : '',
+        event.notes ? `DESCRIPTION:${event.notes}` : '',
+        formatRecurrence(event.recurrence),
+        'END:VEVENT'
+      ].filter(Boolean)).flat(),
+      'END:VCALENDAR'
+    ].join('\r\n');
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'family-calendar.ics';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const closeEventModal = () => {
     setState(prev => ({
       ...prev,
@@ -397,6 +456,18 @@ export default function GoogleStyleCalendar() {
                   </button>
                 ))}
               </div>
+
+              {/* Export ICS Button */}
+              <Button
+                onClick={exportToICS}
+                variant="outline"
+                size="sm"
+                className="border-zinc-700 text-gray-300 hover:bg-zinc-800 mr-2"
+                title="Export to ICS file"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export ICS
+              </Button>
 
               {/* Add Event Button */}
               <Button
@@ -755,6 +826,23 @@ function EventModal({
   const [location, setLocation] = useState(event?.location || '');
   const [notes, setNotes] = useState(event?.notes || '');
   const [color, setColor] = useState(event?.color || eventColors[0]);
+  
+  // Recurrence state
+  const [recur, setRecur] = useState(event?.recurrence ? 'custom' : 'none');
+  const [freq, setFreq] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>(event?.recurrence?.freq || 'WEEKLY');
+  const [interval, setInterval] = useState(event?.recurrence?.interval || 1);
+  const [byWeekday, setByWeekday] = useState<string[]>(event?.recurrence?.byWeekday || []);
+  
+  const weekLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const weekCodes = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+  
+  const toggleWeekday = (code: string) => {
+    setByWeekday(prev => 
+      prev.includes(code) 
+        ? prev.filter(d => d !== code)
+        : [...prev, code]
+    );
+  };
 
   const handleSave = () => {
     if (!title.trim()) return;
@@ -766,7 +854,12 @@ function EventModal({
       allDay,
       location: location.trim(),
       notes: notes.trim(),
-      color
+      color,
+      recurrence: recur === 'custom' ? {
+        freq,
+        interval,
+        byWeekday: freq === 'WEEKLY' ? byWeekday : undefined
+      } : undefined
     };
 
     if (mode === 'create') {
@@ -876,6 +969,65 @@ function EventModal({
               rows={3}
               className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] resize-none"
             />
+          </div>
+
+          {/* Recurrence */}
+          <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Repeat className="h-4 w-4 text-[#D4AF37]" />
+              <label className="text-sm text-gray-300 font-medium">Repeat</label>
+            </div>
+            <select 
+              value={recur} 
+              onChange={(e) => setRecur(e.target.value)}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+            >
+              <option value="none">Does not repeat</option>
+              <option value="custom">Custom…</option>
+            </select>
+            
+            {recur === 'custom' && (
+              <div className="mt-3 space-y-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-gray-400">Every</span>
+                  <input 
+                    type="number" 
+                    min={1} 
+                    value={interval} 
+                    onChange={(e) => setInterval(parseInt(e.target.value) || 1)}
+                    className="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white text-center focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                  />
+                  <select 
+                    value={freq} 
+                    onChange={(e) => setFreq(e.target.value as 'DAILY' | 'WEEKLY' | 'MONTHLY')}
+                    className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                  >
+                    <option value="DAILY">day(s)</option>
+                    <option value="WEEKLY">week(s)</option>
+                    <option value="MONTHLY">month(s)</option>
+                  </select>
+                </div>
+                
+                {freq === 'WEEKLY' && (
+                  <div className="flex gap-2 flex-wrap">
+                    {weekLabels.map((label, i) => (
+                      <button 
+                        key={label} 
+                        type="button" 
+                        onClick={() => toggleWeekday(weekCodes[i])}
+                        className={`px-3 py-1 rounded-lg border text-xs font-medium transition-colors ${
+                          byWeekday.includes(weekCodes[i]) 
+                            ? 'border-[#D4AF37] bg-[#D4AF37]/10 text-[#D4AF37]' 
+                            : 'border-zinc-600 text-gray-400 hover:border-zinc-500'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Color */}
