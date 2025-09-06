@@ -44,19 +44,19 @@ export function ActionCard({
     >
       <div className="flex items-center justify-between mb-4">
         <div 
-          className="w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-all group-hover:shadow-lg"
+          className="w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-all group-hover:shadow-xl group-hover:shadow-[#D4AF37]/40 group-hover:scale-110"
           style={{ background: GOLD }}
         >
-          <div className="text-white">
+          <div className="text-white transition-all group-hover:scale-110">
             {icon}
           </div>
         </div>
         <div className="w-2 h-2 rounded-full" style={{ background: GOLD }} />
       </div>
-      <h3 className="font-semibold text-white mb-1 group-hover:text-[#D4AF37] transition-colors">
+      <h3 className="font-bold text-white mb-1 group-hover:text-[#D4AF37] transition-colors">
         {title}
       </h3>
-      <p className="text-sm text-neutral-300">{subtitle}</p>
+      <p className="text-sm text-zinc-400">{subtitle}</p>
     </LuxuryCard>
   );
 }
@@ -75,15 +75,15 @@ export function ToolCard({
 }) {
   return (
     <LuxuryCard className="p-6 cursor-pointer group hover:scale-[1.02] transition-all">
-      <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 shadow-md transition-all group-hover:shadow-lg group-hover:shadow-[#D4AF37]/20" style={{ background: GOLD }}>
-        <div className="text-white">
+      <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 shadow-md transition-all group-hover:shadow-xl group-hover:shadow-[#D4AF37]/40 group-hover:scale-110" style={{ background: GOLD }}>
+        <div className="text-white transition-all group-hover:scale-110">
           {icon}
         </div>
       </div>
-      <h3 className="font-semibold text-white mb-2 group-hover:text-[#D4AF37] transition-colors">
+      <h3 className="font-bold text-white mb-2 group-hover:text-[#D4AF37] transition-colors">
         {title}
       </h3>
-      <p className="text-sm text-neutral-300 mb-4 leading-relaxed">
+      <p className="text-sm text-zinc-400 mb-4 leading-relaxed">
         {description}
       </p>
       <span className="text-sm font-medium transition-colors" style={{ color: GOLD }}>
