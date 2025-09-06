@@ -10,7 +10,7 @@ import {
   Umbrella, Receipt, Scale, Building2, BookOpen, 
   Phone, DollarSign, Upload, ShieldAlert,
   UserPlus, Mail, Settings, Share, Camera, FolderOpen, AlertCircle,
-  Zap, Grid, BarChart3
+  Zap, Grid, BarChart3, Video
 } from 'lucide-react';
 import { 
   ActionCard, 
@@ -245,9 +245,14 @@ export default function FamilyHome() {
       ]
     },
     { 
-      label: 'Messages & Meetings', 
+      label: 'Messages & Video Meetings', 
       value: 12, 
-      icon: MessageCircle,
+      icon: ({ className }: { className?: string }) => (
+        <div className={`flex items-center gap-1 ${className}`}>
+          <MessageCircle className="h-4 w-4" />
+          <Video className="h-3 w-3" />
+        </div>
+      ),
       href: '/messages?view=threads&sort=latest',
       fetchPreview: async () => {
         try {
