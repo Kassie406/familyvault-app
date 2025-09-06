@@ -860,7 +860,7 @@ function WeekView({
 
       {/* Time grid */}
       <div className="flex-1 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 180px)', minHeight: '700px' }}>
-        <div className="grid grid-cols-8" style={{ height: `${24 * 100 + 120}px` }}>
+        <div className="grid grid-cols-8" style={{ height: `${24 * 80 + 40}px` }}>
           {/* Time labels */}
           <div className="border-r border-zinc-800 bg-zinc-900">
             {/* GMT indicator */}
