@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { eq, desc, sql, ilike, or } from "drizzle-orm";
+import { eq, desc, sql, ilike, or, and } from "drizzle-orm";
 import { 
   type User, type InsertUser,
   type Organization, type InsertOrganization,
@@ -39,7 +39,10 @@ import {
   invites, inviteLinks, families, familyMembers, familyBusinessItems,
   familyLegalDocs, familyLegalItems, familyInsurancePolicies, familyInsuranceItems,
   familyTaxYears, familyTaxItems, messageThreads, threadMembers, messages,
-  messageReadReceipts, messageReactions, messageAttachments
+  messageReadReceipts, messageReactions, messageAttachments,
+  familyUpdates, familyUpdateSnooze,
+  type FamilyUpdate, type InsertFamilyUpdate,
+  type FamilyUpdateSnooze, type InsertFamilyUpdateSnooze
 } from "@shared/schema";
 
 // Database connection
@@ -266,6 +269,16 @@ export interface IStorage {
   
   // Presence methods
   updateUserLastSeen(userId: string, timestamp: Date): Promise<boolean>;
+
+  // Family Update methods
+  getFamilyUpdates(familyId: string, userId?: string): Promise<FamilyUpdate[]>;
+  createFamilyUpdate(update: InsertFamilyUpdate): Promise<FamilyUpdate>;
+  dismissFamilyUpdate(updateId: string, userId: string): Promise<boolean>;
+
+  // Family Update Snooze methods
+  snoozeFamilyUpdate(updateId: string, userId: string, until?: Date): Promise<FamilyUpdateSnooze>;
+  unsnoozeFamilyUpdate(updateId: string, userId: string): Promise<boolean>;
+  getUserSnoozedUpdates(userId: string): Promise<FamilyUpdateSnooze[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1253,6 +1266,144 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Failed to update lastSeenAt:", error);
       return false;
+    }
+  }
+
+  // Family Update methods
+  async getFamilyUpdates(familyId: string, userId?: string): Promise<FamilyUpdate[]> {
+    try {
+      let query = db.select().from(familyUpdates)
+        .where(and(
+          eq(familyUpdates.familyId, familyId),
+          eq(familyUpdates.isDismissed, false)
+        ))
+        .orderBy(desc(familyUpdates.createdAt));
+
+      // If userId is provided, exclude snoozed updates for this user
+      if (userId) {
+        const snoozedQuery = db.select({
+          updateId: familyUpdateSnooze.updateId
+        }).from(familyUpdateSnooze)
+        .where(and(
+          eq(familyUpdateSnooze.userId, userId),
+          sql`${familyUpdateSnooze.until} > NOW()`
+        ));
+
+        const snoozedIds = await snoozedQuery;
+        if (snoozedIds.length > 0) {
+          const snoozedUpdateIds = snoozedIds.map(s => s.updateId);
+          query = db.select().from(familyUpdates)
+            .where(and(
+              eq(familyUpdates.familyId, familyId),
+              eq(familyUpdates.isDismissed, false),
+              sql`${familyUpdates.id} NOT IN (${sql.join(snoozedUpdateIds.map(() => sql`?`), sql`, `)})`
+            ))
+            .orderBy(desc(familyUpdates.createdAt));
+        }
+      }
+
+      return await query;
+    } catch (error) {
+      console.error('Error fetching family updates:', error);
+      return [];
+    }
+  }
+
+  async createFamilyUpdate(update: InsertFamilyUpdate): Promise<FamilyUpdate> {
+    const [result] = await db.insert(familyUpdates).values(update).returning();
+    return result;
+  }
+
+  async dismissFamilyUpdate(updateId: string, userId: string): Promise<boolean> {
+    try {
+      await db.update(familyUpdates)
+        .set({ 
+          isDismissed: true,
+          dismissedBy: userId,
+          dismissedAt: new Date()
+        })
+        .where(eq(familyUpdates.id, updateId));
+      return true;
+    } catch (error) {
+      console.error('Error dismissing family update:', error);
+      return false;
+    }
+  }
+
+  // Family Update Snooze methods
+  async snoozeFamilyUpdate(updateId: string, userId: string, until?: Date): Promise<FamilyUpdateSnooze> {
+    // If no until date provided, use update's dueAt or default to 7 days from now
+    let snoozeUntil = until;
+    
+    if (!snoozeUntil) {
+      const [update] = await db.select().from(familyUpdates).where(eq(familyUpdates.id, updateId));
+      if (update?.dueAt) {
+        snoozeUntil = new Date(update.dueAt);
+      } else {
+        // Default to 7 days from now
+        snoozeUntil = new Date();
+        snoozeUntil.setDate(snoozeUntil.getDate() + 7);
+      }
+    }
+
+    // Check if snooze already exists and update it, or create new one
+    const existingSnooze = await db.select()
+      .from(familyUpdateSnooze)
+      .where(and(
+        eq(familyUpdateSnooze.updateId, updateId),
+        eq(familyUpdateSnooze.userId, userId)
+      ))
+      .limit(1);
+
+    if (existingSnooze.length > 0) {
+      // Update existing snooze
+      const [result] = await db.update(familyUpdateSnooze)
+        .set({ until: snoozeUntil })
+        .where(and(
+          eq(familyUpdateSnooze.updateId, updateId),
+          eq(familyUpdateSnooze.userId, userId)
+        ))
+        .returning();
+      return result;
+    } else {
+      // Create new snooze
+      const [result] = await db.insert(familyUpdateSnooze)
+        .values({
+          updateId,
+          userId,
+          until: snoozeUntil
+        })
+        .returning();
+      return result;
+    }
+  }
+
+  async unsnoozeFamilyUpdate(updateId: string, userId: string): Promise<boolean> {
+    try {
+      await db.delete(familyUpdateSnooze)
+        .where(and(
+          eq(familyUpdateSnooze.updateId, updateId),
+          eq(familyUpdateSnooze.userId, userId)
+        ));
+      return true;
+    } catch (error) {
+      console.error('Error unsnoozing family update:', error);
+      return false;
+    }
+  }
+
+  async getUserSnoozedUpdates(userId: string): Promise<FamilyUpdateSnooze[]> {
+    try {
+      return await db.select()
+        .from(familyUpdateSnooze)
+        .where(and(
+          eq(familyUpdateSnooze.userId, userId),
+          sql`${familyUpdateSnooze.until} > NOW()`
+        ))
+        .orderBy(desc(familyUpdateSnooze.createdAt));
+    } catch (error) {
+      console.error('Error getting user snoozed updates:', error);
+      return [];
     }
   }
 }

@@ -1,0 +1,106 @@
+Api Management Landing Page + Backend (express + Drizzle)
+· typescript
+// =============================================
+// GET /api/updates/snoozed → current user's active snoozes with joined update info
+ru.get("/api/updates/snoozed", async (req,res)=>{
+  const uid = req.user!.id;
+  const now = new Date();
+  const rows = await db.select().from(familyUpdateSnooze)
+    .where(and(eq(familyUpdateSnooze.userId, uid), gt(familyUpdateSnooze.until, now)))
+    .orderBy(desc(familyUpdateSnooze.until));
+  const updateIds = rows.map(r=>r.updateId);
+  let updates:any[] = [];
+  if (updateIds.length){
+    updates = await db.select().from(familyUpdates).where(inArray(familyUpdates.id, updateIds));
+  }
+  const items = rows.map(r=> ({
+    id: r.id,
+    updateId: r.updateId,
+    until: r.until,
+    update: updates.find(u=>u.id===r.updateId)
+  }));
+  res.json({ items });
+});
+
+
+// POST /api/updates/:id/unsnooze → remove snooze for current user
+ru.post("/api/updates/:id/unsnooze", async (req,res)=>{
+  const uid = req.user!.id;
+  const { id } = req.params; // updateId
+  await db.delete(familyUpdateSnooze).where(and(eq(familyUpdateSnooze.updateId, id), eq(familyUpdateSnooze.userId, uid)));
+  res.json({ ok:true });
+});
+
+
+// =============================================
+// FRONTEND: Snoozed list with Reset button
+// File: client/src/components/family/SnoozedList.tsx
+import React, { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+
+
+export default function SnoozedList({ onRestored }:{ onRestored?: (updateId:string)=>void }){
+  const [items,setItems] = useState<any[]>([]);
+  const load = async ()=>{ const r = await fetch("/api/updates/snoozed"); const d = await r.json(); setItems(d.items??[]); };
+  useEffect(()=>{ load(); },[]);
+
+
+  const unsnooze = async (updateId: string) => {
+    const r = await fetch(`/api/updates/${updateId}/unsnooze`, { method:"POST" });
+    if (r.ok) { setItems(prev=>prev.filter(x=>x.updateId!==updateId)); onRestored?.(updateId); }
+  };
+
+
+  if (!items.length) return null;
+
+
+  return (
+    <div className="mt-3 border-t border-zinc-800 pt-3">
+      <div className="text-xs text-gray-500 mb-2">Snoozed until…</div>
+      <ul className="space-y-2">
+        {items.map(s => (
+          <li key={s.id} className="flex items-center justify-between text-sm text-gray-300">
+            <div>
+              <div className="font-medium">{s.update?.title ?? 'Update'}</div>
+              <div className="text-xs text-gray-500">Until {new Date(s.until).toLocaleString()}</div>
+            </div>
+            <Button size="sm" variant="outline" className="border-yellow-500/30 text-yellow-400" onClick={()=>unsnooze(s.updateId)}>Reset snooze</Button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+
+// =============================================
+// FRONTEND: integrate SnoozedList below FamilyUpdates list
+// File: client/src/components/family/FamilyUpdates.tsx (near bottom of component)
+// import SnoozedList from "./SnoozedList";
+// <SnoozedList onRestored={(updateId)=>{ /* optional: refetch / show toast */ }} />
+
+
+
+
+
+Done — added a full Reset Snooze flow so users can bring back snoozed notices early.
+
+Backend
+
+GET /api/updates/snoozed
+Returns your active snoozes (for the current user), including joined update details and the “snoozed until” time.
+
+POST /api/updates/:id/unsnooze
+Removes the snooze for the current user and makes the update visible again.
+
+Frontend
+
+New component: SnoozedList
+
+Renders a compact list titled “Snoozed until…”
+
+Shows title + resume time for each item
+
+Reset snooze button calls unsnooze and removes it from the list
+
+Integration: add <SnoozedList /> below your Family Updates list (snippet included in the canvas).

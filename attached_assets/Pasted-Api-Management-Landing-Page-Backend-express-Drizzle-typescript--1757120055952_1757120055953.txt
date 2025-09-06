@@ -1,0 +1,114 @@
+Api Management Landing Page + Backend (express + Drizzle)
+· typescript
+// =============================================
+// FRONTEND: Share a Document Modal (React)
+// File: client/src/components/documents/ShareDocumentModal.tsx
+// =============================================
+import React, { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+
+
+interface DocumentItem {
+  id: string;
+  title: string;
+}
+interface PolicyItem {
+  id: string;
+  name: string;
+}
+
+
+export function ShareDocumentModal({ docId }: { docId: string }) {
+  const [open, setOpen] = useState(false);
+  const [scope, setScope] = useState("family");
+  const [userId, setUserId] = useState("");
+  const [policyId, setPolicyId] = useState<string | undefined>(undefined);
+  const [allowDownload, setAllowDownload] = useState(true);
+  const [expiresAt, setExpiresAt] = useState("");
+  const [policies, setPolicies] = useState<PolicyItem[]>([]);
+
+
+  useEffect(() => {
+    if (open) {
+      fetch("/api/link-policies")
+        .then((r) => r.json())
+        .then((d) => setPolicies(d.items ?? []));
+    }
+  }, [open]);
+
+
+  async function onSubmit() {
+    const body: any = { scope, canDownload: allowDownload };
+    if (scope === "user") body.sharedWithUserId = userId;
+    if (scope === "link") body.policyId = policyId;
+    if (expiresAt) body.expiresAt = expiresAt;
+
+
+    const res = await fetch(`/api/documents/${docId}/share`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return toast.error("Failed to share document");
+    toast.success("Document shared");
+    setOpen(false);
+  }
+
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline">Share</Button>
+      </DialogTrigger>
+      <DialogContent className="bg-zinc-900 border border-zinc-800">
+        <DialogHeader>
+          <DialogTitle className="text-yellow-400">Share Document</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label>Scope</Label>
+            <Select value={scope} onValueChange={(v) => setScope(v)}>
+              <SelectTrigger className="bg-zinc-900 border-zinc-800">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-900 border-zinc-800">
+                <SelectItem value="family">Family</SelectItem>
+                <SelectItem value="user">Specific User</SelectItem>
+
+Done — I added a per-user Snooze feature while keeping Dismiss global.
+
+How Snooze works
+
+Any user can Snooze an update; it hides only for them until the update’s due date.
+
+If the update has no dueAt, Snooze uses a 7-day fallback.
+
+What I added
+
+DB table family_update_snooze
+
+updateId, userId, until, createdAt
+
+API
+
+GET /api/updates now excludes updates that are snoozed (for the current user and not past until).
+
+POST /api/updates/:id/snooze → records/updates a snooze entry. Uses dueAt or 7 days.
+
+Frontend
+
+A Snooze button next to Open/Dismiss in the Family Updates card.
+
+Clicking it calls /api/updates/:id/snooze and removes the item from the current user’s list.
+
+Realtime behavior
+
+Dismiss still broadcasts globally (as before).
+
+Snooze is per-user, so it doesn’t broadcast.

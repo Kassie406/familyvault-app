@@ -1152,29 +1152,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== FAMILY UPDATES (REMINDERS & NOTICES) API ROUTES =====
   
-  // GET /api/updates - Get active family updates
+  // GET /api/updates - Get active family updates (excludes snoozed for current user)
   app.get("/api/updates", async (req, res) => {
     try {
       const familyId = "family-1"; // TODO: Get from authenticated user
+      const userId = "user-1"; // TODO: Get from authenticated user
       
-      const updates = await db
-        .select()
-        .from(familyUpdates)
-        .where(
-          and(
-            eq(familyUpdates.familyId, familyId),
-            eq(familyUpdates.isDismissed, false)
-          )
-        )
-        .orderBy(sql`
-          CASE 
-            WHEN ${familyUpdates.severity} = 'urgent' THEN 1
-            WHEN ${familyUpdates.severity} = 'warning' THEN 2 
-            ELSE 3
-          END,
-          ${familyUpdates.createdAt} DESC
-        `)
-        .limit(10);
+      const updates = await storage.getFamilyUpdates(familyId, userId);
       
       res.json({ items: updates });
     } catch (error) {
@@ -1224,17 +1208,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updateId = req.params.id;
       const userId = "current-user"; // TODO: Get from authenticated user
       
-      const [update] = await db
-        .update(familyUpdates)
-        .set({
-          isDismissed: true,
-          dismissedBy: userId,
-          dismissedAt: new Date()
-        })
-        .where(eq(familyUpdates.id, updateId))
-        .returning();
+      const success = await storage.dismissFamilyUpdate(updateId, userId);
       
-      if (!update) {
+      if (!success) {
         return res.status(404).json({ error: "Update not found" });
       }
       
@@ -1242,6 +1218,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error dismissing family update:", error);
       res.status(500).json({ error: "Failed to dismiss update" });
+    }
+  });
+
+  // POST /api/updates/:id/snooze - Snooze a family update for current user
+  app.post("/api/updates/:id/snooze", async (req, res) => {
+    try {
+      const updateId = req.params.id;
+      const userId = "user-1"; // TODO: Get from authenticated user
+      const { until } = req.body; // Optional snooze until date
+      
+      const snoozeUntil = until ? new Date(until) : undefined;
+      const snooze = await storage.snoozeFamilyUpdate(updateId, userId, snoozeUntil);
+      
+      res.json({ success: true, snooze });
+    } catch (error) {
+      console.error("Error snoozing family update:", error);
+      res.status(500).json({ error: "Failed to snooze update" });
+    }
+  });
+
+  // DELETE /api/updates/:id/snooze - Unsnooze a family update for current user
+  app.delete("/api/updates/:id/snooze", async (req, res) => {
+    try {
+      const updateId = req.params.id;
+      const userId = "user-1"; // TODO: Get from authenticated user
+      
+      const success = await storage.unsnoozeFamilyUpdate(updateId, userId);
+      
+      res.json({ success });
+    } catch (error) {
+      console.error("Error unsnoozing family update:", error);
+      res.status(500).json({ error: "Failed to unsnooze update" });
     }
   });
 
