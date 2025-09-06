@@ -15,7 +15,8 @@ import {
   EyeOff,
   Menu,
   Download,
-  Repeat
+  Repeat,
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -252,6 +253,22 @@ export default function GoogleStyleCalendar() {
     'Holidays in United States': true
   });
 
+  // Dropdown state for Create button
+  const [createDropdownOpen, setCreateDropdownOpen] = useState(false);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (createDropdownOpen && !target.closest('.create-dropdown')) {
+        setCreateDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [createDropdownOpen]);
+
   // Filter events by calendar visibility (memoized for performance)
   const filteredEvents = useMemo(() => {
     return state.events.filter(event => {
@@ -309,6 +326,12 @@ export default function GoogleStyleCalendar() {
       selectedEvent: event || null,
       newEventDate: date || null
     }));
+    setCreateDropdownOpen(false); // Close dropdown when opening modal
+  };
+
+  const handleCreateOptionClick = (type: 'event' | 'task' | 'appointment') => {
+    // For now, all options open the event modal - can be extended later
+    openEventModal('create', undefined, state.currentDate);
   };
 
   // ICS Export function
@@ -563,15 +586,43 @@ export default function GoogleStyleCalendar() {
                 Export ICS
               </Button>
 
-              {/* Create Button */}
-              <Button
-                onClick={() => openEventModal('create', undefined, state.currentDate)}
-                className="bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90"
-                size="sm"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create
-              </Button>
+              {/* Create Dropdown */}
+              <div className="relative create-dropdown">
+                <Button
+                  onClick={() => setCreateDropdownOpen(!createDropdownOpen)}
+                  className="bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90"
+                  size="sm"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create
+                  <ChevronDown className="h-3 w-3 ml-2" />
+                </Button>
+                
+                {createDropdownOpen && (
+                  <div className="absolute top-full mt-1 right-0 z-50 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg min-w-[140px]">
+                    <div className="py-1">
+                      <button
+                        onClick={() => handleCreateOptionClick('event')}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                      >
+                        Event
+                      </button>
+                      <button
+                        onClick={() => handleCreateOptionClick('task')}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                      >
+                        Task
+                      </button>
+                      <button
+                        onClick={() => handleCreateOptionClick('appointment')}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                      >
+                        Appointment Schedule
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
