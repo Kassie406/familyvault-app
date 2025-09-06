@@ -24,6 +24,7 @@ import testStepupRouter from "./test-stepup-routes";
 import businessRoutes from "./routes/business";
 import apiServicesRouter from "./routes/apiServices";
 import { escalationWorker } from "./escalation-worker";
+import { startRemindersWorker } from "./lib/reminders-worker";
 import { smsService } from "./sms-service";
 import { eq, desc, and } from "drizzle-orm";
 import { incidents, oncallTargets } from "@shared/schema";
@@ -3288,5 +3289,9 @@ app.post('/api/public/consent', optionalAuth, async (req: AuthenticatedRequest, 
     // Start the escalation worker
     escalationWorker.start();
     log('Escalation worker started');
+    
+    // Start the reminders worker
+    startRemindersWorker(1); // Check every minute
+    log('Calendar reminders worker started');
   });
 })();
