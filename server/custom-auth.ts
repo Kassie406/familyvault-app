@@ -19,7 +19,7 @@ if (ALLOWED_EMAILS.length === 0) {
 }
 
 // Email transporter
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: Number(process.env.SMTP_PORT) || 465,
   secure: (process.env.SMTP_SECURE ?? 'true') === 'true',
@@ -226,4 +226,4 @@ router.get('/api/auth/user', requireAuth, (req: any, res) => {
   });
 });
 
-export { router as customAuthRouter, requireAuth };
+export { router as customAuthRouter, requireAuth as customRequireAuth };
