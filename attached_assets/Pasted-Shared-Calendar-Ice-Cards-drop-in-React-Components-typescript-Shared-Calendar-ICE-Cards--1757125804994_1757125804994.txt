@@ -1,0 +1,134 @@
+Shared Calendar & Ice Cards (drop‑in React Components)
+· typescript
+// Shared Calendar & ICE Cards — drop‑in components for your dashboard
+import PDFDocument from "pdfkit";
+
+
+const ri = Router();
+ri.use(requireAuth);
+
+
+// Ensure row exists helper
+async function ensureRow(familyId: string){
+  const [row] = await db.select().from(familyICE).where(eq(familyICE.familyId, familyId));
+  if (!row) { await db.insert(familyICE).values({ familyId, data: {} }); }
+}
+
+
+// GET /api/ice → returns JSON
+ri.get("/api/ice", async (req, res) => {
+  const fid = req.user!.familyId as string;
+  await ensureRow(fid);
+  const [row] = await db.select().from(familyICE).where(eq(familyICE.familyId, fid));
+  res.json(row?.data || {});
+});
+
+
+// PUT /api/ice (Owner/Admin only)
+ri.put("/api/ice", requireOwnerOrAdmin, async (req, res) => {
+  const fid = req.user!.familyId as string;
+  await ensureRow(fid);
+  await db.update(familyICE).set({ data: req.body || {}, updatedAt: new Date() }).where(eq(familyICE.familyId, fid));
+  const [row] = await db.select().from(familyICE).where(eq(familyICE.familyId, fid));
+  res.json(row?.data || {});
+});
+
+
+// GET /api/ice/print → returns a PDF
+ri.get("/api/ice/print", async (req, res) => {
+  const fid = req.user!.familyId as string;
+  await ensureRow(fid);
+  const [row] = await db.select().from(familyICE).where(eq(familyICE.familyId, fid));
+  const data = row?.data || {};
+
+
+  const doc = new PDFDocument({ size: "A4", margin: 40 });
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", "attachment; filename=Family_ICE.pdf");
+  doc.pipe(res);
+
+
+  doc.fontSize(20).text("In Case of Emergency (ICE)", { align: "center" });
+  doc.moveDown();
+
+
+  const section = (title: string) => { doc.fontSize(14).fillColor("black").text(title).moveDown(0.3); };
+  const field = (k: string, v?: string) => { doc.fontSize(11).fillColor("gray").text(`${k}: `, { continued: true }); doc.fillColor("black").text(v || "—"); };
+
+
+  section("Emergency Contacts");
+  field("Primary", data.contacts?.primary);
+  field("Doctor", data.contacts?.doctor);
+  field("Neighbor", data.contacts?.neighbor);
+  doc.moveDown();
+
+
+  section("Medical Notes");
+  field("Allergies", data.medical?.allergies);
+  field("Conditions", data.medical?.conditions);
+  field("Medications", data.medical?.medications);
+  doc.moveDown();
+
+
+  section("Blood Types");
+  field("Dad", data.blood?.dad);
+  field("Mom", data.blood?.mom);
+  field("Kids", data.blood?.kids);
+  doc.moveDown(2);
+
+
+  doc.fontSize(10).fillColor("gray").text(`Generated: ${new Date().toLocaleString()}`);
+  doc.end();
+});
+
+
+export default ri;
+
+
+// =============================================
+// SERVER: Mount routes
+// File: server/index.ts (snippet)
+import calendarRouter from "./routes/calendar";
+import iceRouter from "./routes/ice";
+app.use(calendarRouter);
+app.use(iceRouter);
+
+
+// =============================================
+// NOTES
+// - Run migrations to create tables calendar_events and family_ice
+// - Ensure pdfkit is installed: npm i pdfkit
+// - Role gating uses your existing requireOwnerOrAdmin middleware
+// - Optional: add WS broadcast on calendar create/update to live-refresh the SharedCalendarCard
+
+
+
+
+
+All set. I added complete Express + Drizzle backend stubs for the two new cards:
+
+Calendar
+
+DB: calendar_events
+
+Routes:
+
+GET /api/calendar/events?from=ISO&to=ISO
+
+POST /api/calendar/events (Owner/Admin only)
+
+Optional WS broadcast hook included.
+
+ICE
+
+DB: family_ice (1 row per family, stores structured JSON)
+
+Routes:
+
+GET /api/ice
+
+PUT /api/ice (Owner/Admin only)
+
+GET /api/ice/print → streams a PDF via pdfkit
+
+Also added the mounts snippet for server/index.ts and notes on migrations and installing pdfkit.

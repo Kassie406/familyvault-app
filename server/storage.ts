@@ -42,7 +42,10 @@ import {
   messageReadReceipts, messageReactions, messageAttachments,
   familyUpdates, familyUpdateSnooze,
   type FamilyUpdate, type InsertFamilyUpdate,
-  type FamilyUpdateSnooze, type InsertFamilyUpdateSnooze
+  type FamilyUpdateSnooze, type InsertFamilyUpdateSnooze,
+  familyCalendarEvents, familyIceData,
+  type FamilyCalendarEvent, type InsertFamilyCalendarEvent,
+  type FamilyIceData, type InsertFamilyIceData
 } from "@shared/schema";
 
 // Database connection
@@ -281,6 +284,17 @@ export interface IStorage {
   unsnoozeFamilyUpdate(updateId: string, userId: string): Promise<boolean>;
   getUserSnoozedUpdates(userId: string): Promise<FamilyUpdateSnooze[]>;
   getUserSnoozedCount(userId: string): Promise<number>;
+
+  // Calendar Events methods
+  getCalendarEvents(familyId: string, from?: string, to?: string): Promise<FamilyCalendarEvent[]>;
+  createCalendarEvent(event: InsertFamilyCalendarEvent): Promise<FamilyCalendarEvent>;
+  getCalendarEvent(eventId: string): Promise<FamilyCalendarEvent | undefined>;
+  updateCalendarEvent(eventId: string, updates: Partial<InsertFamilyCalendarEvent>): Promise<FamilyCalendarEvent | undefined>;
+  deleteCalendarEvent(eventId: string): Promise<boolean>;
+
+  // ICE Data methods  
+  getFamilyICEData(familyId: string): Promise<FamilyIceData | undefined>;
+  updateFamilyICEData(data: InsertFamilyIceData): Promise<FamilyIceData>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1433,6 +1447,98 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error getting user snoozed count:', error);
       return 0;
+    }
+  }
+
+  // Calendar Events methods
+  async getCalendarEvents(familyId: string, from?: string, to?: string): Promise<FamilyCalendarEvent[]> {
+    try {
+      let query = db.select().from(familyCalendarEvents)
+        .where(eq(familyCalendarEvents.familyId, familyId));
+
+      if (from && to) {
+        query = query.where(and(
+          eq(familyCalendarEvents.familyId, familyId),
+          sql`${familyCalendarEvents.startDate} >= ${from}`,
+          sql`${familyCalendarEvents.startDate} <= ${to}`
+        ));
+      }
+
+      return await query.orderBy(familyCalendarEvents.startDate);
+    } catch (error) {
+      console.error('Error getting calendar events:', error);
+      return [];
+    }
+  }
+
+  async createCalendarEvent(event: InsertFamilyCalendarEvent): Promise<FamilyCalendarEvent> {
+    const [result] = await db.insert(familyCalendarEvents).values(event).returning();
+    return result;
+  }
+
+  async getCalendarEvent(eventId: string): Promise<FamilyCalendarEvent | undefined> {
+    const result = await db.select().from(familyCalendarEvents)
+      .where(eq(familyCalendarEvents.id, eventId)).limit(1);
+    return result[0];
+  }
+
+  async updateCalendarEvent(eventId: string, updates: Partial<InsertFamilyCalendarEvent>): Promise<FamilyCalendarEvent | undefined> {
+    const [result] = await db.update(familyCalendarEvents)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(familyCalendarEvents.id, eventId))
+      .returning();
+    return result;
+  }
+
+  async deleteCalendarEvent(eventId: string): Promise<boolean> {
+    try {
+      await db.delete(familyCalendarEvents).where(eq(familyCalendarEvents.id, eventId));
+      return true;
+    } catch (error) {
+      console.error('Error deleting calendar event:', error);
+      return false;
+    }
+  }
+
+  // ICE Data methods
+  async getFamilyICEData(familyId: string): Promise<FamilyIceData | undefined> {
+    try {
+      const result = await db.select().from(familyIceData)
+        .where(eq(familyIceData.familyId, familyId)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Error getting family ICE data:', error);
+      return undefined;
+    }
+  }
+
+  async updateFamilyICEData(data: InsertFamilyIceData): Promise<FamilyIceData> {
+    try {
+      // Check if ICE data exists for this family
+      const existing = await this.getFamilyICEData(data.familyId);
+      
+      if (existing) {
+        // Update existing record
+        const [result] = await db.update(familyIceData)
+          .set({ 
+            emergencyContacts: data.emergencyContacts,
+            medicalInfo: data.medicalInfo,
+            bloodTypes: data.bloodTypes,
+            additionalNotes: data.additionalNotes,
+            lastUpdatedBy: data.lastUpdatedBy,
+            updatedAt: new Date()
+          })
+          .where(eq(familyIceData.familyId, data.familyId))
+          .returning();
+        return result;
+      } else {
+        // Create new record
+        const [result] = await db.insert(familyIceData).values(data).returning();
+        return result;
+      }
+    } catch (error) {
+      console.error('Error updating family ICE data:', error);
+      throw error;
     }
   }
 }
