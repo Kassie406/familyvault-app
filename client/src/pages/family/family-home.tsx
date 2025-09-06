@@ -245,12 +245,7 @@ export default function FamilyHome() {
       ]
     },
     { 
-      label: (
-        <span className="flex items-center gap-1">
-          Messages & Video Meetings
-          <Video className="h-4 w-4 ml-1" />
-        </span>
-      ), 
+      label: 'Messages & Video Meetings 📹', 
       value: 12, 
       icon: MessageCircle,
       href: '/messages?view=threads&sort=latest',
