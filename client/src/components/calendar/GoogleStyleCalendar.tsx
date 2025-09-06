@@ -18,7 +18,9 @@ import {
   Repeat,
   ChevronDown,
   CheckSquare,
-  Flag
+  Flag,
+  Users,
+  Bell
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -55,6 +57,20 @@ interface Task {
   calendar?: string;
 }
 
+interface Appointment {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+  location?: string;
+  attendees?: string[];
+  appointmentType: 'medical' | 'business' | 'personal' | 'consultation' | 'meeting';
+  notes?: string;
+  reminderMinutes?: number;
+  color?: string;
+  calendar?: string;
+}
+
 type ViewType = 'month' | 'week' | 'day';
 
 interface CalendarState {
@@ -62,14 +78,19 @@ interface CalendarState {
   currentDate: Date;
   events: CalendarEvent[];
   tasks: Task[];
+  appointments: Appointment[];
   selectedEvent: CalendarEvent | null;
   selectedTask: Task | null;
+  selectedAppointment: Appointment | null;
   isEventModalOpen: boolean;
   isTaskModalOpen: boolean;
+  isAppointmentModalOpen: boolean;
   eventModalMode: 'create' | 'edit';
   taskModalMode: 'create' | 'edit';
+  appointmentModalMode: 'create' | 'edit';
   newEventDate: Date | null;
   newTaskDate: Date | null;
+  newAppointmentDate: Date | null;
   sidebarOpen: boolean;
 }
 
@@ -366,14 +387,46 @@ export default function GoogleStyleCalendar() {
         calendar: 'Personal Tasks'
       }
     ],
+    appointments: [
+      {
+        id: 'appt-1',
+        title: 'Doctor Appointment',
+        start: new Date(2025, 1, 3, 10, 0),
+        end: new Date(2025, 1, 3, 11, 0),
+        location: 'Medical Center',
+        attendees: ['Dr. Smith'],
+        appointmentType: 'medical',
+        notes: 'Annual checkup',
+        reminderMinutes: 30,
+        color: '#EF4444',
+        calendar: 'Medical Appointments'
+      },
+      {
+        id: 'appt-2',
+        title: 'Client Meeting',
+        start: new Date(2025, 1, 4, 14, 0),
+        end: new Date(2025, 1, 4, 15, 30),
+        location: 'Office Conference Room',
+        attendees: ['John Doe', 'Jane Smith'],
+        appointmentType: 'business',
+        notes: 'Project discussion and planning',
+        reminderMinutes: 15,
+        color: '#3B82F6',
+        calendar: 'Business Appointments'
+      }
+    ],
     selectedEvent: null,
     selectedTask: null,
+    selectedAppointment: null,
     isEventModalOpen: false,
     isTaskModalOpen: false,
+    isAppointmentModalOpen: false,
     eventModalMode: 'create',
     taskModalMode: 'create',
+    appointmentModalMode: 'create',
     newEventDate: null,
     newTaskDate: null,
+    newAppointmentDate: null,
     sidebarOpen: true
   });
 
@@ -485,8 +538,10 @@ export default function GoogleStyleCalendar() {
   const handleCreateOptionClick = (type: 'event' | 'task' | 'appointment') => {
     if (type === 'task') {
       openTaskModal('create', undefined, state.currentDate);
+    } else if (type === 'appointment') {
+      openAppointmentModal('create', undefined, state.currentDate);
     } else {
-      // For events and appointments, open the event modal
+      // For events, open the event modal
       openEventModal('create', undefined, state.currentDate);
     }
   };
@@ -537,6 +592,55 @@ export default function GoogleStyleCalendar() {
     setState(prev => ({
       ...prev,
       tasks: prev.tasks.filter(task => task.id !== id)
+    }));
+  };
+
+  // Appointment functions
+  const openAppointmentModal = (mode: 'create' | 'edit', appointment?: Appointment, date?: Date) => {
+    setState(prev => ({
+      ...prev,
+      isAppointmentModalOpen: true,
+      appointmentModalMode: mode,
+      selectedAppointment: appointment || null,
+      newAppointmentDate: date || null
+    }));
+    setCreateDropdownOpen(false); // Close dropdown when opening modal
+  };
+
+  const closeAppointmentModal = () => {
+    setState(prev => ({
+      ...prev,
+      isAppointmentModalOpen: false,
+      selectedAppointment: null,
+      newAppointmentDate: null
+    }));
+  };
+
+  const createAppointment = (appointmentData: Omit<Appointment, 'id'>) => {
+    const newAppointment: Appointment = {
+      ...appointmentData,
+      id: Date.now().toString()
+    };
+    
+    setState(prev => ({
+      ...prev,
+      appointments: [...prev.appointments, newAppointment]
+    }));
+  };
+
+  const updateAppointment = (id: string, appointmentData: Omit<Appointment, 'id'>) => {
+    setState(prev => ({
+      ...prev,
+      appointments: prev.appointments.map(appointment => 
+        appointment.id === id ? { ...appointmentData, id } : appointment
+      )
+    }));
+  };
+
+  const deleteAppointment = (id: string) => {
+    setState(prev => ({
+      ...prev,
+      appointments: prev.appointments.filter(appointment => appointment.id !== id)
     }));
   };
 
@@ -921,6 +1025,19 @@ export default function GoogleStyleCalendar() {
           onDelete={deleteTask}
         />
       )}
+
+      {/* Appointment Modal */}
+      {state.isAppointmentModalOpen && (
+        <AppointmentModal
+          mode={state.appointmentModalMode}
+          appointment={state.selectedAppointment}
+          defaultDate={state.newAppointmentDate}
+          onClose={closeAppointmentModal}
+          onCreate={createAppointment}
+          onUpdate={updateAppointment}
+          onDelete={deleteAppointment}
+        />
+      )}
     </div>
   );
 }
@@ -1074,6 +1191,286 @@ function TaskModal({
               placeholder="Add description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] resize-none"
+            />
+          </div>
+
+          {/* Color */}
+          <div>
+            <label className="block text-xs text-gray-400 mb-2">Color</label>
+            <div className="flex gap-2">
+              {eventColors.map(colorOption => (
+                <button
+                  key={colorOption}
+                  onClick={() => setColor(colorOption)}
+                  className={`w-6 h-6 rounded-full border-2 ${
+                    color === colorOption ? 'border-white' : 'border-zinc-600'
+                  }`}
+                  style={{ backgroundColor: colorOption }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-between mt-6 pt-4 border-t border-zinc-800">
+          {mode === 'edit' ? (
+            <Button
+              onClick={handleDelete}
+              variant="outline"
+              size="sm"
+              className="text-red-400 border-red-400/30 hover:bg-red-400/10"
+            >
+              Delete
+            </Button>
+          ) : (
+            <div />
+          )}
+          
+          <div className="flex gap-2">
+            <Button
+              onClick={onClose}
+              variant="outline"
+              size="sm"
+              className="border-zinc-600 text-gray-300 hover:bg-zinc-800"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              size="sm"
+              className="bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90"
+              disabled={!title.trim()}
+            >
+              Save
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Appointment Modal Component
+function AppointmentModal({
+  mode,
+  appointment,
+  defaultDate,
+  onClose,
+  onCreate,
+  onUpdate,
+  onDelete
+}: {
+  mode: 'create' | 'edit';
+  appointment?: Appointment | null;
+  defaultDate?: Date | null;
+  onClose: () => void;
+  onCreate: (appointmentData: Omit<Appointment, 'id'>) => void;
+  onUpdate: (id: string, appointmentData: Omit<Appointment, 'id'>) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [title, setTitle] = useState(appointment?.title || '');
+  const [start, setStart] = useState(
+    appointment?.start ? toLocalISOString(appointment.start) : 
+    defaultDate ? toLocalISOString(defaultDate) : 
+    toLocalISOString(new Date())
+  );
+  const [end, setEnd] = useState(
+    appointment?.end ? toLocalISOString(appointment.end) : 
+    defaultDate ? (() => {
+      const endDate = new Date(defaultDate);
+      endDate.setHours(endDate.getHours() + 1);
+      return toLocalISOString(endDate);
+    })() : 
+    (() => {
+      const endDate = new Date();
+      endDate.setHours(endDate.getHours() + 1);
+      return toLocalISOString(endDate);
+    })()
+  );
+  const [location, setLocation] = useState(appointment?.location || '');
+  const [attendees, setAttendees] = useState(appointment?.attendees?.join(', ') || '');
+  const [appointmentType, setAppointmentType] = useState<'medical' | 'business' | 'personal' | 'consultation' | 'meeting'>(
+    appointment?.appointmentType || 'personal'
+  );
+  const [notes, setNotes] = useState(appointment?.notes || '');
+  const [reminderMinutes, setReminderMinutes] = useState(appointment?.reminderMinutes || 15);
+  const [color, setColor] = useState(appointment?.color || eventColors[0]);
+  
+  const appointmentTypeOptions = [
+    { value: 'medical', label: 'Medical', color: '#EF4444' },
+    { value: 'business', label: 'Business', color: '#3B82F6' },
+    { value: 'personal', label: 'Personal', color: '#10B981' },
+    { value: 'consultation', label: 'Consultation', color: '#F59E0B' },
+    { value: 'meeting', label: 'Meeting', color: '#8B5CF6' }
+  ] as const;
+
+  const reminderOptions = [
+    { value: 5, label: '5 minutes before' },
+    { value: 15, label: '15 minutes before' },
+    { value: 30, label: '30 minutes before' },
+    { value: 60, label: '1 hour before' },
+    { value: 1440, label: '1 day before' }
+  ];
+
+  const handleSave = () => {
+    if (!title.trim()) return;
+    
+    const appointmentData = {
+      title: title.trim(),
+      start: new Date(start),
+      end: new Date(end),
+      location: location.trim(),
+      attendees: attendees.trim() ? attendees.split(',').map(a => a.trim()) : [],
+      appointmentType,
+      notes: notes.trim(),
+      reminderMinutes,
+      color,
+      calendar: mode === 'create' ? `${appointmentType.charAt(0).toUpperCase() + appointmentType.slice(1)} Appointments` : appointment?.calendar || 'Personal Appointments'
+    };
+
+    if (mode === 'create') {
+      onCreate(appointmentData);
+    } else if (appointment) {
+      onUpdate(appointment.id, appointmentData);
+    }
+    
+    onClose();
+  };
+
+  const handleDelete = () => {
+    if (appointment) {
+      onDelete(appointment.id);
+      onClose();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="w-full max-w-md bg-zinc-900 border border-zinc-700 rounded-2xl p-6" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <CalIcon className="h-5 w-5 text-[#D4AF37]" />
+            <h2 className="text-lg font-semibold text-white">
+              {mode === 'create' ? 'New Appointment' : 'Edit Appointment'}
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-zinc-800 rounded-lg transition-colors"
+          >
+            <X className="h-4 w-4 text-gray-400" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <div className="space-y-4">
+          {/* Title */}
+          <div>
+            <input
+              type="text"
+              placeholder="Add appointment title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+              autoFocus
+            />
+          </div>
+
+          {/* Date/Time */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Start</label>
+              <input
+                type="datetime-local"
+                value={start}
+                onChange={(e) => setStart(e.target.value)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">End</label>
+              <input
+                type="datetime-local"
+                value={end}
+                onChange={(e) => setEnd(e.target.value)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+              />
+            </div>
+          </div>
+
+          {/* Location */}
+          <div className="flex items-center gap-3">
+            <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Add location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+            />
+          </div>
+
+          {/* Attendees */}
+          <div className="flex items-center gap-3">
+            <Users className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Add attendees (comma separated)"
+              value={attendees}
+              onChange={(e) => setAttendees(e.target.value)}
+              className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+            />
+          </div>
+
+          {/* Appointment Type */}
+          <div className="flex items-center gap-3">
+            <Flag className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            <div className="flex-1">
+              <label className="block text-xs text-gray-400 mb-1">Type</label>
+              <select 
+                value={appointmentType} 
+                onChange={(e) => setAppointmentType(e.target.value as typeof appointmentType)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+              >
+                {appointmentTypeOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Reminder */}
+          <div className="flex items-center gap-3">
+            <Bell className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            <div className="flex-1">
+              <label className="block text-xs text-gray-400 mb-1">Reminder</label>
+              <select 
+                value={reminderMinutes} 
+                onChange={(e) => setReminderMinutes(parseInt(e.target.value))}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+              >
+                {reminderOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="flex items-start gap-3">
+            <FileText className="h-4 w-4 text-gray-400 flex-shrink-0 mt-2" />
+            <textarea
+              placeholder="Add notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
               rows={3}
               className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] resize-none"
             />
