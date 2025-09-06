@@ -193,7 +193,6 @@ const toLocalISOString = (date: Date): string => {
 };
 
 export default function GoogleStyleCalendar() {
-  const [query, setQuery] = useState('');
   const [state, setState] = useState<CalendarState>({
     view: 'month',
     currentDate: new Date(),
@@ -253,21 +252,17 @@ export default function GoogleStyleCalendar() {
     'Holidays in United States': true
   });
 
-  // Filter events by search query AND calendar visibility (memoized for performance)
+  // Filter events by calendar visibility (memoized for performance)
   const filteredEvents = useMemo(() => {
     return state.events.filter(event => {
-      // First check calendar visibility
+      // Check calendar visibility
       const allCalendars: Record<string, boolean> = { ...myCals, ...otherCals };
       if (event.calendar && allCalendars[event.calendar] === false) {
         return false;
       }
-      
-      // Then check search query
-      if (!query.trim()) return true;
-      const searchText = `${event.title || ''} ${event.location || ''} ${event.notes || ''}`.toLowerCase();
-      return searchText.includes(query.toLowerCase());
+      return true;
     });
-  }, [state.events, myCals, otherCals, query]);
+  }, [state.events, myCals, otherCals]);
 
 
   // Navigation functions
@@ -539,16 +534,6 @@ export default function GoogleStyleCalendar() {
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Search */}
-              <div className="hidden md:flex items-center">
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search events..."
-                  className="w-48 bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                />
-              </div>
-
               {/* View Switcher */}
               <div className="flex items-center bg-zinc-800 rounded-lg p-1">
                 {(['month', 'week', 'day'] as ViewType[]).map(view => (
