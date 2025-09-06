@@ -98,9 +98,11 @@ export function StatCard({
             })}
             <span className="text-sm font-bold text-white group-hover:text-[#D4AF37] transition-colors flex items-center gap-2" id={`${label.replace(/\s+/g, "-").toLowerCase()}-desc`}>
               {label}
-              {secondaryIcon && React.cloneElement(secondaryIcon as React.ReactElement, {
-                className: "h-4 w-4 text-amber-400/70 group-hover:text-amber-400 transition-all"
-              })}
+              {secondaryIcon && (
+                <span className="h-4 w-4 text-amber-400/70 group-hover:text-amber-400 transition-all flex items-center">
+                  {secondaryIcon}
+                </span>
+              )}
             </span>
           </div>
 

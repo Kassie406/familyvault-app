@@ -248,7 +248,7 @@ export default function FamilyHome() {
       label: 'Messages & Video Meetings', 
       value: 12, 
       icon: MessageCircle,
-      secondaryIcon: <Video className="h-4 w-4" />,
+      secondaryIcon: <Video />,
       href: '/messages?view=threads&sort=latest',
       fetchPreview: async () => {
         try {
