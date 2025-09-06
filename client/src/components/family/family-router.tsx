@@ -46,6 +46,7 @@ import ApiManagement from '@/pages/family/api-management';
 import ApprovalsPage from '@/pages/family/approvals';
 import FloatingChatWidget from '@/components/FloatingChatWidget';
 import CalendarPage from '@/pages/family/calendar';
+import MessagesPage from '@/pages/messages';
 
 // Placeholder components for family portal pages
 function FamilyMembers() {
@@ -211,6 +212,8 @@ export default function FamilyRouter() {
         <Route path="/family/members" component={withSidebarLayout(FamilyMembers)} />
         <Route path="/family/documents" component={withSidebarLayout(FamilyDocuments)} />
         <Route path="/family/calendar" component={() => <CalendarPage />} />
+        <Route path="/family/messages" component={withSidebarLayout(FamilyMessages)} />
+        <Route path="/messages" component={() => <MessagesPage />} />
         <Route path="/family/photos" component={withSidebarLayout(FamilyPhotos)} />
         <Route path="/family/emergency" component={withSidebarLayout(FamilyEmergency)} />
         <Route path="/family/settings" component={withSidebarLayout(() => <FamilySettings />)} />
