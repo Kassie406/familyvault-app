@@ -181,6 +181,22 @@ export function emitFileUpdate(fileId: string, familyId: string, payload: any) {
   console.log(`[realtime] Emitted update for file:${fileId}`, payload);
 }
 
+// Broadcast family activity updates to all family members
+export function emitFamilyActivity(familyId: string, activity: any) {
+  if (!io) {
+    console.warn('[realtime] IO server not initialized, cannot emit activity update');
+    return;
+  }
+  
+  // Emit to all family members in the family room
+  io.to(`family:${familyId}`).emit("family:activity", { 
+    type: "activity:new", 
+    activity 
+  });
+  
+  console.log(`[realtime] Emitted activity update to family:${familyId}`, activity.title);
+}
+
 // Get the IO instance for use elsewhere
 export function getIoServer(): Server | null {
   return io;

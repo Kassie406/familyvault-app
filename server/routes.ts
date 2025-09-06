@@ -18,6 +18,8 @@ import { sendSMSNotification } from "./lib/twilio";
 import { sendSMSNotificationsForMessage, markUserOnline, markUserOffline } from "./lib/sms-notifications";
 import { getOrCreateFamilyChatId } from "./lib/chat-default";
 import { initializeRealtime, getRealtimeManager } from "./lib/realtime.js";
+import { emitFamilyActivity } from "./realtime";
+import { logFamilyActivity } from "./lib/activity";
 // Schema imports - using proper type names
 import { 
   InsertInvite,
@@ -1141,6 +1143,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching family activity:", error);
       res.status(500).json({ error: "Failed to fetch family activity" });
+    }
+  });
+
+  // POST /api/family/activity/test - Create test activity (development only)
+  app.post("/api/family/activity/test", async (req, res) => {
+    try {
+      const testActivities = [
+        {
+          familyId: "family-1",
+          userId: "current-user", 
+          activityType: "document_upload",
+          title: "New document uploaded",
+          description: "Tax documents for 2025 have been uploaded",
+          priority: "medium"
+        },
+        {
+          familyId: "family-1",
+          userId: "sarah@family.com",
+          activityType: "document_approve", 
+          title: "Document approved",
+          description: "Passport renewal request has been approved",
+          priority: "low"
+        },
+        {
+          familyId: "family-1", 
+          userId: "john@family.com",
+          activityType: "message",
+          title: "New family message",
+          description: "Planning next weekend's family gathering", 
+          priority: "low"
+        }
+      ];
+      
+      // Pick random test activity
+      const randomActivity = testActivities[Math.floor(Math.random() * testActivities.length)];
+      
+      // Log and broadcast the activity
+      const activity = await logFamilyActivity(randomActivity);
+      
+      res.json({ 
+        success: true, 
+        activity: {
+          id: activity.id,
+          type: activity.activityType,
+          title: activity.title,
+          description: activity.description,
+          timestamp: activity.createdAt?.toISOString(),
+          author: { id: activity.userId, name: activity.userId },
+          priority: activity.priority
+        }
+      });
+    } catch (error) {
+      console.error("Error creating test activity:", error);
+      res.status(500).json({ error: "Failed to create test activity" });
     }
   });
 
