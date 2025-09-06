@@ -331,7 +331,7 @@ export default function FamilyHome() {
         </div>
       </div>
       
-      <div className="p-8 space-y-8">
+      <div className="p-8 space-y-12">
 
       {/* Family Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -353,8 +353,10 @@ export default function FamilyHome() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-xl font-semibold text-[var(--ink-100)] mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <h2 className="text-2xl font-semibold text-[var(--ink-100)] mb-4 relative">
+          <span className="border-b-2 border-[#D4AF37]/30 pb-1">Quick Actions</span>
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <ActionCard 
             icon={<Upload className="h-5 w-5"/>} 
             title="Upload Document" 
@@ -375,9 +377,9 @@ export default function FamilyHome() {
       {/* Upload Center */}
       <div ref={uploadCenterRef}>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-[var(--ink-100)] flex items-center">
+          <h2 className="text-2xl font-semibold text-[var(--ink-100)] flex items-center relative">
             <Upload className="w-5 h-5 mr-2 text-[var(--gold)]" />
-            Upload Center
+            <span className="border-b-2 border-[#D4AF37]/30 pb-1">Upload Center</span>
           </h2>
           <div className="text-sm text-[var(--ink-300)]">
             Secure S3 storage with virus scanning
@@ -410,14 +412,16 @@ export default function FamilyHome() {
       {dashboardLayout === 'default' ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Enhanced Activity Feed */}
-          <ActivityFeed limit={8} showFilters={false} />
+          <div className="min-h-[600px]">
+            <ActivityFeed limit={8} showFilters={false} />
+          </div>
           
           {/* Announcements & Important Info */}
-          <div>
+          <div className="min-h-[600px]">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-[var(--ink-100)] flex items-center">
+              <h2 className="text-2xl font-semibold text-[var(--ink-100)] flex items-center relative">
                 <Bell className="w-5 h-5 mr-2 text-[var(--gold)]" />
-                Family Updates (Reminders & Notices)
+                <span className="border-b-2 border-[#D4AF37]/30 pb-1">Family Updates</span>
               </h2>
             </div>
             <FamilyUpdates />
@@ -425,9 +429,9 @@ export default function FamilyHome() {
         </div>
       ) : (
         /* Compact Layout */
-        <div className="space-y-6">
+        <div className="space-y-8">
           <ActivityFeed limit={5} showFilters={true} className="mb-6" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <AnnouncementCard 
               title="Quick Reminder"
               body="Insurance due in 15 days"
@@ -449,7 +453,9 @@ export default function FamilyHome() {
 
       {/* Family Tools */}
       <div>
-        <h2 className="text-xl font-semibold text-[var(--ink-100)] mb-4">Family Tools</h2>
+        <h2 className="text-2xl font-semibold text-[var(--ink-100)] mb-4 relative">
+          <span className="border-b-2 border-[#D4AF37]/30 pb-1">Family Tools</span>
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <ToolCard icon={<Users className="h-6 w-6"/>} title="Family Members" description="Manage profiles, contacts, and emergency details." cta="Manage profiles →" />
           <ToolCard icon={<FileText className="h-6 w-6"/>} title="Document Vault" description="Securely store and share IDs, medical, legal papers." cta="View documents →" />
