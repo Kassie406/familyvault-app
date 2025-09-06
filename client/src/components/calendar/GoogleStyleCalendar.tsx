@@ -835,7 +835,8 @@ function WeekView({
   onEventClick: (event: CalendarEvent) => void;
 }) {
   const weekDays = getWeekDays(currentDate);
-  const hours = Array.from({ length: 24 }, (_, i) => i);
+  // Reorder hours to start with 1 AM (like in reference image)
+  const hours = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0];
   
   return (
     <div className="h-full flex flex-col">
@@ -862,6 +863,10 @@ function WeekView({
         <div className="grid grid-cols-8 min-h-full">
           {/* Time labels */}
           <div className="border-r border-zinc-800 bg-zinc-900">
+            {/* GMT indicator */}
+            <div className="h-8 border-b border-zinc-800 p-2 text-xs text-gray-500 flex items-center">
+              GMT+01
+            </div>
             {hours.map(hour => (
               <div key={hour} className="h-16 border-b border-zinc-800 p-2 text-xs text-gray-500 sticky-time-label">
                 {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
