@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -38,6 +38,7 @@ interface CalendarEvent {
   notes?: string;
   color?: string;
   recurrence?: RecurrenceRule;
+  calendar?: string;
 }
 
 type ViewType = 'month' | 'week' | 'day';
@@ -65,13 +66,10 @@ const eventColors = [
   '#6B7280'  // Gray
 ];
 
-// Calendar labels
-const calendarSources = [
-  { id: 'family', name: 'Family Events', color: '#D4AF37', visible: true },
-  { id: 'personal', name: 'Personal', color: '#3B82F6', visible: true },
-  { id: 'work', name: 'Work', color: '#EF4444', visible: false },
-  { id: 'holidays', name: 'Holidays', color: '#10B981', visible: true }
-];
+// Calendar labels and icons
+const Circle = ({ className, style }: { className: string; style?: any }) => (
+  <div className={`rounded-full ${className}`} style={style} />
+);
 
 // Right Shortcuts Component
 function RightShortcuts({ onCreate, className }: { onCreate: () => void; className?: string }) {
@@ -206,7 +204,8 @@ export default function GoogleStyleCalendar() {
         start: new Date(2025, 0, 30, 19, 0),
         end: new Date(2025, 0, 30, 21, 30),
         color: '#D4AF37',
-        location: 'Living Room'
+        location: 'Living Room',
+        calendar: 'Family Events'
       },
       {
         id: '2',
@@ -214,7 +213,26 @@ export default function GoogleStyleCalendar() {
         start: new Date(2025, 0, 31, 16, 0),
         end: new Date(2025, 0, 31, 17, 30),
         color: '#3B82F6',
-        location: 'Community Center'
+        location: 'Community Center',
+        calendar: 'Personal'
+      },
+      {
+        id: '3',
+        title: 'Birthday Party',
+        start: new Date(2025, 1, 2, 14, 0),
+        end: new Date(2025, 1, 2, 17, 0),
+        color: '#EF4444',
+        location: 'Park',
+        calendar: 'Birthdays'
+      },
+      {
+        id: '4',
+        title: 'Martin Luther King Jr. Day',
+        start: new Date(2025, 0, 20, 0, 0),
+        end: new Date(2025, 0, 20, 23, 59),
+        color: '#10B981',
+        allDay: true,
+        calendar: 'Holidays in United States'
       }
     ],
     selectedEvent: null,
@@ -224,16 +242,33 @@ export default function GoogleStyleCalendar() {
     sidebarOpen: true
   });
 
-  // Filter events by search query
-  const filteredEvents = state.events.filter(event => {
-    if (!query.trim()) return true;
-    const searchText = `${event.title || ''} ${event.location || ''} ${event.notes || ''}`.toLowerCase();
-    return searchText.includes(query.toLowerCase());
+  // Calendar visibility state - exactly like your image
+  const [myCals, setMyCals] = useState<Record<string, boolean>>({
+    'Family Events': true,
+    'Personal': true,
+    'Work': true,
+    'Birthdays': true
+  });
+  const [otherCals, setOtherCals] = useState<Record<string, boolean>>({
+    'Holidays in United States': true
   });
 
-  const [calendarVisibility, setCalendarVisibility] = useState<Record<string, boolean>>(
-    calendarSources.reduce((acc, cal) => ({ ...acc, [cal.id]: cal.visible }), {} as Record<string, boolean>)
-  );
+  // Filter events by search query AND calendar visibility (memoized for performance)
+  const filteredEvents = useMemo(() => {
+    return state.events.filter(event => {
+      // First check calendar visibility
+      const allCalendars: Record<string, boolean> = { ...myCals, ...otherCals };
+      if (event.calendar && allCalendars[event.calendar] === false) {
+        return false;
+      }
+      
+      // Then check search query
+      if (!query.trim()) return true;
+      const searchText = `${event.title || ''} ${event.location || ''} ${event.notes || ''}`.toLowerCase();
+      return searchText.includes(query.toLowerCase());
+    });
+  }, [state.events, myCals, otherCals, query]);
+
 
   // Navigation functions
   const goToToday = () => {
@@ -412,29 +447,40 @@ export default function GoogleStyleCalendar() {
           />
         </div>
 
-        {/* Calendar Sources */}
-        <div>
-          <h3 className="text-sm font-medium text-gray-300 mb-3">My Calendars</h3>
+        {/* My Calendars */}
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-300 mb-3">My calendars</h3>
           <div className="space-y-2">
-            {calendarSources.map(calendar => (
-              <div key={calendar.id} className="flex items-center gap-2 text-sm">
-                <button
-                  onClick={() => setCalendarVisibility(prev => ({
-                    ...prev,
-                    [calendar.id]: !prev[calendar.id]
-                  }))}
-                  className="flex items-center gap-2 hover:bg-zinc-800 rounded px-2 py-1 flex-1"
-                >
-                  {calendarVisibility[calendar.id] ? (
-                    <Eye className="h-4 w-4" style={{ color: calendar.color }} />
-                  ) : (
-                    <EyeOff className="h-4 w-4 text-gray-500" />
-                  )}
-                  <span className={calendarVisibility[calendar.id] ? 'text-gray-300' : 'text-gray-500'}>
-                    {calendar.name}
-                  </span>
-                </button>
-              </div>
+            {Object.keys(myCals).map((calName, i) => (
+              <label key={calName} className="flex items-center gap-2 cursor-pointer select-none text-sm">
+                <input
+                  type="checkbox"
+                  checked={myCals[calName]}
+                  onChange={() => setMyCals(prev => ({ ...prev, [calName]: !prev[calName] }))}
+                  className="accent-[#D4AF37] focus:ring-[#D4AF37]"
+                />
+                <Circle className="h-3 w-3" style={{ backgroundColor: eventColors[i % eventColors.length] }} />
+                <span className="text-gray-300">{calName}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Other Calendars */}
+        <div>
+          <h3 className="text-sm font-medium text-gray-300 mb-3">Other calendars</h3>
+          <div className="space-y-2">
+            {Object.keys(otherCals).map((calName, i) => (
+              <label key={calName} className="flex items-center gap-2 cursor-pointer select-none text-sm">
+                <input
+                  type="checkbox"
+                  checked={otherCals[calName]}
+                  onChange={() => setOtherCals(prev => ({ ...prev, [calName]: !prev[calName] }))}
+                  className="accent-[#D4AF37] focus:ring-[#D4AF37]"
+                />
+                <Circle className="h-3 w-3" style={{ backgroundColor: eventColors[(i + Object.keys(myCals).length) % eventColors.length] }} />
+                <span className="text-gray-300">{calName}</span>
+              </label>
             ))}
           </div>
         </div>
@@ -951,7 +997,8 @@ function EventModal({
       location: location.trim(),
       notes: notes.trim(),
       color,
-      recurrence: buildRecurrenceRule()
+      recurrence: buildRecurrenceRule(),
+      calendar: mode === 'create' ? 'Family Events' : event?.calendar || 'Family Events'
     };
 
     if (mode === 'create') {
