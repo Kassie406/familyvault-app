@@ -4,6 +4,7 @@ import { calendars, calendarEvents, calendarEventSnoozes } from "@shared/schema"
 import { and, eq, gte, lte, desc } from "drizzle-orm";
 import { z } from "zod";
 import { expandRecurringEvents } from "../lib/recurrence";
+import { getRealtimeManager } from "../lib/realtime";
 
 export const calendarRouter = Router();
 
@@ -159,7 +160,15 @@ calendarRouter.post("/api/events", requireFamilyAuth, async (req: any, res) => {
       .returning();
     
     // TODO: Insert attendees if provided
-    // TODO: WebSocket broadcast
+    
+    // Broadcast calendar event creation
+    const realtimeManager = getRealtimeManager();
+    if (realtimeManager) {
+      realtimeManager.broadcastToFamily(req.user.familyId, "calendar:event:created", {
+        event: newEvent,
+        calendarId: data.calendarId
+      });
+    }
     
     res.status(201).json(newEvent);
   } catch (error) {
@@ -208,7 +217,13 @@ calendarRouter.patch("/api/events/:id", requireFamilyAuth, async (req: any, res)
       .where(eq(calendarEvents.id, id))
       .returning();
     
-    // TODO: WebSocket broadcast
+    // Broadcast calendar event update
+    const realtimeManager = getRealtimeManager();
+    if (realtimeManager) {
+      realtimeManager.broadcastToFamily(req.user.familyId, "calendar:event:updated", {
+        event: updatedEvent
+      });
+    }
     
     res.json(updatedEvent);
   } catch (error) {
@@ -239,7 +254,13 @@ calendarRouter.delete("/api/events/:id", requireFamilyAuth, async (req: any, res
       .delete(calendarEvents)
       .where(eq(calendarEvents.id, id));
     
-    // TODO: WebSocket broadcast
+    // Broadcast calendar event deletion
+    const realtimeManager = getRealtimeManager();
+    if (realtimeManager) {
+      realtimeManager.broadcastToFamily(req.user.familyId, "calendar:event:deleted", {
+        eventId: id
+      });
+    }
     
     res.status(204).end();
   } catch (error) {
