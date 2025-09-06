@@ -1,5 +1,5 @@
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { createEvents } = require("ics");
+import * as ics from "ics";
+const { createEvents } = ics as any;
 import { toRRuleString } from "./recurrence";
 
 // Type definitions for ics library

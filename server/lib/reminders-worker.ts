@@ -1,7 +1,6 @@
 import { db } from "../db";
 import { calendarEventReminders, calendarEvents, calendars, users } from "@shared/schema";
 import { and, eq, lte, isNull } from "drizzle-orm";
-import { sendSMSNotification } from "./twilio";
 import { getRealtimeManager } from "./realtime";
 
 export interface ReminderNotification {
@@ -38,7 +37,7 @@ export async function processReminders(): Promise<void> {
         eventStartAt: calendarEvents.startAt,
         eventLocation: calendarEvents.location,
         userEmail: users.email,
-        userFirstName: users.firstName
+        userFirstName: users.username // Use username since firstName doesn't exist
       })
       .from(calendarEventReminders)
       .innerJoin(calendarEvents, eq(calendarEventReminders.eventId, calendarEvents.id))
