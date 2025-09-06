@@ -563,14 +563,14 @@ export default function GoogleStyleCalendar() {
                 Export ICS
               </Button>
 
-              {/* Add Event Button */}
+              {/* Create Button */}
               <Button
                 onClick={() => openEventModal('create', undefined, state.currentDate)}
                 className="bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90"
                 size="sm"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Event
+                Create
               </Button>
             </div>
           </div>
