@@ -338,12 +338,12 @@ export default function GoogleStyleCalendar() {
               {/* Sidebar Toggle */}
               <Button
                 onClick={toggleSidebar}
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="text-gray-400 hover:text-gray-300 hover:bg-zinc-800"
+                className="border-[#D4AF37]/30 text-[#D4AF37] hover:bg-[#D4AF37]/10 hover:border-[#D4AF37] bg-zinc-800"
                 title={state.sidebarOpen ? "Hide sidebar" : "Show sidebar"}
               >
-                <Menu className="h-4 w-4" />
+                <Menu className="h-5 w-5" />
               </Button>
               
               {/* Navigation */}
