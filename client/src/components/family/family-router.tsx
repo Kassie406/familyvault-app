@@ -50,6 +50,7 @@ import MessagesPage from '@/pages/messages';
 import PhotosUpload from '@/pages/photos-upload';
 import PhotosAlbums from '@/pages/photos-albums';
 import PhotosShared from '@/pages/photos-shared';
+import FamilyMeeting from '@/pages/family-meeting';
 
 // Placeholder components for family portal pages
 function FamilyMembers() {
@@ -221,6 +222,7 @@ export default function FamilyRouter() {
         <Route path="/photos/upload" component={() => <PhotosUpload />} />
         <Route path="/photos/albums" component={() => <PhotosAlbums />} />
         <Route path="/photos" component={() => <PhotosShared />} />
+        <Route path="/family/meeting/:meetingId" component={() => <FamilyMeeting />} />
         <Route path="/family/emergency" component={withSidebarLayout(FamilyEmergency)} />
         <Route path="/family/settings" component={withSidebarLayout(() => <FamilySettings />)} />
         <Route path="/family/api-management" component={withSidebarLayout(() => <ApiManagement />)} />
