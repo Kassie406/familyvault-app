@@ -243,7 +243,9 @@ function App() {
                        pathname.startsWith('/dashboard');
   const isPortalDomain = subdomain === 'portal' || 
                          hostname === 'portal.familycirclesecure.com' ||
-                         pathname.startsWith('/family');
+                         pathname.startsWith('/family') ||
+                         hostname.includes('replit.dev') || // Replit test environment
+                         hostname.includes('repl.co'); // Alternative Replit domain
   const isHubDomain = subdomain === 'hub' || hostname === 'hub.familycirclesecure.com';
   
   // Admin Console Interface
