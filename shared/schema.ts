@@ -39,6 +39,22 @@ export const users = pgTable("users", {
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
+// Family Activity table for activity feed
+export const familyActivity = pgTable("family_activity", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  activityType: varchar("activity_type").notNull(),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  metadata: jsonb("metadata").default({}),
+  priority: varchar("priority").default("low"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type InsertFamilyActivity = typeof familyActivity.$inferInsert;
+export type FamilyActivity = typeof familyActivity.$inferSelect;
+
 // Family Members
 export const familyMembers = pgTable("family_members", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -426,8 +442,6 @@ export const messageAttachments = pgTable("message_attachments", {
 });
 
 // Add required type definitions
-export type User = typeof users.$inferSelect;
-export type InsertUser = typeof users.$inferInsert;
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = typeof organizations.$inferInsert;
 export type Plan = typeof plans.$inferSelect;

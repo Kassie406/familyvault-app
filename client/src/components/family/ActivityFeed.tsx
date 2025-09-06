@@ -103,7 +103,14 @@ export function ActivityFeed({ limit = 10, showFilters = true, className = '' }:
 
   // Fetch activity data
   const { data: activities = [], isLoading, refetch } = useQuery<ActivityItem[]>({
-    queryKey: ['/api/family/activity', { filter, timeRange, limit }],
+    queryKey: ['/api/family/activity', filter, timeRange, limit],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (filter !== 'all') params.append('filter', filter);
+      params.append('timeRange', timeRange);
+      params.append('limit', limit.toString());
+      return fetch(`/api/family/activity?${params.toString()}`).then(res => res.json());
+    },
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
