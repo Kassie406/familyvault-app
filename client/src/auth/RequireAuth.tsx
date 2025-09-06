@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "../lib/supabase";
-import SignIn from "./SignIn";
+import NewSignIn from "./NewSignIn";
 
 interface RequireAuthProps {
   children: React.ReactNode;
@@ -11,16 +10,21 @@ export default function RequireAuth({ children }: RequireAuthProps) {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data?.user ?? null);
-      setReady(true);
-    });
-    
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    
-    return () => subscription?.subscription?.unsubscribe();
+    // Check authentication status with our custom auth system
+    fetch('/api/auth/user')
+      .then(async (response) => {
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+        } else {
+          setUser(null);
+        }
+        setReady(true);
+      })
+      .catch(() => {
+        setUser(null);
+        setReady(true);
+      });
   }, []);
 
   if (!ready) {
@@ -34,16 +38,6 @@ export default function RequireAuth({ children }: RequireAuthProps) {
   return user ? (
     children
   ) : (
-    <div className="min-h-screen bg-black flex items-center justify-center p-6">
-      <div className="max-w-md w-full">
-        <div className="p-8 rounded-2xl bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 border border-zinc-800/80 shadow-xl">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-[#D4AF37] mb-2">Family Portal</h1>
-            <p className="text-zinc-400">Sign in to access your family's secure portal</p>
-          </div>
-          <SignIn />
-        </div>
-      </div>
-    </div>
+    <NewSignIn />
   );
 }
