@@ -18,6 +18,7 @@ import {
 import { LuxuryCard } from '@/components/luxury-cards';
 import { apiRequest } from '@/lib/queryClient';
 import ComposeUpdateModal from './ComposeUpdateModal';
+import { useUserRole } from '@/hooks/useUserRole';
 
 type FamilyUpdateType = {
   id: string;
@@ -78,9 +79,7 @@ function formatDueDate(dueAt: string | null) {
 
 export default function FamilyUpdates() {
   const queryClient = useQueryClient();
-  
-  // TODO: Get from actual user role/permissions
-  const isAdmin = true; // For now, show to all users for testing
+  const { isAdmin, isLoading: userLoading } = useUserRole();
   
   // Fetch family updates
   const { data: updates = [], isLoading, refetch } = useQuery<FamilyUpdateType[]>({
@@ -108,7 +107,7 @@ export default function FamilyUpdates() {
     dismissMutation.mutate(updateId);
   };
 
-  if (isLoading) {
+  if (isLoading || userLoading) {
     return (
       <div className="space-y-3">
         <div className="animate-pulse rounded-2xl bg-zinc-800 h-20"></div>
