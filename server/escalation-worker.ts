@@ -31,6 +31,11 @@ export class EscalationWorker {
       return;
     }
 
+    // TEMPORARILY DISABLED due to schema mismatch
+    // The escalation worker expects different database columns than what exists
+    log('Escalation worker disabled (schema mismatch)');
+    return;
+
     this.running = true;
     this.intervalId = setInterval(() => {
       this.runEscalationCheck().catch(error => {

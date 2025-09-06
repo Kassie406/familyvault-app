@@ -1,0 +1,148 @@
+if the crash started before Snooze, it’s almost certainly from one of these additions:
+
+Family Updates (routes + table)
+
+Per-Family Settings (routes + table)
+
+PDF/CSV export (pdfkit/json2csv)
+
+iCal integration (node-ical)
+
+WebSocket hub wiring/broadcast
+
+Here’s a fast, surgical way to get you back up in minutes.
+
+Quick un-crash plan (safe boot)
+A) Install any new deps (most common crash)
+
+In the shell:
+
+npm i node-ical pdfkit json2csv @aws-sdk/client-s3 @aws-sdk/s3-presigned-post ws nanoid date-fns
+
+
+(If some are already installed, npm will skip.)
+
+B) Make route mounting conditional (so missing deps don’t crash boot)
+
+In server/index.ts (or where you app.use(...) the new routers), wrap recent mounts:
+
+// Always-safe mounts
+import activityRouter from "./routes/activity";
+import documentsRouter from "./routes/documents";
+app.use(activityRouter, documentsRouter);
+
+// ✅ Conditionally mount these (so missing modules won't crash)
+try {
+  app.use(require("./routes/updates").default);
+} catch (e) { console.warn("updates route skipped:", (e as Error).message); }
+
+try {
+  app.use(require("./routes/familySettings").default);
+} catch (e) { console.warn("familySettings route skipped:", (e as Error).message); }
+
+try {
+  app.use(require("./routes/docAudit").default);
+} catch (e) { console.warn("docAudit route skipped:", (e as Error).message); }
+
+C) Comment out iCal + PDF export first (common source of ModuleNotFound)
+
+Temporarily comment these imports and routes:
+
+import ical from "node-ical" and anything that calls fetchIcalEvents(...)
+
+import PDFDocument from "pdfkit" and /api/doc-audit/export.pdf
+
+Re-run to confirm boot works; then re-enable once deps are installed.
+
+D) Ensure new tables are registered (Drizzle)
+
+If your DB init exports a registry, make sure the new tables are included:
+
+// server/db/schema/index.ts
+export * from "./docs";
+export * from "./updates";          // 👈 added
+export * from "./familySettings";   // 👈 added
+export * from "./audit";            // if not already
+export * from "./updateSnooze";     // (added later; OK to keep)
+
+
+Then run your migrations / push:
+
+# whichever you use in your project
+npm run db:push
+# or
+npx drizzle-kit generate && npx drizzle-kit push
+
+E) Secrets/env sanity
+
+SECRETS_KEY must be set (hex 64 chars).
+
+If you wired S3/R2 signing earlier, ensure S3_BUCKET, S3_KEY, S3_SECRET, and S3_ENDPOINT (for R2) exist.
+
+F) WebSocket server guard
+
+If the WS hub is imported before HTTP server exists, ensure you initialize it properly and don’t throw on startup:
+
+// server/realtime/index.ts
+export function initRealtime(server: any, getUserFromReq: any) {
+  const { WebSocketServer } = require("ws"); // avoid ESM issues
+  const wss = new WebSocketServer({ server, path: "/realtime" });
+  // ...
+}
+
+// server/index.ts
+import { initRealtime } from "./realtime";
+initRealtime(httpServer, getUserFromReqSafely);
+
+Likeliest exact culprits & fixes
+1) Module not found (pdfkit / node-ical / json2csv)
+
+Symptom in console: Error: Cannot find module 'pdfkit' (or node-ical, json2csv).
+
+Fix: npm i those modules OR comment out the route temporarily.
+
+2) Route import exploding (CJS/ESM mismatch)
+
+Replace import PDFDocument from "pdfkit" with:
+
+// inside route handler:
+const PDFDocument = (await import("pdfkit")).default;
+
+
+(lazy import so boot doesn’t fail)
+
+3) Drizzle table not found
+
+Symptom: relation "family_updates" does not exist
+
+Fix: run migrations; make sure schema file is exported; re-run.
+
+4) Undefined middleware or user object
+
+Symptom: Cannot read properties of undefined (reading 'familyId')
+
+Ensure requireAuth runs before updates/settings routes:
+
+router.use(requireAuth); // must be before GET/POST
+
+5) WebSocket attach before server
+
+Symptom: crash on new WebSocketServer(...).
+
+Ensure you call initRealtime(server, ...) after HTTP server is created, not at the top-level.
+
+If you want a “toggle” to isolate features
+
+Add env flags to boot only what’s ready:
+
+const ENABLE_UPDATES = process.env.ENABLE_UPDATES === "1";
+
+if (ENABLE_UPDATES) {
+  try { app.use(require("./routes/updates").default); }
+  catch (e) { console.warn("updates disabled:", (e as Error).message); }
+}
+
+
+Set ENABLE_UPDATES=0 in Replit to boot without the new subsystem while you finish installs/migrations.
+
+If you can paste the first 10–20 lines of the error from the Console, I’ll pinpoint the exact line and give you a one-line patch. But applying A–D above usually gets the app back up immediately.
