@@ -1,0 +1,118 @@
+No worries—this “Authentication error: Failed to fetch” on portal.familycirclesecure.com means the browser isn’t reaching Supabase at all (it’s not a bad key or email issue). Let’s fix it quickly.
+
+Do this in order
+1) Prove the browser can reach Supabase (tiny health check)
+
+Add this to your login.html (just above your magic-link code) and reload the page:
+
+<script type="module">
+  // set these exactly
+  const SUPABASE_URL = 'https://zzconzlitecbawulnbey.supabase.co';
+
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/health`);
+    console.log('Supabase health status:', r.status);  // should be 200
+  } catch (e) {
+    console.error('Health check failed:', e);
+    alert('Cannot reach Supabase from this page: ' + e.message);
+  }
+</script>
+
+
+If you do not see a request in Network to /auth/v1/health or it throws immediately → jump to Step 3 (CSP).
+
+If you see 200 here but the magic link still “Failed to fetch”, go to Step 2.
+
+2) Verify the auth request is formed correctly
+
+Open DevTools → Network, click Send Magic Link and look for a request to:
+
+https://zzconzlitecbawulnbey.supabase.co/auth/v1/otp
+
+
+If you don’t see it or it’s blocked:
+
+Make sure your client is created with real URL/key in the browser (not Node envs):
+
+import { createClient } from '@supabase/supabase-js'
+const supabase = createClient(
+  'https://zzconzlitecbawulnbey.supabase.co',
+  'PASTE_YOUR_ANON_KEY'
+)
+
+
+(Do this temporarily to rule out env leakage. Replace with envs later.)
+
+Call the modern API:
+
+await supabase.auth.signInWithOtp({
+  email,
+  options: { emailRedirectTo: `${window.location.origin}/auth-callback.html` }
+})
+
+
+In Supabase → Auth → URL configuration, confirm these exact entries:
+
+Site URL: https://portal.familycirclesecure.com
+
+Additional Redirect URLs:
+
+https://portal.familycirclesecure.com
+https://portal.familycirclesecure.com/auth-callback.html
+
+
+(Keep your Replit *.replit.dev URLs if you still test there.)
+
+If the /otp request appears with 401/403 → re-copy the anon key.
+If the /otp request never appears or says blocked by CORS → go to Step 3.
+
+3) Fix your Content Security Policy (CSP)
+
+A strict CSP will block cross-origin calls and show “Failed to fetch.”
+Check DevTools Console for messages like “Refused to connect to … because it violates the document’s Content Security Policy.”
+
+If you have a meta CSP, update it to allow Supabase and your module CDN:
+
+<meta http-equiv="Content-Security-Policy"
+  content="
+    default-src 'self';
+    connect-src 'self' https://zzconzlitecbawulnbey.supabase.co https://*.supabase.co;
+    script-src 'self' 'unsafe-inline' https://esm.sh https://cdn.jsdelivr.net;
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data:;
+    font-src 'self' data:;
+    frame-ancestors 'self';
+  ">
+
+
+If you set CSP via headers (e.g., in your host), add the same connect-src and script-src allowances.
+
+Reload, run the health check again (Step 1), then try Send Magic Link and confirm the /otp request shows 200.
+
+4) Final guards (so the portal isn’t public)
+
+Include the session gate script at the very top of every protected page (redirects to /login.html if no session).
+
+Enable RLS on your tables (so data is safe even if someone hits the UI).
+
+Quick checklist you can tick off
+
+ health request to …/auth/v1/health returns 200
+
+ …/auth/v1/otp appears in Network with 200
+
+ Supabase Site URL + Redirect URLs include your domain
+
+ No CSP errors in Console; CSP allows connect-src https://*.supabase.co
+
+ Session gate redirects logged-out users to /login.html
+
+ RLS enabled on data tables
+
+If you run the health check and tell me:
+
+the status code you see, and
+
+what the Network tab shows for the /otp request (URL + Status),
+
+I’ll pinpoint the exact remaining fix in one step.
