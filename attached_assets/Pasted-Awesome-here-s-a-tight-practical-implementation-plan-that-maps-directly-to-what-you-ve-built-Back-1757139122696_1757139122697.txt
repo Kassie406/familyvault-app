@@ -1,0 +1,247 @@
+Awesome—here’s a tight, practical implementation plan that maps directly to what you’ve built.
+
+Backend (data, jobs, permissions)
+Core schema (Postgres recommended)
+
+calendars
+
+id (uuid), family_id, name (e.g., “Kassandra Santana”, “Birthdays”)
+
+color, is_system (true for “Holidays in United States”)
+
+events
+
+id (uuid), calendar_id, creator_user_id
+
+title, description, location
+
+start_at TIMESTAMPTZ, end_at TIMESTAMPTZ, all_day bool
+
+visibility enum('private','family','public') (default family)
+
+recurrence jsonb (RFC5545-ish fields: { freq, interval, byDay, byMonth, byMonthDay, bySetPos, count, until })
+
+timezone text (IANA TZ of the event, not the viewer)
+
+created_at, updated_at
+
+indexes: (calendar_id, start_at), (start_at), GIN on (recurrence) (for existence)
+
+event_attendees
+
+event_id, user_id, role enum('owner','editor','viewer'), rsvp enum('yes','no','maybe','none')
+
+reminders
+
+event_id, user_id, minutes_before int, channel enum('push','email','sms')
+
+snoozes
+
+event_id, user_id, snooze_until TIMESTAMPTZ
+
+sync_accounts
+
+user_id, provider enum('google','microsoft','icloud','caldav'), scopes, ext_calendar_id
+
+access_token, refresh_token, expires_at (encrypted at rest)
+
+sync_delta
+
+per provider cursor/state for incremental sync, last_sync_at, webhook_secret
+
+audit_log
+
+family_id, actor_user_id, action, entity, entity_id, meta jsonb, ts
+
+If you already have “Roles & Access”, gate calendars and events by family_id and reuse your role checks (Owner/Admin can manage everything).
+
+Recurrence & expansion
+
+Store recurrence as normalized JSON mirroring ICS RRULE fields.
+
+Generate occurrence instances on demand in queries (see Query section), or materialize into an event_occurrences table for a rolling window (e.g., next 6–12 months) via a nightly job.
+
+Always compute in the event timezone to handle DST correctly.
+
+Querying (fast)
+
+For month/week/day views:
+
+Pull non-recurring events using WHERE start_at < :end AND end_at > :start.
+
+Pull recurring events matching the calendars and time window; expand in app/service using RRULE.
+
+Subtract snoozed items per user: LEFT JOIN snoozes s ON s.user_id=:me AND s.event_id=e.id AND s.snooze_until > now() and filter out when present.
+
+Cache expanded results for 30–60s per user+window key (Redis).
+
+Background jobs
+
+Reminder dispatcher (BullMQ/Sidekiq/Quartz): every minute, find reminders where event_start - minutes_before == now() in each user’s timezone → send push/email/SMS.
+
+Sync workers: 2-way sync with external calendars (details below).
+
+Holiday seeder: yearly job that (re)generates US holidays into the “Holidays in United States” calendar (observed-date rules).
+
+Security & privacy
+
+Encrypt access_token, refresh_token, phone numbers.
+
+Row-level authorization: event read/write by family membership + calendar visibility + attendee role.
+
+Audit create/update/delete of events & reminder sends.
+
+API (REST-ish examples)
+GET  /api/calendars?familyId=...
+POST /api/calendars
+PATCH/DELETE /api/calendars/:id
+
+GET  /api/events?calendarId=...&from=ISO&to=ISO&tz=America/New_York
+POST /api/events   // body: title, start_at, end_at, all_day, recurrence?, attendees?, reminders?, calendar_id
+PATCH/DELETE /api/events/:id
+
+POST /api/events/:id/snooze   // { until: ISO } ; “reset snooze” is DELETE
+DELETE /api/events/:id/snooze
+
+POST /api/export/ics?calendarId=...&from=...&to=...  // returns .ics
+POST /api/import/ics         // parse ICS → create events
+
+// Sync auth
+GET  /api/sync/google/auth-url
+POST /api/sync/google/callback   // exchanges code
+POST /api/sync/google/sync-now   // manual trigger
+POST /api/sync/google/webhook    // push channel
+
+
+Response payloads should be timezone-aware and include a displayStart/displayEnd precomputed for the requesting tz if you want to simplify the client.
+
+Frontend
+Library
+
+You’ve got a custom calendar already. If you later need heavy features (drag/resize, resource lanes), consider:
+
+FullCalendar (React wrapper) — feature-rich, great recurring support, resource views.
+
+React Big Calendar — lightweight, uses date-fns/moment, fully themable.
+
+Your current React component is fine; just ensure:
+
+Virtualization for month cells if event counts grow,
+
+RRULE expansion in the client mirrors the backend for snappy navigation,
+
+Optimistic updates for create/edit/delete with WebSocket confirmation.
+
+State & data flow
+
+URL params: ?view=week&date=2025-09-05 to keep navigation shareable.
+
+useQuery(from,to,calendars[]) → fetch events; merge with local edits.
+
+WebSocket channel calendar:{familyId} broadcasts {type:'event.updated', payload} to live-update all clients.
+
+Event modal
+
+Include your Calendar selector (done),
+
+Recurrence UI with end (never / after N / until date),
+
+Attachments (later) via your existing Upload Center & link.
+
+Real-time updates
+
+Use your existing WebSocket server namespace ws://.../calendar.
+
+Broadcast events on:
+
+create/update/delete,
+
+snooze/reset,
+
+attendee RSVP,
+
+reminder-sent (optional toast).
+
+Minimal payload:
+
+{ type:'event.updated', eventId, patch, version }
+
+
+Use a version or updated_at check to avoid race conditions; drop older patches.
+
+External calendar sync (Hybrid)
+Auth
+
+OAuth 2.0 per provider:
+
+Google Calendar: scopes https://www.googleapis.com/auth/calendar
+
+Microsoft (Outlook/Office): Calendars.ReadWrite
+
+Optional CalDAV (iCloud, Proton Calendar) via app-specific password (no OAuth) — more work.
+
+Strategy
+
+Mapping: your calendars.ext_calendar_id holds provider calendar id.
+
+Push channels:
+
+Google: watch + channels → webhook to /api/sync/google/webhook; store resourceId, channelId, expiration.
+
+Microsoft: subscriptions → webhook.
+
+Delta:
+
+Maintain sync_delta cursor and updatedMin (Google) or deltaToken (MS Graph) to fetch only changes.
+
+Transforms:
+
+Convert provider RRULE ↔ your JSON recurrence.
+
+Respect timezones: use provider timeZone fields; convert to your event timezone.
+
+Conflicts:
+
+Use etag/sequence from providers; on collision, prefer latest write wins + audit.
+
+Timezones & DST
+
+Always store start_at/end_at as TIMESTAMPTZ + keep an event.timezone.
+
+Expand recurrence in the event timezone (not viewer).
+
+For all-day events, store from 00:00 to 23:59:59 in event TZ; render in viewer TZ.
+
+Use luxon or date-fns-tz consistently on both sides.
+
+Notifications
+
+Channels: push (Web Push / FCM/APNS), email, SMS (Twilio).
+
+Per-user quiet hours & delivery preferences.
+
+Digest option: daily/weekly email.
+
+Performance & scale
+
+Indexes: (family_id, start_at), (calendar_id, start_at), partial index for all_day = true.
+
+Cache: Redis for expanded windows per user+view.
+
+Avoid N+1: fetch attendees in bulk.
+
+Rate limits for API and webhooks.
+
+Testing checklist
+
+Recurrence across DST boundaries,
+
+Observed holidays generation,
+
+ICS import/export round-trip,
+
+Two users editing same event,
+
+Snooze/reset logic (hidden until/until passes),
+
+OAuth token refresh & webhook renewal.
