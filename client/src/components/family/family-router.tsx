@@ -45,6 +45,7 @@ import FamilySettings from '@/pages/family/family-settings';
 import ApiManagement from '@/pages/family/api-management';
 import ApprovalsPage from '@/pages/family/approvals';
 import FloatingChatWidget from '@/components/FloatingChatWidget';
+import CalendarPage from '@/pages/family/calendar';
 
 // Placeholder components for family portal pages
 function FamilyMembers() {
@@ -74,14 +75,7 @@ function FamilyMessages() {
   );
 }
 
-function FamilyCalendar() {
-  return (
-    <div className="bg-white rounded-xl p-8 shadow-sm">
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">Family Calendar</h1>
-      <p className="text-gray-600">Shared family schedule and event planning.</p>
-    </div>
-  );
-}
+// FamilyCalendar is now imported from the dedicated calendar page
 
 function FamilyPhotos() {
   return (
@@ -216,7 +210,7 @@ export default function FamilyRouter() {
         <Route path="/family/bereavement/memorial" component={withSidebarLayout(() => <BereavementSectionPage title="Memorial & Legacy" createTo="/family/bereavement/new/memorial" />)} />
         <Route path="/family/members" component={withSidebarLayout(FamilyMembers)} />
         <Route path="/family/documents" component={withSidebarLayout(FamilyDocuments)} />
-        <Route path="/family/calendar" component={withSidebarLayout(FamilyCalendar)} />
+        <Route path="/family/calendar" component={() => <CalendarPage />} />
         <Route path="/family/photos" component={withSidebarLayout(FamilyPhotos)} />
         <Route path="/family/emergency" component={withSidebarLayout(FamilyEmergency)} />
         <Route path="/family/settings" component={withSidebarLayout(() => <FamilySettings />)} />
