@@ -111,55 +111,6 @@ const Circle = ({ className, style }: { className: string; style?: any }) => (
   <div className={`rounded-full ${className}`} style={style} />
 );
 
-// Right Shortcuts Component
-function RightShortcuts({ onCreate, onAddHolidays, className }: { 
-  onCreate: () => void; 
-  onAddHolidays: () => void;
-  className?: string;
-}) {
-  return (
-    <aside className={`hidden xl:flex xl:flex-col p-4 ${className || ''}`}>
-      <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-4">
-        <div className="text-sm font-medium mb-3 text-gray-300">Shortcuts</div>
-        <div className="flex flex-col gap-2">
-          <Button
-            onClick={onCreate}
-            className="w-full justify-start bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90"
-            size="sm"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create event
-          </Button>
-          <Button
-            onClick={onAddHolidays}
-            variant="outline"
-            className="w-full justify-start border-zinc-700 text-gray-300 hover:bg-zinc-800"
-            size="sm"
-          >
-            <CalIcon className="h-4 w-4 mr-2" />
-            Add US Holidays (5 yrs)
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full justify-start border-zinc-700 text-gray-300 hover:bg-zinc-800"
-            size="sm"
-          >
-            <CalIcon className="h-4 w-4 mr-2" />
-            Tasks
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full justify-start border-zinc-700 text-gray-300 hover:bg-zinc-800"
-            size="sm"
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            Notes
-          </Button>
-        </div>
-      </div>
-    </aside>
-  );
-}
 
 // Utility functions
 const formatDate = (date: Date): string => {
@@ -994,11 +945,6 @@ export default function GoogleStyleCalendar() {
         </div>
       </div>
 
-      {/* Right Shortcuts Panel */}
-      <RightShortcuts 
-        onCreate={() => openEventModal('create', undefined, state.currentDate)} 
-        onAddHolidays={() => addUSHolidays()}
-      />
 
       {/* Event Modal */}
       {state.isEventModalOpen && (
