@@ -23,6 +23,7 @@ import { logFamilyActivity } from "./lib/activity";
 import { generateFamilyUpdates } from "./lib/family-updates-worker";
 import { familyUpdates, type InsertFamilyUpdate } from "@shared/schema";
 import { and, eq, sql } from "drizzle-orm";
+import { requireAuth } from "./auth";
 // Schema imports - using proper type names
 import { 
   InsertInvite,
@@ -1182,8 +1183,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST /api/updates - Create manual family update
-  app.post("/api/updates", async (req, res) => {
+  // POST /api/updates - Create manual family update (Admin+ only)
+  app.post("/api/updates", requireAuth('ADMIN'), async (req, res) => {
     try {
       const { type, title, body, severity, dueAt, actionUrl, metadata } = req.body;
       const familyId = "family-1"; // TODO: Get from authenticated user
@@ -1217,8 +1218,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST /api/updates/:id/dismiss - Dismiss a family update
-  app.post("/api/updates/:id/dismiss", async (req, res) => {
+  // POST /api/updates/:id/dismiss - Dismiss a family update (Admin+ only) 
+  app.post("/api/updates/:id/dismiss", requireAuth('ADMIN'), async (req, res) => {
     try {
       const updateId = req.params.id;
       const userId = "current-user"; // TODO: Get from authenticated user
