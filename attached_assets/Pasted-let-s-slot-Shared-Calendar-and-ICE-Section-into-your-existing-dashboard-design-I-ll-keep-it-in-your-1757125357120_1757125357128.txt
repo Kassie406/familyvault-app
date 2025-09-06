@@ -1,0 +1,84 @@
+let’s slot Shared Calendar and ICE Section into your existing dashboard design. I’ll keep it in your dark + gold card system so it blends seamlessly with what you already have.
+
+🗓 Shared Calendar (Dashboard Placement)
+
+Position: Right beside or below Family Updates (they complement each other).
+
+Card Style: Same as “Family Updates,” but with a monthly grid or weekly agenda view.
+
+Layout Mock (textual):
+
+---------------------------------------------------
+| Family Updates             | Shared Calendar   |
+| (Reminders & Notices)      | (Monthly/Weekly)  |
+|                            |                   |
+| [Car Insurance Renewal]    | [Grid View]       |
+| [Mom's Birthday]           | [Events synced]   |
+---------------------------------------------------
+
+
+Features inside card:
+
+Monthly/weekly toggle (tabs).
+
+Add event button (role-gated for Admin/Owner).
+
+Event colors (birthdays = blue, reminders = yellow, urgent = red).
+
+Click an event → opens detail (time, members involved, notes).
+
+Sync option with Google/Outlook (optional).
+
+🚨 ICE (In Case of Emergency) Section
+
+Position: Expand/replace current Emergency Info quick action → give it its own prominent card under Quick Actions row.
+
+Card Style: Larger, with bold red + gold highlights to signal importance.
+
+Layout Mock (textual):
+
+---------------------------------------------------
+|  🚨 In Case of Emergency                        |
+|  Critical family info always available          |
+---------------------------------------------------
+| Emergency Contacts:                             |
+|   - Doctor: Dr. Lee (555-1234)                  |
+|   - Neighbor: Alex (555-6789)                   |
+|                                                 |
+| Allergies & Conditions:                         |
+|   - Sarah: Peanut allergy                       |
+|   - John: Asthma                                |
+|                                                 |
+| Blood Types:                                    |
+|   - Dad: O+   Mom: A-   Kids: B+                |
+---------------------------------------------------
+| [View Full Details] [Download ICE PDF]          |
+---------------------------------------------------
+
+
+Features:
+
+Add/edit structured info (contacts, allergies, conditions).
+
+Role-gated (only Admin/Owner edits).
+
+Quick access: one-click “Download ICE PDF” for offline use.
+
+Gold-glow “Emergency” icon so it’s visually distinct from normal cards.
+
+🔹 Updated Dashboard Grid (High-Level)
+Top Row:   Family Members | Documents Shared | Messages Today | Photos Uploaded
+Row 2:     Quick Actions (as is)
+Row 3:     Upload Center (Documents + Photos)
+Row 4:     Family Activity | Family Updates | Shared Calendar
+Row 5:     ICE Section (full width)
+
+✅ Why this works
+
+Calendar + Updates = complete scheduling hub.
+
+ICE Section = visible safety anchor (builds trust).
+
+Keeps grid balanced without overcrowding.
+
+Matches your dark + gold luxury design.

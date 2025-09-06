@@ -27,6 +27,8 @@ import ActivityFeed from '@/components/family/ActivityFeed';
 import DashboardWidget from '@/components/family/DashboardWidget';
 import FamilyUpdates from '@/components/family/FamilyUpdates';
 import MobileNavigationBar from '@/components/family/MobileNavigationBar';
+import { SharedCalendar } from '@/components/family/SharedCalendar';
+import { ICESection } from '@/components/family/ICESection';
 import { PolicyModal } from '@/components/documents/PolicyModal';
 import { ApprovalsDrawer } from '@/components/documents/ApprovalsDrawer';
 import { ShareDocumentModal } from '@/components/documents/ShareDocumentModal';
@@ -82,6 +84,7 @@ export default function FamilyHome() {
   // Fetch family stats from API
   const { data: familyData, isLoading: statsLoading } = useQuery<{
     totalMembers: number;
+    totalDocuments?: number;
     recentlyAdded: Array<{
       id: string;
       name: string;
@@ -221,7 +224,9 @@ export default function FamilyHome() {
             title: doc.title || doc.fileName || 'Untitled',
             sub: doc.shareInfo || `Updated ${new Date(doc.updatedAt).toLocaleDateString()}`,
             href: `/documents/${doc.id}`
-          })) || [];
+          })) || [
+            { id: "1", title: "Documents will load here", sub: "Connect to see recent files", href: "#" }
+          ];
         } catch (error) {
           console.error('Error fetching recent documents:', error);
           return [
@@ -344,7 +349,7 @@ export default function FamilyHome() {
               value={stat.value}
               label={stat.label}
               href={stat.href}
-              fetchPreview={async () => stat.previewItems}
+              fetchPreview={async () => stat.previewItems || []}
               dropdownActions={stat.dropdownActions}
             />
           );
@@ -460,6 +465,44 @@ export default function FamilyHome() {
           <ToolCard icon={<Users className="h-6 w-6"/>} title="Family Members" description="Manage profiles, contacts, and emergency details." cta="Manage profiles →" />
           <ToolCard icon={<FileText className="h-6 w-6"/>} title="Document Vault" description="Securely store and share IDs, medical, legal papers." cta="View documents →" />
           <ToolCard icon={<ShieldAlert className="h-6 w-6"/>} title="Emergency Center" description="Quick access to emergency info and safety plans." cta="Access emergency info →" />
+        </div>
+      </div>
+
+      {/* Enhanced Family Coordination */}
+      <div className="space-y-8">
+        <h2 className="text-2xl font-semibold text-[var(--ink-100)] flex items-center relative">
+          <Calendar className="w-5 h-5 mr-2 text-[var(--gold)]" />
+          <span className="border-b-2 border-[#D4AF37]/30 pb-1">Family Coordination</span>
+        </h2>
+        
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          {/* Shared Calendar - Temporarily disabled to troubleshoot */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 mb-4">
+              <Calendar className="h-5 w-5 text-[#D4AF37]" />
+              <h3 className="text-lg font-semibold text-white">Shared Calendar</h3>
+              <div className="text-sm text-gray-400">Coming soon</div>
+            </div>
+            <div className="bg-[var(--bg-800)] rounded-2xl p-8 text-center border border-white/10">
+              <Calendar className="h-12 w-12 text-[#D4AF37] mx-auto mb-4" />
+              <p className="text-white font-medium">Calendar Component</p>
+              <p className="text-gray-400 text-sm">Ready for integration</p>
+            </div>
+          </div>
+          
+          {/* ICE Section - Temporarily disabled to troubleshoot */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 mb-4">
+              <ShieldAlert className="h-5 w-5 text-[#D4AF37]" />
+              <h3 className="text-lg font-semibold text-white">In Case of Emergency</h3>
+              <div className="text-sm text-gray-400">Critical information</div>
+            </div>
+            <div className="bg-[var(--bg-800)] rounded-2xl p-8 text-center border border-white/10">
+              <ShieldAlert className="h-12 w-12 text-[#D4AF37] mx-auto mb-4" />
+              <p className="text-white font-medium">ICE Section</p>
+              <p className="text-gray-400 text-sm">Emergency info ready</p>
+            </div>
+          </div>
         </div>
       </div>
 

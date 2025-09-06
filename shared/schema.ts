@@ -749,3 +749,39 @@ export type DocumentShare = typeof documentShares.$inferSelect;
 export type InsertDocumentShare = typeof documentShares.$inferInsert;
 export type DocApproval = typeof docApprovals.$inferSelect;
 export type InsertDocApproval = typeof docApprovals.$inferInsert;
+
+// Family Calendar Events
+export const familyCalendarEvents = pgTable("family_calendar_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"),
+  location: varchar("location"),
+  eventType: varchar("event_type").notNull().default("general"), // birthday, reminder, urgent, general
+  color: varchar("color").default("#D4AF37"),
+  isAllDay: boolean("is_all_day").default(false),
+  reminderMinutes: integer("reminder_minutes"),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ICE (In Case of Emergency) Data
+export const familyIceData = pgTable("family_ice_data", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  emergencyContacts: jsonb("emergency_contacts").default({}), // { primary: "", doctor: "", neighbor: "" }
+  medicalInfo: jsonb("medical_info").default({}), // { allergies: "", conditions: "", medications: "" }
+  bloodTypes: jsonb("blood_types").default({}), // { dad: "", mom: "", kids: "" }
+  additionalNotes: text("additional_notes"),
+  lastUpdatedBy: varchar("last_updated_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type FamilyCalendarEvent = typeof familyCalendarEvents.$inferSelect;
+export type InsertFamilyCalendarEvent = typeof familyCalendarEvents.$inferInsert;
+export type FamilyIceData = typeof familyIceData.$inferSelect;
+export type InsertFamilyIceData = typeof familyIceData.$inferInsert;

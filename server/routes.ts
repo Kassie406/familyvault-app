@@ -1577,6 +1577,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Calendar Events API
+  // GET /api/calendar/events - Fetch calendar events for date range
+  app.get("/api/calendar/events", async (req, res) => {
+    try {
+      const { from, to } = req.query;
+      const familyId = "family-1"; // TODO: Get from user's family
+      
+      const events = await storage.getCalendarEvents(familyId, from as string, to as string);
+      res.json({ events });
+    } catch (error) {
+      console.error("Error fetching calendar events:", error);
+      res.status(500).json({ error: "Failed to fetch calendar events" });
+    }
+  });
+
+  // POST /api/calendar/events - Create new calendar event
+  app.post("/api/calendar/events", async (req, res) => {
+    try {
+      const eventData = req.body;
+      const familyId = "family-1"; // TODO: Get from user's family
+      const createdBy = "current-user"; // TODO: Get from authenticated session
+      
+      const event = await storage.createCalendarEvent({
+        ...eventData,
+        familyId,
+        createdBy
+      });
+      
+      res.status(201).json(event);
+    } catch (error) {
+      console.error("Error creating calendar event:", error);
+      res.status(500).json({ error: "Failed to create calendar event" });
+    }
+  });
+
+  // ICE (In Case of Emergency) API
+  // GET /api/ice - Fetch family ICE data
+  app.get("/api/ice", async (req, res) => {
+    try {
+      const familyId = "family-1"; // TODO: Get from user's family
+      
+      const iceData = await storage.getFamilyICEData(familyId);
+      if (!iceData) {
+        return res.status(404).json({ error: "ICE data not found" });
+      }
+      
+      res.json(iceData);
+    } catch (error) {
+      console.error("Error fetching ICE data:", error);
+      res.status(500).json({ error: "Failed to fetch ICE data" });
+    }
+  });
+
+  // PUT /api/ice - Update family ICE data
+  app.put("/api/ice", async (req, res) => {
+    try {
+      const iceData = req.body;
+      const familyId = "family-1"; // TODO: Get from user's family
+      const lastUpdatedBy = "current-user"; // TODO: Get from authenticated session
+      
+      const updatedICEData = await storage.updateFamilyICEData({
+        ...iceData,
+        familyId,
+        lastUpdatedBy
+      });
+      
+      res.json(updatedICEData);
+    } catch (error) {
+      console.error("Error updating ICE data:", error);
+      res.status(500).json({ error: "Failed to update ICE data" });
+    }
+  });
+
+  // GET /api/ice/print - Generate ICE PDF for download
+  app.get("/api/ice/print", async (req, res) => {
+    try {
+      const familyId = "family-1"; // TODO: Get from user's family
+      
+      const iceData = await storage.getFamilyICEData(familyId);
+      if (!iceData) {
+        return res.status(404).json({ error: "ICE data not found" });
+      }
+
+      // Simple text-based PDF generation (placeholder)
+      // In a real implementation, you'd use a PDF generation library
+      const pdfContent = `Family Emergency Information (ICE)
+
+Emergency Contacts:
+Primary: ${iceData.emergencyContacts?.primary || 'Not provided'}
+Doctor: ${iceData.emergencyContacts?.doctor || 'Not provided'}
+Neighbor: ${iceData.emergencyContacts?.neighbor || 'Not provided'}
+
+Medical Information:
+Allergies: ${iceData.medicalInfo?.allergies || 'None listed'}
+Conditions: ${iceData.medicalInfo?.conditions || 'None listed'}
+Medications: ${iceData.medicalInfo?.medications || 'None listed'}
+
+Blood Types:
+Dad: ${iceData.bloodTypes?.dad || 'Not provided'}
+Mom: ${iceData.bloodTypes?.mom || 'Not provided'}
+Kids: ${iceData.bloodTypes?.kids || 'Not provided'}
+
+Additional Notes:
+${iceData.additionalNotes || 'None provided'}
+
+Generated: ${new Date().toLocaleString()}`;
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename="family-ice-information.pdf"');
+      
+      // For now, return as text file - in production would generate actual PDF
+      res.setHeader('Content-Type', 'text/plain');
+      res.send(pdfContent);
+    } catch (error) {
+      console.error("Error generating ICE PDF:", error);
+      res.status(500).json({ error: "Failed to generate ICE PDF" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Initialize realtime WebSocket system
