@@ -858,12 +858,12 @@ function WeekView({
       </div>
 
       {/* Time grid */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 200px)' }}>
         <div className="grid grid-cols-8 min-h-full">
           {/* Time labels */}
-          <div className="border-r border-zinc-800">
+          <div className="border-r border-zinc-800 bg-zinc-900">
             {hours.map(hour => (
-              <div key={hour} className="h-16 border-b border-zinc-800 p-2 text-xs text-gray-500">
+              <div key={hour} className="h-16 border-b border-zinc-800 p-2 text-xs text-gray-500 sticky-time-label">
                 {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
               </div>
             ))}
