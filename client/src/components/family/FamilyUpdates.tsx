@@ -19,6 +19,8 @@ import {
 import { LuxuryCard } from '@/components/luxury-cards';
 import { apiRequest } from '@/lib/queryClient';
 import ComposeUpdateModal from './ComposeUpdateModal';
+import SnoozeUntilModal from './SnoozeUntilModal';
+import SnoozedList from './SnoozedList';
 import { useUserRole } from '@/hooks/useUserRole';
 
 type FamilyUpdateType = {
@@ -81,9 +83,10 @@ function formatDueDate(dueAt: string | null) {
 export default function FamilyUpdates() {
   const queryClient = useQueryClient();
   const { isAdmin, isLoading: userLoading } = useUserRole();
+  const [updates, setUpdates] = useState<FamilyUpdateType[]>([]);
   
   // Fetch family updates
-  const { data: updates = [], isLoading, refetch } = useQuery<FamilyUpdateType[]>({
+  const { data: updatesData = [], isLoading, refetch } = useQuery<FamilyUpdateType[]>({
     queryKey: ['/api/updates'],
     queryFn: async () => {
       const response = await fetch('/api/updates');
@@ -91,6 +94,11 @@ export default function FamilyUpdates() {
       return data.items || [];
     }
   });
+
+  // Update local state when data changes
+  useEffect(() => {
+    setUpdates(updatesData);
+  }, [updatesData]);
 
   // Dismiss update mutation
   const dismissMutation = useMutation({
@@ -108,28 +116,18 @@ export default function FamilyUpdates() {
     }
   });
 
-  // Snooze update mutation
-  const snoozeMutation = useMutation({
-    mutationFn: async (updateId: string) => {
-      const response = await fetch(`/api/updates/${updateId}/snooze`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/updates'] });
-    }
-  });
-
   const handleDismiss = (updateId: string) => {
     dismissMutation.mutate(updateId);
   };
 
-  const handleSnooze = (updateId: string) => {
-    snoozeMutation.mutate(updateId);
+  const handleSnoozed = (updateId: string) => {
+    // Remove the snoozed update from the list immediately for better UX
+    setUpdates(prev => prev.filter(update => update.id !== updateId));
+  };
+
+  const handleRestored = (updateId: string) => {
+    // Refetch updates when an item is restored from snooze
+    refetch();
   };
 
   if (isLoading || userLoading) {
@@ -228,17 +226,10 @@ export default function FamilyUpdates() {
                   </Button>
                 )}
                 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-white/40 hover:text-white/70 hover:bg-white/5 transition-all duration-200 h-8 w-8 p-0"
-                  onClick={() => handleSnooze(update.id)}
-                  disabled={snoozeMutation.isPending}
-                  data-testid={`snooze-button-${update.id}`}
-                  title="Snooze for 7 days"
-                >
-                  <PauseCircle className="h-3 w-3" />
-                </Button>
+                <SnoozeUntilModal 
+                  update={update} 
+                  onSnoozed={handleSnoozed} 
+                />
                 
                 {isAdmin && (
                   <Button
@@ -259,6 +250,8 @@ export default function FamilyUpdates() {
         );
       })}
       </div>
+      
+      <SnoozedList onRestored={handleRestored} />
     </div>
   );
 }

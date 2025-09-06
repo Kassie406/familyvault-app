@@ -1227,11 +1227,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updateId = req.params.id;
       const userId = "user-1"; // TODO: Get from authenticated user
       const { until } = req.body; // Optional snooze until date
+
+      let snoozeUntil = until ? new Date(until) : undefined;
       
-      const snoozeUntil = until ? new Date(until) : undefined;
+      // Validation: Apply server-side caps
+      const now = new Date();
+      const minUntil = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes minimum
+      
+      // Get the update to check dueAt
+      const update = await storage.getFamilyUpdate(updateId);
+      const maxUntil = update?.dueAt ? new Date(update.dueAt) : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days max
+      
+      if (snoozeUntil) {
+        if (snoozeUntil < minUntil) {
+          snoozeUntil = minUntil;
+        }
+        if (snoozeUntil > maxUntil) {
+          snoozeUntil = maxUntil;
+        }
+      } else {
+        // Default to dueAt or 7 days
+        snoozeUntil = update?.dueAt ? new Date(update.dueAt) : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      }
+
       const snooze = await storage.snoozeFamilyUpdate(updateId, userId, snoozeUntil);
-      
-      res.json({ success: true, snooze });
+
+      res.json({ success: true, snooze, until: snoozeUntil });
     } catch (error) {
       console.error("Error snoozing family update:", error);
       res.status(500).json({ error: "Failed to snooze update" });
@@ -1249,6 +1270,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success });
     } catch (error) {
       console.error("Error unsnoozing family update:", error);
+      res.status(500).json({ error: "Failed to unsnooze update" });
+    }
+  });
+
+  // GET /api/updates/snoozed - Get current user's active snoozes with joined update info
+  app.get("/api/updates/snoozed", async (req, res) => {
+    try {
+      const userId = "user-1"; // TODO: Get from authenticated user
+      const snoozedUpdates = await storage.getUserSnoozedUpdates(userId);
+      
+      // Get the actual update details for each snoozed item
+      const items = await Promise.all(
+        snoozedUpdates.map(async (snooze) => {
+          const update = await storage.getFamilyUpdate(snooze.updateId);
+          return {
+            id: snooze.id,
+            updateId: snooze.updateId,
+            until: snooze.until,
+            update
+          };
+        })
+      );
+      
+      res.json({ items });
+    } catch (error) {
+      console.error("Error fetching snoozed updates:", error);
+      res.status(500).json({ error: "Failed to fetch snoozed updates" });
+    }
+  });
+
+  // POST /api/updates/:id/unsnooze - Remove snooze for current user
+  app.post("/api/updates/:id/unsnooze", async (req, res) => {
+    try {
+      const updateId = req.params.id;
+      const userId = "user-1"; // TODO: Get from authenticated user
+      
+      const success = await storage.unsnoozeFamilyUpdate(updateId, userId);
+      
+      res.json({ ok: true, success });
+    } catch (error) {
+      console.error("Error unsnoozing update:", error);
       res.status(500).json({ error: "Failed to unsnooze update" });
     }
   });

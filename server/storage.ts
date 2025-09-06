@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { eq, desc, sql, ilike, or, and } from "drizzle-orm";
+import { eq, desc, sql, ilike, or, and, not, inArray } from "drizzle-orm";
 import { 
   type User, type InsertUser,
   type Organization, type InsertOrganization,
@@ -272,6 +272,7 @@ export interface IStorage {
 
   // Family Update methods
   getFamilyUpdates(familyId: string, userId?: string): Promise<FamilyUpdate[]>;
+  getFamilyUpdate(updateId: string): Promise<FamilyUpdate | undefined>;
   createFamilyUpdate(update: InsertFamilyUpdate): Promise<FamilyUpdate>;
   dismissFamilyUpdate(updateId: string, userId: string): Promise<boolean>;
 
@@ -1281,7 +1282,7 @@ export class DatabaseStorage implements IStorage {
 
       // If userId is provided, exclude snoozed updates for this user
       if (userId) {
-        const snoozedQuery = db.select({
+        const snoozedIds = await db.select({
           updateId: familyUpdateSnooze.updateId
         }).from(familyUpdateSnooze)
         .where(and(
@@ -1289,14 +1290,13 @@ export class DatabaseStorage implements IStorage {
           sql`${familyUpdateSnooze.until} > NOW()`
         ));
 
-        const snoozedIds = await snoozedQuery;
         if (snoozedIds.length > 0) {
           const snoozedUpdateIds = snoozedIds.map(s => s.updateId);
           query = db.select().from(familyUpdates)
             .where(and(
               eq(familyUpdates.familyId, familyId),
               eq(familyUpdates.isDismissed, false),
-              sql`${familyUpdates.id} NOT IN (${sql.join(snoozedUpdateIds.map(() => sql`?`), sql`, `)})`
+              not(inArray(familyUpdates.id, snoozedUpdateIds))
             ))
             .orderBy(desc(familyUpdates.createdAt));
         }
@@ -1306,6 +1306,18 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error fetching family updates:', error);
       return [];
+    }
+  }
+
+  async getFamilyUpdate(updateId: string): Promise<FamilyUpdate | undefined> {
+    try {
+      const [result] = await db.select().from(familyUpdates)
+        .where(eq(familyUpdates.id, updateId))
+        .limit(1);
+      return result;
+    } catch (error) {
+      console.error('Error fetching family update:', error);
+      return undefined;
     }
   }
 
