@@ -250,7 +250,7 @@ export default function FamilyHome() {
           Messages &nbsp;&amp;&nbsp;
           <span className="inline-flex items-center">
             Video Meetings
-            <Video size={16} className="ml-1" color="#D4AF37" />
+            <Video size={20} className="ml-1" color="#D4AF37" strokeWidth={2.5} />
           </span>
         </span>
       ), 
