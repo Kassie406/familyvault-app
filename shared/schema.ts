@@ -55,6 +55,26 @@ export const familyActivity = pgTable("family_activity", {
 export type InsertFamilyActivity = typeof familyActivity.$inferInsert;
 export type FamilyActivity = typeof familyActivity.$inferSelect;
 
+// Family Updates (Reminders & Notices) table
+export const familyUpdates = pgTable("family_updates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  type: varchar("type").notNull(), // insurance_renewal, security_reminder, birthday, meeting, etc.
+  title: varchar("title").notNull(),
+  body: text("body"),
+  severity: varchar("severity").notNull().default("info"), // info, warning, urgent
+  dueAt: timestamp("due_at"),
+  actionUrl: varchar("action_url"),
+  metadata: jsonb("metadata").default({}),
+  isDismissed: boolean("is_dismissed").default(false),
+  dismissedBy: varchar("dismissed_by"),
+  dismissedAt: timestamp("dismissed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type InsertFamilyUpdate = typeof familyUpdates.$inferInsert;
+export type FamilyUpdate = typeof familyUpdates.$inferSelect;
+
 // Family Members
 export const familyMembers = pgTable("family_members", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

@@ -20,6 +20,9 @@ import { getOrCreateFamilyChatId } from "./lib/chat-default";
 import { initializeRealtime, getRealtimeManager } from "./lib/realtime.js";
 import { emitFamilyActivity } from "./realtime";
 import { logFamilyActivity } from "./lib/activity";
+import { generateFamilyUpdates } from "./lib/family-updates-worker";
+import { familyUpdates, type InsertFamilyUpdate } from "@shared/schema";
+import { and, eq, sql } from "drizzle-orm";
 // Schema imports - using proper type names
 import { 
   InsertInvite,
@@ -1143,6 +1146,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching family activity:", error);
       res.status(500).json({ error: "Failed to fetch family activity" });
+    }
+  });
+
+  // ===== FAMILY UPDATES (REMINDERS & NOTICES) API ROUTES =====
+  
+  // GET /api/updates - Get active family updates
+  app.get("/api/updates", async (req, res) => {
+    try {
+      const familyId = "family-1"; // TODO: Get from authenticated user
+      
+      const updates = await db
+        .select()
+        .from(familyUpdates)
+        .where(
+          and(
+            eq(familyUpdates.familyId, familyId),
+            eq(familyUpdates.isDismissed, false)
+          )
+        )
+        .orderBy(sql`
+          CASE 
+            WHEN ${familyUpdates.severity} = 'urgent' THEN 1
+            WHEN ${familyUpdates.severity} = 'warning' THEN 2 
+            ELSE 3
+          END,
+          ${familyUpdates.createdAt} DESC
+        `)
+        .limit(10);
+      
+      res.json({ items: updates });
+    } catch (error) {
+      console.error("Error fetching family updates:", error);
+      res.status(500).json({ error: "Failed to fetch updates" });
+    }
+  });
+
+  // POST /api/updates - Create manual family update
+  app.post("/api/updates", async (req, res) => {
+    try {
+      const { type, title, body, severity, dueAt, actionUrl, metadata } = req.body;
+      const familyId = "family-1"; // TODO: Get from authenticated user
+      
+      const [update] = await db.insert(familyUpdates).values({
+        familyId,
+        type: type || "manual",
+        title,
+        body,
+        severity: severity || "info",
+        dueAt: dueAt ? new Date(dueAt) : null,
+        actionUrl,
+        metadata: metadata || {}
+      }).returning();
+      
+      // Broadcast to family members in real-time
+      emitFamilyActivity(familyId, {
+        id: update.id,
+        type: "family_update",
+        title: `New update: ${update.title}`,
+        description: update.body,
+        timestamp: update.createdAt?.toISOString(),
+        author: { id: "system", name: "System" },
+        priority: update.severity === "urgent" ? "high" : update.severity === "warning" ? "medium" : "low"
+      });
+      
+      res.json({ success: true, update });
+    } catch (error) {
+      console.error("Error creating family update:", error);
+      res.status(500).json({ error: "Failed to create update" });
+    }
+  });
+
+  // POST /api/updates/:id/dismiss - Dismiss a family update
+  app.post("/api/updates/:id/dismiss", async (req, res) => {
+    try {
+      const updateId = req.params.id;
+      const userId = "current-user"; // TODO: Get from authenticated user
+      
+      const [update] = await db
+        .update(familyUpdates)
+        .set({
+          isDismissed: true,
+          dismissedBy: userId,
+          dismissedAt: new Date()
+        })
+        .where(eq(familyUpdates.id, updateId))
+        .returning();
+      
+      if (!update) {
+        return res.status(404).json({ error: "Update not found" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error dismissing family update:", error);
+      res.status(500).json({ error: "Failed to dismiss update" });
+    }
+  });
+
+  // POST /api/updates/generate - Generate updates for testing (development only)
+  app.post("/api/updates/generate", async (req, res) => {
+    try {
+      const familyId = "family-1";
+      await generateFamilyUpdates(familyId);
+      res.json({ success: true, message: "Updates generated" });
+    } catch (error) {
+      console.error("Error generating updates:", error);
+      res.status(500).json({ error: "Failed to generate updates" });
     }
   });
 
