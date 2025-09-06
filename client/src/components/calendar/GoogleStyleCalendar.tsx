@@ -12,7 +12,8 @@ import {
   Grid3X3,
   List,
   Eye,
-  EyeOff
+  EyeOff,
+  Menu
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -38,6 +39,7 @@ interface CalendarState {
   isEventModalOpen: boolean;
   eventModalMode: 'create' | 'edit';
   newEventDate: Date | null;
+  sidebarOpen: boolean;
 }
 
 // Color options for events
@@ -169,7 +171,8 @@ export default function GoogleStyleCalendar() {
     selectedEvent: null,
     isEventModalOpen: false,
     eventModalMode: 'create',
-    newEventDate: null
+    newEventDate: null,
+    sidebarOpen: true
   });
 
   const [calendarVisibility, setCalendarVisibility] = useState<Record<string, boolean>>(
@@ -179,6 +182,10 @@ export default function GoogleStyleCalendar() {
   // Navigation functions
   const goToToday = () => {
     setState(prev => ({ ...prev, currentDate: new Date() }));
+  };
+
+  const toggleSidebar = () => {
+    setState(prev => ({ ...prev, sidebarOpen: !prev.sidebarOpen }));
   };
 
   const navigatePrevious = () => {
@@ -279,7 +286,8 @@ export default function GoogleStyleCalendar() {
   return (
     <div className="h-full bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden flex">
       {/* Sidebar */}
-      <div className="w-64 bg-zinc-900 border-r border-zinc-800 p-4">
+      {state.sidebarOpen && (
+        <div className="w-64 bg-zinc-900 border-r border-zinc-800 p-4">
         {/* Mini Calendar */}
         <div className="mb-6">
           <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
@@ -318,7 +326,8 @@ export default function GoogleStyleCalendar() {
             ))}
           </div>
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Main Calendar */}
       <div className="flex-1 flex flex-col">
@@ -326,6 +335,17 @@ export default function GoogleStyleCalendar() {
         <div className="border-b border-zinc-800 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
+              {/* Sidebar Toggle */}
+              <Button
+                onClick={toggleSidebar}
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-gray-300 hover:bg-zinc-800"
+                title={state.sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+              >
+                <Menu className="h-4 w-4" />
+              </Button>
+              
               {/* Navigation */}
               <div className="flex items-center gap-2">
                 <Button
