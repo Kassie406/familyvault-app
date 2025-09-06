@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { nanoid } from "nanoid";
+import { AccessToken } from "livekit-server-sdk";
 
 const router = Router();
 
@@ -27,13 +28,19 @@ router.get("/meeting/status", async (req, res) => {
   }
 });
 
-// Create new family meeting
+// Create new family meeting with LiveKit room
 router.post("/meeting/create", async (req, res) => {
   try {
     // TODO: Add proper authentication and get user from session
     const userId = "current-user";
+    const userName = "Current User";
     const familyId = "family-1";
     const { title, type } = req.body;
+
+    // Validate LiveKit environment
+    if (!process.env.LIVEKIT_API_KEY || !process.env.LIVEKIT_API_SECRET || !process.env.LIVEKIT_URL) {
+      return res.status(500).json({ error: "LiveKit not configured" });
+    }
 
     // End any existing active meetings for this family
     Array.from(activeMeetings.entries()).forEach(([id, meeting]) => {
@@ -44,8 +51,33 @@ router.post("/meeting/create", async (req, res) => {
     });
 
     const meetingId = nanoid();
+    const roomName = `family-${familyId}-${meetingId.slice(0, 8)}`;
+
+    // Create LiveKit access token for room creator
+    const token = new AccessToken(
+      process.env.LIVEKIT_API_KEY,
+      process.env.LIVEKIT_API_SECRET,
+      {
+        identity: userId,
+        name: userName,
+        ttl: 60 * 60, // 1 hour token
+      }
+    );
+
+    token.addGrant({
+      room: roomName,
+      roomJoin: true,
+      canPublish: true,
+      canSubscribe: true,
+      canPublishData: true,
+    });
+
+    const jwt = await token.toJwt();
+    const shareableLink = `${req.protocol}://${req.get('host')}/family/meeting/${meetingId}?token=${encodeURIComponent(jwt)}`;
+
     const meeting = {
       id: meetingId,
+      roomName,
       title: title || "Family Group Meeting",
       type: type || "group_chat",
       familyId,
@@ -53,13 +85,14 @@ router.post("/meeting/create", async (req, res) => {
       createdAt: new Date().toISOString(),
       status: 'active',
       participants: [],
-      shareableLink: `${req.protocol}://${req.get('host')}/family/meeting/${meetingId}?join=true`
+      shareableLink,
+      livekitUrl: process.env.LIVEKIT_URL
     };
 
     activeMeetings.set(meetingId, meeting);
 
-    console.log(`[family-meetings] Created new meeting ${meetingId} for family ${familyId}`);
-    res.json(meeting);
+    console.log(`[family-meetings] Created LiveKit meeting ${meetingId} (room: ${roomName}) for family ${familyId}`);
+    res.json({ ...meeting, token: jwt });
   } catch (error) {
     console.error("Error creating meeting:", error);
     res.status(500).json({ error: "Failed to create meeting" });
@@ -84,7 +117,64 @@ router.get("/meeting/:meetingId", async (req, res) => {
   }
 });
 
-// Join meeting
+// Generate join token for existing meeting
+router.post("/meeting/:meetingId/token", async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+    // TODO: Get user from session
+    const userId = "current-user";
+    const userName = "Current User";
+    const familyId = "family-1";
+
+    const meeting = activeMeetings.get(meetingId);
+    if (!meeting) {
+      return res.status(404).json({ error: "Meeting not found" });
+    }
+
+    if (meeting.status !== 'active') {
+      return res.status(400).json({ error: "Meeting is not active" });
+    }
+
+    // Validate room belongs to family
+    if (!meeting.roomName.startsWith(`family-${familyId}-`)) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    // Create fresh token for joining
+    const token = new AccessToken(
+      process.env.LIVEKIT_API_KEY!,
+      process.env.LIVEKIT_API_SECRET!,
+      {
+        identity: userId,
+        name: userName,
+        ttl: 60 * 30, // 30 minute token
+      }
+    );
+
+    token.addGrant({
+      room: meeting.roomName,
+      roomJoin: true,
+      canPublish: true,
+      canSubscribe: true,
+      canPublishData: true,
+    });
+
+    const jwt = await token.toJwt();
+
+    console.log(`[family-meetings] Generated token for user ${userId} to join meeting ${meetingId}`);
+    res.json({ 
+      token: jwt, 
+      serverUrl: process.env.LIVEKIT_URL,
+      roomName: meeting.roomName,
+      meeting 
+    });
+  } catch (error) {
+    console.error("Error generating join token:", error);
+    res.status(500).json({ error: "Failed to generate join token" });
+  }
+});
+
+// Join meeting (legacy endpoint for compatibility)
 router.post("/meeting/:meetingId/join", async (req, res) => {
   try {
     const { meetingId } = req.params;
