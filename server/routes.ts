@@ -13,6 +13,7 @@ import threadsListRouter from "./routes/threadsList";
 import threadMessagesRouter from "./routes/threadMessages";
 import apiServicesRouter from "./routes/apiServices";
 import documentsRouter from "./routes/documents";
+import { calendarRouter } from "./routes/calendar";
 import axios from "axios";
 import { sendSMSNotification } from "./lib/twilio";
 import { sendSMSNotificationsForMessage, markUserOnline, markUserOffline } from "./lib/sms-notifications";
@@ -527,6 +528,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount document routes for file sharing and management
   app.use("/api/documents", documentsRouter);
+
+  // Mount calendar routes
+  app.use(calendarRouter);
 
   // Mount threads list routes for chat dashboard
   app.use("/api/threads", threadsListRouter);
