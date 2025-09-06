@@ -11,7 +11,7 @@ type PreviewItem = {
 };
 
 type StatCardProps = {
-  label: string;             // e.g. "Family Members"
+  label: string | React.ReactNode;             // e.g. "Family Members" or JSX
   value: number | string;    // e.g. 5
   href: string;              // where to go on click
   icon: React.ReactNode;     // icon element
@@ -88,15 +88,15 @@ export function StatCard({
       <Link
         href={href}
         className="group no-hover-bg block rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] hover:shadow-xl hover:shadow-[#D4AF37]/10 hover:border-[#D4AF37]/30 focus:outline-none focus:ring-2 focus:ring-amber-400/40 transition-all duration-300"
-        aria-describedby={`${label.replace(/\s+/g, "-").toLowerCase()}-desc`}
-        data-testid={`stat-card-${label.replace(/\s+/g, "-").toLowerCase()}`}
+        aria-describedby={`${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'stat-card'}-desc`}
+        data-testid={`stat-card-${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'custom'}`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {React.cloneElement(icon as React.ReactElement, {
               className: "h-6 w-6 text-amber-400/70 group-hover:text-amber-400 group-hover:shadow-lg group-hover:shadow-[#D4AF37]/30 transition-all"
             })}
-            <span className="text-sm font-bold text-white group-hover:text-[#D4AF37] transition-colors flex items-center gap-2" id={`${label.replace(/\s+/g, "-").toLowerCase()}-desc`}>
+            <span className="text-sm font-bold text-white group-hover:text-[#D4AF37] transition-colors flex items-center gap-2" id={`${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'stat-card'}-desc`}>
               {label}
               {secondaryIcon && (
                 <span className="h-4 w-4 text-amber-400/70 group-hover:text-amber-400 transition-all flex items-center">
@@ -110,7 +110,7 @@ export function StatCard({
           <button
             type="button"
             aria-expanded={open}
-            aria-controls={`stat-preview-${label.replace(/\s+/g, "-").toLowerCase()}`}
+            aria-controls={`stat-preview-${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'custom'}`}
             className="inline-flex items-center gap-1 rounded-md px-3 py-2
                        text-xs font-medium text-zinc-500 hover:text-amber-400
                        focus:outline-none focus:ring-2 focus:ring-amber-400/40
@@ -133,9 +133,9 @@ export function StatCard({
 
       {/* Anchored preview panel (responsive) */}
       <div
-        id={`stat-preview-${label.replace(/\s+/g, "-").toLowerCase()}`}
+        id={`stat-preview-${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'custom'}`}
         role="region"
-        aria-label={`${label} — recent`}
+        aria-label={`${typeof label === 'string' ? label : 'StatCard'} — recent`}
         data-open={open ? "true" : "false"}
         className={`
           pointer-events-auto absolute z-20 mt-2
@@ -152,7 +152,7 @@ export function StatCard({
       >
         <div className="flex items-center justify-between px-4 pt-3 pb-1">
           <span className="text-[10px] font-semibold tracking-wider text-zinc-400">
-            {label.toUpperCase()} — RECENT
+            {typeof label === 'string' ? label.toUpperCase() : 'RECENT'} — RECENT
           </span>
           <div className="flex items-center gap-2">
             {isMobile && (
