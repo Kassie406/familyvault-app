@@ -1,0 +1,111 @@
+We’re close. On your custom domain the browser still isn’t even sending the request to Supabase — that’s almost always a CSP (Content-Security-Policy) block on production.
+
+Do this exactly on portal.familycirclesecure.com/login.html
+
+Add a CSP that allows Supabase + your JS CDN
+Put this inside <head> (top of the page):
+
+<meta http-equiv="Content-Security-Policy"
+  content="
+    default-src 'self';
+    connect-src 'self' https://zzconzlitecbawulnbey.supabase.co https://*.supabase.co;
+    script-src 'self' 'unsafe-inline' https://esm.sh https://cdn.jsdelivr.net;
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data:;
+    font-src 'self' data:;
+    frame-ancestors 'self';
+  ">
+
+
+If you set CSP via server headers (Cloudflare / Replit / Nginx), add the same connect-src and script-src there instead of the meta tag.
+
+Use a simple, CSP-compatible login snippet
+(Works with either esm.sh or jsDelivr; pick one)
+
+<!-- Option A: esm.sh -->
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+  const supabase = createClient(
+    'https://zzconzlitecbawulnbey.supabase.co',
+    'PASTE_YOUR_ANON_KEY_HERE'
+  )
+
+  // health check so you see a request in Network immediately
+  try {
+    const r = await fetch('https://zzconzlitecbawulnbey.supabase.co/auth/v1/health')
+    console.log('health:', r.status) // should be 200
+  } catch (e) {
+    console.error('health failed', e)
+    alert('Cannot reach Supabase: ' + e.message)
+  }
+
+  document.getElementById('send-magic').addEventListener('click', async () => {
+    const email = document.getElementById('email').value.trim()
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/auth-callback.html` }
+    })
+    if (error) return alert(`Auth error: ${error.message}`)
+    alert('Check your email for the sign-in link.')
+  })
+</script>
+
+<!-- Option B: jsDelivr (non-module global) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const supabase = supabase.createClient(
+    'https://zzconzlitecbawulnbey.supabase.co',
+    'PASTE_YOUR_ANON_KEY_HERE'
+  );
+  // …same health check + signInWithOtp as above (no imports)
+</script>
+
+
+Make sure your HTML has:
+
+<input id="email" type="email" />
+<button id="send-magic">Send Magic Link</button>
+
+
+Supabase Auth URLs (double-check)
+Supabase → Authentication → URL configuration
+
+Site URL: https://portal.familycirclesecure.com
+
+Additional Redirect URLs:
+
+https://portal.familycirclesecure.com
+https://portal.familycirclesecure.com/auth-callback.html
+
+
+Test correctly
+
+Open DevTools → Network.
+
+Reload the page → you should see a request to
+https://zzconzlitecbawulnbey.supabase.co/auth/v1/health (Status 200).
+
+Click Send Magic Link → you should see
+https://zzconzlitecbawulnbey.supabase.co/auth/v1/otp (Status 200).
+
+If you instead see blocked by CSP in Console, your CSP still doesn’t allow connect-src or the script CDN — adjust step 1.
+
+If it shows 401/403, your anon key is wrong — re-copy it.
+
+If no request appears at all, the click handler IDs don’t match (send-magic, email) or the script didn’t load — fix the IDs / CDN.
+
+(After login) Protect pages
+At the top of every protected page include your gate (from earlier message). Logged-out users should be redirected to /login.html before the page renders.
+
+Quick “what to tell me” if it still fails
+
+Tell me exactly what you see in Network for:
+
+/auth/v1/health (status code)
+
+/auth/v1/otp (status code)
+
+any Console red errors (copy the line)
+
+From those three I can pinpoint the final 1-liner to change.

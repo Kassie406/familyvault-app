@@ -9,11 +9,6 @@ export default function SignIn() {
     e.preventDefault();
     
     try {
-      // Health check to debug connectivity
-      console.log('Testing Supabase connectivity...');
-      const healthResponse = await fetch('https://zzconzlitecbawulnbey.supabase.co/auth/v1/health');
-      console.log('Supabase health status:', healthResponse.status);
-      
       const { data, error } = await supabase.auth.signInWithOtp({ 
         email,
         options: {
@@ -27,8 +22,7 @@ export default function SignIn() {
         setSent(true);
       }
     } catch (err) {
-      console.error('Connection failed:', err);
-      alert(`Connection failed: ${err instanceof Error ? err.message : 'Unknown error'} - Check DevTools Console for details`);
+      alert(`Connection failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   }
 
