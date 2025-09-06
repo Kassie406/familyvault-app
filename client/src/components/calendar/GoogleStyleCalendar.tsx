@@ -483,7 +483,7 @@ export default function GoogleStyleCalendar() {
       )}
 
       {/* Main Calendar */}
-      <div className={`${state.sidebarOpen ? 'col-span-7' : 'col-span-10'} flex flex-col`}>
+      <div className={`${state.sidebarOpen ? 'col-span-9' : 'col-span-12'} flex flex-col`}>
         {/* Toolbar */}
         <div className="border-b border-zinc-800 p-4">
           <div className="flex items-center justify-between">
@@ -605,11 +605,6 @@ export default function GoogleStyleCalendar() {
         </div>
       </div>
 
-      {/* Right Shortcuts Sidebar */}
-      <RightShortcuts 
-        onCreate={() => openEventModal('create', undefined, state.currentDate)}
-        className={state.sidebarOpen ? 'col-span-2' : 'col-span-2'}
-      />
 
       {/* Event Modal */}
       {state.isEventModalOpen && (
