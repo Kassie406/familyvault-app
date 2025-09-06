@@ -287,11 +287,32 @@ export default function FamilyHome() {
       value: 156, 
       icon: ImageIcon,
       href: '/photos?sort=recent',
-      previewItems: [
-        { id: "1", title: "Family Vacation 2024", sub: "12 new photos", href: "/photos/album/vacation-2024" },
-        { id: "2", title: "Birthday Party", sub: "Uploaded yesterday", href: "/photos/album/birthday" },
-        { id: "3", title: "School Graduation", sub: "Shared album", href: "/photos/album/graduation" }
-      ],
+      fetchPreview: async () => {
+        try {
+          const response = await fetch('/api/files/family/family-1/status');
+          if (!response.ok) throw new Error('Failed to fetch family files');
+          const data = await response.json();
+          const photos = data.files?.filter((file: any) => file.type === 'photo')?.slice(0, 5) || [];
+          
+          return photos.map((photo: any) => {
+            const uploadTime = photo.processedAt 
+              ? formatDistanceToNow(new Date(photo.processedAt)) + ' ago'
+              : 'Recently uploaded';
+            
+            return {
+              id: photo.id,
+              title: `Photo ${photo.id.slice(0, 8)}`,
+              sub: photo.ready ? uploadTime : photo.processing ? 'Processing...' : 'Upload pending',
+              href: `/photos/${photo.id}`
+            };
+          });
+        } catch (error) {
+          console.error('Error fetching recent photos:', error);
+          return [
+            { id: "1", title: "Photos will load here", sub: "Connect to see recent uploads", href: "/photos" }
+          ];
+        }
+      },
       dropdownActions: [
         { label: "Upload Photos", href: "/photos/upload", icon: <Camera className="h-4 w-4" /> },
         { label: "Albums", href: "/photos/albums", icon: <FolderOpen className="h-4 w-4" /> },
