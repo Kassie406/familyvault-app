@@ -1,0 +1,214 @@
+You got it. Here’s a tight “make-everything-work” checklist for every circled control and what you must wire. I’m keeping it exact and complete so nothing is missed.
+
+What must work (and how)
+1) Mini month (top-left)
+
+Click a date → sets main view’s active date.
+
+Hook: onPick(d) => setCursor(d)
+
+Chevron prev/next → month jumps.
+
+Hook: setMiniMonth(addMonths(miniMonth, ±1))
+
+Selected date highlight mirrors cursor day.
+
+2) “Hamburger” / sidebar toggle
+
+Click → collapse/expand left rail (mini calendar + calendar lists).
+
+State: const [sidebarOpen, setSidebarOpen] = useState(true)
+
+Apply hidden lg:block on the aside when false.
+
+3) Today
+
+Click → sets cursor = today and, if week/day, scrolls to current time marker.
+
+Hook: goToday() + optional scrollToNow() in week/day.
+
+4) Title (“September 2025”)
+
+Month view: fmtDateTitle(cursor)
+
+Week view: fmtWeekRange(cursor)
+
+Day view: weekday, Month day, year
+
+Updates whenever cursor changes.
+
+5) View switches (Month / Week / Day)
+
+Click → setView('month'|'week'|'day')
+
+Prev/Next chevrons:
+
+Month: jump by months
+
+Week: ±7 days
+
+Day: ±1 day
+
+Ensure range used in data fetch follows the view.
+
+6) Export ICS
+
+Click → downloads family-calendar.ics covering the current window (from/to) and selected calendars only.
+
+Build from,to = viewWindow(cursor, view) and pass to /api/export/ics?calendarId=...&from&to.
+
+Or use your existing client generator against the filtered events array.
+
+7) Create (dropdown)
+
+Click → opens menu:
+
+“Event” (default)
+
+“All-day event”
+
+“Recurring…”
+
+Selecting → opens Event Modal seeded with:
+
+start = cursor @ 10:00 (or now if day/week)
+
+end = +60 min (or all-day)
+
+cal = currently selected calendar (or default “Kassandra Santana”)
+
+Modal includes: title, time, Calendar selector, location, notes, color, recurrence + end options, Save/Cancel.
+
+8) My calendars / Other calendars
+
+Checkbox toggles → filter events live.
+
+Filter: const active = {...myCals,...otherCals}; events.filter(e => active[e.cal] !== false)
+
+Color dot shows calendar color and is used when creating new events if that calendar is chosen.
+
+9) Main calendar grid
+
+Month:
+
+Each cell shows day number, all-day and timed events (stacked; limit with “+N more” if overflow).
+
+Click empty slot → open Create modal seeded to that date.
+
+Click event → open Edit modal.
+
+Week/Day: hour grid, current time line, drag/resize (optional; can come later).
+
+10) Keyboard & URL state (nice to have)
+
+←/→ prev/next, T today, M/W/D switch views.
+
+URL query: ?view=month&date=2025-09-05 synced on change.
+
+Exact wiring (snippets)
+View window helper
+function viewWindow(cursor: Date, view: 'month'|'week'|'day'){
+  if (view==='month') {
+    const start = new Date(cursor.getFullYear(), cursor.getMonth(), 1, 0,0,0);
+    const end   = new Date(cursor.getFullYear(), cursor.getMonth()+1, 1, 0,0,0);
+    return { start, end };
+  }
+  if (view==='week') {
+    const s = startOfWeek(cursor);       // Monday-based
+    const e = new Date(s); e.setDate(s.getDate()+7);
+    return { start: s, end: e };
+  }
+  const start = startOfDay(cursor), end = endOfDay(cursor);
+  return { start, end };
+}
+
+Prev / Next / Today
+const goToday = () => setCursor(new Date());
+const goPrev = () => setCursor(prev =>
+  view==='month'
+    ? new Date(prev.getFullYear(), prev.getMonth()-1, prev.getDate())
+    : new Date(prev.getTime() - (view==='week'? 7:1)*86400e3)
+);
+const goNext = () => setCursor(prev =>
+  view==='month'
+    ? new Date(prev.getFullYear(), prev.getMonth()+1, prev.getDate())
+    : new Date(prev.getTime() + (view==='week'? 7:1)*86400e3)
+);
+
+Export ICS (current window & filters)
+const onExportICS = async () => {
+  const { start, end } = viewWindow(cursor, view);
+  const active = { ...myCals, ...otherCals };
+  const toExport = events.filter(e => active[e.cal] !== false && e.start >= start && e.start < end);
+  downloadICS(toExport); // your existing client builder
+  // Or server:
+  // const url = `/api/export/ics?calendarId=${encodeURIComponent(currentCalId)}&from=${start.toISOString()}&to=${end.toISOString()}`;
+  // window.location.href = url;
+};
+
+Create dropdown (seed payload)
+const openCreate = (opts: { allDay?: boolean; recurring?: boolean } = {}) => {
+  const base = view==='day' || view==='week' ? new Date() : cursor;
+  const s = opts.allDay ? startOfDay(base) : new Date(base.getFullYear(), base.getMonth(), base.getDate(), 10, 0);
+  const e = opts.allDay ? endOfDay(base)   : new Date(s.getTime()+60*60000);
+  setModal({
+    mode: 'create',
+    event: null,
+    anchorDate: s,
+    defaultEnd: e,
+    defaultCal: selectedCalendar || 'Kassandra Santana',
+    recurring: !!opts.recurring
+  });
+};
+
+Sidebar toggle
+<button onClick={()=>setSidebarOpen(v=>!v)} className="...">{/* hamburger */}</button>
+<aside className={`${sidebarOpen ? '' : 'hidden lg:block'} ...`}> ... </aside>
+
+QA checklist (use this to confirm 100%)
+
+Mini calendar:
+
+Click a date changes main grid to that date (month highlights, week/day navigate).
+
+Arrows step months.
+
+Sidebar toggle collapses/expands without layout jump.
+
+Today button:
+
+Month snaps to current month and highlights today.
+
+Week/Day snaps to today and (optionally) scrolls to now.
+
+Title updates correctly when navigating.
+
+View switches swap layouts and keep cursor.
+
+Export ICS:
+
+File downloads.
+
+Only events visible under current calendar filters and within current window are included.
+
+Create dropdown:
+
+“Event” opens modal with default start/end.
+
+“All-day event” uses 00:00–23:59 of the cursor date.
+
+“Recurring…” preopens the recurrence block.
+
+Saving inserts into correct calendar and matches color.
+
+Calendar lists:
+
+Unchecking calendars hides those events everywhere.
+
+Month grid interactions:
+
+Clicking day cell opens create modal seeded to that date.
+
+Clicking an event opens edit modal; saving updates in place.
+
+If anything on that list isn’t live yet, tell me which line item and I’ll give you the exact code to drop in.
