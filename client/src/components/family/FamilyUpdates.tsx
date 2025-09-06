@@ -84,6 +84,7 @@ export default function FamilyUpdates() {
   const queryClient = useQueryClient();
   const { isAdmin, isLoading: userLoading } = useUserRole();
   const [updates, setUpdates] = useState<FamilyUpdateType[]>([]);
+  const [snoozedCount, setSnoozedCount] = useState(0);
   
   // Fetch family updates
   const { data: updatesData = [], isLoading, refetch } = useQuery<FamilyUpdateType[]>({
@@ -99,6 +100,21 @@ export default function FamilyUpdates() {
   useEffect(() => {
     setUpdates(updatesData);
   }, [updatesData]);
+
+  // Load snoozed count
+  const loadSnoozedCount = async () => {
+    try {
+      const response = await fetch('/api/updates/snoozed/count');
+      const data = await response.json();
+      setSnoozedCount(data.count || 0);
+    } catch (error) {
+      console.error('Failed to load snoozed count:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadSnoozedCount();
+  }, []);
 
   // Dismiss update mutation
   const dismissMutation = useMutation({
@@ -123,11 +139,15 @@ export default function FamilyUpdates() {
   const handleSnoozed = (updateId: string) => {
     // Remove the snoozed update from the list immediately for better UX
     setUpdates(prev => prev.filter(update => update.id !== updateId));
+    // Increment snoozed count
+    setSnoozedCount(count => count + 1);
   };
 
   const handleRestored = (updateId: string) => {
     // Refetch updates when an item is restored from snooze
     refetch();
+    // Decrement snoozed count
+    setSnoozedCount(count => Math.max(0, count - 1));
   };
 
   if (isLoading || userLoading) {
@@ -156,12 +176,21 @@ export default function FamilyUpdates() {
 
   return (
     <div className="space-y-3">
-      {/* Admin compose button */}
-      {isAdmin && (
-        <div className="flex justify-end mb-2">
-          <ComposeUpdateModal afterCreate={() => refetch()} />
+      {/* Header with snoozed count badge */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3">
+          <h3 className="text-lg font-medium text-white">Family Updates</h3>
+          {snoozedCount > 0 && (
+            <span className="text-xs px-2 py-0.5 rounded-full border border-[#D4AF37]/30 text-[#D4AF37] bg-[#D4AF37]/5">
+              {snoozedCount} snoozed
+            </span>
+          )}
         </div>
-      )}
+        {/* Admin compose button */}
+        {isAdmin && (
+          <ComposeUpdateModal afterCreate={() => refetch()} />
+        )}
+      </div>
       
       <div className="space-y-3" data-testid="family-updates-list">
       {updates.map((update) => {

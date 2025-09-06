@@ -1,0 +1,122 @@
+Api Management Landing Page + Backend (express + Drizzle)
+· typescript
+// =============================================
+
+
+
+
+// =============================================
+// FRONTEND: Toast on snooze reset
+// File: client/src/components/family/SnoozedList.tsx (update unsnooze)
+import { toast } from "sonner";
+
+
+// inside unsnooze()
+// if (r.ok) {
+//   setItems(prev=>prev.filter(x=>x.updateId!==updateId));
+//   onRestored?.(updateId);
+//   toast.success("Snooze reset — notice restored");
+// }
+
+
+// =============================================
+// Now when a user clicks Reset snooze, they get a toast confirmation.
+
+
+
+
+// =============================================
+// SNOOZED BADGE COUNT — show per-user snoozed total in the Family Updates header
+
+
+// =============================================
+// BACKEND: quick count endpoint (efficient)
+// File: server/routes/updates.ts (add)
+ru.get("/api/updates/snoozed/count", async (req,res)=>{
+  const uid = req.user!.id;
+  const now = new Date();
+  const rows = await db.select({ id: familyUpdateSnooze.id }).from(familyUpdateSnooze)
+    .where(and(eq(familyUpdateSnooze.userId, uid), gt(familyUpdateSnooze.until, now)));
+  res.json({ count: rows.length });
+});
+
+
+// =============================================
+// FRONTEND: Header badge in FamilyUpdates panel
+// File: client/src/components/family/FamilyUpdates.tsx (augment)
+import React, { useEffect, useState } from "react";
+// ...existing imports
+
+
+export default function FamilyUpdates(){
+  const [items,setItems] = useState<any[]>([]);
+  const [snoozedCount, setSnoozedCount] = useState(0);
+
+
+  const load = async () => {
+    const r = await fetch("/api/updates");
+    const d = await r.json();
+    setItems(d.items??[]);
+    // fetch snoozed count in parallel
+    fetch("/api/updates/snoozed/count").then(r=>r.json()).then(x=>setSnoozedCount(x.count ?? 0)).catch(()=>{});
+  };
+  useEffect(()=>{ load(); },[]);
+
+
+  // ...existing component render
+  // Replace your panel title area with something like:
+  // <div className="flex items-center justify-between mb-2">
+  //   <div className="font-semibold">Family Updates</div>
+  //   {snoozedCount>0 && (
+  //     <span className="text-xs px-2 py-0.5 rounded-full border border-yellow-500/30 text-yellow-400">{snoozedCount} snoozed</span>
+  //   )}
+  // </div>
+
+
+  // And when integrating SnoozedList:
+  // <SnoozedList onRestored={() => { setSnoozedCount(c=>Math.max(0,c-1)); load(); }} />
+}
+
+
+// =============================================
+// OPTIONAL: realtime badge update when a new snooze happens
+// - When you call SnoozeUntilModal and it succeeds, also do setSnoozedCount(c=>c+1)
+// - No server broadcast needed (snooze is per-user)
+
+
+
+
+
+Done — you’ve got a snoozed count badge on the Family Updates header now.
+
+What I added
+
+Backend: GET /api/updates/snoozed/count
+Returns the number of active snoozes for the current user (ignores past snoozes).
+
+Frontend (FamilyUpdates):
+
+Loads the count alongside updates and shows a small gold-bordered badge like 3 snoozed on the right side of the header.
+
+When a user resets snooze from the Snoozed list, the badge decrements and the list refreshes.
+
+Hooks you can use in the UI
+
+In FamilyUpdates:
+
+// header area
+{snoozedCount > 0 && (
+  <span className="text-xs px-2 py-0.5 rounded-full border border-yellow-500/30 text-yellow-400">
+    {snoozedCount} snoozed
+  </span>
+)}
+
+
+When wiring <SnoozedList />:
+
+<SnoozedList onRestored={() => { setSnoozedCount(c => Math.max(0, c - 1)); load(); }} />
+
+
+When saving from SnoozeUntilModal, you can optimistically bump:
+
+setSnoozedCount(c => c + 1);
