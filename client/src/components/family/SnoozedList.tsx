@@ -84,33 +84,33 @@ export default function SnoozedList({ onRestored }: SnoozedListProps) {
 
   return (
     <div className="mt-6 border-t border-zinc-800 pt-4">
-      <div className="text-sm text-white/70 mb-3 font-medium">Snoozed until…</div>
-      <ul className="space-y-3">
+      <div className="text-xs text-white/40 mb-3">Snoozed until…</div>
+      <div className="space-y-2">
         {items.map(snooze => (
-          <li 
+          <div 
             key={snooze.id} 
-            className="flex items-center justify-between p-3 rounded-xl bg-zinc-800/50 border border-zinc-800"
+            className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3 flex justify-between items-center transition-all duration-200 hover:border-zinc-700"
           >
             <div className="flex-1 min-w-0">
               <div className="font-medium text-white text-sm">
                 {snooze.update?.title ?? 'Update'}
               </div>
-              <div className="text-xs text-white/50 mt-1">
+              <div className="text-xs text-white/40 mt-1">
                 Until {new Date(snooze.until).toLocaleString()}
               </div>
             </div>
             <Button 
               size="sm" 
               variant="outline" 
-              className="border-[#D4AF37]/30 text-[#D4AF37] hover:bg-[#D4AF37]/10 hover:border-[#D4AF37]/50 transition-all duration-200 ml-3"
+              className="border-[#D4AF37]/30 text-[#D4AF37] hover:bg-[#D4AF37]/10 hover:border-[#D4AF37]/50 transition-all duration-200"
               onClick={() => unsnooze(snooze.updateId)}
               data-testid={`unsnooze-button-${snooze.updateId}`}
             >
               Reset snooze
             </Button>
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }
