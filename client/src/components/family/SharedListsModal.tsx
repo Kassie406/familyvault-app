@@ -1,15 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ListTodo, CalendarDays, User, Plus, X, CheckCircle2, Trash2
 } from 'lucide-react';
-
-type ListItem = {
-  id: string;
-  text: string;
-  assignee: string;
-  due: string;
-  done: boolean;
-};
+import { loadItems, addItem, toggleItem, deleteItem, ensureProfile, subscribeToListItems, type ListItem } from '@/lib/supabaseHelpers';
 
 type SharedListsModalProps = {
   open: boolean;
@@ -17,41 +10,91 @@ type SharedListsModalProps = {
 };
 
 export function SharedListsModal({ open, onClose }: SharedListsModalProps) {
-  // Sample data - will be replaced with API calls
-  const [items, setItems] = useState<ListItem[]>([
-    { id: "1", text: "Buy groceries", assignee: "Mom", due: "2025-01-10", done: false },
-    { id: "2", text: "Vacuum living room", assignee: "Alex", due: "2025-01-07", done: true },
-    { id: "3", text: "Pack kids' bags", assignee: "Dad", due: "2025-01-08", done: false },
-    { id: "4", text: "Refill hand soap", assignee: "Kassandra", due: "2025-01-12", done: false },
-  ]);
-
+  const [items, setItems] = useState<ListItem[]>([]);
+  const [loading, setLoading] = useState(false);
   const [text, setText] = useState("");
   const [assignee, setAssignee] = useState("");
   const [due, setDue] = useState("");
 
   const pendingCount = useMemo(() => items.filter(i => !i.done).length, [items]);
 
-  function addItem() {
-    if (!text.trim()) return;
-    const newItem: ListItem = {
-      id: crypto.randomUUID(),
-      text: text.trim(),
-      assignee: assignee.trim() || "Unassigned",
-      due: due || "",
-      done: false,
-    };
-    setItems(prev => [newItem, ...prev]);
-    setText("");
-    setAssignee("");
-    setDue("");
+  // Load items when modal opens
+  useEffect(() => {
+    if (open) {
+      loadItemsData();
+    }
+  }, [open]);
+
+  // Set up real-time subscription
+  useEffect(() => {
+    if (open) {
+      const familyId = 'fam_default'; // In a real app, get this from user profile
+      const unsubscribe = subscribeToListItems(familyId, loadItemsData);
+      return () => {
+        if (unsubscribe) {
+          unsubscribe();
+        }
+      };
+    }
+  }, [open]);
+
+  async function loadItemsData() {
+    try {
+      setLoading(true);
+      await ensureProfile(); // Make sure user has a profile
+      const data = await loadItems();
+      setItems(data);
+    } catch (error) {
+      console.error('Failed to load items:', error);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function toggleItem(id: string) {
-    setItems(prev => prev.map(i => i.id === id ? { ...i, done: !i.done } : i));
+  async function addNewItem() {
+    if (!text.trim() || loading) return;
+    try {
+      setLoading(true);
+      const newItem = await addItem({
+        text: text.trim(),
+        assignee: assignee.trim() || "Unassigned",
+        due: due || null
+      });
+      setItems(prev => [newItem, ...prev]);
+      setText("");
+      setAssignee("");
+      setDue("");
+    } catch (error) {
+      console.error('Failed to add item:', error);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function deleteItem(id: string) {
-    setItems(prev => prev.filter(i => i.id !== id));
+  async function handleToggleItem(id: string) {
+    if (loading) return;
+    try {
+      setLoading(true);
+      const updatedItem = await toggleItem(id);
+      setItems(prev => prev.map(i => i.id === id ? updatedItem : i));
+    } catch (error) {
+      console.error('Failed to toggle item:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeleteItem(id: string) {
+    if (loading) return;
+    try {
+      setLoading(true);
+      await deleteItem(id);
+      setItems(prev => prev.filter(i => i.id !== id));
+    } catch (error) {
+      console.error('Failed to delete item:', error);
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (!open) return null;
@@ -89,7 +132,7 @@ export function SharedListsModal({ open, onClose }: SharedListsModalProps) {
             onChange={(e) => setText(e.target.value)}
             placeholder="Add an item (e.g., 'Buy broccoli')"
             className="md:col-span-6 bg-black/40 border border-white/10 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-[#D4AF37] text-white placeholder-gray-400"
-            onKeyDown={(e) => e.key === 'Enter' && addItem()}
+            onKeyDown={(e) => e.key === 'Enter' && addNewItem()}
           />
           <input
             value={assignee}
@@ -104,8 +147,9 @@ export function SharedListsModal({ open, onClose }: SharedListsModalProps) {
             className="md:col-span-2 bg-black/40 border border-white/10 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-[#D4AF37] text-white"
           />
           <button
-            onClick={addItem}
-            className="md:col-span-1 inline-flex items-center justify-center gap-1 bg-[#D4AF37] text-black font-semibold rounded-xl px-3 py-2 hover:brightness-95 transition-all"
+            onClick={addNewItem}
+            disabled={loading}
+            className="md:col-span-1 inline-flex items-center justify-center gap-1 bg-[#D4AF37] text-black font-semibold rounded-xl px-3 py-2 hover:brightness-95 transition-all disabled:opacity-50"
           >
             <Plus size={18} />
             <span className="hidden sm:inline">Add</span>
@@ -125,8 +169,8 @@ export function SharedListsModal({ open, onClose }: SharedListsModalProps) {
             <ListRow
               key={item.id}
               item={item}
-              onToggle={() => toggleItem(item.id)}
-              onDelete={() => deleteItem(item.id)}
+              onToggle={() => handleToggleItem(item.id)}
+              onDelete={() => handleDeleteItem(item.id)}
             />
           ))}
         </div>
@@ -141,14 +185,14 @@ function ListRow({ item, onToggle, onDelete }: {
   onDelete: () => void;
 }) {
   const dueLabel = useMemo(() => {
-    if (!item.due) return null;
-    const d = new Date(item.due);
+    if (!item.due_date) return null;
+    const d = new Date(item.due_date);
     const days = Math.ceil((d.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
     if (isNaN(days)) return null;
     const tone =
       days < 0 ? "Overdue" : days === 0 ? "Due today" : `Due in ${days}d`;
     return { tone, days };
-  }, [item.due]);
+  }, [item.due_date]);
 
   return (
     <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 transition-colors">
