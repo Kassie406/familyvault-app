@@ -253,6 +253,10 @@ export default function GoogleStyleCalendar() {
     'Holidays in United States': true
   });
 
+  // Collapsed state for calendar sections
+  const [myCalendarsCollapsed, setMyCalendarsCollapsed] = useState(false);
+  const [otherCalendarsCollapsed, setOtherCalendarsCollapsed] = useState(false);
+
   // Dropdown state for Create button
   const [createDropdownOpen, setCreateDropdownOpen] = useState(false);
 
@@ -467,40 +471,68 @@ export default function GoogleStyleCalendar() {
 
         {/* My Calendars */}
         <div className="mb-6">
-          <h3 className="text-sm font-medium text-gray-300 mb-3">My calendars</h3>
-          <div className="space-y-2">
-            {Object.keys(myCals).map((calName, i) => (
-              <label key={calName} className="flex items-center gap-2 cursor-pointer select-none text-sm">
-                <input
-                  type="checkbox"
-                  checked={myCals[calName]}
-                  onChange={() => setMyCals(prev => ({ ...prev, [calName]: !prev[calName] }))}
-                  className="accent-[#D4AF37] focus:ring-[#D4AF37]"
-                />
-                <Circle className="h-3 w-3" style={{ backgroundColor: eventColors[i % eventColors.length] }} />
-                <span className="text-gray-300">{calName}</span>
-              </label>
-            ))}
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-gray-300">My calendars</h3>
+            <button
+              onClick={() => setMyCalendarsCollapsed(!myCalendarsCollapsed)}
+              className="p-1 hover:bg-zinc-800 rounded transition-colors"
+            >
+              <ChevronDown 
+                className={`h-4 w-4 text-gray-400 transition-transform ${
+                  myCalendarsCollapsed ? '-rotate-90' : ''
+                }`} 
+              />
+            </button>
           </div>
+          {!myCalendarsCollapsed && (
+            <div className="space-y-2">
+              {Object.keys(myCals).map((calName, i) => (
+                <label key={calName} className="flex items-center gap-2 cursor-pointer select-none text-sm">
+                  <input
+                    type="checkbox"
+                    checked={myCals[calName]}
+                    onChange={() => setMyCals(prev => ({ ...prev, [calName]: !prev[calName] }))}
+                    className="accent-[#D4AF37] focus:ring-[#D4AF37]"
+                  />
+                  <Circle className="h-3 w-3" style={{ backgroundColor: eventColors[i % eventColors.length] }} />
+                  <span className="text-gray-300">{calName}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Other Calendars */}
         <div>
-          <h3 className="text-sm font-medium text-gray-300 mb-3">Other calendars</h3>
-          <div className="space-y-2">
-            {Object.keys(otherCals).map((calName, i) => (
-              <label key={calName} className="flex items-center gap-2 cursor-pointer select-none text-sm">
-                <input
-                  type="checkbox"
-                  checked={otherCals[calName]}
-                  onChange={() => setOtherCals(prev => ({ ...prev, [calName]: !prev[calName] }))}
-                  className="accent-[#D4AF37] focus:ring-[#D4AF37]"
-                />
-                <Circle className="h-3 w-3" style={{ backgroundColor: eventColors[(i + Object.keys(myCals).length) % eventColors.length] }} />
-                <span className="text-gray-300">{calName}</span>
-              </label>
-            ))}
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-gray-300">Other calendars</h3>
+            <button
+              onClick={() => setOtherCalendarsCollapsed(!otherCalendarsCollapsed)}
+              className="p-1 hover:bg-zinc-800 rounded transition-colors"
+            >
+              <ChevronDown 
+                className={`h-4 w-4 text-gray-400 transition-transform ${
+                  otherCalendarsCollapsed ? '-rotate-90' : ''
+                }`} 
+              />
+            </button>
           </div>
+          {!otherCalendarsCollapsed && (
+            <div className="space-y-2">
+              {Object.keys(otherCals).map((calName, i) => (
+                <label key={calName} className="flex items-center gap-2 cursor-pointer select-none text-sm">
+                  <input
+                    type="checkbox"
+                    checked={otherCals[calName]}
+                    onChange={() => setOtherCals(prev => ({ ...prev, [calName]: !prev[calName] }))}
+                    className="accent-[#D4AF37] focus:ring-[#D4AF37]"
+                  />
+                  <Circle className="h-3 w-3" style={{ backgroundColor: eventColors[(i + Object.keys(myCals).length) % eventColors.length] }} />
+                  <span className="text-gray-300">{calName}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
         </div>
       )}
