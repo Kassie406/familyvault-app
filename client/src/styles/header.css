@@ -87,3 +87,23 @@ header .header-icon {
   --tw-bg-opacity: 0 !important;
   box-shadow: none !important;
 }
+
+/* ===== Header icon hover fix (precise, no collateral) ===== */
+
+/* Base: keep transparent surface and kill white utilities/rings */
+button[data-testid="button-quick-access"],
+button[data-testid="button-toggle-layout"] {
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+/* Hover: very light gold tint (instead of white pill) */
+button[data-testid="button-quick-access"]:hover,
+button[data-testid="button-toggle-layout"]:hover {
+  /* light gold = rgba(212,175,55,0.08) */
+  background-color: rgba(212, 175, 55, 0.08) !important;
+}

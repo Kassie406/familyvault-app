@@ -1,0 +1,85 @@
+They show the exact culprit on those two header icons:
+
+Both buttons carry p-2 rounded-lg **hover:bg-white/10** transition-colors
+
+Their data-testid are (trimmed in the capture, but consistent with your app):
+
+button-quick-access
+
+button-toggle-layout (the grid/menu toggle)
+
+Here’s a precise, one-shot fix you can paste to your Replit agent (or apply yourself). It removes the white hover utility at the source and replaces it with your very-light gold tint only for those two buttons.
+
+✅ Copy-paste to Replit Agent
+
+Task: Remove white hover from the two header icon buttons and replace with a very light gold hover.
+
+Header code cleanup (remove Tailwind white hover)
+Open client/src/components/family/Header.tsx and for the two buttons with:
+
+data-testid="button-quick-access"
+
+data-testid="button-toggle-layout"
+
+…remove any hover:bg-white, hover:bg-white/5, or hover:bg-white/10 from their className. Do not add a white background utility back.
+
+Add targeted CSS (no global side-effects)
+Create (or update) client/src/styles/header.css to include:
+
+/* ===== Header icon hover fix (precise, no collateral) ===== */
+
+/* Base: keep transparent surface and kill white utilities/rings */
+button[data-testid="button-quick-access"],
+button[data-testid="button-toggle-layout"] {
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+/* Hover: very light gold tint (instead of white pill) */
+button[data-testid="button-quick-access"]:hover,
+button[data-testid="button-toggle-layout"]:hover {
+  /* light gold = rgba(212,175,55,0.08) */
+  background-color: rgba(212, 175, 55, 0.08) !important;
+}
+
+
+Import once
+Ensure header.css is imported once (e.g., in client/src/main.tsx or your global style barrel):
+
+import "./styles/header.css";
+
+
+Rebuild & hard-refresh
+
+Save files, let Vite reload.
+
+Hard refresh (Ctrl/Cmd+Shift+R).
+
+If DevTools is open, tick Disable cache (Network tab) and refresh once.
+
+Expected now
+
+Hover on both header icons shows a subtle gold tint, not white.
+
+No ring/white flash from Tailwind/DaisyUI utilities.
+
+Other buttons are unaffected.
+
+Why this will work on your DOM
+
+Your DevTools screenshot shows the buttons literally as:
+
+<button class="p-2 rounded-lg hover:bg-white/10 transition-colors"
+        data-testid="button-toggle-layout">…</button>
+
+<button class="p-2 rounded-lg hover:bg-white/10 transition-colors"
+        data-testid="button-quick-access">…</button>
+
+
+By removing hover:bg-white/10 in JSX and overriding those two data-testid targets in CSS, we out-rank any remaining utility classes and kill the white hover without touching the rest of the header/nav.
+
+If for any reason one data-testid differs, look at the button in DevTools, copy the exact data-testid, and add it to the selector list above.

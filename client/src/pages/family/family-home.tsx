@@ -571,14 +571,14 @@ export default function FamilyHome() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setDashboardLayout(dashboardLayout === 'default' ? 'compact' : 'default')}
-                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                className="p-2 rounded-lg transition-colors"
                 data-testid="button-toggle-layout"
               >
                 <Grid className="h-4 w-4 text-white/70" />
               </button>
               <button
                 onClick={() => setQuickAccessOpen(true)}
-                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                className="p-2 rounded-lg transition-colors"
                 data-testid="button-quick-access"
               >
                 <Zap className="h-4 w-4 text-white/70" />
