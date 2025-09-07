@@ -135,3 +135,40 @@ button[data-testid="edit-title-button"]:hover {
 .w-full[class*="hover:bg-white/5"]:hover {
   background-color: rgba(212, 175, 55, 0.05) !important;
 }
+
+/* ---- Gold theme for header icons (replaces white hover) ---- */
+
+/* Base gold palette (adjust once if you tweak the brand color) */
+:root {
+  --kc-gold-rgb: 212, 175, 55;           /* your gold */
+  --kc-gold-hover: rgba(var(--kc-gold-rgb), 0.10);
+  --kc-gold-focus: rgba(var(--kc-gold-rgb), 0.14);
+}
+
+/* Target the two header buttons (Quick Access + Layout toggle) */
+.sticky button[data-testid="button-quick-access"],
+.sticky button[data-testid="button-toggle-layout"] {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+/* Replace white hover with light gold */
+.sticky button[data-testid="button-quick-access"]:hover,
+.sticky button[data-testid="button-toggle-layout"]:hover {
+  background-color: var(--kc-gold-hover) !important;
+}
+
+/* Accessible keyboard focus tint (also gold) */
+.sticky button[data-testid="button-quick-access"]:focus-visible,
+.sticky button[data-testid="button-toggle-layout"]:focus-visible {
+  background-color: var(--kc-gold-focus) !important;
+}
+
+/* Safety: neutralize any lingering Tailwind/DaisyUI "white" utilities */
+.sticky button[data-testid="button-quick-access"],
+.sticky button[data-testid="button-toggle-layout"] {
+  --tw-bg-opacity: 0 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+}
