@@ -48,31 +48,24 @@ export default function NewSignIn() {
       return;
     }
 
-    console.log('🔍 Starting verification with:', { email, code: code.length + ' digits', nonce: nonce.slice(0, 8) + '...' });
     setLoading(true);
     try {
-      console.log('📡 Making request to /login/verify');
       const response = await fetch('/login/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, code, nonce })
       });
 
-      console.log('📥 Response received:', response.status, response.statusText);
       const result = await response.json();
-      console.log('📋 Response data:', result);
       
       if (!result.ok) {
-        console.error('❌ Verification failed:', result.error);
         alert(result.error || 'Invalid verification code');
         return;
       }
 
-      console.log('✅ Verification successful, redirecting to:', result.redirect || '/');
       // Success - redirect to portal
       window.location.href = result.redirect || '/';
     } catch (error) {
-      console.error('💥 Verification error:', error);
       alert('Verification failed. Please try again.');
     } finally {
       setLoading(false);
