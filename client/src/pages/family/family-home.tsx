@@ -11,7 +11,7 @@ import {
   Phone, DollarSign, Upload, ShieldAlert,
   UserPlus, Mail, Settings, Share, Camera, FolderOpen, AlertCircle,
   Zap, Grid, BarChart3, Video, ListTodo, CalendarDays, User,
-  X, CheckCircle2, Trash2
+  X, CheckCircle2, Trash2, LogOut, Search, HelpCircle
 } from 'lucide-react';
 import { 
   ActionCard, 
@@ -50,9 +50,22 @@ export default function FamilyHome() {
   const [approvalsDrawerOpen, setApprovalsDrawerOpen] = useState(false);
   const [shareDocumentModalOpen, setShareDocumentModalOpen] = useState(false);
   const [sharedListsOpen, setSharedListsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Navigation hook
   const [, setLocation] = useLocation();
+
+  // Logout function
+  const handleLogout = async () => {
+    try {
+      await fetch('/logout', { method: 'POST' });
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Force redirect even if logout fails
+      window.location.href = '/login';
+    }
+  };
   
   // Ref for the upload center section
   const uploadCenterRef = useRef<HTMLDivElement>(null);
@@ -434,7 +447,41 @@ export default function FamilyHome() {
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--ink-400)] h-4 w-4" />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-[#2A2A33] rounded-lg bg-[#161616] text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] w-64"
+                data-testid="input-search"
+              />
+            </div>
+            
+            {/* Help Button */}
+            <button className="text-[var(--ink-300)] hover:text-[var(--gold)] flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors">
+              <HelpCircle className="h-4 w-4" />
+              <span className="text-sm">Help</span>
+            </button>
+            
+            {/* User Profile Avatar */}
+            <div className="w-8 h-8 rounded-full bg-[var(--gold)] flex items-center justify-center">
+              <span className="text-black text-sm font-medium">KC</span>
+            </div>
+            
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="text-[var(--ink-300)] hover:text-red-400 flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors"
+              data-testid="button-logout"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="text-sm">Sign Out</span>
+            </button>
+            
             <NotificationCenter />
             <Link href="/family/settings">
               <button className="p-2 rounded-lg hover:bg-white/10 transition-colors">
