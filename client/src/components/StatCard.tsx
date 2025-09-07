@@ -1,6 +1,7 @@
 import React, {useEffect, useRef, useState} from "react";
 import { Link } from "wouter";
 import { ChevronDown } from "lucide-react";
+import "@/styles/stat-cards.css";
 
 type PreviewItem = {
   id: string;
