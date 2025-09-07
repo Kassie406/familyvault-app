@@ -95,3 +95,19 @@ dialog[aria-label="Quick Access"] .btn::before,
 dialog[aria-label="Quick Access"] .btn::after {
   content: none !important;
 }
+
+/* EMERGENCY CALL CARD - Kill white hover specifically */
+dialog[aria-label="Quick Access"] .card:nth-child(2),
+dialog[aria-label="Quick Access"] .card:nth-child(2) *,
+dialog[aria-label="Quick Access"] .card:nth-child(2):hover,
+dialog[aria-label="Quick Access"] .card:nth-child(2):hover *,
+dialog[aria-label="Quick Access"] .card:nth-child(2):focus,
+dialog[aria-label="Quick Access"] .card:nth-child(2):focus * {
+  background-color: transparent !important;
+  background-image: none !important;
+  background: none !important;
+  --tw-bg-opacity: 0 !important;
+  --tw-ring-opacity: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
