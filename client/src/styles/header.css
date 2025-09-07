@@ -107,3 +107,31 @@ button[data-testid="button-toggle-layout"]:hover {
   /* light gold = rgba(212,175,55,0.08) */
   background-color: rgba(212, 175, 55, 0.08) !important;
 }
+
+/* ===== Edit title buttons across all family pages ===== */
+
+/* Base: keep transparent surface and kill white utilities/rings */
+button[data-testid="edit-title-button"] {
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+/* Hover: very light gold tint (instead of white pill) */
+button[data-testid="edit-title-button"]:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;
+}
+
+/* ===== Menu dropdown items with white hover ===== */
+
+/* Target menu items with hover:bg-white/5 */
+.w-full[class*="hover:bg-white/5"] {
+  --tw-bg-opacity: 0 !important;
+}
+
+.w-full[class*="hover:bg-white/5"]:hover {
+  background-color: rgba(212, 175, 55, 0.05) !important;
+}
