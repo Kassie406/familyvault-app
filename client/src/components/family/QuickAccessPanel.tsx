@@ -20,6 +20,7 @@ import {
   X
 } from 'lucide-react';
 import { LuxuryCard } from '@/components/luxury-cards';
+import "@/styles/quick-access-panel.css";
 
 type QuickAction = {
   id: string;
