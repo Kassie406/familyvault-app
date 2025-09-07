@@ -1751,6 +1751,207 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Chores & Allowance API endpoints
+  const { chores, allowanceLedger, familyMembers } = require("@shared/schema");
+
+  // GET /api/chores - List chores (optionally for a specific assignee)
+  app.get("/api/chores", async (req, res) => {
+    try {
+      const { since, assigneeId } = req.query;
+      const familyId = "family-1"; // TODO: Get from authenticated session
+      
+      let whereClause: any = { familyId };
+      if (assigneeId === "me") {
+        whereClause.assigneeId = "current-user"; // TODO: Get from session
+      } else if (assigneeId) {
+        whereClause.assigneeId = assigneeId;
+      }
+      if (since) {
+        whereClause.dueAt = { gte: new Date(since) };
+      }
+
+      const choresList = await db.select({
+        id: chores.id,
+        title: chores.title,
+        details: chores.details,
+        dueAt: chores.dueAt,
+        points: chores.points,
+        status: chores.status,
+        assigneeId: chores.assigneeId,
+        assignee: {
+          id: familyMembers.id,
+          name: familyMembers.name,
+          role: familyMembers.role
+        }
+      })
+      .from(chores)
+      .leftJoin(familyMembers, eq(chores.assigneeId, familyMembers.id))
+      .where(eq(chores.familyId, familyId))
+      .orderBy(chores.status, chores.dueAt);
+
+      res.json(choresList);
+    } catch (error) {
+      console.error("Error fetching chores:", error);
+      res.status(500).json({ error: "Failed to fetch chores" });
+    }
+  });
+
+  // POST /api/chores - Create chore (parents only)
+  app.post("/api/chores", async (req, res) => {
+    try {
+      const { title, details, assigneeId, dueAt, points, rotationKey } = req.body;
+      const familyId = "family-1"; // TODO: Get from authenticated session
+      const createdById = "current-user"; // TODO: Get from session
+      
+      // TODO: Check if user is parent role
+      
+      if (!title || !assigneeId || !dueAt) {
+        return res.status(400).json({ error: "Title, assigneeId, and dueAt are required" });
+      }
+
+      const newChore = await db.insert(chores).values({
+        title: title.trim(),
+        details: details?.trim() || null,
+        assigneeId,
+        dueAt: new Date(dueAt),
+        points: points || 10,
+        rotationKey: rotationKey?.trim() || null,
+        familyId,
+        createdById,
+        status: "todo"
+      }).returning();
+
+      res.status(201).json(newChore[0]);
+    } catch (error) {
+      console.error("Error creating chore:", error);
+      res.status(500).json({ error: "Failed to create chore" });
+    }
+  });
+
+  // POST /api/chores/:id/done - Mark chore done (self only)
+  app.post("/api/chores/:id/done", async (req, res) => {
+    try {
+      const choreId = req.params.id;
+      const userId = "current-user"; // TODO: Get from session
+      const familyId = "family-1"; // TODO: Get from session
+      
+      // Find the chore
+      const chore = await db.select().from(chores)
+        .where(and(eq(chores.id, choreId), eq(chores.familyId, familyId)))
+        .limit(1);
+
+      if (!chore.length) {
+        return res.status(404).json({ error: "Chore not found" });
+      }
+
+      // Check if user is assignee or parent
+      // TODO: Add role check for parents
+      if (chore[0].assigneeId !== userId) {
+        return res.status(403).json({ error: "Only assignee can mark chore as done" });
+      }
+
+      const updatedChore = await db.update(chores)
+        .set({ status: "done" })
+        .where(eq(chores.id, choreId))
+        .returning();
+
+      res.json(updatedChore[0]);
+    } catch (error) {
+      console.error("Error marking chore done:", error);
+      res.status(500).json({ error: "Failed to mark chore done" });
+    }
+  });
+
+  // POST /api/chores/:id/approve - Approve chore (parents only) → adds ledger points
+  app.post("/api/chores/:id/approve", async (req, res) => {
+    try {
+      const choreId = req.params.id;
+      const familyId = "family-1"; // TODO: Get from session
+      const createdById = "current-user"; // TODO: Get from session
+      
+      // TODO: Check if user is parent role
+      
+      // Find the chore
+      const chore = await db.select().from(chores)
+        .where(and(eq(chores.id, choreId), eq(chores.familyId, familyId)))
+        .limit(1);
+
+      if (!chore.length) {
+        return res.status(404).json({ error: "Chore not found" });
+      }
+
+      if (chore[0].status !== "done") {
+        return res.status(400).json({ error: "Chore must be marked done before approval" });
+      }
+
+      // Transaction: approve chore and add points to ledger
+      const result = await db.transaction(async (tx) => {
+        const updatedChore = await tx.update(chores)
+          .set({ status: "approved" })
+          .where(eq(chores.id, choreId))
+          .returning();
+
+        await tx.insert(allowanceLedger).values({
+          familyId,
+          memberId: chore[0].assigneeId,
+          deltaPoints: chore[0].points,
+          reason: `Chore: ${chore[0].title} (${chore[0].dueAt.toISOString().slice(0, 10)})`,
+          createdById
+        });
+
+        return updatedChore[0];
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error approving chore:", error);
+      res.status(500).json({ error: "Failed to approve chore" });
+    }
+  });
+
+  // GET /api/allowance/summary - Get allowance points balance and history
+  app.get("/api/allowance/summary", async (req, res) => {
+    try {
+      const { memberId } = req.query;
+      const familyId = "family-1"; // TODO: Get from session
+      const userId = memberId === "me" ? "current-user" : (memberId || "current-user");
+      
+      const ledgerItems = await db.select().from(allowanceLedger)
+        .where(and(eq(allowanceLedger.familyId, familyId), eq(allowanceLedger.memberId, userId)))
+        .orderBy(desc(allowanceLedger.createdAt))
+        .limit(50);
+
+      const balance = ledgerItems.reduce((sum, item) => sum + item.deltaPoints, 0);
+
+      res.json({
+        balance,
+        items: ledgerItems.slice(0, 5) // Only return top 5 for summary
+      });
+    } catch (error) {
+      console.error("Error fetching allowance summary:", error);
+      res.status(500).json({ error: "Failed to fetch allowance summary" });
+    }
+  });
+
+  // GET /api/members - Get family members (for chore assignment)
+  app.get("/api/members", async (req, res) => {
+    try {
+      const familyId = "family-1"; // TODO: Get from session
+      
+      const members = await db.select({
+        id: familyMembers.id,
+        name: familyMembers.name,
+        role: familyMembers.role
+      }).from(familyMembers)
+        .where(eq(familyMembers.familyId, familyId));
+
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching family members:", error);
+      res.status(500).json({ error: "Failed to fetch family members" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Initialize realtime WebSocket system
