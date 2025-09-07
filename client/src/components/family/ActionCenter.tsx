@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { withTimeout } from "@/lib/time";
+import { Card } from "@/components/ui/Card";
 
 type Counts = { 
   approvePending: number; 
@@ -52,32 +53,20 @@ export default function ActionCenter() {
 
   if (err) {
     return (
-      <div 
-        className="rounded-2xl border border-zinc-800/80 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] transition-all duration-300 text-rose-300"
-        style={{
-          background: 'linear-gradient(to bottom, rgba(24, 24, 27, 0.6), rgba(9, 9, 11, 0.7))',
-          backgroundImage: 'linear-gradient(to bottom, rgba(24, 24, 27, 0.6), rgba(9, 9, 11, 0.7))'
-        }}
-      >
+      <Card className="p-4 text-rose-300">
         <div className="flex items-center gap-2">
           <AlertCircle className="w-5 h-5" />
           Action Center error — {err}
         </div>
-      </div>
+      </Card>
     );
   }
   
   if (!data) {
     return (
-      <div 
-        className="rounded-2xl border border-zinc-800/80 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] transition-all duration-300 animate-pulse text-white/60"
-        style={{
-          background: 'linear-gradient(to bottom, rgba(24, 24, 27, 0.6), rgba(9, 9, 11, 0.7))',
-          backgroundImage: 'linear-gradient(to bottom, rgba(24, 24, 27, 0.6), rgba(9, 9, 11, 0.7))'
-        }}
-      >
+      <Card className="p-4 animate-pulse text-white/60">
         Loading Action Center…
-      </div>
+      </Card>
     );
   }
 
@@ -90,17 +79,11 @@ export default function ActionCenter() {
 
   return (
     <a href="#chores" className="block no-underline">
-      <div 
-        className={`rounded-2xl border border-zinc-800/80 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] hover:shadow-xl hover:shadow-[#D4AF37]/10 hover:border-[#D4AF37]/30 transition-all duration-300 ${
-          hasActions 
-            ? "cursor-pointer" 
-            : ""
-        }`}
-        style={{
-          background: 'linear-gradient(to bottom, rgba(24, 24, 27, 0.6), rgba(9, 9, 11, 0.7))',
-          backgroundImage: 'linear-gradient(to bottom, rgba(24, 24, 27, 0.6), rgba(9, 9, 11, 0.7))'
-        }}
-      >
+      <Card className={`p-4 hover:border-[#D4AF37]/40 hover:shadow-[0_0_0_1px_rgba(212,175,55,.35),0_18px_50px_rgba(212,175,55,.12)] ${
+        hasActions 
+          ? "cursor-pointer" 
+          : ""
+      }`}>
         <div className="flex items-center gap-2 mb-1">
           {hasActions ? (
             <AlertCircle className="w-5 h-5 text-[#D4AF37]" />
@@ -117,7 +100,7 @@ export default function ActionCenter() {
             "All caught up! 🎉"
           )}
         </div>
-      </div>
+      </Card>
     </a>
   );
 }
