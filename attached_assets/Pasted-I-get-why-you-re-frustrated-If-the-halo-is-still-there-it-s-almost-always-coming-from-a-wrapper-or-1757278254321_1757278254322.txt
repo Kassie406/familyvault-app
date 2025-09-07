@@ -1,0 +1,87 @@
+I get why you’re frustrated. If the halo is still there, it’s almost always coming from a wrapper or a ::before/::after overlay that we haven’t hit yet (DaisyUI/Tailwind often add those on hover/focus). Paste the bullet-proof nuke below so it disables every shadow/ring/overlay inside the Quick Access dialog—no matter which element is painting it.
+
+1) Paste at the very end of your global CSS (or src/styles/quick-access.css)
+
+(Keep it last so it wins specificity. It includes multiple fallbacks for whatever your modal is named.)
+
+/* ===== QUICK ACCESS: remove ALL halo/glow in the grid ===== */
+
+/* Target the dialog container with multiple fallbacks */
+dialog[aria-label="Quick Access"],
+#quick-access-modal,
+#quickAccessModal,
+.quick-access-modal,
+[data-qa="quick-access"] {
+  /* kill Tailwind/Daisy ring + shadow at the root */
+  --tw-ring-inset: initial !important;
+  --tw-ring-offset-width: 0 !important;
+  --tw-ring-offset-color: transparent !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-shadow: 0 0 #0000 !important;
+  --tw-shadow-colored: 0 0 #0000 !important;
+}
+
+/* Nuke shadows, rings, drop-shadows, and overlays from *everything* inside */
+dialog[aria-label="Quick Access"] *,
+dialog[aria-label="Quick Access"] *::before,
+dialog[aria-label="Quick Access"] *::after,
+#quick-access-modal *,
+#quick-access-modal *::before,
+#quick-access-modal *::after,
+#quickAccessModal *,
+#quickAccessModal *::before,
+#quickAccessModal *::after,
+.quick-access-modal *,
+.quick-access-modal *::before,
+.quick-access-modal *::after,
+[data-qa="quick-access"] *,
+[data-qa="quick-access"] *::before,
+[data-qa="quick-access"] *::after {
+  box-shadow: none !important;
+  outline: none !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  /* if any tile uses pseudo-element glow, remove it */
+  content: none !important;
+}
+
+/* Keep tiles with only the thin gold border and no hover halo */
+dialog[aria-label="Quick Access"] .qa-tile,
+#quick-access-modal .qa-tile,
+#quickAccessModal .qa-tile,
+.quick-access-modal .qa-tile,
+[data-qa="quick-access"] .qa-tile {
+  border: 1px solid rgba(212,175,55,0.28) !important; /* gold line */
+  background-image: linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%) !important;
+  border-radius: 16px !important;
+  background-clip: padding-box !important;
+  isolation: isolate !important;
+  box-shadow: none !important;
+}
+
+dialog[aria-label="Quick Access"] .qa-tile:hover,
+dialog[aria-label="Quick Access"] .qa-tile:focus,
+#quick-access-modal .qa-tile:hover,
+#quick-access-modal .qa-tile:focus,
+#quickAccessModal .qa-tile:hover,
+#quickAccessModal .qa-tile:focus,
+.quick-access-modal .qa-tile:hover,
+.quick-access-modal .qa-tile:focus,
+[data-qa="quick-access"] .qa-tile:hover,
+[data-qa="quick-access"] .qa-tile:focus {
+  border-color: rgba(212,175,55,0.28) !important; /* no change on hover */
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+2) Hard refresh
+
+Save, then Ctrl/Cmd + Shift + R in the browser.
+
+3) If you still see a halo on a specific tile
+
+Open DevTools → pick that tile → in Styles, search for box-shadow, ring, and ::before. Send me the HTML of that tile’s wrapper + tile (2–3 nodes). I’ll pinpoint the one remaining rule (if any) and give you a tiny, targeted override.
+
+This will stop all hover/focus glow in Quick Access while keeping your gold border.
