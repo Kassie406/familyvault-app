@@ -3,6 +3,7 @@ import { Clock, CheckCircle2, AlertCircle, User, Plus } from "lucide-react";
 import CreateChoreModal from "./CreateChoreModal";
 import { api } from "@/lib/api";
 import { withTimeout } from "@/lib/time";
+import "@/styles/chores-card.css";
 
 type Member = { id: string; name: string; role: "parent"|"teen"|"child" };
 type Chore = {
