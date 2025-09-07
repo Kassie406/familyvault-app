@@ -1,0 +1,39 @@
+/* ==== Header buttons: kill white hover and use faint gold ==== */
+
+/* Your header container is a sticky DIV (not a <header>) in this app */
+.sticky .header-icon,
+header .header-icon {
+  background: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+/* Hover state — very light gold tint (no white) */
+.sticky .header-icon:hover,
+header .header-icon:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important; /* light gold */
+}
+
+/* If DaisyUI "ghost"/button styles try to inject background, squash them */
+.sticky .header-icon.btn-ghost:hover,
+header .header-icon.btn-ghost:hover,
+.sticky .header-icon.btn-square:hover,
+header .header-icon.btn-square:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;
+}
+
+/* Defensive: kill pseudo-element halos and ring utilities if they exist */
+.sticky .header-icon::before,
+.sticky .header-icon::after,
+header .header-icon::before,
+header .header-icon::after {
+  content: none !important;
+}
+
+.sticky .header-icon,
+header .header-icon {
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+}

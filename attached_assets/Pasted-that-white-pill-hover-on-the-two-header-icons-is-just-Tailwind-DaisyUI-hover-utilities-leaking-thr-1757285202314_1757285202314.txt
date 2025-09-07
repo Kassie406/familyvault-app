@@ -1,0 +1,107 @@
+that white “pill” hover on the two header icons is just Tailwind/DaisyUI hover utilities leaking through. Here’s a single, surgical fix you can hand to Replit Agent (or paste in yourself) that removes the white hover everywhere in the header and replaces it with a faint gold-tinted hover.
+
+✅ Copy-paste to Replit Agent
+
+Goal: Remove white hover from the two header icons (left of “Family Dashboard”) and any other header buttons, and use a very light gold tint instead.
+
+Tag the header buttons once
+
+Open client/src/components/family/Header.tsx (or wherever those two buttons are rendered) and add a shared class to both buttons:
+
+{/* Example – your JSX may differ; just add className="header-icon" */}
+<button
+  className="header-icon"         // ⬅️ add this
+  aria-label="Quick Access"
+  /* remove any hover:bg-white / ring / outline utilities */
+>
+  {/* grid icon */}
+</button>
+
+<button
+  className="header-icon"         // ⬅️ add this
+  aria-label="Lightning"          // or whatever it is
+  /* remove any hover:bg-white / ring / outline utilities */
+>
+  {/* lightning icon */}
+</button>
+
+
+While you’re here, remove any of these if present on those buttons:
+hover:bg-white, hover:bg-white/5, hover:bg-white/10, bg-white/10, ring-*, ring-offset-*, outline-*.
+
+Add a tiny header-only CSS override
+
+Create or edit client/src/styles/header.css (new file is fine) and paste:
+
+/* ==== Header buttons: kill white hover and use faint gold ==== */
+
+/* Your header container is a sticky DIV (not a <header>) in this app */
+.sticky .header-icon,
+header .header-icon {
+  background: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+/* Hover state — very light gold tint (no white) */
+.sticky .header-icon:hover,
+header .header-icon:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important; /* light gold */
+}
+
+/* If DaisyUI “ghost”/button styles try to inject background, squash them */
+.sticky .header-icon.btn-ghost:hover,
+header .header-icon.btn-ghost:hover,
+.sticky .header-icon.btn-square:hover,
+header .header-icon.btn-square:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;
+}
+
+/* Defensive: kill pseudo-element halos and ring utilities if they exist */
+.sticky .header-icon::before,
+.sticky .header-icon::after,
+header .header-icon::before,
+header .header-icon::after {
+  content: none !important;
+}
+
+.sticky .header-icon,
+header .header-icon {
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+}
+
+
+Import the CSS once
+
+Make sure this file is imported once (e.g. in client/src/main.tsx or your global styles barrel):
+
+import './styles/header.css';
+
+
+Hard refresh to verify
+
+Save files and let Vite rebuild.
+
+In the browser, open DevTools → Network → check Disable cache.
+
+Press Ctrl+Shift+R (Cmd+Shift+R on Mac).
+
+Expected:
+Hovering either header icon shows no white pill; instead you see a subtle gold-tinted hover. No rings/ghost halos.
+
+Why this works
+
+We gave the two buttons a stable hook (.header-icon) so styles always match the real DOM (your header is inside a .sticky div, not a <header> tag).
+
+We removed Tailwind/DaisyUI hover and ring utilities at the source and overrode any remaining “ghost” backgrounds/pseudo-elements with !important.
+
+The override is scoped to header buttons only, so the rest of the UI stays untouched.
+
+If you still see white after this:
+
+Re-check the two header buttons don’t still include hover:bg-white* or ring-* utilities.
+
+Right-click one icon → Inspect → confirm the element has class header-icon and that the .sticky .header-icon:hover rule is applied. If not, paste the button’s HTML here and I’ll give you a selector that matches exactly.
