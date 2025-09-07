@@ -12,25 +12,20 @@ export default function NewSignIn() {
   const [verifying, setVerifying] = useState(false);
   const [nonce, setNonce] = useState("");
 
-  // Warmup: even if it fails, show the form after 2.5s max
+  // Warmup with timeout fallback (avoids infinite spinner)
   useEffect(() => {
     let done = false;
     const t = setTimeout(() => !done && setReady(true), 2500);
     (async () => {
-      try {
-        await fetch("/login/start", { method: "POST" });
-      } catch {}
-      done = true;
-      clearTimeout(t);
-      setReady(true);
+      try { await fetch("/login/start", { method: "POST" }); } catch {}
+      done = true; clearTimeout(t); setReady(true);
     })();
     return () => clearTimeout(t);
   }, []);
 
   const onSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setSending(true);
+    setError(null); setSending(true);
     try {
       const clean = email.trim().toLowerCase();
       const res = await fetch("/login/start", {
@@ -58,13 +53,10 @@ export default function NewSignIn() {
 
   const onVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setVerifying(true);
+    setError(null); setVerifying(true);
     try {
       const cleanCode = code.trim();
-      if (!/^\d{6}$/.test(cleanCode)) {
-        throw new Error("Enter the 6-digit code");
-      }
+      if (!/^\d{6}$/.test(cleanCode)) throw new Error("Enter the 6-digit code");
       const res = await fetch("/login/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -88,71 +80,94 @@ export default function NewSignIn() {
 
   if (!ready) {
     return (
-      <div style={{minHeight:"100vh",display:"grid",placeItems:"center",color:"#fff",backgroundColor:"#000"}}>
-        <div>Loading…</div>
+      <div className="min-h-screen grid place-items-center bg-gradient-to-br from-black via-gray-900 to-black text-white">
+        <div className="animate-pulse text-sm opacity-80">Loading…</div>
       </div>
     );
   }
 
   return (
-    <div style={{minHeight:"100vh",display:"grid",placeItems:"center",color:"#fff",backgroundColor:"#000"}}>
-      <div style={{width:360, padding:16, borderRadius:12, background:"rgba(255,255,255,0.04)"}}>
-        <h1 style={{marginBottom:8}}>Welcome back</h1>
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white flex items-center justify-center p-6">
+      <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-800 rounded-3xl p-8 w-full max-w-md shadow-2xl">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">Welcome back.</h1>
+          <p className="text-gray-400">Sign in to access your family portal</p>
+        </div>
 
         {step === "email" && (
-          <form onSubmit={onSend}>
-            <label style={{display:"block",fontSize:14,opacity:.8}}>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@email.com"
-              required
-              style={{width:"100%",padding:"10px",margin:"8px 0 14px 0",borderRadius:8,border:"1px solid #333",background:"#0b0b0b",color:"#fff"}}
-            />
+          <form onSubmit={onSend} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Email address*</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email address"
+                required
+                className="w-full bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 h-14 text-lg rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] transition-colors"
+              />
+            </div>
+            
             <button
               type="submit"
-              disabled={sending}
-              style={{width:"100%",padding:"10px",borderRadius:8,background:"#b59732",border:"none",color:"#000",fontWeight:600}}
+              disabled={sending || !email.trim()}
+              className="w-full bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-black font-semibold h-14 text-lg rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-[#D4AF37]/25"
             >
-              {sending ? "Sending…" : "Continue"}
+              {sending ? "Sending..." : "Continue"}
             </button>
+
+            <p className="text-center text-gray-500 text-sm">
+              We'll email you a 6-digit code to sign in.
+            </p>
           </form>
         )}
 
         {step === "code" && (
-          <form onSubmit={onVerify}>
-            <p style={{margin:"0 0 12px 0", color:"#ccc"}}>
-              We sent a 6-digit code to <strong>{email}</strong>
-            </p>
-            <input
-              inputMode="numeric"
-              pattern="\d{6}"
-              maxLength={6}
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="Enter 6-digit code"
-              required
-              style={{width:"100%",padding:"10px",margin:"8px 0 14px 0",borderRadius:8,border:"1px solid #333",background:"#0b0b0b",color:"#fff",letterSpacing:2}}
-            />
+          <form onSubmit={onVerify} className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-white mb-2">Check your email</h2>
+              <p className="text-gray-400">
+                We sent a 6-digit code to<br />
+                <span className="text-white font-medium">{email}</span>
+              </p>
+            </div>
+
+            <div>
+              <input
+                inputMode="numeric"
+                pattern="\d{6}"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="Enter 6-digit code"
+                required
+                className="w-full bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 h-14 text-lg text-center font-mono tracking-widest rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] transition-colors"
+              />
+            </div>
+
             <button
               type="submit"
-              disabled={verifying}
-              style={{width:"100%",padding:"10px",borderRadius:8,background:"#b59732",border:"none",color:"#000",fontWeight:600}}
+              disabled={verifying || code.length !== 6}
+              className="w-full bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-black font-semibold h-14 text-lg rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-[#D4AF37]/25"
             >
-              {verifying ? "Verifying…" : "Verify & Sign In"}
+              {verifying ? "Verifying..." : "Verify & Sign In"}
             </button>
+
             <button
               type="button"
-              onClick={() => setStep("email")}
-              style={{marginTop:10, width:"100%",padding:"8px",borderRadius:8,background:"transparent",border:"1px solid #333",color:"#ddd"}}
+              onClick={() => { setCode(""); setStep("email"); }}
+              className="w-full text-gray-400 hover:text-white h-12 rounded-xl hover:bg-white/10 transition-colors"
             >
               ← Back to email
             </button>
+
+            <p className="text-center text-gray-500 text-sm">
+              Code expires in 10 minutes
+            </p>
           </form>
         )}
 
-        {error && <p style={{color:"#ff8080", marginTop:12}}>{error}</p>}
+        {error && <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">{error}</div>}
       </div>
     </div>
   );
