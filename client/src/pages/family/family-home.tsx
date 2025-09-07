@@ -39,6 +39,7 @@ import { ApprovalsDrawer } from '@/components/documents/ApprovalsDrawer';
 import { ShareDocumentModal } from '@/components/documents/ShareDocumentModal';
 import { SharedListsModal } from '@/components/family/SharedListsModal';
 import { RecipeBookModal } from '@/components/family/RecipeBookModal';
+import { BudgetTrackerModal } from '@/components/family/BudgetTrackerModal';
 
 export default function FamilyHome() {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -52,6 +53,7 @@ export default function FamilyHome() {
   const [shareDocumentModalOpen, setShareDocumentModalOpen] = useState(false);
   const [sharedListsOpen, setSharedListsOpen] = useState(false);
   const [recipeBookOpen, setRecipeBookOpen] = useState(false);
+  const [budgetTrackerOpen, setBudgetTrackerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Navigation hook
@@ -456,6 +458,44 @@ export default function FamilyHome() {
         { label: "Browse Categories", onClick: () => setRecipeBookOpen(true), icon: <BookOpen className="h-4 w-4" /> },
         { label: "Family Favorites", onClick: () => setRecipeBookOpen(true), icon: <Heart className="h-4 w-4" /> }
       ]
+    },
+    { 
+      label: 'Budget Tracker', 
+      value: '$2,450', 
+      icon: DollarSign,
+      href: '#',
+      onClick: () => setBudgetTrackerOpen(true),
+      fetchPreview: async () => {
+        try {
+          const response = await fetch('/api/budget/summary?limit=5');
+          if (!response.ok) throw new Error('Failed to fetch budget data');
+          const data = await response.json();
+          return data.recentTransactions?.slice(0, 5).map((transaction: any) => {
+            const amount = transaction.amount > 0 ? `+$${transaction.amount}` : `-$${Math.abs(transaction.amount)}`;
+            const timeAgo = new Date(transaction.date).toLocaleDateString();
+            return {
+              id: transaction.id,
+              title: transaction.description,
+              sub: `${transaction.category} • ${amount} • ${timeAgo}`,
+              href: '#'
+            };
+          }) || [];
+        } catch (error) {
+          console.error('Error fetching budget data:', error);
+          return [
+            { id: "1", title: "Grocery Shopping", sub: "Food • -$127.50 • Today", href: "#" },
+            { id: "2", title: "Electricity Bill", sub: "Utilities • -$89.00 • Jan 15", href: "#" },
+            { id: "3", title: "Family Dinner Out", sub: "Entertainment • -$65.00 • Jan 14", href: "#" },
+            { id: "4", title: "Salary Deposit", sub: "Income • +$3,200.00 • Jan 1", href: "#" },
+            { id: "5", title: "Gas Station", sub: "Transportation • -$45.00 • Jan 12", href: "#" }
+          ];
+        }
+      },
+      dropdownActions: [
+        { label: "Add Expense", onClick: () => setBudgetTrackerOpen(true), icon: <Plus className="h-4 w-4" /> },
+        { label: "Set Budget Goals", onClick: () => setBudgetTrackerOpen(true), icon: <BarChart3 className="h-4 w-4" /> },
+        { label: "Monthly Report", onClick: () => setBudgetTrackerOpen(true), icon: <FileText className="h-4 w-4" /> }
+      ]
     }
   ];
 
@@ -767,6 +807,12 @@ export default function FamilyHome() {
       <RecipeBookModal 
         open={recipeBookOpen}
         onClose={() => setRecipeBookOpen(false)}
+      />
+
+      {/* Budget Tracker Modal */}
+      <BudgetTrackerModal 
+        open={budgetTrackerOpen}
+        onClose={() => setBudgetTrackerOpen(false)}
       />
     </div>
   );
