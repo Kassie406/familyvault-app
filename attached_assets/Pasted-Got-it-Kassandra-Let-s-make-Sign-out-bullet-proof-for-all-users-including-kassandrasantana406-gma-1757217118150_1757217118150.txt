@@ -1,0 +1,84 @@
+Got it, Kassandra. Let’s make Sign out bullet-proof for all users (including kassandrasantana406@gmail.com, angeltrustcredit@gmail.com, and any future accounts). Below is a small, email-agnostic setup that works reliably and doesn’t depend on which user is signed in.
+
+1) Server: idempotent logout that always clears cookies
+
+Use one POST endpoint that clears every auth cookie and always returns 200.
+
+// auth/logout (Express)
+app.post("/auth/logout", (req, res) => {
+  const opts = { httpOnly: true, secure: true, sameSite: "lax", path: "/" };
+  for (const name of ["session", "refresh_token", "access_token"]) {
+    res.clearCookie(name, opts);
+  }
+  // Never fail logout; idempotent
+  return res.status(200).json({ ok: true });
+});
+
+
+If you use CORS:
+
+app.use(require("cors")({
+  origin: true, credentials: true
+}));
+
+2) Client: one shared signOut() used by every button
+
+Centralize the handler so every Sign out button calls the same function.
+
+// auth/signOut.ts
+export async function signOut() {
+  try {
+    await fetch("/auth/logout", { method: "POST", credentials: "include" });
+  } catch {}
+  // Nuke client state so guards don’t “spin”
+  localStorage.clear();
+  sessionStorage.clear();
+  // If you keep auth in context, also: setUser(null); setLoading(false);
+
+  // Hard redirect to public login (cache-bust + full reload)
+  const url = "/login?ts=" + Date.now();
+  window.location.replace(url);
+  setTimeout(() => window.location.reload(), 60); // belt & suspenders
+}
+
+
+Attach it everywhere:
+
+<button onClick={signOut} disabled={isSigningOut}>Sign out</button>
+
+
+(Optionally set isSigningOut while the request runs to prevent double-click loops.)
+
+3) Routing: make /login truly public
+
+Ensure the login route is not wrapped by an auth guard or a layout that expects a user.
+
+// App.tsx
+<Route path="/login" element={<NewSignIn />} />      // public
+
+<Route element={<RequireAuth />}>                    // protected
+  <Route path="/dashboard" element={<Dashboard />} />
+  {/* ... */}
+</Route>
+
+<Route path="*" element={<Navigate to="/login" replace />} />
+
+4) Login page: never get stuck on spinners
+
+Your current NewSignIn already has a timeout fallback—keep it. It should not read global user on mount.
+
+5) Sanity checks (takes 60 seconds)
+
+Click Sign out → Network shows POST /auth/logout 200.
+
+In Application → Cookies, all auth cookies are gone.
+
+You land at /login?ts=… and see the “Welcome back” form.
+
+Repeat with:
+
+kassandrasantana406@gmail.com
+
+angeltrustcredit@gmail.com
+
+any new test account you add to ALLOWED_EMAILS

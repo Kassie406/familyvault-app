@@ -12,6 +12,11 @@ export default function NewSignIn() {
   const [verifying, setVerifying] = useState(false);
   const [nonce, setNonce] = useState("");
 
+  // Debug: Log when component mounts
+  useEffect(() => {
+    console.log("🔐 NewSignIn component mounted - login page is rendering!");
+  }, []);
+
   // Warmup with timeout fallback (avoids infinite spinner)
   useEffect(() => {
     let done = false;
