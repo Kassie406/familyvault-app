@@ -166,7 +166,7 @@ export function QuickAccessPanel({ isOpen, onClose }: QuickAccessPanelProps) {
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+            className="p-2 rounded-lg transition-colors"
             data-testid="button-close-quick-access"
           >
             <X className="h-5 w-5 text-white/70" />
@@ -184,10 +184,10 @@ export function QuickAccessPanel({ isOpen, onClose }: QuickAccessPanelProps) {
                 <button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
+                  className={`qa-filter flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
                     isActive 
                       ? 'bg-[#D4AF37] text-black font-medium' 
-                      : 'bg-white/5 text-white/70 hover:bg-white/10'
+                      : 'text-white/70'
                   }`}
                   data-testid={`filter-${category.id}`}
                 >

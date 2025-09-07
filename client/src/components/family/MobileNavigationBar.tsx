@@ -55,10 +55,10 @@ export function MobileNavigationBar({ onQuickAccessOpen }: MobileNavigationBarPr
               const NavButton = (
                 <button
                   onClick={() => handleItemClick(item)}
-                  className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
+                  className={`mobile-qa-btn flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
                     active 
                       ? 'text-[#D4AF37] bg-[#D4AF37]/10' 
-                      : 'text-white/70 hover:text-white hover:bg-white/5'
+                      : 'text-white/70 hover:text-white'
                   }`}
                   data-testid={`mobile-nav-${item.id}`}
                 >
@@ -97,7 +97,7 @@ export function MobileNavigationBar({ onQuickAccessOpen }: MobileNavigationBarPr
             
             <div className="flex items-center gap-2">
               <button 
-                className="p-2 rounded-lg hover:bg-white/10 transition-colors relative"
+                className="header-notify-btn p-2 rounded-lg transition-colors relative"
                 data-testid="mobile-notifications"
               >
                 <Bell className="h-5 w-5 text-white/70" />
@@ -107,7 +107,7 @@ export function MobileNavigationBar({ onQuickAccessOpen }: MobileNavigationBarPr
               </button>
               <button
                 onClick={() => setMenuOpen(true)}
-                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                className="header-menu-btn p-2 rounded-lg transition-colors"
                 data-testid="mobile-menu-open"
               >
                 <Menu className="h-5 w-5 text-white/70" />
@@ -127,7 +127,7 @@ export function MobileNavigationBar({ onQuickAccessOpen }: MobileNavigationBarPr
                 <h2 className="text-lg font-semibold text-white">Menu</h2>
                 <button
                   onClick={() => setMenuOpen(false)}
-                  className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                  className="header-menu-btn p-2 rounded-lg transition-colors"
                   data-testid="mobile-menu-close"
                 >
                   <X className="h-5 w-5 text-white/70" />
@@ -141,21 +141,21 @@ export function MobileNavigationBar({ onQuickAccessOpen }: MobileNavigationBarPr
                 </div>
                 
                 <Link href="/family" onClick={() => setMenuOpen(false)}>
-                  <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-3 p-3 rounded-lg transition-colors">
                     <Home className="h-5 w-5 text-[#D4AF37]" />
                     <span className="text-white">Dashboard</span>
                   </div>
                 </Link>
                 
                 <Link href="/family/messages" onClick={() => setMenuOpen(false)}>
-                  <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-3 p-3 rounded-lg transition-colors">
                     <MessageCircle className="h-5 w-5 text-[#D4AF37]" />
                     <span className="text-white">Messages</span>
                   </div>
                 </Link>
                 
                 <Link href="/family/ids" onClick={() => setMenuOpen(false)}>
-                  <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-3 p-3 rounded-lg transition-colors">
                     <Users className="h-5 w-5 text-[#D4AF37]" />
                     <span className="text-white">Family Members</span>
                   </div>
@@ -177,7 +177,7 @@ export function MobileNavigationBar({ onQuickAccessOpen }: MobileNavigationBarPr
                 </button>
                 
                 <Link href="/family/search" onClick={() => setMenuOpen(false)}>
-                  <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-3 p-3 rounded-lg transition-colors">
                     <Search className="h-5 w-5 text-[#D4AF37]" />
                     <span className="text-white">Search</span>
                   </div>
@@ -188,7 +188,7 @@ export function MobileNavigationBar({ onQuickAccessOpen }: MobileNavigationBarPr
                 </div>
                 
                 <Link href="/family/settings" onClick={() => setMenuOpen(false)}>
-                  <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-3 p-3 rounded-lg transition-colors">
                     <Settings className="h-5 w-5 text-[#D4AF37]" />
                     <span className="text-white">Settings</span>
                   </div>
