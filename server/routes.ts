@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { sql, desc, eq, and } from "drizzle-orm";
-import { familyActivity, chores, allowanceLedger, familyMembers, recipes, mealPlanEntries, shoppingItems } from "@shared/schema";
+import { familyActivity, chores, allowanceLedger, familyMembers, recipes, mealPlanEntries, shoppingItems, familyUpdates, type InsertFamilyUpdate } from "@shared/schema";
 import storageRoutes from "./storage-routes";
 import fileRoutes from "./routes/files";
 import mobileUploadRoutes from "./routes/mobile-upload";
@@ -23,9 +23,9 @@ import { initializeRealtime, getRealtimeManager } from "./lib/realtime.js";
 import { emitFamilyActivity } from "./realtime";
 import { logFamilyActivity } from "./lib/activity";
 import { generateFamilyUpdates } from "./lib/family-updates-worker";
-import { familyUpdates, type InsertFamilyUpdate } from "@shared/schema";
-import { and, eq, sql } from "drizzle-orm";
 import { requireAuth } from "./auth";
+import { cacheSeconds } from "./middleware/cache";
+import { softLimit } from "./middleware/limit";
 // Schema imports - using proper type names
 import { 
   InsertInvite,
@@ -1755,7 +1755,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Import statements are at the top of the file
 
   // GET /api/chores/summary - Get chores counts for Action Center
-  app.get("/api/chores/summary", async (req, res) => {
+  app.get("/api/chores/summary", softLimit, cacheSeconds(30), async (req, res) => {
     try {
       const familyId = "family-1"; // TODO: Get from user's family
       const now = new Date();
@@ -2079,7 +2079,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/allowance/summary - Get allowance points balance and history
-  app.get("/api/allowance/summary", async (req, res) => {
+  app.get("/api/allowance/summary", softLimit, cacheSeconds(15), async (req, res) => {
     try {
       const { memberId } = req.query;
       const familyId = "family-1"; // TODO: Get from session
