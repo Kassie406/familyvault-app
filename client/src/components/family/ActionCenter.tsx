@@ -83,12 +83,7 @@ export default function ActionCenter() {
       <a href="#chores" className="block no-underline">
         <Card
           id="action-center-card"
-          className={`relative isolate overflow-hidden rounded-2xl border border-white/8
-                     bg-gradient-to-b from-[#0b0b0e] to-[#0e0e14]
-                     shadow-[0_10px_28px_rgba(0,0,0,.45)] transition-all duration-200
-                     hover:border-[#D4AF37]/40
-                     hover:shadow-[0_0_0_1px_rgba(212,175,55,.35),0_18px_50px_rgba(212,175,55,.12)]
-                     p-4 ${hasActions ? "cursor-pointer" : ""}`}
+          className={`p-4 isolate overflow-hidden hover:border-[#D4AF37]/40 hover:shadow-[0_0_0_1px_rgba(212,175,55,.35),0_18px_50px_rgba(212,175,55,.12)] ${hasActions ? "cursor-pointer" : ""}`}
         >
         <div className="flex items-center gap-2 mb-1">
           {hasActions ? (
