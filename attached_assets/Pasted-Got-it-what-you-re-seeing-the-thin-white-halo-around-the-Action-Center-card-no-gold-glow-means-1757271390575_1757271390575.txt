@@ -1,0 +1,56 @@
+Got it—what you’re seeing (the thin white “halo” around the Action Center card + no gold glow) means:
+
+There’s still a wrapper around the card that has a white/neutral background on hover (e.g., hover:bg-white, hover:bg-white/5, hover:bg-base-100, DaisyUI’s card), or a leftover inner wrapper with a light bg.
+
+The card isn’t getting the gold glow shadow because the wrapper is swallowing the hover, or the card isn’t using our shared <Card> base + hover classes.
+
+Small seams can also come from mismatched border radii or not clipping shadows (overflow-hidden)—you’ll see “white” at the rounded corners.
+
+Below is a precise Agent task that removes the white background source and applies the correct luxury card + gold glow. Paste this in your Replit Agent chat (works with STRICT_COST_MODE).
+
+Paste to Replit Agent
+Task: Make Action Center visually identical to the Family Members card (no white seams; gold glow on hover).
+
+Constraints:
+- Touch ≤2 files. Do NOT refactor unrelated components or global CSS.
+- Use STRICT_COST_MODE output (Plan → Patch → Verify → Stop).
+
+Actions:
+1) Replace the Action Center outer container with our shared Card OR the exact classes below. Remove ANY parent/wrapper classes that set a background on hover:
+   - Remove: hover:bg-white, hover:bg-white/5, hover:bg-base-100, bg-white/…, bg-neutral-…, DaisyUI card bg classes, group-hover:bg-…
+   - Set wrappers to bg-transparent and p-0.
+
+2) Ensure the card uses these base classes (or <Card />) and the gold glow on hover:
+   Base:
+     rounded-2xl border border-white/8
+     bg-gradient-to-b from-[#0b0b0e] to-[#0e0e14]
+     shadow-[0_10px_28px_rgba(0,0,0,.45)]
+     transition-all duration-200
+     relative overflow-hidden isolate
+
+   Hover (gold glow, no bg change):
+     hover:border-[#D4AF37]/40
+     hover:shadow-[0_0_0_1px_rgba(212,175,55,.35),0_18px_50px_rgba(212,175,55,.12)]
+
+3) If src/components/ui/Card.tsx exists, prefer:
+   <Card className="p-4 isolate overflow-hidden hover:border-[#D4AF37]/40 hover:shadow-[0_0_0_1px_rgba(212,175,55,.35),0_18px_50px_rgba(212,175,55,.12)]">
+     …existing Action Center content…
+   </Card>
+
+   If it does NOT exist here, apply the exact base + hover classes directly to the Action Center outer <div> and remove conflicting hover:bg-* utilities on the parent.
+
+4) Border radius & clipping:
+   - Ensure ONLY the card container has rounded-2xl and border.
+   - Remove rounded-* from any immediate parent that shows a bg.
+   - Keep isolate overflow-hidden on the card so corner seams don’t show.
+
+Verification (one step):
+- Run once, open Dashboard.
+- Hover Action Center: border/box-shadow shift to gold; background does NOT turn white; no light seams at the rounded corners.
+- In devtools (Styles), confirm there is no hover:bg-* on the Action Center container or its parents.
+
+Why this fixes both issues
+
+White corners/halo: caused by a parent hover:bg-* or DaisyUI’s card background. We strip that and set wrappers to bg-transparent. overflow-hidden isolate + a single rounded container prevents seams.
+
+No gold glow: some wrappers were receiving the hover. Adding the hover shadow directly on the card (and removing wrapper hover-bg) makes the glow render as designed.

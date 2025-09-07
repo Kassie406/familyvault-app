@@ -78,8 +78,12 @@ export default function ActionCenter() {
   ].filter(Boolean);
 
   return (
-    <a href="#chores" className="block no-underline">
-      <Card className={`p-4 hover:border-[#D4AF37]/40 hover:shadow-[0_0_0_1px_rgba(212,175,55,.35),0_18px_50px_rgba(212,175,55,.12)] ${
+    <a 
+      href="#chores" 
+      className="block no-underline bg-transparent"
+      style={{ background: 'transparent', backgroundColor: 'transparent' }}
+    >
+      <Card className={`p-4 isolate overflow-hidden hover:border-[#D4AF37]/40 hover:shadow-[0_0_0_1px_rgba(212,175,55,.35),0_18px_50px_rgba(212,175,55,.12)] ${
         hasActions 
           ? "cursor-pointer" 
           : ""
