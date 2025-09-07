@@ -1,0 +1,221 @@
+Please apply this “usage-cost hardening” patch. Create/modify files exactly as specified.
+
+────────────────────────────────────────────────────────
+1) Replace src/lib/api.ts with an abort+dedupe fetch helper
+────────────────────────────────────────────────────────
+const inflight = new Map<string, AbortController>();
+
+function key(url: string, init?: RequestInit) {
+  const m = (init?.method || "GET").toUpperCase();
+  const b = init?.body && typeof init.body !== "string"
+    ? JSON.stringify(init.body)
+    : (init?.body as string | undefined);
+  return `${m}:${url}:${b ?? ""}`;
+}
+
+export async function api<T = any>(url: string, init?: RequestInit): Promise<T> {
+  const k = key(url, init);
+  const prev = inflight.get(k);
+  if (prev) prev.abort();
+
+  const ctrl = new AbortController();
+  inflight.set(k, ctrl);
+  try {
+    const res = await fetch(url, { ...init, signal: ctrl.signal });
+    if (!res.ok) {
+      let msg = res.statusText;
+      try { msg = await res.text(); } catch {}
+      throw new Error(msg || `HTTP ${res.status}`);
+    }
+    const ct = res.headers.get("content-type") || "";
+    if (ct.includes("application/json")) return (await res.json()) as T;
+    return (await res.text()) as unknown as T;
+  } finally {
+    inflight.delete(k);
+  }
+}
+
+────────────────────────────────────────────────────────
+2) Create src/lib/time.ts (timeout helper)
+────────────────────────────────────────────────────────
+export function withTimeout<T>(p: Promise<T>, ms = 8000): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, rej) => setTimeout(() => rej(new Error("Timeout")), ms)),
+  ]);
+}
+
+────────────────────────────────────────────────────────
+3) Create src/middleware/cache.ts (Cache-Control for stable endpoints)
+────────────────────────────────────────────────────────
+import type { Request, Response, NextFunction } from "express";
+export function cacheSeconds(seconds: number) {
+  return (_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader("Cache-Control", `public, max-age=${seconds}, stale-while-revalidate=${seconds}`);
+    next();
+  };
+}
+
+────────────────────────────────────────────────────────
+4) Create src/middleware/limit.ts (soft rate limiting for hot routes)
+────────────────────────────────────────────────────────
+import rateLimit from "express-rate-limit";
+
+export const softLimit = rateLimit({
+  windowMs: 10 * 1000,   // 10 seconds
+  limit: 12,             // 12 requests per 10s per IP/user
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+────────────────────────────────────────────────────────
+5) Apply cache+limit to summary/stable routes
+(Edit the listed files; if paths differ, update the correct ones.)
+────────────────────────────────────────────────────────
+/* src/routes/chores.ts */
+import { cacheSeconds } from "@/middleware/cache";
+import { softLimit } from "@/middleware/limit";
+// ...
+router.get("/summary", softLimit, cacheSeconds(30), async (req, res) => { /* existing handler */ });
+
+/* src/routes/allowance.ts */
+import { cacheSeconds } from "@/middleware/cache";
+import { softLimit } from "@/middleware/limit";
+// ...
+router.get("/summary", softLimit, cacheSeconds(15), async (req, res) => { /* existing handler */ });
+
+/* src/routes/members.ts (if exists) */
+import { cacheSeconds } from "@/middleware/cache";
+// ...
+router.get("/", cacheSeconds(60), async (req, res) => { /* existing handler */ });
+
+/* src/routes/recipes.ts (if exists) */
+import { cacheSeconds } from "@/middleware/cache";
+// ...
+router.get("/", cacheSeconds(60), async (req, res) => { /* existing handler */ });
+
+────────────────────────────────────────────────────────
+6) Reduce Prisma logging noise (edit prisma init)
+────────────────────────────────────────────────────────
+/* src/prisma.ts or wherever PrismaClient is created */
+import { PrismaClient } from "@prisma/client";
+export const prisma = new PrismaClient({
+  log: process.env.NODE_ENV === "production" ? [] : ["warn", "error"],
+});
+
+────────────────────────────────────────────────────────
+7) Prevent dev server restarts on non-server files
+(Create/merge nodemon.json at project root.)
+────────────────────────────────────────────────────────
+{
+  "ignore": [
+    "**/*.md",
+    "public/**",
+    "uploads/**",
+    "prisma/*.db",
+    "**/*.{png,jpg,jpeg,svg,gif,webp}",
+    "src/**/*.css",
+    "src/**/*.scss",
+    "src/**/*.module.css"
+  ]
+}
+
+────────────────────────────────────────────────────────
+8) Vite: turn off FS polling + sourcemaps for faster builds
+(Edit vite.config.ts; keep existing plugins/options.)
+────────────────────────────────────────────────────────
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [react()],
+  build: { sourcemap: false },
+  server: {
+    watch: { usePolling: false },
+    hmr: { overlay: true }
+  }
+});
+
+────────────────────────────────────────────────────────
+9) Disable React StrictMode in dev to stop effect double-runs
+(Edit src/main.tsx or src/index.tsx.)
+────────────────────────────────────────────────────────
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <>
+    <App />
+  </>
+);
+
+────────────────────────────────────────────────────────
+10) Update 3 widgets to use api.ts + timeout + no duplicate reloads
+(Adjust paths to your actual components.)
+────────────────────────────────────────────────────────
+/* src/components/ActionCenter.tsx */
+import { useCallback, useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import { withTimeout } from "@/lib/time";
+
+export default function ActionCenter(){
+  const [data,setData] = useState<any>(null);
+  const [err,setErr]   = useState<string|null>(null);
+
+  const load = useCallback(async ()=>{
+    try { setErr(null); setData(await withTimeout(api("/api/chores/summary"), 8000)); }
+    catch(e:any){ setErr(e.message || "Failed to load"); }
+  },[]);
+
+  useEffect(()=>{ load(); },[load]);
+
+  useEffect(()=>{
+    let inFlight = false;
+    const h = async ()=>{ if (inFlight) return; inFlight = true; try{ await load(); } finally { inFlight = false; } };
+    window.addEventListener("actioncenter:reload", h);
+    return ()=>window.removeEventListener("actioncenter:reload", h);
+  },[load]);
+
+  // render ...
+}
+
+/* src/components/ChoresCard.tsx */
+import { api } from "@/lib/api";
+import { withTimeout } from "@/lib/time";
+// on approve/complete/unapprove/reject success:
+window.dispatchEvent(new CustomEvent("chores:reload"));
+window.dispatchEvent(new CustomEvent("actioncenter:reload"));
+window.dispatchEvent(new CustomEvent("allowance:reload"));
+// ensure data loads in a single useEffect([]) with useCallback load()
+
+/* src/components/AllowanceMini.tsx */
+import { useCallback, useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import { withTimeout } from "@/lib/time";
+
+export default function AllowanceMini(){
+  const [data,setData] = useState<any>(null);
+  const [err,setErr]   = useState<string|null>(null);
+
+  const load = useCallback(async ()=>{
+    try { setErr(null); setData(await withTimeout(api("/api/allowance/summary?memberId=me"), 8000)); }
+    catch(e:any){ setErr(e.message || "Failed to load"); }
+  },[]);
+
+  useEffect(()=>{ load(); },[load]);
+  useEffect(()=>{ const h=()=>load(); window.addEventListener("allowance:reload", h); return ()=>window.removeEventListener("allowance:reload", h); },[load]);
+  // render ...
+}
+
+────────────────────────────────────────────────────────
+11) Optional: dev email logging (no SMTP cost)
+────────────────────────────────────────────────────────
+Add EMAIL_MODE=log in .env (dev). In your email sender, if EMAIL_MODE==='log', console.log the code instead of sending real mail.
+
+────────────────────────────────────────────────────────
+After patch:
+- Restart server, refresh dashboard.
+- Confirm widgets load once (no polling), actions trigger single reloads.
+- Verify server doesn’t restart on CSS/image changes.
+- Confirm fewer agent minutes on next checks.
