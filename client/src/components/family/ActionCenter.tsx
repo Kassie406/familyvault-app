@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { withTimeout } from "@/lib/time";
+import { Card } from "@/components/ui/Card";
 
 type Counts = { 
   approvePending: number; 
@@ -52,20 +53,20 @@ export default function ActionCenter() {
 
   if (err) {
     return (
-      <div className="rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-4 shadow-[0_10px_28px_rgba(0,0,0,0.45)] text-rose-300">
+      <Card className="p-4 text-rose-300">
         <div className="flex items-center gap-2">
           <AlertCircle className="w-5 h-5" />
           Action Center error — {err}
         </div>
-      </div>
+      </Card>
     );
   }
   
   if (!data) {
     return (
-      <div className="rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-4 shadow-[0_10px_28px_rgba(0,0,0,0.45)] animate-pulse text-white/60">
+      <Card className="p-4 animate-pulse text-white/60">
         Loading Action Center…
-      </div>
+      </Card>
     );
   }
 
@@ -77,29 +78,12 @@ export default function ActionCenter() {
   ].filter(Boolean);
 
   return (
-    <a 
-      href="#chores" 
-      className={`block rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-4 hover:border-white/12 transition shadow-[0_10px_28px_rgba(0,0,0,0.45)] hover:shadow-[0_16px_40px_rgba(212,175,55,0.12)] no-underline ${
+    <a href="#chores" className="block no-underline">
+      <Card className={`p-4 ${
         hasActions 
           ? "cursor-pointer border-[#D4AF37]/30" 
           : "border-emerald-500/30"
-      }`}
-      style={{
-        textDecoration: 'none',
-        color: 'inherit',
-        background: 'linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))'
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))';
-        e.currentTarget.style.color = 'inherit';
-        e.currentTarget.style.textDecoration = 'none';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))';
-        e.currentTarget.style.color = 'inherit';
-        e.currentTarget.style.textDecoration = 'none';
-      }}
-    >
+      }`}>
       <div className="flex items-center gap-2 mb-1">
         {hasActions ? (
           <AlertCircle className="w-5 h-5 text-[#D4AF37]" />
@@ -116,6 +100,7 @@ export default function ActionCenter() {
           "All caught up! 🎉"
         )}
       </div>
+      </Card>
     </a>
   );
 }
