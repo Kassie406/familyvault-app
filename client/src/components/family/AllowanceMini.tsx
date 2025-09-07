@@ -12,28 +12,30 @@ export default function AllowanceMini({ memberId = "me" }: AllowanceMiniProps) {
   const [items, setItems] = useState<Item[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
+  async function load() {
+    setErr(null);
+    try {
+      const response = await fetch(`/api/allowance/summary?memberId=${memberId}`, {
+        credentials: "include"
+      });
+      
+      if (!response.ok) throw new Error("Failed to fetch allowance data");
+      
+      const data = await response.json();
+      setBalance(data.balance);
+      setItems(data.items.slice(0, 5));
+    } catch (e: any) { 
+      setErr(e.message); 
+    }
+  }
+
   useEffect(() => {
-    let alive = true;
+    load();
     
-    (async () => {
-      try {
-        const response = await fetch(`/api/allowance/summary?memberId=${memberId}`, {
-          credentials: "include"
-        });
-        
-        if (!response.ok) throw new Error("Failed to fetch allowance data");
-        
-        const data = await response.json();
-        if (!alive) return;
-        
-        setBalance(data.balance);
-        setItems(data.items.slice(0, 5));
-      } catch (e: any) { 
-        if (alive) setErr(e.message); 
-      }
-    })();
-    
-    return () => { alive = false; };
+    // Listen for allowance reload events
+    const handleReload = () => load();
+    window.addEventListener("allowance:reload", handleReload);
+    return () => window.removeEventListener("allowance:reload", handleReload);
   }, [memberId]);
 
   return (
