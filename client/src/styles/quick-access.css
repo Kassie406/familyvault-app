@@ -331,3 +331,41 @@ button.header-menu-btn:active {
   background: rgba(212, 175, 55, 0.12) !important;
   --tw-bg-opacity: 1 !important;
 }
+
+/* ===== Header icons: belt-and-suspenders patch - kill white hover & use very light gold ===== */
+:root {
+  --kc-gold-08: rgba(212, 175, 55, 0.08);
+  --kc-gold-24: rgba(212, 175, 55, 0.24);
+}
+
+/* Scope to header variants you might have */
+header, .topbar, [data-kc="header"], nav[aria-label="Header"] {}
+
+/* Neutralize DaisyUI/Tailwind white hover/rings */
+header .btn, .topbar .btn, [data-kc="header"] .btn, nav[aria-label="Header"] .btn,
+header button, .topbar button, [data-kc="header"] button, nav[aria-label="Header"] button,
+header a[role="button"], .topbar a[role="button"], [data-kc="header"] a[role="button"], nav[aria-label="Header"] a[role="button"] {
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 9999px;
+  transition: background-color .15s ease, box-shadow .15s ease;
+}
+
+/* Replace white hover with subtle gold */
+header .btn:hover, .topbar .btn:hover, [data-kc="header"] .btn:hover, nav[aria-label="Header"] .btn:hover,
+header button:hover, .topbar button:hover, [data-kc="header"] button:hover, nav[aria-label="Header"] button:hover,
+header a[role="button"]:hover, .topbar a[role="button"]:hover, [data-kc="header"] a[role="button"]:hover, nav[aria-label="Header"] a[role="button"]:hover {
+  background-color: var(--kc-gold-08) !important;
+}
+
+/* Accessible focus state without white */
+header .btn:focus-visible, .topbar .btn:focus-visible, [data-kc="header"] .btn:focus-visible, nav[aria-label="Header"] .btn:focus-visible,
+header button:focus-visible, .topbar button:focus-visible, [data-kc="header"] button:focus-visible, nav[aria-label="Header"] button:focus-visible,
+header a[role="button"]:focus-visible, .topbar a[role="button"]:focus-visible, [data-kc="header"] a[role="button"]:focus-visible, nav[aria-label="Header"] a[role="button"]:focus-visible {
+  box-shadow: 0 0 0 2px var(--kc-gold-24) !important;
+}
