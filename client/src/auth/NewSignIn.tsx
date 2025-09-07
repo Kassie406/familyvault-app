@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 
 export default function NewSignIn() {
   const [email, setEmail] = useState('');
@@ -91,33 +89,32 @@ export default function NewSignIn() {
           </div>
 
           <div className="space-y-4">
-            <Input
+            <input
               type="text"
               inputMode="numeric"
               maxLength={6}
               placeholder="Enter 6-digit code"
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-              className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500 h-14 text-lg text-center font-mono tracking-widest"
+              className="w-full bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 h-14 text-lg text-center font-mono tracking-widest rounded-xl px-4"
               disabled={loading}
             />
 
-            <Button
+            <button
               onClick={handleVerifyCode}
               disabled={loading || code.length !== 6}
-              className="w-full bg-yellow-600 hover:bg-yellow-700 text-black font-semibold h-14 text-lg rounded-xl"
+              className="w-full bg-yellow-600 hover:bg-yellow-700 text-black font-semibold h-14 text-lg rounded-xl disabled:opacity-50"
             >
               {loading ? 'Verifying...' : 'Verify & Sign In'}
-            </Button>
+            </button>
 
-            <Button
+            <button
               onClick={handleBackToEmail}
-              variant="ghost"
               className="w-full text-gray-400 hover:text-white h-12"
               disabled={loading}
             >
               ← Back to email
-            </Button>
+            </button>
           </div>
 
           <p className="text-center text-gray-500 text-sm mt-6">
@@ -138,7 +135,7 @@ export default function NewSignIn() {
 
         <div className="space-y-4">
           {/* Google Sign In */}
-          <Button
+          <button
             onClick={handleGoogleLogin}
             className="w-full bg-white hover:bg-gray-100 text-black font-semibold h-14 text-lg rounded-xl flex items-center justify-center gap-3"
             disabled={loading}
@@ -162,7 +159,7 @@ export default function NewSignIn() {
               />
             </svg>
             Continue with Google
-          </Button>
+          </button>
 
           {/* Divider */}
           <div className="flex items-center gap-3 my-6">
@@ -172,22 +169,22 @@ export default function NewSignIn() {
           </div>
 
           {/* Email Sign In */}
-          <Input
+          <input
             type="email"
             placeholder="Email address*"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500 h-14 text-lg rounded-xl"
+            className="w-full bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 h-14 text-lg rounded-xl px-4"
             disabled={loading}
           />
 
-          <Button
+          <button
             onClick={handleEmailStart}
             disabled={loading || !email.trim()}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-14 text-lg rounded-xl"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-14 text-lg rounded-xl disabled:opacity-50"
           >
             {loading ? 'Sending...' : 'Continue'}
-          </Button>
+          </button>
 
           <p className="text-center text-gray-500 text-sm mt-4">
             We'll email you a 6-digit code to sign in.
