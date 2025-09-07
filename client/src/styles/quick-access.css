@@ -225,3 +225,36 @@ dialog[aria-label="Quick Access"] .card::before,
 dialog[aria-label="Quick Access"] .card::after {
   content: none !important;
 }
+
+/* Quick Access: kill the white hover sheet coming from DaisyUI/Tailwind */
+dialog[aria-label="Quick Access"] .card,
+dialog[aria-label="Quick Access"] .card * {
+  /* normal resting background remains dark from your theme */
+  background-image: none !important;
+}
+
+/* On any interaction state, ensure no light layer appears anywhere inside */
+dialog[aria-label="Quick Access"] .card:is(:hover, :focus, :focus-within, :active),
+dialog[aria-label="Quick Access"] .card *:is(:hover, :focus, :focus-within, :active) {
+  /* Neutralize Tailwind/DaisyUI background utilities */
+  --tw-bg-opacity: 0 !important;
+  background-color: transparent !important;
+  background-image: none !important;
+
+  /* Neutralize rings/shadows that can look like a wash */
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+/* If any pseudo-element is used for the hover sheet, remove it */
+dialog[aria-label="Quick Access"] .card::before,
+dialog[aria-label="Quick Access"] .card::after,
+dialog[aria-label="Quick Access"] .card *::before,
+dialog[aria-label="Quick Access"] .card *::after {
+  background: none !important;
+  content: none !important;
+}
