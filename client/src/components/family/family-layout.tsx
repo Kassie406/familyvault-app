@@ -5,11 +5,43 @@ import {
   Calendar, Image, Heart, Menu, X, User, LogOut
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/queryClient';
 
 export default function FamilyLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { toast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      // Call logout endpoint
+      await fetch('/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      // Clear client-side cache and storage
+      queryClient.clear();
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Show success message
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out of your family portal."
+      });
+      
+      // Hard navigation to login to prevent stale state
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if logout fails on server, clear client state and redirect
+      queryClient.clear();
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/login';
+    }
+  };
 
   const navigationItems = [
     { id: 'home', label: 'Family Home', icon: Home, href: '/family', description: 'Family dashboard' },
@@ -141,7 +173,11 @@ export default function FamilyLayout({ children }: { children: React.ReactNode }
                 <Settings className="w-4 h-4 inline mr-1" />
                 Settings
               </Link>
-              <button className="text-sm text-gray-600 hover:text-red-600">
+              <button 
+                onClick={handleLogout}
+                className="text-sm text-gray-600 hover:text-red-600 transition-colors"
+                data-testid="button-sign-out"
+              >
                 <LogOut className="w-4 h-4 inline mr-1" />
                 Sign Out
               </button>
