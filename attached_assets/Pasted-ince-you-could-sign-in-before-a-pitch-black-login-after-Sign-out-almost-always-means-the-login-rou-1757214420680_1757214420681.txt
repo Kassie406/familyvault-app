@@ -1,0 +1,110 @@
+ince you could sign in before, a pitch-black /login after Sign out almost always means the login route is rendering nothing (routing/guard mismatch) or the login component is crashing on mount (JS error). Here’s how to fix it fast.
+
+Quick checks (1 minute)
+
+Hard refresh: Ctrl/Cmd+Shift+R.
+
+Open DevTools → Console. If you see a red error (e.g., “Cannot read properties of undefined”, “useAuth must be used within Provider”, etc.), that’s your crash.
+
+Open DevTools → Network and reload /login. Confirm the request returns 200 with your app bundle (not a 404).
+
+Fix 1 — Ensure /login actually renders the new component
+
+In your router (e.g., client/src/App.tsx or wherever <Routes> live):
+
+import { Routes, Route, Navigate } from "react-router-dom";
+import NewSignIn from "./auth/NewSignIn";
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<NewSignIn />} />
+      {/* your protected app routes... */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  );
+}
+
+Fix 2 — Don’t protect /login
+
+If you have an auth guard (common after logout), make sure it allows /login:
+
+// example guard wrapper
+const RequireAuth: React.FC = () => {
+  const isAuthed = useAuth();           // however you check
+  const location = useLocation();
+  if (!isAuthed && location.pathname !== "/login") {
+    return <Navigate to="/login" replace />;
+  }
+  return <Outlet />; // render protected routes
+};
+
+Fix 3 — Make sure the login component can mount (no crash)
+
+Temporarily simplify client/src/auth/NewSignIn.tsx to prove render works:
+
+export default function NewSignIn() {
+  return (
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", color: "#fff" }}>
+      <div>
+        <h1>Sign in</h1>
+        <p>Login screen loaded.</p>
+      </div>
+    </div>
+  );
+}
+
+
+If this shows, the previous version was crashing (missing provider/prop). Re-add your real fields step by step.
+
+Common culprits:
+
+Using useAuth() or context without wrapping App in its Provider. Ensure your main.tsx (or index.tsx) has:
+
+import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+// import { AuthProvider } from "./auth/AuthProvider"; // if you have one
+import App from "./App";
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <BrowserRouter>
+    {/* <AuthProvider> */}
+      <App />
+    {/* </AuthProvider> */}
+  </BrowserRouter>
+);
+
+
+A leftover redirect to /auth/google/callback on the login page. Remove/hide the Google button until OAuth is configured.
+
+Fix 4 — Client-side routing catch-all (blank pages on hard refresh)
+
+If a hard refresh on /login 404s server-side, your SPA needs a catch-all:
+
+Express example:
+
+import path from "path";
+import express from "express";
+const app = express();
+app.use(express.static("dist"));
+app.get("*", (_req, res) =>
+  res.sendFile(path.join(process.cwd(), "dist", "index.html"))
+);
+
+Fix 5 — Keep the OTP flow working
+
+Lowercase emails on send and verify.
+
+Verify endpoint = POST /login/verify (not /auth/google/callback).
+
+After success: window.location.href = "/dashboard".
+
+What to do right now
+
+Open Console on /login and tell me the first red error (if any).
+
+Make the router change (Fix 1) and guard change (Fix 2).
+
+Drop in the minimal NewSignIn (Fix 3) to confirm rendering.
+
+If you paste the first console error or your current <Routes> block, I’ll give you the exact one-line patch.
