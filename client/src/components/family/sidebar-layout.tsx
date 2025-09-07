@@ -5,7 +5,7 @@ import {
   Key, Umbrella, Receipt, Scale, Building2, BookOpen, 
   Phone, Heart, Baby, UserCheck, HeartHandshake, Plane, Package,
   AlertTriangle, FileText, Home as HouseIcon, Users as FamilyIcon, Leaf,
-  Menu, X
+  Menu, X, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 interface SidebarLayoutProps {
@@ -16,6 +16,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
   const [location] = useLocation();
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
   const [activeSection, setActiveSection] = useState(() => {
     // Determine active section based on current path
     if (location === '/family' || location === '/') return 'dashboard';
@@ -124,16 +125,34 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
       )}
 
       {/* Desktop Sidebar */}
-      <div className={`${isMobile ? 'hidden' : 'w-64 bg-[var(--bg-850)] border-r border-[var(--line-700)] flex flex-col fixed h-full z-30'}`}>
+      <div className={`${isMobile ? 'hidden' : `${desktopSidebarCollapsed ? 'w-16' : 'w-64'} bg-[var(--bg-850)] border-r border-[var(--line-700)] flex flex-col fixed h-full z-30 transition-all duration-300 ease-in-out`}`}>
         {/* Desktop Sidebar Header */}
         {!isMobile && (
-          <div className="p-6 border-b border-[var(--line-700)]">
+          <div className="p-6 border-b border-[var(--line-700)] relative">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-[#D4AF37] rounded-lg">
                 <Heart className="w-5 h-5 text-black" />
               </div>
-              <h2 className="text-lg font-semibold text-[var(--ink-100)]">Family Circle Secure</h2>
+              {!desktopSidebarCollapsed && (
+                <h2 className="text-lg font-semibold text-[var(--ink-100)] transition-opacity duration-200">
+                  Family Circle Secure
+                </h2>
+              )}
             </div>
+            
+            {/* Desktop Toggle Button */}
+            <button
+              onClick={() => setDesktopSidebarCollapsed(!desktopSidebarCollapsed)}
+              className="absolute -right-3 top-1/2 transform -translate-y-1/2 bg-[var(--bg-850)] border border-[var(--line-700)] rounded-full p-1.5 text-[var(--ink-300)] hover:text-[var(--gold)] hover:bg-[var(--bg-800)] transition-all duration-200 shadow-lg z-10"
+              data-testid="desktop-sidebar-toggle"
+              title={desktopSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {desktopSidebarCollapsed ? (
+                <ChevronRight className="w-4 h-4" />
+              ) : (
+                <ChevronLeft className="w-4 h-4" />
+              )}
+            </button>
           </div>
         )}
 
@@ -148,17 +167,20 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
                   key={item.id}
                   to={item.href}
                   onClick={() => setActiveSection(item.id)}
-                  className={`flex items-center px-6 py-3 text-sm font-medium transition-all duration-200 relative group ${
+                  className={`flex items-center ${desktopSidebarCollapsed ? 'px-4 justify-center' : 'px-6'} py-3 text-sm font-medium transition-all duration-200 relative group ${
                     isActive
                       ? 'text-[var(--gold)] border-r-2 border-[var(--gold)] bg-[var(--bg-800)]'
                       : 'text-[var(--ink-300)] hover:text-[var(--gold)] hover:bg-[var(--bg-800)]'
                   }`}
                   data-testid={`sidebar-${item.id}`}
+                  title={desktopSidebarCollapsed ? item.label : ''}
                 >
-                  <Icon className={`w-5 h-5 mr-3 transition-colors ${
+                  <Icon className={`w-5 h-5 ${desktopSidebarCollapsed ? '' : 'mr-3'} transition-colors ${
                     isActive ? 'text-[var(--gold)]' : 'text-[var(--ink-300)] group-hover:text-[var(--gold)]'
                   }`} />
-                  {item.label}
+                  {!desktopSidebarCollapsed && (
+                    <span className="transition-opacity duration-200">{item.label}</span>
+                  )}
                 </Link>
               );
             })}
@@ -170,10 +192,15 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
           <div className="p-6 border-t border-[var(--line-700)]">
             <Link
               to="/family/referrals"
-              className="flex items-center text-sm font-medium text-[#2ECC71] hover:text-[var(--gold)] transition-colors group"
+              className={`flex items-center text-sm font-medium text-[#2ECC71] hover:text-[var(--gold)] transition-colors group ${
+                desktopSidebarCollapsed ? 'justify-center' : ''
+              }`}
+              title={desktopSidebarCollapsed ? 'Refer & earn' : ''}
             >
-              <DollarSign className="w-4 h-4 mr-2 group-hover:text-[#D4AF37]" />
-              Refer & earn
+              <DollarSign className={`w-4 h-4 ${desktopSidebarCollapsed ? '' : 'mr-2'} group-hover:text-[#D4AF37]`} />
+              {!desktopSidebarCollapsed && (
+                <span className="transition-opacity duration-200">Refer & earn</span>
+              )}
             </Link>
           </div>
         )}
@@ -246,7 +273,13 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
       )}
 
       {/* Main Content */}
-      <div className={`flex-1 ${isMobile ? 'pt-16' : 'ml-64'}`}>
+      <div className={`flex-1 transition-all duration-300 ease-in-out ${
+        isMobile 
+          ? 'pt-16' 
+          : desktopSidebarCollapsed 
+            ? 'ml-16' 
+            : 'ml-64'
+      }`}>
         {children}
       </div>
     </div>
