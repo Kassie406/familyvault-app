@@ -54,6 +54,69 @@
 #quick-access-modal .qa-tile a { color: inherit; text-decoration: none; }
 #quick-access-modal .qa-tile a:hover { text-decoration: underline; }
 
+/* ---------- Consistent "Family Gold" across ALL QA tiles ---------- */
+#quick-access-modal {
+  /* One source of truth */
+  --family-gold: 212, 175, 55;         /* rgb for #D4AF37 */
+  --gold-border: rgba(var(--family-gold), 0.28);
+  --gold-border-strong: rgba(var(--family-gold), 0.55);
+  --gold-outline: rgba(var(--family-gold), 0.45);
+  --gold-glow-1: rgba(var(--family-gold), 0.35);
+  --gold-glow-2: rgba(var(--family-gold), 0.18);
+  --gold-glow-3: rgba(var(--family-gold), 0.22);
+}
+
+/* Base card */
+#quick-access-modal .qa-tile {
+  border: 1px solid var(--gold-border) !important;
+  background-image: linear-gradient(180deg, #0b0b0e 0%, #0e0e14 100%) !important;
+  border-radius: 16px;
+  overflow: hidden;
+  isolation: isolate;
+  transition: box-shadow .18s ease, border-color .18s ease, transform .18s ease;
+  background-clip: padding-box;
+}
+
+/* Normalize anything that can wash out the glow */
+#quick-access-modal .qa-tile,
+#quick-access-modal .qa-tile * {
+  /* Kill Tailwind/DaisyUI ring/shadow layers */
+  --tw-ring-inset: initial !important;
+  --tw-ring-offset-width: 0 !important;
+  --tw-ring-offset-color: transparent !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-shadow: 0 0 #0000 !important;
+
+  /* Prevent washed-out look */
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: inherit !important;
+}
+
+/* Hover glow — identical for every tile (even if the child is hovered) */
+#quick-access-modal .qa-tile:hover,
+#quick-access-modal .qa-tile:has(:hover) {
+  border-color: var(--gold-border-strong) !important;
+  box-shadow:
+    0 0 0 1px var(--gold-glow-1),
+    0 22px 60px var(--gold-glow-2),
+    0 6px 18px var(--gold-glow-3);
+}
+
+/* Focus: subtle inner outline (keeps a11y without looking like hover) */
+#quick-access-modal .qa-tile:focus,
+#quick-access-modal .qa-tile:focus-visible,
+#quick-access-modal .qa-tile:focus-within {
+  border-color: var(--gold-border) !important;
+  box-shadow: inset 0 0 0 2px var(--gold-outline) !important;
+}
+
 /* Prevent inner elements from re-introducing rings/shadows that peek at corners */
 #quick-access-modal .qa-tile,
 #quick-access-modal .qa-tile * {
