@@ -97,8 +97,9 @@ export function MobileNavigationBar({ onQuickAccessOpen }: MobileNavigationBarPr
             
             <div className="flex items-center gap-2">
               <button 
-                className="header-notify-btn p-2 rounded-lg transition-colors relative"
+                className="header-icon p-2 rounded-lg transition-colors relative"
                 data-testid="mobile-notifications"
+                aria-label="Notifications"
               >
                 <Bell className="h-5 w-5 text-white/70" />
                 <span className="absolute -top-1 -right-1 h-4 w-4 bg-[#D4AF37] text-black text-xs font-bold rounded-full flex items-center justify-center">
@@ -107,8 +108,9 @@ export function MobileNavigationBar({ onQuickAccessOpen }: MobileNavigationBarPr
               </button>
               <button
                 onClick={() => setMenuOpen(true)}
-                className="header-menu-btn p-2 rounded-lg transition-colors"
+                className="header-icon p-2 rounded-lg transition-colors"
                 data-testid="mobile-menu-open"
+                aria-label="Menu"
               >
                 <Menu className="h-5 w-5 text-white/70" />
               </button>
