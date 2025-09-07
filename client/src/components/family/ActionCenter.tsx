@@ -80,14 +80,18 @@ export default function ActionCenter() {
   return (
     <a 
       href="#chores" 
-      className="block no-underline bg-transparent"
+      id="action-center-shell"
+      className="block no-underline bg-transparent p-0"
       style={{ background: 'transparent', backgroundColor: 'transparent' }}
     >
-      <Card className={`p-4 isolate overflow-hidden hover:border-[#D4AF37]/40 hover:shadow-[0_0_0_1px_rgba(212,175,55,.35),0_18px_50px_rgba(212,175,55,.12)] ${
-        hasActions 
-          ? "cursor-pointer" 
-          : ""
-      }`}>
+      <Card 
+        id="action-center-card"
+        className={`p-4 isolate overflow-hidden hover:border-[#D4AF37]/40 hover:shadow-[0_0_0_1px_rgba(212,175,55,.35),0_18px_50px_rgba(212,175,55,.12)] ${
+          hasActions 
+            ? "cursor-pointer" 
+            : ""
+        }`}
+      >
         <div className="flex items-center gap-2 mb-1">
           {hasActions ? (
             <AlertCircle className="w-5 h-5 text-[#D4AF37]" />

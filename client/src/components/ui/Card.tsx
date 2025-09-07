@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { PropsWithChildren, HTMLAttributes } from "react";
 
 const base =
-  "rounded-2xl border border-white/8 " +
+  "relative rounded-2xl border border-white/8 " +
   "bg-gradient-to-b from-[#0b0b0e] to-[#0e0e14] " +
   "shadow-[0_10px_28px_rgba(0,0,0,.45)] " +
   "transition-all duration-200 " +
