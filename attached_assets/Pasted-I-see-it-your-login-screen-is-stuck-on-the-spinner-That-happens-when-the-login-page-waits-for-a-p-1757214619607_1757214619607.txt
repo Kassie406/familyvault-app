@@ -1,0 +1,129 @@
+I see it—your /login screen is stuck on the spinner. That happens when the login page waits for a “preflight/start” request that never resolves (500/404) or the component crashes before rendering the form. Do this sequence and it’ll show the form again:
+
+A) Force-reload & kill any cached bundle/service worker
+
+Open /login, press F12 → Network, check Disable cache.
+
+In Console, run:
+
+// clear SW caches and unregister any service worker
+caches?.keys?.().then(keys => keys.forEach(k => caches.delete(k)));
+navigator.serviceWorker?.getRegistrations?.().then(rs => rs.forEach(r => r.unregister()));
+localStorage.clear(); sessionStorage.clear();
+
+
+Hard refresh: Ctrl/Cmd+Shift+R.
+
+If it’s still spinning, continue.
+
+B) Make the login page always render the form (even if “start” fails)
+
+In your NewSignIn.tsx, replace the “show spinner until start succeeds” logic with this safe version:
+
+import { useEffect, useState } from "react";
+
+export default function NewSignIn() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let done = false;
+
+    // helper: timeout after 2.5s to avoid infinite spinner
+    const t = setTimeout(() => {
+      if (!done) setReady(true);
+    }, 2500);
+
+    (async () => {
+      try {
+        // optional: your app’s warmup call; ok if it fails
+        const r = await fetch("/login/start", { method: "POST" });
+        // ignore body; we just want the form to show regardless
+      } catch (e) {
+        // ignore
+      } finally {
+        done = true;
+        clearTimeout(t);
+        setReady(true);
+      }
+    })();
+
+    return () => clearTimeout(t);
+  }, []);
+
+  if (!ready) {
+    return (
+      <div style={{minHeight:"100vh",display:"grid",placeItems:"center",color:"#fff"}}>
+        <div>Loading…</div>
+      </div>
+    );
+  }
+
+  // ——— the actual form ———
+  return (
+    <div style={{minHeight:"100vh",display:"grid",placeItems:"center",color:"#fff"}}>
+      <div style={{width:360}}>
+        <h1>Welcome back</h1>
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          const email = (e.currentTarget.elements.namedItem("email") as HTMLInputElement).value.trim().toLowerCase();
+          const res = await fetch("/login/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email })
+          });
+          if (!res.ok) { alert("Could not send code"); return; }
+          window.location.href = `/login/code?email=${encodeURIComponent(email)}`;
+        }}>
+          <input name="email" type="email" placeholder="you@email.com" required
+                 style={{width:"100%",padding:"10px",margin:"12px 0"}}/>
+          <button type="submit" style={{width:"100%",padding:"10px"}}>Continue</button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+Key idea: even if /login/start fails, the form appears (we fall back after 2.5s). No more infinite spinner.
+
+C) Make sure the route renders this component
+
+In your router (e.g., App.tsx):
+
+import { Routes, Route, Navigate } from "react-router-dom";
+import NewSignIn from "./auth/NewSignIn";
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<NewSignIn />} />
+      {/* Protected routes… */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  );
+}
+
+
+Also ensure any auth guard does not block /login:
+
+if (!isAuthed && location.pathname !== "/login") {
+  return <Navigate to="/login" replace />;
+}
+
+D) Server-side safety (optional but recommended)
+
+If you have a /login/start endpoint, make it always return quickly:
+
+app.post("/login/start", (_req, res) => res.json({ ok: true }));
+
+
+SPA catch-all so refresh on /login serves your bundle:
+
+app.use(express.static("dist"));
+app.get("*", (_req, res) => res.sendFile(path.join(process.cwd(), "dist", "index.html")));
+
+E) Keep Google button hidden for now
+
+Until OAuth CLIENT_ID/SECRET + callback are set, hide the Google button so no one hits that spinner again.
+
+Try the force-reload (A). If it still spins, drop in the safe NewSignIn (B) and verify the router (C). That will surface the form even if the warmup call errors. If anything still blocks, grab the first red error in Console and the status code for /login/start in Network, and I’ll pinpoint the exact one-liner to patch.
