@@ -146,28 +146,28 @@ button[data-testid="edit-title-button"]:hover {
 }
 
 /* Target the two header buttons (Quick Access + Layout toggle) */
-.sticky button[data-testid="button-quick-access"],
-.sticky button[data-testid="button-toggle-layout"] {
+button[data-testid="button-quick-access"],
+button[data-testid="button-toggle-layout"] {
   background-color: transparent !important;
   box-shadow: none !important;
   outline: 0 !important;
 }
 
 /* Replace white hover with light gold */
-.sticky button[data-testid="button-quick-access"]:hover,
-.sticky button[data-testid="button-toggle-layout"]:hover {
+button[data-testid="button-quick-access"]:hover,
+button[data-testid="button-toggle-layout"]:hover {
   background-color: var(--kc-gold-hover) !important;
 }
 
 /* Accessible keyboard focus tint (also gold) */
-.sticky button[data-testid="button-quick-access"]:focus-visible,
-.sticky button[data-testid="button-toggle-layout"]:focus-visible {
+button[data-testid="button-quick-access"]:focus-visible,
+button[data-testid="button-toggle-layout"]:focus-visible {
   background-color: var(--kc-gold-focus) !important;
 }
 
 /* Safety: neutralize any lingering Tailwind/DaisyUI "white" utilities */
-.sticky button[data-testid="button-quick-access"],
-.sticky button[data-testid="button-toggle-layout"] {
+button[data-testid="button-quick-access"],
+button[data-testid="button-toggle-layout"] {
   --tw-bg-opacity: 0 !important;
   --tw-ring-shadow: 0 0 #0000 !important;
   --tw-ring-offset-shadow: 0 0 #0000 !important;
