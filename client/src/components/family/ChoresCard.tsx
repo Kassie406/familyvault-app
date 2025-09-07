@@ -51,11 +51,12 @@ export default function ChoresCard({ currentUser }: ChoresCardProps) {
     setRows(prev.map(r => r.id === id ? {...r, status: "done"} : r));
     
     try { 
-      const response = await fetch(`/api/chores/${id}/done`, { 
-        method: "POST",
+      const response = await fetch(`/api/chores/${id}/complete`, { 
+        method: "PATCH",
         credentials: "include" 
       });
       if (!response.ok) throw new Error("Failed to mark chore done");
+      reloadAfterChange();
     } catch {
       setRows(prev);
     }
@@ -67,13 +68,54 @@ export default function ChoresCard({ currentUser }: ChoresCardProps) {
     
     try { 
       const response = await fetch(`/api/chores/${id}/approve`, { 
-        method: "POST",
+        method: "PATCH",
         credentials: "include" 
       });
       if (!response.ok) throw new Error("Failed to approve chore");
+      reloadAfterChange();
+      // Let Allowance mini refresh
+      window.dispatchEvent(new CustomEvent("allowance:reload"));
     } catch {
       setRows(prev);
     }
+  }
+
+  async function unapprove(id: string) {
+    const prev = rows!;
+    setRows(prev.map(r => r.id === id ? {...r, status: "done"} : r));
+    
+    try { 
+      const response = await fetch(`/api/chores/${id}/unapprove`, { 
+        method: "PATCH",
+        credentials: "include" 
+      });
+      if (!response.ok) throw new Error("Failed to unapprove chore");
+      reloadAfterChange();
+      window.dispatchEvent(new CustomEvent("allowance:reload"));
+    } catch {
+      setRows(prev);
+    }
+  }
+
+  async function reject(id: string) {
+    const prev = rows!;
+    setRows(prev.map(r => r.id === id ? {...r, status: "todo"} : r));
+    
+    try { 
+      const response = await fetch(`/api/chores/${id}/reject`, { 
+        method: "PATCH",
+        credentials: "include" 
+      });
+      if (!response.ok) throw new Error("Failed to reject chore");
+      reloadAfterChange();
+    } catch {
+      setRows(prev);
+    }
+  }
+
+  function reloadAfterChange() {
+    window.dispatchEvent(new CustomEvent("chores:reload"));
+    window.dispatchEvent(new CustomEvent("actioncenter:reload"));
   }
 
   if (err) {
@@ -147,12 +189,30 @@ export default function ChoresCard({ currentUser }: ChoresCardProps) {
             rows={family}
             renderAction={(r) => (
               r.status === "done" && isParent ? (
-                <Primary onClick={() => approve(r.id)}>Approve +{r.points}</Primary>
+                <div className="flex gap-2">
+                  <Primary onClick={() => approve(r.id)}>Approve +{r.points}</Primary>
+                  <button 
+                    onClick={() => reject(r.id)}
+                    className="px-3 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-500 transition-colors"
+                  >
+                    Reject
+                  </button>
+                </div>
               ) : r.status === "approved" ? (
-                <span className="text-emerald-300 text-sm flex items-center gap-1">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Approved
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-300 text-sm flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Approved
+                  </span>
+                  {isParent && (
+                    <button 
+                      onClick={() => unapprove(r.id)}
+                      className="px-2 py-1 text-xs rounded bg-amber-600 text-white hover:bg-amber-500 transition-colors"
+                    >
+                      Undo
+                    </button>
+                  )}
+                </div>
               ) : (
                 <span className="text-white/50 text-sm">—</span>
               )
