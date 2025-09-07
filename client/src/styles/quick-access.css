@@ -96,13 +96,8 @@ dialog[aria-label="Quick Access"] .btn::after {
   content: none !important;
 }
 
-/* EMERGENCY CALL CARD - Kill white hover specifically */
-dialog[aria-label="Quick Access"] .card:nth-child(2),
-dialog[aria-label="Quick Access"] .card:nth-child(2) *,
-dialog[aria-label="Quick Access"] .card:nth-child(2):hover,
-dialog[aria-label="Quick Access"] .card:nth-child(2):hover *,
-dialog[aria-label="Quick Access"] .card:nth-child(2):focus,
-dialog[aria-label="Quick Access"] .card:nth-child(2):focus * {
+/* NUCLEAR APPROACH - Kill ALL white backgrounds everywhere in Quick Access */
+dialog[aria-label="Quick Access"] * {
   background-color: transparent !important;
   background-image: none !important;
   background: none !important;
@@ -110,4 +105,10 @@ dialog[aria-label="Quick Access"] .card:nth-child(2):focus * {
   --tw-ring-opacity: 0 !important;
   box-shadow: none !important;
   filter: none !important;
+}
+
+/* Force dark backgrounds only on the actual tile containers */
+dialog[aria-label="Quick Access"] .qa-tile {
+  background: linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%) !important;
+  border: 1px solid var(--qa-gold) !important;
 }
