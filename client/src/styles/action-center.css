@@ -1,0 +1,10 @@
+/* Force wrappers to be transparent so no white/neutral peeks around corners */
+#action-center-shell,
+#action-center-shell *:where(.card, .card-body) {
+  background: transparent !important;
+}
+
+/* Never allow the card's bg to change on hover */
+#action-center-card:hover {
+  background: transparent !important;
+}

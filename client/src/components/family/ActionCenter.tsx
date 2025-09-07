@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { withTimeout } from "@/lib/time";
 import { Card } from "@/components/ui/Card";
+import "@/styles/action-center.css";
 
 type Counts = { 
   approvePending: number; 
@@ -78,20 +79,17 @@ export default function ActionCenter() {
   ].filter(Boolean);
 
   return (
-    <a 
-      href="#chores" 
-      id="action-center-shell"
-      className="block no-underline bg-transparent p-0"
-      style={{ background: 'transparent', backgroundColor: 'transparent' }}
-    >
-      <Card 
-        id="action-center-card"
-        className={`p-4 isolate overflow-hidden hover:border-[#D4AF37]/40 hover:shadow-[0_0_0_1px_rgba(212,175,55,.35),0_18px_50px_rgba(212,175,55,.12)] ${
-          hasActions 
-            ? "cursor-pointer" 
-            : ""
-        }`}
-      >
+    <div id="action-center-shell" className="bg-transparent p-0">
+      <a href="#chores" className="block no-underline">
+        <Card
+          id="action-center-card"
+          className={`relative isolate overflow-hidden rounded-2xl border border-white/8
+                     bg-gradient-to-b from-[#0b0b0e] to-[#0e0e14]
+                     shadow-[0_10px_28px_rgba(0,0,0,.45)] transition-all duration-200
+                     hover:border-[#D4AF37]/40
+                     hover:shadow-[0_0_0_1px_rgba(212,175,55,.35),0_18px_50px_rgba(212,175,55,.12)]
+                     p-4 ${hasActions ? "cursor-pointer" : ""}`}
+        >
         <div className="flex items-center gap-2 mb-1">
           {hasActions ? (
             <AlertCircle className="w-5 h-5 text-[#D4AF37]" />
@@ -108,7 +106,8 @@ export default function ActionCenter() {
             "All caught up! 🎉"
           )}
         </div>
-      </Card>
-    </a>
+        </Card>
+      </a>
+    </div>
   );
 }
