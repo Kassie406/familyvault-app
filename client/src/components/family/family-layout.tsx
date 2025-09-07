@@ -31,12 +31,6 @@ export default function FamilyLayout({ children }: { children: React.ReactNode }
       
       console.log('📡 Logout response:', response.status);
       
-      // Show success message
-      toast({
-        title: "Signed out successfully",
-        description: "You have been logged out of your family portal."
-      });
-      
     } catch (error) {
       console.error('❌ Logout error:', error);
     }
@@ -44,8 +38,9 @@ export default function FamilyLayout({ children }: { children: React.ReactNode }
     // ALWAYS redirect regardless of server response
     console.log('🔄 Redirecting to login...');
     
-    // Use replace to avoid back button issues + cache buster
-    window.location.replace('/login?t=' + Date.now());
+    // Force a complete page reload to reset all React state
+    // This bypasses any routing conflicts
+    window.location.href = '/login?cleared=' + Date.now();
   };
 
   const navigationItems = [

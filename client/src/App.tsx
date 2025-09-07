@@ -248,22 +248,21 @@ function App() {
   
   // Special case: always render main website for /login to ensure it's public
   const isLoginPage = pathname === '/login' || pathname.startsWith('/login?');
+  
+  // Debug routing decisions
+  console.log('🔀 App Router Debug:', {
+    pathname,
+    hostname,
+    subdomain,
+    isLoginPage,
+    isAdminDomain,
+    isPortalDomain,
+    searchParams: location.search
+  });
   const isHubDomain = subdomain === 'hub' || hostname === 'hub.familycirclesecure.com';
   
-  // Special case: Login page should always use main router (public access)
-  if (isLoginPage) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </QueryClientProvider>
-    );
-  }
-  
   // Admin Console Interface
-  if (isAdminDomain) {
+  if (isAdminDomain && !isLoginPage) {
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
@@ -274,8 +273,8 @@ function App() {
     );
   }
   
-  // Portal Interface - Main Family Access
-  if (isPortalDomain) {
+  // Portal Interface - Main Family Access (but not login)
+  if (isPortalDomain && !isLoginPage) {
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
@@ -287,6 +286,9 @@ function App() {
       </QueryClientProvider>
     );
   }
+  
+  // Default: Main Router (includes /login and marketing pages)
+  // This ensures /login is ALWAYS accessible regardless of subdomain
   
   // Hub Interface - Professional Workspace (Future Use)
   if (isHubDomain) {
