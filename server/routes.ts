@@ -2,8 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { sql, desc, eq } from "drizzle-orm";
-import { familyActivity } from "@shared/schema";
+import { sql, desc, eq, and } from "drizzle-orm";
+import { familyActivity, chores, allowanceLedger, familyMembers } from "@shared/schema";
 import storageRoutes from "./storage-routes";
 import fileRoutes from "./routes/files";
 import mobileUploadRoutes from "./routes/mobile-upload";
@@ -1752,7 +1752,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Chores & Allowance API endpoints
-  const { chores, allowanceLedger, familyMembers } = require("@shared/schema");
+  // Import statements are at the top of the file
 
   // GET /api/chores - List chores (optionally for a specific assignee)
   app.get("/api/chores", async (req, res) => {
