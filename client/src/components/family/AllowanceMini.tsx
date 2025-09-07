@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { DollarSign } from "lucide-react";
+import { api } from "@/lib/api";
+import { withTimeout } from "@/lib/time";
 
 type Item = { deltaPoints: number; reason: string; createdAt: string };
 
@@ -12,31 +14,26 @@ export default function AllowanceMini({ memberId = "me" }: AllowanceMiniProps) {
   const [items, setItems] = useState<Item[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     setErr(null);
     try {
-      const response = await fetch(`/api/allowance/summary?memberId=${memberId}`, {
-        credentials: "include"
-      });
-      
-      if (!response.ok) throw new Error("Failed to fetch allowance data");
-      
-      const data = await response.json();
+      const data = await withTimeout(api(`/api/allowance/summary?memberId=${memberId}`), 8000);
       setBalance(data.balance);
       setItems(data.items.slice(0, 5));
     } catch (e: any) { 
       setErr(e.message); 
     }
-  }
+  }, [memberId]);
 
   useEffect(() => {
     load();
-    
-    // Listen for allowance reload events
+  }, [load]);
+
+  useEffect(() => {
     const handleReload = () => load();
     window.addEventListener("allowance:reload", handleReload);
     return () => window.removeEventListener("allowance:reload", handleReload);
-  }, [memberId]);
+  }, [load]);
 
   return (
     <section className="rounded-2xl border border-white/10 bg-white/5 p-4">

@@ -1,0 +1,3 @@
+{
+  "ignore": ["**/*.md", "public/**", "uploads/**", "prisma/*.db", "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.svg"]
+}

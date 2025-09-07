@@ -1,0 +1,187 @@
+1) Abort & dedupe HTTP requests (prevents overlaps + retries)
+
+Replace your api.ts with this smarter helper:
+
+// src/lib/api.ts
+const inflight = new Map<string, AbortController>();
+
+function key(url: string, init?: RequestInit) {
+  const m = (init?.method || "GET").toUpperCase();
+  const b = init?.body && typeof init.body !== "string" ? JSON.stringify(init.body) : (init?.body as string | undefined);
+  return `${m}:${url}:${b ?? ""}`;
+}
+
+export async function api<T = any>(url: string, init?: RequestInit): Promise<T> {
+  const k = key(url, init);
+  // cancel stale identical request
+  const prev = inflight.get(k);
+  if (prev) prev.abort();
+
+  const ctrl = new AbortController();
+  inflight.set(k, ctrl);
+  try {
+    const res = await fetch(url, { ...init, signal: ctrl.signal });
+    if (!res.ok) {
+      let msg = res.statusText;
+      try { msg = await res.text(); } catch {}
+      throw new Error(msg || `HTTP ${res.status}`);
+    }
+    return res.headers.get("content-type")?.includes("application/json")
+      ? await res.json()
+      : (await res.text() as any);
+  } finally {
+    inflight.delete(k);
+  }
+}
+
+
+Why: When you quickly switch tabs or click actions twice, old fetches keep running. This cancels duplicates and saves minutes.
+
+2) Add Cache-Control to stable API responses (fewer DB hits)
+// src/middleware/cache.ts
+import type { Request, Response, NextFunction } from "express";
+
+export function cacheSeconds(seconds: number) {
+  return (_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader("Cache-Control", `public, max-age=${seconds}, stale-while-revalidate=${seconds}`);
+    next();
+  };
+}
+
+
+Use on stable endpoints:
+
+// src/routes/members.ts
+import { cacheSeconds } from "../middleware/cache";
+router.get("/", cacheSeconds(60), async (req, res) => { /* ... */ });
+
+// src/routes/recipes.ts
+router.get("/", cacheSeconds(60), async (req, res) => { /* ... */ });
+
+
+Why: The browser will reuse responses for 60s; fewer requests, fewer server cycles.
+
+3) Rate-limit hot endpoints (stops accidental loops)
+// src/middleware/limit.ts
+import rateLimit from "express-rate-limit";
+
+export const softLimit = rateLimit({
+  windowMs: 10 * 1000,          // 10s window
+  limit: 12,                     // 12 requests / 10s per user
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+
+Apply to summary widgets:
+
+// src/routes/chores.ts
+import { softLimit } from "../middleware/limit";
+router.get("/summary", softLimit, async (req, res) => { /* ... */ });
+
+// src/routes/allowance.ts
+router.get("/summary", softLimit, async (req, res) => { /* ... */ });
+
+
+Why: If something spams /summary, it gets throttled instead of burning minutes.
+
+4) Disable React StrictMode in dev (stops double effects)
+
+React 18 dev double-runs effects on purpose. That’s helpful for bugs but wastes calls.
+
+// src/main.tsx (or src/index.tsx)
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+
+const Root = (
+  // Only enable StrictMode in production in your repo, or flip the condition:
+  // {import.meta.env.PROD ? <React.StrictMode> : <>}
+  <>
+    <App />
+  </>
+);
+
+ReactDOM.createRoot(document.getElementById("root")!).render(Root);
+
+
+Why: In Replit runs, this halves effect-based fetches during dev.
+
+5) Lazy-load heavy dashboard panels (render only when visible)
+// src/pages/Dashboard.tsx
+import { Suspense, lazy } from "react";
+const CalendarPanel = lazy(() => import("../components/CalendarPanel"));
+const UploadPhotos = lazy(() => import("../components/UploadPhotos"));
+
+export default function Dashboard() {
+  return (
+    <>
+      {/* lightweight cards first */}
+      <TopStats />
+      <Suspense fallback={null}>
+        <CalendarPanel />
+        <UploadPhotos />
+      </Suspense>
+    </>
+  );
+}
+
+
+Why: Big panels (calendar, uploader) won’t initialize until needed → fewer initial requests and CPU.
+
+6) Vite: turn off source maps + polling
+// vite.config.ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+export default defineConfig({
+  plugins: [react()],
+  build: { sourcemap: false },
+  server: { watch: { usePolling: false }, hmr: { overlay: true } },
+});
+
+
+Why: Faster rebuilds, less CPU.
+
+7) Keep server from restarting on non-server files
+// nodemon.json (root)
+{
+  "ignore": ["**/*.md", "public/**", "uploads/**", "prisma/*.db", "**/*.{png,jpg,jpeg,svg,gif,webp}"]
+}
+
+
+Why: Each restart costs time + agent minutes.
+
+8) Dev email logging instead of SMTP (zero wait)
+# .env (dev)
+EMAIL_MODE=log
+
+// wherever you send email
+if (process.env.EMAIL_MODE === "log") {
+  console.log("LOGIN CODE:", code, "to", email);
+} else {
+  // real SMTP
+}
+
+
+Why: Real SMTP is slow and sometimes retries; logging is instant while developing.
+
+9) Use pnpm and pin deps (fewer install minutes)
+
+In Replit shell: npm i -g pnpm then pnpm install
+
+Pin versions in package.json (no ^):
+"react": "18.3.1" not "^18.3.1"
+
+Why: Faster, less churn when the agent installs or rebuilds.
+
+10) Team habits (zero-code, big savings)
+
+One small request per run to the agent, then stop it.
+
+Batch schema changes → one migration.
+
+Don’t keep preview open if you’re not testing (it can keep dev server busy).
+
+Disable “Always on” for test deployments.
+
+Share exact error + URL instead of “try again” — fewer exploratory edits.
