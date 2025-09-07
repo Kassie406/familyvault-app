@@ -54,33 +54,15 @@
 #quick-access-modal .qa-tile a { color: inherit; text-decoration: none; }
 #quick-access-modal .qa-tile a:hover { text-decoration: underline; }
 
-/* ───────────────────────────────────────────────────────────────
-   QUICK ACCESS — remove ANY halo/glow from tiles, including
-   shadows/rings on wrappers and ::before/::after overlays.
-   Keeps the gold border and your dark gradient.
-   ─────────────────────────────────────────────────────────────── */
+/* ===== QUICK ACCESS: remove ALL halo/glow in the grid ===== */
 
-#quick-access-modal {
-  --family-gold: 212,175,55; /* #D4AF37 */
-}
-
-/* The tile itself: static border, no shadows */
-#quick-access-modal .qa-tile {
-  border: 1px solid rgba(var(--family-gold), 0.28) !important;
-  background-image: linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%) !important;
-  border-radius: 16px;
-  background-clip: padding-box;
-  isolation: isolate;
-  box-shadow: none !important;
-  outline: none !important;
-  transition: border-color .12s ease;
-}
-
-/* Kill ALL possible halo sources inside the modal */
-#quick-access-modal *,
-#quick-access-modal *::before,
-#quick-access-modal *::after {
-  /* Tailwind/Daisy ring/shadow variables */
+/* Target the dialog container with multiple fallbacks */
+dialog[aria-label="Quick Access"],
+#quick-access-modal,
+#quickAccessModal,
+.quick-access-modal,
+[data-qa="quick-access"] {
+  /* kill Tailwind/Daisy ring + shadow at the root */
   --tw-ring-inset: initial !important;
   --tw-ring-offset-width: 0 !important;
   --tw-ring-offset-color: transparent !important;
@@ -89,22 +71,59 @@
   --tw-ring-shadow: 0 0 #0000 !important;
   --tw-shadow: 0 0 #0000 !important;
   --tw-shadow-colored: 0 0 #0000 !important;
-
-  /* Also neutralize filter/drop-shadow based halos and overlay tricks */
-  box-shadow: none !important;
-  filter: none !important;
-  mix-blend-mode: normal !important;
-  outline: none !important;
 }
 
-/* Keep hover/focus completely static (no halo) */
+/* Nuke shadows, rings, drop-shadows, and overlays from *everything* inside */
+dialog[aria-label="Quick Access"] *,
+dialog[aria-label="Quick Access"] *::before,
+dialog[aria-label="Quick Access"] *::after,
+#quick-access-modal *,
+#quick-access-modal *::before,
+#quick-access-modal *::after,
+#quickAccessModal *,
+#quickAccessModal *::before,
+#quickAccessModal *::after,
+.quick-access-modal *,
+.quick-access-modal *::before,
+.quick-access-modal *::after,
+[data-qa="quick-access"] *,
+[data-qa="quick-access"] *::before,
+[data-qa="quick-access"] *::after {
+  box-shadow: none !important;
+  outline: none !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  /* if any tile uses pseudo-element glow, remove it */
+  content: none !important;
+}
+
+/* Keep tiles with only the thin gold border and no hover halo */
+dialog[aria-label="Quick Access"] .qa-tile,
+#quick-access-modal .qa-tile,
+#quickAccessModal .qa-tile,
+.quick-access-modal .qa-tile,
+[data-qa="quick-access"] .qa-tile {
+  border: 1px solid rgba(212,175,55,0.28) !important; /* gold line */
+  background-image: linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%) !important;
+  border-radius: 16px !important;
+  background-clip: padding-box !important;
+  isolation: isolate !important;
+  box-shadow: none !important;
+}
+
+dialog[aria-label="Quick Access"] .qa-tile:hover,
+dialog[aria-label="Quick Access"] .qa-tile:focus,
 #quick-access-modal .qa-tile:hover,
 #quick-access-modal .qa-tile:focus,
-#quick-access-modal .qa-tile:focus-visible,
-#quick-access-modal .qa-tile:focus-within,
-#quick-access-modal .qa-tile:has(:hover) {
-  border-color: rgba(var(--family-gold), 0.28) !important; /* static border */
+#quickAccessModal .qa-tile:hover,
+#quickAccessModal .qa-tile:focus,
+.quick-access-modal .qa-tile:hover,
+.quick-access-modal .qa-tile:focus,
+[data-qa="quick-access"] .qa-tile:hover,
+[data-qa="quick-access"] .qa-tile:focus {
+  border-color: rgba(212,175,55,0.28) !important; /* no change on hover */
   box-shadow: none !important;
+  outline: none !important;
 }
 
 /* Prevent inner elements from re-introducing rings/shadows that peek at corners */
