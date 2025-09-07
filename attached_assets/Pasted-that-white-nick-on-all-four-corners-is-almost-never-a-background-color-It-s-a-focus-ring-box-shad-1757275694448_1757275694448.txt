@@ -1,0 +1,54 @@
+that “white nick” on all four corners is almost never a background color. It’s a focus/ring/box-shadow layer from Tailwind/DaisyUI that’s still being painted on an inner wrapper, and because it’s a separate layer it peeks through at the rounded corners.
+
+We’ll kill it the same way we did the backgrounds—scoped, nuclear—by zeroing out Tailwind ring/shadow variables and any outlines on everything inside the tile, and by clipping the tile.
+
+Add these lines to the same file you already created:
+
+src/styles/quick-access.css
+
+/* (Keep everything you already added) */
+
+/* Hard-kill Tailwind/DaisyUI rings & shadows that create corner nicks */
+#quick-access-modal .qa-tile,
+#quick-access-modal .qa-tile * {
+  /* Tailwind ring/shadow variables */
+  --tw-ring-inset: initial !important;
+  --tw-ring-offset-width: 0 !important;
+  --tw-ring-offset-color: transparent !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-shadow: 0 0 #0000 !important;
+
+  /* Also neutralize classic outlines/box-shadows */
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: inherit !important;        /* make inner wrappers match radius */
+  background-clip: padding-box !important;  /* avoid bleed under border */
+}
+
+/* Ensure the visible tile clips EVERYTHING to its radius */
+#quick-access-modal .qa-tile {
+  position: relative;       /* for isolation */
+  isolation: isolate;
+  overflow: hidden;         /* critical: clip corner artifacts */
+  border-radius: 16px;      /* keep your 16px radius */
+  background-clip: padding-box;
+}
+
+
+No other changes. Keep your existing gradient + gold-glow rules as you have them.
+
+Verify (10 seconds)
+
+Hard refresh (Ctrl/Cmd + Shift + R).
+
+Open Quick Access and hover a tile.
+
+Corners should be perfectly clean (no light nicks).
+
+Gradient stays dark, gold glow on hover.
+
+If any single tile still shows nicks, make sure its outermost visible wrapper has class="qa-tile" (the class must be on the node that actually renders the rounded card).
+
+This specifically neutralizes the Tailwind/DaisyUI ring/outline layers that were causing the four white corners while keeping your theme intact.
