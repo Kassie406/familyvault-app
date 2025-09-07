@@ -256,3 +256,53 @@ header button[aria-label="Developer"]:hover,
 header button[aria-label="Dev Tools"]:hover {
   background-color: rgba(212, 175, 55, 0.12) !important;
 }
+
+/* ================================
+   MOBILE NAVIGATION BAR — KILL WHITE HOVER
+   ================================ */
+
+/* Target the two specific circular icons in mobile navigation */
+.header-notify-btn,
+.header-menu-btn,
+[data-testid="mobile-notifications"],
+[data-testid="mobile-menu-open"] {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-color: transparent !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+}
+
+/* Inner elements of these buttons */
+.header-notify-btn *,
+.header-menu-btn *,
+[data-testid="mobile-notifications"] *,
+[data-testid="mobile-menu-open"] * {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Soft gold hover instead of white */
+.header-notify-btn:hover,
+.header-menu-btn:hover,
+[data-testid="mobile-notifications"]:hover,
+[data-testid="mobile-menu-open"]:hover {
+  background-color: rgba(212, 175, 55, 0.12) !important;
+}
+
+/* Focus states */
+.header-notify-btn:focus-visible,
+.header-menu-btn:focus-visible,
+[data-testid="mobile-notifications"]:focus-visible,
+[data-testid="mobile-menu-open"]:focus-visible {
+  background-color: rgba(212, 175, 55, 0.16) !important;
+  outline: none !important;
+}
+
+/* Active states */
+.header-notify-btn:active,
+.header-menu-btn:active,
+[data-testid="mobile-notifications"]:active,
+[data-testid="mobile-menu-open"]:active {
+  background-color: rgba(212, 175, 55, 0.22) !important;
+}
