@@ -40,6 +40,9 @@ import { ShareDocumentModal } from '@/components/documents/ShareDocumentModal';
 import { SharedListsModal } from '@/components/family/SharedListsModal';
 import { RecipeBookModal } from '@/components/family/RecipeBookModal';
 import { BudgetTrackerModal } from '@/components/family/BudgetTrackerModal';
+import ChoresCard from '@/components/family/ChoresCard';
+import AllowanceMini from '@/components/family/AllowanceMini';
+import ActionCenter from '@/components/family/ActionCenter';
 
 export default function FamilyHome() {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -55,6 +58,13 @@ export default function FamilyHome() {
   const [recipeBookOpen, setRecipeBookOpen] = useState(false);
   const [budgetTrackerOpen, setBudgetTrackerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Current user mock (TODO: replace with real user data)
+  const currentUser = { 
+    id: "current-user", 
+    name: "Parent User", 
+    role: "parent" as const 
+  };
   
   // Navigation hook
   const [, setLocation] = useLocation();
@@ -615,6 +625,24 @@ export default function FamilyHome() {
             />
           );
         })}
+      </div>
+
+      {/* Chores & Allowance Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Action Center - First column */}
+        <div className="lg:col-span-1">
+          <ActionCenter />
+        </div>
+        
+        {/* Chores Card - Takes 2 columns */}
+        <div className="lg:col-span-2">
+          <ChoresCard currentUser={currentUser} />
+        </div>
+        
+        {/* Allowance Mini - Last column */}
+        <div className="lg:col-span-1">
+          <AllowanceMini />
+        </div>
       </div>
 
       {/* Row 2: Quick Actions */}
