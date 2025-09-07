@@ -1,192 +1,107 @@
-/* ===== Quick Access – safe, scoped overrides ===== */
+/* ===== Quick Access: global hardening ===== */
 
-/* Scope to the modal so nothing else is touched */
+/* Scope to both modal and any future quick access containers */
 dialog[aria-label="Quick Access"],
 #quick-access-modal,
+.quickAccessModal,
 .quick-access-modal,
 [data-qa="quick-access"] {
-  --qa-gold: rgba(212,175,55,.35);
+  /* Ensure the dialog sits above frost overlays and catches events */
+  z-index: 60;
+  pointer-events: auto;
 }
 
-/* 1) Restore modal overlay so clicks don't pass through */
-dialog[aria-label="Quick Access"]::backdrop {
-  /* dim background & intercept clicks */
-  background: rgba(0,0,0,.55) !important;
-}
-
-/* Ensure the modal box sits above the page */
-dialog[aria-label="Quick Access"] .modal-box,
-#quick-access-modal .modal-box {
-  z-index: 50 !important;
-}
-
-/* 2) Neutralize DaisyUI/Tailwind hover fills & rings on tiles/buttons */
-dialog[aria-label="Quick Access"] .card,
-dialog[aria-label="Quick Access"] a[role="button"],
-dialog[aria-label="Quick Access"] button,
-dialog[aria-label="Quick Access"] .btn,
-dialog[aria-label="Quick Access"] .btn-ghost {
-  /* keep the dark theme; no white fill on hover */
+/* Kill all background injections from utilities & pseudo-elements */
+dialog[aria-label="Quick Access"] *,
+#quick-access-modal *,
+.quickAccessModal *,
+.quick-access-modal *,
+[data-qa="quick-access"] * {
+  /* block white flashes from Tailwind/DaisyUI utils on hover/focus */
+  --tw-bg-opacity: 0 !important;
   background-color: transparent !important;
-
-  /* remove glow/ring/box-shadows coming from utilities */
-  --tw-ring-color: transparent !important;
+  /* block rings, outlines, shadows that can look like a white glow */
   --tw-ring-offset-shadow: 0 0 #0000 !important;
   --tw-ring-shadow: 0 0 #0000 !important;
-  --tw-shadow: 0 0 #0000 !important;
   box-shadow: none !important;
+  outline: 0 !important;
+}
 
-  /* consistent border and rounded corners */
-  border: 1px solid var(--qa-gold) !important;
+dialog[aria-label="Quick Access"] *::before,
+dialog[aria-label="Quick Access"] *::after,
+#quick-access-modal *::before,
+#quick-access-modal *::after,
+.quickAccessModal *::before,
+.quickAccessModal *::after,
+.quick-access-modal *::before,
+.quick-access-modal *::after,
+[data-qa="quick-access"] *::before,
+[data-qa="quick-access"] *::after {
+  content: none !important;
+}
+
+/* Tile wrapper: consistent dark surface + gold border; NO white hover */
+.qa-tile,
+.qa-card,
+[data-qa-tile="true"] {
+  background: #0c0c0f !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(212,175,55,0.20) !important; /* subtle gold */
+  transition: border-color .15s ease, background-color .15s ease, transform .15s ease;
+}
+
+/* Dark hover tint instead of white */
+.qa-tile:hover,
+.qa-card:hover,
+[data-qa-tile="true"]:hover {
+  background: rgba(255,255,255,0.03) !important; /* faint darkening */
+  border-color: rgba(212,175,55,0.45) !important; /* brighter gold */
+  transform: translateZ(0); /* avoid GPU ghosting */
+}
+
+/* Make sure inner actionable elements don't reintroduce white */
+.qa-tile a,
+.qa-tile button,
+.qa-card a,
+.qa-card button,
+[data-qa-tile="true"] a,
+[data-qa-tile="true"] button {
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+}
+
+/* Tabs/filters ("All", "Chat", etc.) – remove white hover */
+.qa-filter,
+.qa-tab,
+[data-qa-filter="true"] {
+  background: transparent !important;
   border-radius: 12px !important;
-  background-clip: padding-box !important; /* stop light corner bleed */
-  overflow: hidden; /* also prevents inner bleed */
+  border: 1px solid rgba(212,175,55,0.20) !important;
   transition: border-color .15s ease, background-color .15s ease;
 }
-
-/* COMPLETELY KILL ALL HOVER EFFECTS - NO WHITE COLOR AT ALL */
-dialog[aria-label="Quick Access"] .card:hover,
-dialog[aria-label="Quick Access"] .card *:hover,
-dialog[aria-label="Quick Access"] a[role="button"]:hover,
-dialog[aria-label="Quick Access"] a[role="button"] *:hover,
-dialog[aria-label="Quick Access"] button:hover,
-dialog[aria-label="Quick Access"] button *:hover,
-dialog[aria-label="Quick Access"] .btn:hover,
-dialog[aria-label="Quick Access"] .btn *:hover,
-dialog[aria-label="Quick Access"] .btn-ghost:hover,
-dialog[aria-label="Quick Access"] .btn-ghost *:hover,
-dialog[aria-label="Quick Access"] .card:focus,
-dialog[aria-label="Quick Access"] .card *:focus,
-dialog[aria-label="Quick Access"] a[role="button"]:focus,
-dialog[aria-label="Quick Access"] a[role="button"] *:focus,
-dialog[aria-label="Quick Access"] button:focus,
-dialog[aria-label="Quick Access"] button *:focus,
-dialog[aria-label="Quick Access"] .btn:focus,
-dialog[aria-label="Quick Access"] .btn *:focus,
-dialog[aria-label="Quick Access"] .btn-ghost:focus,
-dialog[aria-label="Quick Access"] .btn-ghost *:focus {
-  /* KILL ALL POSSIBLE WHITE BACKGROUNDS */
-  background-color: transparent !important;
-  background-image: none !important;
-  background: none !important;
-  
-  /* KILL ALL CSS VARIABLES THAT CREATE WHITE */
-  --tw-bg-opacity: 0 !important;
-  --tw-text-opacity: 1 !important;
-  --tw-ring-opacity: 0 !important;
-  
-  /* KILL ALL GLOWS AND EFFECTS */
-  outline: none !important;
-  box-shadow: none !important;
-  filter: none !important;
-  --tw-ring-color: transparent !important;
-  --tw-shadow: 0 0 #0000 !important;
-  --tw-ring-shadow: 0 0 #0000 !important;
-  
-  /* ENSURE NO BORDER COLOR CHANGES */
-  border-color: var(--qa-gold) !important;
+.qa-filter:hover,
+.qa-tab:hover,
+[data-qa-filter="true"]:hover {
+  background: rgba(255,255,255,0.03) !important;
+  border-color: rgba(212,175,55,0.45) !important;
 }
 
-/* Remove any pseudo-element halos that some tiles add,
-   but DO NOT touch the dialog ::backdrop */
-dialog[aria-label="Quick Access"] .card::before,
-dialog[aria-label="Quick Access"] .card::after,
-dialog[aria-label="Quick Access"] .btn::before,
-dialog[aria-label="Quick Access"] .btn::after {
-  content: none !important;
-}
-
-/* NUCLEAR APPROACH - Kill ALL white backgrounds everywhere in Quick Access */
-dialog[aria-label="Quick Access"] * {
-  background-color: transparent !important;
-  background-image: none !important;
-  background: none !important;
-  --tw-bg-opacity: 0 !important;
-  --tw-ring-opacity: 0 !important;
-  box-shadow: none !important;
-  filter: none !important;
-}
-
-/* Force dark backgrounds only on the actual tile containers */
-dialog[aria-label="Quick Access"] .qa-tile {
-  background: linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%) !important;
-  border: 1px solid var(--qa-gold) !important;
-}
-
-/* ================================
-   Quick Access: Emergency Call fix
-   ================================ */
-
-/* Prefer an explicit, stable hook if you have it: */
-dialog[aria-label="Quick Access"] button[aria-label="Emergency Call"],
-dialog[aria-label="Quick Access"] a[aria-label="Emergency Call"],
-dialog[aria-label="Quick Access"] [data-action="emergency-call"],
-dialog[aria-label="Quick Access"] a[href*="emergency"],
-dialog[aria-label="Quick Access"] button[data-route*="emergency"],
-dialog[aria-label="Quick Access"] .grid > *:nth-child(2)
-{
-  /* Stop any white backgrounds on normal/hover/focus states */
-  background-color: transparent !important;
-  --tw-bg-opacity: 0 !important;
-  filter: none !important;
-  box-shadow: none !important;
-  outline: none !important;
-}
-
-/* Keep it transparent when interacting */
-dialog[aria-label="Quick Access"] button[aria-label="Emergency Call"]:is(:hover, :focus, :focus-visible),
-dialog[aria-label="Quick Access"] a[aria-label="Emergency Call"]:is(:hover, :focus, :focus-visible),
-dialog[aria-label="Quick Access"] [data-action="emergency-call"]:is(:hover, :focus, :focus-visible),
-dialog[aria-label="Quick Access"] a[href*="emergency"]:is(:hover, :focus, :focus-visible),
-dialog[aria-label="Quick Access"] button[data-route*="emergency"]:is(:hover, :focus, :focus-visible),
-dialog[aria-label="Quick Access"] .grid > *:nth-child(2):is(:hover, :focus, :focus-visible)
-{
-  background-color: transparent !important;
-  --tw-bg-opacity: 0 !important;
-  filter: none !important;
-  box-shadow: inset 0 0 0 1px rgba(212,175,55,.35) !important;
-}
-
-/* DaisyUI "card" hover/focus fallbacks that sometimes wrap the tile */
-dialog[aria-label="Quick Access"] .card:has(> button[aria-label="Emergency Call"]),
-dialog[aria-label="Quick Access"] .card:has(> a[aria-label="Emergency Call"]),
-dialog[aria-label="Quick Access"] .card:has(> [data-action="emergency-call"]),
-dialog[aria-label="Quick Access"] .card:has(> a[href*="emergency"]),
-dialog[aria-label="Quick Access"] .card:has(> button[data-route*="emergency"])
-{
-  background-color: transparent !important;
+/* Header & mobile nav Quick Access icon/buttons – no white hover */
+.header-qa-btn,
+.mobile-qa-btn,
+.header-menu-btn,
+.header-notify-btn {
+  background: transparent !important;
   --tw-bg-opacity: 0 !important;
   box-shadow: none !important;
+  outline: 0 !important;
 }
-
-/* Also neutralize DaisyUI pseudo-element or ring tricks on that tile */
-dialog[aria-label="Quick Access"] button[aria-label="Emergency Call"]::before,
-dialog[aria-label="Quick Access"] button[aria-label="Emergency Call"]::after,
-dialog[aria-label="Quick Access"] a[aria-label="Emergency Call"]::before,
-dialog[aria-label="Quick Access"] a[aria-label="Emergency Call"]::after
-{
-  content: none !important;
-}
-
-/* FIX "ALL" TAB WHITE HOVER - Line 190 in component has hover:bg-white/10 */
-dialog[aria-label="Quick Access"] button[data-testid="filter-all"],
-dialog[aria-label="Quick Access"] button[data-testid="filter-all"]:hover,
-dialog[aria-label="Quick Access"] button[data-testid="filter-all"]:focus {
-  background-color: rgba(255,255,255,0.05) !important; /* Keep slight dark tint instead of white */
-}
-
-/* FIX ALL CATEGORY FILTER BUTTONS - Remove white hover from all tabs */
-dialog[aria-label="Quick Access"] button[data-testid^="filter-"]:hover {
-  background-color: rgba(255,255,255,0.05) !important; /* Dark tint instead of white */
-}
-
-/* FIX MOBILE NAVIGATION WHITE HOVERS - Lines 61, 100, 110 in MobileNavigationBar.tsx */
-button[data-testid="mobile-nav-quick"]:hover,
-button[data-testid="mobile-nav-home"]:hover,
-button[data-testid="mobile-nav-messages"]:hover, 
-button[data-testid="mobile-nav-family"]:hover,
-button[data-testid="mobile-nav-settings"]:hover,
-button[data-testid="mobile-notifications"]:hover,
-button[data-testid="mobile-menu-open"]:hover {
-  background-color: rgba(255,255,255,0.02) !important; /* Very subtle dark tint instead of white */
+.header-qa-btn:hover,
+.mobile-qa-btn:hover,
+.header-menu-btn:hover,
+.header-notify-btn:hover {
+  background: rgba(255,255,255,0.03) !important; /* faint dark tint */
 }

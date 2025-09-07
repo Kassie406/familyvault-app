@@ -1,0 +1,182 @@
+I’ll give you a single, copy-paste “one-shot” fix you can hand to the Replit agent (or apply yourself) that:
+
+removes the white hover tint everywhere in Quick Access (modal tiles, tabs),
+
+fixes the header / mobile nav Quick Access trigger buttons,
+
+prevents pseudo-element/ring/glow overrides from sneaking the white back,
+
+stops the “ghost hover” (pointer going through the modal).
+
+Paste this to the Replit Agent
+Please apply a single, comprehensive fix for the white hover background in the Quick Access UI and the header/mobile nav triggers.
+
+### 1) Component cleanup (remove Tailwind white hovers)
+Open these files and remove any `hover:bg-white`, `hover:bg-white/5`, `hover:bg-white/10`, `hover:bg-neutral-100`, or DaisyUI `hover` helpers on the tile/card/button wrappers. Do **not** add alternative white backgrounds.
+
+- `client/src/components/family/QuickAccessPanel.tsx`
+  - On the filter tabs (All, Chat, Files, Emergency, Manage) remove any `hover:bg-white/*`.
+  - On each tile/card wrapper (e.g., Send Message, Emergency Call, Upload Document, etc.) remove `hover:bg-*` whites.
+  - On inner icon/button/link elements remove `hover:bg-*` whites and ring/ring-offset utilities.
+
+- `client/src/components/family/MobileNavigation.tsx` (or equivalent, the mobile/compact header)
+  - On the Quick Access trigger button, notifications button, and menu button remove `hover:bg-white/*` and ring utilities.
+
+- `client/src/components/family/Header.tsx` (or equivalent, the desktop header)
+  - On the Quick Access trigger button remove `hover:bg-white/*` and any ring utilities.
+
+### 2) Add unified CSS overrides
+Create or replace **`client/src/styles/quick-access.css`** with the following content. This neutralizes any leftover library hover/ring/pseudo effects and sets a safe dark hover instead of white.
+
+```css
+/* ===== Quick Access: global hardening ===== */
+
+/* Scope to both modal and any future quick access containers */
+dialog[aria-label="Quick Access"],
+#quick-access-modal,
+.quickAccessModal,
+.quick-access-modal,
+[data-qa="quick-access"] {
+  /* Ensure the dialog sits above frost overlays and catches events */
+  z-index: 60;
+  pointer-events: auto;
+}
+
+/* Kill all background injections from utilities & pseudo-elements */
+dialog[aria-label="Quick Access"] *,
+#quick-access-modal *,
+.quickAccessModal *,
+.quick-access-modal *,
+[data-qa="quick-access"] * {
+  /* block white flashes from Tailwind/DaisyUI utils on hover/focus */
+  --tw-bg-opacity: 0 !important;
+  background-color: transparent !important;
+  /* block rings, outlines, shadows that can look like a white glow */
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+dialog[aria-label="Quick Access"] *::before,
+dialog[aria-label="Quick Access"] *::after,
+#quick-access-modal *::before,
+#quick-access-modal *::after,
+.quickAccessModal *::before,
+.quickAccessModal *::after,
+.quick-access-modal *::before,
+.quick-access-modal *::after,
+[data-qa="quick-access"] *::before,
+[data-qa="quick-access"] *::after {
+  content: none !important;
+}
+
+/* Tile wrapper: consistent dark surface + gold border; NO white hover */
+.qa-tile,
+.qa-card,
+[data-qa-tile="true"] {
+  background: #0c0c0f !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(212,175,55,0.20) !important; /* subtle gold */
+  transition: border-color .15s ease, background-color .15s ease, transform .15s ease;
+}
+
+/* Dark hover tint instead of white */
+.qa-tile:hover,
+.qa-card:hover,
+[data-qa-tile="true"]:hover {
+  background: rgba(255,255,255,0.03) !important; /* faint darkening */
+  border-color: rgba(212,175,55,0.45) !important; /* brighter gold */
+  transform: translateZ(0); /* avoid GPU ghosting */
+}
+
+/* Make sure inner actionable elements don’t reintroduce white */
+.qa-tile a,
+.qa-tile button,
+.qa-card a,
+.qa-card button,
+[data-qa-tile="true"] a,
+[data-qa-tile="true"] button {
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+}
+
+/* Tabs/filters (“All”, “Chat”, etc.) – remove white hover */
+.qa-filter,
+.qa-tab,
+[data-qa-filter="true"] {
+  background: transparent !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(212,175,55,0.20) !important;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.qa-filter:hover,
+.qa-tab:hover,
+[data-qa-filter="true"]:hover {
+  background: rgba(255,255,255,0.03) !important;
+  border-color: rgba(212,175,55,0.45) !important;
+}
+
+/* Header & mobile nav Quick Access icon/buttons – no white hover */
+.header-qa-btn,
+.mobile-qa-btn,
+.header-menu-btn,
+.header-notify-btn {
+  background: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+.header-qa-btn:hover,
+.mobile-qa-btn:hover,
+.header-menu-btn:hover,
+.header-notify-btn:hover {
+  background: rgba(255,255,255,0.03) !important; /* faint dark tint */
+}
+
+
+Notes
+
+If your tiles/tabs don’t have .qa-tile, .qa-card, .qa-filter, or .qa-tab, add those classes to the tile & tab wrappers in QuickAccessPanel.tsx. The CSS still has broad fallbacks, but adding these classes guarantees the style.
+
+Ensure the header / mobile buttons have classes like .header-qa-btn / .mobile-qa-btn (or add them) so the hover override applies.
+
+3) Import the CSS
+
+Make sure quick-access.css is imported once (e.g., in client/src/main.tsx or your global styles barrel).
+
+4) Build & verify
+
+Save all files, let Vite rebuild.
+
+Hard refresh: Ctrl+Shift+R (or Cmd+Shift+R on Mac).
+
+If DevTools was open, in Network check Disable cache and refresh once.
+
+Test:
+
+Hover Emergency Call (no white).
+
+Hover any tile or tab (no white).
+
+Hover the header Quick Access / mobile buttons (no white).
+
+No “ghost hover” behind the modal.
+
+This is a scoped, layered solution that removes white hover from every source (Tailwind utilities, DaisyUI rings/pseudos, inline focus styles) without breaking the gold border theme or interactions.
+
+
+---
+
+### Why this works
+
+- We removed *all* `hover:bg-white*` utilities at the source.
+- We added a **scoped CSS hardening** that kills residual rings/pseudo-elements and forces transparent backgrounds inside the Quick Access scope.
+- We give tiles/tabs a **dark hover tint** (not white) so users still get feedback.
+- We fixed header/mobile trigger buttons so they can’t reintroduce white via nav styles.
+- `pointer-events` + `z-index` keep the modal from “ghost hovering” elements behind it.
+
+If anything is still off after this, right-click a problematic tile → **Inspect** → copy the tile’s wrapper HTML (class list & ancestors) and I’ll tailor a tiny selector for that exact case.
