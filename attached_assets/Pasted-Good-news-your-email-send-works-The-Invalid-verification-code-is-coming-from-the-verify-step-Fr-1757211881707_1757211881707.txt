@@ -1,0 +1,75 @@
+Good news: your email send works. The “Invalid verification code” is coming from the verify step. From your screenshot URL I can see the page is bouncing to /auth/google/callback (top left of image #2). That’s the Google OAuth route—so your email-code form is likely submitting to the wrong endpoint or redirecting there after submit. That will always fail the code check.
+
+Fast fix (do this first)
+
+Click Back to email → Resend code and use the newest email.
+
+Enter the code and make sure your Verify button calls your email-verify route (e.g. /api/auth/verify-code) — not /auth/google/callback.
+
+If you still see the URL change to /auth/google/callback, temporarily hide/disable the Google button and remove any redirect to that path.
+
+Common reasons + how to fix
+
+Wrong endpoint wired:
+
+Frontend should POST /api/auth/verify-code (or whatever your route is) with { email, code }.
+
+Do not window.location = '/auth/google/callback' on success.
+
+Code storage lost between steps: If you keep codes in memory, any server restart invalidates them. Store them in Redis/DB with a TTL (e.g., 10 min).
+
+Latest vs. older code: If you requested multiple codes, only the last one is valid. Use the newest email.
+
+Case mismatch on email: Verify lookup should lowercase emails when saving and checking.
+
+Cookies/session not set: If your verify step needs a pending-session cookie, set it with Secure: true, SameSite: Lax, and the exact domain.
+
+Minimal wiring (Node/Express example)
+
+Frontend (verify):
+
+async function verifyCode(email, code) {
+  const res = await fetch('/api/auth/verify-code', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ email, code })
+  });
+  if (!res.ok) {
+    const { error } = await res.json();
+    alert(error || 'Invalid verification code');
+    return;
+  }
+  // go to your dashboard, NOT Google callback
+  window.location.href = '/dashboard';
+}
+
+
+Backend (sketch):
+
+// save code
+// await db.set(`otp:${email.toLowerCase()}`, code, { EX: 600 });
+
+app.post('/api/auth/verify-code', async (req, res) => {
+  const email = String(req.body.email || '').toLowerCase();
+  const code  = String(req.body.code || '').trim();
+  const saved = await db.get(`otp:${email}`);
+  if (!saved || saved !== code) return res.status(400).json({ error: 'Invalid verification code' });
+  await db.del(`otp:${email}`);              // one-time use
+  // create session cookie here
+  // res.cookie('session', token, { httpOnly: true, secure: true, sameSite: 'lax' });
+  res.json({ ok: true });
+});
+
+Quick checklist
+
+ Verify button posts to your verify-code route (not Google).
+
+ Codes stored in DB/Redis with TTL (not just memory).
+
+ Emails lowercased for save + verify.
+
+ Use the newest code; don’t restart the server between send & verify.
+
+ After success, redirect to /dashboard (or your app), not /auth/google/callback.
+
+If you tell me which framework you’re using (Next.js/Express/Supabase Auth/etc.), I’ll give you the exact route name and code snippet tailored to it.
