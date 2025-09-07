@@ -1,0 +1,103 @@
+that white hover on the two header icons needs to go, and the hover should be a very light gold instead. Here’s a surgical, copy-paste fix that doesn’t rely on the exact component names and will override Tailwind/DaisyUI hover/ring utilities cleanly.
+
+1) Add (or update) a small header override CSS file
+
+Create (or edit) client/src/styles/header-overrides.css and paste this:
+
+/* Header icon hover/ring overrides — light gold tint, no white flash */
+:root {
+  /* subtle gold you’ve been using */
+  --kc-gold-08: rgba(212, 175, 55, 0.08);
+  --kc-gold-24: rgba(212, 175, 55, 0.24);
+}
+
+/* Scope to the top header area — adjust selectors if your header wrapper differs */
+header, .topbar, [data-kc="header"], nav[aria-label="Header"] {
+  /* nothing here, just a scope anchor */
+}
+
+/* Kill default white hovers/rings on header buttons/icons */
+header button,
+header a[role="button"],
+.topbar button,
+.topbar a[role="button"],
+[data-kc="header"] button,
+[data-kc="header"] a[role="button"],
+nav[aria-label="Header"] button,
+nav[aria-label="Header"] a[role="button"] {
+  background-color: transparent !important;
+  border-radius: 9999px; /* keep round pills for icons */
+  /* neutralize Tailwind/DaisyUI rings */
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  outline: none !important;
+  transition: background-color .15s ease, box-shadow .15s ease;
+}
+
+/* Light gold hover (replaces white) */
+header button:hover,
+header a[role="button"]:hover,
+.topbar button:hover,
+.topbar a[role="button"]:hover,
+[data-kc="header"] button:hover,
+[data-kc="header"] a[role="button"]:hover,
+nav[aria-label="Header"] button:hover,
+nav[aria-label="Header"] a[role="button"]:hover {
+  background-color: var(--kc-gold-08) !important;
+}
+
+/* Accessible focus state — soft gold ring, no white */
+header button:focus-visible,
+header a[role="button"]:focus-visible,
+.topbar button:focus-visible,
+.topbar a[role="button"]:focus-visible,
+[data-kc="header"] button:focus-visible,
+[data-kc="header"] a[role="button"]:focus-visible,
+nav[aria-label="Header"] button:focus-visible,
+nav[aria-label="Header"] a[role="button"]:focus-visible {
+  box-shadow: 0 0 0 2px var(--kc-gold-24) !important;
+}
+
+/* Optional: target the two specific icons defensively by aria-label if present */
+button[aria-label="Quick Access"],
+button[aria-label="Shortcuts"],
+button[aria-label="Actions"] {
+  background-color: transparent !important;
+}
+
+
+If your header wrapper uses a different root class, add it to the scope line (e.g., .header).
+
+2) Make sure it’s imported once
+
+In your global styles entry (commonly client/src/styles/index.css or wherever you import other CSS), add:
+
+@import "./header-overrides.css";
+
+
+(If you already have a barrel styles.css, import there instead. The goal is to load this after DaisyUI/Tailwind so it wins.)
+
+3) Quick test checklist
+
+Hard refresh: Ctrl/Cmd+Shift+R.
+
+If DevTools was open, check Network → Disable cache (only while DevTools is open) and refresh once.
+
+Hover both header icons (grid & lightning):
+
+No white fill.
+
+Subtle light-gold background on hover.
+
+Soft gold focus ring on keyboard focus.
+
+What this fixes (and why it’s resilient)
+
+It neutralizes white hover/ring utilities that DaisyUI/Tailwind attach (e.g., hover:bg-white/10, ring), only in the header scope.
+
+It replaces the hover with your brand gold (rgba(212,175,55,0.08)), and applies an accessible focus ring (rgba(212,175,55,0.24)), without changing icon shapes.
+
+Because of !important + scoping, it wins reliably without affecting the rest of the app.
+
+If anything in your header uses a different container than header/.topbar/[data-kc="header"]/nav[aria-label="Header"], tell me the container class/aria-label and I’ll add it to the scope line exactly.
