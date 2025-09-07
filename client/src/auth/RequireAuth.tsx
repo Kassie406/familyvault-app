@@ -14,11 +14,9 @@ export default function RequireAuth({ children }: RequireAuthProps) {
     
     // Add timeout fallback to prevent infinite loading
     const checkAuth = async () => {
-      console.log('🔍 RequireAuth: Starting auth check...');
-      
       timeoutId = setTimeout(() => {
         if (!ready) {
-          console.warn('⏰ Auth check timeout - showing login');
+          console.warn('Auth check timeout - showing login');
           setUser(null);
           setReady(true);
         }
@@ -29,18 +27,14 @@ export default function RequireAuth({ children }: RequireAuthProps) {
           credentials: 'include'
         });
         
-        console.log('📡 Auth response:', response.status, response.ok);
-        
         if (response.ok) {
           const userData = await response.json();
-          console.log('✅ User authenticated:', userData?.email || 'unknown');
           setUser(userData);
         } else {
-          console.log('❌ User not authenticated');
           setUser(null);
         }
       } catch (error) {
-        console.warn('🚨 Auth check failed:', error);
+        console.warn('Auth check failed:', error);
         setUser(null);
       } finally {
         clearTimeout(timeoutId);

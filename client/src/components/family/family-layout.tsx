@@ -4,44 +4,11 @@ import {
   Shield, Home, Users, FileText, MessageCircle, Bell, Settings,
   Calendar, Image, Heart, Menu, X, User, LogOut
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { queryClient } from '@/lib/queryClient';
+import { signOut } from '@/auth/signOut';
 
 export default function FamilyLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { toast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const handleLogout = async () => {
-    console.log('🚪 Starting logout process...');
-    
-    try {
-      // Clear client-side cache and storage FIRST
-      queryClient.clear();
-      localStorage.clear();
-      sessionStorage.clear();
-      console.log('✅ Client state cleared');
-      
-      // Try to call server logout endpoint
-      const response = await fetch('/logout', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      console.log('📡 Logout response:', response.status);
-      
-    } catch (error) {
-      console.error('❌ Logout error:', error);
-    }
-    
-    // ALWAYS redirect regardless of server response
-    console.log('🔄 Redirecting to login...');
-    
-    // Force a complete page reload to reset all React state
-    // This bypasses any routing conflicts
-    window.location.href = '/login?cleared=' + Date.now();
-  };
 
   const navigationItems = [
     { id: 'home', label: 'Family Home', icon: Home, href: '/family', description: 'Family dashboard' },
@@ -174,7 +141,7 @@ export default function FamilyLayout({ children }: { children: React.ReactNode }
                 Settings
               </Link>
               <button 
-                onClick={handleLogout}
+                onClick={signOut}
                 className="text-sm text-gray-600 hover:text-red-600 transition-colors"
                 data-testid="button-sign-out"
               >

@@ -220,11 +220,18 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   });
 }
 
-// Logout
-router.post('/logout', (req, res) => {
-  res.clearCookie('fcs_session');
-  res.clearCookie('fcs_who');
-  res.json({ ok: true, redirect: '/login' });
+// Logout - idempotent, always clears all auth cookies
+router.post('/auth/logout', (req, res) => {
+  const opts = { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, path: '/' };
+  
+  // Clear all possible auth cookies (idempotent)
+  const cookieNames = ['fcs_session', 'fcs_who', 'session', 'refresh_token', 'access_token'];
+  for (const name of cookieNames) {
+    res.clearCookie(name, opts);
+  }
+  
+  // Never fail logout - always return success
+  res.status(200).json({ ok: true });
 });
 
 // Current user endpoint
