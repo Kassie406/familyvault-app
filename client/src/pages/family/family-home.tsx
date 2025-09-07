@@ -11,7 +11,7 @@ import {
   Phone, DollarSign, Upload, ShieldAlert,
   UserPlus, Mail, Settings, Share, Camera, FolderOpen, AlertCircle,
   Zap, Grid, BarChart3, Video, ListTodo, CalendarDays, User,
-  X, CheckCircle2, Trash2, LogOut, Search, HelpCircle
+  X, CheckCircle2, Trash2, LogOut, Search, HelpCircle, ChefHat
 } from 'lucide-react';
 import { 
   ActionCard, 
@@ -38,6 +38,7 @@ import { PolicyModal } from '@/components/documents/PolicyModal';
 import { ApprovalsDrawer } from '@/components/documents/ApprovalsDrawer';
 import { ShareDocumentModal } from '@/components/documents/ShareDocumentModal';
 import { SharedListsModal } from '@/components/family/SharedListsModal';
+import { RecipeBookModal } from '@/components/family/RecipeBookModal';
 
 export default function FamilyHome() {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -50,6 +51,7 @@ export default function FamilyHome() {
   const [approvalsDrawerOpen, setApprovalsDrawerOpen] = useState(false);
   const [shareDocumentModalOpen, setShareDocumentModalOpen] = useState(false);
   const [sharedListsOpen, setSharedListsOpen] = useState(false);
+  const [recipeBookOpen, setRecipeBookOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Navigation hook
@@ -417,6 +419,43 @@ export default function FamilyHome() {
         { label: "View All Lists", onClick: () => setSharedListsOpen(true), icon: <ListTodo className="h-4 w-4" /> },
         { label: "Family Assignments", onClick: () => setSharedListsOpen(true), icon: <User className="h-4 w-4" /> }
       ]
+    },
+    { 
+      label: 'Recipe Book', 
+      value: 12, 
+      icon: ChefHat,
+      href: '#',
+      onClick: () => setRecipeBookOpen(true),
+      fetchPreview: async () => {
+        try {
+          const response = await fetch('/api/recipes?limit=5');
+          if (!response.ok) throw new Error('Failed to fetch recipes');
+          const data = await response.json();
+          return data.slice(0, 5).map((recipe: any) => {
+            const servingInfo = recipe.servings ? `Serves ${recipe.servings}` : '';
+            const prepTime = recipe.prepTime ? `${recipe.prepTime} min prep` : '';
+            const timeInfo = [prepTime, servingInfo].filter(Boolean).join(' • ');
+            return {
+              id: recipe.id,
+              title: recipe.title,
+              sub: recipe.category ? `${recipe.category}${timeInfo ? ` • ${timeInfo}` : ''}` : timeInfo,
+              href: '#'
+            };
+          });
+        } catch (error) {
+          console.error('Error fetching recipes:', error);
+          return [
+            { id: "1", title: "Grandma's Apple Pie", sub: "Dessert • 45 min prep • Serves 8", href: "#" },
+            { id: "2", title: "Family Marinara Sauce", sub: "Sauce • 30 min prep • Serves 6", href: "#" },
+            { id: "3", title: "Sunday Roast Chicken", sub: "Main Course • 2 hours • Serves 4", href: "#" }
+          ];
+        }
+      },
+      dropdownActions: [
+        { label: "Add New Recipe", onClick: () => setRecipeBookOpen(true), icon: <Plus className="h-4 w-4" /> },
+        { label: "Browse Categories", onClick: () => setRecipeBookOpen(true), icon: <BookOpen className="h-4 w-4" /> },
+        { label: "Family Favorites", onClick: () => setRecipeBookOpen(true), icon: <Heart className="h-4 w-4" /> }
+      ]
     }
   ];
 
@@ -722,6 +761,12 @@ export default function FamilyHome() {
       <SharedListsModal 
         open={sharedListsOpen}
         onClose={() => setSharedListsOpen(false)}
+      />
+
+      {/* Recipe Book Modal */}
+      <RecipeBookModal 
+        open={recipeBookOpen}
+        onClose={() => setRecipeBookOpen(false)}
       />
     </div>
   );
