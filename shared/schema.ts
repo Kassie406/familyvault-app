@@ -886,3 +886,33 @@ export type FamilyCalendarEvent = typeof familyCalendarEvents.$inferSelect;
 export type InsertFamilyCalendarEvent = typeof familyCalendarEvents.$inferInsert;
 export type FamilyIceData = typeof familyIceData.$inferSelect;
 export type InsertFamilyIceData = typeof familyIceData.$inferInsert;
+
+// Chores & Allowance System
+export const chores = pgTable("chores", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  title: varchar("title").notNull(),
+  details: text("details"),
+  assigneeId: varchar("assignee_id").notNull().references(() => familyMembers.id),
+  dueAt: timestamp("due_at").notNull(),
+  points: integer("points").notNull().default(10),
+  status: varchar("status").notNull().default("todo"), // todo, done, approved
+  createdById: varchar("created_by_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  rotationKey: varchar("rotation_key"), // for rotating chores
+});
+
+export const allowanceLedger = pgTable("allowance_ledger", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  memberId: varchar("member_id").notNull().references(() => familyMembers.id),
+  deltaPoints: integer("delta_points").notNull(), // +points on approval, negative for penalties
+  reason: varchar("reason").notNull(), // "Chore: Dishes 2025-09-07"
+  createdAt: timestamp("created_at").defaultNow(),
+  createdById: varchar("created_by_id").notNull(),
+});
+
+export type Chore = typeof chores.$inferSelect;
+export type InsertChore = typeof chores.$inferInsert;
+export type AllowanceLedger = typeof allowanceLedger.$inferSelect;
+export type InsertAllowanceLedger = typeof allowanceLedger.$inferInsert;
