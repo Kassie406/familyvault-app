@@ -20,7 +20,11 @@ export default function ChatSupport() {
         <button
           onClick={() => setIsOpen(true)}
           data-testid="button-chat-support"
-          className="bg-[#FFD700] hover:bg-[#FFD700]/90 hover:shadow-[0_0_20px_rgba(255,215,0,0.5)] p-4 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
+          className="icon-btn bg-[#FFD700] p-4 rounded-full shadow-lg transition-all duration-300 transform
+                     hover:bg-[#d4af37]/10 
+                     focus-visible:bg-[#d4af37]/15 
+                     active:bg-[#d4af37]/20 
+                     focus:outline-none hover:scale-105"
         >
           <MessageCircle className="h-6 w-6 text-black" />
         </button>
