@@ -52,12 +52,12 @@ const authLimiter = rateLimit({
 
 // Session helpers
 function issueSession(res: Response, email: string) {
+  console.log('🔒 Issuing session for email:', email);
   const sessionId = uuid();
   res.cookie('fcs_session', sessionId, {
     httpOnly: true,
     secure: APP_DOMAIN.startsWith('https://'),
     sameSite: 'lax',
-    signed: true,
     maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
   });
   
@@ -66,14 +66,14 @@ function issueSession(res: Response, email: string) {
     httpOnly: true,
     secure: APP_DOMAIN.startsWith('https://'),
     sameSite: 'lax',
-    signed: true,
     maxAge: 1000 * 60 * 60 * 24 * 7
   });
+  console.log('✅ Session cookies set successfully');
 }
 
 function getAuthenticatedUser(req: Request): string | null {
   try {
-    const payload = (req as any).signedCookies['fcs_who'];
+    const payload = (req as any).cookies['fcs_who'];
     if (!payload) return null;
     const obj = JSON.parse(Buffer.from(payload, 'base64url').toString());
     return obj?.email || null;
@@ -83,7 +83,7 @@ function getAuthenticatedUser(req: Request): string | null {
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const hasSession = (req as any).signedCookies['fcs_session'];
+  const hasSession = (req as any).cookies['fcs_session'];
   if (!hasSession) {
     return res.status(401).json({ error: 'Authentication required', redirectTo: '/login' });
   }
