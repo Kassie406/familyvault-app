@@ -54,27 +54,39 @@
 #quick-access-modal .qa-tile a { color: inherit; text-decoration: none; }
 #quick-access-modal .qa-tile a:hover { text-decoration: underline; }
 
-/* ── Quick Access: remove hover/focus halo on all tiles ───────────────────── */
+/* ───────────────────────────────────────────────────────────────
+   QUICK ACCESS — Remove ALL glow/halo (hover/focus) from tiles
+   Keeps the gold border; kills shadows/rings/drop-shadows anywhere.
+   ─────────────────────────────────────────────────────────────── */
 
 #quick-access-modal {
   --family-gold: 212,175,55; /* #D4AF37 */
 }
 
-/* Base card: keep the gold border, kill any shadow */
+/* Keep your gold border; no glow */
 #quick-access-modal .qa-tile {
   border: 1px solid rgba(var(--family-gold), 0.28) !important;
   box-shadow: none !important;
-  transition: border-color .15s ease;
-  background-image: linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%) !important;
+  outline: none !important;
+  background-image: linear-gradient(180deg, #0b0b0e 0%, #0e0e14 100%) !important;
   border-radius: 16px;
   overflow: hidden;
   isolation: isolate;
   background-clip: padding-box;
+  transition: border-color .15s ease;
 }
 
-/* Nuke Tailwind/DaisyUI rings & shadows that create the glow */
+/* Zero-out ANY source of glow inside the modal, even if applied on wrappers */
 #quick-access-modal .qa-tile,
-#quick-access-modal .qa-tile * {
+#quick-access-modal .qa-tile *,
+#quick-access-modal [class*="shadow"],
+#quick-access-modal [class*="ring"],
+#quick-access-modal [class*="drop-shadow"],
+#quick-access-modal .card,
+#quick-access-modal .card:hover,
+#quick-access-modal .card:focus,
+#quick-access-modal .card:focus-within {
+  /* Tailwind/Daisy ring/shadow variables */
   --tw-ring-inset: initial !important;
   --tw-ring-offset-width: 0 !important;
   --tw-ring-offset-color: transparent !important;
@@ -82,21 +94,24 @@
   --tw-ring-offset-shadow: 0 0 #0000 !important;
   --tw-ring-shadow: 0 0 #0000 !important;
   --tw-shadow: 0 0 #0000 !important;
-  outline: none !important;
+  --tw-shadow-colored: 0 0 #0000 !important;
+
   box-shadow: none !important;
+  outline: none !important;
   filter: none !important;
   mix-blend-mode: normal !important;
   border-radius: inherit !important;
 }
 
-/* Hover/Focus: NO glow. (Optional: slight border tint for feedback) */
+/* Make hover/focus do NOTHING visually (optional: keep slight border tint) */
 #quick-access-modal .qa-tile:hover,
 #quick-access-modal .qa-tile:has(:hover),
 #quick-access-modal .qa-tile:focus,
 #quick-access-modal .qa-tile:focus-visible,
 #quick-access-modal .qa-tile:focus-within {
-  border-color: rgba(var(--family-gold), 0.40) !important; /* or keep 0.28 if you want zero change */
-  box-shadow: none !important; /* ← kill halo */
+  border-color: rgba(var(--family-gold), 0.28) !important; /* keep static */
+  box-shadow: none !important;
+  outline: none !important;
 }
 
 /* Prevent inner elements from re-introducing rings/shadows that peek at corners */
