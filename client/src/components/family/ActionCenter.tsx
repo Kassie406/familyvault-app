@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { api } from "@/lib/api";
+import { withTimeout } from "@/lib/time";
 
 type Counts = { 
   approvePending: number; 
@@ -11,38 +13,42 @@ export default function ActionCenter() {
   const [data, setData] = useState<Counts | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  async function load() {
-    setErr(null);
+  const load = useCallback(async () => {
     try {
-      const response = await fetch("/api/chores/summary", {
-        credentials: "include"
-      });
-      
-      if (!response.ok) throw new Error("Failed to fetch action center data");
-      
-      const data = await response.json();
+      setErr(null);
+      const summary = await withTimeout(api("/api/chores/summary"), 8000);
       setData({
-        approvePending: data.pendingApproval,
-        dueToday: data.dueToday,
+        approvePending: summary.pendingApproval,
+        dueToday: summary.dueToday,
         mealsUnplanned: 0 // TODO: Wire up meals unplanned count
       });
-    } catch (e: any) { 
-      setErr(e.message); 
+    } catch (e: any) {
+      setErr(e.message || "Failed to load summary");
     }
-  }
+  }, []);
+
+  useEffect(() => { 
+    load(); 
+  }, [load]);
 
   useEffect(() => {
-    load();
-    
-    // Listen for reload events
-    const handleReload = () => load();
+    let inFlight = false;
+    const handleReload = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try { 
+        await load(); 
+      } finally { 
+        inFlight = false; 
+      }
+    };
     window.addEventListener("actioncenter:reload", handleReload);
     window.addEventListener("chores:reload", handleReload);
     return () => {
       window.removeEventListener("actioncenter:reload", handleReload);
       window.removeEventListener("chores:reload", handleReload);
     };
-  }, []);
+  }, [load]);
 
   if (err) {
     return (

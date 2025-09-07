@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Clock, CheckCircle2, AlertCircle, User, Plus } from "lucide-react";
 import CreateChoreModal from "./CreateChoreModal";
+import { api } from "@/lib/api";
+import { withTimeout } from "@/lib/time";
 
 type Member = { id: string; name: string; role: "parent"|"teen"|"child" };
 type Chore = {
@@ -25,17 +27,15 @@ export default function ChoresCard({ currentUser }: ChoresCardProps) {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const isParent = currentUser.role === "parent";
 
-  async function load() {
+  const load = useCallback(async () => {
     setErr(null);
     try {
-      const response = await fetch("/api/chores", { credentials: "include" });
-      if (!response.ok) throw new Error("Failed to fetch chores");
-      const data = await response.json();
+      const data = await withTimeout(api("/api/chores"), 8000);
       setRows(data);
     } catch (e: any) { 
       setErr(e.message); 
     }
-  }
+  }, []);
 
   useEffect(() => { 
     load(); 
@@ -44,18 +44,17 @@ export default function ChoresCard({ currentUser }: ChoresCardProps) {
     const handleReload = () => load();
     window.addEventListener("chores:reload", handleReload);
     return () => window.removeEventListener("chores:reload", handleReload);
-  }, []);
+  }, [load]);
 
   async function markDone(id: string) {
     const prev = rows!;
     setRows(prev.map(r => r.id === id ? {...r, status: "done"} : r));
     
     try { 
-      const response = await fetch(`/api/chores/${id}/complete`, { 
+      await api(`/api/chores/${id}/complete`, { 
         method: "PATCH",
         credentials: "include" 
       });
-      if (!response.ok) throw new Error("Failed to mark chore done");
       reloadAfterChange();
     } catch {
       setRows(prev);
@@ -67,14 +66,11 @@ export default function ChoresCard({ currentUser }: ChoresCardProps) {
     setRows(prev.map(r => r.id === id ? {...r, status: "approved"} : r));
     
     try { 
-      const response = await fetch(`/api/chores/${id}/approve`, { 
+      await api(`/api/chores/${id}/approve`, { 
         method: "PATCH",
         credentials: "include" 
       });
-      if (!response.ok) throw new Error("Failed to approve chore");
       reloadAfterChange();
-      // Let Allowance mini refresh
-      window.dispatchEvent(new CustomEvent("allowance:reload"));
     } catch {
       setRows(prev);
     }
@@ -85,13 +81,11 @@ export default function ChoresCard({ currentUser }: ChoresCardProps) {
     setRows(prev.map(r => r.id === id ? {...r, status: "done"} : r));
     
     try { 
-      const response = await fetch(`/api/chores/${id}/unapprove`, { 
+      await api(`/api/chores/${id}/unapprove`, { 
         method: "PATCH",
         credentials: "include" 
       });
-      if (!response.ok) throw new Error("Failed to unapprove chore");
       reloadAfterChange();
-      window.dispatchEvent(new CustomEvent("allowance:reload"));
     } catch {
       setRows(prev);
     }
@@ -102,11 +96,10 @@ export default function ChoresCard({ currentUser }: ChoresCardProps) {
     setRows(prev.map(r => r.id === id ? {...r, status: "todo"} : r));
     
     try { 
-      const response = await fetch(`/api/chores/${id}/reject`, { 
+      await api(`/api/chores/${id}/reject`, { 
         method: "PATCH",
         credentials: "include" 
       });
-      if (!response.ok) throw new Error("Failed to reject chore");
       reloadAfterChange();
     } catch {
       setRows(prev);
@@ -116,6 +109,7 @@ export default function ChoresCard({ currentUser }: ChoresCardProps) {
   function reloadAfterChange() {
     window.dispatchEvent(new CustomEvent("chores:reload"));
     window.dispatchEvent(new CustomEvent("actioncenter:reload"));
+    window.dispatchEvent(new CustomEvent("allowance:reload"));
   }
 
   if (err) {
