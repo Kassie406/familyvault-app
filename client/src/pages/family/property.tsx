@@ -340,7 +340,7 @@ export default function Property() {
                   <h1 className="text-3xl font-bold text-white shrink-0" data-testid="page-title">{pageTitle}</h1>
                   <button
                     onClick={handleEditTitle}
-                    className="p-1 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
+                    className="p-1 text-white/60 hover:text-white rounded transition-colors"
                     data-testid="edit-title-button"
                   >
                     <MoreHorizontal className="h-4 w-4" />
