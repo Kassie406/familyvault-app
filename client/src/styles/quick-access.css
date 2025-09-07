@@ -89,3 +89,15 @@
   border: 1px solid rgba(212,175,55,0.28) !important;
   background-image: linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%) !important;
 }
+
+/* Ensure glow applies whenever the tile or anything inside it is hovered or focused */
+#quick-access-modal .qa-tile:hover,
+#quick-access-modal .qa-tile:focus,
+#quick-access-modal .qa-tile:focus-visible,
+#quick-access-modal .qa-tile:focus-within,
+#quick-access-modal .qa-tile:has(:hover) {
+  border-color: rgba(212,175,55,0.55) !important;
+  box-shadow:
+    0 0 0 1px rgba(212,175,55,.35),
+    0 18px 50px rgba(212,175,55,.12);
+}
