@@ -167,3 +167,26 @@ dialog[aria-label="Quick Access"] a[aria-label="Emergency Call"]::after
 {
   content: none !important;
 }
+
+/* FIX "ALL" TAB WHITE HOVER - Line 190 in component has hover:bg-white/10 */
+dialog[aria-label="Quick Access"] button[data-testid="filter-all"],
+dialog[aria-label="Quick Access"] button[data-testid="filter-all"]:hover,
+dialog[aria-label="Quick Access"] button[data-testid="filter-all"]:focus {
+  background-color: rgba(255,255,255,0.05) !important; /* Keep slight dark tint instead of white */
+}
+
+/* FIX ALL CATEGORY FILTER BUTTONS - Remove white hover from all tabs */
+dialog[aria-label="Quick Access"] button[data-testid^="filter-"]:hover {
+  background-color: rgba(255,255,255,0.05) !important; /* Dark tint instead of white */
+}
+
+/* FIX MOBILE NAVIGATION WHITE HOVERS - Lines 61, 100, 110 in MobileNavigationBar.tsx */
+button[data-testid="mobile-nav-quick"]:hover,
+button[data-testid="mobile-nav-home"]:hover,
+button[data-testid="mobile-nav-messages"]:hover, 
+button[data-testid="mobile-nav-family"]:hover,
+button[data-testid="mobile-nav-settings"]:hover,
+button[data-testid="mobile-notifications"]:hover,
+button[data-testid="mobile-menu-open"]:hover {
+  background-color: rgba(255,255,255,0.02) !important; /* Very subtle dark tint instead of white */
+}
