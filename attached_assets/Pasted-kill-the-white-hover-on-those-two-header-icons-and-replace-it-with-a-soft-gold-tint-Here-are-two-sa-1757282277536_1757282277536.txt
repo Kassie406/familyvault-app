@@ -1,0 +1,60 @@
+kill the white hover on those two header icons and replace it with a soft gold tint. Here are two safe ways to do it; use whichever matches how your project is wired.
+
+Option A — Drop-in CSS override (fastest)
+
+Add this to your global styles (e.g., client/src/styles/header.css or your existing quick-access.css), then hard-refresh (Ctrl/Cmd+Shift+R).
+
+/* === Header icon hover: soft gold, no white === */
+
+/* Scope to the app header; adjust the selector if your header root differs */
+header .icon-btn,
+header .icon-button,
+header button[aria-label],                /* catches Quick Access / dev tools, etc. */
+header [role="button"][aria-label] {
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+/* remove any white/gray hovers coming from Tailwind/DaisyUI */
+header .icon-btn:hover,
+header .icon-btn:focus-visible,
+header .icon-btn:active,
+header .icon-button:hover,
+header .icon-button:focus-visible,
+header .icon-button:active,
+header button[aria-label]:hover,
+header button[aria-label]:focus-visible,
+header button[aria-label]:active,
+header [role="button"][aria-label]:hover,
+header [role="button"][aria-label]:focus-visible,
+header [role="button"][aria-label]:active {
+  /* soft gold (rgba of #D4AF37) — subtle on hover,
+     a touch stronger on focus/active (overridden below) */
+  background-color: rgba(212, 175, 55, 0.10) !important;
+  box-shadow: none !important;          /* kill any glow/ring */
+}
+
+/* slightly stronger for keyboard focus */
+header .icon-btn:focus-visible,
+header .icon-button:focus-visible,
+header button[aria-label]:focus-visible,
+header [role="button"][aria-label]:focus-visible {
+  background-color: rgba(212, 175, 55, 0.16) !important;
+}
+
+/* on active/pressed */
+header .icon-btn:active,
+header .icon-button:active,
+header button[aria-label]:active,
+header [role="button"][aria-label]:active {
+  background-color: rgba(212, 175, 55, 0.22) !important;
+}
+
+/* neutralize DaisyUI/Tailwind white rings if present */
+header .icon-btn:hover,
+header .icon-button:hover,
+header button[aria-label]:hover {
+  --tw-bg-opacity: 1; /* prevents bg-white/xx from bleeding through */
+}
+
+
+If your header wrapper isn’t literally header, swap that in the first selector (e.g., .topbar, .app-header).
