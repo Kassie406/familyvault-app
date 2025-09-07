@@ -11,14 +11,15 @@ header, .topbar, [data-kc="header"], nav[aria-label="Header"] {
 }
 
 /* Kill default white hovers/rings on header buttons/icons */
+.sticky button,
+.header-notify-btn,
+.header-menu-btn,
+button[data-testid="mobile-notifications"],
+button[data-testid="mobile-menu-open"],
 header button,
 header a[role="button"],
 .topbar button,
-.topbar a[role="button"],
-[data-kc="header"] button,
-[data-kc="header"] a[role="button"],
-nav[aria-label="Header"] button,
-nav[aria-label="Header"] a[role="button"] {
+.topbar a[role="button"] {
   background-color: transparent !important;
   border-radius: 9999px; /* keep round pills for icons */
   /* neutralize Tailwind/DaisyUI rings */
@@ -30,26 +31,28 @@ nav[aria-label="Header"] a[role="button"] {
 }
 
 /* Light gold hover (replaces white) */
+.sticky button:hover,
+.header-notify-btn:hover,
+.header-menu-btn:hover,
+button[data-testid="mobile-notifications"]:hover,
+button[data-testid="mobile-menu-open"]:hover,
 header button:hover,
 header a[role="button"]:hover,
 .topbar button:hover,
-.topbar a[role="button"]:hover,
-[data-kc="header"] button:hover,
-[data-kc="header"] a[role="button"]:hover,
-nav[aria-label="Header"] button:hover,
-nav[aria-label="Header"] a[role="button"]:hover {
+.topbar a[role="button"]:hover {
   background-color: var(--kc-gold-08) !important;
 }
 
 /* Accessible focus state — soft gold ring, no white */
+.sticky button:focus-visible,
+.header-notify-btn:focus-visible,
+.header-menu-btn:focus-visible,
+button[data-testid="mobile-notifications"]:focus-visible,
+button[data-testid="mobile-menu-open"]:focus-visible,
 header button:focus-visible,
 header a[role="button"]:focus-visible,
 .topbar button:focus-visible,
-.topbar a[role="button"]:focus-visible,
-[data-kc="header"] button:focus-visible,
-[data-kc="header"] a[role="button"]:focus-visible,
-nav[aria-label="Header"] button:focus-visible,
-nav[aria-label="Header"] a[role="button"]:focus-visible {
+.topbar a[role="button"]:focus-visible {
   box-shadow: 0 0 0 2px var(--kc-gold-24) !important;
 }
 
