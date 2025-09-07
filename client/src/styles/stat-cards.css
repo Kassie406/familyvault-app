@@ -1,0 +1,26 @@
+/* Enhanced StatCard hover effects for dashboard cards */
+
+/* Target all StatCard instances with stronger specificity */
+[data-testid^="stat-card"]:hover {
+  border-color: rgba(212, 175, 55, 0.40) !important;
+  box-shadow: 
+    0 0 0 1px rgba(212, 175, 55, .35),
+    0 18px 50px rgba(212, 175, 55, .12) !important;
+}
+
+/* Specific targeting for the 4 dashboard cards */
+[data-testid="stat-card-shared-lists"]:hover,
+[data-testid="stat-card-recipe-book"]:hover,
+[data-testid="stat-card-budget-tracker"]:hover,
+[data-testid="stat-card-meal-planner"]:hover {
+  border-color: rgba(212, 175, 55, 0.40) !important;
+  box-shadow: 
+    0 0 0 1px rgba(212, 175, 55, .35),
+    0 18px 50px rgba(212, 175, 55, .12) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Override any conflicting background styles */
+[data-testid^="stat-card"] * {
+  background-color: transparent !important;
+}
