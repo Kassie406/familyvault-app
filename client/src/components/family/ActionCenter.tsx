@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { withTimeout } from "@/lib/time";
-import { Card } from "@/components/ui/Card";
 
 type Counts = { 
   approvePending: number; 
@@ -53,20 +52,20 @@ export default function ActionCenter() {
 
   if (err) {
     return (
-      <Card className="p-4 text-rose-300">
+      <div className="rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] transition-all duration-300 text-rose-300">
         <div className="flex items-center gap-2">
           <AlertCircle className="w-5 h-5" />
           Action Center error — {err}
         </div>
-      </Card>
+      </div>
     );
   }
   
   if (!data) {
     return (
-      <Card className="p-4 animate-pulse text-white/60">
+      <div className="rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] transition-all duration-300 animate-pulse text-white/60">
         Loading Action Center…
-      </Card>
+      </div>
     );
   }
 
@@ -79,28 +78,28 @@ export default function ActionCenter() {
 
   return (
     <a href="#chores" className="block no-underline">
-      <Card className={`p-4 ${
+      <div className={`rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] hover:shadow-xl hover:shadow-[#D4AF37]/10 hover:border-[#D4AF37]/30 transition-all duration-300 ${
         hasActions 
-          ? "cursor-pointer border-[#D4AF37]/30" 
-          : "border-emerald-500/30"
+          ? "cursor-pointer" 
+          : ""
       }`}>
-      <div className="flex items-center gap-2 mb-1">
-        {hasActions ? (
-          <AlertCircle className="w-5 h-5 text-[#D4AF37]" />
-        ) : (
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-        )}
-        <div className="text-white/80 text-sm font-medium">Action Center</div>
+        <div className="flex items-center gap-2 mb-1">
+          {hasActions ? (
+            <AlertCircle className="w-5 h-5 text-[#D4AF37]" />
+          ) : (
+            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+          )}
+          <div className="text-white/80 text-sm font-medium">Action Center</div>
+        </div>
+        
+        <div className="text-white text-base">
+          {hasActions ? (
+            items.join(" • ")
+          ) : (
+            "All caught up! 🎉"
+          )}
+        </div>
       </div>
-      
-      <div className="text-white text-base">
-        {hasActions ? (
-          items.join(" • ")
-        ) : (
-          "All caught up! 🎉"
-        )}
-      </div>
-      </Card>
     </a>
   );
 }
