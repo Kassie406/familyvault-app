@@ -52,7 +52,6 @@ const authLimiter = rateLimit({
 
 // Session helpers
 function issueSession(res: Response, email: string) {
-  console.log('🔒 Issuing session for email:', email);
   const sessionId = uuid();
   res.cookie('fcs_session', sessionId, {
     httpOnly: true,
@@ -68,7 +67,6 @@ function issueSession(res: Response, email: string) {
     sameSite: 'lax',
     maxAge: 1000 * 60 * 60 * 24 * 7
   });
-  console.log('✅ Session cookies set successfully');
 }
 
 function getAuthenticatedUser(req: Request): string | null {
@@ -168,24 +166,14 @@ router.post('/login/start', authLimiter, async (req, res) => {
 
 // Verify code
 router.post('/login/verify', authLimiter, (req, res) => {
-  console.log('🔍 POST /login/verify - Request received:', { 
-    email: req.body.email, 
-    codeLength: req.body.code?.length,
-    hasNonce: !!req.body.nonce 
-  });
-  
   const email = String(req.body.email || '').trim().toLowerCase();
   const code = String(req.body.code || '').trim();
   const nonce = String(req.body.nonce || '').trim();
   
-  console.log('📋 Checking stored codes for email:', email);
   const entry = verificationCodes.get(email);
   if (!entry) {
-    console.log('❌ No verification code found for email:', email);
     return res.status(400).json({ ok: false, error: 'No verification code found' });
   }
-  
-  console.log('✅ Found stored code entry for email:', email);
   
   if (entry.nonce !== nonce) {
     return res.status(400).json({ ok: false, error: 'Invalid verification attempt' });
