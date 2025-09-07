@@ -52,7 +52,7 @@ export default function ActionCenter() {
 
   if (err) {
     return (
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-rose-300">
+      <div className="rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-4 shadow-[0_10px_28px_rgba(0,0,0,0.45)] text-rose-300">
         <div className="flex items-center gap-2">
           <AlertCircle className="w-5 h-5" />
           Action Center error — {err}
@@ -63,7 +63,7 @@ export default function ActionCenter() {
   
   if (!data) {
     return (
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4 animate-pulse text-white/60">
+      <div className="rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-4 shadow-[0_10px_28px_rgba(0,0,0,0.45)] animate-pulse text-white/60">
         Loading Action Center…
       </div>
     );
@@ -79,9 +79,9 @@ export default function ActionCenter() {
   return (
     <a 
       href="#chores" 
-      className={`block rounded-xl border border-white/10 bg-white/5 p-4 transition-all duration-200 ${
+      className={`block rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-4 hover:border-white/12 transition shadow-[0_10px_28px_rgba(0,0,0,0.45)] hover:shadow-[0_16px_40px_rgba(212,175,55,0.12)] ${
         hasActions 
-          ? "hover:bg-white/10 cursor-pointer border-[#D4AF37]/30" 
+          ? "cursor-pointer border-[#D4AF37]/30" 
           : "border-emerald-500/30"
       }`}
     >
