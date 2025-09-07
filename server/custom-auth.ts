@@ -21,13 +21,19 @@ if (ALLOWED_EMAILS.length === 0) {
 // Email transporter
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: Number(process.env.SMTP_PORT) || 465,
-  secure: (process.env.SMTP_SECURE ?? 'true') === 'true',
+  port: Number(process.env.SMTP_PORT) || 587,
+  secure: (process.env.SMTP_SECURE ?? 'false') === 'true',
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS
   }
 });
+
+// Debug SMTP connection
+transporter.verify().then(
+  () => console.log('✅ SMTP connection OK'),
+  (e) => console.error('❌ SMTP ERROR:', e.message || e)
+);
 
 // In-memory code store (for development - use Redis in production)
 const verificationCodes = new Map<string, {
@@ -155,7 +161,7 @@ router.post('/login/start', authLimiter, async (req, res) => {
     
     res.json({ ok: true, nonce });
   } catch (error) {
-    console.error('Email send error:', error);
+    console.error('❌ Mail send error:', error);
     res.status(500).json({ ok: false, error: 'Failed to send verification email' });
   }
 });
