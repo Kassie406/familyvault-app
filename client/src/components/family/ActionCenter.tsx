@@ -79,11 +79,26 @@ export default function ActionCenter() {
   return (
     <a 
       href="#chores" 
-      className={`block rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-4 hover:border-white/12 transition shadow-[0_10px_28px_rgba(0,0,0,0.45)] hover:shadow-[0_16px_40px_rgba(212,175,55,0.12)] ${
+      className={`block rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-4 hover:border-white/12 transition shadow-[0_10px_28px_rgba(0,0,0,0.45)] hover:shadow-[0_16px_40px_rgba(212,175,55,0.12)] no-underline ${
         hasActions 
           ? "cursor-pointer border-[#D4AF37]/30" 
           : "border-emerald-500/30"
       }`}
+      style={{
+        textDecoration: 'none',
+        color: 'inherit',
+        background: 'linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = 'linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))';
+        e.currentTarget.style.color = 'inherit';
+        e.currentTarget.style.textDecoration = 'none';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = 'linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))';
+        e.currentTarget.style.color = 'inherit';
+        e.currentTarget.style.textDecoration = 'none';
+      }}
     >
       <div className="flex items-center gap-2 mb-1">
         {hasActions ? (
