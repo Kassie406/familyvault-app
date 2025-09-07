@@ -1,0 +1,123 @@
+The most likely reason nothing changed is that the CSS file with the “nuke” rules isn’t actually being loaded by the app (or an older rule with higher precedence is still winning). Let’s fix this in a way that (1) guarantees the stylesheet is loaded and (2) removes every hover glow/ring/shadow on the Quick Access tiles.
+
+Below is a single copy-paste prompt you can give to the Replit Agent. It does three things:
+
+Ensures the quick-access.css file is imported (so our rules actually run).
+
+Removes all halo sources inside the Quick Access dialog (rings, drop-shadows, pseudo-element overlays).
+
+Hardens the tile markup so Tailwind/DaisyUI can’t re-add glows via classes.
+
+Paste this to Replit Agent
+
+Goal: In the Quick Access dialog, keep only the thin gold border on tiles; remove ALL hover/focus haloes, rings, outlines, drop-shadows and pseudo-element glows. Make sure the stylesheet is loaded.
+
+Steps:
+
+Create or open client/src/styles/quick-access.css and append (or keep) these rules at the very end of the file:
+
+/* QUICK ACCESS — remove all halo/ring/shadow from tiles but keep gold border */
+
+/* Target the modal by multiple names to be safe */
+dialog[aria-label="Quick Access"],
+#quick-access-modal,
+#quickAccessModal,
+.quick-access-modal,
+[data-qa="quick-access"] {
+  /* kill Tailwind/Daisy ring/shadow vars at the root */
+  --tw-ring-inset: initial !important;
+  --tw-ring-offset-width: 0 !important;
+  --tw-ring-offset-color: transparent !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-shadow: 0 0 #0000 !important;
+  --tw-shadow-colored: 0 0 #0000 !important;
+}
+
+/* Nuke every source of halo inside the modal (including pseudo elements) */
+dialog[aria-label="Quick Access"] *,
+dialog[aria-label="Quick Access"] *::before,
+dialog[aria-label="Quick Access"] *::after,
+#quick-access-modal *,
+#quick-access-modal *::before,
+#quick-access-modal *::after,
+#quickAccessModal *,
+#quickAccessModal *::before,
+#quickAccessModal *::after,
+.quick-access-modal *,
+.quick-access-modal *::before,
+.quick-access-modal *::after,
+[data-qa="quick-access"] *,
+[data-qa="quick-access"] *::before,
+[data-qa="quick-access"] *::after {
+  box-shadow: none !important;
+  outline: none !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  content: none !important; /* kills pseudo-element glow */
+}
+
+/* Standardize the tile look — gold border only, no hover change */
+dialog[aria-label="Quick Access"] .qa-tile,
+#quick-access-modal .qa-tile,
+#quickAccessModal .qa-tile,
+.quick-access-modal .qa-tile,
+[data-qa="quick-access"] .qa-tile {
+  border: 1px solid rgba(212,175,55,0.28) !important; /* gold line */
+  background-image: linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%) !important;
+  background-color: transparent !important;
+  background-clip: padding-box !important;
+  border-radius: 16px !important;
+  isolation: isolate !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+dialog[aria-label="Quick Access"] .qa-tile:hover,
+dialog[aria-label="Quick Access"] .qa-tile:focus,
+#quick-access-modal .qa-tile:hover,
+#quick-access-modal .qa-tile:focus,
+#quickAccessModal .qa-tile:hover,
+#quickAccessModal .qa-tile:focus,
+.quick-access-modal .qa-tile:hover,
+.quick-access-modal .qa-tile:focus,
+[data-qa="quick-access"] .qa-tile:hover,
+[data-qa="quick-access"] .qa-tile:focus {
+  border-color: rgba(212,175,55,0.28) !important; /* do not brighten */
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+
+Make sure the stylesheet is actually imported (this is probably why you saw no change!).
+In client/src/main.tsx (or client/src/App.tsx—where you import global styles), add one line:
+
+import './styles/quick-access.css';
+
+
+Do a quick code search to ensure you didn’t import it twice.
+
+Normalize the tile markup to use a stable class:
+
+Find the component that renders each Quick Access tile (e.g., something like QuickAccessTile.tsx, QuickActionsGrid.tsx, or similar under client/src/components).
+
+On the outer clickable tile container, add the class qa-tile and remove Tailwind/DaisyUI glow classes such as:
+
+ring-*, focus:ring*, focus-visible:ring*, hover:shadow*, drop-shadow*, shadow*, before:*, after:*, card hover:shadow*
+
+Example replacement className you can use on the outer tile wrapper:
+
+className="qa-tile relative rounded-2xl border border-[#d4af37]/30 bg-[linear-gradient(180deg,#0b0b0e_0%,#0e0e14_100%)] outline-none focus:outline-none focus:ring-0 hover:shadow-none"
+
+
+Keep the inner content (icon, title, subtitle) unchanged.
+
+Rebuild + hard refresh
+Stop/start the dev server if needed, then Ctrl/Cmd + Shift + R in the browser to bust cache.
+
+Expected result: In the Quick Access modal, every tile keeps a thin gold border, no halo/glow on hover or focus, and no white corners. The “Share Location” tile should now match the others.
+
+If you still see a glow after this:
+
+It means one tile is using a different wrapper/class. In DevTools, right-click that tile → Inspect → copy the outer two nodes’ HTML and paste it to me. I’ll give you a tiny, exact selector to finish it off.
