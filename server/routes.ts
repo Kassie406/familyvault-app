@@ -1754,20 +1754,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Chores & Allowance API endpoints
   // Import statements are at the top of the file
 
+  // GET /api/chores/summary - Get chores counts for Action Center
+  app.get("/api/chores/summary", async (req, res) => {
+    try {
+      const familyId = "family-1"; // TODO: Get from user's family
+      const now = new Date();
+      const soon = new Date();
+      soon.setDate(soon.getDate() + 2); // Next 2 days
+
+      // Count pending approvals (chores marked as done but not approved)
+      const pendingApprovals = await db.select().from(chores)
+        .where(and(eq(chores.familyId, familyId), eq(chores.status, "done")));
+
+      // Count chores due soon (next 2 days)
+      const dueSoon = await db.select().from(chores)
+        .where(and(
+          eq(chores.familyId, familyId), 
+          eq(chores.status, "todo"),
+          sql`${chores.dueAt} BETWEEN ${now.toISOString()} AND ${soon.toISOString()}`
+        ));
+
+      // Count overdue chores
+      const overdue = await db.select().from(chores)
+        .where(and(
+          eq(chores.familyId, familyId), 
+          eq(chores.status, "todo"),
+          sql`${chores.dueAt} < ${now.toISOString()}`
+        ));
+
+      res.json({
+        pendingApprovals: pendingApprovals.length,
+        dueSoon: dueSoon.length,
+        overdue: overdue.length
+      });
+    } catch (error) {
+      console.error("Error fetching chores summary:", error);
+      res.status(500).json({ error: "Failed to fetch chores summary" });
+    }
+  });
+
   // GET /api/chores - List chores (optionally for a specific assignee)
   app.get("/api/chores", async (req, res) => {
     try {
-      const { since, assigneeId } = req.query;
+      const { since, assigneeId, scope } = req.query;
       const familyId = "family-1"; // TODO: Get from authenticated session
+      const currentUserId = "current-user"; // TODO: Get from session
       
-      let whereClause: any = { familyId };
-      if (assigneeId === "me") {
-        whereClause.assigneeId = "current-user"; // TODO: Get from session
+      let whereConditions = [eq(chores.familyId, familyId)];
+      
+      // Handle scope parameter (family vs mine)
+      if (scope === "mine") {
+        whereConditions.push(eq(chores.assigneeId, currentUserId));
+      } else if (assigneeId === "me") {
+        whereConditions.push(eq(chores.assigneeId, currentUserId));
       } else if (assigneeId) {
-        whereClause.assigneeId = assigneeId;
+        whereConditions.push(eq(chores.assigneeId, assigneeId as string));
       }
+      
       if (since) {
-        whereClause.dueAt = { gte: new Date(since) };
+        whereConditions.push(sql`${chores.dueAt} >= ${new Date(since as string).toISOString()}`);
       }
 
       const choresList = await db.select({
@@ -1786,7 +1831,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       })
       .from(chores)
       .leftJoin(familyMembers, eq(chores.assigneeId, familyMembers.id))
-      .where(eq(chores.familyId, familyId))
+      .where(and(...whereConditions))
       .orderBy(chores.status, chores.dueAt);
 
       res.json(choresList);
