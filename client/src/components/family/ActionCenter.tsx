@@ -11,35 +11,37 @@ export default function ActionCenter() {
   const [data, setData] = useState<Counts | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
+  async function load() {
+    setErr(null);
+    try {
+      const response = await fetch("/api/chores/summary", {
+        credentials: "include"
+      });
+      
+      if (!response.ok) throw new Error("Failed to fetch action center data");
+      
+      const data = await response.json();
+      setData({
+        approvePending: data.pendingApproval,
+        dueToday: data.dueToday,
+        mealsUnplanned: 0 // TODO: Wire up meals unplanned count
+      });
+    } catch (e: any) { 
+      setErr(e.message); 
+    }
+  }
+
   useEffect(() => {
-    let alive = true;
+    load();
     
-    (async () => {
-      try {
-        const response = await fetch("/api/chores?since=" + new Date().toISOString(), {
-          credentials: "include"
-        });
-        
-        if (!response.ok) throw new Error("Failed to fetch chores data");
-        
-        const chores = await response.json();
-        const today = new Date().toDateString();
-        
-        const approvePending = chores.filter((c: any) => c.status === "done").length;
-        const dueToday = chores.filter((c: any) => 
-          new Date(c.dueAt).toDateString() === today && c.status === "todo"
-        ).length;
-        
-        // mealsUnplanned placeholder (wire up later)
-        const mealsUnplanned = 0;
-        
-        if (alive) setData({ approvePending, dueToday, mealsUnplanned });
-      } catch (e: any) { 
-        if (alive) setErr(e.message); 
-      }
-    })();
-    
-    return () => { alive = false; };
+    // Listen for reload events
+    const handleReload = () => load();
+    window.addEventListener("actioncenter:reload", handleReload);
+    window.addEventListener("chores:reload", handleReload);
+    return () => {
+      window.removeEventListener("actioncenter:reload", handleReload);
+      window.removeEventListener("chores:reload", handleReload);
+    };
   }, []);
 
   if (err) {
