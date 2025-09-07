@@ -9,7 +9,8 @@ import {
   integer,
   serial,
   boolean,
-  unique
+  unique,
+  date
 } from "drizzle-orm/pg-core";
 
 // Session storage table.
@@ -916,3 +917,50 @@ export type Chore = typeof chores.$inferSelect;
 export type InsertChore = typeof chores.$inferInsert;
 export type AllowanceLedger = typeof allowanceLedger.$inferSelect;
 export type InsertAllowanceLedger = typeof allowanceLedger.$inferInsert;
+
+// Meal Planning & Recipe System
+export const recipes = pgTable("recipes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  title: varchar("title").notNull(),
+  notes: text("notes"),
+  ingredients: text("ingredients").notNull(), // MVP: plain text, lines or comma-separated
+  category: varchar("category").default("Main Course"),
+  prepTime: integer("prep_time"), // minutes
+  cookTime: integer("cook_time"), // minutes
+  servings: integer("servings"),
+  difficulty: varchar("difficulty").default("Easy"), // Easy, Medium, Hard
+  isFavorite: boolean("is_favorite").default(false),
+  tags: text("tags"), // comma-separated string
+  createdById: varchar("created_by_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const mealPlanEntries = pgTable("meal_plan_entries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  date: date("date").notNull(), // store as date only (ignore time)
+  mealType: varchar("meal_type").notNull(), // breakfast, lunch, dinner, snack
+  recipeId: varchar("recipe_id").references(() => recipes.id),
+  title: varchar("title"), // free-text if no recipe chosen (e.g., "Pizza night")
+  createdById: varchar("created_by_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const shoppingItems = pgTable("shopping_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  name: varchar("name").notNull(),
+  qty: varchar("qty"), // "2", "1 lb", "3 cloves"
+  checked: boolean("checked").default(false),
+  source: varchar("source"), // e.g., recipe title or "Manual"
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Meal planning types
+export type Recipe = typeof recipes.$inferSelect;
+export type InsertRecipe = typeof recipes.$inferInsert;
+export type MealPlanEntry = typeof mealPlanEntries.$inferSelect;
+export type InsertMealPlanEntry = typeof mealPlanEntries.$inferInsert;
+export type ShoppingItem = typeof shoppingItems.$inferSelect;
+export type InsertShoppingItem = typeof shoppingItems.$inferInsert;
