@@ -1,5 +1,12 @@
 #action-center-shell,
 #action-center-shell *:where(.card, .card-body){background:transparent!important;}
+/* Make every known wrapper inside Action Center transparent */
+#action-center-card :is(.card, .card-body, .card-title,
+                        .bg-white, [class*="bg-white"],
+                        .bg-base-100, [class*="bg-base-100"],
+                        .bg-neutral, [class*="bg-neutral"]) {
+  background: transparent !important;
+}
 #action-center-card{position:relative;border-radius:16px;border:1px solid rgba(255,255,255,.08);
 background:linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%);box-shadow:0 10px 28px rgba(0,0,0,.45);
 transition:box-shadow .2s,border-color .2s;overflow:hidden;isolation:isolate;}
