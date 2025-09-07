@@ -33,7 +33,7 @@ import Reviews from "@/pages/reviews";
 import Pricing from "@/pages/pricing";
 import ScheduleDemo from "@/pages/schedule-demo";
 import { ThreadsDashboard } from "@/pages/ThreadsDashboard";
-import Login from "@/pages/login";
+import NewSignIn from "@/auth/NewSignIn";
 import Signup from "@/pages/signup";
 import SignupOptions from "@/pages/signup-options";
 import Settings from "@/pages/settings";
@@ -149,7 +149,7 @@ function Router() {
       <Route path="/reviews" component={Reviews} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/schedule-demo" component={ScheduleDemo} />
-      <Route path="/login" component={Login} />
+      <Route path="/login" component={NewSignIn} />
       <Route path="/signup" component={Signup} />
       <Route path="/share/:token" component={Share} />
       <Route path="/signup-options" component={SignupOptions} />
