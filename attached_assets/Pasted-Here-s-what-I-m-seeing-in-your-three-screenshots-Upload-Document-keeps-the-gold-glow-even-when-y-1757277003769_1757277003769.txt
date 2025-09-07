@@ -1,0 +1,82 @@
+Here’s what I’m seeing in your three screenshots:
+
+“Upload Document” keeps the gold glow even when your cursor has moved to other tiles.
+
+That means the tile (or a link/button inside it) is still focused, not hovered. The glow you’re seeing is the focus state we added for keyboard accessibility. So the highlight is “sticking” on the last clicked tile.
+
+Other tiles (e.g., “Share Location”) don’t glow when you hover sometimes.
+
+That happens when the hover is on a child element (e.g., an inner <a> that fills the card), so the outer card with the border doesn’t receive :hover. If the CSS only styles .qa-tile:hover then those tiles won’t glow.
+
+So you’ve got two different states fighting each other: a “stuck” focus glow on one card, and no hover glow on another because the hover is on a child, not the card.
+
+Fix (CSS only, same file)
+
+In src/styles/quick-access.css, keep your current styling and add/adjust these rules:
+
+/* Make sure the visible card wrapper can receive hover/focus */
+#quick-access-modal .qa-tile {
+  position: relative;
+  display: block;
+  pointer-events: auto;
+}
+
+/* 1) Hover glow: apply when the tile OR anything inside it is hovered */
+#quick-access-modal .qa-tile:hover,
+#quick-access-modal .qa-tile:has(:hover) {
+  border-color: rgba(212,175,55,0.55) !important;
+  box-shadow:
+    0 0 0 1px rgba(212,175,55,.35),
+    0 18px 50px rgba(212,175,55,.12);
+}
+
+/* 2) Focus state: keep accessible but not the big outer glow */
+#quick-access-modal .qa-tile:focus,
+#quick-access-modal .qa-tile:focus-visible,
+#quick-access-modal .qa-tile:focus-within {
+  border-color: rgba(212,175,55,0.28) !important;   /* base gold */
+  box-shadow: inset 0 0 0 2px rgba(212,175,55,.45) !important; /* subtle inner outline */
+}
+
+/* Prevent inner elements from re-introducing rings/shadows that peek at corners */
+#quick-access-modal .qa-tile,
+#quick-access-modal .qa-tile * {
+  --tw-ring-inset: initial !important;
+  --tw-ring-offset-width: 0 !important;
+  --tw-ring-offset-color: transparent !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-shadow: 0 0 #0000 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: inherit !important;
+}
+
+Why this solves it
+
+:has(:hover) makes the outer card glow even if a child element is the one being hovered, so “Share Location” lights up reliably.
+
+The focus styles switch to a subtle inner outline instead of the big outer glow, so “Upload Document” won’t look hovered when it’s only focused.
+
+Tip: ensure each visible card wrapper actually has class="qa-tile" (the element that draws the border). If the border is on a parent, move qa-tile to that parent.
+
+Optional quality-of-life (JS)
+
+If you prefer the focus to clear after clicking a tile (so no focus highlight remains):
+
+// run once on modal mount
+document.addEventListener('mousedown', (e) => {
+  const tile = e.target.closest('#quick-access-modal .qa-tile');
+  if (tile) {
+    // clear focus from previously focused tile
+    document.activeElement && document.activeElement.blur?.();
+  }
+});
+
+
+Do a hard refresh after the CSS change (Ctrl/Cmd + Shift + R) and test:
+
+Hover any tile → gold glow shows.
+
+Click a tile → no big “stuck” glow on a different tile; focus is a subtle inner outline only.

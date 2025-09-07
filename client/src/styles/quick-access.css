@@ -54,10 +54,9 @@
 #quick-access-modal .qa-tile a { color: inherit; text-decoration: none; }
 #quick-access-modal .qa-tile a:hover { text-decoration: underline; }
 
-/* Hard-kill Tailwind/DaisyUI rings & shadows that create corner nicks */
+/* Prevent inner elements from re-introducing rings/shadows that peek at corners */
 #quick-access-modal .qa-tile,
 #quick-access-modal .qa-tile * {
-  /* Tailwind ring/shadow variables */
   --tw-ring-inset: initial !important;
   --tw-ring-offset-width: 0 !important;
   --tw-ring-offset-color: transparent !important;
@@ -65,17 +64,17 @@
   --tw-ring-offset-shadow: 0 0 #0000 !important;
   --tw-ring-shadow: 0 0 #0000 !important;
   --tw-shadow: 0 0 #0000 !important;
-
-  /* Also neutralize classic outlines/box-shadows */
   outline: none !important;
   box-shadow: none !important;
-  border-radius: inherit !important;        /* make inner wrappers match radius */
+  border-radius: inherit !important;
   background-clip: padding-box !important;  /* avoid bleed under border */
 }
 
-/* Ensure the visible tile clips EVERYTHING to its radius */
+/* Make sure the visible card wrapper can receive hover/focus */
 #quick-access-modal .qa-tile {
-  position: relative;       /* for isolation */
+  position: relative;
+  display: block;
+  pointer-events: auto;
   isolation: isolate;
   overflow: hidden;         /* critical: clip corner artifacts */
   border-radius: 16px;      /* keep your 16px radius */
@@ -90,14 +89,19 @@
   background-image: linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%) !important;
 }
 
-/* Ensure glow applies whenever the tile or anything inside it is hovered or focused */
+/* 1) Hover glow: apply when the tile OR anything inside it is hovered */
 #quick-access-modal .qa-tile:hover,
-#quick-access-modal .qa-tile:focus,
-#quick-access-modal .qa-tile:focus-visible,
-#quick-access-modal .qa-tile:focus-within,
 #quick-access-modal .qa-tile:has(:hover) {
   border-color: rgba(212,175,55,0.55) !important;
   box-shadow:
     0 0 0 1px rgba(212,175,55,.35),
     0 18px 50px rgba(212,175,55,.12);
+}
+
+/* 2) Focus state: keep accessible but not the big outer glow */
+#quick-access-modal .qa-tile:focus,
+#quick-access-modal .qa-tile:focus-visible,
+#quick-access-modal .qa-tile:focus-within {
+  border-color: rgba(212,175,55,0.28) !important;   /* base gold */
+  box-shadow: inset 0 0 0 2px rgba(212,175,55,.45) !important; /* subtle inner outline */
 }
