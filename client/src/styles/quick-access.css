@@ -258,51 +258,76 @@ header button[aria-label="Dev Tools"]:hover {
 }
 
 /* ================================
-   MOBILE NAVIGATION BAR — KILL WHITE HOVER
+   MOBILE NAVIGATION BAR — NUCLEAR WHITE HOVER KILLER
    ================================ */
 
-/* Target the two specific circular icons in mobile navigation */
-.header-notify-btn,
-.header-menu-btn,
-[data-testid="mobile-notifications"],
-[data-testid="mobile-menu-open"] {
+/* MAXIMUM SPECIFICITY - Target all possible button selectors */
+button[data-testid="mobile-notifications"],
+button[data-testid="mobile-menu-open"],
+button.header-notify-btn,
+button.header-menu-btn,
+.mobile-nav button[data-testid="mobile-notifications"],
+.mobile-nav button[data-testid="mobile-menu-open"],
+.top-header button[data-testid="mobile-notifications"],
+.top-header button[data-testid="mobile-menu-open"],
+div button[data-testid="mobile-notifications"],
+div button[data-testid="mobile-menu-open"] {
   background-color: transparent !important;
+  background: transparent !important;
+  --tw-bg-opacity: 0 !important;
   box-shadow: none !important;
   --tw-ring-color: transparent !important;
   --tw-ring-offset-color: transparent !important;
   --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-shadow: 0 0 #0000 !important;
 }
 
-/* Inner elements of these buttons */
-.header-notify-btn *,
-.header-menu-btn *,
-[data-testid="mobile-notifications"] *,
-[data-testid="mobile-menu-open"] * {
+/* Kill all inner elements too */
+button[data-testid="mobile-notifications"] *,
+button[data-testid="mobile-menu-open"] *,
+button.header-notify-btn *,
+button.header-menu-btn * {
   background-color: transparent !important;
+  background: transparent !important;
   box-shadow: none !important;
 }
 
-/* Soft gold hover instead of white */
-.header-notify-btn:hover,
-.header-menu-btn:hover,
-[data-testid="mobile-notifications"]:hover,
-[data-testid="mobile-menu-open"]:hover {
+/* Soft gold hover - MAXIMUM SPECIFICITY */
+button[data-testid="mobile-notifications"]:hover,
+button[data-testid="mobile-menu-open"]:hover,
+button.header-notify-btn:hover,
+button.header-menu-btn:hover,
+div button[data-testid="mobile-notifications"]:hover,
+div button[data-testid="mobile-menu-open"]:hover {
   background-color: rgba(212, 175, 55, 0.12) !important;
+  background: rgba(212, 175, 55, 0.12) !important;
+  --tw-bg-opacity: 1 !important;
 }
 
-/* Focus states */
-.header-notify-btn:focus-visible,
-.header-menu-btn:focus-visible,
-[data-testid="mobile-notifications"]:focus-visible,
-[data-testid="mobile-menu-open"]:focus-visible {
+/* Focus states - MAXIMUM SPECIFICITY */
+button[data-testid="mobile-notifications"]:focus-visible,
+button[data-testid="mobile-menu-open"]:focus-visible,
+button.header-notify-btn:focus-visible,
+button.header-menu-btn:focus-visible {
   background-color: rgba(212, 175, 55, 0.16) !important;
+  background: rgba(212, 175, 55, 0.16) !important;
   outline: none !important;
 }
 
-/* Active states */
-.header-notify-btn:active,
-.header-menu-btn:active,
-[data-testid="mobile-notifications"]:active,
-[data-testid="mobile-menu-open"]:active {
+/* Active states - MAXIMUM SPECIFICITY */
+button[data-testid="mobile-notifications"]:active,
+button[data-testid="mobile-menu-open"]:active,
+button.header-notify-btn:active,
+button.header-menu-btn:active {
   background-color: rgba(212, 175, 55, 0.22) !important;
+  background: rgba(212, 175, 55, 0.22) !important;
+}
+
+/* NUCLEAR OPTION - Kill ANY white backgrounds on hover in the header area */
+.sticky button:hover,
+.sticky button:focus,
+.sticky button:active {
+  background-color: rgba(212, 175, 55, 0.12) !important;
+  background: rgba(212, 175, 55, 0.12) !important;
+  --tw-bg-opacity: 1 !important;
 }
