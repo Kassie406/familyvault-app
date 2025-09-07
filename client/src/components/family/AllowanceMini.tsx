@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { DollarSign } from "lucide-react";
 import { api } from "@/lib/api";
 import { withTimeout } from "@/lib/time";
+import "@/styles/allowance-mini.css";
 
 type Item = { deltaPoints: number; reason: string; createdAt: string };
 
@@ -36,7 +37,7 @@ export default function AllowanceMini({ memberId = "me" }: AllowanceMiniProps) {
   }, [load]);
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/5 p-4">
+    <section id="allowance-mini" className="rounded-2xl border border-white/10 bg-white/5 p-4">
       <div className="flex items-center gap-2 mb-3">
         <DollarSign className="w-5 h-5 text-[#D4AF37]" />
         <div className="text-white/80">Allowance</div>
