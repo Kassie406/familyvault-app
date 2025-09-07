@@ -1,16 +1,29 @@
-#action-center-shell,
-#action-center-shell *:where(.card, .card-body){background:transparent!important;}
-/* Make every known wrapper inside Action Center transparent */
-#action-center-card :is(.card, .card-body, .card-title,
-                        .bg-white, [class*="bg-white"],
-                        .bg-base-100, [class*="bg-base-100"],
-                        .bg-neutral, [class*="bg-neutral"]) {
+/* 100% scoped to the Action Center card */
+
+/* Force ALL inner backgrounds transparent (nuclear, but safe and scoped) */
+#action-center-card,
+#action-center-card * {
   background: transparent !important;
 }
-#action-center-card{position:relative;border-radius:16px;border:1px solid rgba(255,255,255,.08);
-background:linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%);box-shadow:0 10px 28px rgba(0,0,0,.45);
-transition:box-shadow .2s,border-color .2s;overflow:hidden;isolation:isolate;}
-#action-center-card:hover{border-color:rgba(212,175,55,.40);
-box-shadow:0 0 0 1px rgba(212,175,55,.35),0 18px 50px rgba(212,175,55,.12);}
-#action-center-card a{text-decoration:none;color:inherit;}
-#action-center-card a:hover{text-decoration:underline;}
+
+/* Re-apply our card's dark gradient and border on the outer node only */
+#action-center-card {
+  border-radius: 16px;                               /* rounded-2xl */
+  border: 1px solid rgba(255,255,255,0.08);
+  background-image: linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.45);
+  transition: box-shadow .2s ease, border-color .2s ease;
+  isolation: isolate; overflow: hidden;
+}
+
+/* Gold glow on hover (no bg change) */
+#action-center-card:hover {
+  border-color: rgba(212,175,55,0.40);
+  box-shadow:
+    0 0 0 1px rgba(212,175,55,.35),
+    0 18px 50px rgba(212,175,55,.12);
+}
+
+/* Optional: keep links from turning blue/underlined unless hover */
+#action-center-card a { color: inherit; text-decoration: none; }
+#action-center-card a:hover { text-decoration: underline; }
