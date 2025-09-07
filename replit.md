@@ -14,6 +14,7 @@ Preferred communication style: Simple, everyday language.
 - **Child Information Redesign**: ✓ Completed - Upgraded to luxury dark theme with professional section cards, always-visible add menu, search functionality, and consistent routing structure matching the polished experience of Passwords, Family IDs, and Business modules
 - **Elderly Parents Redesign**: ✓ Completed - Upgraded to luxury dark theme with 6 professional care category sections, always-visible add menu, search functionality, and full routing setup for comprehensive elder care management
 - **Getting Married Redesign**: ✓ Completed - Upgraded to luxury dark theme with 6 professional wedding planning category sections, always-visible add menu, search functionality, and full routing setup for comprehensive wedding planning management
+- **Complete Chores Workflow**: ✓ Completed - Full workflow with real-time updates including complete/approve/unapprove/reject actions, live dashboard refresh, and proper allowance point management with transaction-based integrity
 
 # System Architecture
 
