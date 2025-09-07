@@ -1,3 +1,17 @@
+You’re seeing two separate issues in Quick Access:
+
+the “ghost-click”/see-through effect
+
+the white hover fill + corner bleed on each tile
+
+They were both caused by the previous “nuclear” override that set * { background-color: transparent !important } and removed ::before/::after content. DaisyUI uses a backdrop pseudo-element to block clicks and some Tailwind ring/bg utilities to color tiles on hover. Nuking all backgrounds/pseudo-elements makes the overlay stop intercepting clicks and lets the base hover styles show through.
+
+Below is a scoped, safe fix that restores the overlay and removes the white hover/focus and corner bleed only inside the Quick Access dialog.
+
+Paste into client/src/styles/quick-access.css
+
+(leave everything else out; this replaces the “nuclear” rules)
+
 /* ===== Quick Access – safe, scoped overrides ===== */
 
 /* Scope to the modal so nothing else is touched */
@@ -69,3 +83,39 @@ dialog[aria-label="Quick Access"] .btn::before,
 dialog[aria-label="Quick Access"] .btn::after {
   content: none !important;
 }
+
+/* Optional: unify tile padding/height if needed
+dialog[aria-label="Quick Access"] .card { padding: 18px !important; }
+*/
+
+
+Important: Delete/Comment the old “nuclear” lines such as
+*{ background-color: transparent !important } and any global *,*::before,*::after { content: none !important } from this file. Those are what broke the overlay and caused the ghost clicks.
+
+How to apply & verify
+
+Save the CSS file.
+
+In Chrome DevTools, open the Network tab and tick Disable cache.
+
+Hard refresh (Ctrl/Cmd + Shift + R).
+
+Open Quick Access and hover any tile:
+
+No white fill on hover
+
+No halo/glow
+
+No corner bleed
+
+Background page is dimmed and not clickable
+
+If you want me to drive this with the Replit Agent
+
+Copy/paste this one-shot prompt:
+
+Prompt for Replit Agent
+“Open client/src/styles/quick-access.css. Remove any global ‘nuclear’ rules like * { background-color: transparent !important } and any *, *::before, *::after { content: none !important }. Then replace the file contents with the CSS below (scoped to dialog[aria-label="Quick Access"]). This must restore the modal backdrop and eliminate white hover fill, rings, and corner bleed on tiles and buttons. After updating, hard-reload with Disable cache on to verify.”
+(then paste the CSS block above)
+
+If anything still looks off after this, send me a fresh screenshot and I’ll adjust the selectors to match your exact markup.
