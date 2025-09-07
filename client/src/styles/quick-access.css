@@ -1,260 +1,119 @@
-/* ========= QUICK ACCESS: remove every hover/focus glow ========== */
+/* NUCLEAR APPROACH: Kill ALL white backgrounds in Quick Access modal */
 
-/* Match the Quick Access dialog no matter how it's mounted/named */
+/* Target the modal and EVERYTHING inside it */
 dialog[aria-label="Quick Access"],
+dialog[aria-label="Quick Access"] *,
 #quick-access-modal,
+#quick-access-modal *,
 #quickAccessModal,
+#quickAccessModal *,
 .quick-access-modal,
-[data-qa="quick-access"] {
-  /* Kill ring/shadow CSS variables at the container */
+.quick-access-modal *,
+[data-qa="quick-access"],
+[data-qa="quick-access"] * {
+  /* Kill ALL Tailwind/DaisyUI CSS variables */
+  --tw-bg-opacity: 0 !important;
+  --tw-text-opacity: 1 !important;
+  --tw-border-opacity: 1 !important;
+  --tw-ring-opacity: 0 !important;
+  --tw-shadow: 0 0 #0000 !important;
+  --tw-shadow-colored: 0 0 #0000 !important;
   --tw-ring-inset: initial !important;
   --tw-ring-offset-width: 0 !important;
   --tw-ring-offset-color: transparent !important;
   --tw-ring-color: transparent !important;
   --tw-ring-offset-shadow: 0 0 #0000 !important;
   --tw-ring-shadow: 0 0 #0000 !important;
-  --tw-shadow: 0 0 #0000 !important;
-  --tw-shadow-colored: 0 0 #0000 !important;
+  
+  /* Kill all possible background variations */
+  background-color: transparent !important;
+  background-image: none !important;
+  background: none !important;
+  
+  /* Kill all visual effects */
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  outline: none !important;
+  border: none !important;
 }
 
-/* Hard-select all common tile wrappers INCLUDING div-wrapped onClick tiles */
-dialog[aria-label="Quick Access"] .card,
-dialog[aria-label="Quick Access"] .tile,
+/* Force dark background on the actual tiles */
 dialog[aria-label="Quick Access"] .qa-tile,
-dialog[aria-label="Quick Access"] button,
-dialog[aria-label="Quick Access"] a,
-dialog[aria-label="Quick Access"] div,
-dialog[aria-label="Quick Access"] [role="button"],
-#quick-access-modal .card,
-#quick-access-modal .tile,
+dialog[aria-label="Quick Access"] .card,
 #quick-access-modal .qa-tile,
-#quick-access-modal button,
-#quick-access-modal a,
-#quick-access-modal div,
-#quick-access-modal [role="button"],
-#quickAccessModal .card,
-#quickAccessModal .tile,
+#quick-access-modal .card,
 #quickAccessModal .qa-tile,
-#quickAccessModal button,
-#quickAccessModal a,
-#quickAccessModal div,
-#quickAccessModal [role="button"],
-.quick-access-modal .card,
-.quick-access-modal .tile,
+#quickAccessModal .card,
 .quick-access-modal .qa-tile,
-.quick-access-modal button,
-.quick-access-modal a,
-.quick-access-modal div,
-.quick-access-modal [role="button"],
-[data-qa="quick-access"] .card,
-[data-qa="quick-access"] .tile,
+.quick-access-modal .card,
 [data-qa="quick-access"] .qa-tile,
-[data-qa="quick-access"] button,
-[data-qa="quick-access"] a,
-[data-qa="quick-access"] div,
-[data-qa="quick-access"] [role="button"] {
-  /* keep your gold border only */
+[data-qa="quick-access"] .card {
+  background: linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%) !important;
   border: 1px solid rgba(212,175,55,0.28) !important;
   border-radius: 16px !important;
-
-  /* nuke all possible glows */
-  box-shadow: none !important;
-  outline: none !important;
-  filter: none !important;
-  mix-blend-mode: normal !important;
-
-  /* stop pseudo-element glows */
-  --tw-before-shadow: 0 0 #0000 !important;
-  --tw-after-shadow: 0 0 #0000 !important;
+  overflow: hidden !important;
 }
 
-dialog[aria-label="Quick Access"] .card:hover,
-dialog[aria-label="Quick Access"] .card:focus,
-dialog[aria-label="Quick Access"] .card:focus-visible,
-dialog[aria-label="Quick Access"] .tile:hover,
-dialog[aria-label="Quick Access"] .tile:focus,
-dialog[aria-label="Quick Access"] .tile:focus-visible,
-dialog[aria-label="Quick Access"] .qa-tile:hover,
-dialog[aria-label="Quick Access"] .qa-tile:focus,
-dialog[aria-label="Quick Access"] .qa-tile:focus-visible,
-dialog[aria-label="Quick Access"] button:hover,
-dialog[aria-label="Quick Access"] button:focus,
-dialog[aria-label="Quick Access"] button:focus-visible,
-dialog[aria-label="Quick Access"] a:hover,
-dialog[aria-label="Quick Access"] a:focus,
-dialog[aria-label="Quick Access"] a:focus-visible,
-dialog[aria-label="Quick Access"] div:hover,
-dialog[aria-label="Quick Access"] div:focus,
-dialog[aria-label="Quick Access"] div:focus-visible,
-dialog[aria-label="Quick Access"] [role="button"]:hover,
-dialog[aria-label="Quick Access"] [role="button"]:focus,
-dialog[aria-label="Quick Access"] [role="button"]:focus-visible,
-
-#quick-access-modal .card:hover,
-#quick-access-modal .card:focus,
-#quick-access-modal .card:focus-visible,
-#quick-access-modal .tile:hover,
-#quick-access-modal .tile:focus,
-#quick-access-modal .tile:focus-visible,
-#quick-access-modal .qa-tile:hover,
-#quick-access-modal .qa-tile:focus,
-#quick-access-modal .qa-tile:focus-visible,
-#quick-access-modal button:hover,
-#quick-access-modal button:focus,
-#quick-access-modal button:focus-visible,
-#quick-access-modal a:hover,
-#quick-access-modal a:focus,
-#quick-access-modal a:focus-visible,
-#quick-access-modal div:hover,
-#quick-access-modal div:focus,
-#quick-access-modal div:focus-visible,
-#quick-access-modal [role="button"]:hover,
-#quick-access-modal [role="button"]:focus,
-#quick-access-modal [role="button"]:focus-visible,
-
-#quickAccessModal .card:hover,
-#quickAccessModal .card:focus,
-#quickAccessModal .card:focus-visible,
-#quickAccessModal .tile:hover,
-#quickAccessModal .tile:focus,
-#quickAccessModal .tile:focus-visible,
-#quickAccessModal .qa-tile:hover,
-#quickAccessModal .qa-tile:focus,
-#quickAccessModal .qa-tile:focus-visible,
-#quickAccessModal button:hover,
-#quickAccessModal button:focus,
-#quickAccessModal button:focus-visible,
-#quickAccessModal a:hover,
-#quickAccessModal a:focus,
-#quickAccessModal a:focus-visible,
-#quickAccessModal div:hover,
-#quickAccessModal div:focus,
-#quickAccessModal div:focus-visible,
-#quickAccessModal [role="button"]:hover,
-#quickAccessModal [role="button"]:focus,
-#quickAccessModal [role="button"]:focus-visible,
-
-.quick-access-modal .card:hover,
-.quick-access-modal .card:focus,
-.quick-access-modal .card:focus-visible,
-.quick-access-modal .tile:hover,
-.quick-access-modal .tile:focus,
-.quick-access-modal .tile:focus-visible,
-.quick-access-modal .qa-tile:hover,
-.quick-access-modal .qa-tile:focus,
-.quick-access-modal .qa-tile:focus-visible,
-.quick-access-modal button:hover,
-.quick-access-modal button:focus,
-.quick-access-modal button:focus-visible,
-.quick-access-modal a:hover,
-.quick-access-modal a:focus,
-.quick-access-modal a:focus-visible,
-.quick-access-modal div:hover,
-.quick-access-modal div:focus,
-.quick-access-modal div:focus-visible,
-.quick-access-modal [role="button"]:hover,
-.quick-access-modal [role="button"]:focus,
-.quick-access-modal [role="button"]:focus-visible,
-
-[data-qa="quick-access"] .card:hover,
-[data-qa="quick-access"] .card:focus,
-[data-qa="quick-access"] .card:focus-visible,
-[data-qa="quick-access"] .tile:hover,
-[data-qa="quick-access"] .tile:focus,
-[data-qa="quick-access"] .tile:focus-visible,
-[data-qa="quick-access"] .qa-tile:hover,
-[data-qa="quick-access"] .qa-tile:focus,
-[data-qa="quick-access"] .qa-tile:focus-visible,
-[data-qa="quick-access"] button:hover,
-[data-qa="quick-access"] button:focus,
-[data-qa="quick-access"] button:focus-visible,
-[data-qa="quick-access"] a:hover,
-[data-qa="quick-access"] a:focus,
-[data-qa="quick-access"] a:focus-visible,
-[data-qa="quick-access"] div:hover,
-[data-qa="quick-access"] div:focus,
-[data-qa="quick-access"] div:focus-visible,
-[data-qa="quick-access"] [role="button"]:hover,
-[data-qa="quick-access"] [role="button"]:focus,
-[data-qa="quick-access"] [role="button"]:focus-visible {
-  border-color: rgba(212,175,55,0.28) !important; /* keep steady gold line */
-  box-shadow: none !important;
-  outline: none !important;
-  filter: none !important;
-}
-
-/* ===== Quick Access – remove white hover background on tiles ===== */
-
-/* Scope to the Quick Access dialog so we don't affect other cards */
-dialog[aria-label="Quick Access"] .qa-tile,
-dialog[aria-label="Quick Access"] .card,
-dialog[aria-label="Quick Access"] [role="button"] {
-  /* your normal dark background */
-  background-color: #0c0d11 !important; /* match your theme */
-}
-
-/* Block any light hover/focus/active backgrounds coming from DaisyUI/Tailwind */
-dialog[aria-label="Quick Access"] .qa-tile:is(:hover, :focus, :active, :focus-visible),
-dialog[aria-label="Quick Access"] .card:is(:hover, :focus, :active, :focus-visible),
-dialog[aria-label="Quick Access"] [role="button"]:is(:hover, :focus, :active, :focus-visible) {
-  background-color: #0c0d11 !important; /* stay dark */
-}
-
-/* Some DaisyUI components add inner wrappers with hover bg — neutralize them too */
-dialog[aria-label="Quick Access"] .qa-tile *:is(:hover, :focus, :active, :focus-visible),
-dialog[aria-label="Quick Access"] .card *:is(:hover, :focus, :active, :focus-visible) {
-  background-color: transparent !important; /* prevent inner light sheets */
-}
-
-/* Remove rings/filters that may look like a white wash */
-dialog[aria-label="Quick Access"] .qa-tile,
-dialog[aria-label="Quick Access"] .qa-tile *,
-dialog[aria-label="Quick Access"] .card,
-dialog[aria-label="Quick Access"] .card * {
-  --tw-ring-shadow: 0 0 #0000 !important;
-  --tw-shadow: 0 0 #0000 !important;
-  box-shadow: none !important;
-  filter: none !important;
-  outline: 0 !important;
-}
-
-/* If any pseudo-element is injecting a light hover, nuke it */
-dialog[aria-label="Quick Access"] .qa-tile::before,
-dialog[aria-label="Quick Access"] .qa-tile::after,
-dialog[aria-label="Quick Access"] .card::before,
-dialog[aria-label="Quick Access"] .card::after {
-  content: none !important;
-}
-
-/* Quick Access: kill the white hover sheet coming from DaisyUI/Tailwind */
-dialog[aria-label="Quick Access"] .card,
-dialog[aria-label="Quick Access"] .card * {
-  /* normal resting background remains dark from your theme */
-  background-image: none !important;
-}
-
-/* On any interaction state, ensure no light layer appears anywhere inside */
-dialog[aria-label="Quick Access"] .card:is(:hover, :focus, :focus-within, :active),
-dialog[aria-label="Quick Access"] .card *:is(:hover, :focus, :focus-within, :active) {
-  /* Neutralize Tailwind/DaisyUI background utilities */
+/* Kill ALL hover/focus/active states universally */
+dialog[aria-label="Quick Access"] *:hover,
+dialog[aria-label="Quick Access"] *:focus,
+dialog[aria-label="Quick Access"] *:focus-visible,
+dialog[aria-label="Quick Access"] *:focus-within,
+dialog[aria-label="Quick Access"] *:active,
+#quick-access-modal *:hover,
+#quick-access-modal *:focus,
+#quick-access-modal *:focus-visible,
+#quick-access-modal *:focus-within,
+#quick-access-modal *:active,
+#quickAccessModal *:hover,
+#quickAccessModal *:focus,
+#quickAccessModal *:focus-visible,
+#quickAccessModal *:focus-within,
+#quickAccessModal *:active,
+.quick-access-modal *:hover,
+.quick-access-modal *:focus,
+.quick-access-modal *:focus-visible,
+.quick-access-modal *:focus-within,
+.quick-access-modal *:active,
+[data-qa="quick-access"] *:hover,
+[data-qa="quick-access"] *:focus,
+[data-qa="quick-access"] *:focus-visible,
+[data-qa="quick-access"] *:focus-within,
+[data-qa="quick-access"] *:active {
   --tw-bg-opacity: 0 !important;
   background-color: transparent !important;
   background-image: none !important;
-
-  /* Neutralize rings/shadows that can look like a wash */
-  --tw-ring-color: transparent !important;
-  --tw-ring-offset-shadow: 0 0 #0000 !important;
-  --tw-ring-shadow: 0 0 #0000 !important;
-  --tw-shadow: 0 0 #0000 !important;
+  background: none !important;
   box-shadow: none !important;
-  outline: 0 !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  outline: none !important;
 }
 
-/* If any pseudo-element is used for the hover sheet, remove it */
-dialog[aria-label="Quick Access"] .card::before,
-dialog[aria-label="Quick Access"] .card::after,
-dialog[aria-label="Quick Access"] .card *::before,
-dialog[aria-label="Quick Access"] .card *::after {
-  background: none !important;
+/* Kill ALL pseudo-elements universally */
+dialog[aria-label="Quick Access"] *::before,
+dialog[aria-label="Quick Access"] *::after,
+#quick-access-modal *::before,
+#quick-access-modal *::after,
+#quickAccessModal *::before,
+#quickAccessModal *::after,
+.quick-access-modal *::before,
+.quick-access-modal *::after,
+[data-qa="quick-access"] *::before,
+[data-qa="quick-access"] *::after {
   content: none !important;
+  background: none !important;
+  display: none !important;
+}
+
+/* Specific DaisyUI class overrides */
+dialog[aria-label="Quick Access"] .btn:hover,
+dialog[aria-label="Quick Access"] .card:hover,
+dialog[aria-label="Quick Access"] .btn-ghost:hover,
+#quick-access-modal .btn:hover,
+#quick-access-modal .card:hover,
+#quick-access-modal .btn-ghost:hover {
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
 }
