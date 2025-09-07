@@ -1,0 +1,43 @@
+Task: Fix Action Center card so it exactly matches our luxury theme:
+- No white seams/halo around corners.
+- Gold border/shadow glow on hover.
+- No background color changes on hover.
+
+Constraints:
+- Touch ≤2 files total (prefer only the Action Center component).
+- Keep content/layout unchanged. No global css or tailwind config edits.
+- Use STRICT_COST_MODE format (Plan → Patch → Verify → Stop).
+
+Steps:
+1) Find the Action Center card component (e.g. src/components/family/ActionCenterCard.tsx). If the path differs, search for the component that renders the "Action Center" title.
+
+2) Ensure the OUTER-MOST visible container for the Action Center card is either our shared <Card> or has EXACTLY these classes (and nothing that sets a bg color on hover):
+   Base:
+     "relative isolate overflow-hidden rounded-2xl border border-white/8
+      bg-gradient-to-b from-[#0b0b0e] to-[#0e0e14]
+      shadow-[0_10px_28px_rgba(0,0,0,.45)] transition-all duration-200"
+   Hover (gold):
+     "hover:border-[#D4AF37]/40
+      hover:shadow-[0_0_0_1px_rgba(212,175,55,.35),0_18px_50px_rgba(212,175,55,.12)]"
+
+   If src/components/ui/Card.tsx exists, wrap the content with:
+   <Card id="action-center-card"
+         className="relative isolate overflow-hidden
+                    hover:border-[#D4AF37]/40
+                    hover:shadow-[0_0_0_1px_rgba(212,175,55,.35),0_18px_50px_rgba(212,175,55,.12)]">
+     …existing content…
+   </Card>
+
+3) **Remove background from wrappers**:
+   - On the immediate parent(s) of the card, remove any of the following:
+     bg-white, bg-white/5, bg-neutral-*, bg-base-100, card bg classes,
+     hover:bg-*, group-hover:bg-*, backdrop-*, or any DaisyUI card bg.
+   - Replace with "bg-transparent p-0" if spacing is needed.
+   - Ensure ONLY the card container has rounded-2xl + border (parents must NOT be rounded or have bg).
+
+4) If a wrapper must remain (layout reasons), add id="action-center-shell" to it and set the wrapper class to "bg-transparent p-0". Do NOT add any hover:bg.
+
+5) Verification (one step):
+   - Run once, open Dashboard.
+   - Hover Action Center: border/box-shadow turns gold; background does NOT turn white; no light seams at corners.
+   - In DevTools on the hovered element, search the Styles panel for “hover:bg” and confirm none are applied on the card or its parents. If any exist, remove them from the component and re-run once.
