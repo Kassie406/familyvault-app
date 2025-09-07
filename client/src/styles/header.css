@@ -138,9 +138,10 @@ button[data-testid="edit-title-button"]:hover {
 
 /* ---- Gold theme for header icons (replaces white hover) ---- */
 
-/* Base gold palette (adjust once if you tweak the brand color) */
+/* Header icon hover → subtle gold */
 :root {
-  --kc-gold-rgb: 212, 175, 55;           /* your gold */
+  --kc-gold: #D4AF37;
+  --kc-gold-rgb: 212, 175, 55;
   --kc-gold-hover: rgba(var(--kc-gold-rgb), 0.10);
   --kc-gold-focus: rgba(var(--kc-gold-rgb), 0.14);
 }
@@ -153,10 +154,22 @@ button[data-testid="button-toggle-layout"] {
   outline: 0 !important;
 }
 
-/* Replace white hover with light gold */
+/* The two buttons live inside the sticky header wrapper */
+.sticky button[data-testid="button-quick-access"]:hover,
+.sticky button[data-testid="button-toggle-layout"]:hover,
 button[data-testid="button-quick-access"]:hover,
 button[data-testid="button-toggle-layout"]:hover {
-  background-color: var(--kc-gold-hover) !important;
+  background-color: rgba(var(--kc-gold-rgb), 0.10) !important; /* light gold tint */
+  color: var(--kc-gold) !important;                           /* make lucide icons gold */
+}
+
+/* Lucide icons inherit currentColor; this forces stroke to gold on hover */
+.sticky button[data-testid="button-quick-access"]:hover svg,
+.sticky button[data-testid="button-toggle-layout"]:hover svg,
+button[data-testid="button-quick-access"]:hover svg,
+button[data-testid="button-toggle-layout"]:hover svg {
+  stroke: currentColor !important;
+  color: var(--kc-gold) !important;
 }
 
 /* Accessible keyboard focus tint (also gold) */
