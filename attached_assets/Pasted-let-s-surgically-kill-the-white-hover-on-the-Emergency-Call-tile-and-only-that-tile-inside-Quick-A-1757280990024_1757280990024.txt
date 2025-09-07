@@ -1,0 +1,107 @@
+let’s surgically kill the white hover on the Emergency Call tile (and only that tile) inside Quick Access, without breaking the rest of the modal.
+
+Below is a copy-paste CSS override that’s very defensive. It handles the common DaisyUI/Tailwind hover sources (bg-*, card:hover, rings, filters, and pseudo-elements) while limiting the scope to the Emergency-Call card.
+
+1) Paste this at the end of your client/src/styles/quick-access.css
+/* ================================
+   Quick Access: Emergency Call fix
+   ================================ */
+
+/* Scope: only inside the Quick Access dialog */
+dialog[aria-label="Quick Access"] {
+  /* Target the Emergency Call tile by any of these handles:
+     - aria-label on a button/link
+     - data-action you may have added
+     - a URL/route containing "emergency"
+     - fallback nth-child in the grid if nothing else exists (commented)
+  */
+}
+
+/* Prefer an explicit, stable hook if you have it: */
+dialog[aria-label="Quick Access"] button[aria-label="Emergency Call"],
+dialog[aria-label="Quick Access"] a[aria-label="Emergency Call"],
+dialog[aria-label="Quick Access"] [data-action="emergency-call"],
+dialog[aria-label="Quick Access"] a[href*="emergency"],
+dialog[aria-label="Quick Access"] button[data-route*="emergency"]
+{
+  /* Stop any white backgrounds on normal/hover/focus states */
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  filter: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Keep it transparent when interacting */
+dialog[aria-label="Quick Access"] button[aria-label="Emergency Call"]:is(:hover, :focus, :focus-visible),
+dialog[aria-label="Quick Access"] a[aria-label="Emergency Call"]:is(:hover, :focus, :focus-visible),
+dialog[aria-label="Quick Access"] [data-action="emergency-call"]:is(:hover, :focus, :focus-visible),
+dialog[aria-label="Quick Access"] a[href*="emergency"]:is(:hover, :focus, :focus-visible),
+dialog[aria-label="Quick Access"] button[data-route*="emergency"]:is(:hover, :focus, :focus-visible)
+{
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  filter: none !important;
+  box-shadow: inset 0 0 0 1px rgba(212,175,55,.35); /* optional: keep subtle gold outline */
+}
+
+/* DaisyUI “card” hover/focus fallbacks that sometimes wrap the tile */
+dialog[aria-label="Quick Access"] .card:has(> button[aria-label="Emergency Call"]),
+dialog[aria-label="Quick Access"] .card:has(> a[aria-label="Emergency Call"]),
+dialog[aria-label="Quick Access"] .card:has(> [data-action="emergency-call"]),
+dialog[aria-label="Quick Access"] .card:has(> a[href*="emergency"]),
+dialog[aria-label="Quick Access"] .card:has(> button[data-route*="emergency"])
+{
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Also neutralize DaisyUI pseudo-element or ring tricks on that tile */
+dialog[aria-label="Quick Access"] button[aria-label="Emergency Call"]::before,
+dialog[aria-label="Quick Access"] button[aria-label="Emergency Call"]::after,
+dialog[aria-label="Quick Access"] a[aria-label="Emergency Call"]::before,
+dialog[aria-label="Quick Access"] a[aria-label="Emergency Call"]::after
+{
+  content: none !important;
+}
+
+/* ---------------------------------------------
+   LAST-RESORT fallback if you lack any handles:
+   Uncomment ONE of these nth-child selectors to
+   match the exact position of the Emergency Call tile.
+   (Use DevTools → Inspect to confirm the index.)
+---------------------------------------------- */
+/*
+dialog[aria-label="Quick Access"] .grid > *:nth-child(2) {
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  box-shadow: none !important;
+}
+dialog[aria-label="Quick Access"] .grid > *:nth-child(2):is(:hover, :focus, :focus-visible) {
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  box-shadow: inset 0 0 0 1px rgba(212,175,55,.35);
+}
+*/
+
+2) Hard-refresh correctly
+
+Open the page, press F12 → Network tab → check Disable cache.
+
+Press Ctrl+Shift+R (Windows/Linux) or Cmd+Shift+R (Mac) to reload.
+
+3) (Optional) Add a stable handle once
+
+If your Emergency Call tile doesn’t already have a unique attribute, add one to its element (button/link), e.g.:
+
+<button
+  aria-label="Emergency Call"
+  data-action="emergency-call"
+  /* ...other props... */
+/>
+
+
+That makes the specific selectors above bullet-proof and avoids positional (nth-child) brittle fixes.
+
+If the white flash still appears only on hover, it means the framework is injecting a hover class like hover:bg-base-100 directly on the interactive element. In that very rare case, copy the element from Inspect → Copy → Copy selector and send me that selector; I’ll give you a one-line override for that exact element.

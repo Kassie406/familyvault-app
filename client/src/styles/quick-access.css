@@ -112,3 +112,58 @@ dialog[aria-label="Quick Access"] .qa-tile {
   background: linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%) !important;
   border: 1px solid var(--qa-gold) !important;
 }
+
+/* ================================
+   Quick Access: Emergency Call fix
+   ================================ */
+
+/* Prefer an explicit, stable hook if you have it: */
+dialog[aria-label="Quick Access"] button[aria-label="Emergency Call"],
+dialog[aria-label="Quick Access"] a[aria-label="Emergency Call"],
+dialog[aria-label="Quick Access"] [data-action="emergency-call"],
+dialog[aria-label="Quick Access"] a[href*="emergency"],
+dialog[aria-label="Quick Access"] button[data-route*="emergency"],
+dialog[aria-label="Quick Access"] .grid > *:nth-child(2)
+{
+  /* Stop any white backgrounds on normal/hover/focus states */
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  filter: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Keep it transparent when interacting */
+dialog[aria-label="Quick Access"] button[aria-label="Emergency Call"]:is(:hover, :focus, :focus-visible),
+dialog[aria-label="Quick Access"] a[aria-label="Emergency Call"]:is(:hover, :focus, :focus-visible),
+dialog[aria-label="Quick Access"] [data-action="emergency-call"]:is(:hover, :focus, :focus-visible),
+dialog[aria-label="Quick Access"] a[href*="emergency"]:is(:hover, :focus, :focus-visible),
+dialog[aria-label="Quick Access"] button[data-route*="emergency"]:is(:hover, :focus, :focus-visible),
+dialog[aria-label="Quick Access"] .grid > *:nth-child(2):is(:hover, :focus, :focus-visible)
+{
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  filter: none !important;
+  box-shadow: inset 0 0 0 1px rgba(212,175,55,.35) !important;
+}
+
+/* DaisyUI "card" hover/focus fallbacks that sometimes wrap the tile */
+dialog[aria-label="Quick Access"] .card:has(> button[aria-label="Emergency Call"]),
+dialog[aria-label="Quick Access"] .card:has(> a[aria-label="Emergency Call"]),
+dialog[aria-label="Quick Access"] .card:has(> [data-action="emergency-call"]),
+dialog[aria-label="Quick Access"] .card:has(> a[href*="emergency"]),
+dialog[aria-label="Quick Access"] .card:has(> button[data-route*="emergency"])
+{
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Also neutralize DaisyUI pseudo-element or ring tricks on that tile */
+dialog[aria-label="Quick Access"] button[aria-label="Emergency Call"]::before,
+dialog[aria-label="Quick Access"] button[aria-label="Emergency Call"]::after,
+dialog[aria-label="Quick Access"] a[aria-label="Emergency Call"]::before,
+dialog[aria-label="Quick Access"] a[aria-label="Emergency Call"]::after
+{
+  content: none !important;
+}
