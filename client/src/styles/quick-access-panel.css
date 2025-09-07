@@ -1,6 +1,20 @@
-/* Scoped to Quick Access Panel cards */
+/* Nuclear CSS override for Quick Access Panel cards - eliminates ALL white strips */
 
-/* Add gold glow on hover for all Quick Access cards */
+/* NUCLEAR: Force transparency on EVERYTHING inside Quick Access cards */
+[data-testid^="quick-action-"], 
+[data-testid^="quick-action-"] * {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Re-apply ONLY the dark gradient to outer container */
+[data-testid^="quick-action-"] {
+  background: rgba(255,255,255,0.05) !important;
+  background-color: rgba(255,255,255,0.05) !important;
+}
+
+/* Gold glow on hover - applied after background fixes */
 [data-testid^="quick-action-"]:hover {
   border-color: rgba(212,175,55,0.40) !important;
   box-shadow:
@@ -8,12 +22,10 @@
     0 18px 50px rgba(212,175,55,.12) !important;
 }
 
-/* Force transparent backgrounds on all inner elements to prevent white strips */
-[data-testid^="quick-action-"] * {
-  background-color: transparent !important;
-}
-
-/* Re-apply dark background only to the main card container */
-[data-testid^="quick-action-"] {
-  background-color: rgba(255,255,255,0.05) !important;
+/* Prevent any links from showing blue/underlined styling */
+[data-testid^="quick-action-"] a,
+[data-testid^="quick-action-"] a:visited,
+[data-testid^="quick-action-"] a:hover {
+  color: inherit !important;
+  text-decoration: none !important;
 }
