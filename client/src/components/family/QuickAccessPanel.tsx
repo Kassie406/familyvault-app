@@ -20,7 +20,7 @@ import {
   X
 } from 'lucide-react';
 import { LuxuryCard } from '@/components/luxury-cards';
-import "@/styles/quick-access-panel.css";
+import "@/styles/quick-access.css";
 
 type QuickAction = {
   id: string;
@@ -155,7 +155,7 @@ export function QuickAccessPanel({ isOpen, onClose }: QuickAccessPanelProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <LuxuryCard className="w-full max-w-4xl max-h-[80vh] overflow-hidden">
+      <LuxuryCard id="quick-access-modal" className="w-full max-w-4xl max-h-[80vh] overflow-hidden">
         {/* Header */}
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -207,7 +207,7 @@ export function QuickAccessPanel({ isOpen, onClose }: QuickAccessPanelProps) {
               
               const ActionButton = (
                 <div
-                  className="p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-200 cursor-pointer group border border-transparent hover:border-white/20"
+                  className="qa-tile p-4"
                   data-testid={`quick-action-${action.id}`}
                 >
                   <div className="flex items-start justify-between mb-3">
