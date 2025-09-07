@@ -1,42 +1,18 @@
-/* ==== Header buttons: kill white hover and use faint gold ==== */
+Let’s lock this down with a “belt-and-suspenders” override that will win no matter what the DOM looks like.
 
-/* Your header container is a sticky DIV (not a <header>) in this app */
-.sticky .header-icon,
-header .header-icon {
-  background: transparent !important;
-  --tw-bg-opacity: 0 !important;
-  box-shadow: none !important;
-  outline: 0 !important;
-}
+1) Make sure the CSS file is loaded
 
-/* Hover state — very light gold tint (no white) */
-.sticky .header-icon:hover,
-header .header-icon:hover {
-  background-color: rgba(212, 175, 55, 0.08) !important; /* light gold */
-}
+Confirm this once:
 
-/* If DaisyUI "ghost"/button styles try to inject background, squash them */
-.sticky .header-icon.btn-ghost:hover,
-header .header-icon.btn-ghost:hover,
-.sticky .header-icon.btn-square:hover,
-header .header-icon.btn-square:hover {
-  background-color: rgba(212, 175, 55, 0.08) !important;
-}
+client/src/styles/header.css exists
 
-/* Defensive: kill pseudo-element halos and ring utilities if they exist */
-.sticky .header-icon::before,
-.sticky .header-icon::after,
-header .header-icon::before,
-header .header-icon::after {
-  content: none !important;
-}
+It’s imported exactly once (global):
+// client/src/main.tsx (or your global styles barrel)
+import "./styles/header.css";
 
-.sticky .header-icon,
-header .header-icon {
-  --tw-ring-shadow: 0 0 #0000 !important;
-  --tw-ring-offset-shadow: 0 0 #0000 !important;
-  box-shadow: none !important;
-}
+2) Paste this at the end of client/src/styles/header.css
+
+This targets the real DOM structure (sticky wrapper + any button), kills all white sources (Tailwind bg vars, DaisyUI rings, pseudo elements), and applies the light gold hover.
 
 /* ===== Header icon hover hardening (wins over utilities) ===== */
 
@@ -87,3 +63,21 @@ header .header-icon {
   --tw-bg-opacity: 0 !important;
   box-shadow: none !important;
 }
+
+3) (If needed) Add a class to the buttons
+
+Open your header component (Header.tsx or your navbar component) and ensure both round buttons have the class header-icon:
+
+<button className="header-icon" aria-label="Quick Access" ... />
+<button className="header-icon" aria-label="Notifications" ... />
+
+
+(You already added this earlier; this is just to confirm.)
+
+4) Hard refresh properly
+
+Open DevTools → Network → check Disable cache
+
+Press Ctrl+Shift+R (Mac: Cmd+Shift+R) once
+
+5) If it still flashes white
