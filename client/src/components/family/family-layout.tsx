@@ -13,17 +13,23 @@ export default function FamilyLayout({ children }: { children: React.ReactNode }
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
+    console.log('🚪 Starting logout process...');
+    
     try {
-      // Call logout endpoint
-      await fetch('/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
-      
-      // Clear client-side cache and storage
+      // Clear client-side cache and storage FIRST
       queryClient.clear();
       localStorage.clear();
       sessionStorage.clear();
+      console.log('✅ Client state cleared');
+      
+      // Try to call server logout endpoint
+      const response = await fetch('/logout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      console.log('📡 Logout response:', response.status);
       
       // Show success message
       toast({
@@ -31,16 +37,15 @@ export default function FamilyLayout({ children }: { children: React.ReactNode }
         description: "You have been logged out of your family portal."
       });
       
-      // Hard navigation to login to prevent stale state
-      window.location.href = '/login';
     } catch (error) {
-      console.error('Logout error:', error);
-      // Even if logout fails on server, clear client state and redirect
-      queryClient.clear();
-      localStorage.clear();
-      sessionStorage.clear();
-      window.location.href = '/login';
+      console.error('❌ Logout error:', error);
     }
+    
+    // ALWAYS redirect regardless of server response
+    console.log('🔄 Redirecting to login...');
+    
+    // Use replace to avoid back button issues + cache buster
+    window.location.replace('/login?t=' + Date.now());
   };
 
   const navigationItems = [

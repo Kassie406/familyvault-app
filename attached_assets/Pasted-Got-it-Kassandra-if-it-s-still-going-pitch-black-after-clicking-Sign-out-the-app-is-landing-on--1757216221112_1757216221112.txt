@@ -1,0 +1,141 @@
+Got it, Kassandra — if it’s still going pitch-black after clicking Sign out, the app is landing on /login but the React tree isn’t rendering. That almost always means one of these:
+
+/auth/logout didn’t actually clear the session → the guard still thinks you’re “loading/authed” and renders nothing.
+
+/login is still behind the auth guard (or wrapped by a layout that expects user).
+
+A spinner/warmup runs on /login and never resolves.
+
+Here’s a tight fix set that works even if we don’t touch the rest of your app.
+
+1) Make logout real (server + client)
+
+Server (Express)
+
+// Clear the session cookie and return OK
+app.post("/auth/logout", (req, res) => {
+  res.clearCookie("session", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: "/",
+  });
+  res.json({ ok: true });
+});
+
+
+Client handler (use this on the Sign out button)
+
+async function handleSignOut() {
+  try {
+    await fetch("/auth/logout", { method: "POST", credentials: "include" });
+  } catch {}
+  // nuke client state so guards don't think we're still authed/loading
+  localStorage.clear();
+  sessionStorage.clear();
+  // if you keep auth in context, reset it here too:
+  // setUser(null); setLoading(false);
+
+  // hard navigation to a PUBLIC route (no SPA state)
+  window.location.replace("/login?ts=" + Date.now());
+}
+
+2) Guarantee /login is public and renders the login component
+
+Routes (React Router)
+
+import { Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
+import NewSignIn from "./auth/NewSignIn";
+import Dashboard from "./dashboard/Dashboard";
+
+function RequireAuth() {
+  const { user, loading } = useAuth();    // your hook/context
+  const location = useLocation();
+  if (loading) return <div />;            // tiny placeholder, not a full-screen spinner
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
+  return <Outlet />;
+}
+
+export default function App() {
+  return (
+    <Routes>
+      {/* PUBLIC */}
+      <Route path="/login" element={<NewSignIn />} />
+
+      {/* PROTECTED */}
+      <Route element={<RequireAuth />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        {/* ...other protected routes... */}
+      </Route>
+
+      {/* DEFAULT */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  );
+}
+
+
+Key: /login must NOT be nested under RequireAuth or under a layout that reads user before it’s set.
+
+3) Make the login page immune to spinners
+
+You already swapped in the safe NewSignIn component. Two must-haves:
+
+It does not read global user on mount.
+
+It always shows the form after a timeout (no infinite warmup).
+
+(If you need the latest copy again, tell me and I’ll paste it.)
+
+4) SPA catch-all (prevents blank screen on hard refresh)
+
+Server
+
+import path from "path";
+import express from "express";
+const app = express();
+
+app.use(express.static("dist"));   // or your build dir
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(process.cwd(), "dist", "index.html"));
+});
+
+5) Quick verification checklist (takes <60s)
+
+Open DevTools → Application → Cookies for your domain. Click Sign out.
+
+✅ session cookie disappears.
+
+DevTools → Network:
+
+/auth/logout → 200.
+
+Navigate to /login?ts=<random> (cache buster).
+
+Your main JS bundle loads (status 200, not 404).
+
+DevTools → Console:
+
+No red error about useAuth/context on the login route.
+
+If any of these fail:
+
+Cookie still there → server didn’t clear; check cookie name and path “/”.
+
+JS bundle 404 on /login → add the catch-all route (step 4).
+
+Console error about useAuth on /login → make sure /login isn’t wrapped by a provider/guard that expects user.
+
+One more “belt & suspenders” tweak (optional)
+
+On sign-out, do a full doc reload after redirect to purge any zombie state:
+
+window.location.href = "/login?ts=" + Date.now();
+setTimeout(() => window.location.reload(), 50);
+
+
+If it still goes black, give me these two things and I’ll pinpoint the exact line to change:
+
+The status/response of /auth/logout and the cookie list right after.
+
+The first red error in Console on /login.

@@ -239,14 +239,28 @@ function App() {
                        hostname === 'console.familycirclesecure.com' || 
                        hostname.includes('console') ||
                        pathname.startsWith('/admin') ||
-                       pathname.startsWith('/login') ||
                        pathname.startsWith('/dashboard');
   const isPortalDomain = subdomain === 'portal' || 
                          hostname === 'portal.familycirclesecure.com' ||
                          pathname.startsWith('/family') ||
                          hostname.includes('replit.dev') || // Replit test environment
                          hostname.includes('repl.co'); // Alternative Replit domain
+  
+  // Special case: always render main website for /login to ensure it's public
+  const isLoginPage = pathname === '/login' || pathname.startsWith('/login?');
   const isHubDomain = subdomain === 'hub' || hostname === 'hub.familycirclesecure.com';
+  
+  // Special case: Login page should always use main router (public access)
+  if (isLoginPage) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    );
+  }
   
   // Admin Console Interface
   if (isAdminDomain) {
