@@ -105,3 +105,82 @@ dialog[aria-label="Quick Access"] *::after,
 .header-notify-btn:hover {
   background: rgba(255,255,255,0.03) !important; /* faint dark tint */
 }
+
+/* === Header icon hover: soft gold, no white === */
+
+/* Scope to the app header and target those specific icon buttons */
+header .icon-btn,
+header .icon-button,
+header button[aria-label],
+header [role="button"][aria-label],
+.header-notify-btn,
+.header-menu-btn,
+.header-qa-btn,
+.mobile-qa-btn {
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+/* remove any white/gray hovers coming from Tailwind/DaisyUI */
+header .icon-btn:hover,
+header .icon-btn:focus-visible,
+header .icon-btn:active,
+header .icon-button:hover,
+header .icon-button:focus-visible,
+header .icon-button:active,
+header button[aria-label]:hover,
+header button[aria-label]:focus-visible,
+header button[aria-label]:active,
+header [role="button"][aria-label]:hover,
+header [role="button"][aria-label]:focus-visible,
+header [role="button"][aria-label]:active,
+.header-notify-btn:hover,
+.header-notify-btn:focus-visible,
+.header-notify-btn:active,
+.header-menu-btn:hover,
+.header-menu-btn:focus-visible,
+.header-menu-btn:active,
+.header-qa-btn:hover,
+.header-qa-btn:focus-visible,
+.header-qa-btn:active,
+.mobile-qa-btn:hover,
+.mobile-qa-btn:focus-visible,
+.mobile-qa-btn:active {
+  /* soft gold (rgba of #D4AF37) — subtle on hover */
+  background-color: rgba(212, 175, 55, 0.10) !important;
+  box-shadow: none !important;          /* kill any glow/ring */
+}
+
+/* slightly stronger for keyboard focus */
+header .icon-btn:focus-visible,
+header .icon-button:focus-visible,
+header button[aria-label]:focus-visible,
+header [role="button"][aria-label]:focus-visible,
+.header-notify-btn:focus-visible,
+.header-menu-btn:focus-visible,
+.header-qa-btn:focus-visible,
+.mobile-qa-btn:focus-visible {
+  background-color: rgba(212, 175, 55, 0.16) !important;
+}
+
+/* on active/pressed */
+header .icon-btn:active,
+header .icon-button:active,
+header button[aria-label]:active,
+header [role="button"][aria-label]:active,
+.header-notify-btn:active,
+.header-menu-btn:active,
+.header-qa-btn:active,
+.mobile-qa-btn:active {
+  background-color: rgba(212, 175, 55, 0.22) !important;
+}
+
+/* neutralize DaisyUI/Tailwind white rings if present */
+header .icon-btn:hover,
+header .icon-button:hover,
+header button[aria-label]:hover,
+.header-notify-btn:hover,
+.header-menu-btn:hover,
+.header-qa-btn:hover,
+.mobile-qa-btn:hover {
+  --tw-bg-opacity: 1; /* prevents bg-white/xx from bleeding through */
+}
