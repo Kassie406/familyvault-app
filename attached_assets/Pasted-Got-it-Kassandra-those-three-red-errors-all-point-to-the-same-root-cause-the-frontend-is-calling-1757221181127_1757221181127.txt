@@ -1,0 +1,178 @@
+Got it, Kassandra — those three red errors all point to the same root cause: the frontend is calling APIs that aren’t fully wired yet (chores list + allowance summary), so the fetches fail. I’ll give you drop-in server routes (and one Prisma model, if you don’t have it yet) that fix all three cards at once:
+
+Action Center → needs a quick chores summary (counts)
+
+Chores card → needs a family/my list endpoint
+
+Allowance mini → needs a balance + recent ledger endpoint
+
+Below is everything you need, kept minimal and matching what the UI already expects.
+
+0) Prisma model (only if you don’t have it yet)
+
+We referenced an allowance ledger in seeds; add this if it’s missing:
+
+// prisma/schema.prisma (append if not present)
+model AllowanceLedger {
+  id         String   @id @default(cuid())
+  familyId   String
+  memberId   String
+  deltaPoints Int
+  reason     String
+  createdAt  DateTime @default(now())
+  @@index([familyId, memberId, createdAt])
+}
+
+
+Then migrate:
+
+npx prisma migrate dev -n allowance_ledger
+
+1) Chores API — list + counts
+// src/routes/chores.ts
+import { Router } from "express";
+import { prisma } from "../prisma";
+import { requireAuth } from "../middleware/auth";
+
+const chores = Router();
+chores.use(requireAuth);
+
+// GET /api/chores?scope=family|mine
+// optional: ?status=todo|done|approved
+chores.get("/", async (req: any, res) => {
+  const { scope = "family", status } = req.query as { scope?: string; status?: string };
+  const where: any = { familyId: req.user.familyId };
+  if (scope === "mine") where.assigneeId = req.user.id;
+  if (status) where.status = status;
+
+  const rows = await prisma.chore.findMany({
+    where,
+    orderBy: [{ status: "asc" }, { dueAt: "asc" }],
+    include: {
+      assignee: { select: { id: true, name: true, role: true } },
+      createdBy: { select: { id: true, name: true } },
+    },
+  });
+
+  res.json(rows);
+});
+
+// GET /api/chores/summary — used by Action Center
+chores.get("/summary", async (req: any, res) => {
+  const now = new Date();
+  const soon = new Date(); soon.setDate(soon.getDate() + 2);
+
+  const [pendingApprovals, dueSoon, overdue] = await Promise.all([
+    prisma.chore.count({ where: { familyId: req.user.familyId, status: "done" } }),
+    prisma.chore.count({ where: {
+      familyId: req.user.familyId,
+      status: "todo",
+      dueAt: { gte: now, lte: soon },
+    }}),
+    prisma.chore.count({ where: {
+      familyId: req.user.familyId,
+      status: "todo",
+      dueAt: { lt: now },
+    }}),
+  ]);
+
+  res.json({ pendingApprovals, dueSoon, overdue });
+});
+
+export default chores;
+
+
+Wire it:
+
+// src/server.ts
+import chores from "./routes/chores";
+app.use("/api/chores", chores);
+
+
+Your existing POST /api/chores (from the Create-Chore modal) and PATCH /api/chores/:id (approve/complete) can stay as-is. If you don’t have those yet and want them, I can add them next.
+
+2) Allowance API — balance + recent
+// src/routes/allowance.ts
+import { Router } from "express";
+import { prisma } from "../prisma";
+import { requireAuth } from "../middleware/auth";
+
+const allowance = Router();
+allowance.use(requireAuth);
+
+// GET /api/allowance/summary?memberId=me|<id>
+allowance.get("/summary", async (req: any, res) => {
+  const memberId = (req.query.memberId as string) === "me" ? req.user.id : (req.query.memberId as string) || req.user.id;
+
+  // Sum the ledger
+  const agg = await prisma.allowanceLedger.aggregate({
+    where: { familyId: req.user.familyId, memberId },
+    _sum: { deltaPoints: true },
+  });
+  const balance = agg._sum.deltaPoints ?? 0;
+
+  const items = await prisma.allowanceLedger.findMany({
+    where: { familyId: req.user.familyId, memberId },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+    select: { deltaPoints: true, reason: true, createdAt: true },
+  });
+
+  res.json({ balance, items });
+});
+
+export default allowance;
+
+
+Wire it:
+
+// src/server.ts
+import allowance from "./routes/allowance";
+app.use("/api/allowance", allowance);
+
+3) Tiny client adjustments (if needed)
+
+If your components point to slightly different paths, make sure they match:
+
+Action Center
+
+// src/components/ActionCenter.tsx
+const s = await api<{pendingApprovals:number; dueSoon:number; overdue:number}>("/api/chores/summary");
+
+
+ChoresCard
+
+// family view
+const list = await api("/api/chores?scope=family");
+// my chores tab
+const mine = await api("/api/chores?scope=mine");
+
+
+AllowanceMini
+
+const data = await api<{balance:number; items:any[]}>("/api/allowance/summary?memberId=me");
+
+
+No UI changes necessary beyond ensuring the URLs above are used.
+
+4) Quick verification (2 minutes)
+
+Restart server after adding routes/migration.
+
+Refresh Dashboard:
+
+Action Center numbers appear (no red banner).
+
+Chores card loads (family & my tabs).
+
+Allowance mini shows a numeric balance; recent line items if your seed added any.
+
+Optional: mark a chore done (as teen) → approve as parent → balance increases.
+
+5) If something still errors
+
+Check server logs for a specific route 404/500.
+
+Make sure requireAuth sets req.user = { id, familyId, role }.
+
+Confirm tables exist: npx prisma studio → look at Chore, AllowanceLedger, FamilyMember.

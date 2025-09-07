@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { sql, desc, eq, and } from "drizzle-orm";
-import { familyActivity, chores, allowanceLedger, familyMembers } from "@shared/schema";
+import { familyActivity, chores, allowanceLedger, familyMembers, recipes, mealPlanEntries, shoppingItems } from "@shared/schema";
 import storageRoutes from "./storage-routes";
 import fileRoutes from "./routes/files";
 import mobileUploadRoutes from "./routes/mobile-upload";
@@ -1949,6 +1949,316 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching family members:", error);
       res.status(500).json({ error: "Failed to fetch family members" });
+    }
+  });
+
+  // Meal Planning & Recipe API endpoints
+  
+  // GET /api/recipes - List family recipes
+  app.get("/api/recipes", async (req, res) => {
+    try {
+      const familyId = "family-1"; // TODO: Get from authenticated session
+      
+      const recipesList = await db.select().from(recipes)
+        .where(eq(recipes.familyId, familyId))
+        .orderBy(desc(recipes.createdAt))
+        .limit(100);
+
+      res.json(recipesList);
+    } catch (error) {
+      console.error("Error fetching recipes:", error);
+      res.status(500).json({ error: "Failed to fetch recipes" });
+    }
+  });
+
+  // POST /api/recipes - Create new recipe (Quick Add)
+  app.post("/api/recipes", async (req, res) => {
+    try {
+      const { title, notes, ingredients, category, prepTime, cookTime, servings, difficulty, tags } = req.body;
+      const familyId = "family-1"; // TODO: Get from authenticated session
+      const createdById = "current-user"; // TODO: Get from session
+      
+      if (!title || !ingredients) {
+        return res.status(400).json({ error: "Title and ingredients are required" });
+      }
+
+      const newRecipe = await db.insert(recipes).values({
+        title: title.trim(),
+        notes: notes?.trim() || null,
+        ingredients: ingredients.trim(),
+        category: category?.trim() || "Main Course",
+        prepTime: prepTime || null,
+        cookTime: cookTime || null,
+        servings: servings || null,
+        difficulty: difficulty || "Easy",
+        tags: tags?.trim() || null,
+        familyId,
+        createdById,
+      }).returning();
+
+      res.status(201).json(newRecipe[0]);
+    } catch (error) {
+      console.error("Error creating recipe:", error);
+      res.status(500).json({ error: "Failed to create recipe" });
+    }
+  });
+
+  // GET /api/mealplan/week - Get weekly meal plan
+  app.get("/api/mealplan/week", async (req, res) => {
+    try {
+      const startParam = req.query.start as string | undefined;
+      const familyId = "family-1"; // TODO: Get from authenticated session
+      
+      // Calculate week boundaries (Monday to Sunday)
+      const now = startParam ? new Date(startParam) : new Date();
+      const day = now.getDay();
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - ((day + 6) % 7));
+      monday.setHours(0, 0, 0, 0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+
+      const entries = await db.select({
+        id: mealPlanEntries.id,
+        date: mealPlanEntries.date,
+        mealType: mealPlanEntries.mealType,
+        title: mealPlanEntries.title,
+        recipeId: mealPlanEntries.recipeId,
+        recipe: {
+          id: recipes.id,
+          title: recipes.title,
+          ingredients: recipes.ingredients
+        }
+      })
+      .from(mealPlanEntries)
+      .leftJoin(recipes, eq(mealPlanEntries.recipeId, recipes.id))
+      .where(and(
+        eq(mealPlanEntries.familyId, familyId),
+        sql`${mealPlanEntries.date} >= ${monday.toISOString().split('T')[0]}`,
+        sql`${mealPlanEntries.date} <= ${sunday.toISOString().split('T')[0]}`
+      ))
+      .orderBy(mealPlanEntries.date, mealPlanEntries.mealType);
+
+      res.json({ 
+        start: monday.toISOString(),
+        end: sunday.toISOString(),
+        entries 
+      });
+    } catch (error) {
+      console.error("Error fetching meal plan:", error);
+      res.status(500).json({ error: "Failed to fetch meal plan" });
+    }
+  });
+
+  // POST /api/mealplan/set - Set a meal for specific day/meal type
+  app.post("/api/mealplan/set", async (req, res) => {
+    try {
+      const { date, mealType, recipeId, title } = req.body;
+      const familyId = "family-1"; // TODO: Get from authenticated session
+      const createdById = "current-user"; // TODO: Get from session
+      
+      if (!date || !mealType) {
+        return res.status(400).json({ error: "Date and mealType are required" });
+      }
+
+      const dayDate = new Date(date).toISOString().split('T')[0];
+      
+      // Check if entry exists for this day/meal combination
+      const existingEntry = await db.select().from(mealPlanEntries)
+        .where(and(
+          eq(mealPlanEntries.familyId, familyId),
+          sql`${mealPlanEntries.date} = ${dayDate}`,
+          eq(mealPlanEntries.mealType, mealType)
+        ))
+        .limit(1);
+
+      let result;
+      if (existingEntry.length > 0) {
+        // Update existing entry
+        result = await db.update(mealPlanEntries)
+          .set({
+            recipeId: recipeId || null,
+            title: recipeId ? null : (title?.trim() || null),
+          })
+          .where(eq(mealPlanEntries.id, existingEntry[0].id))
+          .returning();
+      } else {
+        // Create new entry
+        result = await db.insert(mealPlanEntries).values({
+          familyId,
+          date: dayDate,
+          mealType,
+          recipeId: recipeId || null,
+          title: recipeId ? null : (title?.trim() || null),
+          createdById,
+        }).returning();
+      }
+
+      res.json(result[0]);
+    } catch (error) {
+      console.error("Error setting meal:", error);
+      res.status(500).json({ error: "Failed to set meal" });
+    }
+  });
+
+  // POST /api/mealplan/generate-shopping-list - Generate shopping list from week's recipes
+  app.post("/api/mealplan/generate-shopping-list", async (req, res) => {
+    try {
+      const startParam = req.body.start as string | undefined;
+      const familyId = "family-1"; // TODO: Get from authenticated session
+      
+      // Calculate week boundaries
+      const now = startParam ? new Date(startParam) : new Date();
+      const day = now.getDay();
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - ((day + 6) % 7));
+      monday.setHours(0, 0, 0, 0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+
+      // Get meal plan entries with recipes for the week
+      const entries = await db.select({
+        recipe: {
+          title: recipes.title,
+          ingredients: recipes.ingredients
+        }
+      })
+      .from(mealPlanEntries)
+      .leftJoin(recipes, eq(mealPlanEntries.recipeId, recipes.id))
+      .where(and(
+        eq(mealPlanEntries.familyId, familyId),
+        sql`${mealPlanEntries.date} >= ${monday.toISOString().split('T')[0]}`,
+        sql`${mealPlanEntries.date} <= ${sunday.toISOString().split('T')[0]}`,
+        sql`${mealPlanEntries.recipeId} IS NOT NULL`
+      ));
+
+      // Parse ingredients and create shopping items
+      const itemsToAdd: { name: string; qty?: string; source: string }[] = [];
+      
+      for (const entry of entries) {
+        if (entry.recipe?.ingredients) {
+          const source = entry.recipe.title || "Meal";
+          const lines = entry.recipe.ingredients.split(/\n|,/).map(s => s.trim()).filter(Boolean);
+          
+          for (const line of lines) {
+            itemsToAdd.push({
+              name: line,
+              source
+            });
+          }
+        }
+      }
+
+      // Insert shopping items
+      if (itemsToAdd.length > 0) {
+        await db.insert(shoppingItems).values(
+          itemsToAdd.map(item => ({
+            familyId,
+            name: item.name,
+            qty: item.qty || null,
+            checked: false,
+            source: item.source
+          }))
+        );
+      }
+
+      res.json({ added: itemsToAdd.length });
+    } catch (error) {
+      console.error("Error generating shopping list:", error);
+      res.status(500).json({ error: "Failed to generate shopping list" });
+    }
+  });
+
+  // GET /api/shopping - Get shopping list items
+  app.get("/api/shopping", async (req, res) => {
+    try {
+      const familyId = "family-1"; // TODO: Get from authenticated session
+      
+      const items = await db.select().from(shoppingItems)
+        .where(eq(shoppingItems.familyId, familyId))
+        .orderBy(shoppingItems.checked, desc(shoppingItems.createdAt));
+
+      res.json(items);
+    } catch (error) {
+      console.error("Error fetching shopping list:", error);
+      res.status(500).json({ error: "Failed to fetch shopping list" });
+    }
+  });
+
+  // POST /api/shopping - Add shopping list item manually
+  app.post("/api/shopping", async (req, res) => {
+    try {
+      const { name, qty } = req.body;
+      const familyId = "family-1"; // TODO: Get from authenticated session
+      
+      if (!name) {
+        return res.status(400).json({ error: "Name is required" });
+      }
+
+      const newItem = await db.insert(shoppingItems).values({
+        familyId,
+        name: name.trim(),
+        qty: qty?.trim() || null,
+        checked: false,
+        source: "Manual"
+      }).returning();
+
+      res.status(201).json(newItem[0]);
+    } catch (error) {
+      console.error("Error adding shopping item:", error);
+      res.status(500).json({ error: "Failed to add shopping item" });
+    }
+  });
+
+  // PATCH /api/shopping/:id - Update shopping item (mainly for checking/unchecking)
+  app.patch("/api/shopping/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { checked } = req.body;
+      const familyId = "family-1"; // TODO: Get from authenticated session
+      
+      const updatedItem = await db.update(shoppingItems)
+        .set({ checked: Boolean(checked) })
+        .where(and(
+          eq(shoppingItems.id, id),
+          eq(shoppingItems.familyId, familyId)
+        ))
+        .returning();
+
+      if (!updatedItem.length) {
+        return res.status(404).json({ error: "Shopping item not found" });
+      }
+
+      res.json(updatedItem[0]);
+    } catch (error) {
+      console.error("Error updating shopping item:", error);
+      res.status(500).json({ error: "Failed to update shopping item" });
+    }
+  });
+
+  // DELETE /api/shopping/:id - Delete shopping item
+  app.delete("/api/shopping/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const familyId = "family-1"; // TODO: Get from authenticated session
+      
+      const deleted = await db.delete(shoppingItems)
+        .where(and(
+          eq(shoppingItems.id, id),
+          eq(shoppingItems.familyId, familyId)
+        ))
+        .returning();
+
+      if (!deleted.length) {
+        return res.status(404).json({ error: "Shopping item not found" });
+      }
+
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Error deleting shopping item:", error);
+      res.status(500).json({ error: "Failed to delete shopping item" });
     }
   });
 
