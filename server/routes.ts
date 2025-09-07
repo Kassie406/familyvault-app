@@ -1954,6 +1954,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PATCH /api/chores/:id/complete - Mark chore complete (assignee only) 
+  app.patch("/api/chores/:id/complete", async (req, res) => {
+    try {
+      const choreId = req.params.id;
+      const familyId = "family-1"; // TODO: Get from authenticated session
+      const currentUserId = "current-user"; // TODO: Get from session
+      
+      // Find the chore
+      const chore = await db.select().from(chores)
+        .where(and(eq(chores.id, choreId), eq(chores.familyId, familyId)))
+        .limit(1);
+
+      if (!chore.length) {
+        return res.status(404).json({ error: "Chore not found" });
+      }
+
+      // Only assignee can mark complete
+      if (chore[0].assigneeId !== currentUserId) {
+        return res.status(403).json({ error: "Only the assignee can mark this chore complete" });
+      }
+
+      if (chore[0].status === "approved") {
+        return res.status(400).json({ error: "Chore is already approved" });
+      }
+
+      const updatedChore = await db.update(chores)
+        .set({ status: "done" })
+        .where(eq(chores.id, choreId))
+        .returning();
+
+      res.json(updatedChore[0]);
+    } catch (error) {
+      console.error("Error completing chore:", error);
+      res.status(500).json({ error: "Failed to complete chore" });
+    }
+  });
+
+  // PATCH /api/chores/:id/unapprove - Unapprove chore (parents only) → compensating ledger
+  app.patch("/api/chores/:id/unapprove", async (req, res) => {
+    try {
+      const choreId = req.params.id;
+      const familyId = "family-1"; // TODO: Get from authenticated session
+      const approverId = "parent-user"; // TODO: Get from session
+      const currentUserRole = "parent"; // TODO: Get from session
+      
+      if (currentUserRole !== "parent") {
+        return res.status(403).json({ error: "Only parents can unapprove chores" });
+      }
+      
+      // Find the chore
+      const chore = await db.select().from(chores)
+        .where(and(eq(chores.id, choreId), eq(chores.familyId, familyId)))
+        .limit(1);
+
+      if (!chore.length) {
+        return res.status(404).json({ error: "Chore not found" });
+      }
+
+      if (chore[0].status !== "approved") {
+        return res.status(400).json({ error: "Chore is not approved" });
+      }
+
+      // Transaction: unapprove chore and add compensating ledger entry
+      const result = await db.transaction(async (tx) => {
+        const updatedChore = await tx.update(chores)
+          .set({ status: "done" })
+          .where(eq(chores.id, choreId))
+          .returning();
+
+        // Compensate the points
+        await tx.insert(allowanceLedger).values({
+          familyId,
+          memberId: chore[0].assigneeId,
+          deltaPoints: -chore[0].points,
+          reason: `Reversed approval: ${chore[0].title}`,
+          createdById: approverId
+        });
+
+        return updatedChore[0];
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error unapproving chore:", error);
+      res.status(500).json({ error: "Failed to unapprove chore" });
+    }
+  });
+
+  // PATCH /api/chores/:id/reject - Reject chore back to todo (parents only)
+  app.patch("/api/chores/:id/reject", async (req, res) => {
+    try {
+      const choreId = req.params.id;
+      const familyId = "family-1"; // TODO: Get from authenticated session
+      const currentUserRole = "parent"; // TODO: Get from session
+      
+      if (currentUserRole !== "parent") {
+        return res.status(403).json({ error: "Only parents can reject chores" });
+      }
+      
+      // Find the chore
+      const chore = await db.select().from(chores)
+        .where(and(eq(chores.id, choreId), eq(chores.familyId, familyId)))
+        .limit(1);
+
+      if (!chore.length) {
+        return res.status(404).json({ error: "Chore not found" });
+      }
+
+      if (chore[0].status === "approved") {
+        return res.status(400).json({ error: "Cannot reject an approved chore. Unapprove first." });
+      }
+
+      const updatedChore = await db.update(chores)
+        .set({ status: "todo" })
+        .where(eq(chores.id, choreId))
+        .returning();
+
+      res.json(updatedChore[0]);
+    } catch (error) {
+      console.error("Error rejecting chore:", error);
+      res.status(500).json({ error: "Failed to reject chore" });
+    }
+  });
+
   // GET /api/allowance/summary - Get allowance points balance and history
   app.get("/api/allowance/summary", async (req, res) => {
     try {
