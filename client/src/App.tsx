@@ -249,16 +249,8 @@ function App() {
   // Special case: always render main website for /login to ensure it's public
   const isLoginPage = pathname === '/login' || pathname.startsWith('/login?');
   
-  // Debug routing decisions
-  console.log('🔀 App Router Debug:', {
-    pathname,
-    hostname,
-    subdomain,
-    isLoginPage,
-    isAdminDomain,
-    isPortalDomain,
-    searchParams: location.search
-  });
+  // Debug routing decisions (remove in production)
+  // console.log('🔀 App Router Debug:', { pathname, hostname, subdomain, isLoginPage, isAdminDomain, isPortalDomain });
   const isHubDomain = subdomain === 'hub' || hostname === 'hub.familycirclesecure.com';
   
   // Admin Console Interface
@@ -282,6 +274,19 @@ function App() {
           <RequireAuth>
             <FamilyRouter />
           </RequireAuth>
+        </TooltipProvider>
+      </QueryClientProvider>
+    );
+  }
+  
+  // Portal Domain + Login Page = Public Login (no auth guard)
+  if (isPortalDomain && isLoginPage) {
+    console.log('🔓 Portal login page - rendering public NewSignIn');
+    return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <NewSignIn />
         </TooltipProvider>
       </QueryClientProvider>
     );
