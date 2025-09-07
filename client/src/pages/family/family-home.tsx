@@ -40,6 +40,7 @@ import { ShareDocumentModal } from '@/components/documents/ShareDocumentModal';
 import { SharedListsModal } from '@/components/family/SharedListsModal';
 import { RecipeBookModal } from '@/components/family/RecipeBookModal';
 import { BudgetTrackerModal } from '@/components/family/BudgetTrackerModal';
+import { MealPlannerWeek } from '@/components/family/MealPlannerWeek';
 import ChoresCard from '@/components/family/ChoresCard';
 import AllowanceMini from '@/components/family/AllowanceMini';
 import ActionCenter from '@/components/family/ActionCenter';
@@ -57,6 +58,7 @@ export default function FamilyHome() {
   const [sharedListsOpen, setSharedListsOpen] = useState(false);
   const [recipeBookOpen, setRecipeBookOpen] = useState(false);
   const [budgetTrackerOpen, setBudgetTrackerOpen] = useState(false);
+  const [mealPlannerOpen, setMealPlannerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Current user mock (TODO: replace with real user data)
@@ -506,6 +508,54 @@ export default function FamilyHome() {
         { label: "Set Budget Goals", onClick: () => setBudgetTrackerOpen(true), icon: <BarChart3 className="h-4 w-4" /> },
         { label: "Monthly Report", onClick: () => setBudgetTrackerOpen(true), icon: <FileText className="h-4 w-4" /> }
       ]
+    },
+    { 
+      label: 'Meal Planner', 
+      value: 'Week View', 
+      icon: CalendarDays,
+      href: '#',
+      onClick: () => setMealPlannerOpen(true),
+      fetchPreview: async () => {
+        try {
+          const response = await fetch('/api/mealplan/week');
+          if (!response.ok) throw new Error('Failed to fetch meal plan');
+          const data = await response.json();
+          
+          // Create a preview of planned meals for this week
+          return data.entries.slice(0, 5).map((entry: any) => {
+            const mealText = entry.recipe?.title || entry.title || "No meal planned";
+            const date = new Date(entry.date).toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' });
+            return {
+              id: entry.id,
+              title: `${entry.mealType.charAt(0).toUpperCase() + entry.mealType.slice(1)}: ${mealText}`,
+              sub: date,
+              href: '#'
+            };
+          });
+        } catch (error) {
+          console.error('Error fetching meal plan:', error);
+          return [
+            { id: "1", title: "Dinner: Chicken Alfredo", sub: "Mon, Jan 29", href: "#" },
+            { id: "2", title: "Lunch: Turkey Sandwiches", sub: "Tue, Jan 30", href: "#" },
+            { id: "3", title: "Breakfast: Pancakes", sub: "Wed, Jan 31", href: "#" },
+            { id: "4", title: "Dinner: Taco Night", sub: "Thu, Feb 1", href: "#" },
+            { id: "5", title: "Lunch: Leftover Tacos", sub: "Fri, Feb 2", href: "#" }
+          ];
+        }
+      },
+      dropdownActions: [
+        { label: "Plan This Week", onClick: () => setMealPlannerOpen(true), icon: <CalendarDays className="h-4 w-4" /> },
+        { label: "Add Recipe", onClick: () => setRecipeBookOpen(true), icon: <Plus className="h-4 w-4" /> },
+        { label: "Generate Shopping List", onClick: async () => {
+          try {
+            const response = await fetch('/api/mealplan/generate-shopping-list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+            if (response.ok) {
+              const result = await response.json();
+              alert(`Generated shopping list with ${result.added} items!`);
+            }
+          } catch (e) { alert('Failed to generate shopping list'); }
+        }, icon: <ListTodo className="h-4 w-4" /> }
+      ]
     }
   ];
 
@@ -842,6 +892,35 @@ export default function FamilyHome() {
         open={budgetTrackerOpen}
         onClose={() => setBudgetTrackerOpen(false)}
       />
+
+      {/* Meal Planner Modal */}
+      {mealPlannerOpen && (
+        <div
+          className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          aria-modal="true"
+          role="dialog"
+          onKeyDown={(e) => e.key === "Escape" && setMealPlannerOpen(false)}
+        >
+          <div className="bg-[#0A0A0A] border border-[#2A2A33] rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-[#2A2A33]">
+              <h2 className="text-xl font-semibold text-white">Family Meal Planner</h2>
+              <button
+                onClick={() => setMealPlannerOpen(false)}
+                className="p-2 hover:bg-[#1A1A1A] rounded-lg transition-colors text-gray-400 hover:text-white"
+                data-testid="button-close-meal-planner"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            {/* Content */}
+            <div className="p-6 overflow-auto max-h-[75vh]">
+              <MealPlannerWeek />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
