@@ -1,0 +1,133 @@
+it’s a CSS-cascade / wrong file edit issue, which does burn minutes.
+
+Here’s the quick truth + fix:
+
+Why the hover is still white
+
+Somewhere in the Action Center card (or a shared “base card”), there’s a utility like hover:bg-white, hover:bg-white/5, or a component style (e.g., from DaisyUI) that applies on hover.
+
+When the agent added a pretty gradient, the hover background utility still wins on hover and paints it white. Gradients don’t matter if a later class says “bg white on hover”.
+
+So you’re seeing a white hover even though the card looks right at rest.
+
+Clean, reliable fix (and future-proof): a shared Card component
+
+We’ll make all cards (Family Members, Action Center, etc.) use the same base classes with a safe hover that never sets white. Then we replace per-card container divs with this shared Card.
+
+1) Add a reusable Card
+
+Create: src/components/ui/Card.tsx
+
+import clsx from "clsx";
+import { PropsWithChildren, HTMLAttributes } from "react";
+
+const base =
+  "rounded-2xl border border-white/8 " +
+  // dark luxury gradient (no white!)
+  "bg-gradient-to-b from-[#0b0b0e] to-[#0e0e14] " +
+  "shadow-[0_10px_28px_rgba(0,0,0,.45)] " +
+  "transition-all duration-200 " +
+  // never change background on hover; only border/shadow
+  "hover:border-white/12 hover:shadow-[0_16px_40px_rgba(0,0,0,.55)]";
+
+export function Card({
+  className,
+  children,
+  ...rest
+}: PropsWithChildren<HTMLAttributes<HTMLDivElement>>) {
+  return (
+    <div className={clsx(base, className)} {...rest}>
+      {children}
+    </div>
+  );
+}
+
+
+Note: there is no hover:bg-* in that base. So it can’t flip to white.
+
+2) Use it in both cards
+
+Replace the outer container in these files:
+
+src/components/family/ActionCenterCard.tsx (or your path)
+
+src/components/family/FamilyMembersCard.tsx (or your path)
+
+Change:
+
+// OLD (example)
+<div className="rounded-xl border border-white/10 bg-white/5 hover:bg-white ...">
+  ...
+</div>
+
+
+to:
+
+import { Card } from "@/components/ui/Card";
+
+<Card className="p-4"> {/* keep your padding/grid/etc */}
+  ...
+</Card>
+
+
+Also remove any parent group hover:bg-white/… wrappers. If you see something like:
+
+<div className="group hover:bg-white/5 ...">
+  <Card>…</Card>
+</div>
+
+
+…delete that hover:bg-white/5.
+
+3) Kill legacy hover rules at the source
+
+Search your repo for hover rules that force white:
+
+hover:bg-white
+
+hover:bg-white/
+
+hover:bg-neutral-100
+
+hover:bg-base-100 (if using DaisyUI)
+
+group-hover:bg-white
+
+Remove those on card-level containers. If a design wants “hover tint”, use a subtle gold border/shadow (what we used) or a very mild transparent gold overlay, e.g.:
+
+// Optional: if you really want a tint (not white), add this class on <Card />
+"hover:after:content-[''] hover:after:absolute hover:after:inset-0 hover:after:bg-[rgba(212,175,55,0.05)] hover:after:rounded-2xl relative"
+
+
+(But usually the border/shadow is enough.)
+
+Paste-ready “Agent message” for you
+
+If you’d like the agent to do it in one go, paste this:
+
+Please unify card hover styling and stop white hover. Do this exactly:
+
+1) Create src/components/ui/Card.tsx with:
+
+import clsx from "clsx";
+import { PropsWithChildren, HTMLAttributes } from "react";
+const base =
+  "rounded-2xl border border-white/8 bg-gradient-to-b from-[#0b0b0e] to-[#0e0e14] " +
+  "shadow-[0_10px_28px_rgba(0,0,0,.45)] transition-all duration-200 " +
+  "hover:border-white/12 hover:shadow-[0_16px_40px_rgba(0,0,0,.55)]";
+export function Card({ className, children, ...rest }: PropsWithChildren<HTMLAttributes<HTMLDivElement>>) {
+  return <div className={clsx(base, className)} {...rest}>{children}</div>;
+}
+
+2) In Action Center card component (e.g., src/components/family/ActionCenterCard.tsx) replace the outer container div with <Card className="p-4">...</Card>. Remove any hover:bg-white*, group-hover:bg-white*, or base-100 hover classes on the container or ancestor.
+
+3) In Family Members card (e.g., src/components/family/FamilyMembersCard.tsx) do the same: use <Card className="p-4">...</Card> and remove any hover:bg-white* from the outer container.
+
+4) Search the repo and delete card-level white hover utilities:
+- hover:bg-white
+- hover:bg-white/...
+- hover:bg-neutral-100
+- hover:bg-base-100
+- group-hover:bg-white
+
+Ensure no card containers have hover:bg-* that sets white or neutral backgrounds.
