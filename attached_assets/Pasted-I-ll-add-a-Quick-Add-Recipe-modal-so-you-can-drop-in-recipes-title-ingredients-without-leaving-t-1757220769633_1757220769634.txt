@@ -1,0 +1,168 @@
+I’ll add a Quick Add Recipe modal so you can drop in recipes (title + ingredients) without leaving the dashboard, and wire it to the Meal Planner.
+
+1) Quick Add Recipe modal
+// src/components/QuickAddRecipeModal.tsx
+import { useState } from "react";
+import { api } from "../lib/api";
+
+export default function QuickAddRecipeModal({
+  open, onClose,
+}: { open: boolean; onClose: (created?: boolean)=>void }) {
+  const [title, setTitle] = useState("");
+  const [ingredients, setIngredients] = useState(""); // one per line or comma-separated
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string|null>(null);
+
+  if (!open) return null;
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    if (!title.trim() || !ingredients.trim()) {
+      setErr("Please enter a title and at least one ingredient");
+      return;
+    }
+    setSaving(true);
+    try {
+      await api("/api/recipes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          notes: notes.trim() || undefined,
+          // server expects a plain string; you can keep lines or commas
+          ingredients: ingredients.trim(),
+        }),
+      });
+      onClose(true);
+      // reset
+      setTitle(""); setIngredients(""); setNotes(""); setSaving(false);
+    } catch (e:any) {
+      setErr(e.message || "Could not save recipe");
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur">
+      <div className="w-[92vw] max-w-lg rounded-2xl border border-white/10 bg-white/5 p-4 shadow-xl">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-lg text-white">Quick Add Recipe</h3>
+          <button onClick={()=>onClose()} className="text-white/70 hover:text-white">✕</button>
+        </div>
+
+        <form onSubmit={onSubmit} className="space-y-3">
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Title</label>
+            <input value={title} onChange={e=>setTitle(e.target.value)}
+              placeholder="Chicken Alfredo"
+              className="w-full rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white placeholder-white/40 focus:ring-2 focus:ring-[#b59732]" />
+          </div>
+
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Ingredients</label>
+            <textarea value={ingredients} onChange={e=>setIngredients(e.target.value)}
+              rows={6}
+              placeholder={`Use lines or commas, e.g.\nchicken breast x2\nfettuccine 12 oz\nheavy cream 1 cup\ngarlic 3 cloves\nparmesan 1/2 cup`}
+              className="w-full rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white placeholder-white/40 focus:ring-2 focus:ring-[#b59732]" />
+          </div>
+
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Notes (optional)</label>
+            <textarea value={notes} onChange={e=>setNotes(e.target.value)}
+              rows={2}
+              className="w-full rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white placeholder-white/40 focus:ring-2 focus:ring-[#b59732]" />
+          </div>
+
+          {err && <div className="text-rose-300 text-sm">{err}</div>}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={()=>onClose()} className="px-3 py-2 rounded-lg border border-white/15 text-white/90">Cancel</button>
+            <button disabled={saving} className="px-3 py-2 rounded-lg bg-[#b59732] text-black font-semibold hover:brightness-110 disabled:opacity-60">
+              {saving ? "Saving…" : "Save recipe"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+2) Add “Add Recipe” to Meal Planner
+
+Open src/components/MealPlannerWeek.tsx and:
+
+import + mount the modal
+
+add a small “+ Add Recipe” button in the header
+
+reload recipes after saving
+
+// at top
+import QuickAddRecipeModal from "./QuickAddRecipeModal";
+
+// inside MealPlannerWeek component
+const [openAdd, setOpenAdd] = useState(false);
+
+async function reloadRecipesOnly() {
+  try { setRecipes(await api<Recipe[]>("/api/recipes")); } catch {}
+}
+
+
+Replace the header block with this:
+
+<div className="mb-2 flex items-center justify-between">
+  <div className="text-white/80">Meal Planner (Week)</div>
+  <div className="flex gap-2">
+    <button onClick={()=>setOpenAdd(true)} className="px-3 py-1 rounded-lg border border-white/15 text-white/90 hover:bg-white/10">
+      + Add Recipe
+    </button>
+    <button onClick={generateList} className="px-3 py-1 rounded-lg bg-[#b59732] text-black font-semibold hover:brightness-110">
+      Generate Shopping List
+    </button>
+  </div>
+</div>
+
+{openAdd && (
+  <QuickAddRecipeModal
+    open={openAdd}
+    onClose={async (created) => {
+      setOpenAdd(false);
+      if (created) await reloadRecipesOnly();
+    }}
+  />
+)}
+
+
+That’s it—now you can add recipes inline, and they immediately appear in the picker.
+
+3) Optional: “Kid’s Choice” slot (one click)
+
+Add a small helper that marks a chosen day’s dinner as the “Kid’s Choice” with a free-text title:
+
+// still in MealPlannerWeek.tsx
+async function kidChoice(date: Date) {
+  const title = prompt("Kid’s Choice dinner (e.g., Tacos)?");
+  if (!title) return;
+  await setMeal(date, "dinner", undefined, title);
+}
+
+
+Inside each day card (next to “Choose”), you can add:
+
+<button onClick={()=>kidChoice(d)} className="text-xs text-white/70 underline ml-2">
+  Kid’s Choice
+</button>
+
+4) Quick test (2 minutes)
+
+Open Dashboard → Meal Planner (Week) → click + Add Recipe.
+
+Enter title + ingredients (one per line) → Save.
+
+Use the Choose dropdown on a dinner slot → pick your new recipe.
+
+Click Generate Shopping List → open Shopping List card → see items added.
+
+Check a few items, add one manually, delete one.
