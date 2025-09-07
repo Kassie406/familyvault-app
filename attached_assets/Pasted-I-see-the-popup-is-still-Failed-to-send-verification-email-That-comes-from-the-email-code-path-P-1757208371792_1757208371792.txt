@@ -1,0 +1,90 @@
+I see the popup is still “Failed to send verification email.” That comes from the email-code path (POST /login/start) on the server. It means the server couldn’t send mail (SMTP) or your email isn’t on the allowlist. Let’s nail this in 3 quick checks.
+
+1) Check the server response (not the popup)
+
+Open the page → press F12 → Network.
+
+Click Continue (email flow).
+
+Click the request /login/start and read:
+
+Status 200 → OK (mail sent) → check inbox/spam.
+
+Status 403 with body {"ok":false,"msg":"Not allowed"} → your email isn’t on the allowlist → fix step 2a.
+
+Status 500 with body {"ok":false,"msg":"Email send failed"} → SMTP creds issue → fix step 2b.
+
+Status 400 Email required → front-end didn’t send the email field (ID mismatch).
+
+2) Fix based on what you see
+(a) Allowlist
+
+In Replit Secrets set:
+
+ALLOWED_EMAILS = kassandrasantana406@gmail.com
+
+
+(restart after saving; multiple emails comma-separated)
+
+(b) SMTP (Gmail App Password)
+
+In Secrets set exactly (no spaces in the app password):
+
+SMTP_USER   = kassandrasantana406@gmail.com
+SMTP_PASS   = <16-character Gmail App Password>
+SMTP_HOST   = smtp.gmail.com
+SMTP_PORT   = 587
+SMTP_SECURE = false
+
+
+Then restart. In the Replit console you should see “SMTP OK” (we added transporter.verify()).
+
+Common SMTP errors in logs → fixes:
+
+Missing credentials for 'PLAIN' → SMTP_USER or SMTP_PASS missing/typo.
+
+EAUTH Invalid login → wrong app password (generate new one in Google → Security → App passwords → Mail).
+
+ETIMEDOUT/ECONNECTION → use PORT=587, SECURE=false (or try 465/true).
+
+Works with Mailtrap if Gmail is stubborn: set SMTP_* to Mailtrap’s test creds to confirm flow.
+
+3) Google button (separate path)
+
+Your screenshot URL shows /auth/google but the popup says “send verification email”—that means the front-end is still calling the email endpoint for that button. Make sure your login page JS has:
+
+document.getElementById('google').onclick = () => location.href = '/auth/google'
+document.getElementById('emailContinue').onclick = async () => {
+  const email = document.getElementById('email').value.trim();
+  const r = await fetch('/login/start', { method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ email })
+  });
+  const j = await r.json();
+  if (!j.ok) return alert(j.msg || 'Failed to send verification email');
+  sessionStorage.setItem('login.email', email);
+  sessionStorage.setItem('login.nonce', j.nonce);
+  location.href = '/verify';
+};
+
+
+And for Google OAuth, make sure these Secrets are set and your Google Cloud OAuth app has your domain in Authorized origins and callback:
+
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+
+
+Callback URL: https://portal.familycirclesecure.com/auth/google/callback
+(also add your replit.dev callback if you test there)
+
+Quick checklist to finish
+
+ Network shows /login/start with 200 (or tells you 403/500 so you can fix).
+
+ ALLOWED_EMAILS contains your address.
+
+ SMTP_* set to Gmail App Password (587/false), console prints SMTP OK.
+
+ Google button really navigates to /auth/google.
+
+ After verify code, /login/verify returns { ok:true, redirect:"/" } and you land in the portal.
