@@ -1,6 +1,14 @@
+—since the glow is still there, it means the CSS that kills the halo isn’t winning over the component’s own hover/focus styles (usually DaisyUI/Tailwind “card / ring / shadow” utilities). Let’s force it to win without guessing class names.
+
+Below is a single, stronger override that (1) does not depend on any custom class and (2) targets the most common tile elements (div.card, button, a, and [role="button"]) including their :hover / :focus / :focus-visible states.
+
+What to do (one paste to your codebase)
+
+Open (or create) client/src/styles/quick-access.css and replace the content with the rules below (or paste these at the very end of the file).
+
 /* ========= QUICK ACCESS: remove every hover/focus glow ========== */
 
-/* Match the Quick Access dialog no matter how it's mounted/named */
+/* Match the Quick Access dialog no matter how it’s mounted/named */
 dialog[aria-label="Quick Access"],
 #quick-access-modal,
 #quickAccessModal,
@@ -142,3 +150,18 @@ dialog[aria-label="Quick Access"] [role="button"]:focus-visible,
   outline: none !important;
   filter: none !important;
 }
+
+
+Confirm the stylesheet is imported (this is the common miss).
+In client/src/main.tsx or the file where you import global styles, add:
+
+import './styles/quick-access.css';
+
+
+Hard refresh the browser (Ctrl/Cmd + Shift + R) after the dev server recompiles.
+
+If you still see a glow after this
+
+Please right-click exactly one glowing tile → Inspect → in Elements panel copy the outermost two elements (the wrapper and the tile node) and paste those two lines here. With that exact markup I can give you a tiny selector that will 100% win for your structure.
+
+This approach keeps your thin gold border and removes every hover/focus halo from the Quick Access tiles.
