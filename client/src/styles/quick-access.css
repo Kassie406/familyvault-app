@@ -44,21 +44,47 @@ dialog[aria-label="Quick Access"] .btn-ghost {
   transition: border-color .15s ease, background-color .15s ease;
 }
 
-/* Keep hover/focus clean (no white/tint) */
+/* COMPLETELY KILL ALL HOVER EFFECTS - NO WHITE COLOR AT ALL */
 dialog[aria-label="Quick Access"] .card:hover,
+dialog[aria-label="Quick Access"] .card *:hover,
 dialog[aria-label="Quick Access"] a[role="button"]:hover,
+dialog[aria-label="Quick Access"] a[role="button"] *:hover,
 dialog[aria-label="Quick Access"] button:hover,
+dialog[aria-label="Quick Access"] button *:hover,
 dialog[aria-label="Quick Access"] .btn:hover,
+dialog[aria-label="Quick Access"] .btn *:hover,
 dialog[aria-label="Quick Access"] .btn-ghost:hover,
+dialog[aria-label="Quick Access"] .btn-ghost *:hover,
 dialog[aria-label="Quick Access"] .card:focus,
+dialog[aria-label="Quick Access"] .card *:focus,
 dialog[aria-label="Quick Access"] a[role="button"]:focus,
+dialog[aria-label="Quick Access"] a[role="button"] *:focus,
 dialog[aria-label="Quick Access"] button:focus,
+dialog[aria-label="Quick Access"] button *:focus,
 dialog[aria-label="Quick Access"] .btn:focus,
-dialog[aria-label="Quick Access"] .btn-ghost:focus {
+dialog[aria-label="Quick Access"] .btn *:focus,
+dialog[aria-label="Quick Access"] .btn-ghost:focus,
+dialog[aria-label="Quick Access"] .btn-ghost *:focus {
+  /* KILL ALL POSSIBLE WHITE BACKGROUNDS */
   background-color: transparent !important;
+  background-image: none !important;
+  background: none !important;
+  
+  /* KILL ALL CSS VARIABLES THAT CREATE WHITE */
+  --tw-bg-opacity: 0 !important;
+  --tw-text-opacity: 1 !important;
+  --tw-ring-opacity: 0 !important;
+  
+  /* KILL ALL GLOWS AND EFFECTS */
   outline: none !important;
   box-shadow: none !important;
+  filter: none !important;
   --tw-ring-color: transparent !important;
+  --tw-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  
+  /* ENSURE NO BORDER COLOR CHANGES */
+  border-color: var(--qa-gold) !important;
 }
 
 /* Remove any pseudo-element halos that some tiles add,
