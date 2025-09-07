@@ -14,13 +14,7 @@
   background-color: rgba(255,255,255,0.05) !important;
 }
 
-/* Gold glow on hover - applied after background fixes */
-[data-testid^="quick-action-"]:hover {
-  border-color: rgba(212,175,55,0.40) !important;
-  box-shadow:
-    0 0 0 1px rgba(212,175,55,.35),
-    0 18px 50px rgba(212,175,55,.12) !important;
-}
+/* NO GLOW - hover effect removed to prevent interference with quick-access.css */
 
 /* Prevent any links from showing blue/underlined styling */
 [data-testid^="quick-action-"] a,
