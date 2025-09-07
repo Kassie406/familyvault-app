@@ -80,4 +80,12 @@
   overflow: hidden;         /* critical: clip corner artifacts */
   border-radius: 16px;      /* keep your 16px radius */
   background-clip: padding-box;
+  cursor: pointer;          /* ensure cursor shows for onClick tiles */
+}
+
+/* Ensure both Link-wrapped and div-wrapped tiles get the same styling */
+#quick-access-modal a .qa-tile,
+#quick-access-modal div .qa-tile {
+  border: 1px solid rgba(212,175,55,0.28) !important;
+  background-image: linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%) !important;
 }
