@@ -215,6 +215,11 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       res.redirect('/');
     }
   );
+} else {
+  // Fallback when Google OAuth isn't configured
+  router.get('/auth/google', (req, res) => {
+    res.redirect('/login?error=google_not_configured');
+  });
 }
 
 // Logout
