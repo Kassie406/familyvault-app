@@ -52,7 +52,13 @@ export default function ActionCenter() {
 
   if (err) {
     return (
-      <div className="rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] transition-all duration-300 text-rose-300">
+      <div 
+        className="rounded-2xl border border-zinc-800/80 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] transition-all duration-300 text-rose-300"
+        style={{
+          background: 'linear-gradient(to bottom, rgba(24, 24, 27, 0.6), rgba(9, 9, 11, 0.7))',
+          backgroundImage: 'linear-gradient(to bottom, rgba(24, 24, 27, 0.6), rgba(9, 9, 11, 0.7))'
+        }}
+      >
         <div className="flex items-center gap-2">
           <AlertCircle className="w-5 h-5" />
           Action Center error — {err}
@@ -63,7 +69,13 @@ export default function ActionCenter() {
   
   if (!data) {
     return (
-      <div className="rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] transition-all duration-300 animate-pulse text-white/60">
+      <div 
+        className="rounded-2xl border border-zinc-800/80 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] transition-all duration-300 animate-pulse text-white/60"
+        style={{
+          background: 'linear-gradient(to bottom, rgba(24, 24, 27, 0.6), rgba(9, 9, 11, 0.7))',
+          backgroundImage: 'linear-gradient(to bottom, rgba(24, 24, 27, 0.6), rgba(9, 9, 11, 0.7))'
+        }}
+      >
         Loading Action Center…
       </div>
     );
@@ -78,11 +90,17 @@ export default function ActionCenter() {
 
   return (
     <a href="#chores" className="block no-underline">
-      <div className={`rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] hover:shadow-xl hover:shadow-[#D4AF37]/10 hover:border-[#D4AF37]/30 transition-all duration-300 ${
-        hasActions 
-          ? "cursor-pointer" 
-          : ""
-      }`}>
+      <div 
+        className={`rounded-2xl border border-zinc-800/80 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] hover:shadow-xl hover:shadow-[#D4AF37]/10 hover:border-[#D4AF37]/30 transition-all duration-300 ${
+          hasActions 
+            ? "cursor-pointer" 
+            : ""
+        }`}
+        style={{
+          background: 'linear-gradient(to bottom, rgba(24, 24, 27, 0.6), rgba(9, 9, 11, 0.7))',
+          backgroundImage: 'linear-gradient(to bottom, rgba(24, 24, 27, 0.6), rgba(9, 9, 11, 0.7))'
+        }}
+      >
         <div className="flex items-center gap-2 mb-1">
           {hasActions ? (
             <AlertCircle className="w-5 h-5 text-[#D4AF37]" />
