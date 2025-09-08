@@ -617,11 +617,17 @@ export default function FamilyHome() {
             {/* User Profile Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="w-8 h-8 rounded-full bg-[var(--gold)] flex items-center justify-center hover:bg-[#B8860B] transition-colors focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:ring-offset-2 focus:ring-offset-[#0A0A0A]">
+                <button 
+                  id="header-profile-btn"
+                  className="w-8 h-8 rounded-full bg-[var(--gold)] flex items-center justify-center hover:bg-[#B8860B] transition-colors focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:ring-offset-2 focus:ring-offset-[#0A0A0A]"
+                >
                   <span className="text-black text-sm font-medium">KC</span>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 bg-[#1A1A1A] border-[#2A2A33] text-white">
+              <DropdownMenuContent 
+                align="end" 
+                className="header-profile-menu w-48 bg-[#1A1A1A] border-[#2A2A33] text-white absolute right-0 mt-2 z-[60]"
+              >
                 <DropdownMenuItem asChild>
                   <Link href="/family/settings" className="flex items-center gap-2 px-2 py-2 hover:bg-[#2A2A33] transition-colors cursor-pointer">
                     <Settings className="h-4 w-4" />
