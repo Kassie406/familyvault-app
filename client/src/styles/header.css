@@ -75,6 +75,41 @@ button:has(span):hover svg {
   background-color: #D4AF37 !important;
 }
 
+/* ===== NUCLEAR OPTION: Kill ALL White Hovers and Replace with Gold ===== */
+
+/* Target any button with white hover classes - be extremely specific */
+button[class*="hover:bg-white"]:hover,
+[class*="hover:bg-white"]:hover,
+*[class*="hover:bg-white"]:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;
+  color: #D4AF37 !important;
+  --tw-bg-opacity: 1 !important;
+}
+
+/* Target buttons with white hover SVG icons */
+button[class*="hover:bg-white"]:hover svg,
+[class*="hover:bg-white"]:hover svg {
+  color: #D4AF37 !important;
+  stroke: #D4AF37 !important;
+}
+
+/* Override any button in header area with white hover */
+header button:hover,
+nav button:hover,
+.header-icon:hover,
+button.header-icon:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;
+  color: #D4AF37 !important;
+}
+
+header button:hover svg,
+nav button:hover svg,
+.header-icon:hover svg,
+button.header-icon:hover svg {
+  color: #D4AF37 !important;
+  stroke: #D4AF37 !important;
+}
+
 /* ===== BULLETPROOF Settings Button Fix - Maximum Specificity ===== */
 
 .sticky [data-testid="button-settings"] {
