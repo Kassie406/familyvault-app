@@ -148,3 +148,26 @@ button.header-icon:hover svg {
   --tw-bg-opacity: 0 !important;
   background-color: transparent !important;
 }
+
+/* ===== KC PROFILE DROPDOWN FIX ===== */
+/* Keep the KC profile trigger visible while the menu is open */
+#header-profile-btn,
+#header-profile-btn * {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* If any state-based utilities try to hide it, override them */
+#header-profile-btn[aria-expanded="true"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Make sure the dropdown sits above the header line */
+.header-profile-menu {
+  position: absolute !important;
+  right: 0 !important;
+  margin-top: 0.5rem !important; /* mt-2 */
+  z-index: 60 !important;        /* above header separators */
+}

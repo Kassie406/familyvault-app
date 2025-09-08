@@ -1,0 +1,103 @@
+your KC profile chip disappears when its menu opens and only re-appears after you click elsewhere. That’s almost always one of these:
+
+the trigger button is being hidden when aria-expanded="true" (e.g., opacity-0, invisible, hidden, sr-only via Tailwind/HeadlessUI state classes),
+
+the menu panel is rendered on top of the button with an opaque background (z-index/positioning), or
+
+the component conditionally unmounts the button when the menu is open.
+
+Below is a precise “paste to Replit agent” task that fixes all three safely.
+
+Paste this to Replit Agent
+
+Goal: Keep the KC profile avatar visible while its dropdown is open, with proper z-index, and remove any classes that hide it.
+
+1) Locate the profile trigger + menu
+
+Open the header page that renders the right-side icons (likely client/src/pages/family/family-home.tsx or client/src/components/family/Header.tsx).
+
+Find the KC avatar trigger. It usually looks like one of:
+
+<button ... data-testid="button-profile" ...>KC</button>
+
+<Menu.Button ...>KC</Menu.Button>
+
+<button ... aria-label="Profile" ...>KC</button>
+
+2) Remove classes that hide the trigger when open
+
+Inside the trigger element remove any of these (or similar) classes/selectors:
+
+opacity-0, invisible, hidden
+
+data-[state=open]:opacity-0, aria-expanded:opacity-0
+
+group-data-[open]:opacity-0, peer-aria-expanded:opacity-0
+
+any text-transparent / bg-white/* that would blank it
+
+3) Ensure the menu is positioned above, without replacing the trigger
+
+The trigger and panel must be siblings in a relative wrapper.
+
+The panel should be absolutely positioned and z-indexed above the header:
+
+className="absolute right-0 mt-2 z-[60]" (or higher than your header line)
+
+Do not conditionally unmount the trigger. The button should remain in the DOM whether the menu is open or not.
+
+If you’re using Headless UI:
+
+<Menu as="div" className="relative">
+  <Menu.Button id="header-profile-btn" className="header-icon rounded-full">KC</Menu.Button>
+  <Menu.Items className="absolute right-0 mt-2 z-[60] w-56 rounded-xl bg-[#0c0c0f]/95 shadow-lg ring-1 ring-black/50 backdrop-blur">
+    {/* menu items */}
+  </Menu.Items>
+</Menu>
+
+4) Add a tiny CSS safeguard (keeps avatar visible even when open)
+
+Create/update client/src/styles/header.css and import it once (e.g., in main.tsx or your styles barrel):
+
+/* Keep the KC profile trigger visible while the menu is open */
+#header-profile-btn,
+#header-profile-btn * {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* If any state-based utilities try to hide it, override them */
+#header-profile-btn[aria-expanded="true"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Make sure the dropdown sits above the header line */
+.header-profile-menu {
+  position: absolute;
+  right: 0;
+  margin-top: 0.5rem; /* mt-2 */
+  z-index: 60;        /* above header separators */
+}
+
+
+If your menu panel has a class, add it to .header-profile-menu or just put those styles inline on the panel.
+
+5) Quick checks (do these now)
+
+Inspect the button when open: verify it keeps opacity: 1 and visibility: visible.
+
+Inspect the panel: it should have position:absolute and z-index ≥ 60.
+
+Confirm the trigger is not conditionally removed when open.
+
+Why this fixes it
+
+If the issue was a state class (e.g., aria-expanded:opacity-0) the CSS guard keeps the trigger visible.
+
+If the issue was stacking, the panel’s z-index + absolute positioning prevents it from covering the avatar.
+
+If the button was unmounted, step 3 keeps it in the DOM so it can’t “disappear”.
+
+If you want, paste me the small snippet around the KC button + its menu (10–20 lines) and I’ll tailor the exact class names to your code.
