@@ -153,7 +153,7 @@ export function CouplesConnectionModal({ open, onClose }: CouplesConnectionModal
             Couple's Connection
           </DialogTitle>
           <p className="text-neutral-400 text-sm mt-1">
-            Preserve memories, plan dates, set goals, and share love notes
+            Plan time together, track memories, stay close.
           </p>
         </DialogHeader>
 
