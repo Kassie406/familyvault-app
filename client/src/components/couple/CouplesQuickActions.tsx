@@ -100,7 +100,7 @@ export default function CouplesQuickActions() {
             <button
               key={action.type}
               onClick={() => setOpen(action.type)}
-              className="flex items-center gap-3 w-full text-left p-3 rounded-lg hover:bg-[#D4AF37]/10 transition-colors group"
+              className="flex items-center gap-3 w-full text-left p-3 rounded-lg hover:bg-[#D4AF37]/8 transition-colors group"
               data-testid={`button-${action.type.replace('_', '-')}`}
             >
               <span className={`${action.color} group-hover:text-[#D4AF37] transition-colors`}>
