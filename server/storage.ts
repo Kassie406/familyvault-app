@@ -45,7 +45,13 @@ import {
   type FamilyUpdateSnooze, type InsertFamilyUpdateSnooze,
   familyCalendarEvents, familyIceData,
   type FamilyCalendarEvent, type InsertFamilyCalendarEvent,
-  type FamilyIceData, type InsertFamilyIceData
+  type FamilyIceData, type InsertFamilyIceData,
+  couples, coupleDateIdeas, coupleEvents, coupleJournal, coupleCheckins,
+  type Couple, type InsertCouple,
+  type CoupleDateIdea, type InsertCoupleDateIdea,
+  type CoupleEvent, type InsertCoupleEvent,
+  type CoupleJournalEntry, type InsertCoupleJournalEntry,
+  type CoupleCheckin, type InsertCoupleCheckin
 } from "@shared/schema";
 
 // Database connection
@@ -295,6 +301,20 @@ export interface IStorage {
   // ICE Data methods  
   getFamilyICEData(familyId: string): Promise<FamilyIceData | undefined>;
   updateFamilyICEData(data: InsertFamilyIceData): Promise<FamilyIceData>;
+
+  // Couple Connection methods
+  getCoupleDateIdeas(coupleId: string): Promise<CoupleDateIdea[]>;
+  createCoupleDateIdea(idea: InsertCoupleDateIdea): Promise<CoupleDateIdea>;
+  updateCoupleDateIdeaRanking(ideaId: string, userId: string, ranking: number): Promise<boolean>;
+  
+  getCoupleEvents(coupleId: string): Promise<CoupleEvent[]>;
+  createCoupleEvent(event: InsertCoupleEvent): Promise<CoupleEvent>;
+  
+  getCoupleJournalEntries(coupleId: string): Promise<CoupleJournalEntry[]>;
+  createCoupleJournalEntry(entry: InsertCoupleJournalEntry): Promise<CoupleJournalEntry>;
+  
+  getCoupleCheckins(coupleId: string): Promise<CoupleCheckin[]>;
+  createCoupleCheckin(checkin: InsertCoupleCheckin): Promise<CoupleCheckin>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1538,6 +1558,114 @@ export class DatabaseStorage implements IStorage {
       }
     } catch (error) {
       console.error('Error updating family ICE data:', error);
+      throw error;
+    }
+  }
+
+  // Couple Connection methods
+  async getCoupleDateIdeas(coupleId: string): Promise<CoupleDateIdea[]> {
+    try {
+      const result = await db.select().from(coupleDateIdeas)
+        .where(eq(coupleDateIdeas.coupleId, coupleId))
+        .orderBy(desc(coupleDateIdeas.createdAt));
+      return result;
+    } catch (error) {
+      console.error('Error getting couple date ideas:', error);
+      return [];
+    }
+  }
+
+  async createCoupleDateIdea(idea: InsertCoupleDateIdea): Promise<CoupleDateIdea> {
+    try {
+      const [result] = await db.insert(coupleDateIdeas).values(idea).returning();
+      return result;
+    } catch (error) {
+      console.error('Error creating couple date idea:', error);
+      throw error;
+    }
+  }
+
+  async updateCoupleDateIdeaRanking(ideaId: string, userId: string, ranking: number): Promise<boolean> {
+    try {
+      // This would update the upvotes JSON field - simplified for now
+      const [idea] = await db.select().from(coupleDateIdeas).where(eq(coupleDateIdeas.id, ideaId));
+      if (!idea) return false;
+      
+      const upvotes = (idea.upvotes as Record<string, any>) || {};
+      upvotes[userId] = ranking;
+      
+      await db.update(coupleDateIdeas)
+        .set({ upvotes })
+        .where(eq(coupleDateIdeas.id, ideaId));
+      return true;
+    } catch (error) {
+      console.error('Error updating couple date idea ranking:', error);
+      return false;
+    }
+  }
+
+  async getCoupleEvents(coupleId: string): Promise<CoupleEvent[]> {
+    try {
+      const result = await db.select().from(coupleEvents)
+        .where(eq(coupleEvents.coupleId, coupleId))
+        .orderBy(desc(coupleEvents.startTime));
+      return result;
+    } catch (error) {
+      console.error('Error getting couple events:', error);
+      return [];
+    }
+  }
+
+  async createCoupleEvent(event: InsertCoupleEvent): Promise<CoupleEvent> {
+    try {
+      const [result] = await db.insert(coupleEvents).values(event).returning();
+      return result;
+    } catch (error) {
+      console.error('Error creating couple event:', error);
+      throw error;
+    }
+  }
+
+  async getCoupleJournalEntries(coupleId: string): Promise<CoupleJournalEntry[]> {
+    try {
+      const result = await db.select().from(coupleJournal)
+        .where(eq(coupleJournal.coupleId, coupleId))
+        .orderBy(desc(coupleJournal.occurredOn));
+      return result;
+    } catch (error) {
+      console.error('Error getting couple journal entries:', error);
+      return [];
+    }
+  }
+
+  async createCoupleJournalEntry(entry: InsertCoupleJournalEntry): Promise<CoupleJournalEntry> {
+    try {
+      const [result] = await db.insert(coupleJournal).values(entry).returning();
+      return result;
+    } catch (error) {
+      console.error('Error creating couple journal entry:', error);
+      throw error;
+    }
+  }
+
+  async getCoupleCheckins(coupleId: string): Promise<CoupleCheckin[]> {
+    try {
+      const result = await db.select().from(coupleCheckins)
+        .where(eq(coupleCheckins.coupleId, coupleId))
+        .orderBy(desc(coupleCheckins.checkinDate));
+      return result;
+    } catch (error) {
+      console.error('Error getting couple checkins:', error);
+      return [];
+    }
+  }
+
+  async createCoupleCheckin(checkin: InsertCoupleCheckin): Promise<CoupleCheckin> {
+    try {
+      const [result] = await db.insert(coupleCheckins).values(checkin).returning();
+      return result;
+    } catch (error) {
+      console.error('Error creating couple checkin:', error);
       throw error;
     }
   }
