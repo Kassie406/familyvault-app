@@ -1,0 +1,17 @@
+/* Notification dropdown defensive CSS overrides */
+.notification-popover {
+  position: fixed !important;
+  z-index: 110 !important;
+  /* Ensure it's above all other elements */
+}
+
+/* Additional safeguards for notification center */
+.notification-popover * {
+  box-sizing: border-box;
+}
+
+/* Prevent stacking context conflicts */
+.notification-popover {
+  isolation: isolate;
+  contain: layout style;
+}

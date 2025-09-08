@@ -184,7 +184,6 @@ export function NotificationCenter() {
         right: `${buttonPosition.right}px`,
       }}
     >
-      <LuxuryCard className="p-0 max-h-96 overflow-hidden border-none shadow-none bg-transparent">
         {/* Header */}
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
           <h3 className="font-semibold text-white">Notifications</h3>
@@ -278,7 +277,6 @@ export function NotificationCenter() {
             </button>
           </div>
         )}
-      </LuxuryCard>
     </div>
   );
 
