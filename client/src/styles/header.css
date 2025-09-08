@@ -185,3 +185,63 @@ button[data-testid="button-toggle-layout"] {
   --tw-ring-shadow: 0 0 #0000 !important;
   --tw-ring-offset-shadow: 0 0 #0000 !important;
 }
+
+/* ===== ALL FAMILY PAGE HEADER BUTTONS → GOLD HOVER ===== */
+
+/* Target all common header button patterns across family pages */
+button[data-testid*="edit-title-button"],
+button[data-testid*="button-add-"],
+button[data-testid*="button-view-"],
+button[data-testid*="button-insurance-"],
+button[data-testid*="button-retry"],
+button[data-testid*="button-get-started"],
+button[data-testid*="save-title-button"],
+button[data-testid*="cancel-title-button"] {
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+/* Gold hover for all family page header buttons */
+button[data-testid*="edit-title-button"]:hover,
+button[data-testid*="button-add-"]:hover,
+button[data-testid*="button-view-"]:hover,
+button[data-testid*="button-insurance-"]:hover,
+button[data-testid*="button-retry"]:hover,
+button[data-testid*="button-get-started"]:hover,
+button[data-testid*="save-title-button"]:hover,
+button[data-testid*="cancel-title-button"]:hover {
+  background-color: rgba(var(--kc-gold-rgb), 0.10) !important; /* light gold tint */
+  color: var(--kc-gold) !important;                           /* make icons gold */
+}
+
+/* Gold hover for SVG icons in family page buttons */
+button[data-testid*="edit-title-button"]:hover svg,
+button[data-testid*="button-add-"]:hover svg,
+button[data-testid*="button-view-"]:hover svg,
+button[data-testid*="button-insurance-"]:hover svg,
+button[data-testid*="button-retry"]:hover svg,
+button[data-testid*="button-get-started"]:hover svg,
+button[data-testid*="save-title-button"]:hover svg,
+button[data-testid*="cancel-title-button"]:hover svg {
+  stroke: currentColor !important;
+  color: var(--kc-gold) !important;
+}
+
+/* Broad catch-all for any remaining family page header buttons */
+[class*="family"] button:hover,
+.family-header button:hover,
+.page-header button:hover {
+  background-color: rgba(var(--kc-gold-rgb), 0.08) !important;
+  color: var(--kc-gold) !important;
+}
+
+[class*="family"] button:hover svg,
+.family-header button:hover svg,
+.page-header button:hover svg {
+  stroke: currentColor !important;
+  color: var(--kc-gold) !important;
+}
