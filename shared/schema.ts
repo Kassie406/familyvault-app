@@ -1023,6 +1023,29 @@ export const auditCouple = pgTable("audit_couple", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Couple Activities - simplified feed approach
+export const coupleActivities = pgTable("couple_activities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  coupleId: varchar("couple_id").notNull().references(() => couples.id, { onDelete: 'cascade' }),
+  type: text("type").notNull(), // 'memory' | 'plan_date' | 'love_note' | 'goal' | 'chore_complete'
+  title: text("title").notNull(),
+  payload: jsonb("payload").default({}),
+  points: integer("points").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Couple Chores - optional chores the couple can complete
+export const coupleChores = pgTable("couple_chores", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  coupleId: varchar("couple_id").notNull().references(() => couples.id, { onDelete: 'cascade' }),
+  title: text("title").notNull(),
+  dueOn: date("due_on"),
+  points: integer("points").default(10),
+  completedBy: varchar("completed_by").references(() => users.id),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Couple types
 export type Couple = typeof couples.$inferSelect;
 export type InsertCouple = typeof couples.$inferInsert;
@@ -1036,6 +1059,12 @@ export type CoupleCheckin = typeof coupleCheckins.$inferSelect;
 export type InsertCoupleCheckin = typeof coupleCheckins.$inferInsert;
 export type AuditCoupleEntry = typeof auditCouple.$inferSelect;
 export type InsertAuditCoupleEntry = typeof auditCouple.$inferInsert;
+
+// Activity feed types
+export type CoupleActivity = typeof coupleActivities.$inferSelect;
+export type InsertCoupleActivity = typeof coupleActivities.$inferInsert;
+export type CoupleChore = typeof coupleChores.$inferSelect;
+export type InsertCoupleChore = typeof coupleChores.$inferInsert;
 
 // Meal planning types
 export type Recipe = typeof recipes.$inferSelect;

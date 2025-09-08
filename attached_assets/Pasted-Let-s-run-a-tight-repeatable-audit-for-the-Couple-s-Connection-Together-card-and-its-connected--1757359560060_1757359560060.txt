@@ -1,0 +1,224 @@
+Let’s run a tight, repeatable audit for the “Couple’s Connection → Together” card and its connected features (Quick Actions, Activity Feed, Chores → points). Below is a complete checklist + copy-paste test scaffolding so you can prove it’s correct for real users.
+
+1) What this card must do (success criteria)
+
+Show “Recent” feed (newest first) with title, date, and ±points.
+
+“Quick Actions” create feed items: Add Memory, Plan Date, Send Love Note, Set Goals.
+
+Completing a Chore adds a feed line with +points matching the chore.
+
+Works on desktop & mobile, keyboard-only, and screen readers.
+
+Persists to DB with correct couple_id; no cross-couple leakage.
+
+Handles empty states & API errors gracefully.
+
+2) UX & Accessibility audit (manual, 5–7 minutes)
+
+Keyboard only: Tab through buttons → focus ring visible; Enter/Space activates.
+
+Screen reader labels:
+
+Quick action buttons have clear aria-label (“Add Memory”, etc.).
+
+Modal has role="dialog" and focus trap; Esc closes.
+
+Color contrast: gold text/badges ≥ 3:1, body text ≥ 4.5:1 on dark background.
+
+Empty state: Shows “No recent activity” (not a blank void).
+
+States: buttons have hover, focus, disabled; submission shows progress (or instant optimistic update).
+
+Mobile: tap targets ≥ 44px, no horizontal scroll.
+
+3) Functional audit (black-box tests you run now)
+
+Add Memory
+
+Click → fill title → Save → feed shows line with +5 (or your points).
+
+Reload page → item persists.
+
+Plan Date
+
+Save with details in payload → feed line appears; payload stored in DB.
+
+Love Note & Goal
+
+Same as above; points match mapping.
+
+Chore completion
+
+Mark done → feed gets Chore: <title> with +chore.points.
+
+Mark same chore again → disallowed or idempotent (no duplicate points).
+
+Pagination (if applicable)
+
+“View all” shows older items; newest still at top.
+
+Auth boundary
+
+Switch to a different couple_id (or log in as other user) → you cannot see or mutate the first couple’s feed.
+
+4) Data integrity audit (DB)
+
+Constraints you should have
+
+activities.couple_id NOT NULL
+
+activities.type in {memory, plan_date, love_note, goal, chore_complete}
+
+chores completion sets completed_at once
+
+Spot checks (SQL)
+
+-- Only this couple’s items
+SELECT COUNT(*) FROM activities WHERE couple_id='demo-couple';
+
+-- No null titles or types
+SELECT * FROM activities WHERE title IS NULL OR type IS NULL;
+
+-- No duplicate chore-complete rows for the same chore within 1 minute (guardrail)
+SELECT chore_id, COUNT(*) FROM (
+  SELECT (payload->>'chore_id')::int AS chore_id, created_at
+  FROM activities WHERE type='chore_complete'
+) t GROUP BY chore_id HAVING COUNT(*) > 1;
+
+
+(Optional) add a DB trigger to prevent double point grants for the same completed chore.
+
+5) Performance & reliability audit
+
+Feed request under 300ms p95 with 30 items.
+
+UI stays responsive on slow 3G (try DevTools “Slow 3G”).
+
+Server logs no unhandled promise rejections.
+
+Error path: simulate 500 on /api/activities/quick → UI shows error toast, no duplicate submissions.
+
+6) Telemetry & analytics (add now—tiny but powerful)
+
+Emit these events to your logger/analytics:
+
+quick_action_submitted {type}
+
+quick_action_saved {type, points}
+
+chore_completed {chore_id, points}
+
+feed_loaded {count}
+
+This lets you track usage and success/failure rates.
+
+7) Security & privacy audit
+
+Endpoints require a valid session/JWT; couple_id derived server-side, not trusted from client header (header is okay for dev, but lock it in prod).
+
+Input validation (Zod) on every POST/PUT.
+
+No HTML injection: render titles safely; escape user-provided text.
+
+Rate-limit POSTs (basic middleware) to prevent spam.
+
+8) Copy & clarity audit
+
+Titles read like activity lines (“Planned a date night at The Park”).
+
+Buttons: verb + value (“Add Memory”, not “Submit”).
+
+“View all” goes somewhere real (paginated list).
+
+Empty state suggests next step (“No recent activity — add your first memory.”)
+
+9) Automated test scaffolding (paste & run)
+API (Express) – Jest + Supertest
+// tests/activities.test.js
+const request = require('supertest');
+const app = require('../server'); // your Express app
+describe('Activities API', ()=>{
+  const H = { 'x-couple-id': 'test-couple' };
+
+  it('creates quick action and returns points', async ()=>{
+    const res = await request(app)
+      .post('/api/activities/quick')
+      .set(H)
+      .send({ type:'memory', title:'First memory' });
+    expect(res.status).toBe(201);
+    expect(res.body.points).toBeGreaterThanOrEqual(1); // e.g., 5
+    expect(res.body.title).toContain('First memory');
+  });
+
+  it('lists feed newest first', async ()=>{
+    const res = await request(app).get('/api/activities').set(H);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    if (res.body.length > 1) {
+      const t0 = new Date(res.body[0].created_at).getTime();
+      const t1 = new Date(res.body[1].created_at).getTime();
+      expect(t0 >= t1).toBe(true);
+    }
+  });
+
+  it('completes chore and adds points', async ()=>{
+    // Seed a chore
+    // (replace with your db helper)
+    // await db.query(`INSERT INTO chores ... RETURNING id`);
+    const id = 1; // use seeded id
+    const res = await request(app).post(`/api/activities/chores/${id}/complete`).set(H);
+    expect([200, 204]).toContain(res.status);
+    const feed = await request(app).get('/api/activities').set(H);
+    const found = feed.body.find(x => x.type==='chore_complete');
+    expect(found).toBeTruthy();
+    expect(found.points).toBeGreaterThan(0);
+  });
+});
+
+UI – React Testing Library (core behaviors)
+// src/components/__tests__/TogetherCard.test.tsx
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import Together from '@/pages/couples/together';
+
+test('shows empty state then adds a memory', async ()=>{
+  render(<Together />);
+  expect(await screen.findByText(/No recent activity/i)).toBeInTheDocument();
+
+  fireEvent.click(screen.getByText(/Add Memory/i));
+  const input = await screen.findByPlaceholderText(/Title/i);
+  fireEvent.change(input, { target:{ value:'Walk on the beach' }});
+  fireEvent.click(screen.getByText(/Save/i));
+
+  await waitFor(()=> {
+    expect(screen.getByText(/Walk on the beach/i)).toBeInTheDocument();
+  });
+});
+
+E2E – Cypress (happy path)
+// cypress/e2e/together.cy.js
+describe('Together card', ()=>{
+  it('quick actions create feed items with points', ()=>{
+    cy.visit('/couples/together');
+    cy.contains('No recent activity');
+
+    cy.contains('Add Memory').click();
+    cy.get('input[placeholder="Title"]').type('Sunset memory');
+    cy.contains('Save').click();
+
+    cy.contains('Sunset memory');
+    cy.contains('+').should('exist'); // shows +points
+  });
+});
+
+10) “Definition of Done” for this card
+
+✅ All manual checks in sections 2–5 pass on desktop & mobile.
+
+✅ All automated tests above are green (unit/API/UI/E2E).
+
+✅ Error paths show friendly feedback; no console errors.
+
+✅ Logs/analytics events are emitted.
+
+✅ Code reviewed & merged; release notes updated.
