@@ -1,0 +1,117 @@
+I see what’s happening: some darker <li> hover (or a Radix/shadcn state) is still overriding the anchor’s light wash on a few items. Let’s nuke all conflicting hovers for this one card and re-apply the gold wash only on the actual clickable row.
+
+Do these 3 edits exactly:
+
+1) Give the list a unique hook
+
+In your Family Members card JSX (the UL that contains Add Person / Invite / Manage Roles), add an id and a class on the anchor.
+
+<ul id="family-quick-actions" className="space-y-1">
+  <li>
+    <a
+      href="/family/ids/new?type=person"
+      className="qa-row flex items-center gap-3 rounded-lg px-2 py-3 min-h-[48px] w-full text-zinc-300 transition-colors cursor-pointer touch-manipulation"
+    >
+      Add Person
+    </a>
+  </li>
+  <li>
+    <a
+      href="/family/invite"
+      className="qa-row flex items-center gap-3 rounded-lg px-2 py-3 min-h-[48px] w-full text-zinc-300 transition-colors cursor-pointer touch-manipulation"
+    >
+      Invite Family Member
+    </a>
+  </li>
+  <li>
+    <a
+      href="/family/access"
+      className="qa-row flex items-center gap-3 rounded-lg px-2 py-3 min-h-[48px] w-full text-zinc-300 transition-colors cursor-pointer touch-manipulation"
+    >
+      Manage Roles & Access
+    </a>
+  </li>
+</ul>
+
+
+Keep w-full on the <a> so the background covers the whole row.
+
+2) Hard-reset all dark hovers on this list, then set the gold wash
+
+Put this at the very bottom of your global CSS (after Tailwind’s @tailwind ... lines), so it wins.
+
+/* --- Family Members quick actions: force light gold hover --- */
+#family-quick-actions li,
+#family-quick-actions li:hover {
+  background: transparent !important;           /* kill any <li> hover */
+}
+
+/* anchor/button rows (cover both link and radix item cases) */
+#family-quick-actions a.qa-row,
+#family-quick-actions button.qa-row,
+#family-quick-actions [role="menuitem"].qa-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  width: 100%;
+  min-height: 48px;
+  border-radius: 12px;
+  padding: .75rem .5rem;
+  text-decoration: none;
+}
+
+/* hover/focus/active states (light gold wash) */
+#family-quick-actions a.qa-row:hover,
+#family-quick-actions button.qa-row:hover,
+#family-quick-actions [role="menuitem"].qa-row:hover,
+#family-quick-actions a.qa-row[data-highlighted],
+#family-quick-actions button.qa-row[data-highlighted],
+#family-quick-actions [role="menuitem"].qa-row[data-highlighted],
+#family-quick-actions a.qa-row:focus-visible,
+#family-quick-actions button.qa-row:focus-visible,
+#family-quick-actions [role="menuitem"].qa-row:focus-visible {
+  background-color: rgba(212, 175, 55, 0.14) !important; /* #D4AF37 @14% */
+  outline: 2px solid rgba(212, 175, 55, 0.60);
+  outline-offset: 2px;
+}
+
+#family-quick-actions a.qa-row:active,
+#family-quick-actions button.qa-row:active,
+#family-quick-actions [role="menuitem"].qa-row:active {
+  background-color: rgba(212, 175, 55, 0.20) !important;
+}
+
+
+This targets:
+
+normal hover,
+
+Radix/shadcn highlight state ([data-highlighted]),
+
+keyboard focus (:focus-visible),
+
+and it neutralizes any <li>-level hover that was causing the dark strip.
+
+3) Remove conflicting utilities on those elements
+
+Open the same file and delete any of these on the <li> or <a> rows if you still see them:
+
+hover:bg-zinc-800, hover:bg-neutral-800, hover:bg-[#D4AF37]/8, group-hover:bg-*
+
+Any parent group class that applies a background on hover to children
+
+Search quickly:
+
+Find: hover:bg- in client/src/components/StatCard.tsx
+
+Keep layout/spacing classes; remove the old hover classes for those three rows.
+
+Quick verify (30 seconds)
+
+Save CSS + component, restart your Replit dev server.
+
+In DevTools, select a quick-action <a class="qa-row"> → toggle :hov → :hover.
+
+Confirm computed background-color: rgba(212, 175, 55, 0.14) on the anchor, and the <li> stays transparent.
+
+Hover with the mouse—each row should show the same light gold pill. Keyboard with ↑/↓ or Tab should show the same via [data-highlighted]/:focus-visible.

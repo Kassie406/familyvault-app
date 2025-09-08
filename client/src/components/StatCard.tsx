@@ -257,13 +257,13 @@ export function StatCard({
             <div className="text-[10px] font-semibold tracking-wider text-zinc-400 mb-2 px-2">
               QUICK ACTIONS
             </div>
-            <ul className="space-y-1">
+            <ul id="family-quick-actions" className="space-y-1">
               {dropdownActions.map((action, index) => (
                 <li key={index} className="hover:!bg-transparent">
                   {action.href ? (
                     <Link
                       href={action.href}
-                      className={`flex w-full items-center gap-3 rounded-lg px-2 text-sm text-zinc-300 hover:!bg-[#D4AF37]/14 active:!bg-[#D4AF37]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37]/60 transition-colors cursor-pointer touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
+                      className={`qa-row flex items-center gap-3 rounded-lg px-2 py-3 min-h-[48px] w-full text-zinc-300 transition-colors cursor-pointer touch-manipulation`}
                     >
                       {action.icon && (
                         <span className="text-amber-400 opacity-70">
@@ -278,7 +278,7 @@ export function StatCard({
                         action.onClick?.();
                         setOpen(false);
                       }}
-                      className={`w-full flex items-center gap-3 rounded-lg px-2 text-sm text-zinc-300 hover:!bg-[#D4AF37]/14 active:!bg-[#D4AF37]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37]/60 transition-colors cursor-pointer text-left touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
+                      className={`qa-row w-full flex items-center gap-3 rounded-lg px-2 py-3 min-h-[48px] text-zinc-300 transition-colors cursor-pointer text-left touch-manipulation`}
                     >
                       {action.icon && (
                         <span className="text-amber-400 opacity-70">
