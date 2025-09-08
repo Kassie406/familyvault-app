@@ -11,7 +11,8 @@ import {
   Phone, DollarSign, Upload, ShieldAlert,
   UserPlus, Mail, Settings, Share, Camera, FolderOpen, AlertCircle,
   Zap, Grid, BarChart3, Video, ListTodo, CalendarDays, User,
-  X, CheckCircle2, Trash2, LogOut, Search, HelpCircle, ChefHat
+  X, CheckCircle2, Trash2, LogOut, Search, HelpCircle, ChefHat,
+  ChevronDown
 } from 'lucide-react';
 import { 
   ActionCard, 
@@ -19,6 +20,13 @@ import {
   AnnouncementCard, 
   ActivityTimeline 
 } from '@/components/luxury-cards';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { StatCard } from '@/components/StatCard';
 import { InviteFamilyMemberDialog } from '@/components/InviteFamilyMemberDialog';
 import QuickDocumentUpload from '@/components/upload/QuickDocumentUpload';
@@ -606,30 +614,32 @@ export default function FamilyHome() {
               <span className="text-sm">Help</span>
             </button>
             
-            {/* User Profile Avatar */}
-            <div className="w-8 h-8 rounded-full bg-[var(--gold)] flex items-center justify-center">
-              <span className="text-black text-sm font-medium">KC</span>
-            </div>
-            
-            {/* Logout Button */}
-            <button
-              onClick={handleLogout}
-              className="text-[var(--ink-300)] hover:text-red-400 flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors"
-              data-testid="button-logout"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="text-sm">Sign Out</span>
-            </button>
+            {/* User Profile Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="w-8 h-8 rounded-full bg-[var(--gold)] flex items-center justify-center hover:bg-[#B8860B] transition-colors focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:ring-offset-2 focus:ring-offset-[#0A0A0A]">
+                  <span className="text-black text-sm font-medium">KC</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 bg-[#1A1A1A] border-[#2A2A33] text-white">
+                <DropdownMenuItem asChild>
+                  <Link href="/family/settings" className="flex items-center gap-2 px-2 py-2 hover:bg-[#2A2A33] transition-colors cursor-pointer">
+                    <Settings className="h-4 w-4" />
+                    <span>Settings</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-[#2A2A33]" />
+                <DropdownMenuItem 
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-2 py-2 hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Sign Out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             
             <NotificationCenter />
-            <Link href="/family/settings" className="relative">
-              <button
-                data-testid="button-settings"
-                className="group p-2 rounded-lg transition-colors hover:bg-[rgba(212,175,55,0.08)] focus-visible:bg-[rgba(212,175,55,0.12)]"
-              >
-                <Settings className="h-4 w-4 text-white/70 transition-colors group-hover:text-[#D4AF37]" />
-              </button>
-            </Link>
           </div>
         </div>
 
