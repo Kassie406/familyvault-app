@@ -1,0 +1,132 @@
+you’re getting a login loop: you enter the email + 6-digit code, see a spinner, and get sent right back to the “Welcome back” page.
+
+That symptom almost always means the app failed to persist the login session (the cookie/JWT isn’t being stored/read), so your “isAuthenticated” check immediately redirects you to /login again.
+
+Here’s a focused, do-this-now checklist that fixes 95% of these cases on Replit:
+
+1) Quick diagnosis (takes ~1–2 minutes)
+
+Open DevTools → Network.
+
+Try logging in again and watch the auth calls (often /api/auth/*, /session, /verify, etc).
+
+Click the response for the last auth call (the one that should set the session) and then check:
+
+Status: 200/302 is OK.
+
+Response headers: Is there a Set-Cookie?
+
+DevTools → Application → Cookies → select your https://<your-app>.replit.dev origin.
+
+Do you see a session cookie right after the auth call?
+
+If no cookie shows up → the browser rejected it (wrong domain/SameSite/Secure flags), or your server didn’t set it.
+
+If a cookie is set but you still bounce → the server can’t read/verify it (wrong secret, wrong domain, time skew, etc.).
+
+2) The usual culprits on Replit (and the fixes)
+
+You don’t need all of these — pick the one matching your stack.
+
+A) Cookie “domain” is wrong (very common)
+
+If you set domain: '.replit.dev' or your old domain, the browser will ignore the cookie.
+
+Fix: Don’t set domain at all, or set it exactly to your runtime host (e.g. myapp.username.replit.dev).
+
+// Express/Node example
+res.cookie('session', token, {
+  httpOnly: true,
+  secure: true,          // yes, Replit has HTTPS
+  sameSite: 'lax',
+  path: '/',             // no domain -> use current host
+  // domain: undefined,
+});
+
+B) SameSite is too strict (blocks in some navigations)
+
+If you use SameSite='Strict', many flows won’t stick.
+
+Fix: Use sameSite: 'lax' (recommended) or 'none' with secure: true.
+
+sameSite: 'lax', // or 'none' + secure: true
+secure: true,
+
+C) NextAuth / Lucia / custom auth mis-config
+
+NextAuth v4/v5
+
+Set your public URL and trust host:
+
+NEXTAUTH_URL=https://YOUR-SUBDOMAIN.username.replit.dev
+NEXTAUTH_SECRET=your-long-random-secret
+AUTH_TRUST_HOST=true
+
+
+(Optional) Make session cookie explicit:
+
+// in [...nextauth].ts
+cookies: {
+  sessionToken: {
+    name: '__Secure-next-auth.session-token',
+    options: { httpOnly: true, sameSite: 'lax', path: '/', secure: true },
+  },
+},
+
+
+Lucia
+
+AUTH_ORIGIN=https://YOUR-SUBDOMAIN.username.replit.dev
+
+
+Custom JWT
+
+Verify that verify secret == sign secret and system time isn’t wildly off.
+
+D) Middleware always redirects
+
+Your route guard (middleware) might be running before the session is available or reading the wrong cookie name.
+
+Fix: In middleware, log the cookie you expect and its value. Temporarily allow / and /dashboard through if the cookie exists at all to confirm.
+
+E) Allowed/redirect URLs not whitelisted
+
+If you use a provider (Clerk, Supabase, Firebase, Magic), add your exact Replit domain to Allowed Origins/Redirects in that provider’s dashboard.
+
+3) “One-shot” prompt you can paste to Replit Agent
+
+This will (a) remove bad cookie domain usage, (b) set safe cookie flags, and (c) wire NextAuth/Lucia style envs if applicable.
+
+Please fix the login loop that returns to /login after entering the code:
+
+1) Search the repo for where the session cookie is set (res.cookie, iron-session, next-auth, lucia). 
+   - Remove any explicit `domain: ...` option OR set it exactly to the current host. Prefer leaving domain unset.
+   - Ensure cookie options: { httpOnly: true, secure: true, sameSite: 'lax', path: '/' }.
+
+2) If this project uses NextAuth:
+   - Add to .env:
+     NEXTAUTH_URL=https://<MY-SUBDOMAIN>.<MY-USER>.replit.dev
+     NEXTAUTH_SECRET=<long-random-secret>
+     AUTH_TRUST_HOST=true
+   - In [...nextauth].ts, explicitly set the session cookie to __Secure-next-auth.session-token with { secure: true, sameSite: 'lax', path: '/', httpOnly: true }.
+
+3) If this project uses Lucia:
+   - Add AUTH_ORIGIN=https://<MY-SUBDOMAIN>.<MY-USER>.replit.dev to .env and ensure the session cookie opts are { secure: true, sameSite: 'lax', path: '/' }.
+
+4) Remove any middleware redirect that runs before session is available or uses a mismatched cookie name. 
+   - Log the cookie name and contents in the guard so we can confirm the server sees it.
+
+5) Rebuild and test:
+   - Open DevTools > Network, attempt login, confirm Set-Cookie arrives and the cookie appears under Application > Cookies for the app origin.
+
+4) Fast verification
+
+After the change, try login again and then check Application → Cookies:
+
+There should be a session cookie for your exact https://…replit.dev origin.
+
+Go to a protected route (your dashboard). If it still bounces, dump the cookie header on the server and confirm your auth middleware is reading the same cookie name.
+
+Extra tip
+
+If you ever open your app inside another page (embedded preview/iframe), third-party cookie rules can bite you. Always test on the top-level https://…replit.dev URL — which you’re already doing.

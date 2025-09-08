@@ -53,25 +53,24 @@ const authLimiter = rateLimit({
 // Session helpers
 function issueSession(res: Response, email: string) {
   const sessionId = uuid();
-  // Fix for Replit environment - detect HTTPS properly
-  const isSecure = process.env.NODE_ENV === 'production' || 
-                   APP_DOMAIN.startsWith('https://') ||
-                   process.env.REPLIT_DEPLOYMENT_ENV === 'production';
-  
-  res.cookie('fcs_session', sessionId, {
+  // Replit always uses HTTPS - force secure cookies
+  const cookieOptions = {
     httpOnly: true,
-    secure: isSecure,
-    sameSite: 'lax',
+    secure: true,  // Always true for Replit HTTPS
+    sameSite: 'lax' as const,
+    path: '/',
     maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
-  });
+    // NO domain property - let browser use current host
+  };
+  
+  console.log('🍪 Setting session cookies for email:', email);
+  
+  res.cookie('fcs_session', sessionId, cookieOptions);
   
   const payload = Buffer.from(JSON.stringify({ email })).toString('base64url');
-  res.cookie('fcs_who', payload, {
-    httpOnly: true,
-    secure: isSecure,
-    sameSite: 'lax',
-    maxAge: 1000 * 60 * 60 * 24 * 7
-  });
+  res.cookie('fcs_who', payload, cookieOptions);
+  
+  console.log('🍪 Cookies set with options:', cookieOptions);
 }
 
 function getAuthenticatedUser(req: Request): string | null {
@@ -86,16 +85,26 @@ function getAuthenticatedUser(req: Request): string | null {
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const hasSession = (req as any).cookies['fcs_session'];
+  const cookies = (req as any).cookies;
+  console.log('🔍 Auth check - All cookies:', Object.keys(cookies));
+  console.log('🔍 fcs_session cookie:', cookies['fcs_session'] ? 'EXISTS' : 'MISSING');
+  console.log('🔍 fcs_who cookie:', cookies['fcs_who'] ? 'EXISTS' : 'MISSING');
+  
+  const hasSession = cookies['fcs_session'];
   if (!hasSession) {
+    console.log('❌ No session cookie found');
     return res.status(401).json({ error: 'Authentication required', redirectTo: '/login' });
   }
   
   const email = getAuthenticatedUser(req);
+  console.log('🔍 Extracted email from cookie:', email);
+  
   if (!email || (ALLOWED_EMAILS.length && !ALLOWED_EMAILS.includes(email.toLowerCase()))) {
+    console.log('❌ Email not authorized:', email);
     return res.status(401).json({ error: 'Not authorized', redirectTo: '/login' });
   }
   
+  console.log('✅ Authentication successful for:', email);
   (req as any).authenticatedEmail = email;
   next();
 }
