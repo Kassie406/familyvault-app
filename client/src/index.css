@@ -3844,8 +3844,6 @@ a:hover,
 #family-quick-actions [role="menuitem"].qa-row:focus-visible {
   background-color: rgba(212, 175, 55, 0.14) !important; /* #D4AF37 @14% */
   color: #D4AF37 !important; /* Gold text color */
-  outline: 2px solid rgba(212, 175, 55, 0.60);
-  outline-offset: 2px;
 }
 
 #family-quick-actions a.qa-row:active,
