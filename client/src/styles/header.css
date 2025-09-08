@@ -33,15 +33,30 @@ button[data-testid="button-toggle-layout"]:hover {
   color: #D4AF37 !important;
 }
 
-/* Settings button specific - clean targeting with test ID */
-button[data-testid="button-settings"]:hover {
-  background-color: rgba(212, 175, 55, 0.10) !important;
+/* Settings button specific - MAXIMUM SPECIFICITY override */
+button[data-testid="button-settings"],
+a[href="/family/settings"] button {
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+}
+
+button[data-testid="button-settings"]:hover,
+a[href="/family/settings"] button:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;
+  color: #D4AF37 !important;
+  --tw-bg-opacity: 1 !important;
+}
+
+button[data-testid="button-settings"]:hover svg,
+a[href="/family/settings"] button:hover svg {
+  stroke: #D4AF37 !important;
   color: #D4AF37 !important;
 }
 
-button[data-testid="button-settings"]:hover svg {
-  stroke: #D4AF37 !important;
-  color: #D4AF37 !important;
+/* NUCLEAR OPTION - Kill any white hover on Settings button */
+button[data-testid="button-settings"].hover\:bg-white\/10:hover,
+a[href="/family/settings"] > button.hover\:bg-white\/10:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;
 }
 
 /* Help button specific targeting */
