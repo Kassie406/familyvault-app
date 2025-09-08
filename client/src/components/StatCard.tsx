@@ -263,7 +263,7 @@ export function StatCard({
                   {action.href ? (
                     <Link
                       href={action.href}
-                      className={`flex items-center gap-3 rounded-lg px-2 text-sm text-zinc-300 hover:bg-[#D4AF37]/8 hover:text-amber-400 transition-colors cursor-pointer touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
+                      className={`flex items-center gap-3 rounded-lg px-2 text-sm text-zinc-300 hover:!bg-[#D4AF37]/14 active:!bg-[#D4AF37]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37]/60 transition-colors cursor-pointer touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
                     >
                       {action.icon && (
                         <span className="text-amber-400 opacity-70">
@@ -278,7 +278,7 @@ export function StatCard({
                         action.onClick?.();
                         setOpen(false);
                       }}
-                      className={`w-full flex items-center gap-3 rounded-lg px-2 text-sm text-zinc-300 hover:bg-[#D4AF37]/8 hover:text-amber-400 transition-colors cursor-pointer text-left touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
+                      className={`w-full flex items-center gap-3 rounded-lg px-2 text-sm text-zinc-300 hover:!bg-[#D4AF37]/14 active:!bg-[#D4AF37]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37]/60 transition-colors cursor-pointer text-left touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
                     >
                       {action.icon && (
                         <span className="text-amber-400 opacity-70">
@@ -307,7 +307,7 @@ export function StatCard({
                 <li key={it.id}>
                   <Link
                     href={it.href ?? href}
-                    className={`flex items-center gap-2 rounded-lg px-2 text-sm text-zinc-300 hover:bg-[#D4AF37]/8 hover:text-amber-400 transition-colors cursor-pointer touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
+                    className={`flex items-center gap-2 rounded-lg px-2 text-sm text-zinc-300 hover:!bg-[#D4AF37]/14 active:!bg-[#D4AF37]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37]/60 transition-colors cursor-pointer touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
                   >
                     <span className="inline-block h-2.5 w-2.5 rounded-full bg-zinc-600" />
                     <div className="flex-1">
