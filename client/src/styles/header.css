@@ -33,53 +33,31 @@ button[data-testid="button-toggle-layout"]:hover {
   color: #D4AF37 !important;
 }
 
-/* Broad catch-all for any remaining family page header buttons */
-[class*="family"] button:hover,
-.family-header button:hover,
-.page-header button:hover {
+/* Settings button specific - single clean rule */
+Link[href="/family/settings"] button:hover,
+a[href="/family/settings"] button:hover {
   background-color: rgba(212, 175, 55, 0.10) !important;
   color: #D4AF37 !important;
 }
 
-/* TARGET HELP BUTTON by text content and structure - Help button doesn't have data-testid */
-button:has(> span:contains("Help")),
-button:has(> span:text-matches("Help")),
-button:has(svg.lucide-help-circle),
-button:has(.lucide-help-circle) {
-  background-color: transparent !important;
-  --tw-bg-opacity: 0 !important;
+Link[href="/family/settings"] button:hover svg,
+a[href="/family/settings"] button:hover svg {
+  stroke: #D4AF37 !important;
+  fill: #D4AF37 !important;
 }
 
-button:has(> span:contains("Help")):hover,
-button:has(> span:text-matches("Help")):hover,
-button:has(svg.lucide-help-circle):hover,
-button:has(.lucide-help-circle):hover {
+/* Help button specific targeting */
+button:has(span):hover {
   background-color: rgba(212, 175, 55, 0.10) !important;
   color: #D4AF37 !important;
 }
 
-button:has(> span:contains("Help")):hover svg,
-button:has(> span:text-matches("Help")):hover svg,
-button:has(svg.lucide-help-circle):hover svg,
-button:has(.lucide-help-circle):hover svg {
-  stroke: currentColor !important;
+button:has(span):hover svg {
+  stroke: #D4AF37 !important;
   color: #D4AF37 !important;
 }
 
 /* USER AVATAR CIRCLE KC - Gold styling */
-.w-8.h-8.rounded-full.bg-\\[var\\(--gold\\)\\] {
+.bg-\[var\(--gold\)\] {
   background-color: #D4AF37 !important;
-}
-
-/* HEADER USER SECTION BUTTONS */
-.header .user-section button:hover,
-.header .user-buttons button:hover,
-div[class*="flex items-center gap-4"] button:hover {
-  background-color: rgba(212, 175, 55, 0.10) !important;
-  color: #D4AF37 !important;
-}
-
-div[class*="flex items-center gap-4"] button:hover svg {
-  stroke: currentColor !important;
-  color: #D4AF37 !important;
 }
