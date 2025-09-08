@@ -3812,16 +3812,21 @@ a:hover,
   }
 }
 
-/* --- Family Members quick actions: force light gold hover --- */
+/* --- Family Members quick actions & recent items: force light gold hover --- */
 #family-quick-actions li,
-#family-quick-actions li:hover {
+#family-quick-actions li:hover,
+#family-recent-items li,
+#family-recent-items li:hover {
   background: transparent !important;           /* kill any <li> hover */
 }
 
 /* anchor/button rows (cover both link and radix item cases) */
 #family-quick-actions a.qa-row,
 #family-quick-actions button.qa-row,
-#family-quick-actions [role="menuitem"].qa-row {
+#family-quick-actions [role="menuitem"].qa-row,
+#family-recent-items a.qa-row,
+#family-recent-items button.qa-row,
+#family-recent-items [role="menuitem"].qa-row {
   display: flex;
   align-items: center;
   gap: .75rem;
@@ -3841,13 +3846,25 @@ a:hover,
 #family-quick-actions [role="menuitem"].qa-row[data-highlighted],
 #family-quick-actions a.qa-row:focus-visible,
 #family-quick-actions button.qa-row:focus-visible,
-#family-quick-actions [role="menuitem"].qa-row:focus-visible {
+#family-quick-actions [role="menuitem"].qa-row:focus-visible,
+#family-recent-items a.qa-row:hover,
+#family-recent-items button.qa-row:hover,
+#family-recent-items [role="menuitem"].qa-row:hover,
+#family-recent-items a.qa-row[data-highlighted],
+#family-recent-items button.qa-row[data-highlighted],
+#family-recent-items [role="menuitem"].qa-row[data-highlighted],
+#family-recent-items a.qa-row:focus-visible,
+#family-recent-items button.qa-row:focus-visible,
+#family-recent-items [role="menuitem"].qa-row:focus-visible {
   background-color: rgba(212, 175, 55, 0.14) !important; /* #D4AF37 @14% */
   color: #D4AF37 !important; /* Gold text color */
 }
 
 #family-quick-actions a.qa-row:active,
 #family-quick-actions button.qa-row:active,
-#family-quick-actions [role="menuitem"].qa-row:active {
+#family-quick-actions [role="menuitem"].qa-row:active,
+#family-recent-items a.qa-row:active,
+#family-recent-items button.qa-row:active,
+#family-recent-items [role="menuitem"].qa-row:active {
   background-color: rgba(212, 175, 55, 0.20) !important;
 }
