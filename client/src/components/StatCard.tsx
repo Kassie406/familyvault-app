@@ -259,11 +259,11 @@ export function StatCard({
             </div>
             <ul className="space-y-1">
               {dropdownActions.map((action, index) => (
-                <li key={index}>
+                <li key={index} className="hover:!bg-transparent">
                   {action.href ? (
                     <Link
                       href={action.href}
-                      className={`flex items-center gap-3 rounded-lg px-2 text-sm text-zinc-300 hover:!bg-[#D4AF37]/14 active:!bg-[#D4AF37]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37]/60 transition-colors cursor-pointer touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
+                      className={`flex w-full items-center gap-3 rounded-lg px-2 text-sm text-zinc-300 hover:!bg-[#D4AF37]/14 active:!bg-[#D4AF37]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37]/60 transition-colors cursor-pointer touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
                     >
                       {action.icon && (
                         <span className="text-amber-400 opacity-70">
@@ -304,10 +304,10 @@ export function StatCard({
             )}
             <ul className="space-y-1">
               {items.slice(0, 5).map((it) => (
-                <li key={it.id}>
+                <li key={it.id} className="hover:!bg-transparent">
                   <Link
                     href={it.href ?? href}
-                    className={`flex items-center gap-2 rounded-lg px-2 text-sm text-zinc-300 hover:!bg-[#D4AF37]/14 active:!bg-[#D4AF37]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37]/60 transition-colors cursor-pointer touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
+                    className={`flex w-full items-center gap-2 rounded-lg px-2 text-sm text-zinc-300 hover:!bg-[#D4AF37]/14 active:!bg-[#D4AF37]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37]/60 transition-colors cursor-pointer touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
                   >
                     <span className="inline-block h-2.5 w-2.5 rounded-full bg-zinc-600" />
                     <div className="flex-1">
