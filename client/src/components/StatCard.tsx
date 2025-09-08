@@ -94,7 +94,7 @@ export function StatCard({
         <button
           onClick={onClick}
           type="button"
-          className={`${baseClassName} w-full text-left`}
+          className={`${baseClassName} w-full text-left no-underline decoration-transparent hover:decoration-transparent focus:decoration-transparent focus:outline-none focus-visible:no-underline border-b-0 hover:border-b-0`}
           aria-describedby={`${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'stat-card'}-desc`}
           data-testid={`stat-card-${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'custom'}`}
         >
