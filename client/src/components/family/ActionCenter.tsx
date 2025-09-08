@@ -19,8 +19,8 @@ export default function ActionCenter() {
       setErr(null);
       const summary = await withTimeout(api("/api/chores/summary"), 8000);
       setData({
-        approvePending: summary.pendingApproval,
-        dueToday: summary.dueToday,
+        approvePending: summary.pendingApprovals || 0,
+        dueToday: summary.dueSoon || 0,
         mealsUnplanned: 0 // TODO: Wire up meals unplanned count
       });
     } catch (e: any) {
