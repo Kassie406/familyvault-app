@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { sql, desc, eq, and } from "drizzle-orm";
-import { familyActivity, chores, allowanceLedger, familyMembers, recipes, mealPlanEntries, shoppingItems, familyUpdates, type InsertFamilyUpdate } from "@shared/schema";
+import { familyActivity, chores, allowanceLedger, familyMembers, recipes, mealPlanEntries, shoppingItems, familyUpdates, coupleActivities, coupleChores, type InsertFamilyUpdate } from "@shared/schema";
 import storageRoutes from "./storage-routes";
 import fileRoutes from "./routes/files";
 import mobileUploadRoutes from "./routes/mobile-upload";
@@ -665,6 +665,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating couple check-in:", error);
       res.status(500).json({ error: "Failed to create check-in" });
+    }
+  });
+
+  // Couple Activities API endpoints (simplified feed approach)
+  
+  // Points system for different activities
+  const ACTIVITY_POINTS = { memory: 5, plan_date: 8, love_note: 4, goal: 6, chore_complete: 0 };
+  
+  // GET /api/couple/activities - Get activity feed
+  app.get("/api/couple/activities", async (req, res) => {
+    try {
+      const coupleId = "couple-1"; // TODO: Get from session
+      const activities = await db.select()
+        .from(coupleActivities)
+        .where(eq(coupleActivities.coupleId, coupleId))
+        .orderBy(desc(coupleActivities.createdAt))
+        .limit(30);
+      res.json(activities);
+    } catch (error) {
+      console.error("Error fetching activities:", error);
+      res.status(500).json({ error: "Failed to fetch activities" });
+    }
+  });
+
+  // POST /api/couple/activities/quick - Quick actions (Add Memory, Plan Date, etc.)
+  app.post("/api/couple/activities/quick", async (req, res) => {
+    try {
+      const { type, title, payload } = req.body;
+      const coupleId = "couple-1"; // TODO: Get from session
+      
+      if (!type || !title || !['memory', 'plan_date', 'love_note', 'goal'].includes(type)) {
+        return res.status(400).json({ error: "Invalid type or missing title" });
+      }
+      
+      const points = ACTIVITY_POINTS[type] ?? 0;
+      
+      const [activity] = await db.insert(coupleActivities).values({
+        coupleId,
+        type,
+        title,
+        payload: payload || {},
+        points
+      }).returning();
+      
+      res.status(201).json(activity);
+    } catch (error) {
+      console.error("Error creating activity:", error);
+      res.status(500).json({ error: "Failed to create activity" });
+    }
+  });
+
+  // GET /api/couple/chores - Get couple chores
+  app.get("/api/couple/chores", async (req, res) => {
+    try {
+      const coupleId = "couple-1"; // TODO: Get from session
+      const chores = await db.select()
+        .from(coupleChores)
+        .where(eq(coupleChores.coupleId, coupleId))
+        .orderBy(sql`${coupleChores.dueOn} NULLS LAST`, desc(coupleChores.createdAt));
+      res.json(chores);
+    } catch (error) {
+      console.error("Error fetching chores:", error);
+      res.status(500).json({ error: "Failed to fetch chores" });
+    }
+  });
+
+  // POST /api/couple/chores/:id/complete - Complete a chore
+  app.post("/api/couple/chores/:id/complete", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = "current-user"; // TODO: Get from session
+      const coupleId = "couple-1"; // TODO: Get from session
+      
+      const [chore] = await db.update(coupleChores)
+        .set({ 
+          completedBy: userId, 
+          completedAt: new Date() 
+        })
+        .where(and(eq(coupleChores.id, id), eq(coupleChores.coupleId, coupleId)))
+        .returning();
+      
+      if (!chore) {
+        return res.status(404).json({ error: "Chore not found" });
+      }
+      
+      // Add completion to activity feed
+      await db.insert(coupleActivities).values({
+        coupleId,
+        type: 'chore_complete',
+        title: `Chore: ${chore.title}`,
+        payload: { chore_id: chore.id },
+        points: chore.points || 0
+      });
+      
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Error completing chore:", error);
+      res.status(500).json({ error: "Failed to complete chore" });
+    }
+  });
+
+  // POST /api/couple/chores - Create new chore
+  app.post("/api/couple/chores", async (req, res) => {
+    try {
+      const { title, dueOn, points } = req.body;
+      const coupleId = "couple-1"; // TODO: Get from session
+      
+      if (!title) {
+        return res.status(400).json({ error: "Title is required" });
+      }
+      
+      const [chore] = await db.insert(coupleChores).values({
+        coupleId,
+        title,
+        dueOn: dueOn ? new Date(dueOn) : null,
+        points: points || 10
+      }).returning();
+      
+      res.status(201).json(chore);
+    } catch (error) {
+      console.error("Error creating chore:", error);
+      res.status(500).json({ error: "Failed to create chore" });
     }
   });
 
