@@ -86,7 +86,7 @@ export function StatCard({
     }
   }
 
-  const baseClassName = "group no-hover-bg rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] focus:outline-none focus:ring-2 focus:ring-amber-400/40 transition-all duration-300";
+  const baseClassName = "group no-hover-bg rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] hover:bg-[#D4AF37]/8 focus:outline-none focus:ring-2 focus:ring-amber-400/40 transition-all duration-300";
   
   return (
     <div ref={wrapRef} className="relative">
@@ -101,12 +101,12 @@ export function StatCard({
           <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {React.cloneElement(icon as React.ReactElement, {
-              className: "h-6 w-6 text-amber-400/70 transition-all"
+              className: "h-6 w-6 text-amber-400/70 group-hover:text-amber-400 group-hover:shadow-lg group-hover:shadow-[#D4AF37]/30 transition-all"
             })}
-            <span className="text-sm font-bold text-white transition-colors flex items-center gap-2" id={`${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'stat-card'}-desc`}>
+            <span className="text-sm font-bold text-white group-hover:text-[#D4AF37] transition-colors flex items-center gap-2" id={`${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'stat-card'}-desc`}>
               {label}
               {secondaryIcon && (
-                <span className="h-4 w-4 text-amber-400/70 transition-all flex items-center">
+                <span className="h-4 w-4 text-amber-400/70 group-hover:text-amber-400 transition-all flex items-center">
                   {secondaryIcon}
                 </span>
               )}
@@ -140,19 +140,19 @@ export function StatCard({
       ) : (
         <Link
           href={href}
-          className={`${baseClassName} block no-underline decoration-transparent hover:decoration-transparent focus:decoration-transparent focus:outline-none focus-visible:no-underline border-b-0 hover:border-b-0`}
+          className={`${baseClassName} block`}
           aria-describedby={`${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'stat-card'}-desc`}
           data-testid={`stat-card-${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'custom'}`}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {React.cloneElement(icon as React.ReactElement, {
-                className: "h-6 w-6 text-amber-400/70 transition-all"
+                className: "h-6 w-6 text-amber-400/70 group-hover:text-amber-400 group-hover:shadow-lg group-hover:shadow-[#D4AF37]/30 transition-all"
               })}
-              <span className="text-sm font-bold text-white transition-colors flex items-center gap-2" id={`${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'stat-card'}-desc`}>
+              <span className="text-sm font-bold text-white group-hover:text-[#D4AF37] transition-colors flex items-center gap-2" id={`${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'stat-card'}-desc`}>
                 {label}
                 {secondaryIcon && (
-                  <span className="h-4 w-4 text-amber-400/70 transition-all flex items-center">
+                  <span className="h-4 w-4 text-amber-400/70 group-hover:text-amber-400 transition-all flex items-center">
                     {secondaryIcon}
                   </span>
                 )}
