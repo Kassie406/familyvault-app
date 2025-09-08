@@ -48,6 +48,7 @@ import { ShareDocumentModal } from '@/components/documents/ShareDocumentModal';
 import { SharedListsModal } from '@/components/family/SharedListsModal';
 import { RecipeBookModal } from '@/components/family/RecipeBookModal';
 import { BudgetTrackerModal } from '@/components/family/BudgetTrackerModal';
+import { CouplesConnectionModal } from '@/components/family/CouplesConnectionModal';
 import { MealPlannerWeek } from '@/components/family/MealPlannerWeek';
 import ChoresCard from '@/components/family/ChoresCard';
 import AllowanceMini from '@/components/family/AllowanceMini';
@@ -67,6 +68,7 @@ export default function FamilyHome() {
   const [recipeBookOpen, setRecipeBookOpen] = useState(false);
   const [budgetTrackerOpen, setBudgetTrackerOpen] = useState(false);
   const [mealPlannerOpen, setMealPlannerOpen] = useState(false);
+  const [couplesConnectionOpen, setCouplesConnectionOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Current user mock (TODO: replace with real user data)
@@ -518,6 +520,38 @@ export default function FamilyHome() {
       ]
     },
     { 
+      label: 'Couple\'s Connection', 
+      value: 'Together', 
+      icon: Heart,
+      href: '#',
+      onClick: () => setCouplesConnectionOpen(true),
+      fetchPreview: async () => {
+        try {
+          // Mock data for demonstration - replace with real API later
+          return [
+            { id: "1", title: "Anniversary Dinner at Luigi's", sub: "Memory • Dec 14 • Romantic evening", href: "#" },
+            { id: "2", title: "Weekend Getaway to Mountains", sub: "Date Idea • Planned for Feb 15", href: "#" },
+            { id: "3", title: "Learn Salsa Dancing Together", sub: "Goal • Ongoing • Dance Studio", href: "#" },
+            { id: "4", title: "Love You More Every Day", sub: "Message • From Sarah • Jan 25", href: "#" },
+            { id: "5", title: "First Home Purchase", sub: "Milestone • Achieved Aug 20", href: "#" }
+          ];
+        } catch (error) {
+          console.error('Error fetching couple activities:', error);
+          return [
+            { id: "1", title: "Start your love story", sub: "Add your first memory together", href: "#" },
+            { id: "2", title: "Plan your next date", sub: "Create romantic memories", href: "#" },
+            { id: "3", title: "Set relationship goals", sub: "Grow together as a couple", href: "#" }
+          ];
+        }
+      },
+      dropdownActions: [
+        { label: "Add Memory", onClick: () => setCouplesConnectionOpen(true), icon: <Camera className="h-4 w-4" /> },
+        { label: "Plan Date", onClick: () => setCouplesConnectionOpen(true), icon: <Calendar className="h-4 w-4" /> },
+        { label: "Send Love Note", onClick: () => setCouplesConnectionOpen(true), icon: <MessageCircle className="h-4 w-4" /> },
+        { label: "Set Goals", onClick: () => setCouplesConnectionOpen(true), icon: <Star className="h-4 w-4" /> }
+      ]
+    },
+    { 
       label: 'Meal Planner', 
       value: 'Week View', 
       icon: CalendarDays,
@@ -911,6 +945,12 @@ export default function FamilyHome() {
       <BudgetTrackerModal 
         open={budgetTrackerOpen}
         onClose={() => setBudgetTrackerOpen(false)}
+      />
+
+      {/* Couple's Connection Modal */}
+      <CouplesConnectionModal 
+        open={couplesConnectionOpen}
+        onClose={() => setCouplesConnectionOpen(false)}
       />
 
       {/* Meal Planner Modal */}
