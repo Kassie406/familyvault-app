@@ -1,0 +1,80 @@
+I understand—your hover didn’t change because those submenu items are almost certainly Radix UI / shadcn menu items. They don’t use :hover the usual way; they style on the Radix state attribute data-highlighted (and focus). So your CSS targeting li a:hover won’t fire.
+
+Here’s a guaranteed fix, step-by-step. Do ONE of these paths (A is cleanest).
+
+A) Set shadcn “accent” token (preferred, 1 place fix)
+
+Add this to your global CSS (e.g., globals.css or your main Tailwind file):
+
+:root{
+  /* light UI (if you have one) */
+  --accent: rgba(197,160,0,.10);
+  --accent-foreground: #111;
+}
+
+/* dark UI (your screenshot) */
+.dark{
+  --accent: rgba(197,160,0,.14);          /* light goldish-brown wash */
+  --accent-foreground: #fff;              /* or #111 if you want dark text */
+}
+
+
+Why this works: shadcn menu items include classes like focus:bg-accent focus:text-accent-foreground. By setting --accent, all dropdowns get the new hover/focus look automatically.
+
+B) Target the Radix states directly (surgical, per-menu)
+
+Give the Family Members dropdown content a class so we can target it:
+
+// Wherever you render the submenu
+<DropdownMenuContent className="family-dropdown">
+  <DropdownMenuItem> Add Person </DropdownMenuItem>
+  <DropdownMenuItem> Invite Family Member </DropdownMenuItem>
+  <DropdownMenuItem> Manage Roles & Access </DropdownMenuItem>
+</DropdownMenuContent>
+
+
+Add this CSS (global):
+
+/* Applies to shadcn/Radix items inside that dropdown only */
+.family-dropdown [data-radix-menu-item][data-highlighted],
+.family-dropdown [role="menuitem"][data-highlighted],
+.family-dropdown .dropdown-menu-item[data-highlighted]{
+  background: rgba(197,160,0,.14) !important;   /* light goldish-brown */
+  color: var(--accent-foreground, #fff) !important;
+}
+
+/* Optional pressed/active feel */
+.family-dropdown [data-radix-menu-item]:active,
+.family-dropdown [role="menuitem"]:active{
+  background: rgba(197,160,0,.20) !important;
+}
+
+
+Notes:
+
+Radix attaches data-highlighted when you hover/keyboard-focus a menu item.
+
+Some builds use [data-radix-menu-item]; others only set role="menuitem". The selectors above cover both.
+
+C) Tailwind-only variant (if you don’t want custom CSS)
+
+Add a className to each DropdownMenuItem:
+
+<DropdownMenuItem className="focus:bg-[rgba(197,160,0,.14)] focus:text-white">
+  Add Person
+</DropdownMenuItem>
+
+
+Repeat for the other items. (This is the most explicit but repetitive.)
+
+Tiny QA checklist (takes 1 minute)
+
+Open the Family Members dropdown.
+
+Hover an item and also arrow-key to it (keyboard focus) → background changes to the light gold wash.
+
+Check on mobile (tap-hold) to see the active state.
+
+Confirm no other menus changed (if you used path B/C).
+
+If you paste the component where the Family Members submenu is declared, I’ll drop in the exact DropdownMenuContent + DropdownMenuItem code with the classnames wired so you can paste it straight into Replit.

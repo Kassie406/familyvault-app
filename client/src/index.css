@@ -4,6 +4,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== shadcn/Radix UI Accent Override ===== */
+:root {
+  --accent: rgba(212, 175, 55, 0.08);
+  --accent-foreground: #fff;
+}
+
+.dark {
+  --accent: rgba(212, 175, 55, 0.08);
+  --accent-foreground: #fff;
+}
+
 /* Chat FAB: never fade, ever */
 #chat-fab,
 #chat-fab:hover,
