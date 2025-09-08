@@ -1,0 +1,66 @@
+that stubborn white hover on the Settings icon is coming from the class
+hover:bg-white/10 on the button inside the link to /family/settings.
+
+Here are two safe fixes. Use either one (or both). They target only that button.
+
+1) Quick JSX fix (best)
+
+In client/src/pages/family/family-home.tsx, find the Settings link:
+
+<a className="relative" href="/family/settings">
+  <button className="p-2 rounded-lg hover:bg-white/10 transition-colors">
+    {/* settings svg */}
+  </button>
+</a>
+
+
+Change to:
+
+<a className="relative" href="/family/settings">
+  <button
+    data-testid="button-settings"
+    className="p-2 rounded-lg transition-colors"
+  >
+    {/* settings svg */}
+  </button>
+</a>
+
+
+(We removed hover:bg-white/10 and added a stable test id.)
+
+2) Precise CSS override (works even if JSX can’t be edited)
+
+Add this to your header CSS (e.g., client/src/styles/header.css, which you already import), or to the same file where you fixed the other header buttons.
+
+/* === Settings icon: remove white hover, add gold tint === */
+
+/* Kill the Tailwind white hover utility if present */
+a[href*="/family/settings"] > button[class*="hover:bg-white/10"] {
+  --tw-bg-opacity: 0 !important;
+}
+
+/* Replace with a very light gold hover background */
+a[href*="/family/settings"] > button:hover,
+a[href*="/family/settings"] > button:focus-visible {
+  background-color: rgba(212, 175, 55, 0.08) !important; /* light gold */
+  outline: 0 !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+}
+
+/* Turn the gear icon gold on hover */
+a[href*="/family/settings"] > button:hover svg,
+a[href*="/family/settings"] > button:focus-visible svg {
+  color: #D4AF37 !important;     /* gold fill for icon fonts */
+  stroke: #D4AF37 !important;    /* gold stroke for Lucide SVG */
+}
+
+
+If you used the JSX data-testid="button-settings", you can switch the selectors above to:
+
+button[data-testid="button-settings"]:hover { background-color: rgba(212,175,55,.08) !important; }
+button[data-testid="button-settings"]:hover svg { color:#D4AF37 !important; stroke:#D4AF37 !important; }
+
+
+That’s it — the Settings gear will no longer flash white and will match your gold (#D4AF37) hover just like the other header icons.
