@@ -3868,3 +3868,16 @@ a:hover,
 #family-recent-items [role="menuitem"].qa-row:active {
   background-color: rgba(212, 175, 55, 0.20) !important;
 }
+
+/* --- Header navigation icons: light gold hover --- */
+.header-nav-icon:hover {
+  background-color: rgba(212, 175, 55, 0.14) !important; /* #D4AF37 @14% */
+}
+
+.header-nav-icon:hover svg {
+  color: #D4AF37 !important; /* Gold icon color */
+}
+
+.header-nav-icon:active {
+  background-color: rgba(212, 175, 55, 0.20) !important;
+}
