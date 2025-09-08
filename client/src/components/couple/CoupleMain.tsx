@@ -4,6 +4,9 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { IdeasList } from '@/components/couple/IdeasList';
+import { CoupleCalendar } from '@/components/couple/CoupleCalendar';
+import { JournalFeed } from '@/components/couple/JournalFeed';
+import { WeeklyCheckin } from '@/components/couple/WeeklyCheckin';
 import { 
   Heart, 
   Calendar, 
@@ -168,49 +171,13 @@ function IdeasTab() {
 }
 
 function CalendarTab() {
-  return (
-    <div className="h-full flex items-center justify-center">
-      <div className="text-center">
-        <Calendar className="h-12 w-12 text-[#D4AF37] mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-white mb-2">Couple Calendar</h3>
-        <p className="text-neutral-400 mb-4">Plan dates and see conflicts with family schedule</p>
-        <Button className="bg-[#D4AF37] hover:bg-[#B8941F] text-black" data-testid="button-add-event">
-          <Plus className="h-4 w-4 mr-2" />
-          Schedule Date
-        </Button>
-      </div>
-    </div>
-  );
+  return <CoupleCalendar className="h-full" />;
 }
 
 function JournalTab() {
-  return (
-    <div className="h-full flex items-center justify-center">
-      <div className="text-center">
-        <BookOpen className="h-12 w-12 text-[#D4AF37] mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-white mb-2">Private Journal</h3>
-        <p className="text-neutral-400 mb-4">Capture memories and special moments together</p>
-        <Button className="bg-[#D4AF37] hover:bg-[#B8941F] text-black" data-testid="button-add-journal-entry">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Memory
-        </Button>
-      </div>
-    </div>
-  );
+  return <JournalFeed className="h-full" />;
 }
 
 function CheckinTab() {
-  return (
-    <div className="h-full flex items-center justify-center">
-      <div className="text-center">
-        <MessageSquare className="h-12 w-12 text-[#D4AF37] mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-white mb-2">Weekly Check-in</h3>
-        <p className="text-neutral-400 mb-4">Share appreciation and set intentions together</p>
-        <Button className="bg-[#D4AF37] hover:bg-[#B8941F] text-black" data-testid="button-start-checkin">
-          <Plus className="h-4 w-4 mr-2" />
-          Start Check-in
-        </Button>
-      </div>
-    </div>
-  );
+  return <WeeklyCheckin className="h-full" />;
 }
