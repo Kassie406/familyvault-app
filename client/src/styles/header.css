@@ -74,3 +74,42 @@ button:has(span):hover svg {
 .bg-\[var\(--gold\)\] {
   background-color: #D4AF37 !important;
 }
+
+/* ===== BULLETPROOF Settings Button Fix - Maximum Specificity ===== */
+
+.sticky [data-testid="button-settings"] {
+  /* baseline */
+  background: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+}
+
+.sticky [data-testid="button-settings"]:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;  /* light gold */
+}
+
+.sticky [data-testid="button-settings"]:focus-visible {
+  background-color: rgba(212, 175, 55, 0.12) !important;  /* a hair stronger for a11y */
+}
+
+/* icon color (SVG) */
+.sticky [data-testid="button-settings"] svg {
+  color: rgb(255 255 255 / 0.70) !important; /* default */
+  stroke: currentColor !important;
+}
+.sticky [data-testid="button-settings"]:hover svg,
+.sticky [data-testid="button-settings"]:focus-visible svg {
+  color: #D4AF37 !important;                 /* brand gold on hover/focus */
+  stroke: #D4AF37 !important;
+}
+
+/* Safety: if any old white hover utility remains somewhere, neutralize it */
+.sticky [data-testid="button-settings"][class*="hover:bg-white"],
+.sticky [data-testid="button-settings"] *[class*="hover:bg-white"] {
+  --tw-bg-opacity: 0 !important;
+  background-color: transparent !important;
+}

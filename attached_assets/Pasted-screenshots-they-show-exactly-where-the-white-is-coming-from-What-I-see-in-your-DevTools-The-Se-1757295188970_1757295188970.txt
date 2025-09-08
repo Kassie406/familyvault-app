@@ -1,0 +1,118 @@
+screenshots — they show exactly where the white is coming from.
+
+What I see in your DevTools
+
+The Settings button is the element with data-testid="button-settings".
+
+The current markup already has a gold hover in the class list (good), but a white hover still wins sometimes because of:
+
+a leftover hover:bg-white/10 on this button in the JSX on some builds, or
+
+a global header hover rule (or DaisyUI ring) that injects a white background on button:hover.
+
+We’ll fix it two ways (source + targeted CSS) so the white can’t win again.
+
+Paste this to your Replit Agent (one-shot)
+
+Goal: Remove white hover on the Settings gear and replace it with your brand gold, with the icon tinting gold on hover.
+
+1) Clean the JSX (source)
+
+Open client/src/pages/family/family-home.tsx and find the Settings button:
+
+// look for this block near other header buttons
+<button
+  data-testid="button-settings"
+  className="... hover:bg-white/10 transition-colors ..."
+>
+  <svg className="lucide lucide-settings h-4 w-4 text-white/70 ..." />
+</button>
+
+
+Do:
+
+Remove any hover:bg-white/* fragment from the button’s className.
+
+Give it an explicit gold hover + focus tint and icon gold on hover:
+
+<button
+  data-testid="button-settings"
+  className="
+    group p-2 rounded-lg transition-colors
+    hover:bg-[rgba(212,175,55,0.08)]
+    focus-visible:bg-[rgba(212,175,55,0.12)]
+  "
+  aria-label="Settings"
+>
+  <svg
+    className="
+      lucide lucide-settings h-4 w-4
+      text-white/70
+      group-hover:text-[#D4AF37]
+    "
+    stroke="currentColor"
+  />
+</button>
+
+
+Keep stroke="currentColor" so the icon follows the text color.
+
+2) Targeted, bullet-proof CSS override
+
+Add (or update) client/src/styles/header.css with:
+
+/* ===== Header Settings button: force brand hover, kill white ===== */
+
+.sticky [data-testid="button-settings"] {
+  /* baseline */
+  background: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+}
+
+.sticky [data-testid="button-settings"]:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;  /* light gold */
+}
+
+.sticky [data-testid="button-settings"]:focus-visible {
+  background-color: rgba(212, 175, 55, 0.12) !important;  /* a hair stronger for a11y */
+}
+
+/* icon color (SVG) */
+.sticky [data-testid="button-settings"] svg {
+  color: rgb(255 255 255 / 0.70) !important; /* default */
+  stroke: currentColor !important;
+}
+.sticky [data-testid="button-settings"]:hover svg,
+.sticky [data-testid="button-settings"]:focus-visible svg {
+  color: #D4AF37 !important;                 /* brand gold on hover/focus */
+  stroke: #D4AF37 !important;
+}
+
+/* Safety: if any old white hover utility remains somewhere, neutralize it */
+.sticky [data-testid="button-settings"][class*="hover:bg-white"],
+.sticky [data-testid="button-settings"] *[class*="hover:bg-white"] {
+  --tw-bg-opacity: 0 !important;
+  background-color: transparent !important;
+}
+
+
+Make sure header.css is imported once (e.g., in client/src/main.tsx or your global style index).
+
+Verify
+
+Save → let Vite hot-reload.
+
+Hard refresh with cache disabled (DevTools → Network → “Disable cache” checked).
+
+Hover the Settings gear:
+
+No white pill
+
+Subtle gold background
+
+Gear turns #D4AF37
