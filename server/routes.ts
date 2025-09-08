@@ -542,6 +542,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount thread messages routes for individual conversation views
   app.use("/api/threads", threadMessagesRouter);
 
+  // Couple Connection API endpoints
+  
+  // POST /api/couple/gate - Authenticate couple access
+  app.post("/api/couple/gate", async (req, res) => {
+    try {
+      const { pin } = req.body;
+      
+      // Simple PIN validation (in production, use secure hashing)
+      if (pin === "1234") {
+        res.json({ success: true, message: "Access granted" });
+      } else {
+        res.status(401).json({ error: "Invalid PIN" });
+      }
+    } catch (error) {
+      console.error("Error validating couple access:", error);
+      res.status(500).json({ error: "Failed to validate access" });
+    }
+  });
+
+  // GET /api/couple/ideas - Get couple date ideas
+  app.get("/api/couple/ideas", async (req, res) => {
+    try {
+      const ideas = await storage.getCoupleDateIdeas("family-1");
+      res.json(ideas);
+    } catch (error) {
+      console.error("Error fetching couple date ideas:", error);
+      res.status(500).json({ error: "Failed to fetch date ideas" });
+    }
+  });
+
+  // POST /api/couple/ideas - Create new date idea
+  app.post("/api/couple/ideas", async (req, res) => {
+    try {
+      const ideaData = { ...req.body, coupleId: "couple-1", createdBy: "current-user" };
+      const idea = await storage.createCoupleDateIdea(ideaData);
+      res.status(201).json(idea);
+    } catch (error) {
+      console.error("Error creating date idea:", error);
+      res.status(500).json({ error: "Failed to create date idea" });
+    }
+  });
+
+  // PUT /api/couple/ideas/:id/rank - Update idea ranking
+  app.put("/api/couple/ideas/:id/rank", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { ranking } = req.body;
+      const userId = "current-user"; // TODO: Get from session
+      
+      await storage.updateCoupleDateIdeaRanking(id, userId, ranking);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating idea ranking:", error);
+      res.status(500).json({ error: "Failed to update ranking" });
+    }
+  });
+
+  // GET /api/couple/events - Get couple calendar events
+  app.get("/api/couple/events", async (req, res) => {
+    try {
+      const events = await storage.getCoupleEvents("couple-1");
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching couple events:", error);
+      res.status(500).json({ error: "Failed to fetch events" });
+    }
+  });
+
+  // POST /api/couple/events - Create new couple event
+  app.post("/api/couple/events", async (req, res) => {
+    try {
+      const eventData = { ...req.body, coupleId: "couple-1", createdBy: "current-user" };
+      const event = await storage.createCoupleEvent(eventData);
+      res.status(201).json(event);
+    } catch (error) {
+      console.error("Error creating couple event:", error);
+      res.status(500).json({ error: "Failed to create event" });
+    }
+  });
+
+  // GET /api/couple/journal - Get couple journal entries
+  app.get("/api/couple/journal", async (req, res) => {
+    try {
+      const entries = await storage.getCoupleJournalEntries("couple-1");
+      res.json(entries);
+    } catch (error) {
+      console.error("Error fetching journal entries:", error);
+      res.status(500).json({ error: "Failed to fetch journal entries" });
+    }
+  });
+
+  // POST /api/couple/journal - Create new journal entry
+  app.post("/api/couple/journal", async (req, res) => {
+    try {
+      const entryData = { ...req.body, coupleId: "couple-1", authorId: "current-user" };
+      const entry = await storage.createCoupleJournalEntry(entryData);
+      res.status(201).json(entry);
+    } catch (error) {
+      console.error("Error creating journal entry:", error);
+      res.status(500).json({ error: "Failed to create journal entry" });
+    }
+  });
+
+  // GET /api/couple/checkins - Get couple check-ins
+  app.get("/api/couple/checkins", async (req, res) => {
+    try {
+      const checkins = await storage.getCoupleCheckins("couple-1");
+      res.json(checkins);
+    } catch (error) {
+      console.error("Error fetching couple check-ins:", error);
+      res.status(500).json({ error: "Failed to fetch check-ins" });
+    }
+  });
+
+  // POST /api/couple/checkins - Create new check-in
+  app.post("/api/couple/checkins", async (req, res) => {
+    try {
+      const checkinData = { ...req.body, coupleId: "couple-1", participantId: "current-user" };
+      const checkin = await storage.createCoupleCheckin(checkinData);
+      res.status(201).json(checkin);
+    } catch (error) {
+      console.error("Error creating couple check-in:", error);
+      res.status(500).json({ error: "Failed to create check-in" });
+    }
+  });
+
   // Document Management API endpoints
   
   // POST /api/documents - Create new document
