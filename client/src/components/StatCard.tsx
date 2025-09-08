@@ -101,12 +101,12 @@ export function StatCard({
           <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {React.cloneElement(icon as React.ReactElement, {
-              className: "h-6 w-6 text-amber-400/70 group-hover:text-amber-400 group-hover:shadow-lg group-hover:shadow-[#D4AF37]/30 transition-all"
+              className: "h-6 w-6 text-amber-400/70 transition-all"
             })}
-            <span className="text-sm font-bold text-white group-hover:text-[#D4AF37] transition-colors flex items-center gap-2" id={`${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'stat-card'}-desc`}>
+            <span className="text-sm font-bold text-white transition-colors flex items-center gap-2" id={`${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'stat-card'}-desc`}>
               {label}
               {secondaryIcon && (
-                <span className="h-4 w-4 text-amber-400/70 group-hover:text-amber-400 transition-all flex items-center">
+                <span className="h-4 w-4 text-amber-400/70 transition-all flex items-center">
                   {secondaryIcon}
                 </span>
               )}
@@ -147,12 +147,12 @@ export function StatCard({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {React.cloneElement(icon as React.ReactElement, {
-                className: "h-6 w-6 text-amber-400/70 group-hover:text-amber-400 group-hover:shadow-lg group-hover:shadow-[#D4AF37]/30 transition-all"
+                className: "h-6 w-6 text-amber-400/70 transition-all"
               })}
-              <span className="text-sm font-bold text-white group-hover:text-[#D4AF37] transition-colors flex items-center gap-2" id={`${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'stat-card'}-desc`}>
+              <span className="text-sm font-bold text-white transition-colors flex items-center gap-2" id={`${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'stat-card'}-desc`}>
                 {label}
                 {secondaryIcon && (
-                  <span className="h-4 w-4 text-amber-400/70 group-hover:text-amber-400 transition-all flex items-center">
+                  <span className="h-4 w-4 text-amber-400/70 transition-all flex items-center">
                     {secondaryIcon}
                   </span>
                 )}
