@@ -623,7 +623,10 @@ export default function FamilyHome() {
             
             <NotificationCenter />
             <Link href="/family/settings">
-              <button className="p-2 rounded-lg hover:bg-white/10 transition-colors">
+              <button 
+                data-testid="button-settings"
+                className="p-2 rounded-lg transition-colors"
+              >
                 <Settings className="h-4 w-4 text-white/70" />
               </button>
             </Link>

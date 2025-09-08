@@ -33,17 +33,15 @@ button[data-testid="button-toggle-layout"]:hover {
   color: #D4AF37 !important;
 }
 
-/* Settings button specific - single clean rule */
-Link[href="/family/settings"] button:hover,
-a[href="/family/settings"] button:hover {
+/* Settings button specific - clean targeting with test ID */
+button[data-testid="button-settings"]:hover {
   background-color: rgba(212, 175, 55, 0.10) !important;
   color: #D4AF37 !important;
 }
 
-Link[href="/family/settings"] button:hover svg,
-a[href="/family/settings"] button:hover svg {
+button[data-testid="button-settings"]:hover svg {
   stroke: #D4AF37 !important;
-  fill: #D4AF37 !important;
+  color: #D4AF37 !important;
 }
 
 /* Help button specific targeting */
