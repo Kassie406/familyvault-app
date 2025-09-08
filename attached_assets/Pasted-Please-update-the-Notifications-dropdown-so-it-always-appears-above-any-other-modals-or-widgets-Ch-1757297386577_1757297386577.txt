@@ -1,0 +1,63 @@
+Please update the Notifications dropdown so it always appears above any other modals or widgets.
+
+Changes required
+
+Render in a portal + fixed positioning
+
+In client/src/components/family/NotificationCenter.tsx (or wherever the bell dropdown is), render the dropdown/popover inside document.body using createPortal.
+
+Give the dropdown a fixed position anchored to the bell button (calculate right/top from the bell’s bounding rect).
+
+Assign a very high z-index (Tailwind: z-[110] or plain CSS z-index: 110).
+
+Example (TypeScript/React):
+
+// at top
+import { createPortal } from "react-dom";
+
+// inside component:
+const [open, setOpen] = useState(false);
+const panel = (
+  <div
+    role="dialog"
+    aria-label="Notifications"
+    className="fixed right-4 top-16 w-[360px] max-h-[70vh] overflow-auto rounded-xl border border-[rgba(212,175,55,.25)] bg-[#0B0C0F] shadow-xl z-[110]"
+  >
+    {/* existing dropdown content */}
+  </div>
+);
+
+{open && createPortal(panel, document.body)}
+
+
+Remove/override old z-index that caused conflicts
+
+Delete any z-50 (or lower) on the dropdown container.
+
+If a local wrapper still needs positioning, keep it but no z-index on that wrapper.
+
+Defensive CSS (in case the project doesn’t use Tailwind arbitrary values everywhere)
+
+Create/append client/src/styles/overrides.css (or add to an existing global CSS) with:
+
+.notification-popover {
+  position: fixed;
+  z-index: 110 !important;
+}
+
+
+Apply className="notification-popover" to the dropdown’s outermost element if you’re not using z-[110].
+
+Click-outside / ESC to close
+
+Ensure clicking outside the panel or pressing Escape closes it (add a document listener while open).
+
+Regression checks
+
+Open “Photos Uploaded” (or any modal). Then click the bell — the notifications dropdown must appear on top.
+
+Verify header icons stay clickable and visible.
+
+Test on mobile widths (panel should still be fixed, at right: 0 with safe spacing).
+
+Please implement the portal + z-[110] approach so future stacking contexts (e.g., any ancestor with transform, filter, or position tricks) can’t bury the dropdown again.
