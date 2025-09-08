@@ -149,19 +149,45 @@ button.header-icon:hover svg {
   background-color: transparent !important;
 }
 
-/* ===== KC PROFILE DROPDOWN FIX ===== */
-/* Keep the KC profile trigger visible while the menu is open */
+/* ===== KC chip must never hide when menu is open ===== */
+
+/* Give the KC button a stable hook and positioning */
 #header-profile-btn,
-#header-profile-btn * {
-  opacity: 1 !important;
-  visibility: visible !important;
+[data-testid="button-profile"] {
+  position: relative !important;
+  z-index: 61 !important; /* Above the header hairline, below menu panel */
 }
 
-/* If any state-based utilities try to hide it, override them */
-#header-profile-btn[aria-expanded="true"] {
+/* Common open-state hooks across libraries */
+#header-profile-btn[aria-expanded="true"],
+[data-testid="button-profile"][aria-expanded="true"],
+#header-profile-btn[data-state="open"],
+[data-testid="button-profile"][data-state="open"],
+#header-profile-btn[data-headlessui-state~="open"],
+[data-testid="button-profile"][data-headlessui-state~="open"] {
   opacity: 1 !important;
   visibility: visible !important;
-  pointer-events: auto !important;
+  color: inherit !important;
+}
+
+/* Kill any "hide while open" utilities that may be attached */
+#header-profile-btn[aria-expanded="true"],
+[data-testid="button-profile"][aria-expanded="true"] {
+  --tw-text-opacity: 1 !important;
+  --tw-bg-opacity: 1 !important;
+}
+
+#header-profile-btn *,
+[data-testid="button-profile"] * {
+  opacity: 1 !important;
+  visibility: visible !important;
+  color: inherit !important;
+}
+
+/* Guard against accidental text transparency */
+#header-profile-btn span,
+[data-testid="button-profile"] span {
+  color: currentColor !important;
 }
 
 /* Make sure the dropdown sits above the header line */
@@ -169,5 +195,5 @@ button.header-icon:hover svg {
   position: absolute !important;
   right: 0 !important;
   margin-top: 0.5rem !important; /* mt-2 */
-  z-index: 60 !important;        /* above header separators */
+  z-index: 70 !important;        /* above chip but below modals */
 }
