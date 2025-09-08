@@ -1,20 +1,8 @@
-/* Enhanced StatCard hover effects for dashboard cards */
+/* Enhanced StatCard styles for dashboard cards */
 
-/* Target all StatCard instances with light gold background wash */
-[data-testid^="stat-card"]:hover {
-  background-color: rgba(212, 175, 55, 0.08) !important;
-}
+/* Note: Hover effects removed per user request */
 
-/* Specific targeting for the dashboard cards */
-[data-testid="stat-card-shared-lists"]:hover,
-[data-testid="stat-card-recipe-book"]:hover,
-[data-testid="stat-card-budget-tracker"]:hover,
-[data-testid="stat-card-meal-planner"]:hover {
-  background-color: rgba(212, 175, 55, 0.08) !important;
-  transition: all 0.3s ease !important;
-}
-
-/* StatCard dropdown menu items - MAXIMUM SPECIFICITY */
+/* StatCard dropdown menu items still need hover for usability */
 [data-testid^="stat-card"] ul li a:hover,
 [data-testid^="stat-card"] ul li button:hover {
   background-color: rgba(212, 175, 55, 0.08) !important;
