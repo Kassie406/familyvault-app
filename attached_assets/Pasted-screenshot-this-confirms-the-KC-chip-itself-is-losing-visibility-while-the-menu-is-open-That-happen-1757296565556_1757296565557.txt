@@ -1,0 +1,102 @@
+screenshot—this confirms the KC chip itself is losing visibility while the menu is open. That happens when the chip gets a “hide while open” class (e.g. opacity-0, invisible, text-transparent, etc.) tied to the open state (aria-expanded="true", data-state="open", HeadlessUI data-headlessui-state="open"), or the dropdown panel is covering it.
+
+Here’s a surgical, copy-paste fix that covers both causes.
+
+1) Keep the KC chip visible in every open/focus state
+
+Create/update client/src/styles/header.css (and ensure it’s imported once globally) with this:
+
+/* ===== KC chip must never hide when menu is open ===== */
+
+/* Give the KC button a stable hook if you haven’t already */
+#header-profile-btn,
+[data-testid="button-profile"] {
+  position: relative;
+  z-index: 61; /* Above the header hairline, below menu panel */
+}
+
+/* Common open-state hooks across libraries */
+#header-profile-btn[aria-expanded="true"],
+[data-testid="button-profile"][aria-expanded="true"],
+#header-profile-btn[data-state="open"],
+[data-testid="button-profile"][data-state="open"],
+#header-profile-btn[data-headlessui-state~="open"],
+[data-testid="button-profile"][data-headlessui-state~="open"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+  color: inherit !important;
+}
+
+/* Kill any “hide while open” utilities that may be attached */
+#header-profile-btn[aria-expanded="true"],
+[data-testid="button-profile"][aria-expanded="true"] {
+  --tw-text-opacity: 1 !important;
+  --tw-bg-opacity: 1 !important;
+}
+
+#header-profile-btn *,
+[data-testid="button-profile"] * {
+  opacity: 1 !important;
+  visibility: visible !important;
+  color: inherit !important;
+}
+
+/* Guard against accidental text transparency */
+#header-profile-btn span,
+[data-testid="button-profile"] span {
+  color: currentColor !important;
+}
+
+
+If your KC chip doesn’t have id="header-profile-btn" or data-testid="button-profile", add one of those to the chip button so the CSS hits it.
+
+2) Make sure the dropdown panel doesn’t cover the chip
+
+In the header component where the KC menu is rendered, make the wrapper relative, the panel absolute, and give the panel a higher z-index than the chip:
+
+/* Example with Headless UI (same idea applies to any menu) */
+<Menu as="div" className="relative">
+  <Menu.Button
+    id="header-profile-btn"
+    data-testid="button-profile"
+    className="rounded-full px-3 py-1"
+  >
+    KC
+  </Menu.Button>
+
+  <Menu.Items
+    className="absolute right-0 mt-2 z-[70] w-56 rounded-xl bg-[#0c0c0f]/95 shadow-lg ring-1 ring-black/50 backdrop-blur"
+  >
+    {/* menu items… */}
+  </Menu.Items>
+</Menu>
+
+
+Chip: z-index: 61 (CSS above)
+
+Panel: z-index: 70 (sits above everything without replacing the chip)
+
+Wrapper: className="relative"
+
+3) Quick DevTools check (takes 10 seconds)
+
+With the menu open:
+
+Select the KC button in Elements panel.
+
+In Computed:
+
+opacity must be 1
+
+visibility must be visible
+
+color must not be transparent/rgba(…, 0)
+
+If you see any rule like opacity:0/visibility:hidden tied to:
+
+[aria-expanded="true"],
+
+[data-state="open"],
+
+[data-headlessui-state~="open"],
+remove that class from the button or let the CSS above override it.
