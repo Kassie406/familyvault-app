@@ -3890,3 +3890,20 @@ a:hover,
 #header-nav-icons button.nav-icon-btn:active {
   background-color: rgba(212, 175, 55, 0.20) !important;
 }
+
+/* --- Main sidebar navigation: force light gold hover --- */
+#desktop-sidebar-nav a.sidebar-nav-link:not([class*="text-[var(--gold)]"]):hover,
+#mobile-sidebar-nav a.sidebar-nav-link:not([class*="text-[var(--gold)]"]):hover {
+  background-color: rgba(212, 175, 55, 0.14) !important; /* #D4AF37 @14% */
+  color: #D4AF37 !important; /* Gold text color */
+}
+
+#desktop-sidebar-nav a.sidebar-nav-link:not([class*="text-[var(--gold)]"]):hover svg,
+#mobile-sidebar-nav a.sidebar-nav-link:not([class*="text-[var(--gold)]"]):hover svg {
+  color: #D4AF37 !important; /* Gold icon color */
+}
+
+#desktop-sidebar-nav a.sidebar-nav-link:not([class*="text-[var(--gold)]"]):active,
+#mobile-sidebar-nav a.sidebar-nav-link:not([class*="text-[var(--gold)]"]):active {
+  background-color: rgba(212, 175, 55, 0.20) !important;
+}

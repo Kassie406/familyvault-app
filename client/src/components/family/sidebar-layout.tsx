@@ -158,7 +158,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
 
         {/* Desktop Sidebar Navigation */}
         {!isMobile && (
-          <nav className="flex-1 py-4 overflow-y-auto">
+          <nav id="desktop-sidebar-nav" className="flex-1 py-4 overflow-y-auto">
             {sidebarItems.map((item) => {
               const Icon = item.icon;
               const isActive = item.id === activeSection;
@@ -167,10 +167,10 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
                   key={item.id}
                   to={item.href}
                   onClick={() => setActiveSection(item.id)}
-                  className={`flex items-center ${desktopSidebarCollapsed ? 'px-4 justify-center' : 'px-6'} py-3 text-sm font-medium transition-all duration-200 relative group ${
+                  className={`sidebar-nav-link flex items-center ${desktopSidebarCollapsed ? 'px-4 justify-center' : 'px-6'} py-3 text-sm font-medium transition-all duration-200 relative group ${
                     isActive
                       ? 'text-[var(--gold)] border-r-2 border-[var(--gold)] bg-[var(--bg-800)]'
-                      : 'text-[var(--ink-300)] hover:text-[var(--gold)] hover:bg-[var(--bg-800)]'
+                      : 'text-[var(--ink-300)]'
                   }`}
                   data-testid={`sidebar-${item.id}`}
                   title={desktopSidebarCollapsed ? item.label : ''}
@@ -230,7 +230,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
           </div>
 
           {/* Mobile Sidebar Navigation */}
-          <nav className="flex-1 py-4 overflow-y-auto max-h-[calc(100vh-200px)]">
+          <nav id="mobile-sidebar-nav" className="flex-1 py-4 overflow-y-auto max-h-[calc(100vh-200px)]">
             {sidebarItems.map((item) => {
               const Icon = item.icon;
               const isActive = item.id === activeSection;
@@ -242,10 +242,10 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
                     setActiveSection(item.id);
                     setSidebarOpen(false); // Close sidebar on mobile after selection
                   }}
-                  className={`flex items-center px-6 py-4 text-sm font-medium transition-all duration-200 relative group touch-manipulation ${
+                  className={`sidebar-nav-link flex items-center px-6 py-4 text-sm font-medium transition-all duration-200 relative group touch-manipulation ${
                     isActive
                       ? 'text-[var(--gold)] border-r-2 border-[var(--gold)] bg-[var(--bg-800)]'
-                      : 'text-[var(--ink-300)] hover:text-[var(--gold)] hover:bg-[var(--bg-800)] active:bg-[var(--bg-700)]'
+                      : 'text-[var(--ink-300)]'
                   }`}
                   data-testid={`mobile-sidebar-${item.id}`}
                 >
