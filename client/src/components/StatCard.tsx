@@ -302,12 +302,12 @@ export function StatCard({
                 RECENT ITEMS
               </div>
             )}
-            <ul className="space-y-1">
+            <ul id="family-recent-items" className="space-y-1">
               {items.slice(0, 5).map((it) => (
                 <li key={it.id} className="hover:!bg-transparent">
                   <Link
                     href={it.href ?? href}
-                    className={`flex w-full items-center gap-2 rounded-lg px-2 text-sm text-zinc-300 hover:!bg-[#D4AF37]/14 active:!bg-[#D4AF37]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37]/60 transition-colors cursor-pointer touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
+                    className={`qa-row flex w-full items-center gap-2 rounded-lg px-2 py-3 min-h-[48px] text-sm text-zinc-300 transition-colors cursor-pointer touch-manipulation`}
                   >
                     <span className="inline-block h-2.5 w-2.5 rounded-full bg-zinc-600" />
                     <div className="flex-1">
