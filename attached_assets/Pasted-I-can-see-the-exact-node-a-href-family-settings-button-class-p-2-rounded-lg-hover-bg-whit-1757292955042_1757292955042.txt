@@ -1,0 +1,89 @@
+I can see the exact node:
+
+<a href="/family/settings">
+  <button class="p-2 rounded-lg hover:bg-white/10 transition-colors"> … </button>
+</a>
+
+
+That hover:bg-white/10 Tailwind utility is what keeps repainting the pill-white, and your previous override isn’t winning (likely due to import order). Here’s a sure-fire fix you can apply now, plus a fallback CSS override if you prefer not to touch JSX.
+
+Option A — One-line JSX fix (cleanest)
+
+File: client/src/pages/family/family-home.tsx
+Find the Settings link → button above and change it to this:
+
+<a href="/family/settings" className="relative">
+  <button
+    data-testid="button-settings"
+    // remove the white utility, add gold hover via Tailwind arbitrary color
+    className="group p-2 rounded-lg transition-colors hover:bg-[rgba(212,175,55,0.08)] focus-visible:bg-[rgba(212,175,55,0.12)]"
+  >
+    {/* gear icon */}
+    <svg
+      className="h-4 w-4 text-white/70 transition-colors group-hover:text-[#D4AF37]"
+      /* lucide settings svg props… */
+    />
+  </button>
+</a>
+
+
+Removes hover:bg-white/10.
+
+Adds a subtle gold hover: rgba(212,175,55,0.08) (your brand gold is #D4AF37).
+
+Turns the gear icon gold on hover with group-hover:text-[#D4AF37].
+
+Tailwind’s arbitrary color (hover:bg-[rgba(...)]) works out of the box with JIT.
+
+Option B — Precise CSS override (if you must keep JSX)
+
+Make sure this CSS is imported after your Tailwind/index CSS
+(e.g., in main.tsx make sure import "./styles/header.css" appears after import "./index.css").
+
+Add to client/src/styles/header.css (or wherever you put header rules):
+
+/* Target only the Settings button */
+a[href="/family/settings"] > button {
+  transition: background-color .15s ease;
+}
+
+/* Kill any white hover that slips in */
+a[href="/family/settings"] > button:hover,
+a[href="/family/settings"] > button:focus-visible {
+  background-color: rgba(212, 175, 55, 0.08) !important;  /* light gold */
+  outline: 0 !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+}
+
+/* Make the gear itself go gold on hover */
+a[href="/family/settings"] > button:hover svg,
+a[href="/family/settings"] > button:focus-visible svg {
+  color: #D4AF37 !important;   /* icon fonts */
+  stroke: #D4AF37 !important;  /* lucide stroke */
+}
+
+
+If you add data-testid="button-settings" later, you can switch to:
+button[data-testid="button-settings"]:hover { … } etc.
+
+Why your last attempt didn’t take
+
+Tailwind’s hover:bg-white/10 was still present in the JSX, so it kept reapplying white.
+
+Your override likely loaded before Tailwind or with lower specificity, so it lost the cascade.
+
+The rules above either remove the source (Option A) or out-specify and out-order it (Option B).
+
+Quick verification checklist
+
+Save, let Vite rebuild.
+
+Hard refresh (Ctrl/Cmd+Shift+R). If DevTools is open, tick Disable cache once and refresh.
+
+Hover the Settings gear: background should be a faint gold tint and the gear should turn #D4AF37.
+
+No white pill anywhere.
+
+If anything still resists, send me a new Elements+Styles screenshot on hover of that button (right side Styles pane), and I’ll tailor the selector to whatever rule is winning in your build.

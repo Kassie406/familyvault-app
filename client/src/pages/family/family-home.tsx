@@ -622,12 +622,12 @@ export default function FamilyHome() {
             </button>
             
             <NotificationCenter />
-            <Link href="/family/settings">
-              <button 
+            <Link href="/family/settings" className="relative">
+              <button
                 data-testid="button-settings"
-                className="p-2 rounded-lg transition-colors"
+                className="group p-2 rounded-lg transition-colors hover:bg-[rgba(212,175,55,0.08)] focus-visible:bg-[rgba(212,175,55,0.12)]"
               >
-                <Settings className="h-4 w-4 text-white/70" />
+                <Settings className="h-4 w-4 text-white/70 transition-colors group-hover:text-[#D4AF37]" />
               </button>
             </Link>
           </div>
