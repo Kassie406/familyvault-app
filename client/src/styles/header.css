@@ -289,20 +289,60 @@ button:has(> span:text-matches("Help")):hover,
   color: var(--kc-gold) !important;
 }
 
-/* TARGET ALL HEADER BUTTONS WITH WHITE HOVER BY CLASS */
+/* NUCLEAR APPROACH - TARGET ALL BUTTONS WITH WHITE HOVER CLASSES */
+button.hover\:bg-white\/10,
+button[class*="hover:bg-white/10"],
+button[class*="hover:bg-white"],
 .header button[class*="hover:bg-white"],
-button[class*="hover:bg-white/10"] {
+Link button[class*="hover:bg-white/10"],
+a button[class*="hover:bg-white/10"] {
   --tw-bg-opacity: 0 !important;
+  background-color: transparent !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
 }
 
+/* NUCLEAR GOLD HOVER - Replace all white hovers with gold */
+button.hover\:bg-white\/10:hover,
+button[class*="hover:bg-white/10"]:hover,
+button[class*="hover:bg-white"]:hover,
 .header button[class*="hover:bg-white"]:hover,
-button[class*="hover:bg-white/10"]:hover {
+Link button[class*="hover:bg-white/10"]:hover,
+a button[class*="hover:bg-white/10"]:hover {
   background-color: rgba(var(--kc-gold-rgb), 0.10) !important;
   color: var(--kc-gold) !important;
 }
 
+/* NUCLEAR GOLD ICONS - All SVG icons turn gold */
+button.hover\:bg-white\/10:hover svg,
+button[class*="hover:bg-white/10"]:hover svg,
+button[class*="hover:bg-white"]:hover svg,
 .header button[class*="hover:bg-white"]:hover svg,
-button[class*="hover:bg-white/10"]:hover svg {
+Link button[class*="hover:bg-white/10"]:hover svg,
+a button[class*="hover:bg-white/10"]:hover svg {
+  stroke: currentColor !important;
+  color: var(--kc-gold) !important;
+}
+
+/* MAXIMUM SPECIFICITY - Settings button last resort */
+*[href="/family/settings"] > button,
+Link[href="/family/settings"] > button,
+a[href="/family/settings"] > button {
+  background-color: transparent !important;
+}
+
+*[href="/family/settings"] > button:hover,
+Link[href="/family/settings"] > button:hover,
+a[href="/family/settings"] > button:hover {
+  background-color: rgba(var(--kc-gold-rgb), 0.10) !important;
+  color: var(--kc-gold) !important;
+}
+
+*[href="/family/settings"] > button:hover svg,
+Link[href="/family/settings"] > button:hover svg,
+a[href="/family/settings"] > button:hover svg {
   stroke: currentColor !important;
   color: var(--kc-gold) !important;
 }
