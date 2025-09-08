@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { IdeasList } from '@/components/couple/IdeasList';
 import { 
   Heart, 
   Calendar, 
@@ -161,21 +162,9 @@ export function CoupleMain({ onClose }: CoupleMainProps) {
   );
 }
 
-// Tab Components (Placeholder implementations)
+// Tab Components
 function IdeasTab() {
-  return (
-    <div className="h-full flex items-center justify-center">
-      <div className="text-center">
-        <Lightbulb className="h-12 w-12 text-[#D4AF37] mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-white mb-2">Date Ideas</h3>
-        <p className="text-neutral-400 mb-4">Collect and rank ideas for future dates</p>
-        <Button className="bg-[#D4AF37] hover:bg-[#B8941F] text-black" data-testid="button-add-idea">
-          <Plus className="h-4 w-4 mr-2" />
-          Add New Idea
-        </Button>
-      </div>
-    </div>
-  );
+  return <IdeasList className="h-full" />;
 }
 
 function CalendarTab() {
