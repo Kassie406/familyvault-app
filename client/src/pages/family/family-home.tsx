@@ -620,7 +620,7 @@ export default function FamilyHome() {
                 <button 
                   id="header-profile-btn"
                   data-testid="button-profile"
-                  className="w-8 h-8 rounded-full bg-[var(--gold)] flex items-center justify-center hover:bg-[#B8860B] transition-colors focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:ring-offset-2 focus:ring-offset-[#0A0A0A]"
+                  className="profile-chip w-8 h-8 rounded-full bg-[var(--gold)] flex items-center justify-center hover:bg-[#B8860B] transition-colors focus:outline-none focus:ring-2 focus:ring-[#D4AF37] focus:ring-offset-2 focus:ring-offset-[#0A0A0A]"
                 >
                   <span className="text-black text-sm font-medium">KC</span>
                 </button>

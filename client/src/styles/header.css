@@ -149,45 +149,55 @@ button.header-icon:hover svg {
   background-color: transparent !important;
 }
 
-/* ===== KC chip must never hide when menu is open ===== */
+/* ===== PROFILE AVATAR CHIP FIX ===== */
 
-/* Give the KC button a stable hook and positioning */
+/* Keep the gold circle visible always - lock background color across all states */
+.profile-chip,
+.profile-chip:hover,
+.profile-chip:focus,
+.profile-chip[aria-expanded="true"],
 #header-profile-btn,
-[data-testid="button-profile"] {
+#header-profile-btn:hover,
+#header-profile-btn:focus,
+#header-profile-btn[aria-expanded="true"],
+[data-testid="button-profile"],
+[data-testid="button-profile"]:hover,
+[data-testid="button-profile"]:focus,
+[data-testid="button-profile"][aria-expanded="true"] {
+  background-color: #D4AF37 !important;  /* Lock the gold background */
+  color: #0b0b0d !important;             /* Readable text on gold */
+  opacity: 1 !important;
+  visibility: visible !important;
   position: relative !important;
-  z-index: 61 !important; /* Above the header hairline, below menu panel */
+  z-index: 61 !important;               /* Above header hairline */
 }
 
 /* Common open-state hooks across libraries */
-#header-profile-btn[aria-expanded="true"],
-[data-testid="button-profile"][aria-expanded="true"],
 #header-profile-btn[data-state="open"],
 [data-testid="button-profile"][data-state="open"],
 #header-profile-btn[data-headlessui-state~="open"],
 [data-testid="button-profile"][data-headlessui-state~="open"] {
+  background-color: #D4AF37 !important;  /* Keep gold even in open states */
+  color: #0b0b0d !important;
   opacity: 1 !important;
   visibility: visible !important;
-  color: inherit !important;
 }
 
-/* Kill any "hide while open" utilities that may be attached */
-#header-profile-btn[aria-expanded="true"],
-[data-testid="button-profile"][aria-expanded="true"] {
-  --tw-text-opacity: 1 !important;
+/* Kill any conflicting background utilities */
+#header-profile-btn,
+[data-testid="button-profile"],
+.profile-chip {
   --tw-bg-opacity: 1 !important;
+  --tw-text-opacity: 1 !important;
 }
 
-#header-profile-btn *,
-[data-testid="button-profile"] * {
+/* Guard the text inside the chip */
+#header-profile-btn span,
+[data-testid="button-profile"] span,
+.profile-chip span {
+  color: #0b0b0d !important;  /* Dark text on gold background */
   opacity: 1 !important;
   visibility: visible !important;
-  color: inherit !important;
-}
-
-/* Guard against accidental text transparency */
-#header-profile-btn span,
-[data-testid="button-profile"] span {
-  color: currentColor !important;
 }
 
 /* Make sure the dropdown sits above the header line */
