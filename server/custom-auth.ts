@@ -197,7 +197,7 @@ router.post('/login/verify', authLimiter, (req, res) => {
   // Success - clear code and issue session
   verificationCodes.delete(email);
   issueSession(res, email);
-  res.json({ ok: true, redirect: '/' });
+  res.json({ ok: true, redirect: '/family' });
 });
 
 // Google OAuth routes
