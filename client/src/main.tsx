@@ -4,5 +4,6 @@ import "./index.css";
 import "./styles/quick-access.css";
 import "./styles/header-overrides.css";
 import "./styles/header.css";
+import "./styles/settings-override.css";
 
 createRoot(document.getElementById("root")!).render(<App />);
