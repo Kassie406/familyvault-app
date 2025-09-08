@@ -235,7 +235,10 @@ button[data-testid*="cancel-title-button"]:hover svg {
 button[data-testid="button-logout"],
 .notification-center button,
 .notification-center .notification-button,
-a[href="/family/settings"] button {
+a[href="/family/settings"] button,
+Link[href="/family/settings"] button,
+button:has(svg.lucide-settings),
+button:has(.lucide-settings) {
   background-color: transparent !important;
   --tw-bg-opacity: 0 !important;
   --tw-ring-shadow: 0 0 #0000 !important;
@@ -248,7 +251,10 @@ a[href="/family/settings"] button {
 button[data-testid="button-logout"]:hover,
 .notification-center button:hover,
 .notification-center .notification-button:hover,
-a[href="/family/settings"] button:hover {
+a[href="/family/settings"] button:hover,
+Link[href="/family/settings"] button:hover,
+button:has(svg.lucide-settings):hover,
+button:has(.lucide-settings):hover {
   background-color: rgba(var(--kc-gold-rgb), 0.10) !important;
   color: var(--kc-gold) !important;
 }
@@ -257,7 +263,10 @@ a[href="/family/settings"] button:hover {
 button[data-testid="button-logout"]:hover svg,
 .notification-center button:hover svg,
 .notification-center .notification-button:hover svg,
-a[href="/family/settings"] button:hover svg {
+a[href="/family/settings"] button:hover svg,
+Link[href="/family/settings"] button:hover svg,
+button:has(svg.lucide-settings):hover svg,
+button:has(.lucide-settings):hover svg {
   stroke: currentColor !important;
   color: var(--kc-gold) !important;
 }
