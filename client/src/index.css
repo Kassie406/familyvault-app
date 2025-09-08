@@ -3811,3 +3811,44 @@ a:hover,
     color: #E5E7EB;
   }
 }
+
+/* --- Family Members quick actions: force light gold hover --- */
+#family-quick-actions li,
+#family-quick-actions li:hover {
+  background: transparent !important;           /* kill any <li> hover */
+}
+
+/* anchor/button rows (cover both link and radix item cases) */
+#family-quick-actions a.qa-row,
+#family-quick-actions button.qa-row,
+#family-quick-actions [role="menuitem"].qa-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  width: 100%;
+  min-height: 48px;
+  border-radius: 12px;
+  padding: .75rem .5rem;
+  text-decoration: none;
+}
+
+/* hover/focus/active states (light gold wash) */
+#family-quick-actions a.qa-row:hover,
+#family-quick-actions button.qa-row:hover,
+#family-quick-actions [role="menuitem"].qa-row:hover,
+#family-quick-actions a.qa-row[data-highlighted],
+#family-quick-actions button.qa-row[data-highlighted],
+#family-quick-actions [role="menuitem"].qa-row[data-highlighted],
+#family-quick-actions a.qa-row:focus-visible,
+#family-quick-actions button.qa-row:focus-visible,
+#family-quick-actions [role="menuitem"].qa-row:focus-visible {
+  background-color: rgba(212, 175, 55, 0.14) !important; /* #D4AF37 @14% */
+  outline: 2px solid rgba(212, 175, 55, 0.60);
+  outline-offset: 2px;
+}
+
+#family-quick-actions a.qa-row:active,
+#family-quick-actions button.qa-row:active,
+#family-quick-actions [role="menuitem"].qa-row:active {
+  background-color: rgba(212, 175, 55, 0.20) !important;
+}
