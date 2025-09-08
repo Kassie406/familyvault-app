@@ -16,12 +16,9 @@
   isolation: isolate; overflow: hidden;
 }
 
-/* Gold glow on hover (no bg change) */
+/* Light gold background wash on hover */
 #action-center-card:hover {
-  border-color: rgba(212,175,55,0.40);
-  box-shadow:
-    0 0 0 1px rgba(212,175,55,.35),
-    0 18px 50px rgba(212,175,55,.12);
+  background-color: rgba(212, 175, 55, 0.08) !important;
 }
 
 /* Optional: keep links from turning blue/underlined unless hover */

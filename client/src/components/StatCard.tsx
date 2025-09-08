@@ -86,7 +86,7 @@ export function StatCard({
     }
   }
 
-  const baseClassName = "group no-hover-bg rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] hover:border-[#D4AF37]/40 hover:shadow-[0_0_0_1px_rgba(212,175,55,.35),0_18px_50px_rgba(212,175,55,.12)] focus:outline-none focus:ring-2 focus:ring-amber-400/40 transition-all duration-300";
+  const baseClassName = "group no-hover-bg rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] hover:bg-[#D4AF37]/8 focus:outline-none focus:ring-2 focus:ring-amber-400/40 transition-all duration-300";
   
   return (
     <div ref={wrapRef} className="relative">
@@ -263,7 +263,7 @@ export function StatCard({
                   {action.href ? (
                     <Link
                       href={action.href}
-                      className={`flex items-center gap-3 rounded-lg px-2 text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-amber-400 transition-colors cursor-pointer touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
+                      className={`flex items-center gap-3 rounded-lg px-2 text-sm text-zinc-300 hover:bg-[#D4AF37]/8 hover:text-amber-400 transition-colors cursor-pointer touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
                     >
                       {action.icon && (
                         <span className="text-amber-400 opacity-70">
@@ -278,7 +278,7 @@ export function StatCard({
                         action.onClick?.();
                         setOpen(false);
                       }}
-                      className={`w-full flex items-center gap-3 rounded-lg px-2 text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-amber-400 transition-colors cursor-pointer text-left touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
+                      className={`w-full flex items-center gap-3 rounded-lg px-2 text-sm text-zinc-300 hover:bg-[#D4AF37]/8 hover:text-amber-400 transition-colors cursor-pointer text-left touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
                     >
                       {action.icon && (
                         <span className="text-amber-400 opacity-70">
@@ -307,7 +307,7 @@ export function StatCard({
                 <li key={it.id}>
                   <Link
                     href={it.href ?? href}
-                    className={`flex items-center gap-2 rounded-lg px-2 text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-amber-400 transition-colors cursor-pointer touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
+                    className={`flex items-center gap-2 rounded-lg px-2 text-sm text-zinc-300 hover:bg-[#D4AF37]/8 hover:text-amber-400 transition-colors cursor-pointer touch-manipulation ${isMobile ? 'py-3 min-h-[48px]' : 'py-2'}`}
                   >
                     <span className="inline-block h-2.5 w-2.5 rounded-full bg-zinc-600" />
                     <div className="flex-1">
