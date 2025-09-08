@@ -97,7 +97,7 @@ export function MobileNavigationBar({ onQuickAccessOpen }: MobileNavigationBarPr
             
             <div className="flex items-center gap-2">
               <button 
-                className="header-icon p-2 rounded-lg transition-colors relative"
+                className="header-nav-icon p-2 rounded-lg transition-colors relative"
                 data-testid="mobile-notifications"
                 aria-label="Notifications"
               >
@@ -108,7 +108,7 @@ export function MobileNavigationBar({ onQuickAccessOpen }: MobileNavigationBarPr
               </button>
               <button
                 onClick={() => setMenuOpen(true)}
-                className="header-icon p-2 rounded-lg transition-colors"
+                className="header-nav-icon p-2 rounded-lg transition-colors"
                 data-testid="mobile-menu-open"
                 aria-label="Menu"
               >
