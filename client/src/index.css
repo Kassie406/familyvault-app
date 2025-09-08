@@ -3907,3 +3907,220 @@ a:hover,
 #mobile-sidebar-nav a.sidebar-nav-link:active {
   background-color: rgba(212, 175, 55, 0.20) !important;
 }
+
+/* ========================================
+   COMPREHENSIVE HOVER STANDARDIZATION 
+   ======================================== */
+
+/* 1. GENERAL INTERACTIVE ELEMENTS */
+
+/* All buttons, links, and interactive elements */
+button:not(.bg-\[#D4AF37\]):not([class*="bg-amber"]):hover,
+a[role="button"]:not(.bg-\[#D4AF37\]):not([class*="bg-amber"]):hover,
+[role="button"]:not(.bg-\[#D4AF37\]):not([class*="bg-amber"]):hover {
+  background-color: rgba(212, 175, 55, 0.14) !important;
+  color: #D4AF37 !important;
+  transition: all 0.2s ease !important;
+}
+
+/* 2. DROPDOWN MENUS & CONTEXT MENUS */
+
+/* Radix UI dropdown items */
+[role="menuitem"]:hover,
+[role="option"]:hover,
+[data-radix-collection-item]:hover {
+  background-color: rgba(212, 175, 55, 0.14) !important;
+  color: #D4AF37 !important;
+}
+
+/* 3. CARDS AND PANELS */
+
+/* Generic card hover effects */
+.card:hover,
+[class*="card"]:hover,
+[data-testid*="card"]:hover {
+  border-color: rgba(212, 175, 55, 0.40) !important;
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.35), 0 18px 50px rgba(212, 175, 55, 0.12) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Luxury cards specifically */
+.luxury-card:hover,
+[class*="luxury"]:hover {
+  border-color: rgba(212, 175, 55, 0.40) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.35), 0 18px 50px rgba(212, 175, 55, 0.12) !important;
+}
+
+/* 4. NAVIGATION ELEMENTS */
+
+/* Tab navigation */
+[role="tab"]:hover,
+.tab:hover,
+[class*="tab"]:hover {
+  background-color: rgba(212, 175, 55, 0.14) !important;
+  color: #D4AF37 !important;
+}
+
+/* Breadcrumb links */
+.breadcrumb a:hover,
+[class*="breadcrumb"] a:hover {
+  color: #D4AF37 !important;
+}
+
+/* 5. FORM ELEMENTS */
+
+/* Input focus states */
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #D4AF37 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.25) !important;
+}
+
+/* Checkbox and radio hover */
+input[type="checkbox"]:hover + label,
+input[type="radio"]:hover + label {
+  color: #D4AF37 !important;
+}
+
+/* 6. SPECIFIC COMPONENT PATTERNS */
+
+/* Action buttons in lists */
+.action-btn:hover,
+[class*="action"]:hover,
+[data-testid*="action"]:hover {
+  background-color: rgba(212, 175, 55, 0.14) !important;
+  color: #D4AF37 !important;
+}
+
+/* Profile and avatar hover */
+.avatar:hover,
+[class*="avatar"]:hover,
+.profile:hover,
+[class*="profile"]:hover {
+  border-color: #D4AF37 !important;
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.25) !important;
+}
+
+/* Status indicators */
+.status:hover,
+[class*="status"]:hover,
+.badge:hover,
+[class*="badge"]:hover {
+  background-color: rgba(212, 175, 55, 0.14) !important;
+  color: #D4AF37 !important;
+}
+
+/* 7. MODAL AND OVERLAY ELEMENTS */
+
+/* Dialog close buttons */
+[role="dialog"] button:hover,
+.modal button:hover,
+[class*="modal"] button:hover {
+  background-color: rgba(212, 175, 55, 0.14) !important;
+  color: #D4AF37 !important;
+}
+
+/* 8. TABLE ELEMENTS */
+
+/* Table rows */
+tr:hover,
+[role="row"]:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;
+}
+
+/* Table headers */
+th:hover,
+[role="columnheader"]:hover {
+  background-color: rgba(212, 175, 55, 0.14) !important;
+  color: #D4AF37 !important;
+}
+
+/* 9. ADMIN PANEL ELEMENTS */
+
+/* Settings toggles */
+.toggle:hover,
+[class*="toggle"]:hover,
+.switch:hover,
+[class*="switch"]:hover {
+  border-color: #D4AF37 !important;
+}
+
+/* Admin cards */
+.admin-card:hover,
+[class*="admin"]:hover {
+  border-color: rgba(212, 175, 55, 0.40) !important;
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.35), 0 18px 50px rgba(212, 175, 55, 0.12) !important;
+}
+
+/* 10. NOTIFICATION ELEMENTS */
+
+/* Toast and notification hover */
+.toast:hover,
+[class*="toast"]:hover,
+.notification:hover,
+[class*="notification"]:hover {
+  border-color: #D4AF37 !important;
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.35) !important;
+}
+
+/* 11. CHAT AND MESSAGING */
+
+/* Message bubbles */
+.message:hover,
+[class*="message"]:hover,
+.chat-bubble:hover,
+[class*="chat"]:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;
+}
+
+/* 12. FAMILY PORTAL SPECIFIC */
+
+/* Family member cards */
+.family-member:hover,
+[class*="family"]:hover,
+.member-card:hover,
+[class*="member"]:hover {
+  border-color: rgba(212, 175, 55, 0.40) !important;
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.35), 0 18px 50px rgba(212, 175, 55, 0.12) !important;
+}
+
+/* Document and file cards */
+.document:hover,
+[class*="document"]:hover,
+.file-card:hover,
+[class*="file"]:hover {
+  border-color: rgba(212, 175, 55, 0.40) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* 13. OVERRIDE CONFLICTING STYLES */
+
+/* Neutralize white/gray hover effects from libraries */
+*:hover {
+  --tw-bg-opacity: 1 !important;
+}
+
+/* Neutralize shadcn/ui conflicting hovers */
+[data-radix-collection-item]:hover {
+  background-color: rgba(212, 175, 55, 0.14) !important;
+  color: #D4AF37 !important;
+}
+
+/* Neutralize DaisyUI white hovers */
+.btn:not(.btn-primary):not(.btn-secondary):hover {
+  background-color: rgba(212, 175, 55, 0.14) !important;
+  color: #D4AF37 !important;
+}
+
+/* 14. ICON HOVER EFFECTS */
+
+/* All icons in interactive elements */
+button:hover svg,
+a:hover svg,
+[role="button"]:hover svg {
+  color: #D4AF37 !important;
+  transition: color 0.2s ease !important;
+}
