@@ -139,7 +139,7 @@ export function NotificationCenter() {
 
       {/* Notification Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 top-12 w-96 z-50">
+        <div className="absolute right-0 top-12 w-96 z-[100]">
           <LuxuryCard className="p-0 max-h-96 overflow-hidden">
             {/* Header */}
             <div className="p-4 border-b border-white/10 flex items-center justify-between">
