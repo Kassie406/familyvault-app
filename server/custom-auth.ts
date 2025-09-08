@@ -53,9 +53,14 @@ const authLimiter = rateLimit({
 // Session helpers
 function issueSession(res: Response, email: string) {
   const sessionId = uuid();
+  // Fix for Replit environment - detect HTTPS properly
+  const isSecure = process.env.NODE_ENV === 'production' || 
+                   APP_DOMAIN.startsWith('https://') ||
+                   process.env.REPLIT_DEPLOYMENT_ENV === 'production';
+  
   res.cookie('fcs_session', sessionId, {
     httpOnly: true,
-    secure: APP_DOMAIN.startsWith('https://'),
+    secure: isSecure,
     sameSite: 'lax',
     maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
   });
@@ -63,7 +68,7 @@ function issueSession(res: Response, email: string) {
   const payload = Buffer.from(JSON.stringify({ email })).toString('base64url');
   res.cookie('fcs_who', payload, {
     httpOnly: true,
-    secure: APP_DOMAIN.startsWith('https://'),
+    secure: isSecure,
     sameSite: 'lax',
     maxAge: 1000 * 60 * 60 * 24 * 7
   });
