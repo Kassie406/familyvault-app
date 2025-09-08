@@ -231,6 +231,73 @@ button[data-testid*="cancel-title-button"]:hover svg {
   color: var(--kc-gold) !important;
 }
 
+/* TARGET SPECIFIC HEADER BUTTONS - Help, Sign Out, Settings, NotificationCenter */
+button[data-testid="button-logout"],
+.notification-center button,
+.notification-center .notification-button,
+a[href="/family/settings"] button {
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+/* Gold hover for specific header buttons */
+button[data-testid="button-logout"]:hover,
+.notification-center button:hover,
+.notification-center .notification-button:hover,
+a[href="/family/settings"] button:hover {
+  background-color: rgba(var(--kc-gold-rgb), 0.10) !important;
+  color: var(--kc-gold) !important;
+}
+
+/* Gold hover for SVG icons in specific header buttons */
+button[data-testid="button-logout"]:hover svg,
+.notification-center button:hover svg,
+.notification-center .notification-button:hover svg,
+a[href="/family/settings"] button:hover svg {
+  stroke: currentColor !important;
+  color: var(--kc-gold) !important;
+}
+
+/* TARGET HELP BUTTON by text content and structure - Help button doesn't have data-testid */
+button:has(> span:contains("Help")),
+button:has(> span:text-matches("Help")),
+.header button[class*="hover:bg-white"]:has(svg + span),
+.header button:has(.h-4.w-4 + span) {
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+}
+
+/* Gold hover for Help button */
+button:has(> span:contains("Help")):hover,
+button:has(> span:text-matches("Help")):hover,
+.header button[class*="hover:bg-white"]:has(svg + span):hover,
+.header button:has(.h-4.w-4 + span):hover {
+  background-color: rgba(var(--kc-gold-rgb), 0.10) !important;
+  color: var(--kc-gold) !important;
+}
+
+/* TARGET ALL HEADER BUTTONS WITH WHITE HOVER BY CLASS */
+.header button[class*="hover:bg-white"],
+button[class*="hover:bg-white/10"] {
+  --tw-bg-opacity: 0 !important;
+}
+
+.header button[class*="hover:bg-white"]:hover,
+button[class*="hover:bg-white/10"]:hover {
+  background-color: rgba(var(--kc-gold-rgb), 0.10) !important;
+  color: var(--kc-gold) !important;
+}
+
+.header button[class*="hover:bg-white"]:hover svg,
+button[class*="hover:bg-white/10"]:hover svg {
+  stroke: currentColor !important;
+  color: var(--kc-gold) !important;
+}
+
 /* Broad catch-all for any remaining family page header buttons */
 [class*="family"] button:hover,
 .family-header button:hover,
