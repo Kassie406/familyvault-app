@@ -11,12 +11,12 @@ dialog[aria-label="Quick Access"],
   pointer-events: auto;
 }
 
-/* Kill all background injections from utilities & pseudo-elements */
-dialog[aria-label="Quick Access"] *,
-#quick-access-modal *,
-.quickAccessModal *,
-.quick-access-modal *,
-[data-qa="quick-access"] * {
+/* Kill all background injections from utilities & pseudo-elements - BUT EXCLUDE ACTIVE TABS */
+dialog[aria-label="Quick Access"] *:not(.bg-\[#D4AF37\]),
+#quick-access-modal *:not(.bg-\[#D4AF37\]),
+.quickAccessModal *:not(.bg-\[#D4AF37\]),
+.quick-access-modal *:not(.bg-\[#D4AF37\]),
+[data-qa="quick-access"] *:not(.bg-\[#D4AF37\]) {
   /* block white flashes from Tailwind/DaisyUI utils on hover/focus */
   --tw-bg-opacity: 0 !important;
   background-color: transparent !important;
