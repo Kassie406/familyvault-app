@@ -957,6 +957,86 @@ export const shoppingItems = pgTable("shopping_items", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Couple's Connection tables
+export const couples = pgTable("couples", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  partnerIds: jsonb("partner_ids").notNull(), // array of 2 user IDs
+  settings: jsonb("settings").default({}), // pin_hash, notif_prefs, resurfacing_opt_in
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const coupleDateIdeas = pgTable("couple_date_ideas", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  coupleId: varchar("couple_id").notNull().references(() => couples.id, { onDelete: 'cascade' }),
+  title: text("title").notNull(),
+  tags: jsonb("tags").default([]), // array of strings
+  estimatedCost: integer("estimated_cost"), // cents
+  estimatedTimeMinutes: integer("estimated_time_minutes"),
+  preparation: text("preparation"),
+  createdBy: varchar("created_by").references(() => users.id),
+  upvotes: jsonb("upvotes").default({}), // {userId: true}
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const coupleEvents = pgTable("couple_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  coupleId: varchar("couple_id").notNull().references(() => couples.id, { onDelete: 'cascade' }),
+  ideaId: varchar("idea_id").references(() => coupleDateIdeas.id),
+  title: text("title").notNull(),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  location: text("location"),
+  notes: text("notes"),
+  type: varchar("type").notNull().default("date"), // 'date', 'open_block', 'milestone'
+  visibility: varchar("visibility").notNull().default("couple"), // 'couple', 'busy'
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const coupleJournal = pgTable("couple_journal", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  coupleId: varchar("couple_id").notNull().references(() => couples.id, { onDelete: 'cascade' }),
+  occurredOn: date("occurred_on").notNull(),
+  text: text("text").notNull(),
+  mediaUrls: jsonb("media_urls").default([]), // array of strings
+  tags: jsonb("tags").default([]), // array of strings
+  authorId: varchar("author_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const coupleCheckins = pgTable("couple_checkins", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  coupleId: varchar("couple_id").notNull().references(() => couples.id, { onDelete: 'cascade' }),
+  checkinDate: date("checkin_date").notNull(),
+  rating: integer("rating").notNull(), // 1-10 scale
+  answers: jsonb("answers").default({}), // structured answers to prompts
+  authorId: varchar("author_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const auditCouple = pgTable("audit_couple", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  coupleId: varchar("couple_id").notNull().references(() => couples.id, { onDelete: 'cascade' }),
+  action: text("action").notNull(),
+  actorId: varchar("actor_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Couple types
+export type Couple = typeof couples.$inferSelect;
+export type InsertCouple = typeof couples.$inferInsert;
+export type CoupleDateIdea = typeof coupleDateIdeas.$inferSelect;
+export type InsertCoupleDateIdea = typeof coupleDateIdeas.$inferInsert;
+export type CoupleEvent = typeof coupleEvents.$inferSelect;
+export type InsertCoupleEvent = typeof coupleEvents.$inferInsert;
+export type CoupleJournalEntry = typeof coupleJournal.$inferSelect;
+export type InsertCoupleJournalEntry = typeof coupleJournal.$inferInsert;
+export type CoupleCheckin = typeof coupleCheckins.$inferSelect;
+export type InsertCoupleCheckin = typeof coupleCheckins.$inferInsert;
+export type AuditCoupleEntry = typeof auditCouple.$inferSelect;
+export type InsertAuditCoupleEntry = typeof auditCouple.$inferInsert;
+
 // Meal planning types
 export type Recipe = typeof recipes.$inferSelect;
 export type InsertRecipe = typeof recipes.$inferInsert;

@@ -1,0 +1,167 @@
+Components (MVP)
+
+<CoupleGate /> (PIN/biometric)
+
+<IdeasList /> (tags, add, mutual rank)
+
+<IdeaCard /> (title, tags, est time/cost, add-to-calendar)
+
+<CoupleCalendar /> (toggle: Couple | Couple+Family; conflict chips)
+
+<OpenDateBanner /> (next “open date” with 3 suggestions)
+
+<JournalFeed /> (entries with media)
+
+<AddEntryModal />
+
+<WeeklyCheckin /> (3 prompts + 1–10 rating)
+
+<MilestoneCountdown />
+
+<PrivacyBadge /> (clarifies “visible only to you two”)
+
+Data model (diff)
+// tie to existing users & families
+type CoupleId = string;
+
+table couples {
+  id: CoupleId pk
+  partner_ids: string[2]  // user ids
+  settings: jsonb         // {pin_hash, notif_prefs, resurfacing_opt_in}
+  created_at, updated_at
+}
+
+table couple_date_ideas {
+  id pk, couple_id fk, title text, tags text[],
+  est_cost int null, est_time_minutes int null, prep text null,
+  created_by user_id, upvotes jsonb   // {userId: true}
+  created_at
+}
+
+table couple_events {
+  id pk, couple_id fk, idea_id fk null, title text,
+  start timestamptz, end timestamptz,
+  location text null, notes text null,
+  type text check in ('date','open_block','milestone'),
+  visibility text check in ('couple','busy') default 'couple'  // hide from kids
+}
+
+table couple_journal {
+  id pk, couple_id fk, occurred_on date,
+  text text, media_urls text[], tags text[],
+  author_id user_id, created_at
+}
+
+table couple_checkins {
+  id pk, couple_id fk, at date,
+  rating int, answers jsonb, author_id user_id
+}
+
+table audit_couple {
+  id pk, couple_id fk, action text, actor_id user_id, at timestamptz
+}
+
+API contract (high level)
+
+GET/POST /api/couple/:id/ideas (query by tags, mutualTop=true)
+
+POST /api/couple/:id/ideas/:ideaId/upvote
+
+GET/POST /api/couple/:id/events (filter scope=couple|all)
+
+GET/POST /api/couple/:id/journal
+
+POST /api/couple/:id/checkins
+
+POST /api/couple/:id/gate/verify (PIN/biometric assertion)
+
+Permissions
+
+Gate all endpoints with couple_id membership (both partners only).
+
+Children: couple events render as Busy (time blocks only).
+
+No analytics inside /couple; only couple-visible audit_couple.
+
+Calendar integration
+
+Couple events stored in couple_events and also projected into the main calendar feed with:
+
+isCouple: true
+
+visibility: 'busy' for non-parents
+
+Conflict detector: when adding a date, query family events in window; show chips:
+
+Conflicts: Soccer 6–7p, Chores 7–7:30p.
+
+Notifications (gentle)
+
+Upcoming date: 24h + 3h reminders.
+
+“Open Date” today → pick 1 of 3 ideas (fit time/budget).
+
+Weekly check-in reminder on chosen evening.
+
+“On This Day” resurfacing (opt-in).
+
+Copy (ready to paste)
+
+Card title: Our Connection
+Card subtitle: Next date: Fri 7:30 PM • Italian place near home
+
+Gate explainer: This space is private to the two of you. Add a quick PIN to enter.
+
+Open Date banner: You saved 7–9 PM for each other. Try one of these?
+
+Check-in prompts (weekly):
+
+One thing that made you smile this week?
+
+One thing you appreciated about your partner?
+
+One small thing to try next week?
+
+Acceptance criteria (MVP)
+
+ Parents see Our Connection card; children do not.
+
+ PIN gate required once per session (configurable).
+
+ Add idea → appears for both partners; mutual ranking works.
+
+ Add idea to calendar → conflict chips visible; reminders fire.
+
+ “Open Date” blocks suggest ≤3 ideas matching duration/budget.
+
+ Journal entries accept text + up to 10 photos; “On This Day” works when opted in.
+
+ Weekly check-in saves rating + 3 answers; partners see a tiny sparkline only.
+
+ Couple events hidden from kids (show as Busy).
+
+Design notes
+
+Keep gold/dark theme; add warmer micro-accents inside /couple (soft gradient headers).
+
+Buttons: gentle wording (“Plan together”, “Save for Friday”).
+
+Privacy microcopy on every screen footer: Only the two of you can see this.
+
+Rollout
+
+Sprint A: Gate, Ideas, CoupleCalendar, conflicts, reminders.
+
+Sprint B: Journal + “On This Day,” Weekly Check-in, Milestones.
+
+Pilot: 10–20 couples; tune prompts + suggestion rules.
+
+V2 (after pilot): Budget category integration, Love Languages inventory + tailored idea packs, Vision Board & long-term goals, local events recommendations.
+
+Success signals (internal)
+
+30% of couples schedule ≥1 date within 14 days.
+
+Median 2+ couple events/month after 30 days.
+
+50% of opted-in couples complete at least 2 weekly check-ins in first month.
