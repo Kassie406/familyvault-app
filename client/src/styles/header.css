@@ -1,378 +1,85 @@
-/* ==== Header buttons: kill white hover and use faint gold ==== */
+/* HEADER GOLD THEMING - Clean and effective approach */
 
-/* Your header container is a sticky DIV (not a <header>) in this app */
-.sticky .header-icon,
-header .header-icon {
-  background: transparent !important;
-  --tw-bg-opacity: 0 !important;
-  box-shadow: none !important;
-  outline: 0 !important;
-}
-
-/* Hover state — very light gold tint (no white) */
-.sticky .header-icon:hover,
-header .header-icon:hover {
-  background-color: rgba(212, 175, 55, 0.08) !important; /* light gold */
-}
-
-/* If DaisyUI "ghost"/button styles try to inject background, squash them */
-.sticky .header-icon.btn-ghost:hover,
-header .header-icon.btn-ghost:hover,
-.sticky .header-icon.btn-square:hover,
-header .header-icon.btn-square:hover {
-  background-color: rgba(212, 175, 55, 0.08) !important;
-}
-
-/* Defensive: kill pseudo-element halos and ring utilities if they exist */
-.sticky .header-icon::before,
-.sticky .header-icon::after,
-header .header-icon::before,
-header .header-icon::after {
-  content: none !important;
-}
-
-.sticky .header-icon,
-header .header-icon {
+/* Header hover: replace any white hover with a subtle gold tint */
+.sticky button:hover,
+.sticky [role="button"]:hover {
+  /* kill library rings/white pills */
   --tw-ring-shadow: 0 0 #0000 !important;
   --tw-ring-offset-shadow: 0 0 #0000 !important;
-  box-shadow: none !important;
-}
-
-/* ===== Header icon hover hardening (wins over utilities) ===== */
-
-/* Target the sticky header container + any of these identifiers */
-.sticky button.header-icon:hover,
-.sticky [aria-label="Quick Access"]:hover,
-.sticky [aria-label="Notifications"]:hover,
-.sticky [data-testid="mobile-quick-access"]:hover,
-.sticky [data-testid="mobile-notifications"]:hover,
-.sticky [data-qa="header-quick-access"]:hover,
-.sticky [data-qa="header-notifications"]:hover {
-  /* kill white backgrounds injected by Tailwind utilities */
-  --tw-bg-opacity: 0 !important;
-  background-color: rgba(212,175,55,0.08) !important; /* light gold */
-  /* kill rings/glow */
-  --tw-ring-offset-shadow: 0 0 #0000 !important;
-  --tw-ring-shadow: 0 0 #0000 !important;
-  box-shadow: none !important;
-  outline: 0 !important;
-}
-
-/* Apply the same when focused via keyboard */
-.sticky button.header-icon:focus,
-.sticky button.header-icon:focus-visible,
-.sticky [aria-label="Quick Access"]:focus,
-.sticky [aria-label="Quick Access"]:focus-visible,
-.sticky [aria-label="Notifications"]:focus,
-.sticky [aria-label="Notifications"]:focus-visible {
-  --tw-bg-opacity: 0 !important;
-  background-color: rgba(212,175,55,0.08) !important;
-  box-shadow: none !important;
-  outline: 0 !important;
-}
-
-/* Nuke pseudo-element overlays that can flash white */
-.sticky button.header-icon::before,
-.sticky button.header-icon::after,
-.sticky [aria-label="Quick Access"]::before,
-.sticky [aria-label="Quick Access"]::after,
-.sticky [aria-label="Notifications"]::before,
-.sticky [aria-label="Notifications"]::after {
-  content: none !important;
-}
-
-/* Defensive: prevent inner SVG/wrapper from re-introducing white */
-.sticky button.header-icon * {
-  background: transparent !important;
   --tw-bg-opacity: 0 !important;
   box-shadow: none !important;
+
+  /* your brand gold hover */
+  background-color: rgba(212, 175, 55, 0.10) !important; /* soft gold wash */
+  color: #D4AF37 !important; /* gold text (for icon fonts, etc.) */
 }
 
-/* ===== Header icon hover fix (precise, no collateral) ===== */
-
-/* Base: keep transparent surface and kill white utilities/rings */
-button[data-testid="button-quick-access"],
-button[data-testid="button-toggle-layout"] {
-  background-color: transparent !important;
-  --tw-bg-opacity: 0 !important;
-  --tw-ring-offset-shadow: 0 0 #0000 !important;
-  --tw-ring-shadow: 0 0 #0000 !important;
-  box-shadow: none !important;
-  outline: 0 !important;
+/* Make SVG icons turn gold on hover */
+.sticky button:hover svg,
+.sticky button:hover svg * {
+  stroke: #D4AF37 !important;
+  fill: #D4AF37 !important;
 }
 
-/* Hover: very light gold tint (instead of white pill) */
-button[data-testid="button-quick-access"]:hover,
-button[data-testid="button-toggle-layout"]:hover {
-  /* light gold = rgba(212,175,55,0.08) */
-  background-color: rgba(212, 175, 55, 0.08) !important;
-}
-
-/* ===== Edit title buttons across all family pages ===== */
-
-/* Base: keep transparent surface and kill white utilities/rings */
-button[data-testid="edit-title-button"] {
-  background-color: transparent !important;
-  --tw-bg-opacity: 0 !important;
-  --tw-ring-offset-shadow: 0 0 #0000 !important;
-  --tw-ring-shadow: 0 0 #0000 !important;
-  box-shadow: none !important;
-  outline: 0 !important;
-}
-
-/* Hover: very light gold tint (instead of white pill) */
-button[data-testid="edit-title-button"]:hover {
-  background-color: rgba(212, 175, 55, 0.08) !important;
-}
-
-/* ===== Menu dropdown items with white hover ===== */
-
-/* Target menu items with hover:bg-white/5 */
-.w-full[class*="hover:bg-white/5"] {
-  --tw-bg-opacity: 0 !important;
-}
-
-.w-full[class*="hover:bg-white/5"]:hover {
-  background-color: rgba(212, 175, 55, 0.05) !important;
-}
-
-/* ---- Gold theme for header icons (replaces white hover) ---- */
-
-/* Header icon hover → subtle gold */
-:root {
-  --kc-gold: #D4AF37;
-  --kc-gold-rgb: 212, 175, 55;
-  --kc-gold-hover: rgba(var(--kc-gold-rgb), 0.10);
-  --kc-gold-focus: rgba(var(--kc-gold-rgb), 0.14);
-}
-
-/* Target the two header buttons (Quick Access + Layout toggle) */
-button[data-testid="button-quick-access"],
-button[data-testid="button-toggle-layout"] {
-  background-color: transparent !important;
-  box-shadow: none !important;
-  outline: 0 !important;
-}
-
-/* The two buttons live inside the sticky header wrapper */
-.sticky button[data-testid="button-quick-access"]:hover,
-.sticky button[data-testid="button-toggle-layout"]:hover,
-button[data-testid="button-quick-access"]:hover,
-button[data-testid="button-toggle-layout"]:hover {
-  background-color: rgba(var(--kc-gold-rgb), 0.10) !important; /* light gold tint */
-  color: var(--kc-gold) !important;                           /* make lucide icons gold */
-}
-
-/* Lucide icons inherit currentColor; this forces stroke to gold on hover */
-.sticky button[data-testid="button-quick-access"]:hover svg,
-.sticky button[data-testid="button-toggle-layout"]:hover svg,
-button[data-testid="button-quick-access"]:hover svg,
-button[data-testid="button-toggle-layout"]:hover svg {
-  stroke: currentColor !important;
-  color: var(--kc-gold) !important;
-}
-
-/* Accessible keyboard focus tint (also gold) */
-button[data-testid="button-quick-access"]:focus-visible,
-button[data-testid="button-toggle-layout"]:focus-visible {
-  background-color: var(--kc-gold-focus) !important;
-}
-
-/* Safety: neutralize any lingering Tailwind/DaisyUI "white" utilities */
-button[data-testid="button-quick-access"],
-button[data-testid="button-toggle-layout"] {
-  --tw-bg-opacity: 0 !important;
-  --tw-ring-shadow: 0 0 #0000 !important;
-  --tw-ring-offset-shadow: 0 0 #0000 !important;
-}
-
-/* ===== ALL FAMILY PAGE HEADER BUTTONS → GOLD HOVER ===== */
-
-/* Target all common header button patterns across family pages */
-button[data-testid*="edit-title-button"],
-button[data-testid*="button-add-"],
-button[data-testid*="button-view-"],
-button[data-testid*="button-insurance-"],
-button[data-testid*="button-retry"],
-button[data-testid*="button-get-started"],
-button[data-testid*="save-title-button"],
-button[data-testid*="cancel-title-button"] {
-  background-color: transparent !important;
-  --tw-bg-opacity: 0 !important;
-  --tw-ring-shadow: 0 0 #0000 !important;
-  --tw-ring-offset-shadow: 0 0 #0000 !important;
-  box-shadow: none !important;
-  outline: 0 !important;
-}
-
-/* Gold hover for all family page header buttons */
-button[data-testid*="edit-title-button"]:hover,
-button[data-testid*="button-add-"]:hover,
-button[data-testid*="button-view-"]:hover,
-button[data-testid*="button-insurance-"]:hover,
-button[data-testid*="button-retry"]:hover,
-button[data-testid*="button-get-started"]:hover,
-button[data-testid*="save-title-button"]:hover,
-button[data-testid*="cancel-title-button"]:hover {
-  background-color: rgba(var(--kc-gold-rgb), 0.10) !important; /* light gold tint */
-  color: var(--kc-gold) !important;                           /* make icons gold */
-}
-
-/* Gold hover for SVG icons in family page buttons */
-button[data-testid*="edit-title-button"]:hover svg,
-button[data-testid*="button-add-"]:hover svg,
-button[data-testid*="button-view-"]:hover svg,
-button[data-testid*="button-insurance-"]:hover svg,
-button[data-testid*="button-retry"]:hover svg,
-button[data-testid*="button-get-started"]:hover svg,
-button[data-testid*="save-title-button"]:hover svg,
-button[data-testid*="cancel-title-button"]:hover svg {
-  stroke: currentColor !important;
-  color: var(--kc-gold) !important;
-}
-
-/* TARGET SPECIFIC HEADER BUTTONS - Help, Sign Out, Settings, NotificationCenter */
-button[data-testid="button-logout"],
-.notification-center button,
-.notification-center .notification-button,
-a[href="/family/settings"] button,
-Link[href="/family/settings"] button,
-button:has(svg.lucide-settings),
-button:has(.lucide-settings) {
-  background-color: transparent !important;
-  --tw-bg-opacity: 0 !important;
-  --tw-ring-shadow: 0 0 #0000 !important;
-  --tw-ring-offset-shadow: 0 0 #0000 !important;
-  box-shadow: none !important;
-  outline: 0 !important;
-}
-
-/* Gold hover for specific header buttons */
+/* Extra precision (only needed if any are stubborn) */
 button[data-testid="button-logout"]:hover,
 .notification-center button:hover,
-.notification-center .notification-button:hover,
-a[href="/family/settings"] button:hover,
-Link[href="/family/settings"] button:hover,
-button:has(svg.lucide-settings):hover,
-button:has(.lucide-settings):hover {
-  background-color: rgba(var(--kc-gold-rgb), 0.10) !important;
-  color: var(--kc-gold) !important;
-}
-
-/* Gold hover for SVG icons in specific header buttons */
-button[data-testid="button-logout"]:hover svg,
-.notification-center button:hover svg,
-.notification-center .notification-button:hover svg,
-a[href="/family/settings"] button:hover svg,
-Link[href="/family/settings"] button:hover svg,
-button:has(svg.lucide-settings):hover svg,
-button:has(.lucide-settings):hover svg {
-  stroke: currentColor !important;
-  color: var(--kc-gold) !important;
-}
-
-/* TARGET HELP BUTTON by text content and structure - Help button doesn't have data-testid */
-button:has(> span:contains("Help")),
-button:has(> span:text-matches("Help")),
-.header button[class*="hover:bg-white"]:has(svg + span),
-.header button:has(.h-4.w-4 + span) {
-  background-color: transparent !important;
-  --tw-bg-opacity: 0 !important;
-}
-
-/* Gold hover for Help button */
-button:has(> span:contains("Help")):hover,
-button:has(> span:text-matches("Help")):hover,
-.header button[class*="hover:bg-white"]:has(svg + span):hover,
-.header button:has(.h-4.w-4 + span):hover {
-  background-color: rgba(var(--kc-gold-rgb), 0.10) !important;
-  color: var(--kc-gold) !important;
-}
-
-/* NUCLEAR APPROACH - TARGET ALL BUTTONS WITH WHITE HOVER CLASSES */
-button.hover\:bg-white\/10,
-button[class*="hover:bg-white/10"],
-button[class*="hover:bg-white"],
-.header button[class*="hover:bg-white"],
-Link button[class*="hover:bg-white/10"],
-a button[class*="hover:bg-white/10"] {
-  --tw-bg-opacity: 0 !important;
-  background-color: transparent !important;
-  --tw-ring-shadow: 0 0 #0000 !important;
-  --tw-ring-offset-shadow: 0 0 #0000 !important;
-  box-shadow: none !important;
-  outline: 0 !important;
-}
-
-/* NUCLEAR GOLD HOVER - Replace all white hovers with gold */
-button.hover\:bg-white\/10:hover,
-button[class*="hover:bg-white/10"]:hover,
-button[class*="hover:bg-white"]:hover,
-.header button[class*="hover:bg-white"]:hover,
-Link button[class*="hover:bg-white/10"]:hover,
-a button[class*="hover:bg-white/10"]:hover {
-  background-color: rgba(var(--kc-gold-rgb), 0.10) !important;
-  color: var(--kc-gold) !important;
-}
-
-/* NUCLEAR GOLD ICONS - All SVG icons turn gold */
-button.hover\:bg-white\/10:hover svg,
-button[class*="hover:bg-white/10"]:hover svg,
-button[class*="hover:bg-white"]:hover svg,
-.header button[class*="hover:bg-white"]:hover svg,
-Link button[class*="hover:bg-white/10"]:hover svg,
-a button[class*="hover:bg-white/10"]:hover svg {
-  stroke: currentColor !important;
-  color: var(--kc-gold) !important;
-}
-
-/* ULTRA-SPECIFIC SETTINGS BUTTON - Based on DOM inspection */
-button.p-2.rounded-lg.hover\:bg-white\/10.transition-colors,
-button[class*="p-2"][class*="rounded-lg"][class*="hover:bg-white/10"][class*="transition-colors"],
-Link[href="/family/settings"] button.p-2,
-Link[href="/family/settings"] > button,
-a[href="/family/settings"] > button {
-  background-color: transparent !important;
-  --tw-bg-opacity: 0 !important;
-}
-
-/* ULTRA-SPECIFIC GOLD HOVER - Settings button */
-button.p-2.rounded-lg.hover\:bg-white\/10.transition-colors:hover,
-button[class*="p-2"][class*="rounded-lg"][class*="hover:bg-white/10"][class*="transition-colors"]:hover,
-Link[href="/family/settings"] button.p-2:hover,
-Link[href="/family/settings"] > button:hover,
-a[href="/family/settings"] > button:hover {
-  background-color: rgba(var(--kc-gold-rgb), 0.10) !important;
-  color: var(--kc-gold) !important;
-}
-
-/* ULTRA-SPECIFIC GOLD ICONS - Settings button SVG */
-button.p-2.rounded-lg.hover\:bg-white\/10.transition-colors:hover svg,
-button[class*="p-2"][class*="rounded-lg"][class*="hover:bg-white/10"][class*="transition-colors"]:hover svg,
-Link[href="/family/settings"] button.p-2:hover svg,
-Link[href="/family/settings"] > button:hover svg,
-a[href="/family/settings"] > button:hover svg {
-  stroke: currentColor !important;
-  color: var(--kc-gold) !important;
-}
-
-/* TAILWIND UTILITY OVERRIDE - Direct class override */
-.hover\:bg-white\/10:hover {
-  --tw-bg-opacity: 1 !important;
-  background-color: rgba(var(--kc-gold-rgb), 0.10) !important;
+button[aria-label="Help"]:hover,
+button[aria-label="Settings"]:hover,
+button[aria-label="Menu"]:hover,
+button[data-testid="button-quick-access"]:hover,
+button[data-testid="button-toggle-layout"]:hover {
+  background-color: rgba(212, 175, 55, 0.10) !important;
+  color: #D4AF37 !important;
 }
 
 /* Broad catch-all for any remaining family page header buttons */
 [class*="family"] button:hover,
 .family-header button:hover,
 .page-header button:hover {
-  background-color: rgba(var(--kc-gold-rgb), 0.08) !important;
-  color: var(--kc-gold) !important;
+  background-color: rgba(212, 175, 55, 0.10) !important;
+  color: #D4AF37 !important;
 }
 
-[class*="family"] button:hover svg,
-.family-header button:hover svg,
-.page-header button:hover svg {
+/* TARGET HELP BUTTON by text content and structure - Help button doesn't have data-testid */
+button:has(> span:contains("Help")),
+button:has(> span:text-matches("Help")),
+button:has(svg.lucide-help-circle),
+button:has(.lucide-help-circle) {
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+}
+
+button:has(> span:contains("Help")):hover,
+button:has(> span:text-matches("Help")):hover,
+button:has(svg.lucide-help-circle):hover,
+button:has(.lucide-help-circle):hover {
+  background-color: rgba(212, 175, 55, 0.10) !important;
+  color: #D4AF37 !important;
+}
+
+button:has(> span:contains("Help")):hover svg,
+button:has(> span:text-matches("Help")):hover svg,
+button:has(svg.lucide-help-circle):hover svg,
+button:has(.lucide-help-circle):hover svg {
   stroke: currentColor !important;
-  color: var(--kc-gold) !important;
+  color: #D4AF37 !important;
+}
+
+/* USER AVATAR CIRCLE KC - Gold styling */
+.w-8.h-8.rounded-full.bg-\\[var\\(--gold\\)\\] {
+  background-color: #D4AF37 !important;
+}
+
+/* HEADER USER SECTION BUTTONS */
+.header .user-section button:hover,
+.header .user-buttons button:hover,
+div[class*="flex items-center gap-4"] button:hover {
+  background-color: rgba(212, 175, 55, 0.10) !important;
+  color: #D4AF37 !important;
+}
+
+div[class*="flex items-center gap-4"] button:hover svg {
+  stroke: currentColor !important;
+  color: #D4AF37 !important;
 }
