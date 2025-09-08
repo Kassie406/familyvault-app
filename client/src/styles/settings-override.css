@@ -1,0 +1,38 @@
+/* FINAL NUCLEAR OVERRIDE FOR SETTINGS BUTTON */
+/* This must load LAST to override all Tailwind classes */
+
+/* Kill ALL white hover effects on Settings button */
+button[data-testid="button-settings"] * {
+  --tw-bg-opacity: 1 !important;
+}
+
+button[data-testid="button-settings"]:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;
+  background: rgba(212, 175, 55, 0.08) !important;
+  --tw-bg-opacity: 1 !important;
+}
+
+/* Override any Tailwind utility classes */
+button[data-testid="button-settings"].hover\:bg-white\/10:hover,
+button[data-testid="button-settings"].hover\:bg-white\/5:hover,
+button[data-testid="button-settings"][class*="hover:bg-white"]:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;
+  background: rgba(212, 175, 55, 0.08) !important;
+}
+
+/* Icon color override */
+button[data-testid="button-settings"]:hover svg {
+  color: #D4AF37 !important;
+  stroke: #D4AF37 !important;
+}
+
+/* Link wrapper override */
+a[href="/family/settings"]:hover button {
+  background-color: rgba(212, 175, 55, 0.08) !important;
+  background: rgba(212, 175, 55, 0.08) !important;
+}
+
+a[href="/family/settings"]:hover button svg {
+  color: #D4AF37 !important;
+  stroke: #D4AF37 !important;
+}
