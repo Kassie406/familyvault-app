@@ -165,7 +165,7 @@ button.header-icon:hover svg {
 [data-testid="button-profile"]:focus,
 [data-testid="button-profile"][aria-expanded="true"] {
   background-color: #D4AF37 !important;  /* Lock the gold background */
-  color: #0b0b0d !important;             /* Readable text on gold */
+  color: white !important;               /* White text on gold */
   opacity: 1 !important;
   visibility: visible !important;
   position: relative !important;
@@ -178,7 +178,7 @@ button.header-icon:hover svg {
 #header-profile-btn[data-headlessui-state~="open"],
 [data-testid="button-profile"][data-headlessui-state~="open"] {
   background-color: #D4AF37 !important;  /* Keep gold even in open states */
-  color: #0b0b0d !important;
+  color: white !important;
   opacity: 1 !important;
   visibility: visible !important;
 }
@@ -195,7 +195,7 @@ button.header-icon:hover svg {
 #header-profile-btn span,
 [data-testid="button-profile"] span,
 .profile-chip span {
-  color: #0b0b0d !important;  /* Dark text on gold background */
+  color: white !important;  /* White text on gold background */
   opacity: 1 !important;
   visibility: visible !important;
 }
