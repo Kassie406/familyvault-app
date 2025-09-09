@@ -843,9 +843,7 @@ export default function FamilyHome() {
         return (
           <div 
             ref={uploadCenterRef}
-            className={`bg-zinc-900 border border-zinc-800 rounded-2xl p-6 h-auto flex flex-col ${
-              highlightDocumentUpload ? 'upload-highlight' : ''
-            }`}
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 h-auto flex flex-col"
           >
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 rounded-lg bg-blue-600/10">
@@ -858,7 +856,7 @@ export default function FamilyHome() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
-              <div className="space-y-4">
+              <div className={`space-y-4 ${highlightDocumentUpload ? 'upload-highlight' : ''}`}>
                 <h4 className="text-gray-300 font-medium">Documents</h4>
                 <QuickDocumentUpload />
               </div>
