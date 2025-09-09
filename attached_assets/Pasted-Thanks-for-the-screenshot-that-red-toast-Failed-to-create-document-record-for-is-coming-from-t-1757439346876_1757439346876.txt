@@ -1,0 +1,139 @@
+Thanks for the screenshot—that red toast (“Failed to create document record for …”) is coming from the Upload Center step that calls the API to create the DB record after the file is picked. That means the file picker worked, but the POST that creates the record failed.
+
+Here’s a fast triage → fix path that covers the 3 most common causes, plus the exact code to patch.
+
+1) Check the network call (10 seconds)
+
+Open DevTools → Network → click the failed request.
+
+URL should be POST /api/uploads (or whatever your endpoint is).
+
+Status:
+
+404: wrong route (frontend URL doesn’t match server).
+
+400/422: missing fields (most often userId).
+
+500: DB/migration/env var.
+
+Look at Response → error text will point to which field or table.
+
+2) Make sure the request body is correct
+
+Your upload registration should send exactly this shape:
+
+await fetch("/api/uploads", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    userId: currentUserId,            // REQUIRED
+    fileKey: s3KeyOrPath,             // REQUIRED
+    fileName: file.name,              // REQUIRED
+    mime: file.type || "application/octet-stream",
+    size: file.size ?? 0
+  })
+});
+
+Most common frontend mistakes
+
+userId missing or empty → backend rejects with 400/422.
+
+Pointing to the wrong base URL (e.g., /uploads instead of /api/uploads) → 404.
+
+Not using JSON content-type → body parser can’t read it.
+
+3) Back-end sanity (copy-paste checks)
+Route exists?
+
+Your server must implement this:
+
+app.post("/api/uploads", async (req, res) => {
+  const { userId, fileKey, fileName, mime, size } = req.body;
+  if (!userId || !fileKey || !fileName)
+    return res.status(422).json({ error: "userId, fileKey, fileName required" });
+
+  const id = crypto.randomUUID();
+  await db.insert(uploads).values({
+    id, userId, fileKey, fileName, mime: mime || "application/octet-stream", size: size ?? 0, status: "uploaded"
+  });
+
+  res.json({ uploadId: id });
+});
+
+Tables exist?
+
+Run migrations (Drizzle):
+
+# if you haven't pushed schema yet
+drizzle-kit generate
+drizzle-kit push
+
+
+or your project’s migration command. A relation "uploads" does not exist error = run migrations.
+
+Database connected?
+
+Ensure DATABASE_URL is set in the server environment and the server restarts with it.
+
+4) Give yourself better error messages (1-line)
+
+In the Upload Center code that shows the toast, log the server message:
+
+const r = await fetch("/api/uploads", { /* … */ });
+if (!r.ok) {
+  const txt = await r.text();
+  console.error("Upload record failed:", txt);
+  toast.error(`Upload failed: ${txt}`);
+  return;
+}
+
+
+This makes the toast tell you the actual failure (missing field, 404, etc.) instead of a generic message.
+
+5) Quick hot-fix you can drop in now
+
+If you just want it working immediately, paste this into the function that runs after S3 upload:
+
+async function registerAndAnalyze(file: File, s3Key: string, userId: string) {
+  // register
+  const regRes = await fetch("/api/uploads", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      userId,
+      fileKey: s3Key,
+      fileName: file.name,
+      mime: file.type || "image/jpeg",
+      size: file.size ?? 0
+    })
+  });
+
+  if (!regRes.ok) {
+    const msg = await regRes.text();
+    throw new Error(`register failed: ${msg}`);
+  }
+
+  const { uploadId } = await regRes.json();
+
+  // analyze right away (to trigger the Inbox suggestion card)
+  const anRes = await fetch(`/api/inbox/${uploadId}/analyze`, { method: "POST" });
+  if (!anRes.ok) {
+    const msg = await anRes.text();
+    throw new Error(`analyze failed: ${msg}`);
+  }
+
+  return await anRes.json(); // { suggestion, fields }
+}
+
+
+Call it from your existing onUpload-success handler and then openInbox() to show the card.
+
+If you tell me the Network error (status + response text) or paste the current POST URL and body, I’ll give you the one-line fix for your code path. But 90% of the time it’s one of:
+
+Missing userId
+
+Wrong route (/uploads vs /api/uploads)
+
+Migrations not run / wrong DATABASE_URL
+
+Once this POST succeeds, the “Analyzing…” card will show in the Inbox, then your AI auto suggestion appears with Open and Details just like your reference.
