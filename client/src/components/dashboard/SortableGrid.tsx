@@ -16,7 +16,9 @@ function SortableCard({
   const style = { transform: CSS.Transform.toString(transform), transition };
 
   const def = CARD_REGISTRY.find((c) => c.id === item.id);
-  const span = def?.span ?? "col-span-4";
+  const span = def?.span === "col-span-8" ? "md:col-span-2" : 
+               def?.span === "col-span-12" ? "md:col-span-2 xl:col-span-4" : 
+               ""; // Default: single column
 
   return (
     <div ref={setNodeRef} style={style} className={`${span}`}>
@@ -68,7 +70,7 @@ export function SortableGrid({
       }}
     >
       <SortableContext items={items.map((i) => i.id)} strategy={rectSortingStrategy}>
-        <div className="grid grid-cols-12 gap-3 auto-rows-auto [grid-auto-rows:minmax(0,_auto)] grid-auto-flow-dense items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 auto-rows-auto items-start">
           {items.map((it) => (
             <SortableCard 
               key={it.id} 
