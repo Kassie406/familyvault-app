@@ -4066,26 +4066,33 @@ dialog[aria-label="Quick Access"] button[data-testid="filter-all"] *{
   fill: currentColor !important;
 }
 
-/* Disable ALL hover visuals for the Quick Access chips */
+/* ——— Quick Access chips: disable ALL hover visuals ——— */
+#quick-access-modal button[data-testid^="filter-"],
 dialog[aria-label="Quick Access"] button[data-testid^="filter-"] {
   transition: none !important;
 }
 
-/* No color/opacity/background/border/shadow changes on hover (any state) */
+/* Nuke hover in every state (wins over Tailwind utilities) */
+#quick-access-modal button[data-testid^="filter-"]:hover,
+#quick-access-modal button[data-testid^="filter-"]:focus:hover,
+#quick-access-modal button[data-testid^="filter-"][data-state="active"]:hover,
 dialog[aria-label="Quick Access"] button[data-testid^="filter-"]:hover,
 dialog[aria-label="Quick Access"] button[data-testid^="filter-"]:focus:hover,
-dialog[aria-label="Quick Access"] button[data-testid^="filter-"][aria-pressed="true"]:hover,
 dialog[aria-label="Quick Access"] button[data-testid^="filter-"][data-state="active"]:hover {
+  /* keep everything exactly as base state */
   --tw-text-opacity: 1 !important;
   color: inherit !important;
-  background: inherit !important;
+  background-color: transparent !important;
   border-color: inherit !important;
-  box-shadow: inherit !important;
+  box-shadow: none !important;
+  filter: none !important;
   opacity: 1 !important;
+  transform: none !important;
   text-decoration: none !important;
 }
 
-/* Ensure icons don't change on hover either */
+/* Icons should not change either */
+#quick-access-modal button[data-testid^="filter-"]:hover *,
 dialog[aria-label="Quick Access"] button[data-testid^="filter-"]:hover * {
   color: currentColor !important;
   stroke: currentColor !important;
