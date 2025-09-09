@@ -1073,3 +1073,58 @@ export type MealPlanEntry = typeof mealPlanEntries.$inferSelect;
 export type InsertMealPlanEntry = typeof mealPlanEntries.$inferInsert;
 export type ShoppingItem = typeof shoppingItems.$inferSelect;
 export type InsertShoppingItem = typeof shoppingItems.$inferInsert;
+
+// ===========================
+// AI INBOX SYSTEM
+// ===========================
+
+// Inbox Items - uploaded files waiting for AI analysis or user action
+export const inboxItems = pgTable("inbox_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  filename: varchar("filename").notNull(),
+  fileUrl: varchar("file_url").notNull(),
+  fileSize: integer("file_size"),
+  mimeType: varchar("mime_type"),
+  status: varchar("status").notNull().default("analyzing"), // analyzing, suggested, accepted, dismissed
+  analysisCompleted: boolean("analysis_completed").default(false),
+  suggestedMemberId: varchar("suggested_member_id").references(() => familyMembers.id),
+  confidence: integer("confidence"), // 0-100
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+  processedAt: timestamp("processed_at"),
+  acceptedAt: timestamp("accepted_at"),
+  dismissedAt: timestamp("dismissed_at"),
+});
+
+// Extracted Fields - AI-extracted information from inbox items
+export const extractedFields = pgTable("extracted_fields", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  inboxItemId: varchar("inbox_item_id").notNull().references(() => inboxItems.id, { onDelete: 'cascade' }),
+  fieldKey: varchar("field_key").notNull(), // "Person Name", "Social Security Number", etc.
+  fieldValue: text("field_value").notNull(),
+  confidence: integer("confidence").notNull(), // 0-100
+  isPii: boolean("is_pii").default(false), // Personal Identifiable Information
+  extractedAt: timestamp("extracted_at").defaultNow(),
+});
+
+// Member File Assignments - tracks which files belong to which family members
+export const memberFileAssignments = pgTable("member_file_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  memberId: varchar("member_id").notNull().references(() => familyMembers.id, { onDelete: 'cascade' }),
+  fileUrl: varchar("file_url").notNull(),
+  filename: varchar("filename").notNull(),
+  category: varchar("category").notNull(), // driver_license, passport, social_security, birth_certificate, etc.
+  metadata: jsonb("metadata").default({}), // extracted fields stored as JSON
+  assignedBy: varchar("assigned_by").notNull().references(() => users.id),
+  assignedAt: timestamp("assigned_at").defaultNow(),
+});
+
+// Inbox types
+export type InboxItem = typeof inboxItems.$inferSelect;
+export type InsertInboxItem = typeof inboxItems.$inferInsert;
+export type ExtractedField = typeof extractedFields.$inferSelect;
+export type InsertExtractedField = typeof extractedFields.$inferInsert;
+export type MemberFileAssignment = typeof memberFileAssignments.$inferSelect;
+export type InsertMemberFileAssignment = typeof memberFileAssignments.$inferInsert;
