@@ -4044,18 +4044,33 @@ a:hover,
   outline: 2px solid #c5a00044; border-radius: 9999px;
 }
 
-/* === Quick Access Panel: fix invisible "All" button text === */
-.qa-filter {
-  color: rgba(255, 255, 255, 0.7) !important;
-  background: transparent !important;
+/* Quick Access – keep filters readable and gold */
+dialog[aria-label="Quick Access"] .qa-filter{
+  color:#c5a000 !important;                /* gold text */
+  background: transparent !important;      /* no black base */
+  box-shadow:none !important;
 }
 
-.qa-filter:hover {
-  color: #c5a000 !important;
-  background: rgba(197, 160, 0, 0.15) !important;
+/* Hover/Focus: subtle gold pill, never black */
+dialog[aria-label="Quick Access"] .qa-filter:hover,
+dialog[aria-label="Quick Access"] .qa-filter:focus,
+dialog[aria-label="Quick Access"] .qa-filter:focus:hover{
+  color:#c5a000 !important;
+  background: rgba(197,160,0,.18) !important;  /* gold tint */
+  box-shadow:none !important;
+  outline:2px solid transparent;               /* keep ring logic separate */
 }
 
-.qa-filter.bg-\[#D4AF37\] {
-  color: #000000 !important;
-  background: #D4AF37 !important;
+/* If there's a "selected/active" state */
+dialog[aria-label="Quick Access"] .qa-filter[aria-pressed="true"],
+dialog[aria-label="Quick Access"] .qa-filter[data-state="active"]{
+  background: rgba(197,160,0,.24) !important;
+  color:#c5a000 !important;
+}
+
+/* Ensure icons follow the text color */
+dialog[aria-label="Quick Access"] .qa-filter *{
+  color:currentColor !important;
+  fill:currentColor !important;
+  stroke:currentColor !important;
 }
