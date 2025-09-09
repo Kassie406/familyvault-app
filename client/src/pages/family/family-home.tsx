@@ -43,6 +43,10 @@ import { ICESection } from '@/components/family/ICESection';
 import { SharedCalendarCard } from '@/components/family/SharedCalendarCard';
 import { ICECard } from '@/components/family/ICECard';
 import { PolicyModal } from '@/components/documents/PolicyModal';
+import { SortableGrid } from '@/components/dashboard/SortableGrid';
+import { CustomizeBar } from '@/components/dashboard/CustomizeBar';
+import { useUserLayout } from '@/lib/dashboard/useUserLayout';
+import { CardId } from '@/lib/dashboard/cards';
 import { ApprovalsDrawer } from '@/components/documents/ApprovalsDrawer';
 import { ShareDocumentModal } from '@/components/documents/ShareDocumentModal';
 import { SharedListsModal } from '@/components/family/SharedListsModal';
@@ -77,6 +81,10 @@ export default function FamilyHome() {
     name: "Parent User", 
     role: "parent" as const 
   };
+
+  // Dashboard customization
+  const { layout, visible, hide, show, reorder, resetToRole } = useUserLayout(currentUser.id, currentUser.role);
+  const [editing, setEditing] = useState(false);
   
   // Navigation hook
   const [, setLocation] = useLocation();
