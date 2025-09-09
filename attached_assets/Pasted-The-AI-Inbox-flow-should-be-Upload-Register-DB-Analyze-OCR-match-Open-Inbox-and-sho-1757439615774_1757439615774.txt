@@ -1,0 +1,188 @@
+The “AI Inbox” flow should be:
+
+Upload → Register (DB) → Analyze (OCR + match) → Open Inbox
+…and show a card that starts as Analyzing… and then turns into a Suggested destination with Open + Details.
+
+Right now your blocker is the red toast “Failed to create document record …”. That means step Register (DB) failed. Below is the minimal, drop-in wiring that fixes the error and enables the full AI Inbox flow.
+
+1) Frontend: what to call after the file is uploaded
+
+Wire this to your Upload Center’s “Upload” action (or the place that handles a selected file). It:
+
+registers the upload (/api/uploads)
+
+shows an Analyzing… card in Inbox
+
+triggers analysis (/api/inbox/:id/analyze)
+
+updates the card to Suggested (or No match)
+
+opens the Inbox drawer
+
+// aiInbox.ts
+type Field = { key: string; value: string; confidence: number; pii?: boolean };
+
+export async function aiInboxProcessFile(
+  file: File,
+  s3Key: string,
+  userId: string,
+  inbox: {
+    open: () => void;
+    addOrUpdate: (item: {
+      id: string;
+      fileName: string;
+      status: "analyzing"|"suggested"|"dismissed";
+      suggestion?: { memberId: string; memberName: string; confidence: number } | null;
+      fields?: Field[];
+    }) => void;
+  }
+) {
+  // 1) Register the upload (this is where your error is)
+  const regRes = await fetch("/api/uploads", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      userId,                     // MUST be non-empty
+      fileKey: s3Key,             // e.g. "u123/inbox/abc.jpg"
+      fileName: file.name,
+      mime: file.type || "application/octet-stream",
+      size: file.size ?? 0,
+    }),
+  });
+
+  if (!regRes.ok) {
+    const msg = await regRes.text();
+    throw new Error(`register failed: ${msg}`);  // surfaces the real reason in your toast
+  }
+
+  const { uploadId } = await regRes.json();
+
+  // Optimistic card
+  inbox.addOrUpdate({ id: uploadId, fileName: file.name, status: "analyzing" });
+
+  // 2) Analyze (OCR + family match)
+  const anRes = await fetch(`/api/inbox/${uploadId}/analyze`, { method: "POST" });
+  if (!anRes.ok) {
+    const msg = await anRes.text();
+    throw new Error(`analyze failed: ${msg}`);
+  }
+
+  const { suggestion, fields } = await anRes.json();
+
+  // 3) Update the card and open Inbox drawer
+  inbox.addOrUpdate({
+    id: uploadId,
+    fileName: file.name,
+    status: suggestion ? "suggested" : "dismissed",
+    suggestion: suggestion ?? null,
+    fields: fields ?? [],
+  });
+
+  inbox.open();
+}
+
+
+Use it in your Upload Center:
+
+// UploadCenter.tsx
+import { aiInboxProcessFile } from "@/lib/aiInbox";
+import { useInbox } from "@/state/useInbox";
+
+async function onUploadSuccess(file: File, s3Key: string) {
+  const userId = currentUser.id; // make sure this is defined
+  try {
+    await aiInboxProcessFile(file, s3Key, userId, {
+      open: openInbox,
+      addOrUpdate: addOrUpdateItem,
+    });
+  } catch (e:any) {
+    toast.error(`Upload failed: ${e.message}`);
+  }
+}
+
+2) Backend: make sure the Register route accepts the right body
+
+If you don’t already have this, add it. This is the most common cause of your error.
+
+// server/index.ts (Express)
+import express from "express";
+import { randomUUID } from "crypto";
+import { db } from "./db";
+import { uploads } from "./db/schema";
+import { z } from "zod";
+
+const app = express();
+app.use(express.json());
+
+const RegisterBody = z.object({
+  userId: z.string().min(1),
+  fileKey: z.string().min(1),
+  fileName: z.string().min(1),
+  mime: z.string().optional(),
+  size: z.number().optional(),
+});
+
+app.post("/api/uploads", async (req, res) => {
+  const parsed = RegisterBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(422).send(parsed.error.flatten().fieldErrors);
+  }
+  const { userId, fileKey, fileName, mime, size } = parsed.data;
+
+  const id = randomUUID();
+  await db.insert(uploads).values({
+    id, userId, fileKey, fileName,
+    mime: mime || "application/octet-stream",
+    size: size ?? 0,
+    status: "uploaded",
+  });
+
+  res.json({ uploadId: id });
+});
+
+Also ensure these exist
+
+POST /api/inbox/:id/analyze → returns { suggestion, fields }
+
+POST /api/inbox/:id/accept and POST /api/inbox/:id/dismiss
+(I provided complete examples earlier; they work with Drizzle + mock OCR.)
+
+3) The Inbox UI bits
+
+Analyzing card: show a spinner + filename.
+
+When analysis returns:
+
+show Suggested destination with the member name and an Open button → /family/<memberId>
+
+show a Details pill → opens a modal showing fields (mask PII: ***-**-1234)
+
+Accept/Dismiss buttons in the modal call:
+
+await fetch(`/api/inbox/${uploadId}/accept`, { method:'POST', body: JSON.stringify({ memberId, fields }) })
+await fetch(`/api/inbox/${uploadId}/dismiss`, { method:'POST' })
+
+4) If you still see the red toast
+
+Open DevTools → Network → find the failing POST /api/uploads request:
+
+404 → your frontend is calling a different path; change to /api/uploads.
+
+422 → a required field is missing. Most often userId.
+
+500 → DB tables not migrated or DATABASE_URL missing. Run your migrations and confirm env.
+
+Add this one-liner to show real errors:
+
+const r = await fetch("/api/uploads", {...});
+if (!r.ok) toast.error(await r.text());
+
+5) What “AI Inbox” button should do
+
+When user clicks AI Inbox in Upload Center:
+
+If there are selected files, loop over them: upload → aiInboxProcessFile(...).
+
+If no files selected, simply openInbox() so they can drag & drop there.
+
+If you paste the register route above and call aiInboxProcessFile after your S3 upload, you’ll get the exact behavior you described: AI Inbox opens, the card shows Analyzing…, then turns into a Suggested destination with Open + Details tied to the Family IDs profile.
