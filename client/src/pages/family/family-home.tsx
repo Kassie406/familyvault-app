@@ -1021,7 +1021,7 @@ export default function FamilyHome() {
               subtitle="Chat with family" 
               onClick={() => window.dispatchEvent(new Event('openFamilyChat'))}
             />
-            <ActionCard icon={<ImageIcon className="h-5 w-5"/>} title="View Photos" subtitle="Browse family gallery" />
+            <ActionCard icon={<ImageIcon className="h-5 w-5"/>} title="Upload Photos" subtitle="Add photos to your family album" />
             <ActionCard icon={<ShieldAlert className="h-5 w-5"/>} title="Emergency Info" subtitle="Quick access to critical info" />
           </div>
         </div>
