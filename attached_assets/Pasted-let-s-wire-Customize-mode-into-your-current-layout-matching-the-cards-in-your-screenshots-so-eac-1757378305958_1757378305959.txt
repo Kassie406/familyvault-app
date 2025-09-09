@@ -1,0 +1,308 @@
+let’s wire “Customize” mode into your current layout (matching the cards in your screenshots) so each family member can reorder/hide cards and save their own view.
+
+Below is everything you need, trimmed to just the pieces you’ll paste in.
+
+1) Install drag & drop
+npm i @dnd-kit/core @dnd-kit/sortable @dnd-kit/modifiers
+
+2) Define your cards (IDs match your UI)
+
+Create lib/dashboard/cards.ts:
+
+export type CardId =
+  | "familyMembers"
+  | "documents"
+  | "messages"
+  | "photos"
+  | "sharedLists"
+  | "recipeBook"
+  | "budget"
+  | "couples"
+  | "mealPlanner"
+  | "familyVacation"
+  | "babysitter"
+  | "emergencyContacts"
+  | "chores"
+  | "allowancePoints"
+  | "quickActions"
+  | "uploadCenter"
+  | "uploadDocument"
+  | "uploadPhotos"
+  | "familyActivity"
+  | "familyUpdates"
+  | "calendar"
+  | "ice";
+
+export type CardDef = { id: CardId; title: string; span?: string };
+
+export const CARD_REGISTRY: CardDef[] = [
+  { id: "familyMembers", title: "Family Members" },
+  { id: "documents", title: "Documents Shared" },
+  { id: "messages", title: "Messages & Video Meetings" },
+  { id: "photos", title: "Photos Uploaded" },
+  { id: "sharedLists", title: "Shared Lists" },
+  { id: "recipeBook", title: "Recipe Book" },
+  { id: "budget", title: "Budget Tracker" },
+  { id: "couples", title: "Couple’s Connection", span: "col-span-12" },
+  { id: "mealPlanner", title: "Meal Planner", span: "col-span-6" },
+  { id: "familyVacation", title: "Family Vacation", span: "col-span-6" },
+  { id: "babysitter", title: "Babysitter", span: "col-span-6" },
+  { id: "emergencyContacts", title: "Emergency Contacts", span: "col-span-6" },
+  { id: "chores", title: "Chores & Allowance", span: "col-span-8" },
+  { id: "allowancePoints", title: "Allowance", span: "col-span-4" },
+  { id: "quickActions", title: "Quick Actions", span: "col-span-12" },
+  { id: "uploadCenter", title: "Upload Center", span: "col-span-12" },
+  { id: "uploadDocument", title: "Upload Document", span: "col-span-6" },
+  { id: "uploadPhotos", title: "Upload Photos", span: "col-span-6" },
+  { id: "familyActivity", title: "Family Activity", span: "col-span-4" },
+  { id: "familyUpdates", title: "Family Updates", span: "col-span-4" },
+  { id: "calendar", title: "Calendar", span: "col-span-4" },
+  { id: "ice", title: "In Case of Emergency (ICE)", span: "col-span-12" },
+];
+
+export type LayoutItem = { id: CardId; hidden?: boolean };
+export type Layout = LayoutItem[];
+
+// sensible defaults per role
+export const DEFAULTS: Record<"parent" | "teen", Layout> = {
+  parent: [
+    { id: "familyMembers" }, { id: "documents" }, { id: "messages" }, { id: "photos" },
+    { id: "sharedLists" }, { id: "recipeBook" }, { id: "budget" }, { id: "couples" },
+    { id: "mealPlanner" }, { id: "familyVacation" }, { id: "babysitter" }, { id: "emergencyContacts" },
+    { id: "chores" }, { id: "allowancePoints" }, { id: "quickActions" },
+    { id: "uploadCenter" }, { id: "uploadDocument" }, { id: "uploadPhotos" },
+    { id: "familyActivity" }, { id: "familyUpdates" }, { id: "calendar" }, { id: "ice" },
+  ],
+  teen: [
+    { id: "messages" }, { id: "photos" }, { id: "sharedLists" }, { id: "chores" },
+    { id: "allowancePoints" }, { id: "calendar" }, { id: "familyActivity" }, { id: "familyUpdates" },
+    { id: "mealPlanner", hidden: true }, { id: "documents", hidden: true },
+    { id: "budget", hidden: true }, { id: "couples", hidden: true }, { id: "ice", hidden: true },
+    { id: "uploadCenter", hidden: true }, { id: "uploadDocument", hidden: true }, { id: "uploadPhotos", hidden: true },
+  ],
+};
+
+3) Per-user layout (localStorage for now)
+
+Create lib/dashboard/useUserLayout.ts:
+
+import { useEffect, useMemo, useState } from "react";
+import { DEFAULTS, Layout, CardId } from "./cards";
+
+export function useUserLayout(userId: string, role: "parent" | "teen") {
+  const key = `dash-layout:${userId}`;
+  const [layout, setLayout] = useState<Layout>(() => {
+    if (typeof window === "undefined") return DEFAULTS[role];
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as Layout) : DEFAULTS[role];
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(key, JSON.stringify(layout));
+    }
+  }, [key, layout]);
+
+  const visible = useMemo(() => layout.filter((i) => !i.hidden), [layout]);
+
+  const hide = (id: CardId) =>
+    setLayout((L) => L.map((i) => (i.id === id ? { ...i, hidden: true } : i)));
+
+  const show = (id: CardId) =>
+    setLayout((L) => {
+      const hit = L.find((i) => i.id === id);
+      return hit ? L.map((i) => (i.id === id ? { ...i, hidden: false } : i)) : [...L, { id }];
+    });
+
+  const reorder = (from: number, to: number) =>
+    setLayout((L) => {
+      const vis = L.filter((i) => !i.hidden);
+      const [moved] = vis.splice(from, 1);
+      vis.splice(to, 0, moved);
+      const hidden = L.filter((i) => i.hidden);
+      return [...vis, ...hidden];
+    });
+
+  const resetToRole = () => setLayout(DEFAULTS[role]);
+
+  return { layout, visible, hide, show, reorder, resetToRole };
+}
+
+4) Sortable grid + “Customize” bar
+
+Create components/dashboard/SortableGrid.tsx:
+
+"use client";
+import { DndContext, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, useSortable, rectSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { CARD_REGISTRY, LayoutItem } from "@/lib/dashboard/cards";
+
+function SortableCard({
+  item, editing, onHide, renderCard,
+}: {
+  item: LayoutItem;
+  editing: boolean;
+  onHide: (id: LayoutItem["id"]) => void;
+  renderCard: (id: LayoutItem["id"]) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: item.id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  const def = CARD_REGISTRY.find((c) => c.id === item.id);
+  const span = def?.span ?? "col-span-4";
+
+  return (
+    <div ref={setNodeRef} style={style} className={`${span} h-full`}>
+      <div className="relative h-full">
+        {editing && (
+          <div className="absolute top-2 right-2 z-10 flex gap-2">
+            <button className="px-2 py-1 text-xs rounded-lg bg-zinc-800" {...attributes} {...listeners}>
+              ↕ Drag
+            </button>
+            <button className="px-2 py-1 text-xs rounded-lg bg-zinc-800" onClick={() => onHide(item.id)}>
+              ✕ Hide
+            </button>
+          </div>
+        )}
+        {renderCard(item.id)}
+      </div>
+    </div>
+  );
+}
+
+export function SortableGrid({
+  items, onReorder, editing, onHide, renderCard,
+}: {
+  items: LayoutItem[];
+  onReorder: (from: number, to: number) => void;
+  editing: boolean;
+  onHide: (id: LayoutItem["id"]) => void;
+  renderCard: (id: LayoutItem["id"]) => React.ReactNode;
+}) {
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  return (
+    <DndContext
+      sensors={sensors}
+      onDragEnd={({ active, over }) => {
+        if (!over || active.id === over.id) return;
+        const from = items.findIndex((i) => i.id === active.id);
+        const to = items.findIndex((i) => i.id === over.id);
+        onReorder(from, to);
+      }}
+    >
+      <SortableContext items={items.map((i) => i.id)} strategy={rectSortingStrategy}>
+        <div className="grid grid-cols-12 gap-4 auto-rows-[1fr] grid-auto-flow-dense items-stretch">
+          {items.map((it) => (
+            <SortableCard key={it.id} item={it} editing={editing} onHide={onHide} renderCard={renderCard} />
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
+  );
+}
+
+
+Create components/dashboard/CustomizeBar.tsx:
+
+"use client";
+import { CARD_REGISTRY, CardId } from "@/lib/dashboard/cards";
+
+export function CustomizeBar({
+  hiddenIds, onShow, onReset, editing, setEditing,
+}: {
+  hiddenIds: CardId[];
+  onShow: (id: CardId) => void;
+  onReset: () => void;
+  editing: boolean;
+  setEditing: (b: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-end gap-2 mb-4">
+      <button onClick={() => setEditing(!editing)} className="rounded-lg px-3 py-2 bg-zinc-800">
+        {editing ? "Done" : "Customize"}
+      </button>
+      {editing && (
+        <>
+          <div className="flex items-center gap-2">
+            <span className="text-sm opacity-70">Hidden:</span>
+            {hiddenIds.length ? (
+              hiddenIds.map((id) => {
+                const t = CARD_REGISTRY.find((c) => c.id === id)?.title ?? id;
+                return (
+                  <button key={id} onClick={() => onShow(id)} className="rounded-lg px-2 py-1 text-xs bg-zinc-800">
+                    + {t}
+                  </button>
+                );
+              })
+            ) : (
+              <span className="text-sm opacity-50">None</span>
+            )}
+          </div>
+          <button onClick={onReset} className="rounded-lg px-3 py-2 bg-zinc-800">Reset</button>
+        </>
+      )}
+    </div>
+  );
+}
+
+5) Use it on your page
+
+In your dashboard page (e.g., app/(dashboard)/page.tsx), add:
+
+"use client";
+import { useState, useMemo } from "react";
+import { SortableGrid } from "@/components/dashboard/SortableGrid";
+import { CustomizeBar } from "@/components/dashboard/CustomizeBar";
+import { useUserLayout } from "@/lib/dashboard/useUserLayout";
+import { CARD_REGISTRY, CardId } from "@/lib/dashboard/cards";
+
+// Replace with real auth/role
+const USER_ID = "demo_user";
+const ROLE: "parent" | "teen" = "parent";
+
+export default function DashboardPage() {
+  const { layout, visible, hide, show, reorder, resetToRole } = useUserLayout(USER_ID, ROLE);
+  const [editing, setEditing] = useState(false);
+  const hiddenIds = useMemo(() => layout.filter((i) => i.hidden).map((i) => i.id), [layout]);
+
+  // Map your real card components here
+  const renderCard = (id: CardId) => {
+    const title = CARD_REGISTRY.find((c) => c.id === id)?.title ?? id;
+    // TODO: swap stubs with your real components (e.g., <FamilyMembersCard />)
+    return (
+      <div className="h-full rounded-2xl bg-zinc-900 p-4 shadow-sm">
+        <div className="text-sm opacity-70 mb-2">{title}</div>
+        <div className="text-xs opacity-60">Card content…</div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="dashboard">
+      <CustomizeBar
+        hiddenIds={hiddenIds}
+        onShow={show}
+        onReset={resetToRole}
+        editing={editing}
+        setEditing={setEditing}
+      />
+      <SortableGrid
+        items={visible}
+        onReorder={reorder}
+        editing={editing}
+        onHide={hide}
+        renderCard={renderCard}
+      />
+    </div>
+  );
+}
+
+6) Quick UX polish (matches your dark theme)
+
+Add className="h-full m-0" to each real card wrapper so they stretch.
+
+Ensure your grid container uses gap-4 (no space-y-*) and grid-auto-flow: dense (already in SortableGrid) to avoid belts/gaps.
+
+In “Customize” mode, show subtle drag handles (done) and a “Done” button (done).
