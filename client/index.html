@@ -18,20 +18,8 @@
       http-equiv="Content-Security-Policy"
       content="
         default-src 'self';
-        connect-src
-          'self'
-          https://*.s3.amazonaws.com
-          https://s3.*.amazonaws.com
-          https://familyportal-docs-prod.s3.us-east-2.amazonaws.com
-          https://familyportal-photos-prod.s3.us-east-2.amazonaws.com;
-        img-src
-          'self'
-          data:
-          blob:
-          https://*.s3.amazonaws.com
-          https://s3.*.amazonaws.com
-          https://familyportal-docs-prod.s3.us-east-2.amazonaws.com
-          https://familyportal-photos-prod.s3.us-east-2.amazonaws.com;
+        connect-src 'self' https://*.amazonaws.com;
+        img-src 'self' data: blob: https://*.amazonaws.com;
         script-src 'self' 'unsafe-inline' 'unsafe-eval';
         style-src  'self' 'unsafe-inline';
         font-src   'self' data:;
