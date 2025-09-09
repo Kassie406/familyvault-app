@@ -279,11 +279,17 @@ export default function UploadCenter({
       <CardContent className="pt-0">
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
           <TabsList className="bg-zinc-900 border border-zinc-800">
-            <TabsTrigger value="docs" className="data-[state=active]:bg-[#D4AF37]/20 data-[state=active]:text-[#D4AF37]">
+            <TabsTrigger 
+              value="docs" 
+              className="text-[#c5a000] hover:text-[#c5a000] focus:text-[#c5a000] data-[state=active]:bg-[#c5a000]/20 data-[state=active]:text-[#c5a000]"
+            >
               <FileText className="h-4 w-4 mr-2" />
               Documents
             </TabsTrigger>
-            <TabsTrigger value="photos" className="data-[state=active]:bg-[#D4AF37]/20 data-[state=active]:text-[#D4AF37]">
+            <TabsTrigger 
+              value="photos" 
+              className="text-[#c5a000] hover:text-[#c5a000] focus:text-[#c5a000] data-[state=active]:bg-[#c5a000]/20 data-[state=active]:text-[#c5a000]"
+            >
               <ImageIcon className="h-4 w-4 mr-2" />
               Photos
             </TabsTrigger>
