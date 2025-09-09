@@ -101,6 +101,7 @@ export function ActivityFeed({ limit = 10, showFilters = true, className = '' }:
   const [filter, setFilter] = useState<'all' | ActivityType>('all');
   const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h');
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Fetch initial activity data
   const { data: initialActivities = [], isLoading, refetch, isFetching } = useQuery<ActivityItem[]>({
@@ -208,12 +209,17 @@ export function ActivityFeed({ limit = 10, showFilters = true, className = '' }:
               </button>
             )}
             <button
-              onClick={() => refetch()}
-              disabled={isFetching}
+              onClick={async () => {
+                setIsRefreshing(true);
+                await refetch();
+                // Minimum 1 second spin so user can see the feedback
+                setTimeout(() => setIsRefreshing(false), 1000);
+              }}
+              disabled={isRefreshing}
               className="p-2 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50"
               data-testid="button-refresh-activity"
             >
-              <RefreshCw className={`h-4 w-4 text-white/70 transition-transform ${isFetching ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 text-white/70 transition-transform ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
