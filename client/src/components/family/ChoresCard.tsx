@@ -300,7 +300,7 @@ function List({ rows, renderAction }: {
 
 function Card({ children, id }: { children: React.ReactNode; id?: string }) {
   return (
-    <section id={id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+    <section id={id} className="rounded-2xl border border-white/10 bg-white/5 p-4 h-full flex flex-col">
       {children}
     </section>
   );
