@@ -52,12 +52,16 @@ export function CustomizeBar({
         )}
         
         <button 
+          type="button"
           onClick={() => setEditing(!editing)} 
-          className={`px-4 py-2 rounded-full transition-colors font-medium ${
-            editing 
-              ? 'bg-[#c5a000] text-black' 
-              : 'bg-transparent text-zinc-400'
-          } ring-2 ring-[#c5a000] ring-offset-2 ring-offset-[#0b0b0e] focus:!ring-2 focus:!ring-[#c5a000] focus:!ring-offset-2 focus:!ring-offset-[#0b0b0e] active:!ring-2 active:!ring-[#c5a000] active:!ring-offset-2 disabled:opacity-100 disabled:cursor-default`}
+          className={[
+            "rounded-full px-4 py-2 font-medium transition-colors",
+            // 🟡 always-on ring + offset (dark bg)
+            "ring-2 ring-[#c5a000] ring-offset-2 ring-offset-[#0b0b0e]",
+            "focus:!ring-2 focus:!ring-[#c5a000] focus:!ring-offset-2 active:!ring-2",
+            // colors by state
+            editing ? "bg-[#c5a000] text-black" : "bg-transparent text-zinc-400",
+          ].join(" ")}
           data-testid="customize-toggle"
         >
           {editing ? "Done" : "Customize"}
