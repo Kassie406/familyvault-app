@@ -920,9 +920,6 @@ export default function FamilyHome() {
           </div>
         );
 
-      case 'ice':
-        return <ICECard />;
-
       default:
         return (
           <div className="h-full rounded-2xl bg-zinc-900 border border-zinc-800 p-4 shadow-sm">
@@ -1093,7 +1090,8 @@ export default function FamilyHome() {
 
       {/* OLD PANELS SECTION - Activity/Updates/Calendar are now in sortable grid */}
 
-      {/* OLD ICE SECTION - Now in sortable grid */}
+      {/* ICE (In Case of Emergency) - Full Width Standalone Section */}
+      <ICECard />
 
       {/* Luxury Footer */}
       <div className="bg-gradient-to-r from-[#0A0A1A] to-[#111111] rounded-xl mt-12 relative overflow-hidden">
