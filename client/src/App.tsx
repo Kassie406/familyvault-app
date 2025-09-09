@@ -23,7 +23,6 @@ import StorageStatus from "@/pages/admin/storage-status";
 import AdminLayout from "@/components/admin/admin-layout";
 import FamilyRouter from "@/components/family/family-router";
 import RequireAuth from "@/auth/RequireAuth";
-import { UIProvider } from "@/lib/ui-store";
 import Home from "@/pages/home";
 import Security from "@/pages/security";
 import PromoBanner from "@/components/marketing/promo-banner";
@@ -271,12 +270,10 @@ function App() {
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <UIProvider>
-            <Toaster />
-            <RequireAuth>
-              <FamilyRouter />
-            </RequireAuth>
-          </UIProvider>
+          <Toaster />
+          <RequireAuth>
+            <FamilyRouter />
+          </RequireAuth>
         </TooltipProvider>
       </QueryClientProvider>
     );
