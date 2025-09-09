@@ -839,7 +839,7 @@ export default function FamilyHome() {
 
       case 'quickActions':
         return (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 h-full flex flex-col">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 h-auto flex flex-col">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 rounded-lg bg-[#D4AF37]/10">
                 <Zap className="h-5 w-5 text-[#D4AF37]" />
@@ -878,7 +878,7 @@ export default function FamilyHome() {
 
       case 'uploadCenter':
         return (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 h-full flex flex-col">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 h-auto flex flex-col">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 rounded-lg bg-blue-600/10">
                 <Upload className="h-5 w-5 text-blue-400" />
