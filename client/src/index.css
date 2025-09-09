@@ -4066,53 +4066,34 @@ dialog[aria-label="Quick Access"] button[data-testid="filter-all"] *{
   fill: currentColor !important;
 }
 
-/* ——— Quick Access chips: disable ALL hover visuals ——— */
+/* Base text for all chips (keep like the others) */
 #quick-access-modal button[data-testid^="filter-"],
-dialog[aria-label="Quick Access"] button[data-testid^="filter-"] {
-  transition: none !important;
+dialog[aria-label="Quick Access"] button[data-testid^="filter-"]{
+  --tw-text-opacity: .7;
+  color: rgba(255,255,255,var(--tw-text-opacity));
 }
 
-/* Nuke hover in every state (wins over Tailwind utilities) */
+/* GOLD on hover (no bg/border changes) */
 #quick-access-modal button[data-testid^="filter-"]:hover,
 #quick-access-modal button[data-testid^="filter-"]:focus:hover,
-#quick-access-modal button[data-testid^="filter-"][data-state="active"]:hover,
 dialog[aria-label="Quick Access"] button[data-testid^="filter-"]:hover,
-dialog[aria-label="Quick Access"] button[data-testid^="filter-"]:focus:hover,
-dialog[aria-label="Quick Access"] button[data-testid^="filter-"][data-state="active"]:hover {
-  /* keep everything exactly as base state */
+dialog[aria-label="Quick Access"] button[data-testid^="filter-"]:focus:hover{
   --tw-text-opacity: 1 !important;
-  color: #c5a000 !important; /* gold text */
-  background-color: transparent !important;
-  border-color: inherit !important;
-  box-shadow: none !important;
-  filter: none !important;
-  opacity: 1 !important;
-  transform: none !important;
-  text-decoration: none !important;
+  color: #c5a000 !important;
 }
 
-/* Icons should not change either */
-#quick-access-modal button[data-testid^="filter-"]:hover *,
-dialog[aria-label="Quick Access"] button[data-testid^="filter-"]:hover * {
-  color: currentColor !important;
-  stroke: currentColor !important;
-  fill: currentColor !important;
-}
-
-/* Quick Access: make selected chip text readable (white) */
+/* FIX: active/selected chip must stay visible (override text-black) */
 #quick-access-modal button[data-testid^="filter-"][data-state="active"],
 #quick-access-modal button[data-testid^="filter-"][aria-pressed="true"],
 dialog[aria-label="Quick Access"] button[data-testid^="filter-"][data-state="active"],
 dialog[aria-label="Quick Access"] button[data-testid^="filter-"][aria-pressed="true"]{
-  --tw-text-opacity: .9 !important;                 /* like text-white/90 */
-  color: rgba(255,255,255,var(--tw-text-opacity)) !important;
+  --tw-text-opacity: .9 !important;                 /* readable on dark bg */
+  color: rgba(255,255,255,var(--tw-text-opacity)) !important;  /* or #c5a000 if you prefer gold */
 }
 
-/* keep icons in sync with the label color */
-#quick-access-modal button[data-testid^="filter-"][data-state="active"] *,
-#quick-access-modal button[data-testid^="filter-"][aria-pressed="true"] *,
-dialog[aria-label="Quick Access"] button[data-testid^="filter-"][data-state="active"] *,
-dialog[aria-label="Quick Access"] button[data-testid^="filter-"][aria-pressed="true"] *{
+/* Icons follow the label color in every state */
+#quick-access-modal button[data-testid^="filter-"] *,
+dialog[aria-label="Quick Access"] button[data-testid^="filter-"] *{
   color: currentColor !important;
   stroke: currentColor !important;
   fill: currentColor !important;
