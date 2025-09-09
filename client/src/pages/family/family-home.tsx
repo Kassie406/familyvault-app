@@ -63,6 +63,7 @@ export default function FamilyHome() {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [messagingOpen, setMessagingOpen] = useState(false);
   const [highlightDocumentUpload, setHighlightDocumentUpload] = useState(false);
+  const [highlightPhotoUpload, setHighlightPhotoUpload] = useState(false);
   const [quickAccessOpen, setQuickAccessOpen] = useState(false);
   const [dashboardLayout, setDashboardLayout] = useState('default');
   const [policyModalOpen, setPolicyModalOpen] = useState(false);
@@ -120,6 +121,24 @@ export default function FamilyHome() {
     // Remove highlight after animation
     setTimeout(() => {
       setHighlightDocumentUpload(false);
+    }, 3000);
+  };
+
+  // Function to scroll to upload center and highlight photo upload
+  const scrollToPhotoUpload = () => {
+    setHighlightPhotoUpload(true);
+    
+    // Scroll to upload center
+    if (uploadCenterRef.current) {
+      uploadCenterRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+    }
+    
+    // Remove highlight after animation
+    setTimeout(() => {
+      setHighlightPhotoUpload(false);
     }, 3000);
   };
 
@@ -861,7 +880,7 @@ export default function FamilyHome() {
                 <QuickDocumentUpload />
               </div>
               
-              <div className="space-y-4">
+              <div className={`space-y-4 ${highlightPhotoUpload ? 'upload-highlight' : ''}`}>
                 <h4 className="text-gray-300 font-medium">Photos</h4>
                 <QuickPhotoUpload />
               </div>
@@ -1021,7 +1040,12 @@ export default function FamilyHome() {
               subtitle="Chat with family" 
               onClick={() => window.dispatchEvent(new Event('openFamilyChat'))}
             />
-            <ActionCard icon={<ImageIcon className="h-5 w-5"/>} title="Upload Photos" subtitle="Add photos to your family album" />
+            <ActionCard 
+              icon={<ImageIcon className="h-5 w-5"/>} 
+              title="Upload Photos" 
+              subtitle="Add photos to your family album"
+              onClick={scrollToPhotoUpload}
+            />
             <ActionCard icon={<ShieldAlert className="h-5 w-5"/>} title="Emergency Info" subtitle="Quick access to critical info" />
           </div>
         </div>
