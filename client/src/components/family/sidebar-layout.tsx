@@ -75,11 +75,6 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMobile, sidebarOpen]);
 
-  // Manage sidebar body attribute only (inbox is handled by UI store)
-  useEffect(() => {
-    document.body.toggleAttribute('data-sidebar-collapsed', sidebarCollapsed);
-  }, [sidebarCollapsed]);
-
 
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, href: '/family' },
@@ -132,7 +127,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
       )}
 
       {/* Desktop Sidebar */}
-      <aside id="app-sidebar" className={`app-sidebar ${isMobile ? 'hidden' : 'bg-[var(--bg-850)] border-r border-[var(--line-700)] flex flex-col'}`} data-collapsed={sidebarCollapsed ? "true" : "false"}>
+      <div className={`${isMobile ? 'hidden' : `${sidebarCollapsed ? 'w-16' : 'w-64'} bg-[var(--bg-850)] border-r border-[var(--line-700)] flex flex-col fixed h-full z-30 transition-all duration-300 ease-in-out`}`} data-collapsed={sidebarCollapsed ? "true" : "false"}>
         {/* Desktop Sidebar Header */}
         {!isMobile && (
           <div className="p-6 border-b border-[var(--line-700)] relative">
@@ -211,7 +206,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
             </Link>
           </div>
         )}
-      </aside>
+      </div>
 
       {/* Mobile Sidebar Overlay */}
       {isMobile && sidebarOpen && (
@@ -280,13 +275,15 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
       )}
 
       {/* Main Content */}
-      <main id="app-main" className={`app-main flex-1 ${
+      <div className={`flex-1 transition-all duration-300 ease-in-out ${
         isMobile 
           ? 'pt-16' 
-          : ''
-      }`}>
+          : sidebarCollapsed 
+            ? 'ml-16' 
+            : 'ml-64'
+      } ${location === '/family/inbox' && !isMobile ? 'pl-[400px]' : 'pl-0'}`}>
         {children}
-      </main>
+      </div>
     </div>
   );
 }
