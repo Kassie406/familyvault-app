@@ -14,7 +14,8 @@ import {
   Heart,
   Users,
   Bell,
-  PauseCircle
+  PauseCircle,
+  RefreshCw
 } from 'lucide-react';
 import { LuxuryCard } from '@/components/luxury-cards';
 import { apiRequest } from '@/lib/queryClient';
@@ -80,11 +81,12 @@ function formatDueDate(dueAt: string | null) {
   return date.toLocaleDateString();
 }
 
-export default function FamilyUpdates() {
+export default function FamilyUpdates({ onRefreshReady }: { onRefreshReady?: (refreshFn: () => Promise<void>) => void }) {
   const queryClient = useQueryClient();
   const { isAdmin, isLoading: userLoading } = useUserRole();
   const [updates, setUpdates] = useState<FamilyUpdateType[]>([]);
   const [snoozedCount, setSnoozedCount] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Fetch family updates
   const { data: updatesData = [], isLoading, refetch } = useQuery<FamilyUpdateType[]>({
@@ -100,6 +102,20 @@ export default function FamilyUpdates() {
   useEffect(() => {
     setUpdates(updatesData);
   }, [updatesData]);
+
+  // Expose refresh function to parent component
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    await loadSnoozedCount(); // Also refresh snoozed count
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
+
+  useEffect(() => {
+    if (onRefreshReady) {
+      onRefreshReady(handleRefresh);
+    }
+  }, [onRefreshReady]);
 
   // Load snoozed count
   const loadSnoozedCount = async () => {
