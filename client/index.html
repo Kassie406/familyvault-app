@@ -13,8 +13,8 @@
     <meta name="theme-color" content="#D4AF37">
     <meta name="msapplication-TileColor" content="#D4AF37">
     
-    <!-- Content Security Policy - Allow Supabase connections -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://zzconzlitecbawulnbey.supabase.co https://*.supabase.co; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://esm.sh https://cdn.jsdelivr.net https://replit.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; frame-ancestors 'self'; worker-src 'self' blob:;">
+    <!-- Content Security Policy - Allow Supabase and S3 connections -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://zzconzlitecbawulnbey.supabase.co https://*.supabase.co https://*.s3.amazonaws.com https://*.s3.*.amazonaws.com https://familyportal-docs-prod.s3.us-east-2.amazonaws.com https://familyportal-photos-prod.s3.us-east-2.amazonaws.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://esm.sh https://cdn.jsdelivr.net https://replit.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: https://*.s3.amazonaws.com https://*.s3.*.amazonaws.com; font-src 'self' data: https://fonts.gstatic.com; frame-ancestors 'self'; worker-src 'self' blob:;">
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
