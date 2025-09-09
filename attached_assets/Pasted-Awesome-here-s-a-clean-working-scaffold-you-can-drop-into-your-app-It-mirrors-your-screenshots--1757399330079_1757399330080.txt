@@ -1,0 +1,280 @@
+Awesome — here’s a clean, working scaffold you can drop into your app. It mirrors your screenshots: right-side Inbox drawer, upload items with Suggested destination + Open, Details (N) that opens a modal with Accept / Dismiss, masked PII, and a stubbed analyze() you can later swap for Textract/DocAI.
+
+1) Types (types/inbox.ts)
+export type ExtractedField = {
+  key: string;
+  value: string;
+  confidence: number; // 0–100
+  pii?: boolean;
+};
+
+export type Suggestion = {
+  memberId: string;
+  memberName: string;
+  confidence: number;
+  fields: ExtractedField[];
+};
+
+export type InboxItem = {
+  id: string;
+  fileUrl: string;
+  filename: string;
+  status: "analyzing" | "suggested" | "accepted" | "dismissed";
+  suggestion?: Suggestion;
+};
+
+2) Utils (lib/inbox.ts)
+export const maskPII = (key: string, v: string) => {
+  const s = String(v);
+  if (/(ssn|social)/i.test(key)) return s.replace(/\d(?=\d{4})/g, "•");
+  if (/number/i.test(key) && s.replace(/\D/g, "").length >= 9) return s.replace(/\d(?=\d{4})/g, "•");
+  return s;
+};
+
+// mock OCR → suggestion (swap with your API later)
+import type { InboxItem, Suggestion } from "@/types/inbox";
+
+export async function analyzeUpload(item: InboxItem): Promise<Suggestion | undefined> {
+  await new Promise(r => setTimeout(r, 900)); // fake latency
+  // demo: if filename contains a name, “detect” it
+  const name = /angel/i.test(item.filename) ? "Angel Quintana" : undefined;
+  if (!name) return undefined;
+  const last4 = "2645";
+  return {
+    memberId: "mem_angel",
+    memberName: name,
+    confidence: 92,
+    fields: [
+      { key: "Person Name", value: name, confidence: 94 },
+      { key: "Social Security Number", value: `141-85-${last4}`, confidence: 91, pii: true },
+    ],
+  };
+}
+
+3) Suggest Details Modal (components/inbox/SuggestDetailsModal.tsx)
+"use client";
+
+import * as React from "react";
+import { maskPII } from "@/lib/inbox";
+import type { InboxItem } from "@/types/inbox";
+
+type Props = {
+  open: boolean;
+  item: InboxItem | null;
+  onAccept: (id: string) => void;
+  onDismiss: (id: string) => void;
+  onOpenMember: (memberId: string) => void;
+  onClose: () => void;
+};
+
+export default function SuggestDetailsModal({ open, item, onAccept, onDismiss, onOpenMember, onClose }: Props) {
+  if (!item?.suggestion) return null;
+  const s = item.suggestion;
+  return (
+    <div role="dialog" aria-modal="true" className={`fixed inset-0 z-50 ${open ? "" : "hidden"}`}>
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="absolute right-4 top-4 w-[560px] max-w-[calc(100vw-2rem)] rounded-xl bg-zinc-900 border border-zinc-800 shadow-2xl">
+        <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+          <p className="text-white/90 text-sm">
+            <span className="font-medium">Suggested filename</span>
+          </p>
+          <div className="space-x-2">
+            <button onClick={() => onDismiss(item.id)} className="px-3 py-1.5 rounded-lg border border-zinc-700 text-white/80 hover:bg-white/5">Dismiss</button>
+            <button onClick={() => onAccept(item.id)} className="px-3 py-1.5 rounded-lg bg-[#c5a000] text-black font-medium hover:opacity-90">Accept</button>
+          </div>
+        </div>
+
+        <div className="p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-white/90 text-sm">
+                <span className="font-medium">Suggested destination</span>
+              </div>
+              <div className="text-white/70 text-sm">{s.memberName}</div>
+            </div>
+            <button onClick={() => onOpenMember(s.memberId)} className="px-3 py-1.5 rounded-lg border border-zinc-700 text-white/80 hover:bg-white/5">
+              Open
+            </button>
+          </div>
+
+          <div className="pt-2">
+            <div className="text-white/80 text-sm mb-2">Details</div>
+            <div className="divide-y divide-zinc-800 rounded-lg border border-zinc-800 overflow-hidden">
+              {s.fields.map((f, i) => (
+                <div key={i} className="grid grid-cols-3 gap-4 p-3">
+                  <div className="text-white/60 text-xs uppercase tracking-wide">{f.key}</div>
+                  <div className="col-span-2 text-white/90">
+                    {f.pii ? (
+                      <span className="select-none" title="Masked">{maskPII(f.key, f.value)}</span>
+                    ) : f.value}
+                    <span className="ml-2 text-[11px] text-white/40">({f.confidence}%)</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              className="mt-3 text-xs text-white/60 hover:text-white/80"
+              onClick={() => navigator.clipboard.writeText(s.fields.map(f => `${f.key}: ${f.value}`).join("\n"))}
+            >
+              Copy all
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+4) Inbox Drawer + Item Card (components/inbox/InboxDrawer.tsx)
+"use client";
+
+import * as React from "react";
+import Image from "next/image";
+import SuggestDetailsModal from "./SuggestDetailsModal";
+import { analyzeUpload } from "@/lib/inbox";
+import type { InboxItem } from "@/types/inbox";
+import { useRouter } from "next/navigation";
+
+function InboxItemCard({
+  item, onOpen, onShowDetails, onDismiss
+}: {
+  item: InboxItem;
+  onOpen: () => void;
+  onShowDetails: () => void;
+  onDismiss: () => void;
+}) {
+  const s = item.suggestion;
+  return (
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-3 space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="relative h-12 w-16 rounded-md bg-zinc-800 overflow-hidden">
+          <Image src={item.fileUrl} alt="" fill className="object-cover" />
+        </div>
+        <div className="min-w-0">
+          <div className="text-white/80 text-sm truncate">{item.filename}</div>
+          <div className="text-white/50 text-xs">
+            {item.status === "analyzing" ? "Analyzing…" : s ? `Confidence ${s.confidence}%` : "No suggestion"}
+          </div>
+        </div>
+      </div>
+
+      {s && (
+        <div className="flex items-center justify-between rounded-lg border border-zinc-800 p-2">
+          <div className="text-white/70 text-sm">
+            <span className="text-white/50">Suggested destination:</span> {s.memberName}
+          </div>
+          <button onClick={onOpen} className="px-3 py-1.5 rounded-lg border border-zinc-700 text-white/80 hover:bg-white/5">
+            Open
+          </button>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2">
+        {s && (
+          <button onClick={onShowDetails} className="px-2.5 py-1 rounded-lg border border-zinc-700 text-white/80 hover:bg-white/5">
+            Details {s.fields.length ? `(${s.fields.length})` : ""}
+          </button>
+        )}
+        <button onClick={onDismiss} className="px-2.5 py-1 rounded-lg border border-zinc-700 text-white/60 hover:bg-white/5">
+          Dismiss
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function InboxDrawer() {
+  const router = useRouter();
+  const [open, setOpen] = React.useState(true);
+  const [items, setItems] = React.useState<InboxItem[]>([]);
+  const [activeId, setActiveId] = React.useState<string | null>(null);
+
+  const active = items.find(i => i.id === activeId) ?? null;
+
+  // Demo: call after your upload completes
+  const addUpload = async (fileUrl: string, filename: string) => {
+    const id = crypto.randomUUID();
+    const base: InboxItem = { id, fileUrl, filename, status: "analyzing" };
+    setItems(prev => [base, ...prev]);
+    const suggestion = await analyzeUpload(base);
+    setItems(prev => prev.map(it => it.id === id ? { ...it, status: suggestion ? "suggested" : "dismissed", suggestion } : it));
+  };
+
+  // Accept: move to member files (stub) and mark accepted
+  const accept = (id: string) => {
+    setItems(prev => prev.map(it => it.id === id ? { ...it, status: "accepted" } : it));
+    setActiveId(null);
+  };
+
+  const dismiss = (id: string) => {
+    setItems(prev => prev.map(it => it.id === id ? { ...it, status: "dismissed" } : it));
+    setActiveId(null);
+  };
+
+  const openMember = (memberId: string) => {
+    router.push(`/family/${memberId}`); // your route
+  };
+
+  // Expose for demo in console: add a fake upload
+  React.useEffect(() => {
+    // @ts-ignore
+    window.__addInbox = (url: string, name: string) => addUpload(url, name);
+  }, []);
+
+  return (
+    <aside
+      aria-label="Inbox"
+      className={`fixed top-0 right-0 h-full w-[360px] bg-zinc-950/95 border-l border-zinc-800 z-50 backdrop-blur ${open ? "" : "hidden"}`}
+    >
+      <div className="p-3 border-b border-zinc-800 flex items-center justify-between">
+        <div className="text-white font-medium">Inbox ✨</div>
+        <div className="text-xs text-white/50">Drop files here or <button className="underline hover:text-white/70">Browse files</button></div>
+      </div>
+
+      <div className="p-3 space-y-3 overflow-y-auto h-[calc(100%-48px)]">
+        {items.filter(i => i.status !== "dismissed").map(item => (
+          <InboxItemCard
+            key={item.id}
+            item={item}
+            onOpen={() => item.suggestion && openMember(item.suggestion.memberId)}
+            onShowDetails={() => setActiveId(item.id)}
+            onDismiss={() => dismiss(item.id)}
+          />
+        ))}
+        {!items.length && (
+          <div className="text-white/50 text-sm">No uploads yet. Try in console:
+            <code className="ml-1 bg-black/40 px-1.5 py-0.5 rounded">window.__addInbox("/placeholder.png","angel_ssn.jpg")</code>
+          </div>
+        )}
+      </div>
+
+      <SuggestDetailsModal
+        open={!!active}
+        item={active}
+        onAccept={accept}
+        onDismiss={dismiss}
+        onOpenMember={openMember}
+        onClose={() => setActiveId(null)}
+      />
+    </aside>
+  );
+}
+
+5) Hook it up
+
+Render <InboxDrawer /> on your Upload Center page (or in a layout so it’s always available).
+
+After your real upload finishes, call the analyzer:
+
+// wherever your upload completes
+// window.__addInbox(fileUrl, file.name) is already exposed for quick testing
+
+Next steps you can do quickly
+
+Swap analyzeUpload() to call your backend endpoint.
+
+Wire Accept to move the object (e.g., S3 copy + DB insert into member_files) and write the extracted fields.
+
+Add a glow dot for confidence (≥90 green, 70–89 amber, else gray).
+
+Keep sensitive fields masked by default with a tiny “Show” toggle.
