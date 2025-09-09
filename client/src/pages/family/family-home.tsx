@@ -29,8 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { StatCard } from '@/components/StatCard';
 import { InviteFamilyMemberDialog } from '@/components/InviteFamilyMemberDialog';
-import QuickDocumentUpload from '@/components/upload/QuickDocumentUpload';
-import QuickPhotoUpload from '@/components/upload/QuickPhotoUpload';
+import UploadCenter from '@/components/upload/UploadCenter';
 import { NewMessageModal } from '@/components/messaging/NewMessageModal';
 import NotificationCenter from '@/components/family/NotificationCenter';
 import QuickAccessPanel from '@/components/family/QuickAccessPanel';
@@ -896,16 +895,18 @@ export default function FamilyHome() {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
-              <div className={`space-y-4 ${highlightDocumentUpload ? 'upload-highlight' : ''}`}>
-                <h4 className="text-gray-300 font-medium">Documents</h4>
-                <QuickDocumentUpload />
-              </div>
-              
-              <div className={`space-y-4 ${highlightPhotoUpload ? 'upload-highlight' : ''}`}>
-                <h4 className="text-gray-300 font-medium">Photos</h4>
-                <QuickPhotoUpload />
-              </div>
+            <div className={`flex-1 ${(highlightDocumentUpload || highlightPhotoUpload) ? 'upload-highlight' : ''}`}>
+              <UploadCenter 
+                familyId="family-1"
+                onUploadComplete={(id, type) => {
+                  console.log(`${type} uploaded with ID: ${id}`);
+                  // Clear highlights after successful upload
+                  setTimeout(() => {
+                    setHighlightDocumentUpload(false);
+                    setHighlightPhotoUpload(false);
+                  }, 3000);
+                }}
+              />
             </div>
           </div>
         );
