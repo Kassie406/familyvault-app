@@ -1,0 +1,144 @@
+You’re seeing that white hover + weird state swap because some global styles (likely Replit’s shell or a reset) are overriding your button states on :hover / :focus. Let’s lock the styles so they always win—no more surprises.
+
+Below are drop-in styles + a tiny component pattern that give you:
+
+Always-visible gold ring
+
+Outline (not editing) → soft gold hover tint (not white)
+
+Filled gold (editing) → darker gold on hover/active
+
+No disabled fade
+
+Fully scoped so globals can’t stomp it
+
+1) Scoped CSS (Tailwind or plain CSS)
+
+If you use Tailwind, put this in a global CSS file that’s loaded once (or a CSS module and keep the .dashboard scope class on the container). If you don’t use Tailwind, use the plain CSS version right after it.
+
+Tailwind @apply version
+/* dashboard-action-buttons.css */
+.dashboard .fcs-btn {
+  @apply rounded-full px-4 py-2 font-medium transition-colors duration-200 outline-none;
+  @apply disabled:opacity-100 disabled:cursor-default; /* never fade */
+}
+
+/* persistent gold ring (+ offset for dark bg) */
+.dashboard .fcs-btn--ring {
+  @apply ring-2 ring-[#c5a000] ring-offset-2 ring-offset-[#0b0b0e];
+  /* keep ring in all interaction states, override any reset */
+  @apply focus:!ring-2 focus:!ring-[#c5a000] focus:!ring-offset-2 active:!ring-2;
+}
+
+/* outline style (not editing) */
+.dashboard .fcs-btn--gold-outline {
+  @apply bg-transparent text-zinc-300;
+}
+.dashboard .fcs-btn--gold-outline:hover { background: rgba(197,160,0,.12); }
+.dashboard .fcs-btn--gold-outline:active { background: rgba(197,160,0,.18); }
+
+/* filled style (editing) */
+.dashboard .fcs-btn--gold-filled {
+  @apply text-black;
+  background: #c5a000;
+}
+.dashboard .fcs-btn--gold-filled:hover { background: #b79600; }
+.dashboard .fcs-btn--gold-filled:active { background: #a88500; }
+
+/* 🔒 kill any global white hover on buttons inside the dashboard */
+.dashboard button:hover { background-color: transparent; }
+.dashboard .fcs-btn--gold-outline:hover { background-color: rgba(197,160,0,.12); } /* re-apply our hover */
+
+Plain CSS version (no Tailwind)
+.dashboard .fcs-btn{
+  border-radius: 9999px;
+  padding: 8px 16px;
+  font-weight: 500;
+  transition: background-color .2s, color .2s, box-shadow .2s;
+  outline: none;
+}
+.dashboard .fcs-btn[disabled]{
+  opacity: 1; cursor: default;
+}
+.dashboard .fcs-btn--ring{
+  box-shadow: 0 0 0 2px #c5a000, 0 0 0 4px #0b0b0e;
+}
+.dashboard .fcs-btn--ring:focus,
+.dashboard .fcs-btn--ring:active{
+  box-shadow: 0 0 0 2px #c5a000, 0 0 0 4px #0b0b0e;
+}
+.dashboard .fcs-btn--gold-outline{
+  background: transparent; color: #d4d4d8; /* zinc-300 */
+}
+.dashboard .fcs-btn--gold-outline:hover{ background: rgba(197,160,0,.12); }
+.dashboard .fcs-btn--gold-outline:active{ background: rgba(197,160,0,.18); }
+.dashboard .fcs-btn--gold-filled{
+  background: #c5a000; color: #000;
+}
+.dashboard .fcs-btn--gold-filled:hover{ background:#b79600; }
+.dashboard .fcs-btn--gold-filled:active{ background:#a88500; }
+/* kill any global white hover */
+.dashboard button:hover{ background-color: transparent; }
+.dashboard .fcs-btn--gold-outline:hover{ background-color: rgba(197,160,0,.12); }
+
+
+The two “kill global” rules make sure any external button:hover { background: white } is neutralized. We immediately re-apply our intended outline hover color right after.
+
+2) Use it in your bar
+// CustomizeBar.tsx (excerpt)
+export function CustomizeBar({ editing, setEditing, onReset }: Props) {
+  return (
+    <div className="dashboard flex items-center justify-end gap-3">
+      {/* Reset (neutral) — keep your existing styling if you like */}
+      <button
+        type="button"
+        onClick={onReset}
+        className="rounded-full px-4 py-2 bg-zinc-800 text-zinc-200 hover:bg-zinc-700 transition-colors"
+      >
+        Reset
+      </button>
+
+      {/* Done */}
+      <button
+        type="button"
+        onClick={() => setEditing(false)}
+        className={[
+          "fcs-btn fcs-btn--ring",
+          editing ? "fcs-btn--gold-filled" : "fcs-btn--gold-outline",
+        ].join(" ")}
+      >
+        Done
+      </button>
+
+      {/* Customize */}
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className={[
+          "fcs-btn fcs-btn--ring",
+          editing ? "fcs-btn--gold-outline" : "fcs-btn--gold-filled",
+        ].join(" ")}
+      >
+        Customize
+      </button>
+    </div>
+  );
+}
+
+
+In view mode: Customize = filled gold; Done = outline.
+
+In editing: Done = filled gold; Customize = outline.
+
+Gold ring is always visible on both.
+
+3) One more belt-and-suspenders rule (if you still see white hover)
+
+Sometimes a UI lib forces white via high specificity. Add this at the end of your CSS:
+
+.dashboard .fcs-btn:hover { background-clip: padding-box; } /* create a new declaration */
+.dashboard .fcs-btn--gold-outline:hover { background: rgba(197,160,0,.12) !important; }
+.dashboard .fcs-btn--gold-filled:hover  { background: #b79600 !important; }
+
+
+Apply those and the buttons will stop flipping to white hover, keep the gold ring 24/7, and use the exact colors you want in both states. If you paste your current <Button ...> markup for Customize/Done, I’ll adjust classnames line-for-line to match your file.
