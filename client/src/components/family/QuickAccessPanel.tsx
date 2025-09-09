@@ -186,7 +186,7 @@ export function QuickAccessPanel({ isOpen, onClose }: QuickAccessPanelProps) {
                   onClick={() => setSelectedCategory(category.id)}
                   className={`qa-filter flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
                     isActive 
-                      ? 'bg-[#D4AF37]/20 text-[#D4AF37] font-medium border border-[#D4AF37]/40' 
+                      ? 'bg-[#D4AF37] text-black font-medium' 
                       : 'text-white/70'
                   }`}
                   data-testid={`filter-${category.id}`}
