@@ -4010,43 +4010,36 @@ a:hover,
   color: #D4AF37 !important;
 }
 
-/* Upload Center tabs — keep gold on hover even when focused */
-#upload-tabs [role="tab"],
-#upload-tabs [role="tab"]:link,
-#upload-tabs [role="tab"]:visited { 
-  color: #c5a000 !important;
-  text-decoration: none !important;
+/* Upload Center tabs (Documents / Photos) */
+#upload-tabs [role="tab"]{
+  color:#c5a000 !important;
+  transition: background-color .15s ease, color .15s ease;
 }
 
-/* The key fix: hover must win even during focus */
-#upload-tabs [role="tab"]:focus:hover,
-#upload-tabs [role="tab"]:focus-visible:hover,
-#upload-tabs [role="tab"][data-state="active"]:focus:hover,
-#upload-tabs [role="tab"][data-state="active"]:focus-visible:hover {
-  color: #c5a000 !important;
-}
-
-/* Keep gold in all other states too */
-#upload-tabs [role="tab"]:hover,
-#upload-tabs [role="tab"]:active,
+/* base focus/active background */
 #upload-tabs [role="tab"]:focus,
-#upload-tabs [role="tab"]:focus-visible,
-#upload-tabs [role="tab"][data-state="active"],
-#upload-tabs [role="tab"][data-state="active"]:hover,
-#upload-tabs [role="tab"][data-state="active"]:focus {
-  color: #c5a000 !important;
+#upload-tabs [role="tab"][data-state="active"]{
+  background: rgba(197,160,0,.20) !important;
 }
 
-/* Make icons/text inside inherit gold */
-#upload-tabs [role="tab"] * {
+/* KEY: show hover even while focused or active */
+#upload-tabs [role="tab"]:hover,
+#upload-tabs [role="tab"]:focus:hover,
+#upload-tabs [role="tab"][data-state="active"]:hover,
+#upload-tabs [role="tab"][data-state="active"]:focus:hover{
+  background: rgba(197,160,0,.28) !important;
+  color:#c5a000 !important;
+}
+
+/* icons inherit gold */
+#upload-tabs [role="tab"] *{
   color: currentColor !important;
   fill: currentColor !important;
   stroke: currentColor !important;
 }
 
-/* Optional: tidy focus ring without changing color */
+/* tidy focus ring without altering color */
 #upload-tabs [role="tab"]:focus { outline: none; }
 #upload-tabs [role="tab"]:focus-visible {
-  outline: 2px solid #c5a00044;
-  border-radius: 9999px;
+  outline: 2px solid #c5a00044; border-radius: 9999px;
 }
