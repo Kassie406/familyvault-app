@@ -4099,19 +4099,63 @@ dialog[aria-label="Quick Access"] button[data-testid^="filter-"] *{
   fill: currentColor !important;
 }
 
-/* Sidebar auto-collapse styles for inbox functionality */
-[data-collapsed="true"] .sidebar-nav-link {
+/* Bulletproof sidebar and inbox layout system */
+:root{
+  --sb-expanded: 240px;     /* full sidebar */
+  --sb-collapsed: 64px;     /* icon-only */
+  --inbox-w: 360px;         /* inbox drawer width */
+}
+
+/* current sidebar width stored in --sb */
+body{ --sb: var(--sb-expanded); }
+body[data-sidebar-collapsed="true"]{ --sb: var(--sb-collapsed); }
+
+/* Sidebar: always visible on left */
+#app-sidebar{
+  position: fixed;
+  inset: 0 auto 0 0;           /* top:0 right:auto bottom:0 left:0 */
+  width: var(--sb);
+  z-index: 40;
+  transition: width .25s ease;
+}
+
+/* Inbox: starts AFTER the sidebar width */
+#inbox-panel{
+  position: fixed;
+  top: 0; bottom: 0;
+  left: var(--sb);
+  width: var(--inbox-w);
+  z-index: 50;
+  transform: translateX(-110%);         /* hidden by default */
+  transition: transform .25s ease, left .25s ease;
+}
+body[data-inbox-open="true"] #inbox-panel{
+  transform: translateX(0);              /* slide in */
+}
+
+/* Main content shifts by sidebar, and by inbox when open */
+#app-main{
+  min-height: 100vh;
+  margin-left: var(--sb);
+  transition: margin-left .25s ease;
+}
+body[data-inbox-open="true"] #app-main{
+  margin-left: calc(var(--sb) + var(--inbox-w));
+}
+
+/* Sidebar content styling for collapsed state */
+body[data-sidebar-collapsed="true"] .sidebar-nav-link {
   justify-content: center !important;
   padding-left: 1rem !important;
   padding-right: 1rem !important;
 }
 
 /* Hide text labels when sidebar is collapsed, keep only icons */
-[data-collapsed="true"] .sidebar-nav-link span:not(:first-child) {
+body[data-sidebar-collapsed="true"] .sidebar-nav-link span:not(:first-child) {
   display: none !important;
 }
 
 /* Center icons when collapsed */
-[data-collapsed="true"] .nav-item {
+body[data-sidebar-collapsed="true"] .nav-item {
   justify-content: center;
 }
