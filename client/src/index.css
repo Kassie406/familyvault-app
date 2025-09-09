@@ -4024,3 +4024,17 @@ button[role="tab"]:focus:hover {
 .tabs-trigger:focus:hover {
   color: #c5a000 !important;
 }
+
+/* Force gold color on focused tabs when hovered - highest specificity */
+button[data-state="active"]:focus:hover,
+button[data-state="inactive"]:focus:hover,
+button[data-state="active"]:focus:hover *,
+button[data-state="inactive"]:focus:hover * {
+  color: #c5a000 !important;
+}
+
+/* Override any shadcn TabsTrigger focus states */
+[role="tab"][data-state="active"]:focus:hover,
+[role="tab"][data-state="inactive"]:focus:hover {
+  color: #c5a000 !important;
+}
