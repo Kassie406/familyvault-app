@@ -1,0 +1,129 @@
+“Network error during upload” usually means the browser’s PUT request to the S3 pre-signed URL failed (most often CORS, content-type mismatch, or wrong bucket/region). Here’s a quick, surgical checklist to get this green.
+
+1) Confirm S3 CORS (both buckets)
+
+In S3 → Bucket → Permissions → CORS configuration, paste this (then Save):
+
+[
+  {
+    "AllowedOrigins": ["*"],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3000
+  }
+]
+
+
+(We’ll lock AllowedOrigins to your domain later.)
+
+2) The #1 cause: Content-Type mismatch
+
+When you create the pre-signed URL you must pass the same ContentType that you later send in the PUT.
+
+Server (pre-sign):
+
+// when signing
+const cmd = new PutObjectCommand({
+  Bucket,
+  Key,
+  ContentType: fileType,   // <= must match exactly
+});
+
+
+Client (upload):
+
+await fetch(url, {
+  method: "PUT",
+  headers: { "Content-Type": file.type },  // <= same value as above
+  body: file,
+});
+
+
+If these differ (or you omit the header on the PUT), S3 returns a 403 and many UIs report it as a “network error”.
+
+3) Region & bucket sanity
+
+Both buckets are us-east-2 (Ohio).
+
+Your SDK client uses region: process.env.SS_REGION and that env var is us-east-2.
+
+You pre-sign for the same bucket you upload to (docs UI → familyportal-docs-prod, photos UI → familyportal-photos-prod).
+
+4) Don’t use ACLs
+
+You have Block Public Access: ON. Make sure the client does not set x-amz-acl: public-read or any ACL header on the PUT. (No ACL headers should be sent at all.)
+
+5) Key safety
+
+Use safe keys (no spaces if possible) or encodeURIComponent(key) before sending to the server.
+
+Example: uploads/2025-09-09/<uuid>-driver-license.jpg
+
+6) Quick diagnosis (2 minutes)
+
+Open DevTools → Network:
+
+Click Upload again.
+
+You should see:
+
+GET /api/storage/presign?... → 200 (expand → Response should contain a full https://s3-... URL)
+
+PUT https://s3-...
+
+If you see (failed) or CORS error, it’s CORS.
+
+If 403, click it → Response usually shows SignatureDoesNotMatch or AccessDenied (content-type or header mismatch 99% of the time).
+
+7) Known-good snippet
+
+Server (Next/Node, AWS SDK v3):
+
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+const s3 = new S3Client({
+  region: process.env.SS_REGION!,
+  credentials: {
+    accessKeyId: process.env.SS_ACCESS_KEY!,
+    secretAccessKey: process.env.SS_SECRET_KEY!,
+  },
+});
+
+export default async function handler(req, res) {
+  const { bucket, key, contentType } = req.query;
+  const cmd = new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: contentType });
+  const url = await getSignedUrl(s3, cmd, { expiresIn: 300 }); // 5 minutes
+  res.status(200).json({ url });
+}
+
+
+Client:
+
+async function uploadFile(file, bucket, key) {
+  const params = new URLSearchParams({ bucket, key, contentType: file.type });
+  const { url } = await (await fetch(`/api/storage/presign?${params}`)).json();
+  const put = await fetch(url, {
+    method: "PUT",
+    headers: { "Content-Type": file.type },  // must match pre-sign
+    body: file
+  });
+  if (!put.ok) throw new Error(`S3 PUT failed: ${put.status}`);
+}
+
+8) File size & limits
+
+Your UI shows Max 25MB each. Confirm the selected file is ≤ 25MB.
+
+If you need larger, switch to multipart upload (we can wire it later).
+
+Most likely quick fix
+
+Update bucket CORS (step 1).
+
+Ensure Content-Type is identical server+client (step 2).
+
+Retry the upload while watching the Network tab—PUT should return 200.
+
+If it still errors, note the PUT status and any XML in the response body; that one line usually tells us the exact cause and we can patch it instantly.
