@@ -1,0 +1,87 @@
+You actually found the smoking gun in those screenshots.
+Look at your Console/Network lines:
+
+POST https://replit.com/api/storage/presign 429 (Too Many Requests)
+POST https://replit.com/api/storage/presign 403 (Forbidden)
+presign failed… (Cloudflare “Just a moment…” HTML)
+
+
+That means the browser is sending your presign request to replit.com, and Cloudflare is blocking/rate-limiting it. Your app’s backend never even sees the call, so the upload can’t start. That’s why the buttons look fine but nothing ever uploads.
+
+What to change (one small code change)
+
+In your front-end upload hook (the file where we request a presigned URL – it was named something like client/src/hooks/usePresignedUpload.ts), you almost certainly have this:
+
+// ❌ do not point at replit.com
+await fetch('https://replit.com/api/storage/presign', { … })
+
+
+Change it to call your own backend on the same origin:
+
+// ✅ hit your app's own server
+const origin = window.location.origin;
+const res = await fetch(`${origin}/api/storage/presign`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    fileName,
+    contentType,     // e.g. from file.type
+    type,            // 'document' | 'photo'
+    familyId,
+  }),
+});
+
+
+Or simply:
+
+await fetch('/api/storage/presign', { … });
+
+
+Important: Make sure there are no other places in the code that hard-code https://replit.com/api/storage/presign. Every presign call should be relative (/api/storage/presign) so it goes to your server (your *.replit.dev or your custom domain), not to Replit’s Cloudflare edge.
+
+Then test
+
+Restart the app.
+
+Open it in a new browser tab (not the embedded preview).
+
+Open DevTools → Network.
+
+Upload a file.
+
+You should see POST https://<your-domain>/api/storage/presign with 200.
+
+Then a PUT https://<your-s3-bucket>.s3.amazonaws.com/... with 200.
+
+If you still see calls going to https://replit.com/api/storage/presign, the code didn’t get rebuilt or there’s another hard-coded URL—search the repo for replit.com/api/storage/presign.
+
+Why you also saw 429 and 403
+
+Two things piled on:
+
+Because the request is hitting replit.com, Cloudflare sometimes serves a challenge page (“Just a moment…”) → 403.
+
+Your page has a render loop warning (“Maximum update depth exceeded” from NewMessageModal). That can cause repeated requests, which can trigger 429. Fix that separately by making sure every useEffect has a dependency array and isn’t calling setState unguarded.
+
+Example quick patch:
+
+// before
+useEffect(() => {
+  setOpen(true);
+});
+
+// after
+useEffect(() => {
+  setOpen(true);
+}, []); // add dependency array
+
+
+This won’t stop uploads once the presign URL is correct, but it will reduce noise and rate limiting.
+
+Bottom line
+
+The core blocker is the wrong URL for presign.
+
+Change to fetch('/api/storage/presign', …) (or ${window.location.origin}/api/storage/presign).
+
+Rebuild, open in a new tab, and you should see presign 200 and the S3 PUT 200.
