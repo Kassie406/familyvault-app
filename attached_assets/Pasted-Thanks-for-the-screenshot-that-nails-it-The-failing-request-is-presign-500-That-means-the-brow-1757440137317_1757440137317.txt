@@ -1,0 +1,157 @@
+Thanks for the screenshot — that nails it. The failing request is presign → 500. That means the browser never even got an upload URL; the server-side presign step can’t talk to your object storage (bad/missing env, wrong endpoint/region, or ACL/CORS mismatch).
+
+Below is a short, copy-paste fix. Do these in order.
+
+1) Server: S3/R2 client + presign route (drop-in)
+
+Create/replace these two files on the server. They work with AWS S3 or Cloudflare R2 (or any S3-compatible).
+
+server/storage.ts
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+const REGION = process.env.AWS_REGION || process.env.S3_REGION || "us-east-1";
+const ENDPOINT = process.env.S3_ENDPOINT || undefined; // set for R2/MinIO
+const ACCESS_KEY =
+  process.env.AWS_ACCESS_KEY_ID || process.env.S3_ACCESS_KEY_ID || "";
+const SECRET_KEY =
+  process.env.AWS_SECRET_ACCESS_KEY || process.env.S3_SECRET_ACCESS_KEY || "";
+const BUCKET = process.env.S3_BUCKET_NAME;
+
+if (!BUCKET) {
+  throw new Error("S3_BUCKET_NAME env is required");
+}
+if (!ACCESS_KEY || !SECRET_KEY) {
+  throw new Error("S3 access keys are missing");
+}
+
+export const s3 = new S3Client({
+  region: REGION,
+  endpoint: ENDPOINT,                      // R2: https://<accountid>.r2.cloudflarestorage.com
+  forcePathStyle: !!ENDPOINT,              // important for R2/MinIO
+  credentials: { accessKeyId: ACCESS_KEY, secretAccessKey: SECRET_KEY },
+});
+
+export async function presignPut(key: string, mime?: string) {
+  const cmd = new PutObjectCommand({
+    Bucket: BUCKET,
+    Key: key,
+    ContentType: mime || "application/octet-stream",
+    // DO NOT set ACL on R2; many S3-compat backends reject it.
+  });
+  const url = await getSignedUrl(s3, cmd, { expiresIn: 60 });
+  return { url, headers: { "Content-Type": mime || "application/octet-stream" } };
+}
+
+Add a route (match your client path: looks like POST /presign)
+// server/routes.ts (or wherever you register routes)
+import express from "express";
+import { presignPut } from "./storage";
+
+const app = express();
+app.use(express.json());
+
+app.post("/presign", async (req, res) => {
+  try {
+    const { fileName, mime, userId } = req.body || {};
+    if (!fileName || !userId) {
+      return res.status(422).send("fileName and userId are required");
+    }
+    const safeName = fileName.replace(/[^\w.\- ]+/g, "_");
+    const key = `${userId}/inbox/${Date.now()}-${safeName}`;
+
+    const { url, headers } = await presignPut(key, mime);
+    res.json({ url, headers, key });
+  } catch (err: any) {
+    console.error("presign error:", err);           // <-- check server logs if still failing
+    res.status(500).send(err?.message || "Storage configuration error");
+  }
+});
+
+
+Restart the server after adding this.
+
+2) Environment variables
+
+Set these in Replit “Secrets” (or your server env):
+
+AWS S3
+
+AWS_ACCESS_KEY_ID=xxxxxxxxxxxxxxxx
+AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxxx
+AWS_REGION=us-east-1              # your bucket region
+S3_BUCKET_NAME=your-bucket-name
+
+
+Cloudflare R2 (S3-compatible)
+
+S3_ACCESS_KEY_ID=xxxxxxxxxxxxxxxx
+S3_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxxx
+S3_ENDPOINT=https://<accountid>.r2.cloudflarestorage.com
+S3_REGION=auto
+S3_BUCKET_NAME=your-bucket-name
+
+
+If you just added/changed any of these, restart the server.
+
+3) Client call (surface real error text)
+
+Where you call presign:
+
+const r = await fetch("/presign", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ fileName: file.name, mime: file.type, userId }),
+});
+if (!r.ok) throw new Error(await r.text());  // shows the real reason in your toast
+const { url, headers, key } = await r.json();
+
+// Then PUT the file:
+await fetch(url, { method: "PUT", headers, body: file });
+
+4) CORS (only if the PUT fails after presign)
+
+If the presign is 200 but the actual PUT https://... fails with CORS:
+
+AWS S3 bucket CORS
+
+[
+  {
+    "AllowedOrigins": ["*"],
+    "AllowedMethods": ["GET","PUT","POST","HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag","x-amz-request-id"],
+    "MaxAgeSeconds": 3000
+  }
+]
+
+
+Cloudflare R2: allow origins, methods PUT,GET,HEAD,POST, headers *, expose ETag.
+
+5) Quick sanity test (optional)
+
+Add once, run on server start:
+
+import { s3 } from "./storage";
+import { HeadBucketCommand } from "@aws-sdk/client-s3";
+
+s3.send(new HeadBucketCommand({ Bucket: process.env.S3_BUCKET_NAME! }))
+ .then(() => console.log("S3 OK"))
+ .catch(err => console.error("S3 FAIL", err));
+
+
+NoSuchBucket → wrong name/region.
+
+SignatureDoesNotMatch/InvalidAccessKeyId → bad keys/region/endpoint.
+
+AccessDenied → IAM policy/bucket policy missing.
+
+Why you’re seeing “Storage configuration error”
+
+Your Network tab shows presign 500. That’s exactly what the route above handles; when credentials/endpoint/bucket are wrong, the SDK throws and you get the generic error. With the code above, you’ll:
+
+have the right S3 client config (R2/S3 friendly)
+
+return the actual error message to your toast (so diagnosis is obvious)
+
+successfully get a presigned URL → then the upload continues into the AI Inbox flow.
