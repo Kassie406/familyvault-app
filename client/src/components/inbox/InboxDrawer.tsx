@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { X, FileImage, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { useLocation } from "wouter";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import SuggestDetailsModal from "./SuggestDetailsModal";
-import { analyzeUpload, formatFileSize, getConfidenceDot } from "@/lib/inbox";
+import { formatFileSize, getConfidenceDot } from "@/lib/inbox";
 import type { InboxItem } from '@shared/types/inbox';
 
 interface InboxItemCardProps {
@@ -129,76 +131,70 @@ function InboxItemCard({ item, onOpenMember, onShowDetails, onDismiss }: InboxIt
 interface InboxDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddUpload?: (fileUrl: string, filename: string, fileSize?: number) => void;
 }
 
-export default function InboxDrawer({ isOpen, onClose, onAddUpload }: InboxDrawerProps) {
+export default function InboxDrawer({ isOpen, onClose }: InboxDrawerProps) {
   const [location, setLocation] = useLocation();
-  const [items, setItems] = useState<InboxItem[]>([]);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const activeItem = items.find(item => item.id === activeItemId) || null;
+  // Fetch inbox items from API
+  const { data: items = [], isLoading, refetch } = useQuery({
+    queryKey: ["/api/inbox"],
+    enabled: isOpen, // Only fetch when drawer is open
+    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
+  });
 
-  // Add a new upload to the inbox
-  const addUpload = async (fileUrl: string, filename: string, fileSize?: number) => {
-    const id = crypto.randomUUID();
-    const newItem: InboxItem = {
-      id,
-      fileUrl,
-      filename,
-      status: "analyzing",
-      uploadedAt: new Date(),
-      fileSize,
-    };
+  const activeItem = items.find((item: InboxItem) => item.id === activeItemId) || null;
 
-    setItems(prev => [newItem, ...prev]);
+  // Accept suggestion mutation
+  const acceptMutation = useMutation({
+    mutationFn: async ({ id, memberId, fields }: { id: string; memberId: string; fields: any[] }) => {
+      await apiRequest(`/api/inbox/${id}/accept`, {
+        method: "POST",
+        body: JSON.stringify({ memberId, fields }),
+      });
+    },
+    onSuccess: () => {
+      setActiveItemId(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/inbox"] });
+    },
+    onError: (error) => {
+      console.error("Failed to accept suggestion:", error);
+    },
+  });
 
-    try {
-      const suggestion = await analyzeUpload(newItem);
-      setItems(prev => 
-        prev.map(item => 
-          item.id === id 
-            ? { 
-                ...item, 
-                status: suggestion ? "suggested" : "dismissed", 
-                suggestion 
-              }
-            : item
-        )
-      );
-    } catch (error) {
-      console.error('Analysis failed:', error);
-      setItems(prev => 
-        prev.map(item => 
-          item.id === id 
-            ? { ...item, status: "dismissed" }
-            : item
-        )
-      );
-    }
-  };
+  // Dismiss item mutation
+  const dismissMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest(`/api/inbox/${id}/dismiss`, {
+        method: "POST",
+      });
+    },
+    onSuccess: () => {
+      setActiveItemId(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/inbox"] });
+    },
+    onError: (error) => {
+      console.error("Failed to dismiss item:", error);
+    },
+  });
 
   // Accept suggestion - move file to member
   const acceptSuggestion = (id: string) => {
-    setItems(prev => 
-      prev.map(item => 
-        item.id === id ? { ...item, status: "accepted" } : item
-      )
-    );
-    setActiveItemId(null);
-    
-    // TODO: Implement actual file move and metadata storage
-    console.log('Accepting suggestion for item:', id);
+    const item = items.find((item: InboxItem) => item.id === id);
+    if (item?.suggestion) {
+      acceptMutation.mutate({
+        id,
+        memberId: item.suggestion.memberId,
+        fields: item.suggestion.fields,
+      });
+    }
   };
 
   // Dismiss item
   const dismissItem = (id: string) => {
-    setItems(prev => 
-      prev.map(item => 
-        item.id === id ? { ...item, status: "dismissed" } : item
-      )
-    );
-    setActiveItemId(null);
+    dismissMutation.mutate(id);
   };
 
   // Navigate to member profile
@@ -206,18 +202,7 @@ export default function InboxDrawer({ isOpen, onClose, onAddUpload }: InboxDrawe
     setLocation(`/family/member/${memberId}`);
   };
 
-  // Expose function for external use
-  useEffect(() => {
-    if (onAddUpload) {
-      // Replace the onAddUpload prop with our internal addUpload
-      onAddUpload = addUpload;
-    }
-    
-    // For demo purposes - expose to window for testing
-    (window as any).__addInboxUpload = addUpload;
-  }, [onAddUpload]);
-
-  const visibleItems = items.filter(item => item.status !== "dismissed");
+  const visibleItems = items.filter((item: InboxItem) => item.status !== "dismissed");
 
   if (!isOpen) return null;
 
@@ -257,20 +242,26 @@ export default function InboxDrawer({ isOpen, onClose, onAddUpload }: InboxDrawe
 
         {/* Items List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {visibleItems.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className="w-8 h-8 mx-auto mb-4">
+                <Loader2 className="w-8 h-8 animate-spin text-[#D4AF37]" />
+              </div>
+              <div className="text-white/40 text-sm">
+                Loading inbox...
+              </div>
+            </div>
+          ) : visibleItems.length === 0 ? (
             <div className="text-center py-8">
               <div className="text-white/40 text-sm">
-                No uploads yet
+                No files to review
               </div>
               <div className="text-white/30 text-xs mt-2">
-                Drop files or use console: <br />
-                <code className="bg-black/40 px-2 py-1 rounded text-xs">
-                  window.__addInboxUpload("/path/to/file.jpg", "filename.jpg")
-                </code>
+                Upload files through the Upload Center to see AI analysis here
               </div>
             </div>
           ) : (
-            visibleItems.map(item => (
+            visibleItems.map((item: InboxItem) => (
               <InboxItemCard
                 key={item.id}
                 item={item}
