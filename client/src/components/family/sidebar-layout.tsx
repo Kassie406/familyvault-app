@@ -75,6 +75,11 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMobile, sidebarOpen]);
 
+  // Manage sidebar body attribute only (inbox is handled by UI store)
+  useEffect(() => {
+    document.body.toggleAttribute('data-sidebar-collapsed', sidebarCollapsed);
+  }, [sidebarCollapsed]);
+
 
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, href: '/family' },
@@ -127,7 +132,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
       )}
 
       {/* Desktop Sidebar */}
-      <div id="app-sidebar" className={`${isMobile ? 'hidden' : `bg-[var(--bg-850)] border-r border-[var(--line-700)] flex flex-col fixed h-full z-30`}`} data-collapsed={sidebarCollapsed ? "true" : "false"}>
+      <aside id="app-sidebar" className={`app-sidebar ${isMobile ? 'hidden' : 'bg-[var(--bg-850)] border-r border-[var(--line-700)] flex flex-col'}`} data-collapsed={sidebarCollapsed ? "true" : "false"}>
         {/* Desktop Sidebar Header */}
         {!isMobile && (
           <div className="p-6 border-b border-[var(--line-700)] relative">
@@ -206,7 +211,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
             </Link>
           </div>
         )}
-      </div>
+      </aside>
 
       {/* Mobile Sidebar Overlay */}
       {isMobile && sidebarOpen && (
@@ -275,9 +280,13 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
       )}
 
       {/* Main Content */}
-      <div id="app-main" className="flex-1">
+      <main id="app-main" className={`app-main flex-1 ${
+        isMobile 
+          ? 'pt-16' 
+          : ''
+      }`}>
         {children}
-      </div>
+      </main>
     </div>
   );
 }

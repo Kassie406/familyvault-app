@@ -1,53 +1,46 @@
 import React from "react";
 
-type UI = {
-  sidebarCollapsed: boolean;
+type UIState = {
+  sidebarCollapsed: boolean;          // current visual state
+  _prevSidebarCollapsed: boolean|null; // to restore after inbox closes
+  setSidebarCollapsed(v: boolean): void;
+
   inboxOpen: boolean;
   openInbox(): void;
   closeInbox(): void;
-  setSidebarCollapsed(v: boolean): void; // for your manual toggle button
 };
 
-const Ctx = React.createContext<UI>(null as any);
+const Ctx = React.createContext<UIState>(null as any);
 
 export function UIProvider({ children }: { children: React.ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+  const [prev, setPrev] = React.useState<boolean|null>(null);
   const [inboxOpen, setInboxOpen] = React.useState(false);
-  const prevCollapsedRef = React.useRef<boolean>(false);
-
-  // keep body attributes in sync (single effect)
-  React.useEffect(() => {
-    document.body.toggleAttribute("data-sidebar-collapsed", sidebarCollapsed);
-  }, [sidebarCollapsed]);
-
-  React.useEffect(() => {
-    document.body.toggleAttribute("data-inbox-open", inboxOpen);
-  }, [inboxOpen]);
 
   const openInbox = React.useCallback(() => {
-    prevCollapsedRef.current = sidebarCollapsed; // remember
-    setSidebarCollapsed(true);                   // icon-only
+    setPrev(sidebarCollapsed);      // remember current
+    setSidebarCollapsed(true);      // lock collapsed while inbox shown
     setInboxOpen(true);
+    document.body.setAttribute("data-inbox-open", "true");
   }, [sidebarCollapsed]);
 
   const closeInbox = React.useCallback(() => {
     setInboxOpen(false);
-    setSidebarCollapsed(prevCollapsedRef.current); // restore
-  }, []);
-
-  // clear any stale flags on first mount
-  React.useEffect(() => {
     document.body.removeAttribute("data-inbox-open");
-    document.body.removeAttribute("data-sidebar-collapsed");
-  }, []);
+    setSidebarCollapsed(prev ?? false); // restore previous
+    setPrev(null);
+  }, [prev]);
 
-  return (
-    <Ctx.Provider
-      value={{ sidebarCollapsed, inboxOpen, openInbox, closeInbox, setSidebarCollapsed }}
-    >
-      {children}
-    </Ctx.Provider>
-  );
+  const value = {
+    sidebarCollapsed,
+    _prevSidebarCollapsed: prev,
+    setSidebarCollapsed,
+    inboxOpen,
+    openInbox,
+    closeInbox,
+  };
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
 export const useUI = () => React.useContext(Ctx);

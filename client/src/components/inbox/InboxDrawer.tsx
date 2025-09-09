@@ -135,19 +135,19 @@ export default function InboxDrawer() {
   const queryClient = useQueryClient();
   const { openInbox, closeInbox } = useUI();
 
-  const open = location === "/family/inbox";
+  const isOpen = location === "/family/inbox";
 
-  // Wire to UI store exactly as in recipe
+  // Wire to UI store
   React.useEffect(() => {
-    if (open) openInbox();
+    if (isOpen) openInbox();
     else closeInbox();
-    return () => closeInbox(); // safety on unmount/navigation
-  }, [open, openInbox, closeInbox]);
+    return () => closeInbox(); // safety on unmount
+  }, [isOpen, openInbox, closeInbox]);
 
   // Fetch inbox items from API
   const { data: items = [], isLoading, refetch } = useQuery({
     queryKey: ["/api/inbox"],
-    enabled: open, // Only fetch when drawer is open
+    enabled: isOpen, // Only fetch when drawer is open
     refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
   });
 
@@ -212,14 +212,14 @@ export default function InboxDrawer() {
 
   const visibleItems = (items as InboxItem[]).filter((item: InboxItem) => item.status !== "dismissed");
 
-  if (!open) return null;
+  if (!isOpen) return null;
 
   return (
     <>
       {/* Inbox Drawer */}
       <aside 
         id="inbox-panel"
-        className="bg-[#0A0B10] border-r border-[#232530] shadow-2xl"
+        className="app-inbox bg-[#0A0B10] border-r border-[#232530] shadow-2xl flex flex-col"
         aria-label="Upload Inbox"
       >
         {/* Header */}
