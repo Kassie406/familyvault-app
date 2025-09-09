@@ -1,0 +1,120 @@
+You’re very close now — the presign call is 200 OK and you’re getting a valid uploadUrl.
+What’s blocking the actual upload is your page’s Content-Security-Policy (CSP):
+
+Refused to connect because it violates the document's Content Security Policy.
+
+That means the browser isn’t allowed (by your app’s CSP) to fetch/PUT to your S3 URL
+https://familyportal-docs-prod.s3.us-east-2.amazonaws.com/....
+
+Fix: allow S3 in CSP (at least in connect-src, and optionally img-src/media-src if you later display those files).
+
+Below are two ways to do it — use the one that matches your codebase.
+
+If you set CSP with Helmet (Express server)
+
+Open your server file where Helmet is used (commonly server/index.ts, server.ts, or app.ts), find the helmet({ contentSecurityPolicy: {...} }) call and add the S3 endpoints to connect-src (and optionally to img-src/media-src).
+
+import helmet from "helmet";
+
+// … your other imports …
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        // keep what you already have, then add these:
+        "connect-src": [
+          "'self'",
+          // allow any S3 bucket (safe + easy)
+          "https://*.s3.amazonaws.com",
+          "https://*.s3.*.amazonaws.com",
+          // or allow just your region/bucket host:
+          "https://familyportal-docs-prod.s3.us-east-2.amazonaws.com",
+          "https://familyportal-photos-prod.s3.us-east-2.amazonaws.com",
+        ],
+        "img-src": [
+          "'self'",
+          "data:",
+          "blob:",
+          "https://*.s3.amazonaws.com",
+          "https://*.s3.*.amazonaws.com",
+        ],
+        "media-src": [
+          "'self'",
+          "https://*.s3.amazonaws.com",
+          "https://*.s3.*.amazonaws.com",
+        ],
+        // If you serve PDFs or use object URLs you may also want:
+        "frame-src": ["'self'"],
+        "object-src": ["'none'"],
+      },
+    },
+    // (optional) if Helmet sets other strict policies that break dev, you can relax them
+    crossOriginEmbedderPolicy: false,
+  })
+);
+
+
+Restart your server after saving.
+
+If you set CSP via a <meta http-equiv="Content-Security-Policy"> tag
+
+Open your SPA HTML (often client/index.html or index.html) and replace the CSP meta with one that allows S3:
+
+<meta
+  http-equiv="Content-Security-Policy"
+  content="
+    default-src 'self';
+    connect-src 'self' https://*.s3.amazonaws.com https://*.s3.*.amazonaws.com https://familyportal-docs-prod.s3.us-east-2.amazonaws.com https://familyportal-photos-prod.s3.us-east-2.amazonaws.com;
+    img-src 'self' data: blob: https://*.s3.amazonaws.com https://*.s3.*.amazonaws.com;
+    media-src 'self' https://*.s3.amazonaws.com https://*.s3.*.amazonaws.com;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval';
+    style-src 'self' 'unsafe-inline';
+    font-src 'self' data:;
+    frame-src 'self';
+    object-src 'none';
+  "
+/>
+
+
+You can keep yours and just add the S3 hosts to connect-src. The wildcard
+https://*.s3.*.amazonaws.com is handy and still specific to Amazon S3.
+
+Then hard-refresh & test
+
+Hard refresh the app (to apply the new CSP):
+
+Windows: Ctrl+F5
+
+Mac: Cmd+Shift+R
+
+Open DevTools → Network → filter by presign.
+
+Upload again:
+
+You should see:
+
+POST /api/storage/presign → 200
+
+PUT https://familyportal-docs-prod.s3.us-east-2.amazonaws.com/... → 200
+
+The toast should say Uploaded (instead of “Failed to fetch”).
+
+Why this fixes it
+
+CORS on your S3 buckets is already correct (you updated it earlier).
+
+The browser was blocking the request before it even left the page because your CSP didn’t permit connections to S3. Adding S3 to connect-src lets the presigned PUT go through.
+
+If you still see “Failed to fetch”
+
+Double-check the error text: if it still says “violates the Content Security Policy”, your CSP change isn’t loaded (browser cache or wrong file).
+
+Ensure you updated the actual page that renders the Upload Center (not only the API server).
+
+Try the wildcard hosts exactly as above.
+
+As a temporary sanity test, you can comment out the CSP header entirely, hard refresh, and confirm the upload works — then re-enable with the S3 hosts added.
+
+Once CSP allows S3, your current fetch with credentials: 'omit' and the presigned URL will work, and the upload will complete.
