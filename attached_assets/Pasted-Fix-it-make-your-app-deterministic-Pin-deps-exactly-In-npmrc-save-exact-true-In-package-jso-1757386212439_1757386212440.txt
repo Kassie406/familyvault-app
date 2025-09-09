@@ -1,0 +1,82 @@
+Fix it (make your app deterministic)
+
+Pin deps exactly
+
+In .npmrc:
+
+save-exact=true
+
+
+In package.json, remove ^/~, e.g. "next": "14.2.5", not "^14.2.5".
+
+Commit your lockfile.
+
+If needed, add overrides:
+
+"overrides": {
+  "tailwindcss": "3.4.10",
+  "autoprefixer": "10.4.19",
+  "@dnd-kit/core": "6.1.0"
+}
+
+
+Scope your styles (to beat Replit/global CSS)
+
+Wrap dashboard in a class (e.g., .dashboard) and prefix critical rules (.dashboard .fcs-btn{...}).
+
+Prefer CSS Modules or Tailwind with @layer components for your buttons/cards.
+
+Where globals still win, use targeted !important on the single property (e.g., focus:!ring-2).
+
+Freeze formatting side effects
+
+Add .editorconfig and a local Prettier config.
+
+Disable class re-ordering plugins for Tailwind (or use Tailwind’s official class sorter consistently).
+
+Control dev vs build
+
+Use a build preview sometimes:
+
+npm run build && npm run start
+
+
+This removes dev overlays/StrictMode quirks and shows true production CSS order.
+
+Audit globals once
+
+In DevTools, check Styles when something flips: find the selector that wins (often button:hover).
+
+Neutralize it inside your scope:
+
+.dashboard button:hover { background: transparent; }
+.dashboard .fcs-btn--gold-outline:hover { background: rgba(197,160,0,.12) !important; }
+
+
+Git guardrails
+
+Make small commits; when a weird change appears, diff shows exactly what moved.
+
+If Replit pulls a new image and re-installs packages, you can revert lockfile drift.
+
+Shadcn/ui specifics
+
+Centralize your button variants; avoid sprinkling ad-hoc classes.
+
+Remove focus:ring-0 from the base if you want a persistent ring everywhere.
+
+Quick checklist for your case
+
+ Pin deps (remove carets, commit lockfile).
+
+ Add .npmrc with save-exact=true.
+
+ Keep dashboard styles scoped (you already added .dashboard .fcs-btn…).
+
+ Add focus:!ring-2 / active:!ring-2 to override any focus resets.
+
+ Neutralize button:hover globals inside .dashboard.
+
+ Test production build to confirm behavior is stable.
+
+If you paste your package.json and any global CSS (or your .replit run config), I’ll pin versions, add overrides, and give you a ready-to-paste scoped CSS block tailored to your current stack so Replit can’t “helpfully” restyle things behind your back.
