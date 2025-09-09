@@ -4163,3 +4163,41 @@ body[data-inbox-open="true"] .app-main{
   /* leave room for the inbox panel on the left side */
   margin-left: calc(var(--sb-w-collapsed) + var(--inbox-w));
 }
+
+/* Stable layout positioning for sidebar and inbox */
+:root{
+  --sb-collapsed: 64px;   /* icon-only width */
+  --inbox-w: 360px;       /* drawer width */
+}
+
+/* Sidebar is always visible on the far left */
+#app-sidebar{
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: var(--sb-collapsed) !important;
+  z-index: 40;
+}
+
+/* Inbox starts AFTER the sidebar */
+#inbox-panel{
+  position: fixed;
+  top: 0; bottom: 0;
+  left: var(--sb-collapsed) !important;  /* <-- key line */
+  width: var(--inbox-w);
+  z-index: 50;
+}
+
+/* Main content shifts so nothing overlaps */
+#app-main{
+  min-height: 100vh;
+  margin-left: calc(var(--sb-collapsed) + var(--inbox-w)) !important;
+  transition: margin-left .25s ease;
+}
+
+/* When the inbox is closed, put main next to the sidebar only */
+body:not([data-inbox-open="true"]) #app-main{
+  margin-left: var(--sb-collapsed) !important;
+}
+
+/* (Optional) light divider */
+#inbox-panel{ border-right: 1px solid rgba(255,255,255,.06); }
