@@ -1,12 +1,36 @@
 import { useEffect, useMemo, useState } from "react";
-import { DEFAULTS, Layout, CardId } from "./cards";
+import { DEFAULTS, Layout, CardId, CARD_REGISTRY } from "./cards";
 
 export function useUserLayout(userId: string, role: "parent" | "teen") {
   const key = `dash-layout:${userId}`;
   const [layout, setLayout] = useState<Layout>(() => {
     if (typeof window === "undefined") return DEFAULTS[role];
+    
     const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as Layout) : DEFAULTS[role];
+    if (!raw) return DEFAULTS[role];
+    
+    try {
+      const parsed = JSON.parse(raw) as Layout;
+      // Clean up stale card references (like removed quickActions)
+      const validCardIds = new Set(CARD_REGISTRY.map(c => c.id));
+      const cleaned = parsed.filter(item => {
+        const isValid = validCardIds.has(item.id);
+        if (!isValid) {
+          console.log('Removing stale card from layout:', item.id);
+        }
+        return isValid;
+      });
+      
+      // Save cleaned layout if we removed anything
+      if (cleaned.length !== parsed.length) {
+        localStorage.setItem(key, JSON.stringify(cleaned));
+      }
+      
+      return cleaned;
+    } catch (e) {
+      console.warn('Failed to parse dashboard layout:', e);
+      return DEFAULTS[role];
+    }
   });
 
   useEffect(() => {
