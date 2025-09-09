@@ -73,6 +73,29 @@ export function usePresignedUpload() {
 
           xhr.onerror = () => reject(new Error("Network error during upload"));
           xhr.ontimeout = () => reject(new Error("Upload timeout"));
+          
+          xhr.onreadystatechange = () => {
+            if (xhr.readyState === 4 && xhr.status !== 0) {
+              if (xhr.status >= 400) {
+                // Try to get the actual S3 error message
+                let errorMsg = `Upload failed: ${xhr.status} ${xhr.statusText}`;
+                if (xhr.responseText) {
+                  try {
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(xhr.responseText, "text/xml");
+                    const code = xmlDoc.getElementsByTagName("Code")[0]?.textContent;
+                    const message = xmlDoc.getElementsByTagName("Message")[0]?.textContent;
+                    if (code && message) {
+                      errorMsg = `S3 Error: ${code} - ${message}`;
+                    }
+                  } catch (e) {
+                    // Fall back to status text
+                  }
+                }
+                reject(new Error(errorMsg));
+              }
+            }
+          };
           xhr.timeout = 60000; // 60 second timeout
 
           xhr.send(file);

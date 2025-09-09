@@ -150,7 +150,7 @@ storage.post("/presign", async (req, res) => {
       Key: key,
       ContentType: contentType,
       ...(contentLength && { ContentLength: contentLength }),
-      ACL: "private", // Always private, access via presigned URLs
+      // DO NOT set ACL - modern S3 buckets with Block Public Access reject ACL headers
     });
 
     const expiresIn = 60 * 5; // 5 minutes
