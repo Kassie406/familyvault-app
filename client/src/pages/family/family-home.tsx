@@ -1097,36 +1097,34 @@ export default function FamilyHome() {
           renderCard={renderCard}
         />
 
-        {/* Legacy Quick Actions Row - Hidden during editing */}
-        {!editing && (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-[#D4AF37]/10">
-                <Zap className="h-5 w-5 text-[#D4AF37]" />
-              </div>
-              <div>
-                <h3 className="text-gray-200 font-semibold">Legacy Actions</h3>
-                <p className="text-xs text-gray-500">These will be integrated into the customizable cards</p>
-              </div>
+        {/* Legacy Quick Actions Row - Always visible */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-lg bg-[#D4AF37]/10">
+              <Zap className="h-5 w-5 text-[#D4AF37]" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <ActionCard 
-                icon={<Upload className="h-5 w-5"/>} 
-                title="Upload Document" 
-                subtitle="Add new family document"
-                onClick={scrollToDocumentUpload}
-              />
-              <ActionCard 
-                icon={<MessageCircle className="h-5 w-5"/>} 
-                title="Send Message" 
-                subtitle="Chat with family" 
-                onClick={() => setMessagingOpen(true)}
-              />
-              <ActionCard icon={<ImageIcon className="h-5 w-5"/>} title="View Photos" subtitle="Browse family gallery" />
-              <ActionCard icon={<ShieldAlert className="h-5 w-5"/>} title="Emergency Info" subtitle="Quick access to critical info" />
+            <div>
+              <h3 className="text-gray-200 font-semibold">Legacy Actions</h3>
+              <p className="text-xs text-gray-500">These will be integrated into the customizable cards</p>
             </div>
           </div>
-        )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <ActionCard 
+              icon={<Upload className="h-5 w-5"/>} 
+              title="Upload Document" 
+              subtitle="Add new family document"
+              onClick={scrollToDocumentUpload}
+            />
+            <ActionCard 
+              icon={<MessageCircle className="h-5 w-5"/>} 
+              title="Send Message" 
+              subtitle="Chat with family" 
+              onClick={() => setMessagingOpen(true)}
+            />
+            <ActionCard icon={<ImageIcon className="h-5 w-5"/>} title="View Photos" subtitle="Browse family gallery" />
+            <ActionCard icon={<ShieldAlert className="h-5 w-5"/>} title="Emergency Info" subtitle="Quick access to critical info" />
+          </div>
+        </div>
 
       {/* OLD UPLOAD CENTER SECTION - Now in sortable grid */}
 
