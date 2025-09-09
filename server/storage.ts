@@ -998,8 +998,8 @@ export class DatabaseStorage implements IStorage {
       {
         id: "member-2",
         familyId: familyId,
-        name: "Sarah Johnson",
-        email: "sarah@example.com",
+        name: "Angel Quintana",
+        email: "angel@example.com",
         phone: "(555) 123-4568",
         dateOfBirth: new Date("1992-05-15"),
         relationshipToOwner: "spouse",
