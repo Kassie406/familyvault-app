@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -81,13 +81,7 @@ function formatDueDate(dueAt: string | null) {
   return date.toLocaleDateString();
 }
 
-export default function FamilyUpdates({ 
-  onRefreshReady, 
-  onRefreshStateChange 
-}: { 
-  onRefreshReady?: (refreshFn: () => Promise<void>) => void;
-  onRefreshStateChange?: (isRefreshing: boolean) => void;
-}) {
+const FamilyUpdates = forwardRef<{ refresh: () => Promise<void> }>((props, ref) => {
   const queryClient = useQueryClient();
   const { isAdmin, isLoading: userLoading } = useUserRole();
   const [updates, setUpdates] = useState<FamilyUpdateType[]>([]);
@@ -109,27 +103,6 @@ export default function FamilyUpdates({
     setUpdates(updatesData);
   }, [updatesData]);
 
-  // Notify parent when refresh state changes
-  useEffect(() => {
-    if (onRefreshStateChange) {
-      onRefreshStateChange(isRefreshing);
-    }
-  }, [isRefreshing, onRefreshStateChange]);
-
-  // Expose refresh function to parent component
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await refetch();
-    await loadSnoozedCount(); // Also refresh snoozed count
-    setTimeout(() => setIsRefreshing(false), 1000);
-  };
-
-  useEffect(() => {
-    if (onRefreshReady) {
-      onRefreshReady(handleRefresh);
-    }
-  }, [onRefreshReady]);
-
   // Load snoozed count
   const loadSnoozedCount = async () => {
     try {
@@ -140,6 +113,23 @@ export default function FamilyUpdates({
       console.error('Failed to load snoozed count:', error);
     }
   };
+
+  // Internal refresh function
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+      await loadSnoozedCount(); // Also refresh snoozed count
+    } catch (error) {
+      console.error('Failed to refresh:', error);
+    }
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
+
+  // Expose refresh function via ref
+  useImperativeHandle(ref, () => ({
+    refresh: handleRefresh
+  }));
 
   useEffect(() => {
     loadSnoozedCount();
@@ -302,4 +292,7 @@ export default function FamilyUpdates({
       <SnoozedList onRestored={handleRestored} />
     </div>
   );
-}
+});
+
+FamilyUpdates.displayName = 'FamilyUpdates';
+export default FamilyUpdates;
