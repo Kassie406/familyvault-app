@@ -22,7 +22,7 @@ export const CARD_REGISTRY: CardDef[] = [
   { id: "documents", title: "Documents Shared" },
   { id: "messages", title: "Messages & Video Meetings" },
   { id: "photos", title: "Photos Uploaded" },
-  { id: "sharedLists", title: "Shared Lists" },
+  { id: "sharedLists", title: "To Do/Shared Lists" },
   { id: "recipeBook", title: "Recipe Book" },
   { id: "budget", title: "Budget Tracker" },
   { id: "couples", title: "Couple's Connection" },
