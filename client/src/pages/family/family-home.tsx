@@ -66,8 +66,7 @@ export default function FamilyHome() {
   const [highlightPhotoUpload, setHighlightPhotoUpload] = useState(false);
   const [highlightICE, setHighlightICE] = useState(false);
   const [quickAccessOpen, setQuickAccessOpen] = useState(false);
-  const [familyUpdatesRefresh, setFamilyUpdatesRefresh] = useState<(() => Promise<void>) | null>(null);
-  const [familyUpdatesRefreshing, setFamilyUpdatesRefreshing] = useState(false);
+  const familyUpdatesRef = useRef<{ refresh: () => Promise<void> } | null>(null);
   const [dashboardLayout, setDashboardLayout] = useState('default');
   const [policyModalOpen, setPolicyModalOpen] = useState(false);
   const [approvalsDrawerOpen, setApprovalsDrawerOpen] = useState(false);
@@ -1130,22 +1129,16 @@ export default function FamilyHome() {
                 </div>
                 <button
                   onClick={() => {
-                    if (familyUpdatesRefresh) {
-                      familyUpdatesRefresh();
-                    }
+                    familyUpdatesRef.current?.refresh();
                   }}
-                  disabled={familyUpdatesRefreshing}
-                  className="p-2 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50"
+                  className="p-2 rounded-lg hover:bg-white/10 transition-colors"
                   data-testid="button-refresh-family-updates"
                 >
-                  <RefreshCw className={`h-4 w-4 text-white/70 transition-transform ${familyUpdatesRefreshing ? 'animate-spin' : ''}`} />
+                  <RefreshCw className="h-4 w-4 text-white/70" />
                 </button>
               </div>
               <div className="overflow-y-auto h-[calc(100%-80px)] custom-scrollbar">
-                <FamilyUpdates 
-                  onRefreshReady={setFamilyUpdatesRefresh} 
-                  onRefreshStateChange={setFamilyUpdatesRefreshing}
-                />
+                <FamilyUpdates ref={familyUpdatesRef} />
               </div>
             </div>
           </Panel>
