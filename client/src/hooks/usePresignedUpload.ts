@@ -51,16 +51,25 @@ export function usePresignedUpload() {
       setError(null);
 
       try {
+        const finalContentType = contentType || file.type || "application/octet-stream";
+        
+        // Debug logging to see what we're sending
+        console.log('🚀 Uploading to:', signed.uploadUrl);
+        console.log('📝 Headers Content-Type:', finalContentType);
+        console.log('📦 File size:', file.size, 'bytes');
+        
         // Use fetch with proper CORS settings as recommended
         const response = await fetch(signed.uploadUrl, {
           method: "PUT",
           mode: "cors",
           credentials: "omit", // Critical for S3 CORS
           headers: { 
-            "Content-Type": contentType || file.type || "application/octet-stream" 
+            "Content-Type": finalContentType
           },
           body: file,
         });
+        
+        console.log('✅ PUT response:', response.status, response.statusText);
 
         if (!response.ok) {
           // Try to get the actual S3 error message
