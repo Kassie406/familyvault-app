@@ -43,7 +43,7 @@ export function CustomizeBar({
         {editing && (
           <button 
             onClick={onReset} 
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#2A2A33] text-white/80 hover:bg-red-500/20 hover:text-red-400 transition-colors"
+            className="fcs-btn fcs-btn--ring fcs-btn--reset"
             data-testid="reset-layout"
           >
             <RotateCcw className="h-3 w-3" />

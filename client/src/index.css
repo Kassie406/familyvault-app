@@ -337,6 +337,27 @@ button:hover {
   background: #a88500 !important; 
 }
 
+/* Reset button (red/danger theme) */
+.dashboard .fcs-btn--reset {
+  background: transparent; 
+  color: #e5e7eb; /* gray-200 */
+  box-shadow: 0 0 0 2px #dc2626, 0 0 0 4px #0b0b0e; /* red ring */
+}
+
+.dashboard .fcs-btn--reset:hover { 
+  background: rgba(220,38,38,.12) !important; /* soft red hover */
+  color: #f87171 !important; /* red-400 */
+}
+
+.dashboard .fcs-btn--reset:active { 
+  background: rgba(220,38,38,.18) !important; 
+}
+
+.dashboard .fcs-btn--reset:focus,
+.dashboard .fcs-btn--reset:active {
+  box-shadow: 0 0 0 2px #dc2626, 0 0 0 4px #0b0b0e; /* maintain red ring */
+}
+
 /* Kill any global white hover on buttons inside the dashboard */
 .dashboard button:hover { 
   background-color: transparent !important; 
@@ -348,6 +369,10 @@ button:hover {
 
 .dashboard .fcs-btn--gold-filled:hover { 
   background-color: #b79600 !important; 
+}
+
+.dashboard .fcs-btn--reset:hover { 
+  background-color: rgba(220,38,38,.12) !important; 
 }
 
 /* Specifically target password manager buttons */
