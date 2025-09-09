@@ -8,7 +8,7 @@ import {
   Heart, Clock, Star, Bell, Plus, ArrowRight, Activity,
   Inbox, AlarmClock, CreditCard, Home as HomeIcon, Key, 
   Umbrella, Receipt, Scale, Building2, BookOpen, 
-  Phone, DollarSign, Upload, ShieldAlert,
+  Phone, DollarSign, Upload, ShieldAlert, MapPin, Baby,
   UserPlus, Mail, Settings, Share, Camera, FolderOpen, AlertCircle,
   Zap, Grid, BarChart3, Video, ListTodo, CalendarDays, User,
   X, CheckCircle2, Trash2, LogOut, Search, HelpCircle, ChefHat,
@@ -597,6 +597,68 @@ export default function FamilyHome() {
             }
           } catch (e) { alert('Failed to generate shopping list'); }
         }, icon: <ListTodo className="h-4 w-4" /> }
+      ]
+    },
+    { 
+      label: 'Family Vacation', 
+      value: 'Hawaii 2024', 
+      icon: MapPin,
+      href: '#',
+      onClick: () => alert('Family Vacation planner coming soon!'),
+      fetchPreview: async () => {
+        return [
+          { id: "1", title: "Flight to Honolulu", sub: "Booked • July 15-22", href: "#" },
+          { id: "2", title: "Beachfront Resort", sub: "Confirmed • 7 nights", href: "#" },
+          { id: "3", title: "Snorkeling Tour", sub: "Scheduled • July 18", href: "#" },
+          { id: "4", title: "Pearl Harbor Visit", sub: "Tickets purchased • July 20", href: "#" },
+          { id: "5", title: "Luau Dinner", sub: "Reserved • July 21", href: "#" }
+        ];
+      },
+      dropdownActions: [
+        { label: "Plan Trip", onClick: () => alert('Trip planner coming soon!'), icon: <MapPin className="h-4 w-4" /> },
+        { label: "Book Activities", onClick: () => alert('Activity booking coming soon!'), icon: <Calendar className="h-4 w-4" /> },
+        { label: "Travel Documents", onClick: () => alert('Travel docs coming soon!'), icon: <FileText className="h-4 w-4" /> }
+      ]
+    },
+    { 
+      label: 'Babysitter', 
+      value: 'Sarah M.', 
+      icon: User,
+      href: '#',
+      onClick: () => alert('Babysitter management coming soon!'),
+      fetchPreview: async () => {
+        return [
+          { id: "1", title: "Sarah Martinez", sub: "Available weekends • $15/hr", href: "#" },
+          { id: "2", title: "Jessica Brown", sub: "Evening availability • $12/hr", href: "#" },
+          { id: "3", title: "Mike Thompson", sub: "Weekday mornings • $18/hr", href: "#" },
+          { id: "4", title: "Emma Wilson", sub: "Holiday coverage • $20/hr", href: "#" },
+          { id: "5", title: "Alex Chen", sub: "Emergency contact • $25/hr", href: "#" }
+        ];
+      },
+      dropdownActions: [
+        { label: "Book Babysitter", onClick: () => alert('Booking coming soon!'), icon: <Calendar className="h-4 w-4" /> },
+        { label: "Add New Sitter", onClick: () => alert('Add sitter coming soon!'), icon: <UserPlus className="h-4 w-4" /> },
+        { label: "Payment History", onClick: () => alert('Payment history coming soon!'), icon: <DollarSign className="h-4 w-4" /> }
+      ]
+    },
+    { 
+      label: 'Emergency Contacts', 
+      value: '24/7 Ready', 
+      icon: ShieldAlert,
+      href: '/family/emergency',
+      fetchPreview: async () => {
+        return [
+          { id: "1", title: "911 Emergency", sub: "Police • Fire • Medical", href: "#" },
+          { id: "2", title: "Dr. Sarah Johnson", sub: "Family Doctor • (555) 123-4567", href: "#" },
+          { id: "3", title: "Children's Hospital", sub: "Pediatric Emergency • (555) 987-6543", href: "#" },
+          { id: "4", title: "Poison Control", sub: "24/7 Hotline • 1-800-222-1222", href: "#" },
+          { id: "5", title: "Mom's Cell", sub: "Always available • (555) 111-2222", href: "#" }
+        ];
+      },
+      dropdownActions: [
+        { label: "Add Contact", onClick: () => alert('Add contact coming soon!'), icon: <UserPlus className="h-4 w-4" /> },
+        { label: "Medical Info", onClick: () => alert('Medical info coming soon!'), icon: <FileText className="h-4 w-4" /> },
+        { label: "Quick Call", onClick: () => alert('Quick call coming soon!'), icon: <Phone className="h-4 w-4" /> }
       ]
     }
   ];
