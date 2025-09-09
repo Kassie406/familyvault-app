@@ -1,0 +1,73 @@
+Awesome — thanks for updating CORS on both buckets. That was the blocker. Here’s how to verify everything is now wired end-to-end:
+
+1) Do a clean test
+
+Hard refresh (Cmd/Ctrl-Shift-R) or open your app in a new browser tab (outside the Replit preview iframe).
+
+In Upload Center:
+
+Click Select Files, pick the file.
+
+You should see Upload (1) become active.
+
+Click Upload.
+
+Expected in DevTools → Network
+
+POST /api/storage/presign → 200
+
+An OPTIONS preflight to the S3 URL → 204/200 with headers like
+access-control-allow-origin: * and access-control-allow-methods: GET, PUT, HEAD, POST
+
+A PUT to the same S3 URL → 200
+
+The file card should no longer say “Failed to fetch,” and the upload counter should progress.
+
+If anything still fails
+
+Run through this quick checklist (these are the only remaining causes I’ve seen after CORS is correct):
+
+Fetch settings on the PUT (front-end)
+
+Must be:
+
+fetch(uploadUrl, {
+  method: 'PUT',
+  mode: 'cors',
+  credentials: 'omit',
+  headers: { 'Content-Type': file.type || 'application/octet-stream' },
+  body: file,
+})
+
+
+credentials: 'omit' is critical (prevents cookies being sent, which S3 rejects).
+
+Content-Type must match what you sent to the presign endpoint.
+
+Cache/iframe quirks
+
+Close the Replit preview, use the “Open in new tab” app URL (or another browser).
+
+Disable ad-block/privacy extensions for your app domain.
+
+What specific errors mean
+
+403 SignatureDoesNotMatch → the Content-Type on the PUT doesn’t match the one used when presigning. Use the exact value (file.type || 'application/octet-stream').
+
+CORS missing on the preflight (no access-control-allow-origin) → CORS didn’t save / hasn’t propagated yet (give it ~1–2 minutes, then try again).
+
+400 Request has expired → using an old presigned URL (click Upload again to get a fresh one).
+
+Final CORS (what you should have on both buckets)
+[
+  {
+    "AllowedOrigins": ["*"],
+    "AllowedMethods": ["GET", "PUT", "HEAD", "POST"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3000
+  }
+]
+
+
+Give it one more try now. If it still errors, tell me exactly which request fails (OPTIONS or PUT) and the status + response text you see in Network — I’ll use that to pinpoint the last mile.
