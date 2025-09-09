@@ -110,7 +110,9 @@ export default function UploadCenter({
       });
 
       if (!createRes.ok) {
-        throw new Error(`Failed to create document record for ${row.file.name}`);
+        const errorText = await createRes.text();
+        console.error("Document creation failed:", errorText);
+        throw new Error(`Failed to create document record for ${row.file.name}: ${errorText}`);
       }
 
       const document = await createRes.json();
@@ -124,11 +126,17 @@ export default function UploadCenter({
       });
 
       // Step 3: Attach file to document
-      const attachRes = await fetch(`/api/documents/${document.id}/attach`, {
+      const attachRes = await fetch(`/api/documents/${document.id}/attach-file`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ key, publicUrl }),
+        body: JSON.stringify({ 
+          storageKey: key,
+          fileName: row.file.name,
+          contentType: row.file.type,
+          size: row.file.size,
+          publicUrl 
+        }),
       });
 
       if (!attachRes.ok) {
