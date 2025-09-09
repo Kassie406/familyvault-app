@@ -53,8 +53,8 @@ export default function ActionCenter() {
 
   if (err) {
     return (
-      <div id="action-center-shell" className="bg-transparent p-0">
-        <div id="action-center-card" className="p-4 text-rose-300">
+      <div id="action-center-shell" className="bg-transparent p-0 h-full">
+        <div id="action-center-card" className="p-4 h-full flex flex-col justify-center text-rose-300">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-5 h-5" />
             Action Center error — {err}
@@ -66,8 +66,8 @@ export default function ActionCenter() {
   
   if (!data) {
     return (
-      <div id="action-center-shell" className="bg-transparent p-0">
-        <div id="action-center-card" className="p-4 animate-pulse text-white/60">
+      <div id="action-center-shell" className="bg-transparent p-0 h-full">
+        <div id="action-center-card" className="p-4 h-full flex flex-col justify-center animate-pulse text-white/60">
           Loading Action Center…
         </div>
       </div>
@@ -82,8 +82,8 @@ export default function ActionCenter() {
   ].filter(Boolean);
 
   return (
-    <div id="action-center-shell" className="bg-transparent p-0">
-      <div id="action-center-card" className={`p-4 ${hasActions ? "cursor-pointer" : ""}`}>
+    <div id="action-center-shell" className="bg-transparent p-0 h-full">
+      <div id="action-center-card" className={`p-4 h-full flex flex-col justify-center ${hasActions ? "cursor-pointer" : ""}`}>
         <a href="#chores" className="block">
           <div className="flex items-center gap-2 mb-1">
             {hasActions ? (

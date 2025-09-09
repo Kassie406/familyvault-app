@@ -1,0 +1,97 @@
+that big empty “belt” is almost always caused by one (or both) of these:
+
+the grid/wrapper is adding extra vertical spacing (space-y / margins), or
+
+one or more cards have a fixed/min height and the neighbors don’t stretch to fill, leaving a gap.
+
+Here’s a tight fix you can drop in (Tailwind + shadcn/ui style). It removes stray margins, makes all cards stretch to equal height, and packs the grid so there are no big gaps.
+
+1) Make the grid pack tightly and stretch cards
+// DashboardGrid.tsx (wrapper around your cards)
+export default function DashboardGrid({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="
+        grid grid-cols-12 gap-4
+        [grid-auto-rows:1fr]           /* every row same height unit */
+        auto-rows-[1fr]                /* tailwind arbitrary for safety */
+        auto-flow-dense                /* pack to avoid holes */
+        items-stretch                  /* stretch children vertically */
+      "
+    >
+      {children}
+    </div>
+  );
+}
+
+2) Make every Card fill its grid cell
+
+Add h-full on every card container so it stretches; also kill default bottom margins inside.
+
+import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
+
+export function DashboardCard({ children, className = "" }) {
+  return (
+    <Card className={`h-full m-0 p-0 ${className}`}>
+      {/* Remove internal extra spacing that can create ‘belts’ */}
+      <CardHeader className="p-4 pb-3 last:mb-0" />
+      <CardContent className="p-4 space-y-3 [&>*]:mb-0" />
+      <CardFooter className="p-4 pt-3" />
+      {children}
+    </Card>
+  );
+}
+
+
+If you don’t use the shadcn sections, just ensure the outermost element around each card has className="h-full m-0" and that any inner wrappers don’t end with large mb-8/space-y-8.
+
+3) Remove global vertical spacing that creates the “belt”
+
+Check the parent wrappers. If you see space-y-8 or similar on the section that holds those two rows, reduce it or remove it:
+
+<!-- BEFORE -->
+<div class="space-y-8"> ... </div>
+
+<!-- AFTER -->
+<div class="space-y-4 md:space-y-4"> ... </div>
+
+
+Also normalize margins:
+
+/* tiny global safeguard */
+.dashboard *:last-child { margin-bottom: 0; }
+
+4) If one module sets a min-height, cap it
+
+Sometimes a single widget (e.g., “Meal Planner” or “Couple’s Connection”) forces a tall min-height. Remove or cap it:
+
+<div className="min-h-0 h-full max-h-[520px] overflow-hidden"> ... </div>
+
+5) If you’re NOT using Tailwind, a pure CSS fallback
+.dashboard-grid{
+  display:grid;
+  grid-template-columns:repeat(12,minmax(0,1fr));
+  gap:16px;
+  grid-auto-rows:1fr;     /* equal row units */
+  grid-auto-flow:dense;   /* pack items, no holes */
+  align-items:stretch;
+}
+.dashboard-card{
+  height:100%;
+  margin:0 !important;
+}
+.dashboard-grid > * { margin:0; }
+
+Quick checklist (do these in order)
+
+Parent grid has gap-4 (or your choice), no space-y-*.
+
+Each card: h-full m-0.
+
+Inner sections: avoid mb-6/mb-8; use last:mb-0.
+
+Remove/limit any min-h-[...px] that’s taller than neighbors.
+
+Add auto-flow-dense (or grid-auto-flow: dense) to pack leftover spots.
+
+Apply those and that red-circled gap should disappear. If you paste a snippet of the exact grid + two affected cards, I’ll tailor the classNames line-for-line.

@@ -709,10 +709,10 @@ export default function FamilyHome() {
         </div>
       </div>
       
-      <div className="p-8 space-y-6">
+      <div className="p-8 space-y-4">
 
       {/* Family Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-stretch">
         {familyStats.map((stat, index) => {
           const Icon = stat.icon;
           const keyValue = typeof stat.label === 'string' ? stat.label : `stat-${index}`;
@@ -732,7 +732,7 @@ export default function FamilyHome() {
       </div>
 
       {/* Chores & Allowance Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-stretch">
         {/* Action Center - First column */}
         <div className="lg:col-span-1">
           <ActionCenter />
