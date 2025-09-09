@@ -96,92 +96,46 @@ export default function UploadCenter({
   // Document upload mutation
   const uploadDocumentMutation = useMutation({
     mutationFn: async (row: FileRow) => {
-      // Step 1: Create document record
-      const createRes = await fetch("/api/documents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          familyId,
-          title: row.title,
-          description: row.description,
-          category: row.category,
-        }),
-      });
-
-      if (!createRes.ok) {
-        const errorText = await createRes.text();
-        console.error("Document creation failed:", errorText);
-        throw new Error(`Failed to create document record for ${row.file.name}: ${errorText}`);
-      }
-
-      const document = await createRes.json();
-
-      // Step 2: Upload file to S3/R2 with progress tracking
-      setRows((r) => r.map((x) => (x.id === row.id ? { ...x, status: "uploading", docId: document.id } : x)));
+      // Step 1: Upload file to S3/R2 with progress tracking
+      setRows((r) => r.map((x) => (x.id === row.id ? { ...x, status: "uploading" } : x)));
       
       const { key, publicUrl } = await uploadFile(row.file, {
         type: "document",
         familyId
       });
 
-      // Step 3: Attach file to document
-      const attachRes = await fetch(`/api/documents/${document.id}/attach-file`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ 
-          storageKey: key,
-          fileName: row.file.name,
-          contentType: row.file.type,
-          size: row.file.size,
-          publicUrl 
-        }),
-      });
-
-      if (!attachRes.ok) {
-        throw new Error(`Failed to attach file to document ${document.id}`);
-      }
-
-      return { documentId: document.id, key, publicUrl };
+      return { key, publicUrl };
     },
     onSuccess: async (result, row) => {
       setRows((r) => r.map((x) => (x.id === row.id ? { ...x, status: "done", progress: 100 } : x)));
-      onUploadComplete?.(result.documentId, 'document');
+      
       toast({
         title: "Document uploaded",
         description: `${row.file.name} has been uploaded successfully.`,
       });
       
-      // Send to Inbox for AI analysis
-      if (result.publicUrl) {
-        try {
-          // Register upload with the AI Inbox API
-          const uploadRes = await fetch("/api/uploads", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              fileKey: result.key,
-              fileName: row.file.name,
-              mime: row.file.type,
-              size: row.file.size,
-            }),
-          });
-          
-          if (uploadRes.ok) {
-            const { uploadId } = await uploadRes.json();
-            
-            // Trigger AI analysis
-            await fetch(`/api/inbox/${uploadId}/analyze`, {
-              method: "POST",
-            });
-            
-            // Open inbox to show the analyzed document
-            setInboxOpen(true);
+      // Use AI Inbox flow
+      try {
+        const { aiInboxProcessFile } = await import("@/lib/aiInbox");
+        await aiInboxProcessFile(
+          row.file, 
+          result.key, 
+          "current-user", // TODO: Get from auth
+          {
+            open: () => setInboxOpen(true),
+            addOrUpdate: (item) => {
+              // For now, just open the inbox - the drawer will fetch items
+              console.log("AI Inbox item:", item);
+            }
           }
-        } catch (error) {
-          console.error("Failed to process file for AI analysis:", error);
-        }
+        );
+      } catch (error) {
+        console.error("Failed to process file for AI analysis:", error);
+        toast({
+          title: "AI Analysis failed", 
+          description: error instanceof Error ? error.message : "Unknown error",
+          variant: "destructive"
+        });
       }
       
       // Invalidate queries
@@ -250,35 +204,28 @@ export default function UploadCenter({
         description: `${row.file.name} has been uploaded successfully.`,
       });
       
-      // Send to Inbox for AI analysis
-      if (result.publicUrl) {
-        try {
-          // Register upload with the AI Inbox API
-          const uploadRes = await fetch("/api/uploads", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              fileKey: result.key,
-              fileName: row.file.name,
-              mime: row.file.type,
-              size: row.file.size,
-            }),
-          });
-          
-          if (uploadRes.ok) {
-            const { uploadId } = await uploadRes.json();
-            
-            // Trigger AI analysis
-            await fetch(`/api/inbox/${uploadId}/analyze`, {
-              method: "POST",
-            });
-            
-            // Open inbox to show the analyzed document
-            setInboxOpen(true);
+      // Use AI Inbox flow for photos too
+      try {
+        const { aiInboxProcessFile } = await import("@/lib/aiInbox");
+        await aiInboxProcessFile(
+          row.file, 
+          result.key, 
+          "current-user", // TODO: Get from auth
+          {
+            open: () => setInboxOpen(true),
+            addOrUpdate: (item) => {
+              // For now, just open the inbox - the drawer will fetch items
+              console.log("AI Inbox item:", item);
+            }
           }
-        } catch (error) {
-          console.error("Failed to process file for AI analysis:", error);
-        }
+        );
+      } catch (error) {
+        console.error("Failed to process file for AI analysis:", error);
+        toast({
+          title: "AI Analysis failed", 
+          description: error instanceof Error ? error.message : "Unknown error",
+          variant: "destructive"
+        });
       }
       
       // Invalidate queries
