@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import { useState } from "react";
 import { X, FileImage, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useUI } from "@/lib/ui-store";
 import SuggestDetailsModal from "./SuggestDetailsModal";
 import { formatFileSize, getConfidenceDot } from "@/lib/inbox";
 import type { InboxItem } from '@shared/types/inbox';
@@ -129,20 +128,15 @@ function InboxItemCard({ item, onOpenMember, onShowDetails, onDismiss }: InboxIt
   );
 }
 
-export default function InboxDrawer() {
+interface InboxDrawerProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function InboxDrawer({ isOpen, onClose }: InboxDrawerProps) {
   const [location, setLocation] = useLocation();
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const { openInbox, closeInbox } = useUI();
-
-  const isOpen = location === "/family/inbox";
-
-  // Wire to UI store
-  React.useEffect(() => {
-    if (isOpen) openInbox();
-    else closeInbox();
-    return () => closeInbox(); // safety on unmount
-  }, [isOpen, openInbox, closeInbox]);
 
   // Fetch inbox items from API
   const { data: items = [], isLoading, refetch } = useQuery({
@@ -151,18 +145,14 @@ export default function InboxDrawer() {
     refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
   });
 
-  // Close handler
-  const onClose = useCallback(() => {
-    setLocation("/family");
-  }, [setLocation]);
-
-  const activeItem = (items as InboxItem[]).find((item: InboxItem) => item.id === activeItemId) || null;
+  const activeItem = items.find((item: InboxItem) => item.id === activeItemId) || null;
 
   // Accept suggestion mutation
   const acceptMutation = useMutation({
     mutationFn: async ({ id, memberId, fields }: { id: string; memberId: string; fields: any[] }) => {
-      return await apiRequest(`/api/inbox/${id}/accept`, "POST", {
-        memberId, fields
+      await apiRequest(`/api/inbox/${id}/accept`, {
+        method: "POST",
+        body: JSON.stringify({ memberId, fields }),
       });
     },
     onSuccess: () => {
@@ -177,7 +167,9 @@ export default function InboxDrawer() {
   // Dismiss item mutation
   const dismissMutation = useMutation({
     mutationFn: async (id: string) => {
-      return await apiRequest(`/api/inbox/${id}/dismiss`, "POST");
+      await apiRequest(`/api/inbox/${id}/dismiss`, {
+        method: "POST",
+      });
     },
     onSuccess: () => {
       setActiveItemId(null);
@@ -190,7 +182,7 @@ export default function InboxDrawer() {
 
   // Accept suggestion - move file to member
   const acceptSuggestion = (id: string) => {
-    const item = (items as InboxItem[]).find((item: InboxItem) => item.id === id);
+    const item = items.find((item: InboxItem) => item.id === id);
     if (item?.suggestion) {
       acceptMutation.mutate({
         id,
@@ -210,7 +202,7 @@ export default function InboxDrawer() {
     setLocation(`/family/member/${memberId}`);
   };
 
-  const visibleItems = (items as InboxItem[]).filter((item: InboxItem) => item.status !== "dismissed");
+  const visibleItems = items.filter((item: InboxItem) => item.status !== "dismissed");
 
   if (!isOpen) return null;
 
@@ -218,8 +210,7 @@ export default function InboxDrawer() {
     <>
       {/* Inbox Drawer */}
       <aside 
-        id="inbox-panel"
-        className="app-inbox bg-[#0A0B10] border-r border-[#232530] shadow-2xl flex flex-col"
+        className="fixed top-0 right-0 h-full w-[400px] bg-[#0A0B10] border-l border-[#232530] z-40 shadow-2xl"
         aria-label="Upload Inbox"
       >
         {/* Header */}
