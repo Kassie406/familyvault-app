@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { sql, desc, eq, and } from "drizzle-orm";
-import { familyActivity, chores, allowanceLedger, familyMembers, recipes, mealPlanEntries, shoppingItems, familyUpdates, coupleActivities, coupleChores, type InsertFamilyUpdate } from "@shared/schema";
+import { familyActivity, chores, allowanceLedger, familyMembers, recipes, mealPlanEntries, shoppingItems, familyUpdates, coupleActivities, coupleChores, inboxItems, extractedFields, memberFileAssignments, type InsertFamilyUpdate, type InsertInboxItem, type InsertExtractedField, type InsertMemberFileAssignment } from "@shared/schema";
 import storageRoutes from "./storage-routes";
 import fileRoutes from "./routes/files";
 import mobileUploadRoutes from "./routes/mobile-upload";
@@ -41,6 +41,7 @@ import {
 } from "@shared/schema";
 import crypto from "crypto";
 import PDFDocument from "pdfkit";
+import { runOcr, buildSuggestion } from "./ocr";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Family Management API endpoints
@@ -2676,6 +2677,214 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting shopping item:", error);
       res.status(500).json({ error: "Failed to delete shopping item" });
+    }
+  });
+
+  // ===========================
+  // AI INBOX API ENDPOINTS
+  // ===========================
+  
+  // POST /api/uploads - Register an upload for AI analysis
+  app.post("/api/uploads", async (req, res) => {
+    try {
+      const { fileKey, fileName, mime, size } = req.body;
+      const userId = "current-user"; // TODO: Get from authenticated session
+      const familyId = "family-1"; // TODO: Get from authenticated session
+      
+      const id = crypto.randomUUID();
+      
+      await db.insert(inboxItems).values({
+        id,
+        familyId,
+        userId,
+        filename: fileName,
+        fileUrl: fileKey, // Using fileKey as fileUrl for compatibility
+        fileSize: size,
+        mimeType: mime,
+        status: "analyzing",
+        analysisCompleted: false,
+      });
+      
+      res.json({ uploadId: id });
+    } catch (error) {
+      console.error("Error registering upload:", error);
+      res.status(500).json({ error: "Failed to register upload" });
+    }
+  });
+
+  // POST /api/inbox/:id/analyze - Run OCR analysis and build suggestion
+  app.post("/api/inbox/:id/analyze", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Get the inbox item
+      const [item] = await db.select().from(inboxItems).where(eq(inboxItems.id, id));
+      if (!item) {
+        return res.status(404).json({ error: "Inbox item not found" });
+      }
+
+      // Update status to analyzing
+      await db.update(inboxItems)
+        .set({ status: "analyzing" })
+        .where(eq(inboxItems.id, id));
+
+      // Run OCR analysis
+      const fields = await runOcr({ url: item.fileUrl });
+
+      // Store extracted fields
+      for (const field of fields) {
+        await db.insert(extractedFields).values({
+          id: crypto.randomUUID(),
+          inboxItemId: id,
+          fieldKey: field.key,
+          fieldValue: field.value,
+          confidence: field.confidence,
+          isPii: field.pii || false,
+        });
+      }
+
+      // Get family members for suggestion matching
+      const members = await db.select().from(familyMembers)
+        .where(eq(familyMembers.familyId, item.familyId));
+
+      // Build suggestion
+      const suggestion = await buildSuggestion(fields, members);
+
+      // Update inbox item with suggestion
+      await db.update(inboxItems).set({
+        status: suggestion ? "suggested" : "dismissed",
+        analysisCompleted: true,
+        suggestedMemberId: suggestion?.memberId || null,
+        confidence: suggestion?.confidence || null,
+        processedAt: new Date(),
+      }).where(eq(inboxItems.id, id));
+
+      res.json({ suggestion, fields });
+    } catch (error) {
+      console.error("Error analyzing upload:", error);
+      
+      // Update item status to failed
+      await db.update(inboxItems)
+        .set({ status: "dismissed", analysisCompleted: true })
+        .where(eq(inboxItems.id, req.params.id));
+        
+      res.status(500).json({ error: "Failed to analyze upload" });
+    }
+  });
+
+  // POST /api/inbox/:id/accept - Accept suggestion and assign file to member
+  app.post("/api/inbox/:id/accept", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { memberId, fields } = req.body;
+      const userId = "current-user"; // TODO: Get from authenticated session
+      
+      // Get the inbox item
+      const [item] = await db.select().from(inboxItems).where(eq(inboxItems.id, id));
+      if (!item) {
+        return res.status(404).json({ error: "Inbox item not found" });
+      }
+
+      // Create member file assignment
+      await db.insert(memberFileAssignments).values({
+        id: crypto.randomUUID(),
+        familyId: item.familyId,
+        memberId,
+        fileUrl: item.fileUrl,
+        filename: item.filename,
+        category: "document", // Default category
+        metadata: fields || {},
+        assignedBy: userId,
+      });
+
+      // Update inbox item status
+      await db.update(inboxItems).set({
+        status: "accepted",
+        acceptedAt: new Date(),
+      }).where(eq(inboxItems.id, id));
+
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Error accepting suggestion:", error);
+      res.status(500).json({ error: "Failed to accept suggestion" });
+    }
+  });
+
+  // POST /api/inbox/:id/dismiss - Dismiss suggestion
+  app.post("/api/inbox/:id/dismiss", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      await db.update(inboxItems).set({
+        status: "dismissed",
+        dismissedAt: new Date(),
+      }).where(eq(inboxItems.id, id));
+
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Error dismissing suggestion:", error);
+      res.status(500).json({ error: "Failed to dismiss suggestion" });
+    }
+  });
+
+  // GET /api/inbox - List inbox items for the drawer
+  app.get("/api/inbox", async (req, res) => {
+    try {
+      const familyId = "family-1"; // TODO: Get from authenticated session
+      
+      // Get inbox items with their extracted fields
+      const items = await db.select({
+        id: inboxItems.id,
+        filename: inboxItems.filename,
+        fileUrl: inboxItems.fileUrl,
+        fileSize: inboxItems.fileSize,
+        mimeType: inboxItems.mimeType,
+        status: inboxItems.status,
+        analysisCompleted: inboxItems.analysisCompleted,
+        suggestedMemberId: inboxItems.suggestedMemberId,
+        confidence: inboxItems.confidence,
+        uploadedAt: inboxItems.uploadedAt,
+        processedAt: inboxItems.processedAt,
+      })
+      .from(inboxItems)
+      .where(
+        and(
+          eq(inboxItems.familyId, familyId),
+          sql`${inboxItems.status} != 'dismissed'`
+        )
+      )
+      .orderBy(desc(inboxItems.uploadedAt));
+
+      // Get extracted fields for each item
+      const itemsWithFields = await Promise.all(
+        items.map(async (item) => {
+          const fields = await db.select().from(extractedFields)
+            .where(eq(extractedFields.inboxItemId, item.id));
+          
+          let memberName = null;
+          if (item.suggestedMemberId) {
+            const [member] = await db.select().from(familyMembers)
+              .where(eq(familyMembers.id, item.suggestedMemberId));
+            memberName = member?.name || null;
+          }
+
+          return {
+            ...item,
+            fields,
+            suggestion: item.suggestedMemberId ? {
+              memberId: item.suggestedMemberId,
+              memberName,
+              confidence: item.confidence || 0,
+              fields
+            } : null
+          };
+        })
+      );
+
+      res.json(itemsWithFields);
+    } catch (error) {
+      console.error("Error fetching inbox items:", error);
+      res.status(500).json({ error: "Failed to fetch inbox items" });
     }
   });
 
