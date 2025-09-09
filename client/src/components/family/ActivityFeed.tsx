@@ -103,7 +103,7 @@ export function ActivityFeed({ limit = 10, showFilters = true, className = '' }:
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
 
   // Fetch initial activity data
-  const { data: initialActivities = [], isLoading, refetch } = useQuery<ActivityItem[]>({
+  const { data: initialActivities = [], isLoading, refetch, isFetching } = useQuery<ActivityItem[]>({
     queryKey: ['/api/family/activity', filter, timeRange, limit],
     queryFn: () => {
       const params = new URLSearchParams();
@@ -209,10 +209,11 @@ export function ActivityFeed({ limit = 10, showFilters = true, className = '' }:
             )}
             <button
               onClick={() => refetch()}
-              className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+              disabled={isFetching}
+              className="p-2 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50"
               data-testid="button-refresh-activity"
             >
-              <RefreshCw className="h-4 w-4 text-white/70" />
+              <RefreshCw className={`h-4 w-4 text-white/70 transition-transform ${isFetching ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
