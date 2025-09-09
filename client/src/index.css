@@ -4043,3 +4043,16 @@ a:hover,
 #upload-tabs [role="tab"]:focus-visible {
   outline: 2px solid #c5a00044; border-radius: 9999px;
 }
+
+/* === Quick Access Panel: fix invisible "All" button text === */
+.qa-filter {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.qa-filter:hover {
+  color: #c5a000 !important;
+}
+
+.qa-filter.bg-\[#D4AF37\] {
+  color: #000000 !important;
+}
