@@ -81,7 +81,13 @@ function formatDueDate(dueAt: string | null) {
   return date.toLocaleDateString();
 }
 
-export default function FamilyUpdates({ onRefreshReady }: { onRefreshReady?: (refreshFn: () => Promise<void>) => void }) {
+export default function FamilyUpdates({ 
+  onRefreshReady, 
+  onRefreshStateChange 
+}: { 
+  onRefreshReady?: (refreshFn: () => Promise<void>) => void;
+  onRefreshStateChange?: (isRefreshing: boolean) => void;
+}) {
   const queryClient = useQueryClient();
   const { isAdmin, isLoading: userLoading } = useUserRole();
   const [updates, setUpdates] = useState<FamilyUpdateType[]>([]);
@@ -102,6 +108,13 @@ export default function FamilyUpdates({ onRefreshReady }: { onRefreshReady?: (re
   useEffect(() => {
     setUpdates(updatesData);
   }, [updatesData]);
+
+  // Notify parent when refresh state changes
+  useEffect(() => {
+    if (onRefreshStateChange) {
+      onRefreshStateChange(isRefreshing);
+    }
+  }, [isRefreshing, onRefreshStateChange]);
 
   // Expose refresh function to parent component
   const handleRefresh = async () => {

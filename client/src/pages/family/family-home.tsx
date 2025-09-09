@@ -1129,11 +1129,9 @@ export default function FamilyHome() {
                   </div>
                 </div>
                 <button
-                  onClick={async () => {
+                  onClick={() => {
                     if (familyUpdatesRefresh) {
-                      setFamilyUpdatesRefreshing(true);
-                      await familyUpdatesRefresh();
-                      setTimeout(() => setFamilyUpdatesRefreshing(false), 1000);
+                      familyUpdatesRefresh();
                     }
                   }}
                   disabled={familyUpdatesRefreshing}
@@ -1144,7 +1142,10 @@ export default function FamilyHome() {
                 </button>
               </div>
               <div className="overflow-y-auto h-[calc(100%-80px)] custom-scrollbar">
-                <FamilyUpdates onRefreshReady={setFamilyUpdatesRefresh} />
+                <FamilyUpdates 
+                  onRefreshReady={setFamilyUpdatesRefresh} 
+                  onRefreshStateChange={setFamilyUpdatesRefreshing}
+                />
               </div>
             </div>
           </Panel>
