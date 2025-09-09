@@ -4010,31 +4010,39 @@ a:hover,
   color: #D4AF37 !important;
 }
 
-/* --- Upload Center tab buttons: fix focus + hover color issue --- */
-button[role="tab"]:focus:hover {
+/* --- Upload Center tab buttons: comprehensive gold styling --- */
+/* Base: make both tabs gold */
+button[role="tab"] {
+  color: #c5a000;
+}
+
+/* Keep gold when hovered, focused, or both */
+button[role="tab"]:hover,
+button[role="tab"]:focus,
+button[role="tab"]:focus:hover,
+button[role="tab"]:focus-visible:hover {
   color: #c5a000 !important;
 }
 
-[data-state="active"]:focus:hover,
-[data-state="inactive"]:focus:hover {
+/* Active tab should always be gold (and stay gold on hover/focus) */
+button[role="tab"][data-state="active"],
+button[role="tab"][data-state="active"]:hover,
+button[role="tab"][data-state="active"]:focus,
+button[role="tab"][data-state="active"]:focus:hover {
   color: #c5a000 !important;
 }
 
-/* Ensure TabsTrigger shows proper hover when focused */
-.tabs-trigger:focus:hover {
-  color: #c5a000 !important;
+/* Make sure the little icons inherit the gold color */
+button[role="tab"] svg {
+  color: currentColor;
+  fill: currentColor;
 }
 
-/* Force gold color on focused tabs when hovered - highest specificity */
-button[data-state="active"]:focus:hover,
-button[data-state="inactive"]:focus:hover,
-button[data-state="active"]:focus:hover *,
-button[data-state="inactive"]:focus:hover * {
-  color: #c5a000 !important;
+/* Optional: only show a ring on keyboard focus, don't override color */
+button[role="tab"]:focus { 
+  outline: none; 
 }
-
-/* Override any shadcn TabsTrigger focus states */
-[role="tab"][data-state="active"]:focus:hover,
-[role="tab"][data-state="inactive"]:focus:hover {
-  color: #c5a000 !important;
+button[role="tab"]:focus-visible { 
+  outline: 2px solid #c5a00033; 
+  border-radius: 9999px; 
 }
