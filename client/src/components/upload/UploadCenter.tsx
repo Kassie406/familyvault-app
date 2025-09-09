@@ -9,12 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, AlertCircle, UploadCloud, FileText, Image as ImageIcon, ShieldCheck, X, Camera, Smartphone } from "lucide-react";
+import { CheckCircle2, AlertCircle, UploadCloud, FileText, Image as ImageIcon, ShieldCheck, X, Camera, Smartphone, Sparkles } from "lucide-react";
 import { usePresignedUpload } from "@/hooks/usePresignedUpload";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useFileStatus } from "@/hooks/useFileStatus";
 import MobileUploadModal from "./MobileUploadModal";
+import InboxDrawer from "@/components/inbox/InboxDrawer";
 
 type FileRow = {
   id: string;
@@ -49,6 +50,7 @@ export default function UploadCenter({
   const [tab, setTab] = useState<"docs" | "photos">("docs");
   const [rows, setRows] = useState<FileRow[]>([]);
   const [mobileModalOpen, setMobileModalOpen] = useState(false);
+  const [inboxOpen, setInboxOpen] = useState(false);
   
   // Form fields for current upload
   const [documentTitle, setDocumentTitle] = useState("");
@@ -142,6 +144,16 @@ export default function UploadCenter({
         title: "Document uploaded",
         description: `${row.file.name} has been uploaded successfully.`,
       });
+      
+      // Send to Inbox for AI analysis
+      if (result.publicUrl) {
+        setInboxOpen(true);
+        // Add to inbox using the exposed function
+        setTimeout(() => {
+          (window as any).__addInboxUpload?.(result.publicUrl, row.file.name, row.file.size);
+        }, 500);
+      }
+      
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
     },
@@ -207,6 +219,16 @@ export default function UploadCenter({
         title: "Photo uploaded",
         description: `${row.file.name} has been uploaded successfully.`,
       });
+      
+      // Send to Inbox for AI analysis
+      if (result.publicUrl) {
+        setInboxOpen(true);
+        // Add to inbox using the exposed function
+        setTimeout(() => {
+          (window as any).__addInboxUpload?.(result.publicUrl, row.file.name, row.file.size);
+        }, 500);
+      }
+      
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
     },
@@ -269,9 +291,21 @@ export default function UploadCenter({
               Secure S3 <span className="mx-1">•</span> Virus-scanned <span className="mx-1">•</span> Max 25MB each
             </CardDescription>
           </div>
-          <div className="hidden md:flex items-center gap-2 text-xs text-zinc-400">
-            <ShieldCheck className="h-4 w-4 text-[#D4AF37]" />
-            Encrypted in transit
+          <div className="hidden md:flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setInboxOpen(true)}
+              className="text-zinc-400 hover:text-[#D4AF37] border border-zinc-700 hover:border-[#D4AF37]"
+              data-testid="button-open-inbox"
+            >
+              <Sparkles className="h-4 w-4 mr-1" />
+              AI Inbox
+            </Button>
+            <div className="flex items-center gap-2 text-xs text-zinc-400">
+              <ShieldCheck className="h-4 w-4 text-[#D4AF37]" />
+              Encrypted in transit
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -449,6 +483,12 @@ export default function UploadCenter({
         onOpenChange={setMobileModalOpen}
         purpose={tab === "docs" ? "documents" : "photos"}
         familyId={familyId}
+      />
+      
+      {/* AI Inbox Drawer */}
+      <InboxDrawer
+        isOpen={inboxOpen}
+        onClose={() => setInboxOpen(false)}
       />
     </Card>
   );
