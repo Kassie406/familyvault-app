@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { X, FileImage, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useUI } from "@/lib/ui-store";
 import SuggestDetailsModal from "./SuggestDetailsModal";
 import { formatFileSize, getConfidenceDot } from "@/lib/inbox";
 import type { InboxItem } from '@shared/types/inbox';
@@ -132,8 +133,16 @@ export default function InboxDrawer() {
   const [location, setLocation] = useLocation();
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { openInbox, closeInbox } = useUI();
 
   const isOpen = location === "/family/inbox";
+
+  // Wire to UI store
+  React.useEffect(() => {
+    if (isOpen) openInbox();
+    else closeInbox();
+    return () => closeInbox(); // safety on unmount
+  }, [isOpen, openInbox, closeInbox]);
 
   // Fetch inbox items from API
   const { data: items = [], isLoading, refetch } = useQuery({
@@ -152,10 +161,8 @@ export default function InboxDrawer() {
   // Accept suggestion mutation
   const acceptMutation = useMutation({
     mutationFn: async ({ id, memberId, fields }: { id: string; memberId: string; fields: any[] }) => {
-      return await apiRequest(`/api/inbox/${id}/accept`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ memberId, fields }),
+      return await apiRequest(`/api/inbox/${id}/accept`, "POST", {
+        memberId, fields
       });
     },
     onSuccess: () => {
@@ -170,10 +177,7 @@ export default function InboxDrawer() {
   // Dismiss item mutation
   const dismissMutation = useMutation({
     mutationFn: async (id: string) => {
-      return await apiRequest(`/api/inbox/${id}/dismiss`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
+      return await apiRequest(`/api/inbox/${id}/dismiss`, "POST");
     },
     onSuccess: () => {
       setActiveItemId(null);

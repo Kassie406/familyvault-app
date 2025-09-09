@@ -4098,3 +4098,20 @@ dialog[aria-label="Quick Access"] button[data-testid^="filter-"] *{
   stroke: currentColor !important;
   fill: currentColor !important;
 }
+
+/* Sidebar auto-collapse styles for inbox functionality */
+[data-collapsed="true"] .sidebar-nav-link {
+  justify-content: center !important;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+/* Hide text labels when sidebar is collapsed, keep only icons */
+[data-collapsed="true"] .sidebar-nav-link span:not(:first-child) {
+  display: none !important;
+}
+
+/* Center icons when collapsed */
+[data-collapsed="true"] .nav-item {
+  justify-content: center;
+}

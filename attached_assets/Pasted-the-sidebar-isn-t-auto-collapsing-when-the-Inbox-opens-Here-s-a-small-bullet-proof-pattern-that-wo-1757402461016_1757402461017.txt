@@ -1,0 +1,176 @@
+the sidebar isn’t auto-collapsing when the Inbox opens. Here’s a small, bullet-proof pattern that works with your Vite + React app and keeps one source of truth.
+
+1) Add a tiny UI store (Context or Zustand)
+
+This tracks the sidebar state and whether the Inbox is open. When Inbox opens, we lock the sidebar collapsed and remember the previous state to restore later.
+
+// ui-store.ts
+import React from "react";
+
+type UIState = {
+  sidebarCollapsed: boolean;          // current visual state
+  _prevSidebarCollapsed: boolean|null; // to restore after inbox closes
+  setSidebarCollapsed(v: boolean): void;
+
+  inboxOpen: boolean;
+  openInbox(): void;
+  closeInbox(): void;
+};
+
+const Ctx = React.createContext<UIState>(null as any);
+
+export function UIProvider({ children }: { children: React.ReactNode }) {
+  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+  const [prev, setPrev] = React.useState<boolean|null>(null);
+  const [inboxOpen, setInboxOpen] = React.useState(false);
+
+  const openInbox = React.useCallback(() => {
+    setPrev(sidebarCollapsed);      // remember current
+    setSidebarCollapsed(true);      // lock collapsed while inbox shown
+    setInboxOpen(true);
+    document.body.setAttribute("data-inbox-open", "true");
+  }, [sidebarCollapsed]);
+
+  const closeInbox = React.useCallback(() => {
+    setInboxOpen(false);
+    document.body.removeAttribute("data-inbox-open");
+    setSidebarCollapsed(prev ?? false); // restore previous
+    setPrev(null);
+  }, [prev]);
+
+  const value = {
+    sidebarCollapsed,
+    _prevSidebarCollapsed: prev,
+    setSidebarCollapsed,
+    inboxOpen,
+    openInbox,
+    closeInbox,
+  };
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}
+
+export const useUI = () => React.useContext(Ctx);
+
+2) Wire the Inbox drawer to the store
+
+Call openInbox() when you show it and closeInbox() when you hide it (X button, ESC, route change, etc.).
+
+// InboxDrawer.tsx
+import { useUI } from "@/ui-store";
+
+export default function InboxDrawer({ open }: { open: boolean }) {
+  const { openInbox, closeInbox } = useUI();
+
+  React.useEffect(() => {
+    if (open) openInbox();
+    else closeInbox();
+    return () => closeInbox(); // safety on unmount
+  }, [open, openInbox, closeInbox]);
+
+  // ...existing drawer JSX
+}
+
+
+If you toggle the drawer internally, just call openInbox() right before setting it open and closeInbox() when closing.
+
+3) Make the Sidebar read from the store
+
+Apply a data-collapsed attribute so CSS can collapse to icon-only.
+
+// Sidebar.tsx
+import { useUI } from "@/ui-store";
+
+export default function Sidebar() {
+  const { sidebarCollapsed } = useUI();
+  return (
+    <aside
+      data-collapsed={sidebarCollapsed ? "true" : "false"}
+      className="sidebar"
+    >
+      {/* your nav */}
+    </aside>
+  );
+}
+
+4) CSS to collapse to icons (keeps your gold theme)
+
+This assumes your normal width is 240px and collapsed is 64px. Tune as needed.
+
+/* sidebar base */
+.sidebar{
+  width: 240px;
+  transition: width .25s ease;
+}
+
+/* collapsed when inbox is open or user collapsed it manually */
+.sidebar[data-collapsed="true"]{
+  width: 64px;
+}
+
+/* hide labels when collapsed; keep icons centered */
+.sidebar[data-collapsed="true"] .nav-label{
+  display: none;
+}
+.sidebar .nav-item{
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  align-items: center;
+  gap: .75rem;
+}
+.sidebar[data-collapsed="true"] .nav-item{
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+
+/* content area should fill the freed space */
+.layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-w, 240px) 1fr;
+}
+.sidebar[data-collapsed="true"] ~ .layout-main {
+  /* if you use a sibling layout, you can switch to grid-template-columns
+     or compute with CSS variables. If your layout has fixed padding-left,
+     toggle a body attribute instead – see below. */
+}
+
+
+If your layout is easier with a body attribute, add this small helper effect:
+
+// in a root layout component
+const { sidebarCollapsed } = useUI();
+React.useEffect(() => {
+  document.body.toggleAttribute("data-sidebar-collapsed", sidebarCollapsed);
+}, [sidebarCollapsed]);
+
+
+Then in CSS:
+
+:root { --sidebar-w: 240px; --sidebar-w-collapsed: 64px; }
+.layout { grid-template-columns: var(--sidebar-w) 1fr; }
+body[data-sidebar-collapsed] .layout {
+  grid-template-columns: var(--sidebar-w-collapsed) 1fr;
+}
+
+5) Guardrails (fixes common “it still doesn’t collapse” issues)
+
+Ensure there isn’t another prop/state controlling the sidebar width. Make your Sidebar use only sidebarCollapsed from the store.
+
+If you had a “manual toggle” button for the sidebar, update it to:
+
+const { setSidebarCollapsed, inboxOpen } = useUI();
+// prevent expanding while inbox is open (locked)
+onClick={() => !inboxOpen && setSidebarCollapsed(v => !v)}
+
+
+On route changes while Inbox is open, the cleanup in InboxDrawer’s useEffect ensures restoration.
+
+If the drawer is rendered conditionally, keep the closeInbox() in the cleanup so the state always resets.
+
+Drop these in and the behavior will be:
+
+Opening Inbox → sidebar collapses to icons and stays collapsed.
+
+Closing Inbox → sidebar returns to whatever state it had before.
+
+Manual sidebar toggle remains respected when Inbox is not open.
