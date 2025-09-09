@@ -45,7 +45,7 @@ export function usePresignedUpload() {
   }, []);
 
   const uploadToSignedUrl = useCallback(
-    async (file: File, signed: PresignResponse): Promise<UploadResult> => {
+    async (file: File, signed: PresignResponse, contentType?: string): Promise<UploadResult> => {
       setProgress(0);
       setUploading(true);
       setError(null);
@@ -55,7 +55,7 @@ export function usePresignedUpload() {
         await new Promise<void>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.open("PUT", signed.uploadUrl);
-          xhr.setRequestHeader("Content-Type", file.type);
+          xhr.setRequestHeader("Content-Type", contentType || file.type || "application/octet-stream");
 
           xhr.upload.onprogress = (e) => {
             if (e.lengthComputable) {
@@ -117,16 +117,19 @@ export function usePresignedUpload() {
   const uploadFile = useCallback(
     async (file: File, options: Omit<PresignBody, 'fileName' | 'contentType' | 'contentLength'>): Promise<UploadResult> => {
       try {
+        // Ensure consistent Content-Type
+        const contentType = file.type || "application/octet-stream";
+        
         // Step 1: Get presigned URL
         const signed = await presign({
           fileName: file.name,
-          contentType: file.type || "application/octet-stream",
+          contentType,
           contentLength: file.size,
           ...options,
         });
 
-        // Step 2: Upload to S3/R2
-        return await uploadToSignedUrl(file, signed);
+        // Step 2: Upload to S3/R2 (ensure same Content-Type)
+        return await uploadToSignedUrl(file, signed, contentType);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Upload failed";
         setError(errorMessage);
