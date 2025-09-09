@@ -278,7 +278,7 @@ export default function UploadCenter({
 
       <CardContent className="pt-0">
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
-          <TabsList className="bg-zinc-900 border border-zinc-800">
+          <TabsList id="upload-tabs" className="bg-zinc-900 border border-zinc-800">
             <TabsTrigger 
               value="docs" 
               className="text-[#c5a000] hover:text-[#c5a000] focus:text-[#c5a000] focus-visible:text-[#c5a000] active:text-[#c5a000] data-[state=active]:bg-[#c5a000]/20 data-[state=active]:text-[#c5a000] [&:focus]:text-[#c5a000] [&:focus:hover]:text-[#c5a000]"

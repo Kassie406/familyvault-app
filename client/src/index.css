@@ -4010,39 +4010,32 @@ a:hover,
   color: #D4AF37 !important;
 }
 
-/* --- Upload Center tab buttons: comprehensive gold styling --- */
-/* Base: make both tabs gold */
-button[role="tab"] {
-  color: #c5a000;
-}
-
-/* Keep gold when hovered, focused, or both */
-button[role="tab"]:hover,
-button[role="tab"]:focus,
-button[role="tab"]:focus:hover,
-button[role="tab"]:focus-visible:hover {
+/* === Upload Center tabs: lock text/icon color to gold in all states === */
+#upload-tabs [role="tab"],
+#upload-tabs [role="tab"]:link,
+#upload-tabs [role="tab"]:visited,
+#upload-tabs [role="tab"]:hover,
+#upload-tabs [role="tab"]:active,
+#upload-tabs [role="tab"]:focus,
+#upload-tabs [role="tab"]:focus:hover,
+#upload-tabs [role="tab"]:focus-visible,
+#upload-tabs [role="tab"][data-state="active"],
+#upload-tabs [role="tab"][data-state="active"]:hover,
+#upload-tabs [role="tab"][data-state="active"]:focus {
   color: #c5a000 !important;
+  text-decoration: none !important;
 }
 
-/* Active tab should always be gold (and stay gold on hover/focus) */
-button[role="tab"][data-state="active"],
-button[role="tab"][data-state="active"]:hover,
-button[role="tab"][data-state="active"]:focus,
-button[role="tab"][data-state="active"]:focus:hover {
-  color: #c5a000 !important;
+/* Ensure icons/text inside the tab inherit the gold */
+#upload-tabs [role="tab"] * {
+  color: currentColor !important;
+  fill: currentColor !important;
+  stroke: currentColor !important;
 }
 
-/* Make sure the little icons inherit the gold color */
-button[role="tab"] svg {
-  color: currentColor;
-  fill: currentColor;
-}
-
-/* Optional: only show a ring on keyboard focus, don't override color */
-button[role="tab"]:focus { 
-  outline: none; 
-}
-button[role="tab"]:focus-visible { 
-  outline: 2px solid #c5a00033; 
-  border-radius: 9999px; 
+/* Optional: clean focus outline without changing color */
+#upload-tabs [role="tab"]:focus { outline: none; }
+#upload-tabs [role="tab"]:focus-visible {
+  outline: 2px solid #c5a00044; /* subtle ring */
+  border-radius: 9999px;
 }
