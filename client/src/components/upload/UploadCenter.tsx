@@ -137,7 +137,7 @@ export default function UploadCenter({
 
       return { documentId: document.id, key, publicUrl };
     },
-    onSuccess: (result, row) => {
+    onSuccess: async (result, row) => {
       setRows((r) => r.map((x) => (x.id === row.id ? { ...x, status: "done", progress: 100 } : x)));
       onUploadComplete?.(result.documentId, 'document');
       toast({
@@ -234,7 +234,7 @@ export default function UploadCenter({
 
       return { photoId: photo.id, key, publicUrl };
     },
-    onSuccess: (result, row) => {
+    onSuccess: async (result, row) => {
       setRows((r) => r.map((x) => (x.id === row.id ? { ...x, status: "done", progress: 100 } : x)));
       onUploadComplete?.(result.photoId, 'photo');
       toast({
