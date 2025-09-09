@@ -211,7 +211,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
             </Link>
           </div>
         )}
-      </div>
+      </aside>
 
       {/* Mobile Sidebar Overlay */}
       {isMobile && sidebarOpen && (
