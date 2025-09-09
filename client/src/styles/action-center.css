@@ -16,9 +16,13 @@
   isolation: isolate; overflow: hidden;
 }
 
-/* Light gold background wash on hover */
+/* Light gold background wash on hover + gold border and glow */
 #action-center-card:hover {
   background-color: rgba(212, 175, 55, 0.08) !important;
+  border-color: rgba(212, 175, 55, 0.40) !important;
+  box-shadow:
+    0 0 0 1px rgba(212, 175, 55, .35),
+    0 18px 50px rgba(212, 175, 55, .12) !important;
 }
 
 /* Optional: keep links from turning blue/underlined unless hover */
