@@ -43,9 +43,9 @@ export type Layout = LayoutItem[];
 // Default layouts per role
 export const DEFAULTS: Record<"parent" | "teen", Layout> = {
   parent: [
-    { id: "familyMembers" }, { id: "documents" }, { id: "messages" }, { id: "photos" },
+    { id: "familyMembers" }, { id: "emergencyContacts" }, { id: "messages" }, { id: "photos" },
     { id: "sharedLists" }, { id: "recipeBook" }, { id: "budget" }, { id: "couples" },
-    { id: "mealPlanner" }, { id: "familyVacation" }, { id: "babysitter" }, { id: "emergencyContacts" },
+    { id: "mealPlanner" }, { id: "familyVacation" }, { id: "babysitter" }, { id: "documents" },
     { id: "chores" }, { id: "allowancePoints" }, { id: "quickActions" }, { id: "uploadCenter" },
   ],
   teen: [
