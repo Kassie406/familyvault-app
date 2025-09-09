@@ -341,7 +341,6 @@ button:hover {
 .dashboard .fcs-btn--reset {
   background: transparent; 
   color: #e5e7eb; /* gray-200 */
-  box-shadow: 0 0 0 2px #dc2626, 0 0 0 4px #0b0b0e; /* red ring */
 }
 
 .dashboard .fcs-btn--reset:hover { 
@@ -351,11 +350,6 @@ button:hover {
 
 .dashboard .fcs-btn--reset:active { 
   background: rgba(220,38,38,.18) !important; 
-}
-
-.dashboard .fcs-btn--reset:focus,
-.dashboard .fcs-btn--reset:active {
-  box-shadow: 0 0 0 2px #dc2626, 0 0 0 4px #0b0b0e; /* maintain red ring */
 }
 
 /* Kill any global white hover on buttons inside the dashboard */
