@@ -4047,12 +4047,15 @@ a:hover,
 /* === Quick Access Panel: fix invisible "All" button text === */
 .qa-filter {
   color: rgba(255, 255, 255, 0.7) !important;
+  background: transparent !important;
 }
 
 .qa-filter:hover {
   color: #c5a000 !important;
+  background: rgba(197, 160, 0, 0.15) !important;
 }
 
 .qa-filter.bg-\[#D4AF37\] {
   color: #000000 !important;
+  background: #D4AF37 !important;
 }
