@@ -92,7 +92,10 @@ const FamilyUpdates = forwardRef<{ refresh: () => Promise<void> }>((props, ref) 
   const { data: updatesData = [], isLoading, refetch } = useQuery<FamilyUpdateType[]>({
     queryKey: ['/api/updates'],
     queryFn: async () => {
-      const response = await fetch('/api/updates');
+      const response = await fetch('/api/updates', { 
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
       const data = await response.json();
       return data.items || [];
     }
@@ -106,7 +109,10 @@ const FamilyUpdates = forwardRef<{ refresh: () => Promise<void> }>((props, ref) 
   // Load snoozed count
   const loadSnoozedCount = async () => {
     try {
-      const response = await fetch('/api/updates/snoozed/count');
+      const response = await fetch('/api/updates/snoozed/count', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
       const data = await response.json();
       setSnoozedCount(data.count || 0);
     } catch (error) {
@@ -114,16 +120,24 @@ const FamilyUpdates = forwardRef<{ refresh: () => Promise<void> }>((props, ref) 
     }
   };
 
-  // Internal refresh function
+  // Internal refresh function with minimum 1s spin
   const handleRefresh = async () => {
+    if (isRefreshing) return; // Prevent double-firing
+    
     setIsRefreshing(true);
     try {
-      await refetch();
-      await loadSnoozedCount(); // Also refresh snoozed count
+      // Ensure spinner shows at least 1s so user sees it
+      const minSpin = new Promise(resolve => setTimeout(resolve, 1000));
+      await Promise.all([
+        refetch(),
+        loadSnoozedCount(),
+        minSpin
+      ]);
     } catch (error) {
       console.error('Failed to refresh:', error);
+    } finally {
+      setIsRefreshing(false);
     }
-    setTimeout(() => setIsRefreshing(false), 1000);
   };
 
   // Expose refresh function via ref
@@ -205,10 +219,21 @@ const FamilyUpdates = forwardRef<{ refresh: () => Promise<void> }>((props, ref) 
             </span>
           )}
         </div>
-        {/* Admin compose button */}
-        {isAdmin && (
-          <ComposeUpdateModal afterCreate={() => refetch()} />
-        )}
+        <div className="flex items-center gap-2">
+          {/* Refresh button */}
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="rounded-full px-2 py-2 text-zinc-300 bg-transparent ring-2 ring-[#D4AF37]/30 ring-offset-2 ring-offset-zinc-900 hover:ring-[#D4AF37]/50 disabled:opacity-100 disabled:cursor-wait transition-all duration-200"
+            title="Refresh family updates"
+          >
+            <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </button>
+          {/* Admin compose button */}
+          {isAdmin && (
+            <ComposeUpdateModal afterCreate={() => refetch()} />
+          )}
+        </div>
       </div>
       
       <div className="space-y-3" data-testid="family-updates-list">
