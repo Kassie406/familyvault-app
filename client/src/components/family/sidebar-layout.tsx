@@ -17,6 +17,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
+  const [previousCollapsedState, setPreviousCollapsedState] = useState(false);
   const [activeSection, setActiveSection] = useState(() => {
     // Determine active section based on current path
     if (location === '/family' || location === '/') return 'dashboard';
@@ -73,6 +74,20 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMobile, sidebarOpen]);
+
+  // Auto-collapse sidebar when inbox is open
+  useEffect(() => {
+    const isInboxOpen = location === '/family/inbox';
+    
+    if (isInboxOpen) {
+      // Store current state before collapsing
+      setPreviousCollapsedState(desktopSidebarCollapsed);
+      setDesktopSidebarCollapsed(true);
+    } else if (previousCollapsedState !== null) {
+      // Restore previous state when leaving inbox
+      setDesktopSidebarCollapsed(previousCollapsedState);
+    }
+  }, [location, desktopSidebarCollapsed, previousCollapsedState]);
 
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, href: '/family' },
@@ -279,7 +294,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
           : desktopSidebarCollapsed 
             ? 'ml-16' 
             : 'ml-64'
-      }`}>
+      } ${location === '/family/inbox' && !isMobile ? 'pl-[400px]' : 'pl-0'}`}>
         {children}
       </div>
     </div>
