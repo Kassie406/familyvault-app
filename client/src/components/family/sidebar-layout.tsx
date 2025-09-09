@@ -132,7 +132,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
       )}
 
       {/* Desktop Sidebar */}
-      <div className={`app-sidebar ${isMobile ? 'hidden' : 'bg-[var(--bg-850)] border-r border-[var(--line-700)] flex flex-col'}`} data-collapsed={sidebarCollapsed ? "true" : "false"}>
+      <aside id="app-sidebar" className={`app-sidebar ${isMobile ? 'hidden' : 'bg-[var(--bg-850)] border-r border-[var(--line-700)] flex flex-col'}`} data-collapsed={sidebarCollapsed ? "true" : "false"}>
         {/* Desktop Sidebar Header */}
         {!isMobile && (
           <div className="p-6 border-b border-[var(--line-700)] relative">
@@ -280,13 +280,13 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
       )}
 
       {/* Main Content */}
-      <div className={`app-main flex-1 ${
+      <main id="app-main" className={`app-main flex-1 ${
         isMobile 
           ? 'pt-16' 
           : ''
       }`}>
         {children}
-      </div>
+      </main>
     </div>
   );
 }

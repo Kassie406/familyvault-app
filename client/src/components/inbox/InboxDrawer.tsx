@@ -218,6 +218,7 @@ export default function InboxDrawer() {
     <>
       {/* Inbox Drawer */}
       <aside 
+        id="inbox-panel"
         className="app-inbox bg-[#0A0B10] border-r border-[#232530] shadow-2xl flex flex-col"
         aria-label="Upload Inbox"
       >
