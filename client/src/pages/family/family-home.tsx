@@ -712,7 +712,7 @@ export default function FamilyHome() {
       <div className="p-8 space-y-6">
 
       {/* Family Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {familyStats.map((stat, index) => {
           const Icon = stat.icon;
           const keyValue = typeof stat.label === 'string' ? stat.label : `stat-${index}`;
@@ -732,7 +732,7 @@ export default function FamilyHome() {
       </div>
 
       {/* Chores & Allowance Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
         {/* Action Center - First column */}
         <div className="lg:col-span-1">
           <ActionCenter />
