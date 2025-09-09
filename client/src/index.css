@@ -3907,3 +3907,11 @@ a:hover,
 #mobile-sidebar-nav a.sidebar-nav-link:active {
   background-color: rgba(212, 175, 55, 0.20) !important;
 }
+
+/* --- StatCard components: gold border and glow on hover --- */
+.group.no-hover-bg:hover {
+  border-color: rgba(212, 175, 55, 0.40) !important;
+  box-shadow:
+    0 0 0 1px rgba(212, 175, 55, .35),
+    0 18px 50px rgba(212, 175, 55, .12) !important;
+}
