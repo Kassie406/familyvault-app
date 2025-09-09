@@ -12,7 +12,7 @@ import {
   UserPlus, Mail, Settings, Share, Camera, FolderOpen, AlertCircle,
   Zap, Grid, BarChart3, Video, ListTodo, CalendarDays, User,
   X, CheckCircle2, Trash2, LogOut, Search, HelpCircle, ChefHat,
-  ChevronDown
+  ChevronDown, RefreshCw
 } from 'lucide-react';
 import { 
   ActionCard, 
@@ -66,6 +66,8 @@ export default function FamilyHome() {
   const [highlightPhotoUpload, setHighlightPhotoUpload] = useState(false);
   const [highlightICE, setHighlightICE] = useState(false);
   const [quickAccessOpen, setQuickAccessOpen] = useState(false);
+  const [familyUpdatesRefresh, setFamilyUpdatesRefresh] = useState<(() => Promise<void>) | null>(null);
+  const [familyUpdatesRefreshing, setFamilyUpdatesRefreshing] = useState(false);
   const [dashboardLayout, setDashboardLayout] = useState('default');
   const [policyModalOpen, setPolicyModalOpen] = useState(false);
   const [approvalsDrawerOpen, setApprovalsDrawerOpen] = useState(false);
@@ -1116,17 +1118,33 @@ export default function FamilyHome() {
           {/* Family Updates Panel */}
           <Panel defaultSize={35} minSize={20} maxSize={50}>
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 h-full">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-[#D4AF37]/10">
-                  <Bell className="h-5 w-5 text-[#D4AF37]" />
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[#D4AF37]/10">
+                    <Bell className="h-5 w-5 text-[#D4AF37]" />
+                  </div>
+                  <div>
+                    <h3 className="text-gray-200 font-semibold">Family Updates</h3>
+                    <p className="text-xs text-gray-500">Important notifications</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-gray-200 font-semibold">Family Updates</h3>
-                  <p className="text-xs text-gray-500">Important notifications</p>
-                </div>
+                <button
+                  onClick={async () => {
+                    if (familyUpdatesRefresh) {
+                      setFamilyUpdatesRefreshing(true);
+                      await familyUpdatesRefresh();
+                      setTimeout(() => setFamilyUpdatesRefreshing(false), 1000);
+                    }
+                  }}
+                  disabled={familyUpdatesRefreshing}
+                  className="p-2 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50"
+                  data-testid="button-refresh-family-updates"
+                >
+                  <RefreshCw className={`h-4 w-4 text-white/70 transition-transform ${familyUpdatesRefreshing ? 'animate-spin' : ''}`} />
+                </button>
               </div>
               <div className="overflow-y-auto h-[calc(100%-80px)] custom-scrollbar">
-                <FamilyUpdates />
+                <FamilyUpdates onRefreshReady={setFamilyUpdatesRefresh} />
               </div>
             </div>
           </Panel>
