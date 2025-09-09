@@ -1,0 +1,173 @@
+Thanks for the screenshots — I can see two things happening:
+
+The sidebar width logic is in place, but the DOM/body flags and IDs might not be lining up 100%, so the CSS isn’t kicking in exactly as intended.
+
+You just fixed the store re-render loop (nice!), so let’s lock in a minimal, bullet-proof setup.
+
+Here’s the final, tight recipe. Paste these exactly and you’ll get:
+
+Full sidebar by default (240px)
+
+Icon-only (64px) while Inbox is open
+
+Inbox panel starts after the sidebar
+
+Main content shifts correctly
+
+No render loops
+
+1) Ensure these IDs exist once
+// Root layout
+<aside id="app-sidebar">{/* … */}</aside>
+<aside id="inbox-panel">{/* … */}</aside>
+<main id="app-main">{children}</main>
+
+2) Drop this CSS at the END of your global CSS
+:root{
+  --sb-expanded: 240px;     /* full sidebar */
+  --sb-collapsed: 64px;     /* icon-only */
+  --inbox-w: 360px;         /* inbox drawer width */
+}
+
+/* current sidebar width stored in --sb */
+body{ --sb: var(--sb-expanded); }
+body[data-sidebar-collapsed="true"]{ --sb: var(--sb-collapsed); }
+
+/* Sidebar: always visible on left */
+#app-sidebar{
+  position: fixed;
+  inset: 0 auto 0 0;           /* top:0 right:auto bottom:0 left:0 */
+  width: var(--sb);
+  z-index: 40;
+  transition: width .25s ease;
+}
+
+/* Inbox: starts AFTER the sidebar width */
+#inbox-panel{
+  position: fixed;
+  top: 0; bottom: 0;
+  left: var(--sb);
+  width: var(--inbox-w);
+  z-index: 50;
+  transform: translateX(-110%);         /* hidden by default */
+  transition: transform .25s ease, left .25s ease;
+}
+body[data-inbox-open="true"] #inbox-panel{
+  transform: translateX(0);              /* slide in */
+}
+
+/* Main content shifts by sidebar, and by inbox when open */
+#app-main{
+  min-height: 100vh;
+  margin-left: var(--sb);
+  transition: margin-left .25s ease;
+}
+body[data-inbox-open="true"] #app-main{
+  margin-left: calc(var(--sb) + var(--inbox-w));
+}
+
+3) Minimal UI store (no loops, restores previous state)
+// ui-store.ts
+import React from "react";
+
+type UI = {
+  sidebarCollapsed: boolean;
+  inboxOpen: boolean;
+  openInbox(): void;
+  closeInbox(): void;
+  setSidebarCollapsed(v: boolean): void; // for your manual toggle button
+};
+
+const Ctx = React.createContext<UI>(null as any);
+
+export function UIProvider({ children }: { children: React.ReactNode }) {
+  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+  const [inboxOpen, setInboxOpen] = React.useState(false);
+  const prevCollapsedRef = React.useRef<boolean>(false);
+
+  // keep body attributes in sync (single effect)
+  React.useEffect(() => {
+    document.body.toggleAttribute("data-sidebar-collapsed", sidebarCollapsed);
+  }, [sidebarCollapsed]);
+
+  React.useEffect(() => {
+    document.body.toggleAttribute("data-inbox-open", inboxOpen);
+  }, [inboxOpen]);
+
+  const openInbox = React.useCallback(() => {
+    prevCollapsedRef.current = sidebarCollapsed; // remember
+    setSidebarCollapsed(true);                   // icon-only
+    setInboxOpen(true);
+  }, [sidebarCollapsed]);
+
+  const closeInbox = React.useCallback(() => {
+    setInboxOpen(false);
+    setSidebarCollapsed(prevCollapsedRef.current); // restore
+  }, []);
+
+  // clear any stale flags on first mount
+  React.useEffect(() => {
+    document.body.removeAttribute("data-inbox-open");
+    document.body.removeAttribute("data-sidebar-collapsed");
+  }, []);
+
+  return (
+    <Ctx.Provider
+      value={{ sidebarCollapsed, inboxOpen, openInbox, closeInbox, setSidebarCollapsed }}
+    >
+      {children}
+    </Ctx.Provider>
+  );
+}
+
+export const useUI = () => React.useContext(Ctx);
+
+4) Wire the Inbox + Sidebar
+// InboxDrawer.tsx
+import { useUI } from "@/ui-store";
+
+export default function InboxDrawer({ open }: { open: boolean }) {
+  const { openInbox, closeInbox } = useUI();
+
+  React.useEffect(() => {
+    if (open) openInbox();
+    else closeInbox();
+    return () => closeInbox(); // safety on unmount/navigation
+  }, [open, openInbox, closeInbox]);
+
+  return <aside id="inbox-panel">…</aside>;
+}
+
+// Sidebar.tsx
+import { useUI } from "@/ui-store";
+export default function Sidebar() {
+  const { sidebarCollapsed, setSidebarCollapsed, inboxOpen } = useUI();
+  return (
+    <aside id="app-sidebar">
+      {/* toggle should be disabled while inbox is open */}
+      <button
+        onClick={() => !inboxOpen && setSidebarCollapsed(!sidebarCollapsed)}
+      >
+        {sidebarCollapsed ? "Expand" : "Collapse"}
+      </button>
+      {/* your nav items … */}
+    </aside>
+  );
+}
+
+5) Quick debug checklist (takes 20 seconds)
+
+In DevTools Elements, select #inbox-panel → Computed tab → confirm it has
+left: 240px (expanded) or left: 64px (collapsed).
+
+Select #app-sidebar → confirm width: 240px normally, 64px when Inbox is open.
+
+Select #app-main → confirm margin-left: 240px normally, calc(64px + 360px) with Inbox open.
+
+On the <body> element, you should see:
+
+(normal) no data-* attrs
+
+(inbox open) data-inbox-open="true" data-sidebar-collapsed="true"
+
+If any of those don’t match, the ID/class name likely differs—adjust the selectors or tell me exactly what those elements are called and I’ll map it to your DOM.
