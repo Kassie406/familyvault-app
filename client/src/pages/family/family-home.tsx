@@ -1019,7 +1019,7 @@ export default function FamilyHome() {
               icon={<MessageCircle className="h-5 w-5"/>} 
               title="Send Message" 
               subtitle="Chat with family" 
-              onClick={() => setMessagingOpen(true)}
+              onClick={() => window.dispatchEvent(new Event('openFamilyChat'))}
             />
             <ActionCard icon={<ImageIcon className="h-5 w-5"/>} title="View Photos" subtitle="Browse family gallery" />
             <ActionCard icon={<ShieldAlert className="h-5 w-5"/>} title="Emergency Info" subtitle="Quick access to critical info" />

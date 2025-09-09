@@ -1,8 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, MessageCircle } from "lucide-react";
 
 export default function ChatSupport() {
   const [isOpen, setIsOpen] = useState(false);
+  const [highlightChat, setHighlightChat] = useState(false);
+
+  // Listen for openFamilyChat event from Send Message slot card
+  useEffect(() => {
+    const handleOpenFamilyChat = () => {
+      setIsOpen(true);
+      setHighlightChat(true);
+      
+      // Remove highlight after 3 seconds
+      setTimeout(() => {
+        setHighlightChat(false);
+      }, 3000);
+    };
+
+    window.addEventListener('openFamilyChat', handleOpenFamilyChat);
+    return () => window.removeEventListener('openFamilyChat', handleOpenFamilyChat);
+  }, []);
 
   const supportTopics = [
     "About",
@@ -32,7 +49,9 @@ export default function ChatSupport() {
 
       {/* Chat Widget */}
       {isOpen && (
-        <div className="w-80 bg-white rounded-lg shadow-xl border border-gray-200 animate-in slide-in-from-bottom-2 duration-300">
+        <div className={`w-80 bg-white rounded-lg shadow-xl border border-gray-200 animate-in slide-in-from-bottom-2 duration-300 ${
+          highlightChat ? 'upload-highlight' : ''
+        }`}>
           {/* Header */}
           <div className="flex justify-between items-center bg-[#0a0a0a] text-white px-4 py-3 rounded-t-lg">
             <div>
