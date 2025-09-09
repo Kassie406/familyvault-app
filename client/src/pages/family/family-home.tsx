@@ -85,6 +85,7 @@ export default function FamilyHome() {
   // Dashboard customization
   const { layout, visible, hide, show, reorder, resetToRole } = useUserLayout(currentUser.id, currentUser.role);
   const [editing, setEditing] = useState(false);
+  const hiddenIds = layout.filter((item) => item.hidden).map((item) => item.id);
   
   // Navigation hook
   const [, setLocation] = useLocation();
@@ -671,6 +672,247 @@ export default function FamilyHome() {
     }
   ];
 
+  // Card renderer function for the sortable grid
+  const renderCard = (id: CardId): React.ReactNode => {
+    switch (id) {
+      case 'familyMembers':
+        const familyMembersData = familyStats.find(s => s.label === 'Family Members');
+        return familyMembersData ? (
+          <StatCard 
+            icon={<Users className="h-5 w-5" />}
+            value={familyMembersData.value}
+            label={familyMembersData.label}
+            href={familyMembersData.href}
+            fetchPreview={async () => familyMembersData.previewItems || []}
+            dropdownActions={familyMembersData.dropdownActions}
+          />
+        ) : null;
+
+      case 'documents':
+        const documentsData = familyStats.find(s => s.label === 'Documents Shared');
+        return documentsData ? (
+          <StatCard 
+            icon={<FileText className="h-5 w-5" />}
+            value={documentsData.value}
+            label={documentsData.label}
+            href={documentsData.href}
+            fetchPreview={documentsData.fetchPreview}
+            dropdownActions={documentsData.dropdownActions}
+          />
+        ) : null;
+
+      case 'messages':
+        const messagesData = familyStats.find(s => s.label === 'Messages & Video Meetings');
+        return messagesData ? (
+          <StatCard 
+            icon={<MessageCircle className="h-5 w-5" />}
+            value={messagesData.value}
+            label={messagesData.label}
+            href={messagesData.href}
+            fetchPreview={messagesData.fetchPreview}
+            dropdownActions={messagesData.dropdownActions}
+          />
+        ) : null;
+
+      case 'photos':
+        const photosData = familyStats.find(s => s.label === 'Photos Uploaded');
+        return photosData ? (
+          <StatCard 
+            icon={<ImageIcon className="h-5 w-5" />}
+            value={photosData.value}
+            label={photosData.label}
+            href={photosData.href}
+            fetchPreview={photosData.fetchPreview}
+            dropdownActions={photosData.dropdownActions}
+          />
+        ) : null;
+
+      case 'sharedLists':
+        const sharedListsData = familyStats.find(s => s.label === 'Shared Lists');
+        return sharedListsData ? (
+          <StatCard 
+            icon={<ListTodo className="h-5 w-5" />}
+            value={sharedListsData.value}
+            label={sharedListsData.label}
+            href={sharedListsData.href}
+            fetchPreview={sharedListsData.fetchPreview}
+            dropdownActions={sharedListsData.dropdownActions}
+          />
+        ) : null;
+
+      case 'recipeBook':
+        const recipeBookData = familyStats.find(s => s.label === 'Recipe Book');
+        return recipeBookData ? (
+          <StatCard 
+            icon={<ChefHat className="h-5 w-5" />}
+            value={recipeBookData.value}
+            label={recipeBookData.label}
+            href={recipeBookData.href}
+            fetchPreview={recipeBookData.fetchPreview}
+            dropdownActions={recipeBookData.dropdownActions}
+          />
+        ) : null;
+
+      case 'budget':
+        const budgetData = familyStats.find(s => s.label === 'Budget Tracker');
+        return budgetData ? (
+          <StatCard 
+            icon={<DollarSign className="h-5 w-5" />}
+            value={budgetData.value}
+            label={budgetData.label}
+            href={budgetData.href}
+            fetchPreview={budgetData.fetchPreview}
+            dropdownActions={budgetData.dropdownActions}
+          />
+        ) : null;
+
+      case 'couples':
+        const couplesData = familyStats.find(s => s.label === "Couple's Connection");
+        return couplesData ? (
+          <StatCard 
+            icon={<Heart className="h-5 w-5" />}
+            value={couplesData.value}
+            label={couplesData.label}
+            href={couplesData.href}
+            fetchPreview={couplesData.fetchPreview}
+            dropdownActions={couplesData.dropdownActions}
+          />
+        ) : null;
+
+      case 'mealPlanner':
+        const mealPlannerData = familyStats.find(s => s.label === 'Meal Planner');
+        return mealPlannerData ? (
+          <StatCard 
+            icon={<CalendarDays className="h-5 w-5" />}
+            value={mealPlannerData.value}
+            label={mealPlannerData.label}
+            href={mealPlannerData.href}
+            fetchPreview={mealPlannerData.fetchPreview}
+            dropdownActions={mealPlannerData.dropdownActions}
+          />
+        ) : null;
+
+      case 'familyVacation':
+        const familyVacationData = familyStats.find(s => s.label === 'Family Vacation');
+        return familyVacationData ? (
+          <StatCard 
+            icon={<MapPin className="h-5 w-5" />}
+            value={familyVacationData.value}
+            label={familyVacationData.label}
+            href={familyVacationData.href}
+            fetchPreview={familyVacationData.fetchPreview}
+            dropdownActions={familyVacationData.dropdownActions}
+          />
+        ) : null;
+
+      case 'babysitter':
+        const babysitterData = familyStats.find(s => s.label === 'Babysitter');
+        return babysitterData ? (
+          <StatCard 
+            icon={<User className="h-5 w-5" />}
+            value={babysitterData.value}
+            label={babysitterData.label}
+            href={babysitterData.href}
+            fetchPreview={babysitterData.fetchPreview}
+            dropdownActions={babysitterData.dropdownActions}
+          />
+        ) : null;
+
+      case 'emergencyContacts':
+        const emergencyContactsData = familyStats.find(s => s.label === 'Emergency Contacts');
+        return emergencyContactsData ? (
+          <StatCard 
+            icon={<ShieldAlert className="h-5 w-5" />}
+            value={emergencyContactsData.value}
+            label={emergencyContactsData.label}
+            href={emergencyContactsData.href}
+            fetchPreview={emergencyContactsData.fetchPreview}
+            dropdownActions={emergencyContactsData.dropdownActions}
+          />
+        ) : null;
+
+      case 'chores':
+        return <ChoresCard currentUser={currentUser} />;
+
+      case 'allowancePoints':
+        return <AllowanceMini />;
+
+      case 'quickActions':
+        return (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 h-full flex flex-col">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-[#D4AF37]/10">
+                <Zap className="h-5 w-5 text-[#D4AF37]" />
+              </div>
+              <div>
+                <h3 className="text-gray-200 font-semibold">Quick Actions</h3>
+                <p className="text-xs text-gray-500">Frequently used features</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+              <ActionCard 
+                icon={<Upload className="h-5 w-5"/>} 
+                title="Upload Document" 
+                subtitle="Add new family document"
+                onClick={scrollToDocumentUpload}
+              />
+              <ActionCard 
+                icon={<MessageCircle className="h-5 w-5"/>} 
+                title="Send Message" 
+                subtitle="Chat with family" 
+                onClick={() => setMessagingOpen(true)}
+              />
+              <ActionCard 
+                icon={<ImageIcon className="h-5 w-5"/>} 
+                title="View Photos" 
+                subtitle="Browse family gallery" 
+              />
+              <ActionCard 
+                icon={<Shield className="h-5 w-5"/>} 
+                title="Emergency Info" 
+                subtitle="Quick access to critical info"
+              />
+            </div>
+          </div>
+        );
+
+      case 'uploadCenter':
+        return (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 h-full flex flex-col">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-lg bg-blue-600/10">
+                <Upload className="h-5 w-5 text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-gray-200 font-semibold">Upload Center</h3>
+                <p className="text-xs text-gray-500">Add documents and photos to your family vault</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
+              <div className="space-y-4">
+                <h4 className="text-gray-300 font-medium">Documents</h4>
+                <QuickDocumentUpload />
+              </div>
+              
+              <div className="space-y-4">
+                <h4 className="text-gray-300 font-medium">Photos</h4>
+                <QuickPhotoUpload />
+              </div>
+            </div>
+          </div>
+        );
+
+      default:
+        return (
+          <div className="h-full rounded-2xl bg-zinc-900 border border-zinc-800 p-4 shadow-sm">
+            <div className="text-sm text-gray-400 mb-2">Card: {id}</div>
+            <div className="text-xs text-gray-600">Coming soon...</div>
+          </div>
+        );
+    }
+  };
+
 
   return (
     <div className="flex-1 overflow-auto bg-[var(--bg-900)] pb-20 md:pb-0">
@@ -780,73 +1022,54 @@ export default function FamilyHome() {
       </div>
       
       <div className="p-8 space-y-4">
+        {/* Dashboard Customization Bar */}
+        <CustomizeBar
+          hiddenIds={hiddenIds}
+          onShow={show}
+          onReset={resetToRole}
+          editing={editing}
+          setEditing={setEditing}
+        />
 
-      {/* Family Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-stretch">
-        {familyStats.map((stat, index) => {
-          const Icon = stat.icon;
-          const keyValue = typeof stat.label === 'string' ? stat.label : `stat-${index}`;
-          return (
-            <StatCard 
-              key={keyValue}
-              icon={<Icon className="h-5 w-5" />}
-              value={stat.value}
-              label={stat.label}
-              href={stat.href}
-              fetchPreview={async () => stat.previewItems || []}
-              dropdownActions={stat.dropdownActions}
-              onClick={stat.onClick}
-            />
-          );
-        })}
-      </div>
+        {/* Sortable Dashboard Grid */}
+        <SortableGrid
+          items={visible}
+          onReorder={reorder}
+          editing={editing}
+          onHide={hide}
+          renderCard={renderCard}
+        />
 
-      {/* Chores & Allowance Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-stretch">
-        {/* Action Center - First column */}
-        <div className="lg:col-span-1">
-          <ActionCenter />
-        </div>
-        
-        {/* Chores Card - Takes 2 columns */}
-        <div className="lg:col-span-2">
-          <ChoresCard currentUser={currentUser} />
-        </div>
-        
-        {/* Allowance Mini - Last column */}
-        <div className="lg:col-span-1">
-          <AllowanceMini />
-        </div>
-      </div>
-
-      {/* Row 2: Quick Actions */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-[#D4AF37]/10">
-            <Zap className="h-5 w-5 text-[#D4AF37]" />
+        {/* Legacy Quick Actions Row - Hidden during editing */}
+        {!editing && (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-[#D4AF37]/10">
+                <Zap className="h-5 w-5 text-[#D4AF37]" />
+              </div>
+              <div>
+                <h3 className="text-gray-200 font-semibold">Legacy Actions</h3>
+                <p className="text-xs text-gray-500">These will be integrated into the customizable cards</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <ActionCard 
+                icon={<Upload className="h-5 w-5"/>} 
+                title="Upload Document" 
+                subtitle="Add new family document"
+                onClick={scrollToDocumentUpload}
+              />
+              <ActionCard 
+                icon={<MessageCircle className="h-5 w-5"/>} 
+                title="Send Message" 
+                subtitle="Chat with family" 
+                onClick={() => setMessagingOpen(true)}
+              />
+              <ActionCard icon={<ImageIcon className="h-5 w-5"/>} title="View Photos" subtitle="Browse family gallery" />
+              <ActionCard icon={<ShieldAlert className="h-5 w-5"/>} title="Emergency Info" subtitle="Quick access to critical info" />
+            </div>
           </div>
-          <div>
-            <h3 className="text-gray-200 font-semibold">Quick Actions</h3>
-            <p className="text-xs text-gray-500">Frequently used features</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <ActionCard 
-            icon={<Upload className="h-5 w-5"/>} 
-            title="Upload Document" 
-            subtitle="Add new family document"
-            onClick={scrollToDocumentUpload}
-          />
-          <ActionCard 
-            icon={<MessageCircle className="h-5 w-5"/>} 
-            title="Send Message" 
-            subtitle="Chat with family" 
-            onClick={() => setMessagingOpen(true)}
-          />
-          <ActionCard icon={<ImageIcon className="h-5 w-5"/>} title="View Photos" subtitle="Browse family gallery" />
-          <ActionCard icon={<ShieldAlert className="h-5 w-5"/>} title="Emergency Info" subtitle="Quick access to critical info" />
-        </div>
-      </div>
+        )}
 
       {/* Row 3: Upload Center (full width) */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4" ref={uploadCenterRef}>
