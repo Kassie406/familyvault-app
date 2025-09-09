@@ -3994,3 +3994,14 @@ a:hover,
     0 0 0 1px rgba(212, 175, 55, .35),
     0 18px 50px rgba(212, 175, 55, .12) !important;
 }
+
+/* --- Chores tab buttons: fix hover effects --- */
+#chores-tabs button.qa-tab:not(.bg-\[#D4AF37\]):hover {
+  background-color: rgba(212, 175, 55, 0.14) !important;
+  color: #D4AF37 !important;
+}
+
+#chores-tabs button.qa-tab:not(.bg-\[#D4AF37\]):focus-visible {
+  background-color: rgba(212, 175, 55, 0.14) !important;
+  color: #D4AF37 !important;
+}
