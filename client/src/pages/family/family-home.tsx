@@ -677,159 +677,159 @@ export default function FamilyHome() {
     switch (id) {
       case 'familyMembers':
         const familyMembersData = familyStats.find(s => s.label === 'Family Members');
-        return familyMembersData ? (
+        return (
           <StatCard 
             icon={<Users className="h-5 w-5" />}
-            value={familyMembersData.value}
-            label={familyMembersData.label}
-            href={familyMembersData.href}
-            fetchPreview={async () => familyMembersData.previewItems || []}
-            dropdownActions={familyMembersData.dropdownActions}
+            value={familyMembersData?.value || 0}
+            label="Family Members"
+            href={familyMembersData?.href || '#'}
+            fetchPreview={async () => familyMembersData?.previewItems || []}
+            dropdownActions={familyMembersData?.dropdownActions || []}
           />
-        ) : null;
+        );
 
       case 'documents':
         const documentsData = familyStats.find(s => s.label === 'Documents Shared');
-        return documentsData ? (
+        return (
           <StatCard 
             icon={<FileText className="h-5 w-5" />}
-            value={documentsData.value}
-            label={documentsData.label}
-            href={documentsData.href}
-            fetchPreview={documentsData.fetchPreview}
-            dropdownActions={documentsData.dropdownActions}
+            value={documentsData?.value || 0}
+            label="Documents Shared"
+            href={documentsData?.href || '#'}
+            fetchPreview={documentsData?.fetchPreview || (async () => [])}
+            dropdownActions={documentsData?.dropdownActions || []}
           />
-        ) : null;
+        );
 
       case 'messages':
         const messagesData = familyStats.find(s => s.label === 'Messages & Video Meetings');
-        return messagesData ? (
+        return (
           <StatCard 
             icon={<MessageCircle className="h-5 w-5" />}
-            value={messagesData.value}
-            label={messagesData.label}
-            href={messagesData.href}
-            fetchPreview={messagesData.fetchPreview}
-            dropdownActions={messagesData.dropdownActions}
+            value={messagesData?.value || 0}
+            label="Messages & Video Meetings"
+            href={messagesData?.href || '#'}
+            fetchPreview={messagesData?.fetchPreview || (async () => [])}
+            dropdownActions={messagesData?.dropdownActions || []}
           />
-        ) : null;
+        );
 
       case 'photos':
         const photosData = familyStats.find(s => s.label === 'Photos Uploaded');
-        return photosData ? (
+        return (
           <StatCard 
             icon={<ImageIcon className="h-5 w-5" />}
-            value={photosData.value}
-            label={photosData.label}
-            href={photosData.href}
-            fetchPreview={photosData.fetchPreview}
-            dropdownActions={photosData.dropdownActions}
+            value={photosData?.value || 0}
+            label="Photos Uploaded"
+            href={photosData?.href || '#'}
+            fetchPreview={photosData?.fetchPreview || (async () => [])}
+            dropdownActions={photosData?.dropdownActions || []}
           />
-        ) : null;
+        );
 
       case 'sharedLists':
         const sharedListsData = familyStats.find(s => s.label === 'Shared Lists');
-        return sharedListsData ? (
+        return (
           <StatCard 
             icon={<ListTodo className="h-5 w-5" />}
-            value={sharedListsData.value}
-            label={sharedListsData.label}
-            href={sharedListsData.href}
-            fetchPreview={sharedListsData.fetchPreview}
-            dropdownActions={sharedListsData.dropdownActions}
+            value={sharedListsData?.value || 0}
+            label="Shared Lists"
+            href={sharedListsData?.href || '#'}
+            fetchPreview={sharedListsData?.fetchPreview || (async () => [])}
+            dropdownActions={sharedListsData?.dropdownActions || []}
           />
-        ) : null;
+        );
 
       case 'recipeBook':
         const recipeBookData = familyStats.find(s => s.label === 'Recipe Book');
-        return recipeBookData ? (
+        return (
           <StatCard 
             icon={<ChefHat className="h-5 w-5" />}
-            value={recipeBookData.value}
-            label={recipeBookData.label}
-            href={recipeBookData.href}
-            fetchPreview={recipeBookData.fetchPreview}
-            dropdownActions={recipeBookData.dropdownActions}
+            value={recipeBookData?.value || 0}
+            label="Recipe Book"
+            href={recipeBookData?.href || '#'}
+            fetchPreview={recipeBookData?.fetchPreview || (async () => [])}
+            dropdownActions={recipeBookData?.dropdownActions || []}
           />
-        ) : null;
+        );
 
       case 'budget':
         const budgetData = familyStats.find(s => s.label === 'Budget Tracker');
-        return budgetData ? (
+        return (
           <StatCard 
             icon={<DollarSign className="h-5 w-5" />}
-            value={budgetData.value}
-            label={budgetData.label}
-            href={budgetData.href}
-            fetchPreview={budgetData.fetchPreview}
-            dropdownActions={budgetData.dropdownActions}
+            value={budgetData?.value || '$0'}
+            label="Budget Tracker"
+            href={budgetData?.href || '#'}
+            fetchPreview={budgetData?.fetchPreview || (async () => [])}
+            dropdownActions={budgetData?.dropdownActions || []}
           />
-        ) : null;
+        );
 
       case 'couples':
         const couplesData = familyStats.find(s => s.label === "Couple's Connection");
-        return couplesData ? (
+        return (
           <StatCard 
             icon={<Heart className="h-5 w-5" />}
-            value={couplesData.value}
-            label={couplesData.label}
-            href={couplesData.href}
-            fetchPreview={couplesData.fetchPreview}
-            dropdownActions={couplesData.dropdownActions}
+            value={couplesData?.value || 'Together'}
+            label="Couple's Connection"
+            href={couplesData?.href || '#'}
+            fetchPreview={couplesData?.fetchPreview || (async () => [])}
+            dropdownActions={couplesData?.dropdownActions || []}
           />
-        ) : null;
+        );
 
       case 'mealPlanner':
         const mealPlannerData = familyStats.find(s => s.label === 'Meal Planner');
-        return mealPlannerData ? (
+        return (
           <StatCard 
             icon={<CalendarDays className="h-5 w-5" />}
-            value={mealPlannerData.value}
-            label={mealPlannerData.label}
-            href={mealPlannerData.href}
-            fetchPreview={mealPlannerData.fetchPreview}
-            dropdownActions={mealPlannerData.dropdownActions}
+            value={mealPlannerData?.value || 'Week View'}
+            label="Meal Planner"
+            href={mealPlannerData?.href || '#'}
+            fetchPreview={mealPlannerData?.fetchPreview || (async () => [])}
+            dropdownActions={mealPlannerData?.dropdownActions || []}
           />
-        ) : null;
+        );
 
       case 'familyVacation':
         const familyVacationData = familyStats.find(s => s.label === 'Family Vacation');
-        return familyVacationData ? (
+        return (
           <StatCard 
             icon={<MapPin className="h-5 w-5" />}
-            value={familyVacationData.value}
-            label={familyVacationData.label}
-            href={familyVacationData.href}
-            fetchPreview={familyVacationData.fetchPreview}
-            dropdownActions={familyVacationData.dropdownActions}
+            value={familyVacationData?.value || 'Plan Trip'}
+            label="Family Vacation"
+            href={familyVacationData?.href || '#'}
+            fetchPreview={familyVacationData?.fetchPreview || (async () => [])}
+            dropdownActions={familyVacationData?.dropdownActions || []}
           />
-        ) : null;
+        );
 
       case 'babysitter':
         const babysitterData = familyStats.find(s => s.label === 'Babysitter');
-        return babysitterData ? (
+        return (
           <StatCard 
             icon={<User className="h-5 w-5" />}
-            value={babysitterData.value}
-            label={babysitterData.label}
-            href={babysitterData.href}
-            fetchPreview={babysitterData.fetchPreview}
-            dropdownActions={babysitterData.dropdownActions}
+            value={babysitterData?.value || 'Available'}
+            label="Babysitter"
+            href={babysitterData?.href || '#'}
+            fetchPreview={babysitterData?.fetchPreview || (async () => [])}
+            dropdownActions={babysitterData?.dropdownActions || []}
           />
-        ) : null;
+        );
 
       case 'emergencyContacts':
         const emergencyContactsData = familyStats.find(s => s.label === 'Emergency Contacts');
-        return emergencyContactsData ? (
+        return (
           <StatCard 
             icon={<ShieldAlert className="h-5 w-5" />}
-            value={emergencyContactsData.value}
-            label={emergencyContactsData.label}
-            href={emergencyContactsData.href}
-            fetchPreview={emergencyContactsData.fetchPreview}
-            dropdownActions={emergencyContactsData.dropdownActions}
+            value={emergencyContactsData?.value || '24/7 Ready'}
+            label="Emergency Contacts"
+            href={emergencyContactsData?.href || '#'}
+            fetchPreview={emergencyContactsData?.fetchPreview || (async () => [])}
+            dropdownActions={emergencyContactsData?.dropdownActions || []}
           />
-        ) : null;
+        );
 
       case 'chores':
         return <ChoresCard currentUser={currentUser} />;
