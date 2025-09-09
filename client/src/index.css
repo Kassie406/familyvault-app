@@ -4043,3 +4043,20 @@ a:hover,
 #upload-tabs [role="tab"]:focus-visible {
   outline: 2px solid #c5a00044; border-radius: 9999px;
 }
+
+/* Quick Access — 'All' chip text = white */
+dialog[aria-label="Quick Access"] button[data-testid="filter-all"]{
+  color: #ffffff !important;
+}
+dialog[aria-label="Quick Access"] button[data-testid="filter-all"][aria-pressed="true"],
+dialog[aria-label="Quick Access"] button[data-testid="filter-all"][data-state="active"],
+dialog[aria-label="Quick Access"] button[data-testid="filter-all"]:hover,
+dialog[aria-label="Quick Access"] button[data-testid="filter-all"]:focus{
+  color: #ffffff !important; /* keep white in hover/focus/active */
+}
+/* ensure icon matches text */
+dialog[aria-label="Quick Access"] button[data-testid="filter-all"] *{
+  color: currentColor !important;
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
