@@ -11,6 +11,7 @@ export function CustomizeBar({
   editing: boolean;
   setEditing: (b: boolean) => void;
 }) {
+  console.log('CustomizeBar - editing state:', editing);
   return (
     <div className="flex items-center justify-between gap-4 mb-4 p-4 rounded-2xl border border-white/10 bg-white/5">
       <div className="flex items-center gap-2">
@@ -53,15 +54,22 @@ export function CustomizeBar({
         
         <button 
           type="button"
-          onClick={() => setEditing(!editing)} 
-          className={[
-            "rounded-full px-4 py-2 font-medium transition-colors",
-            // 🟡 always-on ring + offset (dark bg)
-            "ring-2 ring-[#c5a000] ring-offset-2 ring-offset-[#0b0b0e]",
-            "focus:!ring-2 focus:!ring-[#c5a000] focus:!ring-offset-2 active:!ring-2",
-            // colors by state
-            editing ? "bg-[#c5a000] text-black" : "bg-transparent text-zinc-400",
-          ].join(" ")}
+          onClick={() => {
+            console.log('Button clicked, editing before:', editing);
+            setEditing(!editing);
+            console.log('Button clicked, editing after:', !editing);
+          }}
+          style={{
+            background: editing ? '#c5a000' : 'transparent',
+            color: editing ? '#000000' : '#a1a1aa',
+            border: '2px solid #c5a000',
+            borderRadius: '9999px',
+            padding: '8px 16px',
+            fontWeight: '500',
+            transition: 'all 0.2s',
+            outline: 'none',
+            boxShadow: '0 0 0 2px #0b0b0e, 0 0 0 4px #c5a000',
+          }}
           data-testid="customize-toggle"
         >
           {editing ? "Done" : "Customize"}
