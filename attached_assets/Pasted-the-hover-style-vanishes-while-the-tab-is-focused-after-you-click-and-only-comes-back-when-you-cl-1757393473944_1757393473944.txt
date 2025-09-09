@@ -1,0 +1,51 @@
+the hover style vanishes while the tab is focused (after you click), and only comes back when you click elsewhere. That means a :focus rule (from the tab library/theme) is overriding :hover.
+
+Here’s a single, drop-in fix that forces the gold to show on hover even while focused (and for active tabs). Paste this at the very end of your global CSS. If needed, wrap your two tabs in a container with id="upload-tabs" as shown.
+
+<div id="upload-tabs">
+  <!-- Documents / Photos tab triggers here -->
+</div>
+
+/* Upload Center tabs — keep gold on hover even when focused */
+#upload-tabs [role="tab"],
+#upload-tabs [role="tab"]:link,
+#upload-tabs [role="tab"]:visited { 
+  color: #c5a000 !important;
+  text-decoration: none !important;
+}
+
+/* The key fix: hover must win even during focus */
+#upload-tabs [role="tab"]:focus:hover,
+#upload-tabs [role="tab"]:focus-visible:hover,
+#upload-tabs [role="tab"][data-state="active"]:focus:hover,
+#upload-tabs [role="tab"][data-state="active"]:focus-visible:hover {
+  color: #c5a000 !important;
+}
+
+/* Keep gold in all other states too */
+#upload-tabs [role="tab"]:hover,
+#upload-tabs [role="tab"]:active,
+#upload-tabs [role="tab"]:focus,
+#upload-tabs [role="tab"]:focus-visible,
+#upload-tabs [role="tab"][data-state="active"],
+#upload-tabs [role="tab"][data-state="active"]:hover,
+#upload-tabs [role="tab"][data-state="active"]:focus {
+  color: #c5a000 !important;
+}
+
+/* Make icons/text inside inherit gold */
+#upload-tabs [role="tab"] * {
+  color: currentColor !important;
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* Optional: tidy focus ring without changing color */
+#upload-tabs [role="tab"]:focus { outline: none; }
+#upload-tabs [role="tab"]:focus-visible {
+  outline: 2px solid #c5a00044;
+  border-radius: 9999px;
+}
+
+
+Why this works: the library’s :focus text color was trumping :hover. By explicitly styling :focus:hover (and the active variants) with higher specificity, hover wins while the button is focused—so the hover effect shows immediately after you click and stays consistent.
