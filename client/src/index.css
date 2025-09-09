@@ -4081,7 +4081,7 @@ dialog[aria-label="Quick Access"] button[data-testid^="filter-"]:focus:hover,
 dialog[aria-label="Quick Access"] button[data-testid^="filter-"][data-state="active"]:hover {
   /* keep everything exactly as base state */
   --tw-text-opacity: 1 !important;
-  color: inherit !important;
+  color: #c5a000 !important; /* gold text */
   background-color: transparent !important;
   border-color: inherit !important;
   box-shadow: none !important;
