@@ -13,7 +13,6 @@ export type CardId =
   | "emergencyContacts"
   | "chores"
   | "allowancePoints"
-  | "quickActions"
   | "uploadCenter"
   | "familyActivity"
   | "familyUpdates"
@@ -37,7 +36,6 @@ export const CARD_REGISTRY: CardDef[] = [
   { id: "emergencyContacts", title: "Emergency Contacts" },
   { id: "chores", title: "Chores & Allowance", span: "col-span-8" },
   { id: "allowancePoints", title: "Allowance", span: "col-span-4" },
-  { id: "quickActions", title: "Quick Actions", span: "col-span-12" },
   { id: "uploadCenter", title: "Upload Center", span: "col-span-12" },
   { id: "familyActivity", title: "Family Activity" },
   { id: "familyUpdates", title: "Family Updates" },
@@ -54,7 +52,7 @@ export const DEFAULTS: Record<"parent" | "teen", Layout> = {
     { id: "familyMembers" }, { id: "emergencyContacts" }, { id: "messages" }, { id: "photos" },
     { id: "sharedLists" }, { id: "recipeBook" }, { id: "budget" }, { id: "couples" },
     { id: "mealPlanner" }, { id: "familyVacation" }, { id: "babysitter" }, { id: "documents" },
-    { id: "chores" }, { id: "allowancePoints" }, { id: "quickActions" }, { id: "uploadCenter" },
+    { id: "chores" }, { id: "allowancePoints" }, { id: "uploadCenter" },
     { id: "familyActivity" }, { id: "familyUpdates" }, { id: "calendar" }, { id: "ice" },
   ],
   teen: [
