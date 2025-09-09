@@ -19,8 +19,8 @@ function SortableCard({
   const span = def?.span ?? "col-span-4";
 
   return (
-    <div ref={setNodeRef} style={style} className={`${span} h-full`}>
-      <div className="relative h-full">
+    <div ref={setNodeRef} style={style} className={`${span}`}>
+      <div className="relative h-auto">
         {editing && (
           <div className="absolute top-2 right-2 z-10 flex gap-2">
             <button 
@@ -68,7 +68,7 @@ export function SortableGrid({
       }}
     >
       <SortableContext items={items.map((i) => i.id)} strategy={rectSortingStrategy}>
-        <div className="grid grid-cols-12 gap-3 auto-rows-[1fr] items-stretch">
+        <div className="grid grid-cols-12 gap-3 auto-rows-auto [grid-auto-rows:minmax(0,_auto)] grid-auto-flow-dense items-start">
           {items.map((it) => (
             <SortableCard 
               key={it.id} 
