@@ -4065,3 +4065,18 @@ dialog[aria-label="Quick Access"] button[data-testid="filter-all"] *{
   stroke: currentColor !important;
   fill: currentColor !important;
 }
+
+/* Quick Access chips — gold on hover (any state) */
+dialog[aria-label="Quick Access"] button[data-testid^="filter-"]:hover,
+dialog[aria-label="Quick Access"] button[data-testid^="filter-"]:focus:hover,
+dialog[aria-label="Quick Access"] button[data-testid^="filter-"][aria-pressed="true"]:hover,
+dialog[aria-label="Quick Access"] button[data-testid^="filter-"][data-state="active"]:hover {
+  color: #c5a000 !important;
+}
+
+/* make the icon match the text color */
+dialog[aria-label="Quick Access"] button[data-testid^="filter-"] * {
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: currentColor !important;
+}
