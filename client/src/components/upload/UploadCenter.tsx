@@ -281,14 +281,14 @@ export default function UploadCenter({
           <TabsList className="bg-zinc-900 border border-zinc-800">
             <TabsTrigger 
               value="docs" 
-              className="text-[#c5a000] hover:text-[#c5a000] focus:text-[#c5a000] data-[state=active]:bg-[#c5a000]/20 data-[state=active]:text-[#c5a000]"
+              className="text-[#c5a000] hover:text-[#c5a000] focus:text-[#c5a000] focus-visible:text-[#c5a000] active:text-[#c5a000] data-[state=active]:bg-[#c5a000]/20 data-[state=active]:text-[#c5a000] [&:focus]:text-[#c5a000] [&:focus:hover]:text-[#c5a000]"
             >
               <FileText className="h-4 w-4 mr-2" />
               Documents
             </TabsTrigger>
             <TabsTrigger 
               value="photos" 
-              className="text-[#c5a000] hover:text-[#c5a000] focus:text-[#c5a000] data-[state=active]:bg-[#c5a000]/20 data-[state=active]:text-[#c5a000]"
+              className="text-[#c5a000] hover:text-[#c5a000] focus:text-[#c5a000] focus-visible:text-[#c5a000] active:text-[#c5a000] data-[state=active]:bg-[#c5a000]/20 data-[state=active]:text-[#c5a000] [&:focus]:text-[#c5a000] [&:focus:hover]:text-[#c5a000]"
             >
               <ImageIcon className="h-4 w-4 mr-2" />
               Photos
