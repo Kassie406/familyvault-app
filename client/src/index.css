@@ -316,6 +316,15 @@ button:hover {
   color: #d4d4d8; /* zinc-300 */
 }
 
+/* Freeze hover/focus/active to be identical - no visual changes */
+.dashboard .fcs-btn--gold-outline:hover,
+.dashboard .fcs-btn--gold-outline:focus,
+.dashboard .fcs-btn--gold-outline:active {
+  background: transparent !important; 
+  color: #d4d4d8 !important;
+  box-shadow: 0 0 0 2px #c5a000, 0 0 0 4px #0b0b0e !important;
+}
+
 .dashboard .fcs-btn--gold-filled {
   background: #c5a000 !important; 
   color: #000 !important;

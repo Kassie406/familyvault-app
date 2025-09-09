@@ -1,0 +1,79 @@
+ou want no color change on hover for the “Customize” button. Lock the styles so hover/focus/active look exactly the same as the normal state.
+
+Here are two drop-in options. Use whichever matches your current look.
+
+If “Customize” is an outline button (gold ring, dark fill)
+
+CSS (Tailwind @apply)
+
+/* dashboard-buttons.css */
+.dashboard .btn-gold-outline {
+  @apply rounded-full px-4 py-2 font-medium
+         bg-transparent text-zinc-300
+         ring-2 ring-[#c5a000] ring-offset-2 ring-offset-[#0b0b0e]
+         transition-none;
+}
+/* Freeze hover/focus/active to be identical */
+.dashboard .btn-gold-outline:hover,
+.dashboard .btn-gold-outline:focus,
+.dashboard .btn-gold-outline:active {
+  @apply bg-transparent text-zinc-300 ring-2 ring-[#c5a000] ring-offset-2 ring-offset-[#0b0b0e];
+}
+
+
+Plain CSS (no Tailwind)
+
+.dashboard .btn-gold-outline{
+  border-radius:9999px; padding:8px 16px; font-weight:500;
+  background:transparent; color:#d4d4d8;
+  box-shadow:0 0 0 2px #c5a000, 0 0 0 4px #0b0b0e; /* ring + offset */
+}
+.dashboard .btn-gold-outline:hover,
+.dashboard .btn-gold-outline:focus,
+.dashboard .btn-gold-outline:active{
+  background:transparent !important; color:#d4d4d8 !important;
+  box-shadow:0 0 0 2px #c5a000, 0 0 0 4px #0b0b0e !important;
+}
+
+
+JSX
+
+<div className="dashboard">
+  <button type="button" className="btn-gold-outline">Customize</button>
+</div>
+
+If “Customize” is a filled gold button (solid gold)
+
+CSS (Tailwind @apply)
+
+.dashboard .btn-gold-filled{
+  @apply rounded-full px-4 py-2 font-medium
+         text-black
+         ring-2 ring-[#c5a000] ring-offset-2 ring-offset-[#0b0b0e];
+  background:#c5a000;
+}
+/* Freeze hover/focus/active to same gold */
+.dashboard .btn-gold-filled:hover,
+.dashboard .btn-gold-filled:focus,
+.dashboard .btn-gold-filled:active{
+  background:#c5a000 !important; color:#000 !important;
+  @apply ring-2 ring-[#c5a000] ring-offset-2 ring-offset-[#0b0b0e];
+}
+
+
+JSX
+
+<div className="dashboard">
+  <button type="button" className="btn-gold-filled">Customize</button>
+</div>
+
+Important—neutralize any global “white hover”
+
+Some environments apply button:hover { background:#fff; }. Scope-override it:
+
+.dashboard button:hover { background: inherit; }
+
+
+(Our specific .btn-gold-* rules then reapply the exact background you want.)
+
+That’s it—now the Customize button will not darken or change on hover; it will stay exactly like your second screenshot. If you share the exact class list you’re using today, I’ll convert it line-for-line into the btn-gold-outline or btn-gold-filled styles above.
