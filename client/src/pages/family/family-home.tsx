@@ -1117,25 +1117,14 @@ export default function FamilyHome() {
           {/* Family Updates Panel */}
           <Panel defaultSize={35} minSize={20} maxSize={50}>
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 h-full">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-[#D4AF37]/10">
-                    <Bell className="h-5 w-5 text-[#D4AF37]" />
-                  </div>
-                  <div>
-                    <h3 className="text-gray-200 font-semibold">Family Updates</h3>
-                    <p className="text-xs text-gray-500">Important notifications</p>
-                  </div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-[#D4AF37]/10">
+                  <Bell className="h-5 w-5 text-[#D4AF37]" />
                 </div>
-                <button
-                  onClick={() => {
-                    familyUpdatesRef.current?.refresh();
-                  }}
-                  className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-                  data-testid="button-refresh-family-updates"
-                >
-                  <RefreshCw className="h-4 w-4 text-white/70" />
-                </button>
+                <div>
+                  <h3 className="text-gray-200 font-semibold">Family Updates</h3>
+                  <p className="text-xs text-gray-500">Important notifications</p>
+                </div>
               </div>
               <div className="overflow-y-auto h-[calc(100%-80px)] custom-scrollbar">
                 <FamilyUpdates ref={familyUpdatesRef} />
