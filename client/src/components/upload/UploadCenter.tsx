@@ -147,11 +147,33 @@ export default function UploadCenter({
       
       // Send to Inbox for AI analysis
       if (result.publicUrl) {
-        setInboxOpen(true);
-        // Add to inbox using the exposed function
-        setTimeout(() => {
-          (window as any).__addInboxUpload?.(result.publicUrl, row.file.name, row.file.size);
-        }, 500);
+        try {
+          // Register upload with the AI Inbox API
+          const uploadRes = await fetch("/api/uploads", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fileKey: result.key,
+              fileName: row.file.name,
+              mime: row.file.type,
+              size: row.file.size,
+            }),
+          });
+          
+          if (uploadRes.ok) {
+            const { uploadId } = await uploadRes.json();
+            
+            // Trigger AI analysis
+            await fetch(`/api/inbox/${uploadId}/analyze`, {
+              method: "POST",
+            });
+            
+            // Open inbox to show the analyzed document
+            setInboxOpen(true);
+          }
+        } catch (error) {
+          console.error("Failed to process file for AI analysis:", error);
+        }
       }
       
       // Invalidate queries
@@ -222,11 +244,33 @@ export default function UploadCenter({
       
       // Send to Inbox for AI analysis
       if (result.publicUrl) {
-        setInboxOpen(true);
-        // Add to inbox using the exposed function
-        setTimeout(() => {
-          (window as any).__addInboxUpload?.(result.publicUrl, row.file.name, row.file.size);
-        }, 500);
+        try {
+          // Register upload with the AI Inbox API
+          const uploadRes = await fetch("/api/uploads", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fileKey: result.key,
+              fileName: row.file.name,
+              mime: row.file.type,
+              size: row.file.size,
+            }),
+          });
+          
+          if (uploadRes.ok) {
+            const { uploadId } = await uploadRes.json();
+            
+            // Trigger AI analysis
+            await fetch(`/api/inbox/${uploadId}/analyze`, {
+              method: "POST",
+            });
+            
+            // Open inbox to show the analyzed document
+            setInboxOpen(true);
+          }
+        } catch (error) {
+          console.error("Failed to process file for AI analysis:", error);
+        }
       }
       
       // Invalidate queries
