@@ -1,0 +1,248 @@
+let’s turn AI Autofill suggestions on now with the Express + Drizzle backend we aligned on. Here’s the shortest path that will work today with a mock OCR (you can swap to Textract later with one file).
+
+0) Install (once)
+npm i express zod dotenv drizzle-orm pg pg-pool
+# optional later: npm i @aws-sdk/client-textract
+
+1) DB schema (Drizzle)
+
+Create /server/db/schema.ts:
+
+import { pgTable, text, integer, timestamp, jsonb, varchar } from "drizzle-orm/pg-core";
+
+export const familyMembers = pgTable("family_members", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  fullName: text("full_name").notNull(),
+  dob: timestamp("dob").nullable(),
+  ssnLast4: varchar("ssn_last4", { length: 4 }).nullable(),
+  address: text("address").nullable(),
+});
+
+export const uploads = pgTable("uploads", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  fileKey: text("file_key").notNull(),
+  fileName: text("file_name").notNull(),
+  mime: text("mime").notNull(),
+  size: integer("size").notNull(),
+  status: text("status").notNull(), // uploaded|analyzing|suggested|accepted|dismissed|failed
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const extractions = pgTable("extractions", {
+  id: text("id").primaryKey(),
+  uploadId: text("upload_id").unique().notNull(),
+  engine: text("engine").notNull(), // mock|textract
+  fields: jsonb("fields").notNull(), // [{key,value,confidence,pii}]
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const suggestions = pgTable("suggestions", {
+  id: text("id").primaryKey(),
+  uploadId: text("upload_id").unique().notNull(),
+  memberId: text("member_id").nullable(),
+  memberName: text("member_name").nullable(),
+  confidence: integer("confidence").notNull(),
+  status: text("status").notNull(), // proposed|accepted|dismissed
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const memberFiles = pgTable("member_files", {
+  id: text("id").primaryKey(),
+  memberId: text("member_id").notNull(),
+  fileKey: text("file_key").notNull(),
+  fileName: text("file_name").notNull(),
+  meta: jsonb("meta").notNull(), // normalized fields you accept
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+
+Drizzle client /server/db/index.ts:
+
+import "dotenv/config";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+export const db = drizzle(new Pool({ connectionString: process.env.DATABASE_URL }));
+
+
+Ensure DATABASE_URL is set.
+
+Seed one member so suggestions have a target (SQL or UI):
+
+insert into family_members(id, user_id, full_name, ssn_last4)
+values ('m_angel','u_demo','Angel Quintana','2645');
+
+2) Mock OCR + matching (swap later to Textract)
+
+/server/ai.ts:
+
+export type Field = { key: string; value: string; confidence: number; pii?: boolean };
+
+export async function runOcrMock(_fileKey: string): Promise<Field[]> {
+  return [
+    { key: "Person Name", value: "ANGEL D QUINTANA", confidence: 94 },
+    { key: "Social Security Number", value: "141-85-2645", confidence: 91, pii: true },
+  ];
+}
+
+export function makeSuggestion(userMembers: {id:string; fullName:string; ssnLast4?:string|null}[], fields: Field[]){
+  const name = (fields.find(f=>/person name|name/i.test(f.key))?.value || "").toLowerCase();
+  const last4 = (fields.find(f=>/social|ssn/i.test(f.key))?.value || "").replace(/\D/g,"").slice(-4);
+  let best = null as null | { memberId:string; memberName:string; confidence:number };
+  for (const m of userMembers){
+    let score = 0;
+    if (name && m.fullName) {
+      const hits = m.fullName.toLowerCase().split(/\s+/).filter(t => name.includes(t)).length;
+      score += hits * 20; // crude but effective
+    }
+    if (last4 && m.ssnLast4 && last4 === m.ssnLast4) score += 60;
+    if (!best || score > best.confidence) best = { memberId: m.id, memberName: m.fullName, confidence: Math.min(100, score) };
+  }
+  return best && best.confidence >= 70 ? best : null;
+}
+
+3) API routes (Express)
+
+/server/index.ts:
+
+import "dotenv/config";
+import express from "express";
+import { randomUUID } from "crypto";
+import { db } from "./db";
+import { familyMembers, uploads, extractions, suggestions, memberFiles } from "./db/schema";
+import { eq } from "drizzle-orm";
+import { runOcrMock, makeSuggestion } from "./ai";
+
+const app = express();
+app.use(express.json({ limit: "5mb" }));
+
+// Register an upload after you store the file (S3/local)
+app.post("/api/uploads", async (req, res) => {
+  const { userId, fileKey, fileName, mime, size } = req.body;
+  const id = randomUUID();
+  await db.insert(uploads).values({ id, userId, fileKey, fileName, mime, size, status: "uploaded" });
+  res.json({ uploadId: id });
+});
+
+// Analyze -> OCR + suggestion
+app.post("/api/inbox/:id/analyze", async (req, res) => {
+  const id = req.params.id;
+  const [u] = await db.select().from(uploads).where(eq(uploads.id, id));
+  if (!u) return res.status(404).send("not found");
+
+  const fields = await runOcrMock(u.fileKey);
+  await db.insert(extractions).values({ id: randomUUID(), uploadId: id, engine: "mock", fields });
+
+  const members = await db.select().from(familyMembers).where(eq(familyMembers.userId, u.userId));
+  const sug = makeSuggestion(members, fields);
+
+  await db.insert(suggestions).values({
+    id: randomUUID(),
+    uploadId: id,
+    memberId: sug?.memberId ?? null,
+    memberName: sug?.memberName ?? null,
+    confidence: sug?.confidence ?? 0,
+    status: sug ? "proposed" : "dismissed",
+  });
+
+  await db.update(uploads).set({ status: sug ? "suggested" : "dismissed" }).where(eq(uploads.id, id));
+  res.json({ suggestion: sug, fields });
+});
+
+// Accept -> attach file to member
+app.post("/api/inbox/:id/accept", async (req, res) => {
+  const id = req.params.id;
+  const { memberId, fields } = req.body; // fields you want to persist
+  const [u] = await db.select().from(uploads).where(eq(uploads.id, id));
+  if (!u) return res.status(404).send("not found");
+
+  await db.insert(memberFiles).values({
+    id: randomUUID(),
+    memberId,
+    fileKey: u.fileKey,
+    fileName: u.fileName,
+    meta: fields,
+  });
+
+  await db.update(suggestions).set({ status: "accepted", memberId }).where(eq(suggestions.uploadId, id));
+  await db.update(uploads).set({ status: "accepted" }).where(eq(uploads.id, id));
+  res.json({ ok: true });
+});
+
+// Dismiss
+app.post("/api/inbox/:id/dismiss", async (req, res) => {
+  const id = req.params.id;
+  await db.update(suggestions).set({ status: "dismissed" }).where(eq(suggestions.uploadId, id));
+  await db.update(uploads).set({ status: "dismissed" }).where(eq(uploads.id, id));
+  res.json({ ok: true });
+});
+
+// List items (to populate Suggestions list)
+app.get("/api/inbox", async (req, res) => {
+  const { userId } = req.query; // filter by user
+  const rows = await db.execute(`
+    select u.*, s.member_id, s.member_name, s.confidence, s.status as suggestion_status
+    from uploads u
+    left join suggestions s on s.upload_id = u.id
+    where u.user_id = $1 and u.status <> 'dismissed'
+    order by u.created_at desc
+  ` as any, [String(userId)]);
+  res.json(rows);
+});
+
+const port = process.env.PORT || 4000;
+app.listen(port, () => console.log(`API listening on ${port}`));
+
+4) Frontend wiring (hook to your dropzone)
+
+When a file is uploaded to S3 (or local), call:
+
+// 1) register
+const { uploadId } = await (await fetch("/api/uploads", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    userId: currentUserId,
+    fileKey: uploadedS3Key,           // e.g., "user123/inbox/abc.jpg"
+    fileName: file.name,
+    mime: file.type,
+    size: file.size,
+  }),
+})).json();
+
+// 2) analyze -> will return suggestion + fields
+const analysis = await (await fetch(`/api/inbox/${uploadId}/analyze`, { method: "POST" })).json();
+
+// 3) update your Inbox UI (append to Suggestions section)
+refreshInbox(); // or push `analysis` into your local list
+
+
+Accept button (in your Details modal):
+
+await fetch(`/api/inbox/${item.id}/accept`, {
+  method:"POST",
+  headers:{ "content-type":"application/json" },
+  body: JSON.stringify({ memberId: item.suggestion.memberId, fields: item.suggestion.fields }),
+});
+refreshInbox();
+
+
+Dismiss button:
+
+await fetch(`/api/inbox/${item.id}/dismiss`, { method:"POST" });
+refreshInbox();
+
+5) Quick test (no UI needed)
+# register
+curl -X POST localhost:4000/api/uploads \
+  -H 'content-type: application/json' \
+  -d '{"userId":"u_demo","fileKey":"inbox/ssn.jpg","fileName":"ssn.jpg","mime":"image/jpeg","size":12345}'
+
+# copy the uploadId from response, then:
+curl -X POST localhost:4000/api/inbox/<uploadId>/analyze
+# => should return { suggestion: { memberId:"m_angel", ... }, fields:[...] }
+
+Later: swap to real OCR
+
+Replace runOcrMock with Textract; keep the same return shape. Everything else stays.
