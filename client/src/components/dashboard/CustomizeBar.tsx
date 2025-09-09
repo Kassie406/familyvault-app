@@ -57,7 +57,7 @@ export function CustomizeBar({
             editing 
               ? 'bg-[#c5a000] text-black' 
               : 'bg-transparent text-zinc-400'
-          } ring-2 ring-[#c5a000] ring-offset-2 ring-offset-[#0c0c0f] shadow-[0_0_0_3px_rgba(197,160,0,0.22)] disabled:opacity-100 disabled:cursor-default`}
+          } ring-2 ring-[#c5a000] ring-offset-2 ring-offset-[#0b0b0e] focus:!ring-2 focus:!ring-[#c5a000] focus:!ring-offset-2 focus:!ring-offset-[#0b0b0e] active:!ring-2 active:!ring-[#c5a000] active:!ring-offset-2 disabled:opacity-100 disabled:cursor-default`}
           data-testid="customize-toggle"
         >
           {editing ? "Done" : "Customize"}
