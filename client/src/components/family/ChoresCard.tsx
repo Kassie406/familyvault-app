@@ -156,9 +156,9 @@ export default function ChoresCard({ currentUser }: ChoresCardProps) {
           )}
         </div>
 
-        <div className="flex gap-2 mb-3">
-          <Tab current={tab === "mine"} onClick={() => setTab("mine")}>My chores</Tab>
-          <Tab current={tab === "family"} onClick={() => setTab("family")}>Family</Tab>
+        <div className="flex gap-2 mb-3" id="chores-tabs">
+          <Tab current={tab === "mine"} onClick={() => setTab("mine")} className="qa-tab">My chores</Tab>
+          <Tab current={tab === "family"} onClick={() => setTab("family")} className="qa-tab">Family</Tab>
         </div>
 
         {tab === "mine" && (
@@ -310,18 +310,19 @@ function Header({ children }: { children: React.ReactNode }) {
   return <div className="mb-4">{children}</div>;
 }
 
-function Tab({ current, onClick, children }: { 
+function Tab({ current, onClick, children, className }: { 
   current: boolean; 
   onClick: () => void; 
-  children: React.ReactNode; 
+  children: React.ReactNode;
+  className?: string; 
 }) {
   return (
     <button 
       onClick={onClick}
-      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${className || ''} ${
         current 
           ? "bg-[#D4AF37] text-black" 
-          : "text-white/70 hover:text-white hover:bg-white/10"
+          : "text-white/70"
       }`}
     >
       {children}
