@@ -1,0 +1,85 @@
+I see it — the gold ring is there, but the Done button stays gray (disabled look) instead of turning gold when you enter Customize. That happens if:
+
+the button is still disabled, or
+
+the data-state / conditional classes aren’t being applied (so it never switches to the “on” style), or
+
+the base shadcn Button variant is overriding your classes.
+
+Use one of these bullet-proof patterns.
+
+A) Plain <button> (no shadcn) — simplest
+const isEditing = editing; // true while customizing
+
+<button
+  type="button"
+  onClick={() => setEditing(false)}
+  // keep it clickable, but you can block clicks if not editing:
+  aria-disabled={!isEditing}
+  className={[
+    "rounded-full px-4 py-2 font-medium",
+    // 🟡 always-on ring + offset (dark bg)
+    "ring-2 ring-[#c5a000] ring-offset-2 ring-offset-[#0b0b0e]",
+    "focus:!ring-2 focus:!ring-[#c5a000] focus:!ring-offset-2 active:!ring-2",
+    // colors by state
+    isEditing ? "bg-[#c5a000] text-black" : "bg-transparent text-zinc-400",
+  ].join(" ")}
+>
+  Done
+</button>
+
+
+Avoid disabled entirely so you don’t inherit any “faded/gray” styles.
+
+If you must block clicks when not editing, add pointer-events-none when !isEditing instead of using disabled.
+
+B) With shadcn <Button /> — persistent ring + state colors
+
+First, add a gold variant that never kills the ring:
+
+// components/ui/button.tsx
+const buttonVariants = cva(
+  "inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm transition outline-none",
+  {
+    variants: {
+      variant: {
+        gold: [
+          "px-4 py-2 font-medium",
+          // persistent ring
+          "ring-2 ring-[#c5a000] ring-offset-2 ring-offset-[#0b0b0e]",
+          "focus:!ring-2 focus:!ring-[#c5a000] focus:!ring-offset-2 active:!ring-2",
+          // state-driven fill
+          "data-[state=on]:bg-[#c5a000] data-[state=on]:text-black",
+          "data-[state=off]:bg-transparent data-[state=off]:text-zinc-400",
+          // never fade when disabled
+          "disabled:opacity-100 disabled:cursor-default",
+        ].join(" "),
+      },
+    },
+  }
+);
+
+
+Use it like this:
+
+<Button
+  variant="gold"
+  data-state={editing ? "on" : "off"}
+  // keep disabled if you want to block clicks, but we keep full opacity:
+  disabled={!editing}
+>
+  Done
+</Button>
+
+Quick checks
+
+Remove disabled if you use the plain <button> approach; or keep it but ensure you also have disabled:opacity-100.
+
+If you use data-state classes, confirm the attribute is present:
+
+data-state={editing ? "on" : "off"}
+
+
+Make sure no parent or base component applies opacity-50 or focus:ring-0 that overrides your ring. If it does, keep the focus:!ring-2 and active:!ring-2 overrides in your class list.
+
+If you paste the current JSX for your Done button, I’ll mark the exact line to tweak so it turns gold during Customize and stays outlined otherwise—with the ring always visible.
