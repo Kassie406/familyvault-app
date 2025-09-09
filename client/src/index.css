@@ -4009,3 +4009,18 @@ a:hover,
   background-color: rgba(212, 175, 55, 0.14) !important;
   color: #D4AF37 !important;
 }
+
+/* --- Upload Center tab buttons: fix focus + hover color issue --- */
+button[role="tab"]:focus:hover {
+  color: #c5a000 !important;
+}
+
+[data-state="active"]:focus:hover,
+[data-state="inactive"]:focus:hover {
+  color: #c5a000 !important;
+}
+
+/* Ensure TabsTrigger shows proper hover when focused */
+.tabs-trigger:focus:hover {
+  color: #c5a000 !important;
+}
