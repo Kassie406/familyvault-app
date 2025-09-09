@@ -322,7 +322,7 @@ function Tab({ current, onClick, children, className }: {
       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${className || ''} ${
         current 
           ? "bg-[#D4AF37] text-black" 
-          : "text-white/70"
+          : "text-white"
       }`}
     >
       {children}
