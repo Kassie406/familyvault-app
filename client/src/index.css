@@ -316,14 +316,6 @@ button:hover {
   color: #d4d4d8; /* zinc-300 */
 }
 
-.dashboard .fcs-btn--gold-outline:hover { 
-  background: rgba(197,160,0,.12) !important; 
-}
-
-.dashboard .fcs-btn--gold-outline:active { 
-  background: rgba(197,160,0,.18) !important; 
-}
-
 .dashboard .fcs-btn--gold-filled {
   background: #c5a000 !important; 
   color: #000 !important;
@@ -357,9 +349,6 @@ button:hover {
   background-color: transparent !important; 
 }
 
-.dashboard .fcs-btn--gold-outline:hover { 
-  background-color: rgba(197,160,0,.12) !important; 
-}
 
 .dashboard .fcs-btn--gold-filled:hover { 
   background-color: #b79600 !important; 
