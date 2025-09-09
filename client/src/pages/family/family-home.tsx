@@ -903,6 +903,60 @@ export default function FamilyHome() {
           </div>
         );
 
+      case 'familyActivity':
+        return (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 h-full min-h-[400px]">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-[#D4AF37]/10">
+                <Activity className="h-5 w-5 text-[#D4AF37]" />
+              </div>
+              <div>
+                <h3 className="text-gray-200 font-semibold">Family Activity</h3>
+                <p className="text-xs text-gray-500">Recent family updates</p>
+              </div>
+            </div>
+            <div className="overflow-y-auto h-[calc(100%-80px)] custom-scrollbar">
+              <ActivityFeed limit={6} showFilters={false} />
+            </div>
+          </div>
+        );
+
+      case 'familyUpdates':
+        return (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 h-full min-h-[400px]">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-[#D4AF37]/10">
+                <Bell className="h-5 w-5 text-[#D4AF37]" />
+              </div>
+              <div>
+                <h3 className="text-gray-200 font-semibold">Family Updates</h3>
+                <p className="text-xs text-gray-500">Important notifications</p>
+              </div>
+            </div>
+            <div className="overflow-y-auto h-[calc(100%-80px)] custom-scrollbar">
+              <FamilyUpdates />
+            </div>
+          </div>
+        );
+
+      case 'calendar':
+        return (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 h-full min-h-[400px]">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-[#D4AF37]/10">
+                <Calendar className="h-5 w-5 text-[#D4AF37]" />
+              </div>
+              <div>
+                <h3 className="text-gray-200 font-semibold">Shared Calendar</h3>
+                <p className="text-xs text-gray-500">Family events and schedules</p>
+              </div>
+            </div>
+            <div className="overflow-y-auto h-[calc(100%-80px)] custom-scrollbar">
+              <SharedCalendar />
+            </div>
+          </div>
+        );
+
       default:
         return (
           <div className="h-full rounded-2xl bg-zinc-900 border border-zinc-800 p-4 shadow-sm">
@@ -1071,97 +1125,9 @@ export default function FamilyHome() {
           </div>
         )}
 
-      {/* Row 3: Upload Center (full width) */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4" ref={uploadCenterRef}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[#D4AF37]/10">
-              <Upload className="h-5 w-5 text-[#D4AF37]" />
-            </div>
-            <div>
-              <h3 className="text-gray-200 font-semibold">Upload Center</h3>
-              <p className="text-xs text-gray-500">Secure S3 storage with virus scanning</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Document Upload */}
-          <QuickDocumentUpload 
-            familyId="family-1"
-            className={highlightDocumentUpload ? "upload-highlight" : ""}
-            onUploadComplete={(docId) => {
-              console.log('Document uploaded:', docId);
-              // Invalidate stats queries to update counts
-            }}
-          />
-          
-          {/* Photo Upload */}
-          <QuickPhotoUpload
-            familyId="family-1"
-            onUploadComplete={(photoId) => {
-              console.log('Photo uploaded:', photoId);
-              // Invalidate stats queries to update counts
-            }}
-          />
-        </div>
-      </div>
+      {/* OLD UPLOAD CENTER SECTION - Now in sortable grid */}
 
-      {/* Row 4: Resizable Family Activity + Family Updates + Shared Calendar */}
-      <div className="h-[600px]">
-        <PanelGroup direction="horizontal" className="gap-3">
-          {/* Family Activity Panel */}
-          <Panel defaultSize={25} minSize={15} maxSize={40}>
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 h-full">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-[#D4AF37]/10">
-                  <Activity className="h-5 w-5 text-[#D4AF37]" />
-                </div>
-                <div>
-                  <h3 className="text-gray-200 font-semibold">Family Activity</h3>
-                  <p className="text-xs text-gray-500">Recent family updates</p>
-                </div>
-              </div>
-              <div className="overflow-y-auto h-[calc(100%-80px)] custom-scrollbar">
-                <ActivityFeed limit={6} showFilters={false} />
-              </div>
-            </div>
-          </Panel>
-
-          {/* Resize Handle */}
-          <PanelResizeHandle className="w-3 bg-transparent hover:bg-[#D4AF37]/20 rounded-full transition-colors duration-200 group flex items-center justify-center">
-            <div className="w-1 h-12 bg-zinc-700 group-hover:bg-[#D4AF37] rounded-full transition-colors duration-200"></div>
-          </PanelResizeHandle>
-
-          {/* Family Updates Panel */}
-          <Panel defaultSize={35} minSize={20} maxSize={50}>
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 h-full">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-[#D4AF37]/10">
-                  <Bell className="h-5 w-5 text-[#D4AF37]" />
-                </div>
-                <div>
-                  <h3 className="text-gray-200 font-semibold">Family Updates</h3>
-                  <p className="text-xs text-gray-500">Important notifications</p>
-                </div>
-              </div>
-              <div className="overflow-y-auto h-[calc(100%-80px)] custom-scrollbar">
-                <FamilyUpdates />
-              </div>
-            </div>
-          </Panel>
-
-          {/* Resize Handle */}
-          <PanelResizeHandle className="w-3 bg-transparent hover:bg-[#D4AF37]/20 rounded-full transition-colors duration-200 group flex items-center justify-center">
-            <div className="w-1 h-12 bg-zinc-700 group-hover:bg-[#D4AF37] rounded-full transition-colors duration-200"></div>
-          </PanelResizeHandle>
-
-          {/* Calendar Panel */}
-          <Panel defaultSize={40} minSize={30} maxSize={60}>
-            <SharedCalendarCard />
-          </Panel>
-        </PanelGroup>
-      </div>
+      {/* OLD PANELS SECTION - Activity/Updates/Calendar are now in sortable grid */}
 
       {/* Row 5: ICE (In Case of Emergency) - Full Width */}
       <ICECard />
