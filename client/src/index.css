@@ -4066,16 +4066,17 @@ dialog[aria-label="Quick Access"] button[data-testid="filter-all"] *{
   fill: currentColor !important;
 }
 
-/* Quick Access chips — gold on hover (any state) */
+/* Quick Access: make ALL filter chips gold on hover (and keep full opacity) */
 dialog[aria-label="Quick Access"] button[data-testid^="filter-"]:hover,
 dialog[aria-label="Quick Access"] button[data-testid^="filter-"]:focus:hover,
-dialog[aria-label="Quick Access"] button[data-testid^="filter-"][aria-pressed="true"]:hover,
 dialog[aria-label="Quick Access"] button[data-testid^="filter-"][data-state="active"]:hover {
+  --tw-text-opacity: 1 !important;
   color: #c5a000 !important;
+  opacity: 1 !important;            /* cancel any hover:opacity-* */
 }
 
-/* make the icon match the text color */
-dialog[aria-label="Quick Access"] button[data-testid^="filter-"] * {
+/* icons follow text color */
+dialog[aria-label="Quick Access"] button[data-testid^="filter-"]:hover * {
   color: currentColor !important;
   stroke: currentColor !important;
   fill: currentColor !important;
