@@ -837,44 +837,7 @@ export default function FamilyHome() {
       case 'allowancePoints':
         return <AllowanceMini />;
 
-      case 'quickActions':
-        return (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 h-auto flex flex-col">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-[#D4AF37]/10">
-                <Zap className="h-5 w-5 text-[#D4AF37]" />
-              </div>
-              <div>
-                <h3 className="text-gray-200 font-semibold">Quick Actions</h3>
-                <p className="text-xs text-gray-500">Frequently used features</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
-              <ActionCard 
-                icon={<Upload className="h-5 w-5"/>} 
-                title="Upload Document" 
-                subtitle="Add new family document"
-                onClick={scrollToDocumentUpload}
-              />
-              <ActionCard 
-                icon={<MessageCircle className="h-5 w-5"/>} 
-                title="Send Message" 
-                subtitle="Chat with family" 
-                onClick={() => setMessagingOpen(true)}
-              />
-              <ActionCard 
-                icon={<ImageIcon className="h-5 w-5"/>} 
-                title="View Photos" 
-                subtitle="Browse family gallery" 
-              />
-              <ActionCard 
-                icon={<Shield className="h-5 w-5"/>} 
-                title="Emergency Info" 
-                subtitle="Quick access to critical info"
-              />
-            </div>
-          </div>
-        );
+      // quickActions case removed - duplicate of Legacy Actions section
 
       case 'uploadCenter':
         return (
