@@ -2687,8 +2687,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/uploads - Register an upload for AI analysis
   app.post("/api/uploads", async (req, res) => {
     try {
-      const { fileKey, fileName, mime, size } = req.body;
-      const userId = "current-user"; // TODO: Get from authenticated session
+      const { userId, fileKey, fileName, mime, size } = req.body;
+      
+      if (!userId || !fileKey || !fileName) {
+        return res.status(422).json({ error: "userId, fileKey, fileName required" });
+      }
+      
       const familyId = "family-1"; // TODO: Get from authenticated session
       
       const id = crypto.randomUUID();
