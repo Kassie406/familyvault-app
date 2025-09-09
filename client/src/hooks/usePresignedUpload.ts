@@ -58,11 +58,16 @@ export function usePresignedUpload() {
         console.log('📝 Headers Content-Type:', finalContentType);
         console.log('📦 File size:', file.size, 'bytes');
         
-        // Use fetch with proper CORS settings as recommended
+        // Validate the uploadUrl is HTTPS (required for CORS)
+        if (!signed.uploadUrl.startsWith('https://')) {
+          throw new Error('Upload URL must be HTTPS for CORS to work');
+        }
+        
+        // Use fetch with exact S3-compatible settings
         const response = await fetch(signed.uploadUrl, {
           method: "PUT",
           mode: "cors",
-          credentials: "omit", // Critical for S3 CORS
+          credentials: "omit", // Critical: do NOT send cookies to S3
           headers: { 
             "Content-Type": finalContentType
           },
