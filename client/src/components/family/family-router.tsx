@@ -39,7 +39,7 @@ import FamilySectionPage from '@/pages/family/family-section';
 import WhenSomeoneDies from '@/pages/family/when-someone-dies';
 import BereavementSectionPage from '@/pages/family/bereavement-section';
 import ContactSectionPage from '@/pages/family/contact-section';
-import InboxPanel from './inbox-panel';
+import InboxDrawer from '@/components/inbox/InboxDrawer';
 import RemindersPanel from './reminders-panel';
 import FamilySettings from '@/pages/family/family-settings';
 import ApiManagement from '@/pages/family/api-management';
@@ -235,7 +235,7 @@ export default function FamilyRouter() {
       </Switch>
       
       {/* Slide-over Panels - rendered above all routes */}
-      <InboxPanel />
+      <InboxDrawer />
       <RemindersPanel />
       
       {/* Floating Chat Widget - Family Portal Only */}
