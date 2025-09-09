@@ -64,6 +64,7 @@ export default function FamilyHome() {
   const [messagingOpen, setMessagingOpen] = useState(false);
   const [highlightDocumentUpload, setHighlightDocumentUpload] = useState(false);
   const [highlightPhotoUpload, setHighlightPhotoUpload] = useState(false);
+  const [highlightICE, setHighlightICE] = useState(false);
   const [quickAccessOpen, setQuickAccessOpen] = useState(false);
   const [dashboardLayout, setDashboardLayout] = useState('default');
   const [policyModalOpen, setPolicyModalOpen] = useState(false);
@@ -105,6 +106,8 @@ export default function FamilyHome() {
   
   // Ref for the upload center section
   const uploadCenterRef = useRef<HTMLDivElement>(null);
+  // Ref for the ICE section
+  const iceRef = useRef<HTMLDivElement>(null);
 
   // Function to scroll to upload center and highlight document upload
   const scrollToDocumentUpload = () => {
@@ -139,6 +142,24 @@ export default function FamilyHome() {
     // Remove highlight after animation
     setTimeout(() => {
       setHighlightPhotoUpload(false);
+    }, 3000);
+  };
+
+  // Function to scroll to ICE section and highlight it
+  const scrollToICE = () => {
+    setHighlightICE(true);
+    
+    // Scroll to ICE section
+    if (iceRef.current) {
+      iceRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+    }
+    
+    // Remove highlight after animation
+    setTimeout(() => {
+      setHighlightICE(false);
     }, 3000);
   };
 
@@ -1046,7 +1067,12 @@ export default function FamilyHome() {
               subtitle="Add photos to your family album"
               onClick={scrollToPhotoUpload}
             />
-            <ActionCard icon={<ShieldAlert className="h-5 w-5"/>} title="Emergency Info" subtitle="Quick access to critical info" />
+            <ActionCard 
+              icon={<ShieldAlert className="h-5 w-5"/>} 
+              title="Emergency Info" 
+              subtitle="Quick access to critical info"
+              onClick={scrollToICE}
+            />
           </div>
         </div>
 
@@ -1131,7 +1157,12 @@ export default function FamilyHome() {
       </div>
 
       {/* ICE (In Case of Emergency) - Full Width Standalone Section */}
-      <ICECard />
+      <div 
+        ref={iceRef}
+        className={highlightICE ? 'upload-highlight' : ''}
+      >
+        <ICECard />
+      </div>
 
       {/* Luxury Footer */}
       <div className="bg-gradient-to-r from-[#0A0A1A] to-[#111111] rounded-xl mt-12 relative overflow-hidden">
