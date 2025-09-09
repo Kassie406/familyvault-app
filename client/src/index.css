@@ -4044,19 +4044,24 @@ a:hover,
   outline: 2px solid #c5a00044; border-radius: 9999px;
 }
 
-/* Quick Access — 'All' chip text = white */
+/* Quick Access — make ONLY the 'All' chip text white like the others */
 dialog[aria-label="Quick Access"] button[data-testid="filter-all"]{
-  color: #ffffff !important;
+  --tw-text-opacity: 0.7 !important;                 /* same as text-white/70 */
+  color: rgba(255,255,255,var(--tw-text-opacity)) !important;
 }
-dialog[aria-label="Quick Access"] button[data-testid="filter-all"][aria-pressed="true"],
-dialog[aria-label="Quick Access"] button[data-testid="filter-all"][data-state="active"],
+
+/* keep it white on hover/focus/active too */
 dialog[aria-label="Quick Access"] button[data-testid="filter-all"]:hover,
-dialog[aria-label="Quick Access"] button[data-testid="filter-all"]:focus{
-  color: #ffffff !important; /* keep white in hover/focus/active */
+dialog[aria-label="Quick Access"] button[data-testid="filter-all"]:focus,
+dialog[aria-label="Quick Access"] button[data-testid="filter-all"][aria-pressed="true"],
+dialog[aria-label="Quick Access"] button[data-testid="filter-all"][data-state="active"]{
+  --tw-text-opacity: 0.7 !important;
+  color: rgba(255,255,255,var(--tw-text-opacity)) !important;
 }
-/* ensure icon matches text */
+
+/* ensure the icon follows the text color */
 dialog[aria-label="Quick Access"] button[data-testid="filter-all"] *{
   color: currentColor !important;
-  fill: currentColor !important;
   stroke: currentColor !important;
+  fill: currentColor !important;
 }
