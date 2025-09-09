@@ -1,4 +1,4 @@
-import fuzzball from 'fuzzball';
+import * as fuzzball from 'fuzzball';
 import type { FamilyMember } from '@shared/schema';
 
 export interface ExtractedField {
