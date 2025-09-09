@@ -73,23 +73,38 @@ export default function UploadCenter({
 
   function onPickFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
-    const mapped = files.map((f) => ({
-      id: crypto.randomUUID(),
-      file: f,
-      previewUrl: f.type.startsWith("image/") ? URL.createObjectURL(f) : undefined,
-      progress: 0,
-      status: "idle" as const,
-      // Apply current form values to new files
-      ...(tab === "docs" ? {
-        title: documentTitle || f.name.replace(/\.[^/.]+$/, ""),
-        description: documentDescription,
-        category: documentCategory,
-      } : {
-        caption: photoCaption,
-        altText: photoAltText,
-        location: photoLocation,
-      })
-    }));
+    const mapped = files.map((f) => {
+      // Enhanced image type detection
+      const isImage = f.type.startsWith("image/") || 
+                     /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(f.name);
+      
+      let previewUrl: string | undefined;
+      if (isImage) {
+        try {
+          previewUrl = URL.createObjectURL(f);
+        } catch (error) {
+          console.warn("Failed to create preview URL for", f.name, error);
+        }
+      }
+      
+      return {
+        id: crypto.randomUUID(),
+        file: f,
+        previewUrl,
+        progress: 0,
+        status: "idle" as const,
+        // Apply current form values to new files
+        ...(tab === "docs" ? {
+          title: documentTitle || f.name.replace(/\.[^/.]+$/, ""),
+          description: documentDescription,
+          category: documentCategory,
+        } : {
+          caption: photoCaption,
+          altText: photoAltText,
+          location: photoLocation,
+        })
+      };
+    });
     setRows((r) => [...mapped, ...r]);
   }
 
@@ -534,7 +549,16 @@ function FilePreview({ row, onRemove }: { row: FileRow; onRemove: () => void }) 
       <div className="flex items-center gap-3">
         <div className="h-12 w-12 rounded-lg bg-zinc-800 overflow-hidden flex items-center justify-center flex-shrink-0">
           {row.previewUrl ? (
-            <img src={row.previewUrl} alt={row.file.name} className="h-full w-full object-cover" />
+            <img 
+              src={row.previewUrl} 
+              alt={row.file.name} 
+              className="h-full w-full object-cover" 
+              onError={(e) => {
+                console.warn("Failed to load preview for", row.file.name);
+                // Hide the broken image
+                e.currentTarget.style.display = 'none';
+              }}
+            />
           ) : (
             <FileText className="h-6 w-6 text-zinc-300" />
           )}
