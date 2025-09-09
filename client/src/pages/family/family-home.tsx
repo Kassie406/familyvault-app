@@ -1088,16 +1088,7 @@ export default function FamilyHome() {
           setEditing={setEditing}
         />
 
-        {/* Sortable Dashboard Grid */}
-        <SortableGrid
-          items={visible}
-          onReorder={reorder}
-          editing={editing}
-          onHide={hide}
-          renderCard={renderCard}
-        />
-
-        {/* Legacy Quick Actions Row - Always visible */}
+        {/* Legacy Quick Actions Row - Moved to top */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 rounded-lg bg-[#D4AF37]/10">
@@ -1125,6 +1116,15 @@ export default function FamilyHome() {
             <ActionCard icon={<ShieldAlert className="h-5 w-5"/>} title="Emergency Info" subtitle="Quick access to critical info" />
           </div>
         </div>
+
+        {/* Sortable Dashboard Grid */}
+        <SortableGrid
+          items={visible}
+          onReorder={reorder}
+          editing={editing}
+          onHide={hide}
+          renderCard={renderCard}
+        />
 
       {/* OLD UPLOAD CENTER SECTION - Now in sortable grid */}
 
