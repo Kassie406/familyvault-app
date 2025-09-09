@@ -13,19 +13,16 @@
     <meta name="theme-color" content="#D4AF37">
     <meta name="msapplication-TileColor" content="#D4AF37">
     
-    <!-- Content Security Policy - Allow S3 uploads -->
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="
-        default-src 'self';
-        connect-src 'self' https://*.amazonaws.com;
-        img-src 'self' data: blob: https://*.amazonaws.com;
-        script-src 'self' 'unsafe-inline' 'unsafe-eval';
-        style-src  'self' 'unsafe-inline';
-        font-src   'self' data:;
-        frame-ancestors 'self';
-      "
-    />
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  connect-src 'self' https://*.amazonaws.com;
+  img-src     'self' data: blob: https://*.amazonaws.com;
+  media-src   'self' data: blob: https://*.amazonaws.com;
+  script-src  'self' 'unsafe-inline' 'unsafe-eval';
+  style-src   'self' 'unsafe-inline';
+  font-src    'self' data:;
+  frame-ancestors 'self';
+">
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
