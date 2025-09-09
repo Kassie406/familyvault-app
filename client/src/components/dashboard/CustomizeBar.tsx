@@ -11,9 +11,8 @@ export function CustomizeBar({
   editing: boolean;
   setEditing: (b: boolean) => void;
 }) {
-  console.log('CustomizeBar - editing state:', editing);
   return (
-    <div className="flex items-center justify-between gap-4 mb-4 p-4 rounded-2xl border border-white/10 bg-white/5">
+    <div className="dashboard flex items-center justify-between gap-4 mb-4 p-4 rounded-2xl border border-white/10 bg-white/5">
       <div className="flex items-center gap-2">
         <Settings className="h-4 w-4 text-[#D4AF37]" />
         <span className="text-white font-medium">Dashboard Layout</span>
@@ -54,22 +53,11 @@ export function CustomizeBar({
         
         <button 
           type="button"
-          onClick={() => {
-            console.log('Button clicked, editing before:', editing);
-            setEditing(!editing);
-            console.log('Button clicked, editing after:', !editing);
-          }}
-          style={{
-            background: editing ? '#c5a000' : 'transparent',
-            color: editing ? '#000000' : '#a1a1aa',
-            border: '2px solid #c5a000',
-            borderRadius: '9999px',
-            padding: '8px 16px',
-            fontWeight: '500',
-            transition: 'all 0.2s',
-            outline: 'none',
-            boxShadow: '0 0 0 2px #0b0b0e, 0 0 0 4px #c5a000',
-          }}
+          onClick={() => setEditing(!editing)}
+          className={[
+            "fcs-btn fcs-btn--ring",
+            editing ? "fcs-btn--gold-filled" : "fcs-btn--gold-outline",
+          ].join(" ")}
           data-testid="customize-toggle"
         >
           {editing ? "Done" : "Customize"}
