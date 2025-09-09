@@ -184,7 +184,7 @@ export function QuickAccessPanel({ isOpen, onClose }: QuickAccessPanelProps) {
                 <button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
-                  className={`qa-filter flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
                     isActive 
                       ? 'bg-[#D4AF37] text-black font-medium' 
                       : 'text-white/70'
