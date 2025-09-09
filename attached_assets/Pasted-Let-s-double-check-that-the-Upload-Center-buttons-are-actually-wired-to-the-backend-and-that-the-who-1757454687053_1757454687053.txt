@@ -1,0 +1,203 @@
+Let’s double-check that the Upload Center buttons are actually wired to the backend and that the whole flow is correct — from button → pre-sign → upload to S3 → register in your app.
+
+Below is a compact checklist + the exact handlers/endpoints you should have. If anything is missing, copy the snippet in.
+
+What each button must do
+
+Select Files
+
+Opens a hidden <input type="file" multiple> and pushes the chosen files into local state (selectedFiles).
+
+Upload (n)
+
+For each file in selectedFiles:
+
+POST to /api/storage/presign with { bucket, key, contentType }
+
+PUT the file to the returned S3 URL with only the Content-Type header and credentials: "omit"
+
+POST to /api/uploads (or your “AI Inbox” route) to register the file in your DB
+
+Clear
+
+Empties selectedFiles and resets the UI.
+
+Mobile Upload
+
+Optional/alias for the same input click. (It doesn’t need special backend logic; it should just open the file picker.)
+
+Frontend wiring (React/TS)
+// UploadCenter.tsx
+import React, { useRef, useState } from "react";
+
+type Selected = { file: File; status: "idle"|"uploading"|"done"|"error"; error?: string };
+
+export default function UploadCenter() {
+  const [selected, setSelected] = useState<Selected[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const onPick = () => inputRef.current?.click();
+
+  const onFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    setSelected(prev => [
+      ...prev,
+      ...files.map(f => ({ file: f, status: "idle" as const })),
+    ]);
+    e.target.value = ""; // allow picking same file again
+  };
+
+  const clearAll = () => setSelected([]);
+
+  const uploadAll = async () => {
+    for (let i = 0; i < selected.length; i++) {
+      const item = selected[i];
+      if (item.status === "done") continue;
+
+      setSelected(s => s.map((x, idx) => idx === i ? { ...x, status: "uploading", error: undefined } : x));
+
+      try {
+        const contentType = item.file.type || "application/octet-stream";
+        const key = `uploads/${Date.now()}_${encodeURIComponent(item.file.name)}`;
+        const bucket = isPhoto(item.file) ? "familyportal-photos-prod" : "familyportal-docs-prod";
+
+        // 1) pre-sign
+        const presign = await fetch("/api/storage/presign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bucket, key, contentType }),
+        });
+        if (!presign.ok) throw new Error(`Presign failed: ${await presign.text()}`);
+        const { uploadUrl }:{uploadUrl:string} = await presign.json();
+
+        // 2) PUT to S3
+        const put = await fetch(uploadUrl, {
+          method: "PUT",
+          mode: "cors",
+          credentials: "omit",
+          headers: { "Content-Type": contentType },
+          body: item.file,
+        });
+        if (!put.ok) {
+          const xml = await put.text().catch(()=>"");
+          throw new Error(`S3 PUT ${put.status}: ${xml}`);
+        }
+
+        // 3) register
+        const reg = await fetch("/api/uploads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            bucket, key, contentType,
+            originalName: item.file.name,
+            size: item.file.size,
+            // include any form fields (title/description/category/AI Inbox toggle)
+          }),
+        });
+        if (!reg.ok) throw new Error(`Register failed: ${await reg.text()}`);
+
+        setSelected(s => s.map((x, idx) => idx === i ? { ...x, status: "done" } : x));
+      } catch (err:any) {
+        setSelected(s => s.map((x, idx) => idx === i ? { ...x, status: "error", error: err.message || String(err) } : x));
+      }
+    }
+  };
+
+  const isPhoto = (f: File) => /^image\//.test(f.type);
+
+  return (
+    <>
+      {/* Select Files + Mobile Upload both call onPick */}
+      <button onClick={onPick}>Select Files</button>
+      <button onClick={onPick}>Mobile Upload</button>
+      <button onClick={uploadAll} disabled={!selected.length}>Upload ({selected.length})</button>
+      <button onClick={clearAll} disabled={!selected.length}>Clear</button>
+
+      <input
+        ref={inputRef}
+        hidden
+        type="file"
+        multiple
+        onChange={onFiles}
+        accept=".pdf,.doc,.docx,.txt,image/*"
+      />
+
+      {/* Minimal status list (optional) */}
+      <ul>
+        {selected.map((s, i) => (
+          <li key={i}>
+            {s.file.name} — {s.status}
+            {s.error && <div style={{color:"salmon"}}>{s.error}</div>}
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+
+Important
+
+Only send the Content-Type header on the PUT.
+
+Don’t send cookies/credentials (credentials: "omit").
+
+Use the same contentType for pre-sign and the PUT.
+
+Backend endpoints (Express + AWS SDK v3)
+// server/storage.ts
+import express from "express";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+const router = express.Router();
+const s3 = new S3Client({ region: process.env.SS_REGION });
+
+// 1) presign
+router.post("/storage/presign", async (req, res) => {
+  try {
+    const { bucket, key, contentType } = req.body;
+    if (!bucket || !key) return res.status(400).send("bucket & key required");
+
+    const cmd = new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ContentType: contentType || "application/octet-stream",
+    });
+
+    const uploadUrl = await getSignedUrl(s3, cmd, { expiresIn: 60 });
+    res.json({ uploadUrl });
+  } catch (e:any) {
+    res.status(500).send(e.message || "presign failed");
+  }
+});
+
+// 2) register
+router.post("/uploads", async (req, res) => {
+  // Persist the record (bucket, key, meta) and enqueue AI Inbox if needed
+  // await db.uploads.insert({ ...req.body, createdAt:new Date() })
+  res.json({ ok: true });
+});
+
+export default router;
+
+
+Mount the router in your main server:
+
+app.use("/api", storageRouter);
+
+Quick self-test (no UI)
+# pre-sign
+curl -s -X POST http://localhost:3000/api/storage/presign \
+  -H 'Content-Type: application/json' \
+  -d '{"bucket":"familyportal-docs-prod","key":"test/hello.txt","contentType":"text/plain"}'
+
+# PUT to returned uploadUrl:
+curl -X PUT "<uploadUrl-from-above>" \
+  -H 'Content-Type: text/plain' \
+  --data-binary @README.md
+
+
+If that works, the backend wiring and CORS are good — any remaining error is purely front-end config (extra headers/credentials or a mismatched Content-Type).
+
+What to check right now

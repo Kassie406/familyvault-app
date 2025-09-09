@@ -51,55 +51,36 @@ export function usePresignedUpload() {
       setError(null);
 
       try {
-        // Use XHR so we can report progress
-        await new Promise<void>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.open("PUT", signed.uploadUrl);
-          xhr.setRequestHeader("Content-Type", contentType || file.type || "application/octet-stream");
+        // Use fetch with proper CORS settings as recommended
+        const response = await fetch(signed.uploadUrl, {
+          method: "PUT",
+          mode: "cors",
+          credentials: "omit", // Critical for S3 CORS
+          headers: { 
+            "Content-Type": contentType || file.type || "application/octet-stream" 
+          },
+          body: file,
+        });
 
-          xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) {
-              setProgress(Math.round((e.loaded / e.total) * 100));
-            }
-          };
-
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              resolve();
-            } else {
-              reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
-            }
-          };
-
-          xhr.onerror = () => reject(new Error("Network error during upload"));
-          xhr.ontimeout = () => reject(new Error("Upload timeout"));
-          
-          xhr.onreadystatechange = () => {
-            if (xhr.readyState === 4 && xhr.status !== 0) {
-              if (xhr.status >= 400) {
-                // Try to get the actual S3 error message
-                let errorMsg = `Upload failed: ${xhr.status} ${xhr.statusText}`;
-                if (xhr.responseText) {
-                  try {
-                    const parser = new DOMParser();
-                    const xmlDoc = parser.parseFromString(xhr.responseText, "text/xml");
-                    const code = xmlDoc.getElementsByTagName("Code")[0]?.textContent;
-                    const message = xmlDoc.getElementsByTagName("Message")[0]?.textContent;
-                    if (code && message) {
-                      errorMsg = `S3 Error: ${code} - ${message}`;
-                    }
-                  } catch (e) {
-                    // Fall back to status text
-                  }
-                }
-                reject(new Error(errorMsg));
+        if (!response.ok) {
+          // Try to get the actual S3 error message
+          let errorMsg = `Upload failed: ${response.status} ${response.statusText}`;
+          try {
+            const responseText = await response.text();
+            if (responseText) {
+              const parser = new DOMParser();
+              const xmlDoc = parser.parseFromString(responseText, "text/xml");
+              const code = xmlDoc.getElementsByTagName("Code")[0]?.textContent;
+              const message = xmlDoc.getElementsByTagName("Message")[0]?.textContent;
+              if (code && message) {
+                errorMsg = `S3 Error: ${code} - ${message}`;
               }
             }
-          };
-          xhr.timeout = 60000; // 60 second timeout
-
-          xhr.send(file);
-        });
+          } catch (e) {
+            // Fall back to status text
+          }
+          throw new Error(errorMsg);
+        }
 
         setProgress(100);
         return { key: signed.key, publicUrl: signed.publicUrl };
