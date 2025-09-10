@@ -2726,18 +2726,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/inbox/:id/analyze", async (req, res) => {
     try {
       const { id } = req.params;
+      const { userId, fileKey, fileName, retryAttempt } = req.body || {};
       
-      console.log("🔍 Looking for inbox item with ID:", id);
+      console.log("🔍 Looking for inbox item with ID:", id, `(attempt ${retryAttempt || 1})`);
       
       // Get the inbox item
-      const [item] = await db.select().from(inboxItems).where(eq(inboxItems.id, id));
+      let [item] = await db.select().from(inboxItems).where(eq(inboxItems.id, id));
       
       console.log("📦 Found item:", item ? "YES" : "NO", item ? `(${item.filename})` : "");
       
+      // Self-healing: if item not found but we have context, create it
+      if (!item && userId && fileKey && fileName) {
+        console.log("🔧 Self-healing: Creating missing inbox item with provided context");
+        
+        const familyId = "family-1"; // TODO: Get from authenticated session
+        
+        await db.insert(inboxItems).values({
+          id,
+          familyId,
+          userId,
+          filename: fileName,
+          fileUrl: fileKey,
+          fileSize: 0, // Will be updated later if needed
+          mimeType: "application/octet-stream", // Will be updated later if needed
+          status: "analyzing",
+          analysisCompleted: false,
+        });
+        
+        // Fetch the newly created item
+        [item] = await db.select().from(inboxItems).where(eq(inboxItems.id, id));
+        console.log("✅ Self-healing successful, created item:", item?.filename);
+      }
+      
       if (!item) {
-        console.log("❌ Item not found - checking all items in DB:");
+        console.log("❌ Item not found even after self-healing attempt");
         const allItems = await db.select().from(inboxItems).limit(10);
-        console.log("📋 All items:", allItems.map(i => ({ id: i.id, filename: i.filename })));
+        console.log("📋 All items in DB:", allItems.map(i => ({ id: i.id, filename: i.filename })));
         return res.status(404).json({ error: "Inbox item not found" });
       }
 

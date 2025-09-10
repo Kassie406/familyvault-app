@@ -1,0 +1,141 @@
+What the error really means
+
+The toast AI Analysis failed: {"error":"Inbox item not found"} is coming from your analyze call. That call is looking up a row in your inbox_items table by the uploadId you pass — and it’s not finding it.
+
+Why would that happen if the file uploaded fine?
+
+Most common causes (based on your UI + logs):
+
+No inboxId attached when you register the upload
+
+Your Upload Center has an Inbox selector (top-right shows “All Inbox”).
+
+If your server stores inbox_items.inbox_id and your analyzer looks up WHERE id=:uploadId AND inbox_id=:selectedInbox, but the upload was inserted without an inbox_id (or with a different one), the analyzer’s lookup returns nothing → “Inbox item not found”.
+
+Race: analyze fires before the inbox_items insert transaction becomes visible
+
+In fast local dev this rarely happens, but it does happen on Replit/remote DB.
+
+A tiny delay or retry solves it.
+
+Wrong id: you send s3Key to analyze instead of the uploadId returned by /api/uploads.
+
+Multi-tenant keys: your server filters by householdId/userId + uploadId. If the client omitted householdId/inboxId, the row is created with defaults, then the analyzer filters with different values → not found.
+
+Fix (do all three – easy and robust)
+A) Pass inboxId during registration and analysis
+
+Client (Upload Center) — grab the selected Inbox from the dropdown (or use a default) and send it on both calls.
+
+// when upload finishes to S3:
+const payload = {
+  userId,                         // current user
+  householdId,                    // if you scope by household
+  inboxId: selectedInboxId ?? 'primary', // <- IMPORTANT
+  fileKey: s3Key,
+  fileName: file.name,
+  mime: file.type,
+  size: file.size,
+};
+
+const reg = await fetch('/api/uploads', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify(payload),
+}).then(r => r.json());
+
+const uploadId = reg.uploadId;   // <- use THIS id below
+
+// Analyze (pass inboxId too)
+await fetch(`/api/inbox/${uploadId}/analyze`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ inboxId: payload.inboxId, householdId }),
+});
+
+
+Server (register) — persist the inbox id:
+
+// POST /api/uploads
+const { userId, householdId, inboxId, fileKey, fileName, mime, size } = req.body;
+
+const uploadId = crypto.randomUUID();
+
+await db.insert(inboxItems).values({
+  id: uploadId,
+  userId,
+  householdId,
+  inboxId: inboxId ?? 'primary',  // <- DEFAULT
+  fileKey,
+  fileName,
+  mime,
+  size,
+  status: 'uploaded',
+  createdAt: new Date(),
+});
+
+res.json({ uploadId });
+
+
+Server (analyze) — include inboxId in the lookup, but also fall back to id-only to be tolerant:
+
+// POST /api/inbox/:id/analyze
+const { id } = req.params;
+const { inboxId, householdId } = req.body ?? {};
+
+let item = await db.query.inboxItems.findFirst({
+  where: (t, { and, eq }) =>
+    and(
+      eq(t.id, id),
+      householdId ? eq(t.householdId, householdId) : undefined,
+      inboxId ? eq(t.inboxId, inboxId) : undefined
+    ),
+});
+
+// tolerant fallback if a previous insert missed inboxId or filters differ
+if (!item) {
+  item = await db.query.inboxItems.findFirst({ where: (t, { eq }) => eq(t.id, id) });
+}
+
+if (!item) {
+  return res.status(404).json({ error: 'inbox_not_found', id, inboxId });
+}
+
+B) Add a tiny retry on the client before analyze
+
+Prevents the race when the DB commit lags a hair.
+
+async function analyzeWithRetry(uploadId: string, body: any) {
+  const tries = [0, 250, 600]; // ms
+  for (let i = 0; i < tries.length; i++) {
+    if (i) await new Promise(r => setTimeout(r, tries[i]));
+    const res = await fetch(`/api/inbox/${uploadId}/analyze`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) return res.json();
+  }
+  throw new Error('analyze_failed_after_retries');
+}
+
+
+Call it instead of the direct analyze fetch.
+
+C) Last-resort self-heal in analyze (upsert if missing)
+
+If the item truly isn’t there, but you do have the upload context (fileKey/userId/inboxId), create it and continue, so users never see a failure.
+
+if (!item && req.body?.fileKey && req.body?.userId) {
+  await db.insert(inboxItems).values({
+    id,
+    userId: req.body.userId,
+    householdId: req.body.householdId ?? null,
+    inboxId: req.body.inboxId ?? 'primary',
+    fileKey: req.body.fileKey,
+    fileName: req.body.fileName ?? 'Unknown',
+    status: 'uploaded',
+    createdAt: new Date(),
+  });
+  item = await db.query.inboxItems.findFirst({ where: (t, { eq }) => eq(t.id, id) });
+}
