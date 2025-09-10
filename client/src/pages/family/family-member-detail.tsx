@@ -65,12 +65,12 @@ interface AddItemOption {
   icon: React.ReactNode;
 }
 
-// Mock data for Sarah Johnson
+// Mock data for Kassandra Santana
 const familyMemberData: FamilyMemberData = {
-  id: 'sarah-johnson',
-  name: 'Sarah Johnson',
+  id: 'kassandra-santana',
+  name: 'Kassandra Santana',
   role: 'Owner',
-  initials: 'SJ',
+  initials: 'KS',
   avatarColor: '#D4AF37',
   lastUpdated: '1/4/2025',
   relationships: ['Parent of Emma Johnson', 'Spouse of Michael Johnson']
