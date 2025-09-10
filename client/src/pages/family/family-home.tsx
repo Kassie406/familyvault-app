@@ -30,6 +30,8 @@ import {
 import { StatCard } from '@/components/StatCard';
 import { InviteFamilyMemberDialog } from '@/components/InviteFamilyMemberDialog';
 import UploadCenter from '@/components/upload/UploadCenter';
+import { AutofillSection } from '@/components/AutofillSection';
+import InboxDrawer from '@/components/inbox/InboxDrawer';
 import { NewMessageModal } from '@/components/messaging/NewMessageModal';
 import NotificationCenter from '@/components/family/NotificationCenter';
 import QuickAccessPanel from '@/components/family/QuickAccessPanel';
@@ -75,6 +77,7 @@ export default function FamilyHome() {
   const [budgetTrackerOpen, setBudgetTrackerOpen] = useState(false);
   const [mealPlannerOpen, setMealPlannerOpen] = useState(false);
   const [couplesConnectionOpen, setCouplesConnectionOpen] = useState(false);
+  const [inboxOpen, setInboxOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Current user mock (TODO: replace with real user data)
@@ -108,6 +111,8 @@ export default function FamilyHome() {
   const uploadCenterRef = useRef<HTMLDivElement>(null);
   // Ref for the ICE section
   const iceRef = useRef<HTMLDivElement>(null);
+  // Ref to store the analyze function from AutofillSection
+  const autofillAnalyzeRef = useRef<((file: File, s3Key: string) => Promise<void>) | null>(null);
 
   // Function to scroll to upload center and highlight document upload
   const scrollToDocumentUpload = () => {
@@ -895,6 +900,20 @@ export default function FamilyHome() {
               </div>
             </div>
             
+            {/* Independent AI Autofill Section - appears above Upload Center */}
+            <AutofillSection 
+              familyId="family-1"
+              userId="current-user"
+              onViewDetails={(uploadId) => {
+                // Open inbox drawer when user wants to view details
+                setInboxOpen(true);
+              }}
+              onReady={(analyzeFunction) => {
+                // Store the analyze function from AutofillSection for use in UploadCenter
+                autofillAnalyzeRef.current = analyzeFunction;
+              }}
+            />
+            
             <div className={`flex-1 ${(highlightDocumentUpload || highlightPhotoUpload) ? 'upload-highlight' : ''}`}>
               <UploadCenter 
                 familyId="family-1"
@@ -905,6 +924,16 @@ export default function FamilyHome() {
                     setHighlightDocumentUpload(false);
                     setHighlightPhotoUpload(false);
                   }, 3000);
+                }}
+                onFileUploaded={async (file, s3Key, type) => {
+                  // Trigger AI analysis through stored analyze function
+                  if (autofillAnalyzeRef.current) {
+                    try {
+                      await autofillAnalyzeRef.current(file, s3Key);
+                    } catch (error) {
+                      console.error('AI analysis failed:', error);
+                    }
+                  }
                 }}
               />
             </div>
@@ -1274,6 +1303,12 @@ export default function FamilyHome() {
           </div>
         </div>
       )}
+
+      {/* Inbox Drawer */}
+      <InboxDrawer 
+        isOpen={inboxOpen}
+        onClose={() => setInboxOpen(false)}
+      />
     </div>
   );
 }
