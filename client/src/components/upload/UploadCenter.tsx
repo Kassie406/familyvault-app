@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, AlertCircle, UploadCloud, FileText, Image as ImageIcon, ShieldCheck, X, Camera, Smartphone, Sparkles } from "lucide-react";
+import AutofillBanner, { BannerState } from "@/components/AutofillBanner";
 import bus from '@/lib/autofillBus';
 import { usePresignedUpload } from "@/hooks/usePresignedUpload";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -67,27 +68,46 @@ export default function UploadCenter({
   const [photoLocation, setPhotoLocation] = useState("");
 
   // Banner state for autofill events
-  type BannerState =
-    | { kind: 'idle' }
-    | { kind: 'working'; uploadId: string; fileName: string }
-    | { kind: 'ready'; uploadId: string; fileName: string; details: number; fields: any[]; suggestion: any }
-    | { kind: 'failed'; uploadId: string; fileName: string; error: string };
+  type AutofillState = {
+    state: BannerState;
+    uploadId?: string;
+    fileName?: string;
+    count?: number;
+    fields?: any[];
+    suggestion?: any;
+    error?: string;
+    step?: 1 | 2 | 3;
+  };
 
-  const [banner, setBanner] = useState<BannerState>({ kind: 'idle' });
+  const [banner, setBanner] = useState<AutofillState>({ state: 'idle' });
 
   // Subscribe to autofill events
   useEffect(() => {
-    const onStart = (j: any) => setBanner({ kind: 'working', uploadId: j.uploadId, fileName: j.fileName });
-    const onReady = (r: any) =>
+    const onStart = (j: any) => setBanner({ 
+      state: 'analyzing', 
+      uploadId: j.uploadId, 
+      fileName: j.fileName,
+      step: 1 
+    });
+    
+    const onReady = (r: any) => {
+      const hasDestination = r.suggestion && r.suggestion.confidence >= 0.7;
       setBanner({
-        kind: 'ready',
+        state: hasDestination ? 'ready' : 'partial',
         uploadId: r.uploadId,
         fileName: r.fileName,
-        details: r.detailsCount ?? 0,
+        count: r.detailsCount ?? 0,
         fields: r.fields ?? [],
         suggestion: r.suggestion ?? null,
       });
-    const onFail = (f: any) => setBanner({ kind: 'failed', ...f });
+    };
+    
+    const onFail = (f: any) => setBanner({ 
+      state: 'failed', 
+      uploadId: f.uploadId,
+      fileName: f.fileName,
+      error: f.error 
+    });
 
     bus.on('autofill:started', onStart);
     bus.on('autofill:ready', onReady);
@@ -100,22 +120,34 @@ export default function UploadCenter({
   }, []);
 
   // Banner actions
-  const dismiss = () => setBanner({ kind: 'idle' });
+  const dismiss = () => setBanner({ state: 'idle' });
   const openInbox = () => setInboxOpen(true);
+  
   const regenerate = async () => {
-    if (banner.kind === 'ready' || banner.kind === 'failed') {
-      setBanner({ kind: 'working', uploadId: banner.uploadId, fileName: banner.fileName });
-      bus.emit('autofill:started', { uploadId: banner.uploadId, fileName: banner.fileName });
+    if (banner.state === 'ready' || banner.state === 'failed' || banner.state === 'partial') {
+      setBanner({ 
+        state: 'analyzing', 
+        uploadId: banner.uploadId, 
+        fileName: banner.fileName,
+        step: 1 
+      });
+      if (banner.uploadId) {
+        fetch(`/api/inbox/${banner.uploadId}/analyze`, { method: "POST" }).catch(console.warn);
+        bus.emit('autofill:started', { uploadId: banner.uploadId, fileName: banner.fileName });
+      }
     }
   };
+  
   const acceptAll = async () => {
-    if (banner.kind !== 'ready') return;
+    if (banner.state !== 'ready' && banner.state !== 'partial') return;
+    if (!banner.uploadId) return;
+    
     await fetch(`/api/inbox/${banner.uploadId}/accept`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ fields: banner.fields, memberId: banner.suggestion?.memberId }),
     });
-    setBanner({ kind: 'idle' });
+    setBanner({ state: 'idle' });
     toast({
       title: "Autofill accepted",
       description: "All details have been applied successfully.",
@@ -329,69 +361,19 @@ export default function UploadCenter({
     <Card className={`bg-zinc-950/70 border-zinc-800 ${className}`}>
       {/* === AI AUTOFILL BANNER === */}
       <div className="p-4 pb-0">
-        {banner.kind === 'working' && (
-          <div className="rounded-lg bg-slate-800/40 border border-slate-700 p-3 flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="animate-spin">⏳</span>
-              <span className="font-medium text-zinc-100">Analyzing…</span>
-              <span className="text-slate-400">({banner.fileName})</span>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={openInbox}>
-                View in Inbox
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {banner.kind === 'ready' && (
-          <div className="rounded-lg bg-slate-800/40 border border-slate-700 p-3 mb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-yellow-400" />
-                <span className="font-medium text-zinc-100">Suggested autofill</span>
-                <span className="text-slate-400">• {banner.details} details found</span>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={regenerate}>
-                  Regenerate
-                </Button>
-                <Button variant="outline" size="sm" onClick={dismiss}>
-                  Dismiss
-                </Button>
-                <Button className="bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90" size="sm" onClick={acceptAll}>
-                  Accept all
-                </Button>
-              </div>
-            </div>
-            {banner.suggestion?.memberName && (
-              <div className="mt-2 text-sm text-slate-300">
-                Suggested destination: <span className="font-medium text-[#D4AF37]">{banner.suggestion.memberName}</span>
-                <button className="ml-3 underline text-[#D4AF37] hover:text-[#D4AF37]/80" onClick={openInbox}>Open</button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {banner.kind === 'failed' && (
-          <div className="rounded-lg bg-rose-950/40 border border-rose-800 p-3 flex items-center justify-between mb-3">
-            <div>
-              <span className="font-medium text-rose-300">AI Analysis failed</span>
-              <span className="text-rose-400 ml-2">({banner.error})</span>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={openInbox}>
-                View in Inbox
-              </Button>
-              <Button className="bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90" size="sm" onClick={regenerate}>
-                Try again
-              </Button>
-              <Button variant="outline" size="sm" onClick={dismiss}>
-                Dismiss
-              </Button>
-            </div>
-          </div>
-        )}
+        <AutofillBanner
+          state={banner.state}
+          fileName={banner.fileName}
+          count={banner.count}
+          confidence={banner.suggestion?.confidence}
+          suggestion={banner.suggestion}
+          fields={banner.fields}
+          step={banner.step}
+          onOpen={openInbox}
+          onRetry={regenerate}
+          onAccept={acceptAll}
+          onDismiss={dismiss}
+        />
       </div>
       
       <CardHeader className="pb-3">

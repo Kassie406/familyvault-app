@@ -1,14 +1,22 @@
-import { Sparkles, Info, RefreshCw } from "lucide-react";
+import { Sparkles, AlertCircle, RefreshCw, HelpCircle } from "lucide-react";
+import { useState } from "react";
+import HelpDialog from "./HelpDialog";
+
+export type BannerState = 'idle' | 'analyzing' | 'ready' | 'partial' | 'none' | 'unsupported' | 'failed';
 
 type Props = {
-  fileName: string;
-  detailsCount: number;
-  fields: { key: string; value: string; pii?: boolean }[];
+  state: BannerState;
+  fileName?: string;
+  count?: number;
+  confidence?: number;
   suggestion?: { memberId: string; memberName: string; confidence: number } | null;
-  onAccept: () => void;
-  onDismiss: () => void;
-  onViewDetails: () => void;
-  onRegenerate?: () => void;
+  fields?: { key: string; value: string; pii?: boolean }[];
+  onOpen?: () => void;
+  onRetry?: () => void;
+  onHelp?: () => void;
+  onAccept?: () => void;
+  onDismiss?: () => void;
+  step?: 1 | 2 | 3; // For progress during analyzing
 };
 
 function maskPII(value: string) {
@@ -16,78 +24,137 @@ function maskPII(value: string) {
   return '****' + value.slice(-4);
 }
 
+function getProgressText(step: number) {
+  switch (step) {
+    case 1: return "Upload received";
+    case 2: return "Reading text & detecting fields";
+    case 3: return "Finding the right place";
+    default: return "Processing...";
+  }
+}
+
 export default function AutofillBanner({
-  fileName, detailsCount, fields, suggestion, onAccept, onDismiss, onViewDetails, onRegenerate
+  state, fileName, count = 0, confidence, suggestion, fields, onOpen, onRetry, onHelp, onAccept, onDismiss, step = 1
 }: Props) {
-  const count = (fields?.length ?? 0);
+  const [helpOpen, setHelpOpen] = useState(false);
+  
+  const titleMap = {
+    idle: 'AI Suggestions',
+    analyzing: 'Analyzing your document…',
+    ready: `${count} detail${count === 1 ? '' : 's'} found`,
+    partial: `${count} detail${count === 1 ? '' : 's'} found`,
+    none: 'No details found',
+    failed: 'We couldn\'t analyze this file',
+    unsupported: 'File type not supported',
+  } as const;
+
+  const subMap = {
+    idle: 'Upload a file to get suggested details and destinations.',
+    analyzing: 'Looking for key fields (name, number, dates) and a likely destination.',
+    ready: 'We\'ve suggested a destination. Review and accept.',
+    partial: 'No confident match. Pick where this belongs and accept.',
+    none: 'This file doesn\'t contain enough readable text. For best results, use PDFs or clear, flat photos.',
+    failed: 'Something went wrong. Try again.',
+    unsupported: 'Please upload PDF, PNG, or JPEG.',
+  } as const;
+  
+  if (state === 'idle') {
+    return null; // Don't show banner when idle
+  }
   
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 shadow-sm" data-testid="autofill-banner">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-zinc-100">
-          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-yellow-500/20">
-            <Sparkles className="h-3 w-3 text-yellow-400" />
-          </span>
-          <span className="font-medium" data-testid="text-suggested-autofill">Suggested autofill</span>
-          <span className="text-zinc-400" data-testid="text-details-count">• {count} details found</span>
-        </div>
+    <>
+      <div className={`rounded-lg px-4 py-3 border ${
+        state === 'failed' || state === 'unsupported' ? 
+          'border-red-600/30 bg-red-950/20' :
+        state === 'ready' || state === 'partial' ? 
+          'border-emerald-600/30 bg-emerald-950/20' : 
+          'border-zinc-700 bg-zinc-900/40'
+      }`} data-testid="autofill-banner">
         <div className="flex items-center gap-2">
-          {onRegenerate && (
-            <button 
-              className="px-3 py-1.5 text-sm rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-200 transition-colors flex items-center gap-1"
-              onClick={onRegenerate}
-              data-testid="button-regenerate"
-            >
-              <RefreshCw className="h-4 w-4" />
-              <span>Regenerate</span>
-            </button>
-          )}
-          <button 
-            className="px-3 py-1.5 text-sm rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-200 transition-colors"
-            onClick={onDismiss}
-            data-testid="button-dismiss"
-          >
-            Dismiss
-          </button>
-          <button 
-            className="px-3 py-1.5 text-sm rounded-md bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90 transition-colors font-medium"
-            onClick={onAccept}
-            data-testid="button-accept-all"
-          >
-            Accept all
-          </button>
-        </div>
-      </div>
-
-      {suggestion && (
-        <div className="mt-2 text-sm text-zinc-300" data-testid="suggested-destination">
-          Suggested destination: <span className="font-medium text-[#D4AF37]">{suggestion.memberName}</span>
-        </div>
-      )}
-
-      {count > 0 && (
-        <div className="mt-3">
-          {fields!.slice(0, 2).map((f) => (
-            <div key={f.key} className="flex items-center justify-between text-sm py-1">
-              <div className="text-white/70">{f.key}</div>
-              <div className="font-mono">{f.pii ? maskPII(f.value) : f.value}</div>
+          <span className={state === 'failed' || state === 'unsupported' ? "⚠️" : "✨"}></span>
+          <strong className="text-zinc-100">{titleMap[state]}</strong>
+          
+          {state === 'analyzing' && (
+            <div className="ml-2 flex items-center gap-2">
+              <span className="animate-pulse text-zinc-400">{getProgressText(step)}</span>
+              <div className="flex items-center gap-1">
+                <div className={`w-2 h-2 rounded-full ${
+                  step >= 1 ? 'bg-[#D4AF37]' : 'bg-zinc-600'
+                }`}></div>
+                <div className={`w-2 h-2 rounded-full ${
+                  step >= 2 ? 'bg-[#D4AF37]' : 'bg-zinc-600'
+                }`}></div>
+                <div className={`w-2 h-2 rounded-full ${
+                  step >= 3 ? 'bg-[#D4AF37]' : 'bg-zinc-600'
+                }`}></div>
+              </div>
             </div>
-          ))}
-          <button 
-            className="mt-2 w-full rounded-md border border-zinc-800 py-2 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
-            onClick={onViewDetails}
-            data-testid="button-view-details"
-          >
-            View all details
-          </button>
+          )}
+          
+          <div className="ml-auto flex gap-2">
+            {(state === 'ready' || state === 'partial') && (
+              <button 
+                onClick={onOpen} 
+                className="px-3 py-1.5 text-sm rounded-md bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90 transition-colors font-medium"
+                data-testid="button-review"
+              >
+                Review
+              </button>
+            )}
+            {state === 'failed' && (
+              <button 
+                onClick={onRetry} 
+                className="px-3 py-1.5 text-sm rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-200 transition-colors"
+                data-testid="button-retry"
+              >
+                Retry
+              </button>
+            )}
+            {(state === 'none' || state === 'unsupported') && (
+              <button 
+                onClick={() => setHelpOpen(true)} 
+                className="px-3 py-1.5 text-sm rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-200 transition-colors flex items-center gap-1"
+                data-testid="button-help"
+              >
+                <HelpCircle className="h-4 w-4" />
+                How to get better results
+              </button>
+            )}
+          </div>
         </div>
-      )}
-
-      {count === 0 && (
-        <div className="mt-3 text-sm text-white/70">
-          No details detected. You can try <button className="underline" onClick={onRegenerate}>Regenerate</button>.
-        </div>
-      )}
-    </div>
+        
+        <div className="mt-1 text-sm text-zinc-300">{subMap[state]}</div>
+        
+        {/* Show confidence for suggestions */}
+        {suggestion && (state === 'ready' || state === 'partial') && (
+          <div className="mt-2 text-sm text-zinc-300" data-testid="suggested-destination">
+            Suggested destination: <span className="font-medium text-[#D4AF37]">{suggestion.memberName}</span>
+            {suggestion.confidence && (
+              <span className="ml-2 px-2 py-1 rounded bg-zinc-800 text-xs text-zinc-400">
+                confidence: {suggestion.confidence.toFixed(2)}
+              </span>
+            )}
+          </div>
+        )}
+        
+        {/* Show sample fields for ready/partial states */}
+        {(state === 'ready' || state === 'partial') && fields && fields.length > 0 && (
+          <div className="mt-3 space-y-1">
+            {fields.slice(0, 2).map((f, idx) => (
+              <div key={idx} className="flex items-center justify-between text-sm py-1">
+                <div className="text-white/70">{f.key}</div>
+                <div className="font-mono text-zinc-300">{f.pii ? maskPII(f.value) : f.value}</div>
+              </div>
+            ))}
+            {fields.length > 2 && (
+              <div className="text-xs text-zinc-400 mt-1">+ {fields.length - 2} more details</div>
+            )}
+          </div>
+        )}
+      </div>
+      
+      <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
+    </>
   );
 }
