@@ -1,0 +1,186 @@
+1) Minimal AI state store (single source of truth)
+// client/src/state/ai.ts
+import { create } from "zustand";
+
+export type ExtractField = { key:string; value:string; confidence:number; pii?:boolean };
+
+type AIScan =
+  | { state:"idle" }
+  | { state:"analyzing"; id:string; step:1|2|3 }
+  | { state:"ready"|"partial"; id:string; count:number; fields:ExtractField[]; suggestion?:{memberId:string; memberName:string; confidence:number} }
+  | { state:"none"|"failed"|"unsupported"; id:string; message:string };
+
+type AIStore = {
+  scan: AIScan;
+  start: (id:string)=>void;
+  update: (scan: Partial<AIScan> & { state: AIScan["state"] })=>void;
+  reset: ()=>void;
+};
+
+export const useAI = create<AIStore>((set) => ({
+  scan: { state: "idle" },
+  start: (id) => set({ scan: { state: "analyzing", id, step: 1 } }),
+  update: (next) => set((s) => ({ scan: { ...s.scan, ...next } as AIScan })),
+  reset: () => set({ scan: { state: "idle" } }),
+}));
+
+2) Upload Center → register → analyze → poll
+// client/src/components/upload/UploadCenter.tsx (inside your onUploadComplete)
+import { useAI } from "@/state/ai";
+
+async function onUploadComplete(file: File, s3Key: string) {
+  // 1) Register
+  const reg = await fetch("/api/inbox/register", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      fileKey: s3Key,
+      fileName: file.name,
+      mime: file.type,
+      size: file.size,
+    }),
+  }).then((r) => r.json());
+
+  useAI.getState().start(reg.uploadId);
+
+  // 2) Kick off analysis (fire-and-forget)
+  await fetch(`/api/inbox/${reg.uploadId}/analyze`, { method: "POST" });
+
+  // 3) Poll until done (or switch to WS if you already have it)
+  const tick = async () => {
+    const res = await fetch(`/api/inbox/${reg.uploadId}/status`).then((r) => r.json());
+    // map server status to store
+    if (res.status === "analyzing") {
+      useAI.getState().update({ state: "analyzing", step: res.stage ?? 1 });
+      setTimeout(tick, 1000);
+    } else if (res.status === "ready" || res.status === "partial") {
+      useAI.getState().update({
+        state: res.status,
+        count: res.fields?.length ?? 0,
+        fields: res.fields ?? [],
+        suggestion: res.suggestion ?? undefined,
+      });
+      // optional toast
+      // toast.success(`✨ AI found ${res.fields?.length ?? 0} details`);
+    } else {
+      useAI.getState().update({ state: res.status, message: res.message ?? "Could not analyze" });
+    }
+  };
+  tick();
+}
+
+3) Trustworthy banner (shows above Upload Center)
+// client/src/components/ai/AIBanner.tsx
+import { useAI } from "@/state/ai";
+import { Loader2, Sparkles, CheckCircle, AlertTriangle, Info, RefreshCw } from "lucide-react";
+
+export default function AIBanner() {
+  const { scan, reset } = useAI();
+
+  if (scan.state === "idle") return null;
+
+  return (
+    <div className="mb-4 rounded-lg border bg-card/50 p-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4" />
+          <span className="font-medium">AI Suggestions</span>
+        </div>
+        {scan.state !== "analyzing" && (
+          <button className="text-sm opacity-70 hover:opacity-100" onClick={reset}>Dismiss</button>
+        )}
+      </div>
+
+      {/* Body by state */}
+      {scan.state === "analyzing" && (
+        <div className="mt-2 flex items-center gap-2 text-sm">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Analyzing document… (step {scan.step}/3)</span>
+        </div>
+      )}
+
+      {(scan.state === "ready" || scan.state === "partial") && (
+        <div className="mt-2 space-y-2">
+          <div className="flex items-center gap-2 text-sm">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <span>
+              {scan.state === "ready"
+                ? `Found ${scan.count} detail${scan.count === 1 ? "" : "s"}`
+                : "Low confidence—review suggested destination"}
+            </span>
+          </div>
+          {scan.suggestion && (
+            <div className="rounded-md bg-muted/50 p-2 text-sm">
+              Suggested destination: <b>{scan.suggestion.memberName}</b>{" "}
+              <span className="opacity-70">({Math.round(scan.suggestion.confidence * 100)}%)</span>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <button className="btn btn-primary btn-sm" onClick={() => window.dispatchEvent(new CustomEvent("open-inbox-details", { detail: { id: (scan as any).id } }))}>
+              Review
+            </button>
+            <button className="btn btn-outline btn-sm" onClick={() => fetch(`/api/inbox/${(scan as any).id}/analyze`, { method: "POST" })}>
+              <RefreshCw className="mr-1 h-4 w-4" /> Regenerate
+            </button>
+          </div>
+        </div>
+      )}
+
+      {(scan.state === "none" || scan.state === "failed" || scan.state === "unsupported") && (
+        <div className="mt-2 flex items-start gap-2 text-sm">
+          <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-500" />
+          <div>
+            <div className="font-medium">No details detected</div>
+            <div className="opacity-80">
+              {("message" in scan && scan.message) || "Try a PDF or a clearer image shot straight-on."}
+            </div>
+            <button
+              className="mt-2 inline-flex items-center gap-1 text-xs opacity-80 hover:opacity-100"
+              onClick={() => window.alert("AI works best with PDFs and legible images.")}
+            >
+              <Info className="h-3 w-3" />
+              How AI analysis works
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+Render it above your Upload Center:
+
+// client/src/pages/family/family-home.tsx
+import AIBanner from "@/components/ai/AIBanner";
+export default function FamilyHome() {
+  return (
+    <>
+      <AIBanner />
+      <UploadCenter /* ... */ />
+      {/* … */}
+    </>
+  );
+}
+
+4) Backend contract (tiny)
+
+POST /api/inbox/register → { uploadId }
+
+POST /api/inbox/:id/analyze → kicks off OCR (queue if heavy)
+
+GET /api/inbox/:id/status →
+{ status:"analyzing", stage:1 }
+or
+{ status:"ready"|"partial", fields:[...], suggestion:{...} }
+or
+{ status:"none"|"failed"|"unsupported", message:"…" }
+
+Tip: if OCR takes time, return 202 Accepted from analyze and drive UI via status polling or socket events.
+
+5) Two quick reliability fixes
+
+Image pre-process before OCR (server): resize longest edge ≤ 2000px, grayscale/threshold → huge accuracy boost.
+
+Wait for S3 HEAD before analysis to avoid “object not found” races.
