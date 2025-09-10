@@ -2880,6 +2880,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // POST /api/inbox/:id/accept-autofill - Accept autofill suggestion from banner
+  app.post("/api/inbox/:id/accept-autofill", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { memberId, fields } = req.body;
+      const userId = "current-user"; // TODO: Get from authenticated session
+      
+      console.log("📋 Accepting autofill for item:", id, "to member:", memberId);
+      
+      // Get the inbox item
+      const [item] = await db.select().from(inboxItems).where(eq(inboxItems.id, id));
+      if (!item) {
+        return res.status(404).json({ error: "Inbox item not found" });
+      }
+
+      // Create member file assignment if memberId provided
+      if (memberId) {
+        await db.insert(memberFileAssignments).values({
+          id: crypto.randomUUID(),
+          familyId: item.familyId,
+          memberId,
+          fileUrl: item.fileUrl,
+          filename: item.filename,
+          category: "document", // Default category, could be derived from fields
+          metadata: fields || {},
+          assignedBy: userId,
+        });
+        console.log("✅ File assigned to member:", memberId);
+      }
+
+      // Update inbox item status to accepted
+      await db.update(inboxItems).set({
+        status: "accepted",
+        acceptedAt: new Date(),
+      }).where(eq(inboxItems.id, id));
+
+      res.json({ 
+        ok: true, 
+        message: memberId ? "File assigned to member" : "Autofill accepted" 
+      });
+      
+    } catch (error) {
+      console.error("Error accepting autofill:", error);
+      res.status(500).json({ error: "Failed to accept autofill" });
+    }
+  });
+
   // GET /api/inbox - List inbox items for the drawer
   app.get("/api/inbox", async (req, res) => {
     try {
