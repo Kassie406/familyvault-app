@@ -81,6 +81,7 @@ export function usePresignedUpload() {
           let errorMsg = `Upload failed: ${response.status} ${response.statusText}`;
           try {
             const responseText = await response.text();
+            console.log('❌ S3 Error Response Body:', responseText);
             if (responseText) {
               const parser = new DOMParser();
               const xmlDoc = parser.parseFromString(responseText, "text/xml");
@@ -91,6 +92,7 @@ export function usePresignedUpload() {
               }
             }
           } catch (e) {
+            console.log('❌ Error parsing S3 response:', e);
             // Fall back to status text
           }
           throw new Error(errorMsg);
