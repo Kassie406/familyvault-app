@@ -39,7 +39,7 @@ export function useAutofill() {
         open: true,
         fileName: args.fileName,
         uploadId: reg.uploadId,
-        fields: res.fields || [],
+        fields: res.fields || [],      // <- this must be here (not undefined)
         suggestion: res.suggestion || null
       });
     } catch (e: any) {

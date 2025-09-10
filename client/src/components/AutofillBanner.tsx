@@ -11,9 +11,16 @@ type Props = {
   onRegenerate?: () => void;
 };
 
+function maskPII(value: string) {
+  if (value.length <= 4) return '****';
+  return '****' + value.slice(-4);
+}
+
 export default function AutofillBanner({
   fileName, detailsCount, fields, suggestion, onAccept, onDismiss, onViewDetails, onRegenerate
 }: Props) {
+  const count = (fields?.length ?? 0);
+  
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 shadow-sm" data-testid="autofill-banner">
       <div className="flex items-center justify-between">
@@ -22,7 +29,7 @@ export default function AutofillBanner({
             <Sparkles className="h-3 w-3 text-yellow-400" />
           </span>
           <span className="font-medium" data-testid="text-suggested-autofill">Suggested autofill</span>
-          <span className="text-zinc-400" data-testid="text-details-count">• {detailsCount} details found</span>
+          <span className="text-zinc-400" data-testid="text-details-count">• {count} details found</span>
         </div>
         <div className="flex items-center gap-2">
           {onRegenerate && (
@@ -58,13 +65,29 @@ export default function AutofillBanner({
         </div>
       )}
 
-      <button 
-        className="mt-3 w-full rounded-md border border-zinc-800 py-2 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
-        onClick={onViewDetails}
-        data-testid="button-view-details"
-      >
-        View all details
-      </button>
+      {count > 0 && (
+        <div className="mt-3">
+          {fields!.slice(0, 2).map((f) => (
+            <div key={f.key} className="flex items-center justify-between text-sm py-1">
+              <div className="text-white/70">{f.key}</div>
+              <div className="font-mono">{f.pii ? maskPII(f.value) : f.value}</div>
+            </div>
+          ))}
+          <button 
+            className="mt-2 w-full rounded-md border border-zinc-800 py-2 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
+            onClick={onViewDetails}
+            data-testid="button-view-details"
+          >
+            View all details
+          </button>
+        </div>
+      )}
+
+      {count === 0 && (
+        <div className="mt-3 text-sm text-white/70">
+          No details detected. You can try <button className="underline" onClick={onRegenerate}>Regenerate</button>.
+        </div>
+      )}
     </div>
   );
 }
