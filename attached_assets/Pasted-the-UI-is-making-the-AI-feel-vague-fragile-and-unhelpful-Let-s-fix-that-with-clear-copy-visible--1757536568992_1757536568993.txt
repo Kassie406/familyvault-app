@@ -1,0 +1,215 @@
+the UI is making the AI feel vague, fragile, and unhelpful. Let’s fix that with clear copy, visible progress, and actionable outcomes. Below is a drop-in spec (with copy you can paste) plus lightweight component patterns so the AI feels reliable and worth using.
+
+1) Name it clearly (and set expectations)
+
+Rename AI Inbox → AI Document Analysis
+
+Tooltip: “Review and accept AI-extracted details (name, ID, dates) and suggested destinations.”
+
+Rename the banner Suggested autofill → AI Suggestions
+
+2) Use a simple, explicit state machine
+
+Your banner (and drawer card) should render one of these canonical states:
+
+State	When	Banner title	Subtitle / action
+idle	file uploaded, not yet analyzed	AI Suggestions	“Upload a file to get suggested details and destinations.”
+analyzing	analysis started	Analyzing your document…	“Looking for key fields and a likely destination.” (spinner + “View progress”)
+ready	fields + destination found	3 details found	“Review & accept in AI Document Analysis.” [Open]
+partial	some fields, no destination	2 details found	“No confident match. Pick a destination and accept.” [Review]
+none	nothing useful found	No details found	“This file doesn’t contain readable text. Try a sharper image or a PDF.” [How to get better results]
+unsupported	we detect e.g. HEIC/raw	File type not supported	“Try PDF, PNG, or JPEG.”
+failed	analyzer threw/timeout	We couldn’t analyze this file	“Try again.” [Retry] [See why]
+
+Your drawer card mirrors the same state text and actions so the story is consistent.
+
+3) Replace vague copy with concrete, helpful messages
+Banner copy (paste-ready)
+
+Analyzing:
+✨ Analyzing your document…
+Looking for key fields (name, number, dates) and a likely destination.
+
+Ready (details & destination):
+✨ 3 details found
+We’ve suggested a destination. Review and accept.
+
+Partial (details, no destination):
+✨ 2 details found
+No confident match. Pick where this belongs and accept.
+
+None:
+✨ No details found
+This file doesn’t contain enough readable text. For best results, use PDFs or clear, flat photos.
+
+Failed:
+⚠️ We couldn’t analyze this file
+Something went wrong. Try again.
+
+Unsupported:
+⚠️ File type not supported
+Please upload PDF, PNG, or JPEG.
+
+Actions & micro-copy
+
+Open / Review → opens the analysis drawer at the item
+
+Retry → re-calls analyze endpoint
+
+How to get better results → opens a small help dialog:
+
+“Use PDFs or clear photos taken straight-on”
+
+“Avoid glare and shadows”
+
+“Ensure text is at least 10pt”
+
+“Crop to the document if possible”
+
+4) Show real progress (why it’s busy)
+
+Use 3 simple steps so users see movement:
+
+Upload received
+
+Reading text & detecting fields
+
+Finding the right place
+
+Even if the backend is async, you can advance steps when:
+
+register → step 1
+
+OCR started → step 2
+
+classification started → step 3
+
+result emitted/polled → done
+
+5) Confidence and transparency
+
+If you have a destination suggestion, show:
+Suggested destination: Angel Quintana (confidence: 0.86)
+With a neutral tag (not scary).
+
+If confidence < 0.7, put it in Partial state instead—don’t auto-claim a match.
+
+6) UX wiring (tiny React patterns)
+Banner component
+function AIBanner({ state, count = 0, onOpen, onRetry, onHelp }: {
+  state: 'idle'|'analyzing'|'ready'|'partial'|'none'|'failed'|'unsupported';
+  count?: number;
+  onOpen?: () => void;
+  onRetry?: () => void;
+  onHelp?: () => void;
+}) {
+  const titleMap = {
+    idle: 'AI Suggestions',
+    analyzing: 'Analyzing your document…',
+    ready: `${count} detail${count===1?'':'s'} found`,
+    partial: `${count} detail${count===1?'':'s'} found`,
+    none: 'No details found',
+    failed: 'We couldn’t analyze this file',
+    unsupported: 'File type not supported',
+  } as const;
+
+  const subMap = {
+    idle: 'Upload a file to get suggested details and destinations.',
+    analyzing: 'Looking for key fields and a likely destination.',
+    ready: 'We’ve suggested a destination. Review and accept.',
+    partial: 'No confident match. Pick where this belongs and accept.',
+    none: 'This file doesn’t contain enough readable text. For best results, use PDFs or clear, flat photos.',
+    failed: 'Something went wrong. Try again.',
+    unsupported: 'Please upload PDF, PNG, or JPEG.',
+  } as const;
+
+  return (
+    <div className={`rounded-lg px-4 py-3 border ${state==='failed'?'border-red-600/30 bg-red-950/20':
+      state==='ready'||state==='partial'?'border-emerald-600/30 bg-emerald-950/20':'border-zinc-700 bg-zinc-900/40'}`}>
+      <div className="flex items-center gap-2">
+        <span>✨</span>
+        <strong>{titleMap[state]}</strong>
+        {state==='analyzing' && <span className="ml-2 animate-pulse text-zinc-400">Looking for text…</span>}
+        <div className="ml-auto flex gap-2">
+          {(state==='ready'||state==='partial') && <button onClick={onOpen} className="btn btn-gold">Review</button>}
+          {state==='failed' && <button onClick={onRetry} className="btn btn-outline">Retry</button>}
+          {(state==='none'||state==='unsupported') && <button onClick={onHelp} className="btn btn-ghost">How to get better results</button>}
+        </div>
+      </div>
+      <div className="mt-1 text-sm text-zinc-300">{subMap[state]}</div>
+    </div>
+  );
+}
+
+Drawer card progress
+function InboxCard({ fileName, state, step, onOpen }: {
+  fileName: string; state: 'analyzing'|'ready'|'partial'|'failed'|'none';
+  step?: 1|2|3; onOpen?: () => void;
+}) {
+  return (
+    <article className="p-3 rounded-lg border border-zinc-700 bg-zinc-900/60">
+      <div className="flex items-center justify-between">
+        <div className="font-medium">{fileName}</div>
+        {state==='analyzing' && <span className="text-xs text-zinc-400">Step {step}/3</span>}
+      </div>
+      <div className="mt-2">
+        {state==='analyzing' && <div className="h-1 rounded bg-zinc-800">
+          <div className="h-1 bg-zinc-300 rounded" style={{ width: `${(step ?? 1)*33}%` }} />
+        </div>}
+        {(state==='ready'||state==='partial') && <button className="btn btn-gold mt-2" onClick={onOpen}>Open</button>}
+        {state==='failed' && <div className="text-sm text-red-400 mt-1">Couldn’t analyze. Try again.</div>}
+        {state==='none' && <div className="text-sm text-zinc-400 mt-1">No readable text detected.</div>}
+      </div>
+    </article>
+  );
+}
+
+
+Hook it to the events/polling you already have so Banner and Drawer flip state at the same time.
+
+7) “Why no results?” dialog (one-time trust win)
+
+Title: Help AI read your documents better
+Body:
+
+Use PDFs or JPEG/PNG photos taken straight-on
+
+Avoid glare, low light, and backgrounds
+
+Fill the frame with the document
+
+For IDs: front/back, make text sharp
+
+Footer: “Still not working?” → “Send feedback” (opens a tiny form that captures file type + error state).
+
+8) Metrics to validate trust
+
+Track these (anonymized):
+
+ai_started → ai_ready|ai_partial|ai_none|ai_failed
+
+Average time from ai_started → completion
+
+ai_review_opened, ai_accepted, ai_dismissed
+
+Destination confidence distribution
+
+You’ll see trust rise when:
+
+“ready/partial” ratio increases,
+
+review/accept clicks outnumber dismiss,
+
+completion times are consistent.
+
+TL;DR
+
+Rename & explain the feature (AI Document Analysis).
+
+Show progress and outcomes, not “0 details”.
+
+Give helpful next steps when we can’t extract data.
+
+Mirror the same state in the banner and drawer.
+
+Add a tiny “Why no results?” dialog to earn trust.

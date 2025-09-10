@@ -414,7 +414,7 @@ export default function UploadCenter({
               data-testid="button-open-inbox"
             >
               <Sparkles className="h-4 w-4 mr-1" />
-              AI Inbox
+              AI Document Analysis
             </Button>
             <div className="flex items-center gap-2 text-xs text-zinc-400">
               <ShieldCheck className="h-4 w-4 text-[#D4AF37]" />

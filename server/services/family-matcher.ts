@@ -1,4 +1,4 @@
-// Family Member Matching Service for AI Inbox
+// Family Member Matching Service for AI Document Analysis
 import { db } from "../db";
 import { familyMembers } from "@shared/schema";
 import { eq } from "drizzle-orm";
