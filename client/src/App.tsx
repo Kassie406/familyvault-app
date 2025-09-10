@@ -106,6 +106,7 @@ import WhenSomeoneDiesBillsObligations from "@/pages/when-someone-dies-bills-obl
 import WhenSomeoneDiesLegalResponsibilities from "@/pages/when-someone-dies-legal-responsibilities";
 import WhenSomeoneDiesImportantDeadlines from "@/pages/when-someone-dies-important-deadlines";
 import RealtimeTest from "@/pages/RealtimeTest";
+import MaintenancePage from "@/pages/maintenance";
 
 // Error boundary so a bad import doesn't blank the screen
 function ErrorBoundary({ children }: { children: React.ReactNode }) {
@@ -142,14 +143,14 @@ function Router() {
     <Switch>
       <Route path="/inbox" component={Inbox} />
       <Route path="/invite/:token" component={InviteAccept} />
-      <Route path="/" component={Home} />
+      <Route path="/" component={MaintenancePage} />
       <Route path="/security" component={Security} />
       <Route path="/security-documentation" component={SecurityDocumentation} />
       <Route path="/trust-overview" component={TrustOverview} />
       <Route path="/reviews" component={Reviews} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/schedule-demo" component={ScheduleDemo} />
-      <Route path="/login" component={NewSignIn} />
+      <Route path="/login" component={MaintenancePage} />
       <Route path="/signup" component={Signup} />
       <Route path="/share/:token" component={Share} />
       <Route path="/signup-options" component={SignupOptions} />
@@ -279,14 +280,14 @@ function App() {
     );
   }
   
-  // Portal Domain + Login Page = Public Login (no auth guard)
+  // Portal Domain + Login Page = Temporarily disabled (maintenance)
   if (isPortalDomain && isLoginPage) {
-    console.log('🔓 Portal login page - rendering public NewSignIn');
+    console.log('🚧 Portal login page - temporarily disabled for maintenance');
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
-          <NewSignIn />
+          <MaintenancePage />
         </TooltipProvider>
       </QueryClientProvider>
     );
