@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFileStatus } from "@/hooks/useFileStatus";
+import { useAutoFill } from "@/hooks/useAutofill";
+import AutofillBanner from "@/components/AutofillBanner";
 import MobileUploadModal from "./MobileUploadModal";
 
 interface QuickDocumentUploadProps {
@@ -67,6 +69,7 @@ export default function QuickDocumentUpload({
   const { uploadFile, progress, uploading, error, reset } = usePresignedUpload();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { banner, loading: aiLoading, error: aiError, registerAndAnalyze, accept, dismiss } = useAutoFill();
   
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -114,6 +117,20 @@ export default function QuickDocumentUpload({
         type: "document",
         familyId
       });
+
+      // Step 2.5: Trigger AI analysis immediately after S3 upload
+      try {
+        await registerAndAnalyze({
+          userId: "current-user", // TODO: get real user ID from auth context
+          fileName: file.name,
+          s3Key: key,
+          mime: file.type,
+          size: file.size
+        });
+      } catch (aiErr) {
+        console.log("AI analysis failed (non-critical):", aiErr);
+        // Don't fail the upload if AI analysis fails
+      }
 
       // Step 3: Attach file to document
       const attachRes = await fetch(`/api/documents/${doc.id}/attach-file`, {
@@ -193,7 +210,34 @@ export default function QuickDocumentUpload({
   const showProgress = isUploading && progress > 0;
 
   return (
-    <Card className={`bg-gray-800/50 border-gray-700/50 ${className}`}>
+    <div className="space-y-4">
+      {/* AI Autofill Banner */}
+      {banner && (
+        <AutofillBanner
+          fileName={banner.fileName}
+          detailsCount={banner.detailsCount}
+          fields={banner.fields}
+          suggestion={banner.suggestion}
+          onAccept={() => accept(banner.id, banner.suggestion?.memberId)}
+          onDismiss={() => dismiss(banner.id)}
+          onViewDetails={() => {
+            // TODO: Open modal with banner.fields details
+            toast({
+              title: "Extracted Details",
+              description: `Found ${banner.fields.length} fields: ${banner.fields.map(f => f.key).join(", ")}`,
+            });
+          }}
+        />
+      )}
+
+      {/* AI Error Display */}
+      {aiError && (
+        <div className="p-3 bg-red-900/20 border border-red-600/30 rounded-lg text-red-300 text-sm">
+          AI analysis failed: {aiError}
+        </div>
+      )}
+
+      <Card className={`bg-gray-800/50 border-gray-700/50 ${className}`}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-white">
           <FileText className="h-5 w-5 text-yellow-400" />
@@ -414,5 +458,6 @@ export default function QuickDocumentUpload({
         familyId={familyId}
       />
     </Card>
+    </div>
   );
 }
