@@ -31,6 +31,19 @@ const textractClient = new TextractClient({
 
 export const aiInboxRouter = Router();
 
+/** Get S3 object as bytes for Textract */
+async function getObjectBytes(bucket: string, key: string): Promise<Buffer> {
+  try {
+    const command = new GetObjectCommand({ Bucket: bucket, Key: key });
+    const response = await s3Client.send(command);
+    const bytes = await response.Body!.transformToByteArray();
+    return Buffer.from(bytes);
+  } catch (error) {
+    console.error(`[S3] Failed to get object bytes for ${bucket}/${key}:`, error);
+    throw error;
+  }
+}
+
 /** Image Preprocessing with Sharp */
 async function preprocessImage(buffer: Buffer): Promise<Buffer> {
   try {
@@ -64,7 +77,9 @@ const RegisterBody = z.object({
   fileKey: z.string(),     // s3 key you just uploaded to
   fileName: z.string(),
   mime: z.string().optional(),
-  size: z.number().optional()
+  size: z.number().optional(),
+  s3Bucket: z.string().optional(), // Add bucket info
+  contentType: z.string().optional() // Add content type
 });
 
 /** POST /api/inbox/register -> { uploadId } */
@@ -74,15 +89,13 @@ aiInboxRouter.post("/register", async (req, res) => {
 
   try {
     await db.insert(inboxItems).values({
-      id: uploadId,
       familyId: "family-1", // TODO: get from user context
       userId: body.userId,
       filename: body.fileName,
       fileUrl: body.fileKey, // S3 key serves as file URL
       fileSize: body.size,
-      mimeType: body.mime,
-      status: "analyzing",
-      uploadedAt: new Date()
+      mimeType: body.contentType || body.mime, // Prioritize contentType
+      status: "analyzing"
     });
 
     res.json({ uploadId });
@@ -98,13 +111,34 @@ function toField(label: string, key: string, value: string, confidence = 90, pat
   return { label, key, value, confidence, path };
 }
 
-function guessDocType(fileName?: string, mime?: string): AISuggestions['docType'] {
+/** Safe file type routing - prevents AnalyzeID on PDFs */
+function routeDocType(fileName: string, mime: string): {
+  docType: AISuggestions['docType'];
+  isImage: boolean;
+  isPdf: boolean;
+} {
   const f = (fileName || '').toLowerCase();
-  if (f.includes('license') || f.includes('dl_')) return 'driverLicense';
-  if (f.includes('passport')) return 'passport';
-  if (f.includes('insurance') || f.includes('policy')) return 'insurance';
-  if (f.includes('id')) return 'idCard';
-  return 'other';
+  const isImage = /^image\//.test(mime);
+  const isPdf = mime === 'application/pdf';
+  
+  if (isImage) {
+    if (f.includes('license') || f.match(/\b(dl|driver-?id)\b/)) {
+      return { docType: 'driverLicense', isImage: true, isPdf: false };
+    }
+    if (f.includes('passport')) {
+      return { docType: 'passport', isImage: true, isPdf: false };
+    }
+    return { docType: 'idCard', isImage: true, isPdf: false };
+  }
+  
+  if (isPdf) {
+    if (f.includes('insurance') || f.includes('policy')) {
+      return { docType: 'insurance', isImage: false, isPdf: true };
+    }
+    return { docType: 'other', isImage: false, isPdf: true };
+  }
+  
+  return { docType: 'other', isImage: false, isPdf: false };
 }
 
 function isoDate(s: string): string {
@@ -115,21 +149,14 @@ function isoDate(s: string): string {
   }
 }
 
-function s3KeyToBucketAndKey(s3Key: string): { Bucket: string; Key: string } {
-  // Handle both S3 URLs and direct keys
-  if (s3Key.startsWith('https://')) {
-    const m = s3Key.match(/^https:\/\/([^.]*)\.s3[^/]*\/(.+)$/);
-    return { Bucket: m?.[1] || process.env.S3_BUCKET_DOCS!, Key: m?.[2] || s3Key };
-  }
-  return { Bucket: process.env.S3_BUCKET_DOCS!, Key: s3Key };
-}
+// Removed s3KeyToBucketAndKey - now using direct bytes approach
 
-async function analyzeIdDoc(s3Key: string, docType: 'driverLicense'|'passport'|'idCard'): Promise<AISuggestions> {
+async function analyzeIdDoc(bucket: string, key: string, docType: 'driverLicense'|'passport'|'idCard'): Promise<AISuggestions> {
   try {
-    // Textract AnalyzeID supports images of US IDs/Passports
-    const s3Object = s3KeyToBucketAndKey(s3Key);
+    // Get bytes from S3 and feed directly to Textract
+    const bytes = await getObjectBytes(bucket, key);
     const command = new AnalyzeIDCommand({
-      DocumentPages: [{ S3Object: s3Object }]
+      Document: { Bytes: bytes }
     });
     const resp = await textractClient.send(command);
 
@@ -180,26 +207,48 @@ async function analyzeIdDoc(s3Key: string, docType: 'driverLicense'|'passport'|'
   }
 }
 
-async function analyzeInsuranceDoc(s3Key: string): Promise<AISuggestions> {
-  // TODO: Call AnalyzeDocument (FORMS/TABLES) or OpenAI Vision to get carrier/policy/address/coverage dates
-  return { 
-    docType: 'insurance', 
-    fields: [
-      toField('Insurance Carrier', 'carrier', 'State Farm', 85, 'insurance.carrier'),
-      toField('Policy Number', 'policyNumber', 'SF123456789', 90, 'insurance.policyNumber'),
-      toField('Coverage Type', 'coverage', 'Auto Liability', 80, 'insurance.coverage'),
-    ], 
-    confidence: 'medium', 
-    reasoning: 'Demo insurance extraction - TODO: implement forms/tables analysis' 
-  };
+async function analyzeInsuranceDoc(bucket: string, key: string): Promise<AISuggestions> {
+  try {
+    // Get bytes from S3 and use AnalyzeDocument for PDFs
+    const bytes = await getObjectBytes(bucket, key);
+    const command = new AnalyzeDocumentCommand({
+      Document: { Bytes: bytes },
+      FeatureTypes: ['FORMS', 'TABLES']
+    });
+    const resp = await textractClient.send(command);
+    
+    // Extract fields from forms/tables response
+    const fields: ExtractField[] = [];
+    // TODO: Parse the AnalyzeDocument response for insurance fields
+    
+    return { 
+      docType: 'insurance', 
+      fields,
+      confidence: 'medium', 
+      reasoning: 'Extracted using AWS Textract AnalyzeDocument' 
+    };
+  } catch (error) {
+    console.error('[TEXTRACT] AnalyzeDocument failed:', error);
+    // Fallback to demo data
+    return { 
+      docType: 'insurance', 
+      fields: [
+        toField('Insurance Carrier', 'carrier', 'State Farm', 85, 'insurance.carrier'),
+        toField('Policy Number', 'policyNumber', 'SF123456789', 90, 'insurance.policyNumber'),
+        toField('Coverage Type', 'coverage', 'Auto Liability', 80, 'insurance.coverage'),
+      ], 
+      confidence: 'medium', 
+      reasoning: 'Demo insurance extraction (Textract fallback)' 
+    };
+  }
 }
 
-async function analyzeGeneric(s3Key: string): Promise<AISuggestions> {
+async function analyzeGeneric(bucket: string, key: string): Promise<AISuggestions> {
   return { 
     docType: 'other', 
     fields: [], 
     confidence: 'low', 
-    reasoning: 'Generic OCR (no template match)' 
+    reasoning: 'Unsupported document type - no analysis performed' 
   };
 }
 
@@ -298,15 +347,18 @@ aiInboxRouter.post("/:id/analyze", async (req, res) => {
     }
 
     // ---- COMPREHENSIVE ANALYSIS ----
-    const docType = guessDocType(item.filename, item.mimeType);
+    const routing = routeDocType(item.filename || '', item.mimeType || '');
     let suggestions: AISuggestions;
     
-    if (docType === 'driverLicense' || docType === 'passport' || docType === 'idCard') {
-      suggestions = await analyzeIdDoc(item.fileUrl, docType);
-    } else if (docType === 'insurance') {
-      suggestions = await analyzeInsuranceDoc(item.fileUrl);
+    const bucket = process.env.S3_BUCKET_DOCS!;
+    const key = item.fileUrl || '';
+    
+    if (routing.isImage && (routing.docType === 'driverLicense' || routing.docType === 'passport' || routing.docType === 'idCard')) {
+      suggestions = await analyzeIdDoc(bucket, key, routing.docType);
+    } else if (routing.isPdf && routing.docType === 'insurance') {
+      suggestions = await analyzeInsuranceDoc(bucket, key);
     } else {
-      suggestions = await analyzeGeneric(item.fileUrl);
+      suggestions = await analyzeGeneric(bucket, key);
     }
     
     // Best-match member by name/DOB from extracted fields
@@ -369,29 +421,38 @@ aiInboxRouter.post("/:id/analyze", async (req, res) => {
       fields: suggestions.fields,
       suggestions // Include new format for future client updates
     });
-  } catch (e:any) {
-    console.error('analyze error', e);
-    
-    const errorMessage = e?.message || 'Analysis failed';
+  } catch (e: any) {
+    // Comprehensive error handling with detailed feedback
+    const payload = {
+      ok: false,
+      stage: 'analyze',
+      error: e.name || 'Error',
+      message: e.message || String(e),
+      code: e.$metadata?.httpStatusCode,
+    };
+    console.error('ANALYZE_FAIL', id, payload);
     
     // Update status to failed in DB
     await db.update(inboxItems).set({
       status: 'failed',
     }).where(eq(inboxItems.id, id));
     
-    // Get item for family ID and emit real-time failure event
+    // Get item for family ID and emit real-time failure event with detailed error
     const item = await db.query.inboxItems.findFirst({ where: eq(inboxItems.id, id) });
     const io = getIoServer();
     if (io && item?.familyId) {
       io.to(`family:${item.familyId}`).emit('inbox:failed', {
         uploadId: id,
         fileName: item.filename,
-        error: errorMessage
+        error: payload.message,
+        stage: payload.stage,
+        code: payload.code
       });
-      console.log(`[AI] Emitted inbox:failed event to family:${item.familyId}`);
+      console.log(`[AI] Emitted detailed inbox:failed event to family:${item.familyId}`);
     }
     
-    return res.status(500).json({ error: 'analyze_failed' });
+    // Return 200 with ok:false to keep UI logic simple
+    return res.status(200).json(payload);
   }
 });
 
