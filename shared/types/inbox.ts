@@ -16,7 +16,7 @@ export type InboxItem = {
   id: string;
   fileUrl: string;
   filename: string;
-  status: "analyzing" | "suggested" | "accepted" | "dismissed";
+  status: "analyzing" | "suggested" | "accepted" | "dismissed" | "none" | "unsupported" | "failed";
   suggestion?: Suggestion;
   uploadedAt: Date;
   fileSize?: number;

@@ -90,6 +90,11 @@ export default function UploadCenter({
       step: 1 
     });
     
+    const onStep = (s: any) => setBanner(prev => ({
+      ...prev,
+      step: s.step
+    }));
+    
     const onReady = (r: any) => {
       const hasDestination = r.suggestion && r.suggestion.confidence >= 0.7;
       setBanner({
@@ -102,6 +107,20 @@ export default function UploadCenter({
       });
     };
     
+    const onNone = (n: any) => setBanner({ 
+      state: 'none', 
+      uploadId: n.uploadId,
+      fileName: n.fileName,
+      error: n.error 
+    });
+    
+    const onUnsupported = (u: any) => setBanner({ 
+      state: 'unsupported', 
+      uploadId: u.uploadId,
+      fileName: u.fileName,
+      error: u.error 
+    });
+    
     const onFail = (f: any) => setBanner({ 
       state: 'failed', 
       uploadId: f.uploadId,
@@ -110,11 +129,17 @@ export default function UploadCenter({
     });
 
     bus.on('autofill:started', onStart);
+    bus.on('autofill:step', onStep);
     bus.on('autofill:ready', onReady);
+    bus.on('autofill:none', onNone);
+    bus.on('autofill:unsupported', onUnsupported);
     bus.on('autofill:failed', onFail);
     return () => {
       bus.off('autofill:started', onStart);
+      bus.off('autofill:step', onStep);
       bus.off('autofill:ready', onReady);
+      bus.off('autofill:none', onNone);
+      bus.off('autofill:unsupported', onUnsupported);
       bus.off('autofill:failed', onFail);
     };
   }, []);

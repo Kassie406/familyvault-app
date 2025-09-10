@@ -29,6 +29,12 @@ function InboxItemCard({ item, onOpenMember, onShowDetails, onDismiss }: InboxIt
         return <CheckCircle className="w-4 h-4 text-green-400" />;
       case "dismissed":
         return <XCircle className="w-4 h-4 text-gray-400" />;
+      case "none":
+        return <span className="text-amber-400">⚠️</span>;
+      case "unsupported":
+        return <span className="text-red-400">⚠️</span>;
+      case "failed":
+        return <XCircle className="w-4 h-4 text-red-400" />;
       default:
         return null;
     }
@@ -65,6 +71,9 @@ function InboxItemCard({ item, onOpenMember, onShowDetails, onDismiss }: InboxIt
               {item.status === "suggested" && suggestion && `${suggestion.confidence}% match`}
               {item.status === "accepted" && "Accepted"}
               {item.status === "dismissed" && "Dismissed"}
+              {item.status === "none" && "No details found"}
+              {item.status === "unsupported" && "File type not supported"}
+              {item.status === "failed" && "Analysis failed"}
             </span>
             {item.fileSize && (
               <>
