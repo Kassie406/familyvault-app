@@ -1,0 +1,198 @@
+0) Quick confirm (what’s actually happening)
+
+Open DevTools → Network (filter: inbox).
+
+You should see, in this order — every upload:
+
+POST /api/inbox/register → 200 with { uploadId }
+
+POST /api/inbox/:id/analyze → either
+
+200 with { fields, suggestion }, or
+
+202 (job queued) with { jobId }
+
+If (2) never appears or shows (pending) forever → the drawer will spin forever. If (2) returns 202 and the UI doesn’t poll/subscribe → the drawer will also spin forever.
+
+1) Make the server report a final status
+
+Add a tiny job status API and emit a progress event.
+
+DB (Drizzle)
+
+Add/ensure these columns on inbox_items:
+
+status enum: 'processing' | 'ready' | 'failed'
+
+details jsonb (nullable)
+
+error text (nullable)
+
+indexes on (status, created_at) and upload_id
+
+Analyze route
+
+Return 202 immediately or 200 on sync completion, and always update DB + emit an event.
+
+// server/routes/ai-inbox.ts
+router.post('/:id/analyze', async (req, res) => {
+  const id = req.params.id;
+
+  // mark processing
+  await db.update(inboxItems).set({ status: 'processing' }).where(eq(inboxItems.id, id));
+
+  io.to(req.user.familyId).emit('inbox:progress', { uploadId: id, step: 'started' });
+
+  // Run analysis with a hard timeout:
+  try {
+    const result = await withTimeout(runAnalysis(id), 20000); // 20s
+    await db.update(inboxItems).set({
+      status: 'ready',
+      details: result,
+      error: null,
+      updatedAt: new Date(),
+    }).where(eq(inboxItems.id, id));
+
+    io.to(req.user.familyId).emit('inbox:ready', { uploadId: id, detailsCount: result.fields?.length ?? 0, result });
+    return res.status(200).json({ ok: true, ...result });
+  } catch (err: any) {
+    await db.update(inboxItems).set({
+      status: 'failed',
+      error: err.message ?? 'analyze failed',
+      updatedAt: new Date(),
+    }).where(eq(inboxItems.id, id));
+
+    io.to(req.user.familyId).emit('inbox:failed', { uploadId: id, error: String(err.message || err) });
+    return res.status(202).json({ ok: false, queued: true }); // UI will keep polling
+  }
+});
+
+// Status endpoint (for polling fallback)
+router.get('/:id/status', async (req, res) => {
+  const id = req.params.id;
+  const item = await db.select().from(inboxItems).where(eq(inboxItems.id, id)).limit(1);
+  if (!item.length) return res.status(404).json({ error: 'not found' });
+  const i = item[0];
+  res.json({ status: i.status, detailsCount: i.details?.fields?.length ?? 0, result: i.details, error: i.error });
+});
+
+function withTimeout<T>(p: Promise<T>, ms = 20000) {
+  return Promise.race([
+    p,
+    new Promise<T>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms)),
+  ]);
+}
+
+
+If you’re still building the analyzer, return a mocked { fields: [], suggestion: null } after 1–2s so you can test the UI path end-to-end.
+
+2) Make the client resolve (no more stuck spinner)
+
+Add both a socket subscription and a polling fallback with a hard stop. Update the Upload-Center banner immediately on completion.
+
+// client/src/lib/autofillBus.ts (if you don’t already have this)
+import mitt from 'mitt';
+type Events = {
+  'autofill:ready': { uploadId: string; detailsCount: number; result: any };
+  'autofill:failed': { uploadId: string; error: string };
+};
+export const bus = mitt<Events>();
+
+Hook that kicks analysis and waits robustly
+// client/src/hooks/useAutofill.ts
+import { useEffect } from 'react';
+import { bus } from '@/lib/autofillBus';
+import io from 'socket.io-client';
+
+const socket = io('/', { path: '/socket.io' });
+
+export function startAnalyze(uploadId: string) {
+  // fire-and-forget analyze
+  fetch(`/api/inbox/${uploadId}/analyze`, { method: 'POST' }).catch(() => {});
+}
+
+export function useAutofillWatcher(uploadId?: string) {
+  useEffect(() => {
+    if (!uploadId) return;
+
+    let stopped = false;
+    const onReady = (p: any) => { if (p.uploadId === uploadId) { stopped = true; bus.emit('autofill:ready', p); } };
+    const onFail  = (p: any) => { if (p.uploadId === uploadId) { stopped = true; bus.emit('autofill:failed', p); } };
+
+    socket.on('inbox:ready', onReady);
+    socket.on('inbox:failed', onFail);
+
+    // polling fallback (every 2s, max 20s)
+    let tries = 0;
+    const tick = async () => {
+      if (stopped || tries++ > 10) return; // ~20s
+      try {
+        const r = await fetch(`/api/inbox/${uploadId}/status`).then(r => r.json());
+        if (r.status === 'ready') { stopped = true; bus.emit('autofill:ready', { uploadId, detailsCount: r.detailsCount, result: r.result }); return; }
+        if (r.status === 'failed') { stopped = true; bus.emit('autofill:failed', { uploadId, error: r.error || 'failed' }); return; }
+      } catch {}
+      setTimeout(tick, 2000);
+    };
+    tick();
+
+    return () => {
+      socket.off('inbox:ready', onReady);
+      socket.off('inbox:failed', onFail);
+      stopped = true;
+    };
+  }, [uploadId]);
+}
+
+Upload Center banner reacts instantly
+// client/src/components/upload/UploadCenterBanner.tsx
+import { useEffect, useState } from 'react';
+import { bus } from '@/lib/autofillBus';
+
+export default function UploadCenterBanner() {
+  const [state, setState] = useState<{text:string; variant:'idle'|'success'|'warn'|'error'}>({text:'Suggested autofill • 0 details found', variant:'idle'});
+
+  useEffect(() => {
+    const onReady = ({ detailsCount }: any) =>
+      setState({ text: `Suggested autofill • ${detailsCount} details found`, variant: detailsCount ? 'success' : 'warn' });
+    const onFail  = ({ error }: any) =>
+      setState({ text: `Autofill failed — ${error || 'try again'}`, variant: 'error' });
+    bus.on('autofill:ready', onReady);
+    bus.on('autofill:failed', onFail);
+    return () => { bus.off('autofill:ready', onReady); bus.off('autofill:failed', onFail); };
+  }, []);
+
+  // Render your light-blue bar, color by variant
+  return (
+    <div className={`banner banner--${state.variant}`}>
+      <span>✨ {state.text}</span>
+      {/* Regenerate / Dismiss buttons here */}
+    </div>
+  );
+}
+
+
+Result: even if the Inbox drawer is open and “Analyzing…”, the top banner flips to “Suggested autofill • N details found” or “Autofill failed” as soon as the server finishes — exactly what you asked for.
+
+3) Make analysis itself faster (the usual culprit)
+
+Preprocess images before OCR (sharp: rotate, resize ≤2000px, grayscale, normalise).
+
+Use Textract AnalyzeID for DL/IDs (fast + structured).
+
+Add a 20s timeout around OCR; if exceeded, store status='failed' with error='timeout' and tell the user “We’ll keep trying” (optional background retry).
+
+Add a Redis/BullMQ worker if uploads spike; keep API responsive and notify by socket when done.
+
+4) Why the drawer spins
+
+Typical causes we’ve seen (all fixed by the pattern above):
+
+analyze route throws → UI never gets ready/failed
+
+analyze returns 202 (queued) → UI doesn’t poll or subscribe
+
+WebSocket handshake fails (CSP/CORS) → no events; polling fixes
+
+front-end awaits fetch() with no timeout → spinner forever
+
+You already allowed wss://*.replit.dev in CSP, so the socket should connect, but always keep the polling fallback so the UX never hangs.

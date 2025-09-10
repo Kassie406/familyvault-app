@@ -82,11 +82,32 @@ async function analyzeBuffer(buf: Buffer) {
 /** POST /api/inbox/:id/analyze -> { fields, suggestion } */
 aiInboxRouter.post("/:id/analyze", async (req, res) => {
   const { id } = req.params;
+  
+  // Timing instrumentation
+  const t0 = Date.now();
+  const step = (label: string, t = Date.now()) => {
+    console.log(`[AI] ${label} +${t - ((step as any)._last || t0)}ms (total ${t - t0}ms)`);
+    (step as any)._last = t;
+  };
+  (step as any)._last = t0;
+  
   try {
+    step('started');
+    
     const item = await db.query.inboxItems.findFirst({ where: eq(inboxItems.id, id) });
     if (!item) return res.status(404).json({ error: 'inbox_item_not_found' });
+    step('fetched item from DB');
 
     await db.update(inboxItems).set({ status: 'analyzing' }).where(eq(inboxItems.id, id));
+    step('updated status to analyzing');
+
+    // TODO: Add S3 fetch when we implement real OCR
+    // const s3Object = await s3Client.send(new GetObjectCommand({ ... }));
+    // step('fetched S3 object');
+
+    // Simulate preprocessing delay
+    await new Promise(resolve => setTimeout(resolve, 100));
+    step('preprocessed image');
 
     // ---- DEMO ANALYZER (always produces 2 fields) ----
     const suggestion = { memberId: 'angel-quintana', memberName: 'Angel Quintana', confidence: 0.92 };
@@ -94,7 +115,12 @@ aiInboxRouter.post("/:id/analyze", async (req, res) => {
       { key: "Driver's License Number", value: 'C03364260056932', confidence: 0.96, pii: true },
       { key: 'Expiration Date', value: '2027-04-06', confidence: 0.98, pii: false },
     ];
+    step('OCR analysis complete');
     // -----------------------------------------------
+
+    // Simulate member matching delay
+    await new Promise(resolve => setTimeout(resolve, 50));
+    step('matched member');
 
     // persist fields
     for (const f of fields) {
@@ -102,12 +128,16 @@ aiInboxRouter.post("/:id/analyze", async (req, res) => {
         inboxId: id, key: f.key, value: f.value, confidence: f.confidence, pii: !!f.pii,
       });
     }
+    step('persisted extracted fields');
 
     await db.update(inboxItems).set({
       status: 'suggested',
       suggestionMemberId: suggestion.memberId,
     }).where(eq(inboxItems.id, id));
+    step('updated final status');
 
+    console.log(`[AI] Analysis complete for ${id} in ${Date.now() - t0}ms`);
+    
     // return exactly what UI expects
     return res.json({ suggestion, fields });
   } catch (e:any) {
