@@ -38,11 +38,36 @@ export async function aiInboxProcessFile(
   // Optimistic card - show analyzing immediately
   inbox.addOrUpdate({ id: uploadId, fileName: file.name, status: "analyzing" });
 
-  // 2) Analyze (OCR + family match)
-  const anRes = await fetch(`/api/inbox/${uploadId}/analyze`, { method: "POST" });
-  if (!anRes.ok) {
-    const msg = await anRes.text();
-    throw new Error(`analyze failed: ${msg}`);
+  // 2) Analyze (OCR + family match) with retry to handle race conditions
+  let anRes;
+  const maxRetries = 3;
+  const retryDelays = [0, 250, 600]; // ms
+  
+  for (let i = 0; i < maxRetries; i++) {
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, retryDelays[i]));
+      console.log(`🔄 Retrying analysis (attempt ${i + 1}/${maxRetries}) for ID: ${uploadId}`);
+    }
+    
+    anRes = await fetch(`/api/inbox/${uploadId}/analyze`, { 
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ 
+        // Pass context for fallback recovery
+        userId,
+        fileKey: s3Key,
+        fileName: file.name,
+        retryAttempt: i + 1
+      })
+    });
+    
+    if (anRes.ok) break;
+    
+    // If it's the last attempt, throw the error
+    if (i === maxRetries - 1) {
+      const msg = await anRes.text();
+      throw new Error(`analyze failed after ${maxRetries} attempts: ${msg}`);
+    }
   }
 
   const { suggestion, fields } = await anRes.json();
