@@ -1,0 +1,354 @@
+make “AI suggested autofill” actually work (reliably) the moment a file finishes uploading, and show a clean banner like your reference (Accept / Dismiss / View details), without breaking the rest of the app or burning Replit minutes.
+
+Below is a focused, drop-in wiring that restores a minimal, stable end-to-end flow. Keep your fancy “AutofillSection” experiments gated for later — this gets the core working now.
+
+1) Server: dedicated AI-Inbox router (no route conflicts)
+
+Create server/routes/ai-inbox.ts:
+
+import { Router } from "express";
+import { db } from "../lib/db";
+import { inbox_items, extracted_fields } from "../lib/schema";
+import { eq } from "drizzle-orm";
+import type { Request, Response } from "express";
+
+// mockAnalyze(...) – replace with your real analyzer
+async function mockAnalyze(s3Key: string) {
+  // pretend OCR found these
+  return {
+    suggestion: { memberId: "angel-quintana", memberName: "Angel Quintana", confidence: 0.93 },
+    fields: [
+      { key: "Driver’s License Number", value: "C0336 42600 56932", confidence: 0.97, pii: true },
+      { key: "Expiration Date", value: "2027-04-06", confidence: 0.95 }
+    ],
+  };
+}
+
+const router = Router();
+
+/** 1) Register newly uploaded file -> returns uploadId */
+router.post("/register", async (req: Request, res: Response) => {
+  const { userId, fileKey, fileName, mime, size } = req.body ?? {};
+  if (!userId || !fileKey) return res.status(400).json({ error: "missing userId or fileKey" });
+
+  const [row] = await db.insert(inbox_items)
+    .values({ userId, fileKey, fileName, mime, size, status: "uploaded" })
+    .returning({ id: inbox_items.id });
+
+  return res.json({ uploadId: row.id });
+});
+
+/** 2) Analyze registered item -> writes suggestion + fields; returns payload */
+router.post("/:id/analyze", async (req: Request, res: Response) => {
+  const id = req.params.id;
+  const [item] = await db.select().from(inbox_items).where(eq(inbox_items.id, id));
+  if (!item) return res.status(404).json({ error: "inbox item not found" });
+
+  const { suggestion, fields } = await mockAnalyze(item.fileKey);
+
+  // persist fields (idempotent for retry simplicity)
+  if (Array.isArray(fields)) {
+    for (const f of fields) {
+      await db.insert(extracted_fields)
+        .values({ inboxId: id, key: f.key, value: f.value, confidence: f.confidence ?? 1 });
+    }
+  }
+
+  await db.update(inbox_items)
+    .set({
+      status: suggestion ? "suggested" : "dismissed",
+      suggestion_member_id: suggestion?.memberId ?? null,
+      suggestion_member_name: suggestion?.memberName ?? null,
+      suggestion_confidence: suggestion?.confidence ?? null,
+    })
+    .where(eq(inbox_items.id, id));
+
+  return res.json({ suggestion, fields });
+});
+
+/** 3) Accept / Dismiss */
+router.post("/:id/accept", async (req: Request, res: Response) => {
+  const id = req.params.id;
+  const { memberId } = req.body ?? {};
+  await db.update(inbox_items).set({ status: "accepted", accepted_for_member: memberId ?? null })
+    .where(eq(inbox_items.id, id));
+  return res.json({ ok: true });
+});
+
+router.post("/:id/dismiss", async (req: Request, res: Response) => {
+  const id = req.params.id;
+  await db.update(inbox_items).set({ status: "dismissed" })
+    .where(eq(inbox_items.id, id));
+  return res.json({ ok: true });
+});
+
+export default router;
+
+
+Register it after your old /api/uploads file routes (to avoid the conflict that swallowed the request last time):
+
+// server/routes.ts
+import aiInbox from "./routes/ai-inbox";
+// ...
+app.use("/api/inbox", aiInbox); // ✅ NOT /api/uploads
+
+
+✅ Tables inbox_items and extracted_fields you already have are used. No new migrations needed.
+
+2) CSP / CORS (stable)
+
+Helmet CSP (server): you already fixed it; just ensure:
+
+connect-src: 'self' https://*.amazonaws.com wss://*.replit.dev
+
+img-src / media-src: 'self' data: blob: https://*.amazonaws.com
+
+S3 CORS (bucket): no OPTIONS in AllowedMethods. Use exactly:
+
+[
+  {
+    "AllowedOrigins": [
+      "https://portal.familycirclesecure.com",
+      "https://console.familycirclesecure.com",
+      "https://hub.familycirclesecure.com",
+      "https://*.replit.dev"
+    ],
+    "AllowedMethods": ["GET","PUT","POST","HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag","x-amz-request-id","x-amz-id-2","x-amz-version-id"],
+    "MaxAgeSeconds": 3000
+  }
+]
+
+3) Client: tiny, reliable hook to register → analyze → show
+
+Create client/src/hooks/useAutoFill.ts:
+
+import { useCallback, useState } from "react";
+
+type Field = { key: string; value: string; confidence?: number; pii?: boolean };
+type Suggestion = { memberId: string; memberName: string; confidence: number };
+type Item = {
+  id: string;
+  fileName: string;
+  status: "analyzing"|"suggested"|"accepted"|"dismissed"|"uploaded"|"failed";
+  suggestion?: Suggestion | null;
+  fields?: Field[];
+};
+
+export function useAutoFill() {
+  const [banner, setBanner] = useState<null | {
+    fileName: string;
+    detailsCount: number;
+    fields: Field[];
+    suggestion?: Suggestion | null;
+    id: string;
+  }>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const registerAndAnalyze = useCallback(async (args: {
+    userId: string; fileName: string; s3Key: string; mime?: string; size?: number;
+  }) => {
+    setError(null); setLoading(true);
+
+    // 1) register
+    const reg = await fetch("/api/inbox/register", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        userId: args.userId, fileKey: args.s3Key, fileName: args.fileName,
+        mime: args.mime, size: args.size
+      })
+    }).then(r => r.ok ? r.json() : Promise.reject({ step: "register", status: r.status }));
+
+    // 2) analyze (simple retry 3x)
+    let analyzeRes: any, lastErr: any;
+    for (let i = 0; i < 3; i++) {
+      try {
+        analyzeRes = await fetch(`/api/inbox/${reg.uploadId}/analyze`, { method: "POST" })
+          .then(r => r.ok ? r.json() : Promise.reject({ step: "analyze", status: r.status }));
+        break;
+      } catch (e) { lastErr = e; await new Promise(r => setTimeout(r, 600 * (i + 1))); }
+    }
+    if (!analyzeRes) { setLoading(false); setError(JSON.stringify(lastErr)); return; }
+
+    const fields: Field[] = analyzeRes.fields ?? [];
+    setBanner({
+      id: reg.uploadId,
+      fileName: args.fileName,
+      detailsCount: fields.length,
+      fields,
+      suggestion: analyzeRes.suggestion ?? null,
+    });
+    setLoading(false);
+  }, []);
+
+  const accept = useCallback(async (id: string, memberId?: string) => {
+    await fetch(`/api/inbox/${id}/accept`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ memberId })
+    });
+    setBanner(null);
+  }, []);
+
+  const dismiss = useCallback(async (id: string) => {
+    await fetch(`/api/inbox/${id}/dismiss`, { method: "POST" });
+    setBanner(null);
+  }, []);
+
+  return { banner, loading, error, registerAndAnalyze, accept, dismiss };
+}
+
+4) UI Banner (like your reference)
+
+client/src/components/AutofillBanner.tsx:
+
+import { Sparkles, Info, RefreshCw } from "lucide-react";
+import { cn } from "@/lib/cn"; // your helper if you have it
+
+type Props = {
+  fileName: string;
+  detailsCount: number;
+  fields: { key: string; value: string; pii?: boolean }[];
+  suggestion?: { memberId: string; memberName: string; confidence: number } | null;
+  onAccept: () => void;
+  onDismiss: () => void;
+  onViewDetails: () => void;
+  onRegenerate?: () => void;
+};
+
+export default function AutofillBanner({
+  fileName, detailsCount, fields, suggestion, onAccept, onDismiss, onViewDetails, onRegenerate
+}: Props) {
+  return (
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-zinc-100">
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-yellow-500/20">
+            <Sparkles className="h-3 w-3 text-yellow-400" />
+          </span>
+          <span className="font-medium">Suggested autofill</span>
+          <span className="text-zinc-400">• {detailsCount} details found</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="btn btn-ghost" onClick={onRegenerate}>
+            <RefreshCw className="h-4 w-4" />
+            <span className="ml-1">Regenerate</span>
+          </button>
+          <button className="btn btn-ghost" onClick={onDismiss}>Dismiss</button>
+          <button className="btn btn-primary" onClick={onAccept}>Accept all</button>
+        </div>
+      </div>
+
+      {suggestion && (
+        <div className="mt-2 text-sm text-zinc-300">
+          Suggested destination: <span className="font-medium">{suggestion.memberName}</span>
+        </div>
+      )}
+
+      <button className="mt-3 w-full rounded-md border border-zinc-800 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
+              onClick={onViewDetails}>
+        View all details
+      </button>
+    </div>
+  );
+}
+
+
+Placement: render the banner directly above Upload Center (or inside Inbox drawer if open). Example (FamilyHome or Upload page):
+
+import AutofillBanner from "@/components/AutofillBanner";
+import { useAutoFill } from "@/hooks/useAutoFill";
+
+export default function UploadPage() {
+  const { banner, loading, error, registerAndAnalyze, accept, dismiss } = useAutoFill();
+
+  // … your UploadCenter. On successful S3 upload:
+  async function onUploadComplete(file: File, s3Key: string) {
+    await registerAndAnalyze({
+      userId: "current-user",           // put your real user id
+      fileName: file.name,
+      s3Key,
+      mime: file.type, size: file.size
+    });
+  }
+
+  return (
+    <div className="space-y-4">
+      {banner && (
+        <AutofillBanner
+          fileName={banner.fileName}
+          detailsCount={banner.detailsCount}
+          fields={banner.fields}
+          suggestion={banner.suggestion}
+          onAccept={() => accept(banner.id, banner.suggestion?.memberId)}
+          onDismiss={() => dismiss(banner.id)}
+          onViewDetails={() => {/* open modal with banner.fields */}}
+        />
+      )}
+
+      {/* Existing UploadCenter */}
+      <UploadCenter onUploadComplete={onUploadComplete} />
+
+      {error && <div className="text-red-400 text-sm">AI analysis failed: {error}</div>}
+    </div>
+  );
+}
+
+
+Why this works: UploadCenter becomes “dumb”. It only finishes S3 upload and calls onUploadComplete(file, s3Key). The hook handles the rest (register → analyze → show banner). No cross-component coupling. No route collisions. No import-name traps.
+
+5) Family IDs (smart “who does this belong to?”)
+
+In the analyzer step (now mocked), add a simple fuzzy match to your family_members table by name. Example pattern (server):
+
+import Fuse from "fuse.js";
+
+// pull user’s family member list once
+const members = await db.query.family_members.findMany({ where: eq(family_members.familyId, userFamilyId) });
+const fuse = new Fuse(members, { keys: ["fullName"], threshold: 0.3 });
+const guess = fuse.search(ocrFullName)[0]?.item;
+
+const suggestion = guess ? { memberId: guess.id, memberName: guess.fullName, confidence: 0.88 } : null;
+
+
+Return that suggestion from /analyze. The banner will show “Suggested destination: Angel Quintana” with Open linking to their profile if you want.
+
+6) What to check (fast)
+
+Network tab after upload:
+
+POST /api/inbox/register → 200 returns {uploadId}
+
+POST /api/inbox/:id/analyze → 200 returns { suggestion, fields }
+
+No more “Inbox item not found” (that came from the previous route conflict).
+
+Banner appears above Upload Center. Accept / Dismiss hits the right endpoints.
+
+CSP headers visible (Response Headers → content-security-policy) include connect-src *.amazonaws.com wss://*.replit.dev.
+
+S3 CORS saved without OPTIONS.
+
+7) Optional: lazy & safe
+
+To stop “Replit minute burn” from bad imports:
+
+Do not import heavy “AutofillSection” at app start. Keep only AutofillBanner + useAutoFill.
+
+If you later expand, lazy-load large AI UI with React.lazy() and show it only when a banner exists.
+
+Summary
+
+Server: new /api/inbox/ router (register/analyze/accept/dismiss).
+
+Client: small useAutoFill hook + AutofillBanner UI.
+
+UploadCenter: call onUploadComplete(file, s3Key) after S3 upload.
+
+CSP/CORS: confirmed stable.
+
+Family IDs: fuzzy match in analyzer to return suggestion.
+
+Implement the above and you’ll get exactly the reference experience: a trustworthy “Suggested autofill — N details found” banner that shows up immediately after each upload, with Accept / Dismiss / View details — either above Upload Center or inside the Inbox drawer.
