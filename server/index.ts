@@ -46,13 +46,14 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:"],
+      imgSrc: ["'self'", "data:", "blob:", "https://*.amazonaws.com"],
+      mediaSrc: ["'self'", "data:", "blob:", "https://*.amazonaws.com"],
       scriptSrc: process.env.NODE_ENV === 'development' 
         ? ["'self'", "'unsafe-inline'", "'unsafe-eval'"] 
         : ["'self'"],
       connectSrc: process.env.NODE_ENV === 'development'
-        ? ["'self'", "ws:", "wss:"]
-        : ["'self'"],
+        ? ["'self'", "ws:", "wss:", "https://*.amazonaws.com", "wss://*.replit.dev"]
+        : ["'self'", "https://*.amazonaws.com"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
