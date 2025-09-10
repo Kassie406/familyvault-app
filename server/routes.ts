@@ -2689,6 +2689,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId, fileKey, fileName, mime, size } = req.body;
       
+      console.log("📝 Registering upload:", { userId, fileKey, fileName, mime, size });
+      
       if (!userId || !fileKey || !fileName) {
         return res.status(422).json({ error: "userId, fileKey, fileName required" });
       }
@@ -2696,6 +2698,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const familyId = "family-1"; // TODO: Get from authenticated session
       
       const id = crypto.randomUUID();
+      
+      console.log("🆔 Generated upload ID:", id);
       
       await db.insert(inboxItems).values({
         id,
@@ -2709,9 +2713,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         analysisCompleted: false,
       });
       
+      console.log("✅ Inbox item created successfully with ID:", id);
+      
       res.json({ uploadId: id });
     } catch (error) {
-      console.error("Error registering upload:", error);
+      console.error("❌ Error registering upload:", error);
       res.status(500).json({ error: "Failed to register upload" });
     }
   });
@@ -2721,9 +2727,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       
+      console.log("🔍 Looking for inbox item with ID:", id);
+      
       // Get the inbox item
       const [item] = await db.select().from(inboxItems).where(eq(inboxItems.id, id));
+      
+      console.log("📦 Found item:", item ? "YES" : "NO", item ? `(${item.filename})` : "");
+      
       if (!item) {
+        console.log("❌ Item not found - checking all items in DB:");
+        const allItems = await db.select().from(inboxItems).limit(10);
+        console.log("📋 All items:", allItems.map(i => ({ id: i.id, filename: i.filename })));
         return res.status(404).json({ error: "Inbox item not found" });
       }
 
