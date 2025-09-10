@@ -1,238 +1,79 @@
-import {
-  Sparkles, Wand2, Brain, Lightbulb,
-  Check, X, RefreshCw, ThumbsUp, ThumbsDown, Info, AlertTriangle
-} from "lucide-react";
-import { useEffect, useId, useMemo, useState } from "react";
+import { Sparkles, ThumbsUp, ThumbsDown, Info } from "lucide-react";
 
-export type AISymbol = "sparkles" | "wand" | "brain" | "lightbulb";
-
-export type ExtractField = {
-  key: string;
-  label: string;
-  value: string;
-  confidence?: number;
-  pii?: boolean;
-};
-
-export type AutoFillSuggestion = {
-  uploadId: string;
-  itemType: string;
-  fields: ExtractField[];
-  target?: { memberId: string; memberName: string } | null;
-};
-
-type Props = {
-  suggestion: AutoFillSuggestion | null;   // null = hidden
-  loading?: boolean;                       // show "Analyzing…"
-  icon?: AISymbol;                         // default: "sparkles"
-  aiAvailable?: boolean;                   // enable progressive enhancement
-  error?: string | null;
-
-  onAcceptAll: (s: AutoFillSuggestion) => Promise<void> | void;
-  onDismissAll: (s: AutoFillSuggestion) => Promise<void> | void;
-  onRegenerate: (s: AutoFillSuggestion) => Promise<AutoFillSuggestion | null>;
-  onFeedback: (s: AutoFillSuggestion, type: "positive" | "negative" | "info") => void;
-  onViewDetails?: (s: AutoFillSuggestion) => void;
-};
-
-export default function AutofillBannerTrust({
+export default function AutofillBanner({
+  open,
+  fileName,
+  fields,
   suggestion,
-  loading = false,
-  icon = "sparkles",
-  aiAvailable = true,
-  error = null,
-  onAcceptAll,
-  onDismissAll,
-  onRegenerate,
-  onFeedback,
-  onViewDetails,
-}: Props) {
-  const [busy, setBusy] = useState(false);
-  const [regenBusy, setRegenBusy] = useState(false);
-  const liveId = useId();
-  const count = suggestion?.fields.length ?? 0;
+  onAccept,
+  onDismiss
+}: {
+  open: boolean;
+  fileName?: string;
+  fields?: { key: string; value: string; confidence: number; pii?: boolean }[];
+  suggestion?: { memberId: string; memberName: string; confidence: number } | null;
+  onAccept: (memberId: string) => void;
+  onDismiss: () => void;
+}) {
+  if (!open) return null;
 
-  // Pick the correct icon per Manus' guidance
-  const Icon = useMemo(() => {
-    switch (icon) {
-      case "wand": return Wand2;
-      case "brain": return Brain;
-      case "lightbulb": return Lightbulb;
-      default: return Sparkles;
-    }
-  }, [icon]);
-
-  // Screen-reader live announcements
-  useEffect(() => {
-    if (loading) return;
-    if (!suggestion) return;
-    // No-op; the aria-live region below will read when banner appears
-  }, [loading, suggestion]);
-
-  if (!aiAvailable) {
-    return (
-      <div className="rounded-xl border border-slate-200/60 bg-slate-50 p-4 mt-3">
-        <div className="text-sm text-slate-600">
-          AI suggestions temporarily unavailable.
-        </div>
-      </div>
-    );
-  }
-
-  if (!loading && !suggestion && !error) return null;
-
-  const headline = suggestion ? pickHeadline(suggestion.fields) : [];
+  const count = fields?.length ?? 0;
 
   return (
-    <section
-      aria-labelledby="ai-autofill-title"
-      className="rounded-xl border border-indigo-200/30 bg-indigo-50/50 dark:bg-indigo-950/20 p-4 shadow-sm mt-3"
-    >
-      {/* SR-only live updates */}
-      <div id={liveId} aria-live="polite" className="sr-only">
-        {loading ? "Analyzing uploaded document for autofill suggestions."
-                 : suggestion ? `${count} details found for ${suggestion.itemType}.`
-                 : error ? `Autofill failed: ${error}` : ""}
-      </div>
-
+    <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 mb-4" data-testid="autofill-banner">
       <div className="flex items-start gap-3">
-        <div className="mt-0.5">
-          <Icon className="h-5 w-5 text-indigo-500" />
-        </div>
-
-        <div className="flex-1 min-w-0">
+        <div className="p-1 bg-blue-100 rounded-full"><Sparkles className="w-4 h-4 text-blue-600" /></div>
+        <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h3 id="ai-autofill-title" className="text-sm font-semibold text-indigo-900 dark:text-indigo-100">
-              {loading ? "Analyzing…" : "Suggested autofill"}
-            </h3>
-
-            {!loading && suggestion && (
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200">
-                {count} {count === 1 ? "detail" : "details"} found
-              </span>
-            )}
+            <span className="text-sm font-medium" data-testid="text-suggested-autofill">Suggested autofill</span>
+            <span className="text-xs text-blue-700" data-testid="text-details-count">{count} details found</span>
+          </div>
+          <div className="mt-2 text-sm">
+            {fields?.slice(0,2).map(f => (
+              <div key={f.key} className="flex justify-between" data-testid={`field-${f.key.toLowerCase().replace(/\s+/g, '-')}`}>
+                <span className="text-gray-600">{f.key}</span>
+                <span className="font-medium">{f.pii ? mask(f.value) : f.value}</span>
+              </div>
+            ))}
           </div>
 
-          {/* Error bar (transparent + clear) */}
-          {error && (
-            <div className="mt-3 p-2 rounded-md border border-red-200 bg-red-50 text-sm text-red-700 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4" />
-              <span>{error}</span>
+          {suggestion && (
+            <div className="mt-3 text-sm" data-testid="suggested-destination">
+              Suggested destination: <span className="font-medium">{suggestion.memberName}</span>
             </div>
           )}
 
-          {/* Preview card */}
-          {!loading && suggestion && !error && (
-            <div className="mt-3 rounded-lg border border-indigo-200/30 bg-white/70 dark:bg-black/10 px-4 py-3">
-              <div className="text-sm font-medium mb-1 truncate">
-                {suggestion.itemType}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                {headline.map((f) => (
-                  <div key={f.key} className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">{f.label}</span>
-                    <span className="font-medium text-right break-all">{f.value}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                className="mt-3 w-full text-center text-sm text-indigo-700 dark:text-indigo-300 hover:underline"
-                onClick={() => suggestion && onViewDetails?.(suggestion)}
-                aria-label="View all extracted details"
+          <div className="mt-3 flex items-center gap-2">
+            <button 
+              className="px-3 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200" 
+              onClick={onDismiss}
+              data-testid="button-dismiss"
+            >
+              Dismiss
+            </button>
+            {suggestion && (
+              <button 
+                className="px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                onClick={() => onAccept(suggestion.memberId)}
+                data-testid="button-accept-all"
               >
-                View all details
+                Accept all
               </button>
+            )}
+            <div className="ml-auto flex items-center gap-1 text-gray-500">
+              <ThumbsUp className="w-4 h-4 cursor-pointer hover:text-green-600" data-testid="button-thumbs-up" />
+              <ThumbsDown className="w-4 h-4 cursor-pointer hover:text-red-600" data-testid="button-thumbs-down" />
+              <Info className="w-4 h-4 cursor-pointer hover:text-blue-600" data-testid="button-info" />
             </div>
-          )}
-
-          {/* Feedback row */}
-          {!loading && suggestion && !error && (
-            <div className="mt-3 flex items-center gap-2">
-              <button
-                className="text-slate-600 hover:text-slate-800 dark:text-slate-300"
-                aria-label="Mark suggestion as helpful"
-                onClick={() => onFeedback(suggestion, "positive")}
-              >
-                <ThumbsUp className="w-4 h-4" />
-              </button>
-              <button
-                className="text-slate-600 hover:text-slate-800 dark:text-slate-300"
-                aria-label="Mark suggestion as not helpful"
-                onClick={() => onFeedback(suggestion, "negative")}
-              >
-                <ThumbsDown className="w-4 h-4" />
-              </button>
-              <button
-                className="text-slate-600 hover:text-slate-800 dark:text-slate-300"
-                aria-label="Why am I seeing this?"
-                onClick={() => onFeedback(suggestion, "info")}
-                title="We extract fields from your document using on-device and server models."
-              >
-                <Info className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex flex-col gap-2 shrink-0">
-          <button
-            className="inline-flex items-center gap-1 rounded-md border border-slate-300/60 px-3 py-1.5 text-sm hover:bg-white/70 dark:border-slate-700 disabled:opacity-60"
-            onClick={async () => {
-              if (!suggestion) return;
-              setBusy(true);
-              await onDismissAll(suggestion);
-              setBusy(false);
-            }}
-            disabled={loading || busy || !!error || !suggestion}
-            aria-label="Dismiss all autofill suggestions"
-          >
-            <X className="h-4 w-4" />
-            Dismiss all
-          </button>
-
-          <button
-            className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-1.5 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
-            onClick={async () => {
-              if (!suggestion) return;
-              setBusy(true);
-              await onAcceptAll(suggestion);
-              setBusy(false);
-            }}
-            disabled={loading || busy || !!error || !suggestion}
-            aria-label="Accept all autofill suggestions"
-          >
-            <Check className="h-4 w-4" />
-            Accept all
-          </button>
-
-          <button
-            className="inline-flex items-center gap-1 rounded-md border border-slate-300/60 px-3 py-1.5 text-sm hover:bg-white/70 dark:border-slate-700 disabled:opacity-60"
-            onClick={async () => {
-              if (!suggestion) return;
-              setRegenBusy(true);
-              const next = await onRegenerate(suggestion);
-              setRegenBusy(false);
-              // parent should set new suggestion / error
-            }}
-            disabled={loading || regenBusy || !!error || !suggestion}
-            aria-label="Regenerate autofill suggestions"
-          >
-            {regenBusy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Regenerate
-          </button>
+          </div>
         </div>
       </div>
-    </section>
+      <div className="mt-1 text-xs text-gray-500" data-testid="text-filename">File: {fileName}</div>
+    </div>
   );
 }
 
-// Prefer "Number" and "Expiration date", otherwise first two fields
-function pickHeadline(fields: ExtractField[]) {
-  const get = (label: string) => fields.find((f) => f.label === label);
-  const a = get("Number") ?? fields[0];
-  const b = get("Expiration date") ?? fields.find((f) => f.key !== a?.key) ?? fields[1];
-  return [a, b].filter(Boolean) as ExtractField[];
+function mask(v: string) {
+  // ***-**-2645 style masking
+  return v.replace(/\d(?=\d{4})/g, "•");
 }

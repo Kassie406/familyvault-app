@@ -1,6 +1,5 @@
-import { useAutofill } from "@/hooks/useAutofill";
-import AutofillBannerTrust from "@/components/AutofillBanner";
-import type { AutoFillSuggestion } from "@/types/ai";
+import useAutofill from "@/hooks/useAutofill";
+import AutofillBanner from "@/components/AutofillBanner";
 import { useEffect } from "react";
 
 interface AutofillSectionProps {
@@ -11,22 +10,12 @@ interface AutofillSectionProps {
 }
 
 export function AutofillSection({ familyId, userId, onViewDetails, onReady }: AutofillSectionProps) {
-  const {
-    aiAvailable,
-    loading,
-    error,
-    suggestion,
-    analyze,
-    acceptAll,
-    dismiss,
-    regenerate,
-    feedback
-  } = useAutofill();
+  const { banner, registerAndAnalyze, accept, dismiss } = useAutofill();
 
   // Handler for viewing details - open inbox drawer
-  const handleViewDetails = (suggestion: AutoFillSuggestion) => {
-    if (onViewDetails) {
-      onViewDetails(suggestion.uploadId);
+  const handleViewDetails = () => {
+    if (onViewDetails && banner.uploadId) {
+      onViewDetails(banner.uploadId);
     }
   };
 
@@ -34,30 +23,32 @@ export function AutofillSection({ familyId, userId, onViewDetails, onReady }: Au
   useEffect(() => {
     if (onReady) {
       const analyzeFunction = async (file: File, s3Key: string) => {
-        await analyze(file, s3Key, familyId, userId);
+        await registerAndAnalyze({
+          userId,
+          fileKey: s3Key,
+          fileName: file.name,
+          mime: file.type,
+          size: file.size
+        });
       };
       onReady(analyzeFunction);
     }
-  }, [onReady, analyze, familyId, userId]);
+  }, [onReady, registerAndAnalyze, userId]);
 
-  // Only render if there's a suggestion, loading, or error
-  if (!suggestion && !loading && !error) {
+  // Only render if banner is open
+  if (!banner.open) {
     return null;
   }
 
   return (
     <div className="mb-6" data-testid="autofill-section">
-      <AutofillBannerTrust
-        icon="sparkles"
-        aiAvailable={aiAvailable}
-        loading={loading}
-        error={error}
-        suggestion={suggestion}
-        onAcceptAll={acceptAll}
-        onDismissAll={dismiss}
-        onRegenerate={regenerate}
-        onFeedback={feedback}
-        onViewDetails={handleViewDetails}
+      <AutofillBanner
+        open={banner.open}
+        fileName={banner.fileName}
+        fields={banner.fields}
+        suggestion={banner.suggestion}
+        onAccept={accept}
+        onDismiss={dismiss}
       />
     </div>
   );

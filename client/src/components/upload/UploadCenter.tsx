@@ -40,6 +40,7 @@ interface UploadCenterProps {
   familyId?: string;
   onUploadComplete?: (id: string, type: 'document' | 'photo') => void;
   onFileUploaded?: (file: File, s3Key: string, type: 'document' | 'photo') => void;
+  onUploaded?: (file: File, filename: string) => void;  // Simple callback for AI autofill
   className?: string;
 }
 
@@ -47,6 +48,7 @@ export default function UploadCenter({
   familyId = "family-1", 
   onUploadComplete,
   onFileUploaded,
+  onUploaded,
   className 
 }: UploadCenterProps) {
   const [tab, setTab] = useState<"docs" | "photos">("docs");
@@ -135,6 +137,9 @@ export default function UploadCenter({
       // Notify parent about file upload for potential AI analysis
       onFileUploaded?.(row.file, result.key, 'document');
       
+      // Trigger AI autofill analysis
+      onUploaded?.(row.file, row.file.name);
+      
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
     },
@@ -203,6 +208,9 @@ export default function UploadCenter({
       
       // Notify parent about file upload for potential AI analysis
       onFileUploaded?.(row.file, result.key, 'photo');
+      
+      // Trigger AI autofill analysis
+      onUploaded?.(row.file, row.file.name);
       
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ["/api/photos"] });

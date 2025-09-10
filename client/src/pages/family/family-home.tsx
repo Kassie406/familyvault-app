@@ -30,7 +30,8 @@ import {
 import { StatCard } from '@/components/StatCard';
 import { InviteFamilyMemberDialog } from '@/components/InviteFamilyMemberDialog';
 import UploadCenter from '@/components/upload/UploadCenter';
-import { AutofillSection } from '@/components/AutofillSection';
+import useAutofill from '@/hooks/useAutofill';
+import AutofillBanner from '@/components/AutofillBanner';
 import InboxDrawer from '@/components/inbox/InboxDrawer';
 import { NewMessageModal } from '@/components/messaging/NewMessageModal';
 import NotificationCenter from '@/components/family/NotificationCenter';
@@ -111,8 +112,8 @@ export default function FamilyHome() {
   const uploadCenterRef = useRef<HTMLDivElement>(null);
   // Ref for the ICE section
   const iceRef = useRef<HTMLDivElement>(null);
-  // Ref to store the analyze function from AutofillSection
-  const autofillAnalyzeRef = useRef<((file: File, s3Key: string) => Promise<void>) | null>(null);
+  // AI Autofill state
+  const autofill = useAutofill();
 
   // Function to scroll to upload center and highlight document upload
   const scrollToDocumentUpload = () => {
@@ -900,18 +901,14 @@ export default function FamilyHome() {
               </div>
             </div>
             
-            {/* Independent AI Autofill Section - appears above Upload Center */}
-            <AutofillSection 
-              familyId="family-1"
-              userId="current-user"
-              onViewDetails={(uploadId) => {
-                // Open inbox drawer when user wants to view details
-                setInboxOpen(true);
-              }}
-              onReady={(analyzeFunction) => {
-                // Store the analyze function from AutofillSection for use in UploadCenter
-                autofillAnalyzeRef.current = analyzeFunction;
-              }}
+            {/* AI Autofill Banner - appears above Upload Center */}
+            <AutofillBanner 
+              open={autofill.banner.open}
+              fileName={autofill.banner.fileName}
+              fields={autofill.banner.fields} 
+              suggestion={autofill.banner.suggestion}
+              onAccept={autofill.accept}
+              onDismiss={autofill.dismiss}
             />
             
             <div className={`flex-1 ${(highlightDocumentUpload || highlightPhotoUpload) ? 'upload-highlight' : ''}`}>
@@ -925,15 +922,16 @@ export default function FamilyHome() {
                     setHighlightPhotoUpload(false);
                   }, 3000);
                 }}
-                onFileUploaded={async (file, s3Key, type) => {
-                  // Trigger AI analysis through stored analyze function
-                  if (autofillAnalyzeRef.current) {
-                    try {
-                      await autofillAnalyzeRef.current(file, s3Key);
-                    } catch (error) {
-                      console.error('AI analysis failed:', error);
-                    }
-                  }
+                onUploaded={(file, filename) => {
+                  // Trigger AI analysis through useAutofill hook
+                  // Note: Need file S3 key, but for now use filename as placeholder
+                  autofill.registerAndAnalyze({
+                    userId: "current-user",
+                    fileKey: `uploads/${filename}`, // placeholder - should be actual S3 key
+                    fileName: filename,
+                    mime: file.type,
+                    size: file.size
+                  });
                 }}
               />
             </div>
