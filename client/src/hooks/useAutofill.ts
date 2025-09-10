@@ -49,8 +49,21 @@ export function useAutofill() {
   }) => {
     let uploadId: string = '';
     let stopped = false;
+    let stepProgressTimer: NodeJS.Timeout | null = null;
     
     try {
+      // Check for unsupported file types before processing
+      if (args.mime && !['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'].includes(args.mime)) {
+        console.log('[AUTOFILL] Unsupported file type:', args.mime);
+        setBanner({ open: true, fileName: args.fileName, error: 'Unsupported file type' });
+        bus.emit('autofill:unsupported', {
+          uploadId: 'temp-id',
+          fileName: args.fileName,
+          error: 'File type not supported'
+        });
+        return;
+      }
+      
       setBanner({ open: true, fileName: args.fileName });
 
       // 1) register
@@ -63,12 +76,26 @@ export function useAutofill() {
       uploadId = reg.uploadId;
       console.log('[AUTOFILL] Registered upload:', uploadId);
       
-      // Emit started event
+      // Emit started event (step 1)
       bus.emit('autofill:started', { uploadId, fileName: args.fileName });
+      bus.emit('autofill:step', { uploadId, step: 1 });
 
-      // 2) Start analysis (fire-and-forget)
+      // 2) Start analysis with step progression
+      stepProgressTimer = setTimeout(() => {
+        if (!stopped) {
+          bus.emit('autofill:step', { uploadId, step: 2 });
+          
+          setTimeout(() => {
+            if (!stopped) {
+              bus.emit('autofill:step', { uploadId, step: 3 });
+            }
+          }, 1500); // Step 3 after 1.5s more
+        }
+      }, 1000); // Step 2 after 1s
+      
       fetch(`/api/inbox/${uploadId}/analyze`, { method: "POST" }).catch(e => {
         console.warn('[AUTOFILL] Analysis request failed:', e);
+        if (stepProgressTimer) clearTimeout(stepProgressTimer);
       });
       
       // 3) Set up polling fallback with timeout
@@ -85,7 +112,20 @@ export function useAutofill() {
           
           if (status.status === 'ready' || status.status === 'suggested') {
             stopped = true;
+            if (stepProgressTimer) clearTimeout(stepProgressTimer);
             const result = status.result || { fields: [], suggestion: null };
+            
+            // Check if we have any meaningful data
+            if (!result.fields?.length && !result.suggestion) {
+              // No details found - emit 'none' state
+              setBanner({ open: true, fileName: args.fileName, uploadId, error: 'No readable text detected' });
+              bus.emit('autofill:none', {
+                uploadId,
+                fileName: args.fileName,
+                error: 'No readable text detected'
+              });
+              return;
+            }
             
             setBanner({
               open: true,
@@ -107,6 +147,7 @@ export function useAutofill() {
           
           if (status.status === 'failed') {
             stopped = true;
+            if (stepProgressTimer) clearTimeout(stepProgressTimer);
             setBanner(b => ({ ...b, error: status.error || 'Analysis failed' }));
             bus.emit('autofill:failed', {
               uploadId,
@@ -137,6 +178,7 @@ export function useAutofill() {
 
     } catch (e: any) {
       console.error('[AUTOFILL] Register failed:', e);
+      if (stepProgressTimer) clearTimeout(stepProgressTimer);
       setBanner(b => ({ ...b, error: String(e?.message || e) }));
       bus.emit('autofill:failed', {
         uploadId: uploadId || 'unknown',
