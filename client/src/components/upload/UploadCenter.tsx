@@ -10,8 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, AlertCircle, UploadCloud, FileText, Image as ImageIcon, ShieldCheck, X, Camera, Smartphone, Sparkles } from "lucide-react";
-import AutofillBanner, { BannerState } from "@/components/AutofillBanner";
-import bus from '@/lib/autofillBus';
+import { useAI } from "@/state/ai";
 import { usePresignedUpload } from "@/hooks/usePresignedUpload";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -67,82 +66,82 @@ export default function UploadCenter({
   const [photoAltText, setPhotoAltText] = useState("");
   const [photoLocation, setPhotoLocation] = useState("");
 
-  // Banner state for autofill events
-  type AutofillState = {
-    state: BannerState;
-    uploadId?: string;
-    fileName?: string;
-    count?: number;
-    fields?: any[];
-    suggestion?: any;
-    error?: string;
-    step?: 1 | 2 | 3;
-  };
-
-  const [banner, setBanner] = useState<AutofillState>({ state: 'idle' });
-
-  // Subscribe to autofill events
-  useEffect(() => {
-    const onStart = (j: any) => setBanner({ 
-      state: 'analyzing', 
-      uploadId: j.uploadId, 
-      fileName: j.fileName,
-      step: 1 
-    });
-    
-    const onStep = (s: any) => setBanner(prev => ({
-      ...prev,
-      step: s.step
-    }));
-    
-    const onReady = (r: any) => {
-      const hasDestination = r.suggestion && r.suggestion.confidence >= 0.7;
-      setBanner({
-        state: hasDestination ? 'ready' : 'partial',
-        uploadId: r.uploadId,
-        fileName: r.fileName,
-        count: r.detailsCount ?? 0,
-        fields: r.fields ?? [],
-        suggestion: r.suggestion ?? null,
+  // AI state from centralized store
+  const { scan, start: startAI, update: updateAI, reset: resetAI } = useAI();
+  
+  // AI analysis trigger function
+  const triggerAIAnalysis = async (file: File, s3Key: string) => {
+    try {
+      // 1) Register with AI inbox
+      const registrationResponse = await fetch('/api/inbox/register', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          fileKey: s3Key,
+          fileName: file.name,
+          mime: file.type,
+          size: file.size,
+        }),
       });
-    };
-    
-    const onNone = (n: any) => setBanner({ 
-      state: 'none', 
-      uploadId: n.uploadId,
-      fileName: n.fileName,
-      error: n.error 
-    });
-    
-    const onUnsupported = (u: any) => setBanner({ 
-      state: 'unsupported', 
-      uploadId: u.uploadId,
-      fileName: u.fileName,
-      error: u.error 
-    });
-    
-    const onFail = (f: any) => setBanner({ 
-      state: 'failed', 
-      uploadId: f.uploadId,
-      fileName: f.fileName,
-      error: f.error 
-    });
-
-    bus.on('autofill:started', onStart);
-    bus.on('autofill:step', onStep);
-    bus.on('autofill:ready', onReady);
-    bus.on('autofill:none', onNone);
-    bus.on('autofill:unsupported', onUnsupported);
-    bus.on('autofill:failed', onFail);
-    return () => {
-      bus.off('autofill:started', onStart);
-      bus.off('autofill:step', onStep);
-      bus.off('autofill:ready', onReady);
-      bus.off('autofill:none', onNone);
-      bus.off('autofill:unsupported', onUnsupported);
-      bus.off('autofill:failed', onFail);
-    };
-  }, []);
+      
+      if (!registrationResponse.ok) {
+        throw new Error('Failed to register file for AI analysis');
+      }
+      
+      const { uploadId } = await registrationResponse.json();
+      
+      // 2) Start AI analysis via centralized store
+      startAI(uploadId);
+      
+      // 3) Trigger analysis
+      await fetch(`/api/inbox/${uploadId}/analyze`, { method: 'POST' });
+      
+      // 4) Poll for results
+      const pollForResults = async () => {
+        try {
+          const statusResponse = await fetch(`/api/inbox/${uploadId}/status`);
+          if (!statusResponse.ok) return;
+          
+          const status = await statusResponse.json();
+          
+          if (status.status === 'analyzing') {
+            updateAI({ state: 'analyzing', step: status.stage ?? 1 });
+            setTimeout(pollForResults, 1000);
+          } else if (status.status === 'ready' || status.status === 'partial') {
+            const hasConfidentSuggestion = status.suggestion && status.suggestion.confidence >= 0.7;
+            updateAI({
+              state: hasConfidentSuggestion ? 'ready' : 'partial',
+              count: status.fields?.length ?? 0,
+              fields: status.fields ?? [],
+              suggestion: status.suggestion,
+            });
+            
+            // Show toast notification
+            toast({
+              description: `✨ AI found ${status.fields?.length ?? 0} details`,
+            });
+          } else {
+            updateAI({ 
+              state: status.status, 
+              message: status.message ?? 'Analysis completed' 
+            });
+          }
+        } catch (error) {
+          console.warn('Polling error:', error);
+          setTimeout(pollForResults, 2000);
+        }
+      };
+      
+      setTimeout(pollForResults, 1000);
+      
+    } catch (error) {
+      console.error('AI analysis failed:', error);
+      updateAI({ 
+        state: 'failed', 
+        message: error instanceof Error ? error.message : 'Analysis failed' 
+      });
+    }
+  };
 
   // Banner actions
   const dismiss = () => setBanner({ state: 'idle' });
@@ -251,8 +250,10 @@ export default function UploadCenter({
       // Notify parent about file upload for potential AI analysis
       onFileUploaded?.(row.file, result.key, 'document');
       
-      // Trigger AI autofill analysis
-      onUploaded?.(row.file, row.file.name);
+      // Trigger AI analysis via new centralized store
+      if (result.key) {
+        triggerAIAnalysis(row.file, result.key);
+      }
       
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
@@ -323,8 +324,10 @@ export default function UploadCenter({
       // Notify parent about file upload for potential AI analysis
       onFileUploaded?.(row.file, result.key, 'photo');
       
-      // Trigger AI autofill analysis
-      onUploaded?.(row.file, row.file.name);
+      // Trigger AI analysis via new centralized store
+      if (result.key) {
+        triggerAIAnalysis(row.file, result.key);
+      }
       
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
@@ -384,22 +387,7 @@ export default function UploadCenter({
 
   return (
     <Card className={`bg-zinc-950/70 border-zinc-800 ${className}`}>
-      {/* === AI AUTOFILL BANNER === */}
-      <div className="p-4 pb-0">
-        <AutofillBanner
-          state={banner.state}
-          fileName={banner.fileName}
-          count={banner.count}
-          confidence={banner.suggestion?.confidence}
-          suggestion={banner.suggestion}
-          fields={banner.fields}
-          step={banner.step}
-          onOpen={openInbox}
-          onRetry={regenerate}
-          onAccept={acceptAll}
-          onDismiss={dismiss}
-        />
-      </div>
+      {/* AI banner is now rendered in parent component */}
       
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">

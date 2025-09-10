@@ -30,8 +30,7 @@ import {
 import { StatCard } from '@/components/StatCard';
 import { InviteFamilyMemberDialog } from '@/components/InviteFamilyMemberDialog';
 import UploadCenter from '@/components/upload/UploadCenter';
-import useAutofill from '@/hooks/useAutofill';
-import AutofillBanner from '@/components/AutofillBanner';
+import AIBanner from '@/components/ai/AIBanner';
 import InboxDrawer from '@/components/inbox/InboxDrawer';
 import { NewMessageModal } from '@/components/messaging/NewMessageModal';
 import NotificationCenter from '@/components/family/NotificationCenter';
@@ -112,8 +111,7 @@ export default function FamilyHome() {
   const uploadCenterRef = useRef<HTMLDivElement>(null);
   // Ref for the ICE section
   const iceRef = useRef<HTMLDivElement>(null);
-  // AI Autofill state
-  const autofill = useAutofill();
+  // AI state is now managed by the centralized AI store
 
   // Function to scroll to upload center and highlight document upload
   const scrollToDocumentUpload = () => {
@@ -901,15 +899,8 @@ export default function FamilyHome() {
               </div>
             </div>
             
-            {/* AI Autofill Banner - appears above Upload Center */}
-            <AutofillBanner 
-              open={autofill.banner.open}
-              fileName={autofill.banner.fileName}
-              fields={autofill.banner.fields} 
-              suggestion={autofill.banner.suggestion}
-              onAccept={autofill.accept}
-              onDismiss={autofill.dismiss}
-            />
+            {/* AI Banner - centralized state */}
+            <AIBanner />
             
             <div className={`flex-1 ${(highlightDocumentUpload || highlightPhotoUpload) ? 'upload-highlight' : ''}`}>
               <UploadCenter 
@@ -922,17 +913,7 @@ export default function FamilyHome() {
                     setHighlightPhotoUpload(false);
                   }, 3000);
                 }}
-                onUploaded={(file, filename) => {
-                  // Trigger AI analysis through useAutofill hook
-                  // Note: Need file S3 key, but for now use filename as placeholder
-                  autofill.registerAndAnalyze({
-                    userId: "current-user",
-                    fileKey: `uploads/${filename}`, // placeholder - should be actual S3 key
-                    fileName: filename,
-                    mime: file.type,
-                    size: file.size
-                  });
-                }}
+                // AI analysis is now handled directly in UploadCenter
               />
             </div>
           </div>
