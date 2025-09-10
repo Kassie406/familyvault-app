@@ -125,14 +125,14 @@ aiInboxRouter.post("/:id/analyze", async (req, res) => {
     // persist fields
     for (const f of fields) {
       await db.insert(extractedFields).values({
-        inboxId: id, key: f.key, value: f.value, confidence: f.confidence, pii: !!f.pii,
+        inboxItemId: id, fieldKey: f.key, fieldValue: f.value, confidence: f.confidence, isPii: !!f.pii,
       });
     }
     step('persisted extracted fields');
 
     await db.update(inboxItems).set({
       status: 'suggested',
-      suggestionMemberId: suggestion.memberId,
+      suggestedMemberId: suggestion.memberId,
     }).where(eq(inboxItems.id, id));
     step('updated final status');
 
