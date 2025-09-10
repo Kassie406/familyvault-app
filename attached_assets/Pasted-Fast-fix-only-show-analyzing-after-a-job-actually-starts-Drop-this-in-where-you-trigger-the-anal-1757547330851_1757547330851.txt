@@ -1,0 +1,89 @@
+Fast fix: only show “analyzing” after a job actually starts
+
+Drop this in where you trigger the analysis. It guarantees a start request is made, surfaces errors, and prevents permanent spinners.
+
+type StartResp = { jobId: string };
+
+function apiBase() {
+  // Make this explicit so dev/stage/prod can’t silently be ''
+  const base = import.meta.env.VITE_API_BASE ?? (window as any).__API_BASE__;
+  if (!base) throw new Error("API base not configured");
+  return base.replace(/\/$/, "");
+}
+
+async function startAnalysis(fileId: string, familyId: string) {
+  if (!fileId) throw new Error("No fileId to analyze");
+  const res = await fetch(`${apiBase()}/analysis/start`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ fileId, familyId }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`startAnalysis failed: ${res.status} ${text.slice(0,200)}`);
+  }
+  const data = (await res.json()) as StartResp;
+  if (!data?.jobId) throw new Error("Malformed start response (no jobId)");
+  return data.jobId;
+}
+
+async function runAiSuggestions({ fileId, familyId }: { fileId: string; familyId: string }) {
+  setAiState({ kind: "idle" }); // ensure clean
+  try {
+    // ✅ ONLY set analyzing after start returns a jobId
+    const jobId = await startAnalysis(fileId, familyId);
+    setAiState({ kind: "analyzing", step: "Looking for key fields (1/3)" });
+    const suggestions = await streamOrPoll(jobId); // your existing SSE/poll logic
+    setAiState({ kind: "success", suggestions });
+  } catch (e: any) {
+    setAiState({ kind: "error", message: e.message ?? String(e) });
+  }
+}
+
+
+If you don’t have streamOrPoll yet, use the polling helper from my last message (timeout + terminal states). That alone will stop infinite spins.
+
+Add 60-second instrumentation to prove the call is firing
+
+Paste this anywhere in app startup (only in dev):
+
+// Log every fetch to DevTools so you can *see* the start call
+const _fetch = window.fetch.bind(window);
+window.fetch = async (input: RequestInfo, init?: RequestInit) => {
+  const url = typeof input === "string" ? input : (input as Request).url;
+  console.info("[fetch]", init?.method ?? "GET", url, init);
+  try {
+    const res = await _fetch(input, init);
+    console.info("[fetch][done]", res.status, url);
+    return res;
+  } catch (err) {
+    console.error("[fetch][error]", url, err);
+    throw err;
+  }
+};
+
+
+Now trigger “AI Suggestions”:
+
+If no [fetch] POST …/analysis/start appears, you know a guard/early return is stopping it.
+
+If it appears but isn’t in Network, CSP is blocking; check Console for a CSP error and add your API origin to connect-src.
+
+Hardening the UI (no more stuck spinners)
+
+Don’t enter “analyzing” until startAnalysis succeeds with a jobId.
+
+Add a global 2-minute max for the whole flow; on timeout show Retry with small “View details” (last URL + status).
+
+Treat 204 or non-JSON as errors (surface the text).
+
+If you use SSE, add a 30s heartbeat watchdog and fallback to polling on missed heartbeats.
+
+Likeliest specific culprits for your app
+
+Missing fileId after the S3 upload (UI renders “Uploaded”, but you never persisted the DB row or you didn’t pass the ID into the analyzer trigger).
+
+API base URL not set in this Replit dev origin (your code might rely on window.location.origin → which is the frontend host, not the API).
+
+Feature flag guarding the analyzer (e.g., if (!user?.plan?.ai) return;) combined with setting the UI state before that check.

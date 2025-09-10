@@ -69,11 +69,11 @@ export default function UploadCenter({
   // AI state from centralized store
   const { scan, start: startAI, update: updateAI, reset: resetAI } = useAI();
   
-  // AI analysis trigger function
+  // AI analysis trigger function with unstickable patterns
   const triggerAIAnalysis = async (file: File, s3Key: string) => {
     try {
-      // 1) Register with AI inbox
-      const registrationResponse = await fetch('/api/inbox/register', {
+      // 1) Register with AI inbox using robust API request
+      const registration = await fetch('/api/inbox/register', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -84,70 +84,28 @@ export default function UploadCenter({
         }),
       });
       
-      if (!registrationResponse.ok) {
+      if (!registration.ok) {
         throw new Error('Failed to register file for AI analysis');
       }
       
-      const { uploadId } = await registrationResponse.json();
+      const { uploadId } = await registration.json();
       
-      // 2) Start AI analysis via centralized store
-      startAI(uploadId);
-      
-      // 3) Trigger analysis
+      // 2) Trigger analysis endpoint
       await fetch(`/api/inbox/${uploadId}/analyze`, { method: 'POST' });
       
-      // 4) Poll for results
-      const pollForResults = async () => {
-        try {
-          const statusResponse = await fetch(`/api/inbox/${uploadId}/status`);
-          if (!statusResponse.ok) return;
-          
-          const status = await statusResponse.json();
-          
-          if (status.status === 'analyzing') {
-            updateAI({ state: 'analyzing', step: status.stage ?? 1 });
-            setTimeout(pollForResults, 1000);
-          } else if (status.status === 'ready' || status.status === 'partial') {
-            const hasConfidentSuggestion = status.suggestion && status.suggestion.confidence >= 0.7;
-            updateAI({
-              state: hasConfidentSuggestion ? 'ready' : 'partial',
-              count: status.fields?.length ?? 0,
-              fields: status.fields ?? [],
-              suggestion: status.suggestion,
-            });
-            
-            // Show toast notification
-            toast({
-              description: `✨ AI found ${status.fields?.length ?? 0} details`,
-            });
-          } else {
-            // Handle detailed error responses from backend
-            const state = status.status === 'failed' ? 'failed' : status.status;
-            updateAI({ 
-              state,
-              message: status.message ?? 'Analysis completed',
-              error: status.error,
-              stage: status.stage,
-              code: status.code
-            });
-          }
-        } catch (error) {
-          console.warn('Polling error:', error);
-          setTimeout(pollForResults, 2000);
-        }
-      };
+      // 3) Start robust polling via centralized store (includes heartbeat detection, exponential backoff, timeouts)
+      await startAI(uploadId);
       
-      setTimeout(pollForResults, 1000);
+      // 4) Show success toast if analysis completed
+      if (scan.state === 'ready' || scan.state === 'partial') {
+        toast({
+          description: `✨ AI found ${('count' in scan) ? scan.count : 0} details`,
+        });
+      }
       
     } catch (error) {
       console.error('AI analysis failed:', error);
-      updateAI({ 
-        state: 'failed', 
-        message: error instanceof Error ? error.message : 'Analysis failed',
-        error: error instanceof Error ? error.message : 'Network error',
-        stage: 'network',
-        code: 0
-      });
+      // Error handling is now managed by the AI store's robust polling
     }
   };
 
@@ -156,15 +114,15 @@ export default function UploadCenter({
   const openInbox = () => setInboxOpen(true);
   
   const regenerate = async () => {
-    if (scan.state === 'ready' || scan.state === 'failed' || scan.state === 'partial') {
-      updateAI({ 
-        state: 'analyzing', 
-        id: scan.id, 
-        step: 1 
-      });
+    if (scan.state === 'ready' || scan.state === 'failed' || scan.state === 'partial' || scan.state === 'timeout') {
       if ('id' in scan) {
-        fetch(`/api/inbox/${scan.id}/analyze`, { method: "POST" }).catch(console.warn);
-        // Note: bus.emit removed - using direct API calls instead
+        // Use the robust polling system for regeneration
+        try {
+          await fetch(`/api/inbox/${scan.id}/analyze`, { method: "POST" });
+          await startAI(scan.id);
+        } catch (error) {
+          console.warn('Regenerate failed:', error);
+        }
       }
     }
   };
