@@ -1,0 +1,214 @@
+exactly what you want. Here’s the end-to-end wiring so a file uploaded from Upload Center immediately triggers AI analysis and shows a suggestion in the Inbox side panel, with an Open link to the Family ID profile and a Details modal like in your refs.
+
+Flow overview
+
+User uploads in Upload Center
+
+On upload success → register the file → analyze
+
+Open Inbox drawer and show a card:
+
+State: Analyzing… → then a Suggested destination (family member) with Open
+
+A Details pill opens a modal with extracted fields (PII masked) and Accept / Dismiss
+
+Accept → attach file to the member and mark “accepted”
+Dismiss → mark “dismissed” and remove from list
+
+Minimal frontend wiring
+Types
+// types/inbox.ts
+export type ExtractField = { key: string; value: string; confidence: number; pii?: boolean };
+export type InboxItem = {
+  id: string;                     // uploadId
+  fileName: string;
+  status: "analyzing"|"suggested"|"accepted"|"dismissed"|"uploaded"|"failed";
+  suggestion?: { memberId: string; memberName: string; confidence: number } | null;
+  fields?: ExtractField[];
+};
+
+Upload Center → trigger analysis + open Inbox
+// UploadCenter.tsx
+import { useState } from "react";
+import { useInbox } from "@/state/useInbox"; // local inbox list & open flag
+
+export function UploadCenter() {
+  const { openInbox, addOrUpdateItem, refreshInbox } = useInbox();
+
+  async function onUploadSuccess(file: File, s3Key: string, userId: string) {
+    // 1) register
+    const reg = await fetch("/api/uploads", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        userId, fileKey: s3Key, fileName: file.name, mime: file.type, size: file.size
+      })
+    }).then(r => r.json());
+
+    // optimistic card in inbox
+    addOrUpdateItem({
+      id: reg.uploadId, fileName: file.name, status: "analyzing"
+    });
+
+    // 2) analyze
+    const res = await fetch(`/api/inbox/${reg.uploadId}/analyze`, { method: "POST" })
+      .then(r => r.json());
+
+    addOrUpdateItem({
+      id: reg.uploadId,
+      fileName: file.name,
+      status: res?.suggestion ? "suggested" : "dismissed",
+      suggestion: res?.suggestion ?? null,
+      fields: res?.fields ?? []
+    });
+
+    // 3) open inbox drawer so user sees it instantly
+    openInbox();
+  }
+
+  // wire onUploadSuccess to your dropzone / select-files handlers…
+  return /* your existing UI */;
+}
+
+Inbox drawer list (Analyzing → Suggestion)
+// InboxDrawer.tsx
+import { useInbox } from "@/state/useInbox";
+
+export default function InboxDrawer() {
+  const { open, items, setDetails } = useInbox();
+  if (!open) return null;
+
+  return (
+    <aside id="inbox-panel">
+      {/* Drop zone stays at the top … */}
+      <section className="mt-4">
+        {items.map(it => (
+          <article key={it.id} className="card">
+            <header className="flex items-center justify-between">
+              <div className="text-sm">{it.fileName}</div>
+              {it.status === "analyzing" && <span className="badge">Analyzing…</span>}
+            </header>
+
+            {it.status === "suggested" && it.suggestion && (
+              <>
+                <div className="mt-2 text-xs text-muted">
+                  Suggested destination
+                </div>
+                <div className="flex items-center justify-between mt-1">
+                  <div className="font-medium">{it.suggestion.memberName}</div>
+                  <button className="btn btn-gold"
+                          onClick={() => navigate(`/family/${it.suggestion!.memberId}`)}>
+                    Open
+                  </button>
+                </div>
+
+                <div className="mt-2">
+                  <button className="pill" onClick={() => setDetails(it.id)}>Details</button>
+                </div>
+              </>
+            )}
+
+            {it.status === "dismissed" && (
+              <div className="text-xs text-muted">No confident match</div>
+            )}
+          </article>
+        ))}
+      </section>
+    </aside>
+  );
+}
+
+Details modal (Accept / Dismiss)
+// SuggestDetailsModal.tsx
+import { useInbox } from "@/state/useInbox";
+import { mask } from "@/utils/pii";
+
+export default function SuggestDetailsModal() {
+  const { detailsId, closeDetails, items, accept, dismiss } = useInbox();
+  if (!detailsId) return null;
+  const it = items.find(i => i.id === detailsId)!;
+
+  return (
+    <div className="modal">
+      <header className="flex items-center justify-between">
+        <div className="font-medium">{it.fileName}</div>
+        <button onClick={closeDetails} aria-label="Close">✕</button>
+      </header>
+
+      <div className="mt-3 flex items-center gap-2">
+        <div className="text-xs text-muted">Suggested filename</div>
+        <div className="tag">Social Security Card {it.suggestion?.memberName?.split(" ")[0]}</div>
+        <div className="grow" />
+        <button className="btn" onClick={() => dismiss(it.id)}>Dismiss</button>
+        <button className="btn btn-primary"
+                onClick={() => accept(it.id, it.suggestion!.memberId, it.fields!)}>
+          Accept
+        </button>
+      </div>
+
+      <nav className="tabs mt-4">Details • Summary • Edit</nav>
+
+      <div className="mt-3 space-y-2">
+        {it.fields?.map(f => (
+          <div key={f.key} className="row">
+            <div className="k">{f.key}</div>
+            <div className="v">
+              {f.pii ? mask(f.value) : f.value}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+Accept / Dismiss actions
+// state/useInbox.ts (excerpt)
+export function useInbox() {
+  // open flag, items[], detailsId, setters…
+  async function accept(id: string, memberId: string, fields: any[]) {
+    await fetch(`/api/inbox/${id}/accept`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ memberId, fields }),
+    });
+    addOrUpdateItem({ id, status: "accepted" });
+    closeDetails();
+  }
+
+  async function dismiss(id: string) {
+    await fetch(`/api/inbox/${id}/dismiss`, { method: "POST" });
+    addOrUpdateItem({ id, status: "dismissed" });
+    closeDetails();
+  }
+
+  return { /* … */, accept, dismiss };
+}
+
+Backend you need behind this
+
+(Exactly what we laid out earlier—keep your Express+Drizzle service.)
+
+POST /api/uploads → returns uploadId
+
+POST /api/inbox/:id/analyze → returns { suggestion, fields }
+
+POST /api/inbox/:id/accept
+
+POST /api/inbox/:id/dismiss
+
+GET /api/inbox?userId=… (optional: to refresh the list)
+
+If you haven’t pasted those server files yet, use the versions I gave in the last message—they’re ready for copy-paste with the mock OCR so you can see the full flow immediately.
+
+Visual parity tweaks (to match your screenshots)
+
+“Details” pill: small rounded button with a star icon + count badge.
+
+“Open”: gold rounded button right-aligned.
+
+Analyzing card: grey skeleton with “Analyzing…” spinner.
+
+PII masking: 141-85-2645 → ***-**-2645.
+
+If you want, tell me the names of your existing UploadCenter handlers (onUpload, onComplete, etc.), and I’ll paste the exact 5–10 lines you drop in to call register → analyze → openInbox without refactoring anything else.
