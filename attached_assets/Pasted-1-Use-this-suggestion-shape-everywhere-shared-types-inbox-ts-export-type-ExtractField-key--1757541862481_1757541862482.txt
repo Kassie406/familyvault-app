@@ -1,0 +1,352 @@
+1) Use this suggestion shape everywhere
+// shared/types/inbox.ts
+export type ExtractField = {
+  key: string;             // e.g., 'number', 'expirationDate'
+  label: string;           // UI label
+  value: string;           // normalized value (ISO for dates)
+  confidence: number;      // 0..100
+  path: string;            // exact destination, e.g., 'ids.driverLicense.state'
+  bbox?: [number, number, number, number]; // optional for highlight
+};
+
+export type AISuggestions = {
+  docType: 'driverLicense' | 'passport' | 'insurance' | 'utilityBill' | 'idCard' | 'other';
+  memberId?: string;        // best-guess family member
+  fields: ExtractField[];
+  reasoning?: string;       // short “how we got this”
+  confidence: 'low'|'medium'|'high';
+};
+
+
+Rule: The path tells Accept exactly where to send the value. We’ll map those to your upserts.
+
+2) Server: analyze route returns full field set
+
+File: server/routes/ai-inbox.ts
+
+Add analyzers per doc type. Below is the Driver License example (Textract AnalyzeID covers number, DOB, address, etc.). Include a fallback (OpenAI Vision) for non-ID docs.
+
+// server/routes/ai-inbox.ts (add near analyze endpoint)
+import { Router } from 'express';
+import { S3Client } from '@aws-sdk/client-s3';
+import { TextractClient, AnalyzeIDCommand, AnalyzeDocumentCommand } from '@aws-sdk/client-textract';
+import { db } from '../db'; // your drizzle instance
+import { normalizeAddress } from '../util/normalizeAddress'; // defined below
+
+const textract = new TextractClient({ region: 'us-east-1' });
+export const aiInbox = Router();
+
+// POST /api/inbox/:uploadId/analyze
+aiInbox.post('/:uploadId/analyze', async (req, res) => {
+  try {
+    const { uploadId } = req.params;
+
+    // 1) Load upload record (get S3 object URL + original filename)
+    const upload = await db.query.uploads.findFirst({ where: (u, { eq }) => eq(u.id, uploadId) });
+    if (!upload) return res.status(404).json({ error: 'Upload not found' });
+
+    const { file_url: objectUrl, file_name: fileName } = upload;
+
+    // 2) Doc type guess (filename heuristics + MIME)
+    const docType = guessDocType(fileName, upload.content_type);
+
+    // 3) Call analyzer per docType
+    let suggestions: AISuggestions;
+    if (docType === 'driverLicense' || docType === 'passport' || docType === 'idCard') {
+      suggestions = await analyzeIdDoc(objectUrl, docType);
+    } else if (docType === 'insurance') {
+      suggestions = await analyzeInsuranceDoc(objectUrl);
+    } else {
+      suggestions = await analyzeGeneric(objectUrl);
+    }
+
+    // 4) (Optional) match member by name/DOB from fields
+    suggestions.memberId = await bestMatchMemberId(suggestions.fields);
+
+    // 5) Return
+    res.json({ ok: true, suggestions });
+  } catch (e: any) {
+    console.error(e);
+    res.status(500).json({ ok: false, error: e.message || 'failed to analyze' });
+  }
+});
+
+// ——— analyzers ———
+
+function toField(label: string, key: string, value: string, confidence = 90, path: string): ExtractField {
+  return { label, key, value, confidence, path };
+}
+
+async function analyzeIdDoc(objectUrl: string, docType: 'driverLicense'|'passport'|'idCard'): Promise<AISuggestions> {
+  // Textract AnalyzeID supports images of US IDs/Passports
+  const command = new AnalyzeIDCommand({
+    DocumentPages: [{ S3Object: s3From(objectUrl) }]
+  });
+  const resp = await textract.send(command);
+
+  const fields: ExtractField[] = [];
+  const page = resp.IdentityDocuments?.[0];
+  const kv = new Map<string, string>();
+
+  page?.IdentityDocumentFields?.forEach(f => {
+    const name = f.Type?.Text?.toLowerCase();
+    const val = f.ValueDetection?.Text?.trim() || '';
+    kv.set(name || '', val);
+  });
+
+  // Common pulls
+  const number    = kv.get('document number') || kv.get('id number') || '';
+  const given     = kv.get('given name') || kv.get('first name') || '';
+  const surname   = kv.get('surname') || kv.get('last name') || '';
+  const fullName  = [given, surname].filter(Boolean).join(' ');
+  const dob       = kv.get('date of birth') || '';
+  const expiry    = kv.get('date of expiry') || kv.get('expiration date') || '';
+  const issue     = kv.get('date of issue') || '';
+  const address   = kv.get('address') || '';
+  const state     = kv.get('issuing state') || kv.get('state') || '';
+
+  if (fullName) fields.push(toField('Name', 'name', fullName, 95, 'person.name'));
+  if (dob)      fields.push(toField('Date of birth', 'dateOfBirth', isoDate(dob), 95, 'person.dateOfBirth'));
+
+  if (number)   fields.push(toField('License/ID number', 'number', number, 96, 'ids.driverLicense.number'));
+  if (state)    fields.push(toField('State', 'state', state, 92, 'ids.driverLicense.state'));
+  if (expiry)   fields.push(toField('Expiration', 'expiration', isoDate(expiry), 94, 'ids.driverLicense.expiration'));
+  if (issue)    fields.push(toField('Issue date', 'issue', isoDate(issue), 85, 'ids.driverLicense.issue'));
+
+  if (address) {
+    const addr = normalizeAddress(address); // parses to { line1, line2, city, state, postal }
+    if (addr.line1)  fields.push(toField('Address line 1', 'line1', addr.line1, 90, 'person.address.line1'));
+    if (addr.line2)  fields.push(toField('Address line 2', 'line2', addr.line2, 80, 'person.address.line2'));
+    if (addr.city)   fields.push(toField('City', 'city', addr.city, 90, 'person.address.city'));
+    if (addr.state)  fields.push(toField('State', 'state', addr.state, 92, 'person.address.state'));
+    if (addr.postal) fields.push(toField('ZIP', 'postal', addr.postal, 92, 'person.address.postal'));
+  }
+
+  const confidence = fields.length >= 4 ? 'high' : 'medium';
+  return { docType, fields, confidence, reasoning: 'Extracted using Textract AnalyzeID' };
+}
+
+// Fallbacks (skeletons)
+async function analyzeInsuranceDoc(objectUrl: string): Promise<AISuggestions> {
+  // Call AnalyzeDocument (FORMS/TABLES) or OpenAI Vision to get carrier/policy/address/coverage dates, normalize
+  return { docType: 'insurance', fields: [], confidence: 'medium', reasoning: 'ToDo: map forms/tables' };
+}
+async function analyzeGeneric(objectUrl: string): Promise<AISuggestions> {
+  return { docType: 'other', fields: [], confidence: 'low', reasoning: 'Generic OCR (no template match)' };
+}
+
+// helpers
+function s3From(url: string) {
+  // map https://bucket.s3.amazonaws.com/key → { Bucket, Name }
+  const m = url.match(/^https:\/\/([^.]*)\.s3[^/]*\/(.+)$/);
+  return { Bucket: m?.[1], Name: m?.[2] };
+}
+function isoDate(s: string) { return new Date(s).toISOString().slice(0,10); }
+
+function guessDocType(fileName?: string, mime?: string): AISuggestions['docType'] {
+  const f = (fileName || '').toLowerCase();
+  if (f.includes('license') || f.includes('dl_')) return 'driverLicense';
+  if (f.includes('passport')) return 'passport';
+  if (f.includes('insurance') || f.includes('policy')) return 'insurance';
+  if (f.includes('id')) return 'idCard';
+  return 'other';
+}
+
+
+Address parsing utility:
+
+// server/util/normalizeAddress.ts
+export function normalizeAddress(raw: string) {
+  // Super small heuristic; swap in libpostal if you have it available
+  // "123 Main St Apt 4B, Newark, NJ 07102"
+  const [first, cityStateZip] = raw.split(/\s*,\s*/, 2);
+  let line1 = first ?? '';
+  let city = '', state = '', postal = '', line2 = '';
+
+  if (cityStateZip) {
+    const m = cityStateZip.match(/^(.*)\s+([A-Z]{2})\s+(\d{5}(-\d{4})?)$/);
+    if (m) { city = m[1]; state = m[2]; postal = m[3]; }
+  }
+  // crude apt detection
+  const apt = line1.match(/\b(apt|unit|#)\s*([A-Za-z0-9-]+)$/i);
+  if (apt) { line2 = apt[0]; line1 = line1.replace(apt[0], '').trim(); }
+
+  return { line1, line2, city, state, postal };
+}
+
+
+Member best-match (optional):
+
+async function bestMatchMemberId(fields: ExtractField[]) {
+  const name = fields.find(f => f.path === 'person.name')?.value;
+  const dob  = fields.find(f => f.path === 'person.dateOfBirth')?.value;
+  if (!name && !dob) return undefined;
+
+  const members = await db.query.familyMembers.findMany();
+  // very simple: exact DOB + name includes
+  const hit = members.find(m =>
+    (!dob || new Date(m.dateOfBirth).toISOString().slice(0,10) === dob) &&
+    (!name || (m.name || '').toLowerCase().includes(name.toLowerCase()))
+  );
+  return hit?.id;
+}
+
+3) Server: Accept endpoint routes every field
+
+File: server/routes/ai-inbox.ts (add a new route). This uses your upsert functions exactly as you posted.
+
+aiInbox.post('/:uploadId/accept', async (req, res) => {
+  try {
+    const { uploadId } = req.params;
+    const { memberId, suggestions } = req.body as { memberId: string; suggestions: AISuggestions };
+
+    for (const f of suggestions.fields) {
+      const path = f.path;
+
+      // Person → family_members
+      if (path === 'person.name') {
+        await upsertPerson(memberId, { name: f.value });
+      } else if (path === 'person.dateOfBirth') {
+        await upsertPerson(memberId, { dateOfBirth: new Date(f.value) as any });
+      } else if (path === 'person.phone') {
+        await upsertPerson(memberId, { phoneNumber: f.value });
+      } else if (path === 'person.email') {
+        await upsertPerson(memberId, { email: f.value });
+      } else if (path.startsWith('person.address.')) {
+        // You can extend your schema to store address; for now write into description or a dedicated address table.
+        // Example: persist as “Family Resource – Address”
+        await db.insert(familyResources).values({
+          familyId: 'family-1',
+          title: 'Address',
+          category: 'documents',
+          subcategory: 'address',
+          contentType: 'file',
+          content: JSON.stringify({ [path.split('.').pop()!]: f.value }),
+          createdBy: memberId
+        }).onConflictDoNothing();
+      }
+
+      // Driver License → family_resources
+      else if (path.startsWith('ids.driverLicense.')) {
+        const part = path.split('.').pop()!;
+        await upsertDriverLicense(memberId, { [part]: f.value } as any);
+      }
+
+      // Passport → family_resources
+      else if (path.startsWith('ids.passport.')) {
+        const part = path.split('.').pop()!;
+        await upsertPassport(memberId, { [part]: f.value } as any);
+      }
+
+      // Insurance → family_insurance_policies + items
+      else if (path.startsWith('insurance.')) {
+        const part = path.split('.').pop()!;
+        await upsertInsurance(memberId, { [part]: f.value } as any);
+      }
+    }
+
+    res.json({ ok: true });
+  } catch (e: any) {
+    console.error(e);
+    res.status(500).json({ ok: false, error: e.message || 'accept failed' });
+  }
+});
+
+
+If you want address in familyMembers, add columns (line1, line2, city, state, postal). For now I showed a resource write you can swap later.
+
+4) Client: UploadCenter → register + analyze
+
+Files:
+
+client/src/components/upload/UploadCenter.tsx
+
+client/src/lib/aiInbox.ts (already exists in your project)
+
+Call the analyze endpoint and show the banner with the full field count. Then Accept all posts to /accept.
+
+// UploadCenter.tsx (where you currently handle successful upload)
+async function onUploadComplete(file: File, s3Key: string) {
+  // 1) register (you already do this)
+  const reg = await fetch('/api/inbox/register', {
+    method: 'POST',
+    headers: {'content-type':'application/json'},
+    body: JSON.stringify({ fileName: file.name, fileUrl: s3Key })
+  }).then(r=>r.json());
+  
+  // 2) analyze
+  const res = await fetch(`/api/inbox/${reg.uploadId}/analyze`, { method: 'POST' }).then(r=>r.json());
+  if (res?.ok && res.suggestions) {
+    setAIBanner({
+      uploadId: reg.uploadId,
+      suggestions: res.suggestions, // AISuggestions
+    });
+  } else {
+    setAIBanner({ error: res?.error || 'AI analysis failed' });
+  }
+}
+
+
+Banner Accept All:
+
+// AutofillBanner.tsx
+function AcceptAllButton({ uploadId, suggestions }: { uploadId: string; suggestions: AISuggestions }) {
+  const memberId = suggestions.memberId || selectedMemberIdFromUI();
+  return (
+    <Button onClick={async () => {
+      await fetch(`/api/inbox/${uploadId}/accept`, {
+        method: 'POST',
+        headers: {'content-type':'application/json'},
+        body: JSON.stringify({ memberId, suggestions })
+      });
+      toast.success('Saved to Family ID');
+      dismissBanner();
+    }}>Accept all</Button>
+  );
+}
+
+5) Make “address, state, etc.” rich everywhere
+Driver License (ID)
+
+person.name, person.dateOfBirth, person.address.*, ids.driverLicense.number, ids.driverLicense.state, ids.driverLicense.issue, ids.driverLicense.expiration.
+
+Passport
+
+person.name, person.dateOfBirth, ids.passport.number, ids.passport.country, ids.passport.expiration.
+
+Insurance
+
+insurance.carrier, insurance.policyNumber, insurance.coverage, optional insurance.effectiveDate, insurance.expirationDate, insurance.address.* (billing).
+
+Utility Bill (proof of address)
+
+person.address.*, person.name, billing.accountNumber.
+
+You can keep adding doc mappers; the accept logic doesn’t change because everything is routed by path.
+
+6) Small but crucial DB/index detail
+
+For your ON CONFLICT to work:
+
+-- family_resources unique grouping for a single member+doc subtype
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_resource_member_subcat
+ON family_resources (family_id, subcategory, created_by);
+
+
+That way “Driver License” for the same member updates instead of duplicating.
+
+7) Why AI Inbox felt “slow” before (and how this fixes it)
+
+We removed the tight coupling to the old bus and added a single analyze call that returns all fields at once.
+
+Textract AnalyzeID is fast and purpose-built for IDs; fallback handles other docs.
+
+The banner only shows after analysis, and Accept all persists in one POST, so you avoid repeated server round trips.
+
+8) What you’ll see in the UI
+
+Banner: “Suggested autofill • 7 details found”
+
+Rows: Name, DOB, Address line1/line2/City/State/ZIP, License number, Issue/Expiration…
+
+Accept all → writes to Family ID (people data) + Resources (documents) + Insurance if applicable.
