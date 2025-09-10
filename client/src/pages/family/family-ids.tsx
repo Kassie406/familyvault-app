@@ -48,17 +48,17 @@ export default function FamilyIds() {
   const familyMembers: FamilyMember[] = [
     {
       id: '1',
-      name: 'Sarah Johnson',
+      name: 'Kassandra Santana',
       role: 'Owner',
-      initials: 'SJ',
+      initials: 'KS',
       avatarColor: 'var(--gold)',
       itemCount: 8
     },
     {
       id: '2', 
-      name: 'Michael Johnson',
+      name: 'Angel Quintana',
       role: 'Parent',
-      initials: 'MJ',
+      initials: 'AQ',
       avatarColor: '#3498DB',
       itemCount: 7
     },
