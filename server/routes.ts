@@ -15,6 +15,7 @@ import apiServicesRouter from "./routes/apiServices";
 import documentsRouter from "./routes/documents";
 import { calendarRouter } from "./routes/calendar";
 import familyMeetingsRouter from "./routes/family-meetings";
+import { aiInboxRouter } from "./routes/ai-inbox";
 import axios from "axios";
 import { sendSMSNotification } from "./lib/twilio";
 import { sendSMSNotificationsForMessage, markUserOnline, markUserOffline } from "./lib/sms-notifications";
@@ -512,6 +513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount storage routes for file uploads
   app.use("/api/storage", storageRoutes);
   app.use("/api/uploads", uploadsRouter);
+  app.use("/api/inbox", aiInboxRouter);
 
   // Mount file status routes for real-time updates
   app.use("/api/files", fileRoutes);
