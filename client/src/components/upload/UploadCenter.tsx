@@ -121,9 +121,14 @@ export default function UploadCenter({
               description: `✨ AI found ${status.fields?.length ?? 0} details`,
             });
           } else {
+            // Handle detailed error responses from backend
+            const state = status.status === 'failed' ? 'failed' : status.status;
             updateAI({ 
-              state: status.status, 
-              message: status.message ?? 'Analysis completed' 
+              state,
+              message: status.message ?? 'Analysis completed',
+              error: status.error,
+              stage: status.stage,
+              code: status.code
             });
           }
         } catch (error) {
@@ -138,7 +143,10 @@ export default function UploadCenter({
       console.error('AI analysis failed:', error);
       updateAI({ 
         state: 'failed', 
-        message: error instanceof Error ? error.message : 'Analysis failed' 
+        message: error instanceof Error ? error.message : 'Analysis failed',
+        error: error instanceof Error ? error.message : 'Network error',
+        stage: 'network',
+        code: 0
       });
     }
   };

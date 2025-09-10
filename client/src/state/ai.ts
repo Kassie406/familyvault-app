@@ -9,7 +9,7 @@ type AIScan =
   | { state: "idle" }
   | { state: "analyzing"; id: string; step: 1 | 2 | 3 }
   | { state: "ready" | "partial"; id: string; count: number; fields: ExtractField[]; suggestion?: LegacySuggestion; suggestions?: AISuggestions }
-  | { state: "none" | "failed" | "unsupported"; id: string; message: string };
+  | { state: "none" | "failed" | "unsupported"; id: string; message: string; error?: string; stage?: string; code?: number };
 
 type AIStore = {
   scan: AIScan;
