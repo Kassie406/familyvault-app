@@ -1,0 +1,153 @@
+2) Make the UI unstickable (drop-in patterns)
+A. Safe fetch with timeout + JSON guard
+async function safeJson(res: Response) {
+  if (res.status === 204) return null;
+  const ct = res.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) {
+    const text = await res.text();
+    throw new Error(`Expected JSON, got: ${ct}. Body: ${text.slice(0,200)}`);
+  }
+  return res.json();
+}
+
+async function fetchWithTimeout(input: RequestInfo, init: RequestInit = {}, ms = 20000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const res = await fetch(input, { ...init, signal: ctrl.signal });
+    return res;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+B. Polling with backoff + terminal states
+type JobStatus = "queued" | "running" | "completed" | "failed";
+
+async function waitForAnalysis(jobId: string, opts = { maxMs: 120000 }) {
+  const start = Date.now();
+  let delay = 800;
+
+  while (true) {
+    if (Date.now() - start > opts.maxMs) throw new Error("Timeout waiting for analysis");
+
+    const res = await fetchWithTimeout(`/analysis/status?jobId=${jobId}`, {}, 15000);
+    if (!res.ok) throw new Error(`Status ${res.status}`);
+    const data = await safeJson(res);
+
+    if (!data || !data.status) throw new Error("Malformed status payload");
+    if (data.status === "completed") return data.suggestions;
+    if (data.status === "failed") throw new Error(data.error || "Analysis failed");
+
+    await new Promise(r => setTimeout(r, delay));
+    delay = Math.min(delay * 1.6, 4000);
+  }
+}
+
+C. SSE with heartbeat & failover to polling
+async function streamOrPoll(jobId: string) {
+  return new Promise((resolve, reject) => {
+    const es = new EventSource(`/analysis/stream?jobId=${jobId}`, { withCredentials: true });
+    let lastBeat = Date.now();
+    const heart = setInterval(() => {
+      if (Date.now() - lastBeat > 30000) {
+        es.close(); clearInterval(heart);
+        // Fallback to polling
+        waitForAnalysis(jobId).then(resolve).catch(reject);
+      }
+    }, 5000);
+
+    es.addEventListener("heartbeat", () => { lastBeat = Date.now(); });
+    es.addEventListener("message", (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === "progress") {/* update step 1/3 etc */}
+      if (msg.type === "completed") {
+        clearInterval(heart); es.close(); resolve(msg.suggestions);
+      }
+    });
+    es.addEventListener("error", () => { /* network hiccup */ });
+  });
+}
+
+D. UI states that never spin forever
+
+idle → analyzing → success | error | timeout
+
+If timeout or error, show a retry button and a tiny “View logs” link that expands the last request URL + status text (helps you & users).
+
+setAiState({ kind: "analyzing", step: "Looking for fields (1/3)" });
+try {
+  const suggestions = await streamOrPoll(jobId);
+  setAiState({ kind: "success", suggestions });
+} catch (e:any) {
+  setAiState({ kind: e.message.includes("Timeout") ? "timeout" : "error", message: e.message });
+}
+
+3) Verify the backend contract
+
+Make sure your API always reaches a terminal state:
+
+/analysis/start (POST)
+
+Input: { fileId, familyId }
+
+Output: { jobId } (HTTP 200/202)
+
+/analysis/status (GET)
+
+Output (200):
+
+{ status: "queued" | "running" | "completed" | "failed", progress?: number, suggestions?: {...}, error?: string }
+
+Never return HTML on error; return JSON with failed.
+
+SSE /analysis/stream
+
+Send a heartbeat event every 15s:
+
+event: heartbeat
+data: ok
+
+
+
+On completion:
+
+event: message
+data: {"type":"completed","suggestions":{...}}
+
+4) If it’s CORS/CSP (very likely with S3 + subdomains)
+
+CORS (server) for /analysis/*:
+
+Access-Control-Allow-Origin: https://portal.familycirclesecure.com
+Access-Control-Allow-Credentials: true
+Access-Control-Allow-Headers: Content-Type, Authorization, x-requested-with
+Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS
+
+
+S3 CORS for the bucket (PUT + GET from your origin).
+
+CSP: allow your API origin and connect-src for SSE:
+
+Content-Security-Policy: connect-src 'self' https://api.familycirclesecure.com https://*.amazonaws.com;
+
+5) Reproduce without backend to isolate UI (1 min)
+
+Use Requestly (or Mock Service Worker in dev) to mock:
+
+GET /analysis/status?jobId=* → return
+
+{"status":"completed","suggestions":{"owner":"A.Q.","docType":"driver_license","number":"xxx","state":"NJ","expires":"2026-01-01"}}
+
+
+If the UI still spins, it’s a frontend state bug. If it works, the backend/headers/timing are at fault.
+
+6) What to look for in your current screenshot flow
+
+Step text shows (step 1/3) → good. Confirm you actually advance step labels on events/status transitions.
+
+If the same step text shows for > 20s, trigger timeout and surface a reason:
+
+“No heartbeat from analysis in 30s (likely network/CORS). Retry?”
+
+“File type unsupported (415). Try PDF/JPG.”
