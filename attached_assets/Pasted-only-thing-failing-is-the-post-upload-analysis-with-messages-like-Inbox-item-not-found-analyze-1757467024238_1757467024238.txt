@@ -1,0 +1,193 @@
+only thing failing is the post-upload analysis with messages like:
+
+“Inbox item not found”
+
+“analyze failed after 3 attempts”
+
+That means your client is calling /api/inbox/:uploadId/analyze, but the backend cannot find the inbox row that should have been created by /api/uploads. In practice this is almost always one of these:
+
+ID mismatch / not returned correctly
+
+The uploadId the client uses isn’t the one inserted in DB (string/number/UUID mismatch, wrong param name, or stale variable).
+
+User scoping filters the row out
+
+/api/inbox/:id/analyze does WHERE id=:id AND user_id=:currentUser, but your /api/uploads insert used a different user_id (or none). The select returns 0 rows → “not found”.
+
+Race condition
+
+You call analyze immediately; the DB insert hasn’t committed when the read runs. If the client retries too quickly or not at all, you’ll see “not found” or “failed to analyze”.
+
+Below is a drop-in, deterministic wiring that eliminates all three. Copy/paste these pieces and you’ll get the exact “Analyzing → Suggested destination → Details / Accept” flow from your screenshots.
+
+1) Backend (Express + Drizzle/Prisma/SQL)
+Table (minimal)
+-- inbox_items
+-- id: string (uuid), user_id: string, file_key: string, file_name: string
+-- status: 'uploaded'|'analyzing'|'suggested'|'accepted'|'dismissed'|'failed'
+-- created_at: timestamp
+-- suggestion_member_id: string null
+-- fields_json: json null
+
+-- If using Postgres:
+create table if not exists inbox_items (
+  id text primary key,
+  user_id text not null,
+  file_key text not null,
+  file_name text not null,
+  status text not null default 'uploaded',
+  suggestion_member_id text,
+  fields_json jsonb,
+  created_at timestamptz not null default now()
+);
+
+POST /api/uploads — create & return the exact id the client must use
+app.post("/api/uploads", async (req, res) => {
+  try {
+    const { userId, fileKey, fileName } = req.body; // ensure these exist
+    if (!userId || !fileKey || !fileName) {
+      return res.status(400).json({ error: "Missing userId/fileKey/fileName" });
+    }
+
+    const id = crypto.randomUUID();
+
+    // INSERT with explicit user_id so later queries can see it
+    await db.execute(/* sql */`
+      insert into inbox_items (id, user_id, file_key, file_name, status)
+      values ($1,$2,$3,$4,'uploaded')
+    `, [id, userId, fileKey, fileName]);
+
+    return res.json({ uploadId: id });
+  } catch (e:any) {
+    console.error("POST /api/uploads error", e);
+    res.status(500).json({ error: "Failed to register upload" });
+  }
+});
+
+POST /api/inbox/:id/analyze — robust find + retry (server-side), updates row
+app.post("/api/inbox/:id/analyze", async (req, res) => {
+  const id = req.params.id;
+  const currentUserId = req.user?.id || req.body.userId; // however you pass auth
+
+  if (!currentUserId) return res.status(401).json({ error: "No user" });
+
+  // tiny retry inside the API (handles commit lag)
+  let record: any = null;
+  for (let i = 0; i < 5; i++) {
+    record = (await db.query(/* sql */`
+      select * from inbox_items
+      where id = $1 and user_id = $2
+      limit 1
+    `, [id, currentUserId]))?.rows?.[0];
+
+    if (record) break;
+    await new Promise(r => setTimeout(r, 150)); // 150ms backoff
+  }
+
+  if (!record) {
+    console.warn("Analyze: inbox item not found", { id, currentUserId });
+    return res.status(404).json({ error: "inbox item not found" });
+  }
+
+  // mark analyzing
+  await db.execute(`update inbox_items set status='analyzing' where id=$1`, [id]);
+
+  try {
+    // --- run your analyzer here (mocked example) ---
+    const fields = [
+      { key: "Person Name", value: "ANGEL D QUINTANA", confidence: 0.99, pii: false },
+      { key: "Social Security Number", value: "141-85-2645", confidence: 0.98, pii: true },
+    ];
+    const suggestion = { memberId: "mem_angel_quintana", memberName: "Angel Quintana", confidence: 0.97 };
+
+    await db.execute(/* sql */`
+      update inbox_items
+      set status='suggested',
+          suggestion_member_id=$2,
+          fields_json=$3
+      where id=$1
+    `, [id, suggestion.memberId, JSON.stringify(fields)]);
+
+    return res.json({ suggestion, fields });
+  } catch (e:any) {
+    console.error("Analyze failed", e);
+    await db.execute(`update inbox_items set status='failed' where id=$1`, [id]);
+    return res.status(500).json({ error: "failed to analyze upload" });
+  }
+});
+
+POST /api/inbox/:id/accept / dismiss
+app.post("/api/inbox/:id/accept", async (req, res) => {
+  const id = req.params.id;
+  await db.execute(`update inbox_items set status='accepted' where id=$1`, [id]);
+  res.json({ ok: true });
+});
+app.post("/api/inbox/:id/dismiss", async (req, res) => {
+  const id = req.params.id;
+  await db.execute(`update inbox_items set status='dismissed' where id=$1`, [id]);
+  res.json({ ok: true });
+});
+
+
+If you still get “not found”: log id, userId you inserted in /api/uploads, and currentUserId you use to read in /api/inbox/:id/analyze. They must match.
+
+2) Frontend (the three correct calls in order)
+What the client must do after S3 PUT succeeds
+// after S3 upload -> you know userId, the S3 key, file.name, file.type
+const register = await fetch("/api/uploads", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ userId, fileKey: s3Key, fileName: file.name })
+}).then(r => r.json());
+
+if (!register?.uploadId) {
+  toast.error("Could not register upload");
+  return;
+}
+
+// optimistic card in Inbox
+inbox.addOrUpdate({ id: register.uploadId, fileName: file.name, status: "analyzing" });
+
+// now trigger analysis
+const ana = await fetch(`/api/inbox/${register.uploadId}/analyze`, {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ userId }) // if your server expects it
+}).then(r => r.json());
+
+if (ana?.error) {
+  toast.error(`AI Analysis failed: ${ana.error}`);
+  inbox.addOrUpdate({ id: register.uploadId, status: "failed" });
+} else {
+  inbox.addOrUpdate({
+    id: register.uploadId,
+    status: ana?.suggestion ? "suggested" : "dismissed",
+    suggestion: ana?.suggestion ?? null,
+    fields: ana?.fields ?? []
+  });
+  inbox.open(); // show drawer so the user sees the card update
+}
+
+3) A quick verification checklist
+
+Network tab (Upload Center)
+
+See POST /api/uploads → 200 with { uploadId: "xxxxxxxx" }.
+
+Immediately after, POST /api/inbox/:uploadId/analyze → 200 with { suggestion, fields }.
+
+DB reality check (temporary endpoint or psql):
+select id,user_id,status from inbox_items order by created_at desc limit 5;
+You should see the row with the same id the client used.
+
+User scoping
+If your routes attach req.user.id, make sure the same value is passed to both INSERT and to the SELECT in analyze. A mismatch here is the #1 cause of “not found”.
+
+Race
+With the server-side 5×150 ms retry above, you can safely trigger analyze right after the insert without seeing sporadic “not found”.
+
+4) Why your screenshots behave that way
+
+The first toast (“Document uploaded successfully”) is from the S3 PUT + register. ✅
+
+The second toast (“AI Analysis failed after 3 attempts”) is your client retrying analyze when the /api/inbox/:id/analyze endpoint returns 404/500 because it can’t find the newly inserted row (ID/user mismatch or commit lag). The code above fixes both paths.

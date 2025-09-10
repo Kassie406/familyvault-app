@@ -15,7 +15,17 @@ export async function aiInboxProcessFile(
     }) => void;
   }
 ) {
+  console.log("🚀 Starting aiInboxProcessFile with:", { 
+    fileName: file.name, 
+    s3Key, 
+    userId, 
+    fileSize: file.size,
+    mimeType: file.type 
+  });
+
   // 1) Register the upload (this is where the current error is)
+  console.log("📡 Calling /api/uploads registration...");
+  
   const regRes = await fetch("/api/uploads", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -28,12 +38,17 @@ export async function aiInboxProcessFile(
     }),
   });
 
+  console.log("📡 Registration response:", regRes.status, regRes.statusText);
+
   if (!regRes.ok) {
     const msg = await regRes.text();
+    console.error("❌ Registration failed:", msg);
     throw new Error(`register failed: ${msg}`);  // surfaces the real reason in the toast
   }
 
-  const { uploadId } = await regRes.json();
+  const regData = await regRes.json();
+  console.log("✅ Registration successful:", regData);
+  const { uploadId } = regData;
 
   // Optimistic card - show analyzing immediately
   inbox.addOrUpdate({ id: uploadId, fileName: file.name, status: "analyzing" });
@@ -49,6 +64,8 @@ export async function aiInboxProcessFile(
       console.log(`🔄 Retrying analysis (attempt ${i + 1}/${maxRetries}) for ID: ${uploadId}`);
     }
     
+    console.log(`📊 Calling analysis endpoint /api/inbox/${uploadId}/analyze (attempt ${i + 1})`);
+    
     anRes = await fetch(`/api/inbox/${uploadId}/analyze`, { 
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -61,12 +78,19 @@ export async function aiInboxProcessFile(
       })
     });
     
-    if (anRes.ok) break;
+    console.log(`📊 Analysis response:`, anRes.status, anRes.statusText);
     
-    // If it's the last attempt, throw the error
-    if (i === maxRetries - 1) {
-      const msg = await anRes.text();
-      throw new Error(`analyze failed after ${maxRetries} attempts: ${msg}`);
+    if (anRes.ok) {
+      console.log("✅ Analysis succeeded!");
+      break;
+    } else {
+      console.log(`❌ Analysis attempt ${i + 1} failed with status ${anRes.status}`);
+      
+      // If it's the last attempt, throw the error
+      if (i === maxRetries - 1) {
+        const msg = await anRes.text();
+        throw new Error(`analyze failed after ${maxRetries} attempts: ${msg}`);
+      }
     }
   }
 
