@@ -55,9 +55,19 @@ export default function AIBanner() {
 
       {/* Body by state */}
       {scan.state === "analyzing" && (
-        <div className="mt-3 flex items-center gap-2 text-sm" data-testid="status-analyzing">
-          <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
-          <span>Looking for key fields (name, number, dates) and a likely destination... (step {scan.step}/3)</span>
+        <div className="mt-3 space-y-2" data-testid="status-analyzing">
+          <div className="flex items-center gap-2 text-sm">
+            <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+            <span>{scan.step}</span>
+          </div>
+          {scan.progress !== undefined && (
+            <div className="w-full bg-muted/30 rounded-full h-1.5">
+              <div 
+                className="bg-[#D4AF37] h-1.5 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${Math.min(100, Math.max(0, scan.progress))}%` }}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -111,7 +121,7 @@ export default function AIBanner() {
         </div>
       )}
 
-      {(scan.state === "none" || scan.state === "failed" || scan.state === "unsupported") && (
+      {(scan.state === "none" || scan.state === "failed" || scan.state === "unsupported" || scan.state === "timeout") && (
         <div className="mt-3 flex items-start gap-3 text-sm" data-testid="status-error">
           <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-400 flex-shrink-0" />
           <div className="space-y-2">
@@ -119,9 +129,21 @@ export default function AIBanner() {
               {scan.state === "none" && "No details detected"}
               {scan.state === "failed" && "Analysis failed"}
               {scan.state === "unsupported" && "File type not supported"}
+              {scan.state === "timeout" && "Analysis timed out"}
             </div>
             <div className="opacity-80">
               {scan.state === "none" && "This file doesn't contain enough readable text. Use PDFs or clear, flat photos."}
+              {scan.state === "timeout" && (
+                <div className="space-y-1">
+                  <div>{scan.message || "The analysis took too long and was stopped to prevent the UI from hanging."}</div>
+                  <div className="text-xs opacity-60">
+                    {scan.message?.includes('heartbeat') 
+                      ? 'No response from server (likely network/CORS issue)' 
+                      : 'Processing exceeded maximum time limit'
+                    }
+                  </div>
+                </div>
+              )}
               {scan.state === "failed" && (
                 <div className="space-y-1">
                   <div>{scan.error || scan.message || "Something went wrong. Try again."}</div>
@@ -144,6 +166,22 @@ export default function AIBanner() {
               >
                 <RefreshCw className="mr-1 h-4 w-4" /> Try Again
               </Button>
+              {(scan.state === "timeout" || scan.state === "failed") && (
+                <button
+                  className="inline-flex items-center gap-1 text-xs opacity-70 hover:opacity-100 transition-opacity"
+                  onClick={() => {
+                    // Show debugging information
+                    const info = scan.state === 'timeout' 
+                      ? `Timeout after 2 minutes. Stage: ${scan.stage || 'unknown'}. Message: ${scan.message || 'none'}`
+                      : `Failed with code ${scan.code || 'unknown'}. Stage: ${scan.stage || 'unknown'}. Error: ${scan.error || scan.message || 'none'}`;
+                    window.alert(`Debug Info:\n${info}\n\nThis information can help technical support diagnose the issue.`);
+                  }}
+                  data-testid="button-view-logs"
+                >
+                  <Info className="h-3 w-3" />
+                  View logs
+                </button>
+              )}
               <button
                 className="inline-flex items-center gap-1 text-xs opacity-70 hover:opacity-100 transition-opacity"
                 onClick={handleLearnMore}
