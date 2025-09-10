@@ -1,0 +1,246 @@
+Got it — I agree with your UX: when the AI finishes in the Inbox drawer, a banner should pop up above Upload Center with the result (like your red-boxed area), not force you to open the Inbox first.
+
+Below is a small, safe wiring that does exactly that. It doesn’t change your analysis logic; it only adds a one-way notification from the Inbox flow to Upload Center.
+
+What we’ll add
+
+Tiny event bus in the client to broadcast “autofill started / ready / failed”.
+
+Emit from your existing AI-inbox flow when analysis finishes.
+
+Subscribe in UploadCenter and render the banner right where you circled.
+
+Buttons: Regenerate, Dismiss, Accept all, and Open (to jump to the Inbox card / Family ID).
+
+This gives you:
+
+“Analyzing…” while the Inbox is working.
+
+Auto-swap to “Suggested autofill • N details found” when done.
+
+Works even if the Inbox drawer is closed.
+
+No state collisions with your existing Inbox list.
+
+1) Client event bus (single file, tiny)
+// client/src/lib/autofillBus.ts
+import mitt from 'mitt';
+
+export type AutofillJob = {
+  uploadId: string;
+  fileName: string;
+  s3Key?: string;
+};
+
+export type AutofillResult = {
+  uploadId: string;
+  fileName: string;
+  detailsCount: number;
+  fields: Array<{ key: string; value: string; pii?: boolean; confidence?: number }>;
+  suggestion?: { memberId?: string; memberName?: string; confidence?: number } | null;
+};
+
+type Events = {
+  'autofill:started': AutofillJob;
+  'autofill:ready': AutofillResult;
+  'autofill:failed': { uploadId: string; fileName: string; error: string };
+};
+
+const bus = mitt<Events>();
+export default bus;
+
+
+If you don’t use mitt yet, it’s a 500B dependency. You can also write a 10-line emitter yourself if you prefer.
+
+2) Emit from your Inbox analysis flow
+
+Wherever you call your analyze endpoint (in your current hook/logic — e.g., useInbox or useAutofill), emit on start/success/fail:
+
+// client/src/hooks/useAutofill.ts (or wherever you already do analyze)
+import bus from '@/lib/autofillBus';
+
+async function analyze(uploadId: string, fileName: string) {
+  bus.emit('autofill:started', { uploadId, fileName });
+
+  try {
+    const res = await fetch(`/api/inbox/${uploadId}/analyze`, { method: 'POST' });
+    const data = await res.json();
+
+    const detailsCount = Array.isArray(data?.fields) ? data.fields.length : 0;
+    bus.emit('autofill:ready', {
+      uploadId,
+      fileName,
+      detailsCount,
+      fields: data?.fields ?? [],
+      suggestion: data?.suggestion ?? null,
+    });
+  } catch (e: any) {
+    bus.emit('autofill:failed', {
+      uploadId,
+      fileName,
+      error: e?.message || 'Failed to analyze upload',
+    });
+    throw e;
+  }
+}
+
+
+If you already have retry logic, keep it. Only emit ready once the final response lands, or failed if all retries were exhausted.
+
+3) Subscribe in UploadCenter and show the banner
+// client/src/components/upload/UploadCenter.tsx
+import { useEffect, useState } from 'react';
+import bus from '@/lib/autofillBus';
+
+type BannerState =
+  | { kind: 'idle' }
+  | { kind: 'working'; uploadId: string; fileName: string }
+  | { kind: 'ready'; uploadId: string; fileName: string; details: number; fields: any[]; suggestion: any }
+  | { kind: 'failed'; uploadId: string; fileName: string; error: string };
+
+export default function UploadCenter(/* props */) {
+  const [banner, setBanner] = useState<BannerState>({ kind: 'idle' });
+
+  useEffect(() => {
+    const onStart = (j: any) => setBanner({ kind: 'working', uploadId: j.uploadId, fileName: j.fileName });
+    const onReady = (r: any) =>
+      setBanner({
+        kind: 'ready',
+        uploadId: r.uploadId,
+        fileName: r.fileName,
+        details: r.detailsCount ?? 0,
+        fields: r.fields ?? [],
+        suggestion: r.suggestion ?? null,
+      });
+    const onFail = (f: any) => setBanner({ kind: 'failed', ...f });
+
+    bus.on('autofill:started', onStart);
+    bus.on('autofill:ready', onReady);
+    bus.on('autofill:failed', onFail);
+    return () => {
+      bus.off('autofill:started', onStart);
+      bus.off('autofill:ready', onReady);
+      bus.off('autofill:failed', onFail);
+    };
+  }, []);
+
+  // Simple actions
+  const dismiss = () => setBanner({ kind: 'idle' });
+  const openInbox = () => window.dispatchEvent(new CustomEvent('inbox:open', { detail: banner }));
+  const regenerate = async () => {
+    if (banner.kind === 'ready' || banner.kind === 'failed') {
+      setBanner({ kind: 'working', uploadId: banner.uploadId, fileName: banner.fileName });
+      // re-emit through your existing analyze() call:
+      // await analyze(banner.uploadId, banner.fileName)
+      // (or dispatch whatever you already use to trigger analyze again)
+      bus.emit('autofill:started', { uploadId: banner.uploadId, fileName: banner.fileName });
+    }
+  };
+  const acceptAll = async () => {
+    if (banner.kind !== 'ready') return;
+    await fetch(`/api/inbox/${banner.uploadId}/accept`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ fields: banner.fields, memberId: banner.suggestion?.memberId }),
+    });
+    setBanner({ kind: 'idle' });
+  };
+
+  return (
+    <>
+      {/* === NEW BANNER SECTION (your red area) === */}
+      <div className="mb-3">
+        {banner.kind === 'working' && (
+          <div className="rounded-lg bg-slate-800/40 border border-slate-700 p-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="animate-spin">⏳</span>
+              <span className="font-medium">Analyzing…</span>
+              <span className="text-slate-400">({banner.fileName})</span>
+            </div>
+            <div className="flex gap-2">
+              <button className="px-3 py-1 rounded bg-slate-700" onClick={openInbox}>View in Inbox</button>
+            </div>
+          </div>
+        )}
+
+        {banner.kind === 'ready' && (
+          <div className="rounded-lg bg-slate-800/40 border border-slate-700 p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span>✨</span>
+                <span className="font-medium">Suggested autofill</span>
+                <span className="text-slate-400">• {banner.details} details found</span>
+              </div>
+              <div className="flex gap-2">
+                <button className="px-3 py-1 rounded bg-slate-700" onClick={regenerate}>Regenerate</button>
+                <button className="px-3 py-1 rounded bg-slate-700" onClick={dismiss}>Dismiss</button>
+                <button className="px-3 py-1 rounded bg-amber-500 text-black" onClick={acceptAll}>Accept all</button>
+              </div>
+            </div>
+            {/* optional: quick preview row */}
+            {banner.suggestion?.memberName && (
+              <div className="mt-2 text-sm text-slate-300">
+                Suggested destination: <span className="font-medium">{banner.suggestion.memberName}</span>
+                <button className="ml-3 underline" onClick={openInbox}>Open</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {banner.kind === 'failed' && (
+          <div className="rounded-lg bg-rose-950/40 border border-rose-800 p-3 flex items-center justify-between">
+            <div>
+              <span className="font-medium text-rose-300">AI Analysis failed</span>
+              <span className="text-rose-400 ml-2">({banner.error})</span>
+            </div>
+            <div className="flex gap-2">
+              <button className="px-3 py-1 rounded bg-slate-700" onClick={openInbox}>View in Inbox</button>
+              <button className="px-3 py-1 rounded bg-amber-500 text-black" onClick={regenerate}>Try again</button>
+              <button className="px-3 py-1 rounded bg-slate-700" onClick={dismiss}>Dismiss</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* …the rest of your existing Upload Center UI */}
+    </>
+  );
+}
+
+
+This keeps your banner fully independent of the Inbox drawer while staying in sync.
+
+4) (Optional) Open Inbox from the banner
+
+If your drawer listens for a global event:
+
+// client/src/components/inbox/InboxDrawer.tsx
+useEffect(() => {
+  const onOpen = () => setOpen(true);
+  window.addEventListener('inbox:open', onOpen as any);
+  return () => window.removeEventListener('inbox:open', onOpen as any);
+}, []);
+
+
+You can pass the uploadId in detail if you want to auto-focus the matching card.
+
+5) (Optional, better) Server push → client
+
+If you already have WebSockets/SSE for Inbox updates, emit a socket event from the server when the analyze ends:
+
+// server/routes/ai-inbox.ts (after analysis success)
+io.to(userId).emit('inbox:analyzed', {
+  uploadId,
+  fileName,
+  detailsCount: fields.length,
+  fields,
+  suggestion,
+});
+
+
+Then on the client’s socket handler:
+
+socket.on('inbox:analyzed', (payload) => bus.emit('autofill:ready', payload));
+
+
+That removes the need for polling and guarantees the banner appears exactly when the job finishes.
