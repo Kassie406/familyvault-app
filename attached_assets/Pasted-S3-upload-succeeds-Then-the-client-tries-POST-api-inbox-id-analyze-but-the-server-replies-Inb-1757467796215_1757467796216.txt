@@ -1,0 +1,119 @@
+S3 upload succeeds ✅
+
+Then the client tries POST /api/inbox/:id/analyze, but the server replies “Inbox item not found” or “failed to analyze upload” ❌
+
+That means the registration step that should run before analysis (creating the inbox item) either never fired or returned a different id than the one used for analysis.
+
+Here’s a tight, end-to-end fix + a 60-second verification checklist.
+
+What must happen (in order)
+
+Register the upload (creates DB row)
+POST /api/uploads → returns { uploadId }
+
+Analyze the file (using that same uploadId)
+POST /api/inbox/:uploadId/analyze
+
+Show Inbox card using the returned suggestion/fields
+(Optional: open the Inbox drawer right away)
+
+If step 1 doesn’t run (or the uploadId mismatches), step 2 will 404 or fail → your exact error.
+
+Client: 10 lines that make it robust
+
+Drop these in the code path that runs after the S3 PUT returns 200 (where you show “Uploaded successfully”).
+
+// after S3 PUT success
+const register = await fetch("/api/uploads", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    userId,                     // current user
+    fileKey: s3Key,             // the exact S3 key you PUT to
+    fileName: file.name,
+    mime: file.type,
+    size: file.size,
+  }),
+}).then(r => r.json());
+
+if (!register?.uploadId) throw new Error("Registration failed");
+
+// Retry wrapper (handles slight DB lag if needed)
+async function analyzeWithRetry(id: string, tries = 3) {
+  for (let i = 1; i <= tries; i++) {
+    const res = await fetch(`/api/inbox/${id}/analyze`, { method: "POST" });
+    if (res.ok) return res.json();
+
+    // If the row isn’t there yet, wait briefly then retry
+    if (res.status === 404 || res.status === 409) await new Promise(r => setTimeout(r, 600));
+    else throw new Error(`Analyze failed: ${res.status}`);
+  }
+  throw new Error("Analyze failed after retries");
+}
+
+const analysis = await analyzeWithRetry(register.uploadId);
+
+// (Optional) Put an optimistic card in Inbox drawer and open it
+openInbox();
+addOrUpdateItem({
+  id: register.uploadId,
+  fileName: file.name,
+  status: analysis?.suggestion ? "suggested" : "dismissed",
+  suggestion: analysis?.suggestion ?? null,
+  fields: analysis?.fields ?? [],
+});
+
+
+Important: the uploadId returned by /api/uploads must be the same id your analysis endpoint expects. Don’t invent a different id on the client.
+
+Server: sanity checks (fast)
+
+Make sure these are true:
+
+POST /api/uploads
+
+Inserts one row into inbox_items (or whatever table) with primary key = uploadId you return.
+
+Ideally uploadId = a UUID you generate server-side (not the S3 key), but whichever you choose—be consistent.
+
+Returns { uploadId } on 200.
+
+POST /api/inbox/:id/analyze
+
+Looks up SELECT * FROM inbox_items WHERE id = :id.
+If missing → return 404 (the retry handles it).
+
+Performs analysis (or enqueues a job) and returns { suggestion, fields } (even if suggestion is null).
+
+DB table exists
+If you’re using Drizzle/Prisma, confirm the table and PK are created. (You already validated this earlier—just restating the critical path.)
+
+60-sec verify (no guessing)
+
+Open DevTools → Network.
+
+Upload a small file. You should see:
+
+PUT https://…s3… → 200
+
+POST /api/uploads → 200 (open the response, note uploadId)
+
+POST /api/inbox/<that-uploadId>/analyze → 200 (or 404 once, then 200 on retry)
+
+Inbox drawer shows a card: Analyzing… → Suggested destination + Details.
+
+If you don’t see POST /api/uploads in Network, that’s the entire bug—wire the client call exactly as above.
+
+If POST /api/uploads is 200 but analyze 404s every time, your server is inserting with a different id than the one you return—or inserting into the wrong table/DB.
+
+Common foot-guns to check (quick)
+
+CORS: Your API must allow portal.familycirclesecure.com, console.familycirclesecure.com, hub.familycirclesecure.com, and the replit preview domain. (This is separate from CSP; your CSP is good now.)
+
+Body mismatch: Server expects fileKey/fileName but your client sends different names → insert fails silently.
+
+Transaction lag: DB insert might be async/queued; that’s why the retry above waits a bit before analyze.
+
+Different id types: If DB uses UUID and client assumes S3 key (or vice-versa), you’ll never match.
+
+If you paste the client handler where you currently show “uploaded successfully,” I’ll drop these lines in place for you so it’s 100% aligned with your code.
