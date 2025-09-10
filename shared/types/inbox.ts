@@ -5,6 +5,7 @@ export type ExtractField = {
   value: string;           // normalized value (ISO for dates)
   confidence: number;      // 0..100
   path: string;            // exact destination, e.g., 'ids.driverLicense.state'
+  pii?: boolean;           // indicates personally identifiable information
   bbox?: [number, number, number, number]; // optional for highlight
 };
 

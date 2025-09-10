@@ -148,13 +148,13 @@ export default function InboxDrawer({ isOpen, onClose }: InboxDrawerProps) {
   const queryClient = useQueryClient();
 
   // Fetch inbox items from API
-  const { data: items = [], isLoading, refetch } = useQuery({
+  const { data: items = [], isLoading, refetch } = useQuery<InboxItem[]>({
     queryKey: ["/api/inbox"],
     enabled: isOpen, // Only fetch when drawer is open
     refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
   });
 
-  const activeItem = items.find((item: InboxItem) => item.id === activeItemId) || null;
+  const activeItem = items.find((item) => item.id === activeItemId) || null;
 
   // Accept suggestion mutation
   const acceptMutation = useMutation({
@@ -197,7 +197,7 @@ export default function InboxDrawer({ isOpen, onClose }: InboxDrawerProps) {
 
   // Accept suggestion - move file to member
   const acceptSuggestion = (id: string) => {
-    const item = items.find((item: InboxItem) => item.id === id);
+    const item = items.find((item) => item.id === id);
     if (item?.suggestion) {
       // Convert legacy format to new comprehensive format for backend
       const suggestions = {
@@ -228,7 +228,7 @@ export default function InboxDrawer({ isOpen, onClose }: InboxDrawerProps) {
     setLocation(`/family/member/${memberId}`);
   };
 
-  const visibleItems = items.filter((item: InboxItem) => item.status !== "dismissed");
+  const visibleItems = items.filter((item) => item.status !== "dismissed");
 
   if (!isOpen) return null;
 
