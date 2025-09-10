@@ -6,6 +6,8 @@ import { inboxItems, extractedFields } from "@shared/schema";
 import { nanoid } from "nanoid";
 import { eq } from "drizzle-orm";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import sharp from "sharp";
+import { getIoServer } from "../realtime";
 
 // Create S3 client
 const s3Client = new S3Client({
@@ -17,6 +19,33 @@ const s3Client = new S3Client({
 });
 
 export const aiInboxRouter = Router();
+
+/** Image Preprocessing with Sharp */
+async function preprocessImage(buffer: Buffer): Promise<Buffer> {
+  try {
+    return await sharp(buffer)
+      .rotate()                 // auto-orient based on EXIF
+      .resize({ width: 2000, withoutEnlargement: true })  // max 2000px width
+      .grayscale()             // convert to grayscale for better OCR
+      .normalise()             // increase contrast
+      .toFormat('jpeg', { quality: 85 })  // convert to JPEG, 85% quality
+      .toBuffer();
+  } catch (error) {
+    console.error('[PREPROCESSING] Error processing image:', error);
+    // Return original buffer if preprocessing fails
+    return buffer;
+  }
+}
+
+/** Timeout wrapper for promises */
+function withTimeout<T>(promise: Promise<T>, ms = 20000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error('timeout')), ms)
+    ),
+  ]);
+}
 
 /** Schema */
 const RegisterBody = z.object({
@@ -101,13 +130,34 @@ aiInboxRouter.post("/:id/analyze", async (req, res) => {
     await db.update(inboxItems).set({ status: 'analyzing' }).where(eq(inboxItems.id, id));
     step('updated status to analyzing');
 
-    // TODO: Add S3 fetch when we implement real OCR
-    // const s3Object = await s3Client.send(new GetObjectCommand({ ... }));
-    // step('fetched S3 object');
+    // Fetch S3 object
+    let processedBuffer: Buffer;
+    try {
+      const s3Object = await s3Client.send(new GetObjectCommand({ 
+        Bucket: process.env.S3_BUCKET_DOCS!, 
+        Key: item.fileUrl 
+      }));
+      step('fetched S3 object');
 
-    // Simulate preprocessing delay
-    await new Promise(resolve => setTimeout(resolve, 100));
-    step('preprocessed image');
+      const chunks: Uint8Array[] = [];
+      if (s3Object.Body) {
+        const stream = s3Object.Body as any;
+        for await (const chunk of stream) {
+          chunks.push(chunk);
+        }
+      }
+      const originalBuffer = Buffer.concat(chunks);
+      step('converted S3 stream to buffer');
+
+      // Preprocess image with sharp
+      processedBuffer = await withTimeout(preprocessImage(originalBuffer), 10000);
+      step('preprocessed image with sharp');
+    } catch (error) {
+      console.error('[AI] S3 fetch/preprocessing failed:', error);
+      // Fall back to demo mode if S3 fails
+      processedBuffer = Buffer.from('demo-content');
+      step('fell back to demo mode');
+    }
 
     // ---- DEMO ANALYZER (always produces 2 fields) ----
     const suggestion = { memberId: 'angel-quintana', memberName: 'Angel Quintana', confidence: 0.92 };
@@ -138,11 +188,83 @@ aiInboxRouter.post("/:id/analyze", async (req, res) => {
 
     console.log(`[AI] Analysis complete for ${id} in ${Date.now() - t0}ms`);
     
+    // Emit real-time success event
+    const io = getIoServer();
+    if (io && item.familyId) {
+      io.to(`family:${item.familyId}`).emit('inbox:ready', {
+        uploadId: id,
+        fileName: item.filename,
+        detailsCount: fields.length,
+        fields,
+        suggestion
+      });
+      console.log(`[AI] Emitted inbox:ready event to family:${item.familyId}`);
+    }
+    
     // return exactly what UI expects
     return res.json({ suggestion, fields });
   } catch (e:any) {
     console.error('analyze error', e);
+    
+    const errorMessage = e?.message || 'Analysis failed';
+    
+    // Update status to failed in DB
+    await db.update(inboxItems).set({
+      status: 'failed',
+    }).where(eq(inboxItems.id, id));
+    
+    // Get item for family ID and emit real-time failure event
+    const item = await db.query.inboxItems.findFirst({ where: eq(inboxItems.id, id) });
+    const io = getIoServer();
+    if (io && item?.familyId) {
+      io.to(`family:${item.familyId}`).emit('inbox:failed', {
+        uploadId: id,
+        fileName: item.filename,
+        error: errorMessage
+      });
+      console.log(`[AI] Emitted inbox:failed event to family:${item.familyId}`);
+    }
+    
     return res.status(500).json({ error: 'analyze_failed' });
+  }
+});
+
+/** GET /api/inbox/:id/status -> { status, detailsCount, result } */
+aiInboxRouter.get("/:id/status", async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const item = await db.query.inboxItems.findFirst({ where: eq(inboxItems.id, id) });
+    if (!item) return res.status(404).json({ error: 'inbox_item_not_found' });
+
+    // Get extracted fields
+    const fields = await db.query.extractedFields.findMany({
+      where: eq(extractedFields.inboxItemId, id)
+    });
+
+    const result = {
+      fields: fields.map(f => ({
+        key: f.fieldKey,
+        value: f.fieldValue,
+        confidence: f.confidence,
+        pii: f.isPii
+      })),
+      suggestion: item.suggestedMemberId ? {
+        memberId: item.suggestedMemberId,
+        memberName: 'Angel Quintana', // TODO: lookup from members table
+        confidence: item.confidence || 90
+      } : null
+    };
+
+    res.json({
+      status: item.status,
+      detailsCount: result.fields.length,
+      result: result,
+      error: item.status === 'failed' ? 'Analysis failed' : null
+    });
+  } catch (e: any) {
+    console.error('[AI] Status check error:', e);
+    res.status(500).json({ error: 'status_check_failed' });
   }
 });
 

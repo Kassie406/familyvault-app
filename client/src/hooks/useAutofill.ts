@@ -1,5 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import bus from '@/lib/autofillBus';
+import io, { Socket } from 'socket.io-client';
 
 export type ExtractField = { key: string; value: string; confidence: number; pii?: boolean };
 export type Suggestion = { memberId: string; memberName: string; confidence: number };
@@ -15,6 +16,29 @@ type BannerState = {
 
 export function useAutofill() {
   const [banner, setBanner] = useState<BannerState>({ open: false });
+  const socketRef = useRef<Socket | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    // Initialize socket connection
+    socketRef.current = io('/', { path: '/socket.io' });
+    
+    const socket = socketRef.current;
+    socket.on('inbox:ready', (data: any) => {
+      console.log('[AUTOFILL] Socket: inbox:ready', data);
+      bus.emit('autofill:ready', data);
+    });
+    
+    socket.on('inbox:failed', (data: any) => {
+      console.log('[AUTOFILL] Socket: inbox:failed', data);
+      bus.emit('autofill:failed', data);
+    });
+    
+    return () => {
+      socket.disconnect();
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   const registerAndAnalyze = useCallback(async (args: {
     userId: string;
@@ -23,6 +47,9 @@ export function useAutofill() {
     mime?: string;
     size?: number;
   }) => {
+    let uploadId: string = '';
+    let stopped = false;
+    
     try {
       setBanner({ open: true, fileName: args.fileName });
 
@@ -33,37 +60,88 @@ export function useAutofill() {
         body: JSON.stringify(args)
       }).then(r => r.json());
 
+      uploadId = reg.uploadId;
+      console.log('[AUTOFILL] Registered upload:', uploadId);
+      
       // Emit started event
-      bus.emit('autofill:started', { uploadId: reg.uploadId, fileName: args.fileName });
+      bus.emit('autofill:started', { uploadId, fileName: args.fileName });
 
-      // 2) analyze
-      const res = await fetch(`/api/inbox/${reg.uploadId}/analyze`, { method: "POST" }).then(r => r.json());
-
-      setBanner({
-        open: true,
-        fileName: args.fileName,
-        uploadId: reg.uploadId,
-        fields: res.fields || [],      // <- this must be here (not undefined)
-        suggestion: res.suggestion || null
+      // 2) Start analysis (fire-and-forget)
+      fetch(`/api/inbox/${uploadId}/analyze`, { method: "POST" }).catch(e => {
+        console.warn('[AUTOFILL] Analysis request failed:', e);
       });
-
-      // Emit ready event
-      const detailsCount = Array.isArray(res?.fields) ? res.fields.length : 0;
-      bus.emit('autofill:ready', {
-        uploadId: reg.uploadId,
-        fileName: args.fileName,
-        detailsCount,
-        fields: res?.fields ?? [],
-        suggestion: res?.suggestion ?? null,
-      });
+      
+      // 3) Set up polling fallback with timeout
+      let tries = 0;
+      const pollStatus = async () => {
+        if (stopped || tries++ > 10) return; // ~20s max
+        
+        try {
+          const r = await fetch(`/api/inbox/${uploadId}/status`);
+          if (!r.ok) throw new Error(`Status ${r.status}`);
+          
+          const status = await r.json();
+          console.log('[AUTOFILL] Polling status:', status);
+          
+          if (status.status === 'ready' || status.status === 'suggested') {
+            stopped = true;
+            const result = status.result || { fields: [], suggestion: null };
+            
+            setBanner({
+              open: true,
+              fileName: args.fileName,
+              uploadId,
+              fields: result.fields || [],
+              suggestion: result.suggestion || null
+            });
+            
+            bus.emit('autofill:ready', {
+              uploadId,
+              fileName: args.fileName,
+              detailsCount: result.fields?.length || 0,
+              fields: result.fields || [],
+              suggestion: result.suggestion || null,
+            });
+            return;
+          }
+          
+          if (status.status === 'failed') {
+            stopped = true;
+            setBanner(b => ({ ...b, error: status.error || 'Analysis failed' }));
+            bus.emit('autofill:failed', {
+              uploadId,
+              fileName: args.fileName,
+              error: status.error || 'Analysis failed',
+            });
+            return;
+          }
+          
+          // Still processing, poll again in 2s
+          setTimeout(pollStatus, 2000);
+        } catch (e: any) {
+          console.warn('[AUTOFILL] Polling error:', e);
+          if (tries <= 10) setTimeout(pollStatus, 2000);
+        }
+      };
+      
+      // Start polling after 1s delay
+      setTimeout(pollStatus, 1000);
+      
+      // Set hard timeout - if nothing after 20s, show "working in background" message
+      timeoutRef.current = setTimeout(() => {
+        if (!stopped) {
+          console.log('[AUTOFILL] Timeout reached, working in background');
+          setBanner(b => ({ ...b, error: "We're still working in the background..." }));
+        }
+      }, 20000);
 
     } catch (e: any) {
+      console.error('[AUTOFILL] Register failed:', e);
       setBanner(b => ({ ...b, error: String(e?.message || e) }));
-      // Emit failed event
       bus.emit('autofill:failed', {
-        uploadId: banner.uploadId || 'unknown',
+        uploadId: uploadId || 'unknown',
         fileName: args.fileName,
-        error: e?.message || 'Failed to analyze upload',
+        error: e?.message || 'Failed to register upload',
       });
     }
   }, []);
