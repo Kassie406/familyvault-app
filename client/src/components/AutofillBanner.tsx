@@ -1,79 +1,70 @@
-import { Sparkles, ThumbsUp, ThumbsDown, Info } from "lucide-react";
+import { Sparkles, Info, RefreshCw } from "lucide-react";
+
+type Props = {
+  fileName: string;
+  detailsCount: number;
+  fields: { key: string; value: string; pii?: boolean }[];
+  suggestion?: { memberId: string; memberName: string; confidence: number } | null;
+  onAccept: () => void;
+  onDismiss: () => void;
+  onViewDetails: () => void;
+  onRegenerate?: () => void;
+};
 
 export default function AutofillBanner({
-  open,
-  fileName,
-  fields,
-  suggestion,
-  onAccept,
-  onDismiss
-}: {
-  open: boolean;
-  fileName?: string;
-  fields?: { key: string; value: string; confidence: number; pii?: boolean }[];
-  suggestion?: { memberId: string; memberName: string; confidence: number } | null;
-  onAccept: (memberId: string) => void;
-  onDismiss: () => void;
-}) {
-  if (!open) return null;
-
-  const count = fields?.length ?? 0;
-
+  fileName, detailsCount, fields, suggestion, onAccept, onDismiss, onViewDetails, onRegenerate
+}: Props) {
   return (
-    <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 mb-4" data-testid="autofill-banner">
-      <div className="flex items-start gap-3">
-        <div className="p-1 bg-blue-100 rounded-full"><Sparkles className="w-4 h-4 text-blue-600" /></div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium" data-testid="text-suggested-autofill">Suggested autofill</span>
-            <span className="text-xs text-blue-700" data-testid="text-details-count">{count} details found</span>
-          </div>
-          <div className="mt-2 text-sm">
-            {fields?.slice(0,2).map(f => (
-              <div key={f.key} className="flex justify-between" data-testid={`field-${f.key.toLowerCase().replace(/\s+/g, '-')}`}>
-                <span className="text-gray-600">{f.key}</span>
-                <span className="font-medium">{f.pii ? mask(f.value) : f.value}</span>
-              </div>
-            ))}
-          </div>
-
-          {suggestion && (
-            <div className="mt-3 text-sm" data-testid="suggested-destination">
-              Suggested destination: <span className="font-medium">{suggestion.memberName}</span>
-            </div>
-          )}
-
-          <div className="mt-3 flex items-center gap-2">
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 shadow-sm" data-testid="autofill-banner">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-zinc-100">
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-yellow-500/20">
+            <Sparkles className="h-3 w-3 text-yellow-400" />
+          </span>
+          <span className="font-medium" data-testid="text-suggested-autofill">Suggested autofill</span>
+          <span className="text-zinc-400" data-testid="text-details-count">• {detailsCount} details found</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {onRegenerate && (
             <button 
-              className="px-3 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200" 
-              onClick={onDismiss}
-              data-testid="button-dismiss"
+              className="px-3 py-1.5 text-sm rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-200 transition-colors flex items-center gap-1"
+              onClick={onRegenerate}
+              data-testid="button-regenerate"
             >
-              Dismiss
+              <RefreshCw className="h-4 w-4" />
+              <span>Regenerate</span>
             </button>
-            {suggestion && (
-              <button 
-                className="px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-                onClick={() => onAccept(suggestion.memberId)}
-                data-testid="button-accept-all"
-              >
-                Accept all
-              </button>
-            )}
-            <div className="ml-auto flex items-center gap-1 text-gray-500">
-              <ThumbsUp className="w-4 h-4 cursor-pointer hover:text-green-600" data-testid="button-thumbs-up" />
-              <ThumbsDown className="w-4 h-4 cursor-pointer hover:text-red-600" data-testid="button-thumbs-down" />
-              <Info className="w-4 h-4 cursor-pointer hover:text-blue-600" data-testid="button-info" />
-            </div>
-          </div>
+          )}
+          <button 
+            className="px-3 py-1.5 text-sm rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-200 transition-colors"
+            onClick={onDismiss}
+            data-testid="button-dismiss"
+          >
+            Dismiss
+          </button>
+          <button 
+            className="px-3 py-1.5 text-sm rounded-md bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90 transition-colors font-medium"
+            onClick={onAccept}
+            data-testid="button-accept-all"
+          >
+            Accept all
+          </button>
         </div>
       </div>
-      <div className="mt-1 text-xs text-gray-500" data-testid="text-filename">File: {fileName}</div>
+
+      {suggestion && (
+        <div className="mt-2 text-sm text-zinc-300" data-testid="suggested-destination">
+          Suggested destination: <span className="font-medium text-[#D4AF37]">{suggestion.memberName}</span>
+        </div>
+      )}
+
+      <button 
+        className="mt-3 w-full rounded-md border border-zinc-800 py-2 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
+        onClick={onViewDetails}
+        data-testid="button-view-details"
+      >
+        View all details
+      </button>
     </div>
   );
-}
-
-function mask(v: string) {
-  // ***-**-2645 style masking
-  return v.replace(/\d(?=\d{4})/g, "•");
 }
