@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import bus from '@/lib/autofillBus';
 
 export type ExtractField = { key: string; value: string; confidence: number; pii?: boolean };
 export type Suggestion = { memberId: string; memberName: string; confidence: number };
@@ -32,6 +33,9 @@ export function useAutofill() {
         body: JSON.stringify(args)
       }).then(r => r.json());
 
+      // Emit started event
+      bus.emit('autofill:started', { uploadId: reg.uploadId, fileName: args.fileName });
+
       // 2) analyze
       const res = await fetch(`/api/inbox/${reg.uploadId}/analyze`, { method: "POST" }).then(r => r.json());
 
@@ -42,8 +46,25 @@ export function useAutofill() {
         fields: res.fields || [],      // <- this must be here (not undefined)
         suggestion: res.suggestion || null
       });
+
+      // Emit ready event
+      const detailsCount = Array.isArray(res?.fields) ? res.fields.length : 0;
+      bus.emit('autofill:ready', {
+        uploadId: reg.uploadId,
+        fileName: args.fileName,
+        detailsCount,
+        fields: res?.fields ?? [],
+        suggestion: res?.suggestion ?? null,
+      });
+
     } catch (e: any) {
       setBanner(b => ({ ...b, error: String(e?.message || e) }));
+      // Emit failed event
+      bus.emit('autofill:failed', {
+        uploadId: banner.uploadId || 'unknown',
+        fileName: args.fileName,
+        error: e?.message || 'Failed to analyze upload',
+      });
     }
   }, []);
 
