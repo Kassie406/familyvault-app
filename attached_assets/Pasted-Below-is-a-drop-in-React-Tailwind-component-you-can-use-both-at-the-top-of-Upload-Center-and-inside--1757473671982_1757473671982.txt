@@ -1,3 +1,7 @@
+Below is a drop-in React/Tailwind component you can use both at the top of Upload Center and inside the Inbox drawer. It extends the banner I sent earlier with icon variants, regenerate, feedback capture, accessibility, and graceful errors.
+
+1) Component: AutofillBannerTrust
+// components/AutofillBannerTrust.tsx
 import {
   Sparkles, Wand2, Brain, Lightbulb,
   Check, X, RefreshCw, ThumbsUp, ThumbsDown, Info, AlertTriangle
@@ -23,7 +27,7 @@ export type AutoFillSuggestion = {
 
 type Props = {
   suggestion: AutoFillSuggestion | null;   // null = hidden
-  loading?: boolean;                       // show "Analyzing…"
+  loading?: boolean;                       // show “Analyzing…”
   icon?: AISymbol;                         // default: "sparkles"
   aiAvailable?: boolean;                   // enable progressive enhancement
   error?: string | null;
@@ -52,7 +56,7 @@ export default function AutofillBannerTrust({
   const liveId = useId();
   const count = suggestion?.fields.length ?? 0;
 
-  // Pick the correct icon per Manus' guidance
+  // Pick the correct icon per Manus’ guidance
   const Icon = useMemo(() => {
     switch (icon) {
       case "wand": return Wand2;
@@ -229,10 +233,199 @@ export default function AutofillBannerTrust({
   );
 }
 
-// Prefer "Number" and "Expiration date", otherwise first two fields
+// Prefer “Number” and “Expiration date”, otherwise first two fields
 function pickHeadline(fields: ExtractField[]) {
   const get = (label: string) => fields.find((f) => f.label === label);
   const a = get("Number") ?? fields[0];
   const b = get("Expiration date") ?? fields.find((f) => f.key !== a?.key) ?? fields[1];
   return [a, b].filter(Boolean) as ExtractField[];
 }
+
+
+What’s included (per Manus):
+
+Icon variants (sparkles, wand, brain, lightbulb)
+
+Clear label + count chip
+
+Loading, error, availability states
+
+Regenerate with spinner
+
+Thumbs up / down / info feedback hooks
+
+ARIA labels + live region
+
+Works in both Upload Center and Inbox
+
+2) Use it in Upload Center
+// pages/upload/UploadCenter.tsx (excerpt)
+import { useState, useEffect } from "react";
+import AutofillBannerTrust, { AutoFillSuggestion } from "@/components/AutofillBannerTrust";
+
+export default function UploadCenter() {
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [aiAvailable, setAiAvailable] = useState(true);
+  const [autoFill, setAutoFill] = useState<AutoFillSuggestion | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/ai-status")
+      .then(r => r.json()).then(d => setAiAvailable(!!d.available))
+      .catch(() => setAiAvailable(false));
+  }, []);
+
+  async function onUploadSuccess(file: File, s3Key: string) {
+    setAiError(null);
+    setAnalysisLoading(true);
+
+    // 1) register
+    const reg = await fetch("/api/inbox/register", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ fileName: file.name, fileKey: s3Key }),
+    }).then(r => r.json());
+
+    // 2) analyze
+    const res = await fetch(`/api/inbox/${reg.uploadId}/analyze`, { method: "POST" });
+    setAnalysisLoading(false);
+
+    if (!res.ok) {
+      setAutoFill(null);
+      setAiError("Unable to analyze upload. Please try Regenerate.");
+      return;
+    }
+
+    const data = await res.json();
+    if (Array.isArray(data?.fields) && data.fields.length) {
+      setAutoFill({
+        uploadId: reg.uploadId,
+        itemType: data.itemType ?? inferType(data.fields),
+        fields: data.fields,
+        target: data?.suggestion ?? null,
+      });
+    } else {
+      setAutoFill(null);
+      setAiError("No confident details were found.");
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <AutofillBannerTrust
+        icon="sparkles"
+        aiAvailable={aiAvailable}
+        loading={analysisLoading}
+        error={aiError}
+        suggestion={autoFill}
+        onAcceptAll={acceptAll}
+        onDismissAll={dismissAll}
+        onRegenerate={regenerate}
+        onFeedback={sendFeedback}
+        onViewDetails={(s) => openDetailsModal(s)}
+      />
+
+      {/* ...your existing Upload Center UI... */}
+    </div>
+  );
+
+  async function acceptAll(s: AutoFillSuggestion) {
+    await fetch(`/api/inbox/${s.uploadId}/accept-autofill`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        memberId: s.target?.memberId ?? null,
+        fields: s.fields,
+      }),
+    });
+    setAutoFill(null);
+  }
+
+  async function dismissAll(s: AutoFillSuggestion) {
+    await fetch(`/api/inbox/${s.uploadId}/dismiss`, { method: "POST" });
+    setAutoFill(null);
+  }
+
+  async function regenerate(s: AutoFillSuggestion) {
+    setAiError(null);
+    const res = await fetch(`/api/inbox/${s.uploadId}/analyze`, { method: "POST" });
+    if (!res.ok) {
+      setAiError("Regeneration failed. Please try again.");
+      return null;
+    }
+    const data = await res.json();
+    const next: AutoFillSuggestion | null = (Array.isArray(data?.fields) && data.fields.length)
+      ? { uploadId: s.uploadId, itemType: data.itemType ?? inferType(data.fields), fields: data.fields, target: data?.suggestion ?? null }
+      : null;
+    setAutoFill(next);
+    if (!next) setAiError("No details found on regeneration.");
+    return next;
+  }
+
+  function sendFeedback(s: AutoFillSuggestion, type: "positive" | "negative" | "info") {
+    fetch("/api/ai-feedback", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        uploadId: s.uploadId,
+        feedback: type,
+        memberId: s.target?.memberId ?? null,
+      }),
+    }).catch(() => {});
+  }
+
+  function openDetailsModal(s: AutoFillSuggestion) {
+    // show full extracted field list in your existing modal
+  }
+}
+
+function inferType(fields: { key: string }[]) {
+  return fields[0]?.key?.split(".")[0] ?? "Document";
+}
+
+
+Drop onUploadSuccess where you already handle the S3 upload success.
+
+3) Use it in the Inbox drawer (same API)
+// InboxDrawer item (excerpt)
+<AutofillBannerTrust
+  icon="brain"
+  aiAvailable={true}
+  loading={false}
+  error={null}
+  suggestion={{
+    uploadId: item.id,
+    itemType: item.itemType ?? "Document",
+    fields: item.fields ?? [],
+    target: item.suggestion
+      ? { memberId: item.suggestion.memberId, memberName: item.suggestion.memberName }
+      : null,
+  }}
+  onAcceptAll={acceptAllFromInbox}
+  onDismissAll={dismissFromInbox}
+  onRegenerate={(s) => fetch(`/api/inbox/${s.uploadId}/analyze`, { method: "POST" }).then(r => r.json())}
+  onFeedback={(s, t) => fetch("/api/ai-feedback", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({ uploadId: s.uploadId, feedback: t }) })}
+  onViewDetails={(s) => openDetailsModal(s)}
+/>
+
+4) Minimal endpoints you’ll want
+// POST /api/ai-status -> { available: boolean }
+
+// POST /api/ai-feedback
+// body: { uploadId: string, feedback: 'positive'|'negative'|'info', memberId?: string|null }
+
+// POST /api/inbox/register -> { uploadId }
+// POST /api/inbox/:id/analyze -> { itemType?: string, fields: ExtractField[], suggestion?: { memberId, memberName } }
+// POST /api/inbox/:id/accept-autofill -> { ok: true }
+// POST /api/inbox/:id/dismiss -> { ok: true }
+
+
+You already have register/analyze. The new ones are /ai-status and /ai-feedback, plus accept-autofill if you want to atomically attach + persist extracted fields.
+
+5) Visual/UX notes
+
+Use Sparkles for general suggestions, Brain for analysis-heavy contexts (Inbox), Wand for transformations, Lightbulb for “ideas”.
+
+“Why am I seeing this?” (Info) gives transparency without modal overhead (tooltips or short explainer).
+
+The banner is compact, but View all details takes them to your full modal (like your “Details 2” pill).
