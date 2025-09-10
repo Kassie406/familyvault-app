@@ -16,8 +16,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useFileStatus } from "@/hooks/useFileStatus";
 import MobileUploadModal from "./MobileUploadModal";
 import InboxDrawer from "@/components/inbox/InboxDrawer";
-import AutofillBannerTrust from "@/components/AutofillBanner";
-import type { AutoFillSuggestion } from "@/components/AutofillBanner";
 
 type FileRow = {
   id: string;
@@ -41,24 +39,20 @@ type FileRow = {
 interface UploadCenterProps {
   familyId?: string;
   onUploadComplete?: (id: string, type: 'document' | 'photo') => void;
+  onFileUploaded?: (file: File, s3Key: string, type: 'document' | 'photo') => void;
   className?: string;
 }
 
 export default function UploadCenter({ 
   familyId = "family-1", 
   onUploadComplete,
+  onFileUploaded,
   className 
 }: UploadCenterProps) {
   const [tab, setTab] = useState<"docs" | "photos">("docs");
   const [rows, setRows] = useState<FileRow[]>([]);
   const [mobileModalOpen, setMobileModalOpen] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
-  
-  // Enhanced autofill banner state
-  const [loadingAI, setLoadingAI] = useState(false);
-  const [autoFill, setAutoFill] = useState<AutoFillSuggestion | null>(null);
-  const [aiAvailable, setAiAvailable] = useState(true);
-  const [aiError, setAiError] = useState<string | null>(null);
   
   // Form fields for current upload
   const [documentTitle, setDocumentTitle] = useState("");
@@ -74,13 +68,6 @@ export default function UploadCenter({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Check AI availability on mount
-  useEffect(() => {
-    fetch("/api/ai-status")
-      .then(r => r.json())
-      .then(d => setAiAvailable(!!d.available))
-      .catch(() => setAiAvailable(false));
-  }, []);
 
   const documentAccept = "application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,application/msword,image/*";
   const photoAccept = "image/*";
@@ -145,8 +132,8 @@ export default function UploadCenter({
         description: `${row.file.name} has been uploaded successfully.`,
       });
       
-      // Start AI analysis for autofill suggestions
-      await handleAIAnalysis(row.file, result.key);
+      // Notify parent about file upload for potential AI analysis
+      onFileUploaded?.(row.file, result.key, 'document');
       
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
@@ -214,8 +201,8 @@ export default function UploadCenter({
         description: `${row.file.name} has been uploaded successfully.`,
       });
       
-      // Start AI analysis for autofill suggestions
-      await handleAIAnalysis(row.file, result.key);
+      // Notify parent about file upload for potential AI analysis
+      onFileUploaded?.(row.file, result.key, 'photo');
       
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
@@ -266,215 +253,12 @@ export default function UploadCenter({
   const hasPending = rows.some((r) => r.status === "idle");
   const uploading = uploadDocumentMutation.isPending || uploadPhotoMutation.isPending;
 
-  // Enhanced AI Analysis handler
-  async function handleAIAnalysis(file: File, s3Key: string) {
-    try {
-      setAiError(null);
-      setLoadingAI(true);
-      
-      // 1) Register with AI Inbox
-      const regRes = await fetch("/api/inbox/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          fileName: file.name, 
-          fileKey: s3Key,
-          familyId: familyId,
-          userId: "current-user"  // TODO: Get from auth
-        }),
-      });
-      
-      if (!regRes.ok) {
-        throw new Error("Failed to register file for analysis");
-      }
-      
-      const { uploadId } = await regRes.json();
-      
-      // 2) Analyze document
-      const analyzeRes = await fetch(`/api/inbox/${uploadId}/analyze`, {
-        method: "POST",
-      });
-      
-      if (!analyzeRes.ok) {
-        setAutoFill(null);
-        setAiError("Unable to analyze upload. Please try Regenerate.");
-        return;
-      }
-      
-      const analysisData = await analyzeRes.json();
-      
-      // 3) Build AutoFill suggestion if we have fields
-      if (Array.isArray(analysisData?.fields) && analysisData.fields.length > 0) {
-        const suggestion: AutoFillSuggestion = {
-          uploadId: uploadId,
-          itemType: analysisData.itemType ?? inferDocumentType(analysisData.fields),
-          fields: flattenFields(analysisData.fields),
-          target: analysisData.suggestion ? {
-            memberId: analysisData.suggestion.memberId,
-            memberName: analysisData.suggestion.memberName
-          } : null,
-        };
-        
-        setAutoFill(suggestion);
-        setAiError(null);
-      } else {
-        setAutoFill(null);
-        setAiError("No confident details were found.");
-      }
-      
-    } catch (error) {
-      console.error("AI Analysis failed:", error);
-      setAutoFill(null);
-      setAiError("Unable to analyze upload. Please try Regenerate.");
-    } finally {
-      setLoadingAI(false);
-    }
-  }
 
-  // Handle accept all autofill
-  async function handleAcceptAll(suggestion: AutoFillSuggestion) {
-    try {
-      const response = await fetch(`/api/inbox/${suggestion.uploadId}/accept-autofill`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          memberId: suggestion.target?.memberId || null,
-          fields: suggestion.fields,
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to accept autofill");
-      }
-      
-      setAutoFill(null);
-      toast({
-        title: "Autofill accepted",
-        description: `Document assigned to ${suggestion.target?.memberName || "family"}`,
-      });
-      
-    } catch (error) {
-      console.error("Failed to accept autofill:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to accept autofill",
-        variant: "destructive"
-      });
-    }
-  }
 
-  // Handle dismiss autofill
-  function handleDismissAll(suggestion: AutoFillSuggestion) {
-    setAutoFill(null);
-    toast({
-      title: "Autofill dismissed",
-      description: "Document suggestions have been dismissed",
-    });
-  }
 
-  // Handle view details
-  function handleViewDetails(suggestion: AutoFillSuggestion) {
-    // Open the AI Inbox drawer to show details
-    setInboxOpen(true);
-  }
 
-  // Handle regenerate autofill
-  async function handleRegenerate(suggestion: AutoFillSuggestion): Promise<AutoFillSuggestion | null> {
-    try {
-      setAiError(null);
-      
-      const analyzeRes = await fetch(`/api/inbox/${suggestion.uploadId}/analyze`, {
-        method: "POST",
-      });
-      
-      if (!analyzeRes.ok) {
-        setAiError("Regeneration failed. Please try again.");
-        return null;
-      }
-      
-      const analysisData = await analyzeRes.json();
-      
-      if (Array.isArray(analysisData?.fields) && analysisData.fields.length > 0) {
-        const newSuggestion: AutoFillSuggestion = {
-          uploadId: suggestion.uploadId,
-          itemType: analysisData.itemType ?? inferDocumentType(analysisData.fields),
-          fields: flattenFields(analysisData.fields),
-          target: analysisData.suggestion ? {
-            memberId: analysisData.suggestion.memberId,
-            memberName: analysisData.suggestion.memberName
-          } : null,
-        };
-        
-        setAutoFill(newSuggestion);
-        setAiError(null);
-        return newSuggestion;
-      } else {
-        setAutoFill(null);
-        setAiError("No details found on regeneration.");
-        return null;
-      }
-      
-    } catch (error) {
-      console.error("Regeneration failed:", error);
-      setAiError("Regeneration failed. Please try again.");
-      return null;
-    }
-  }
 
-  // Handle feedback collection
-  function handleFeedback(suggestion: AutoFillSuggestion, type: "positive" | "negative" | "info") {
-    // Log feedback for analytics
-    console.log("User feedback:", { uploadId: suggestion.uploadId, type, itemType: suggestion.itemType });
-    
-    if (type === "info") {
-      toast({
-        title: "About AI Suggestions",
-        description: "We extract fields from your document using on-device and server models for intelligent suggestions.",
-      });
-    } else {
-      toast({
-        title: "Feedback received",
-        description: `Thank you for ${type === "positive" ? "positive" : "helpful"} feedback!`,
-      });
-    }
-    
-    // TODO: Send feedback to analytics endpoint
-    // fetch("/api/feedback", { method: "POST", body: JSON.stringify({ uploadId: suggestion.uploadId, type }) });
-  }
 
-  // Utility functions for processing AI analysis results
-  function inferDocumentType(fields: any[]): string {
-    if (!fields || fields.length === 0) return "Document";
-    
-    // Look for specific document types based on field keys
-    const fieldKeys = fields.map(f => f.key?.toLowerCase() || "").join(" ");
-    
-    if (fieldKeys.includes("driver") || fieldKeys.includes("license")) {
-      return "Driver's License";
-    } else if (fieldKeys.includes("passport")) {
-      return "Passport";
-    } else if (fieldKeys.includes("social") || fieldKeys.includes("ssn")) {
-      return "Social Security";
-    } else if (fieldKeys.includes("birth") || fieldKeys.includes("certificate")) {
-      return "Birth Certificate";
-    } else if (fieldKeys.includes("insurance")) {
-      return "Insurance Document";
-    } else if (fieldKeys.includes("medical")) {
-      return "Medical Document";
-    }
-    
-    return "Document";
-  }
-
-  function flattenFields(fields: any[]): AutoFillSuggestion["fields"] {
-    return fields.map(f => ({
-      key: f.key || "unknown",
-      label: f.label || f.key || "Field",
-      value: f.value || "",
-      confidence: f.confidence,
-      pii: f.pii
-    }));
-  }
 
   return (
     <Card className={`bg-zinc-950/70 border-zinc-800 ${className}`}>
@@ -508,19 +292,6 @@ export default function UploadCenter({
         </div>
       </CardHeader>
 
-      {/* Enhanced Autofill Banner with all features */}
-      <AutofillBannerTrust
-        icon="sparkles"
-        aiAvailable={aiAvailable}
-        loading={loadingAI}
-        error={aiError}
-        suggestion={autoFill}
-        onAcceptAll={handleAcceptAll}
-        onDismissAll={handleDismissAll}
-        onRegenerate={handleRegenerate}
-        onFeedback={handleFeedback}
-        onViewDetails={handleViewDetails}
-      />
 
       <CardContent className="pt-0">
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">

@@ -150,10 +150,13 @@ export default function InboxDrawer({ isOpen, onClose }: InboxDrawerProps) {
   // Accept suggestion mutation
   const acceptMutation = useMutation({
     mutationFn: async ({ id, memberId, fields }: { id: string; memberId: string; fields: any[] }) => {
-      await apiRequest(`/api/inbox/${id}/accept`, {
+      const response = await fetch(`/api/inbox/${id}/accept`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ memberId, fields }),
       });
+      if (!response.ok) throw new Error('Failed to accept suggestion');
     },
     onSuccess: () => {
       setActiveItemId(null);
@@ -167,9 +170,12 @@ export default function InboxDrawer({ isOpen, onClose }: InboxDrawerProps) {
   // Dismiss item mutation
   const dismissMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiRequest(`/api/inbox/${id}/dismiss`, {
+      const response = await fetch(`/api/inbox/${id}/dismiss`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
       });
+      if (!response.ok) throw new Error('Failed to dismiss item');
     },
     onSuccess: () => {
       setActiveItemId(null);
