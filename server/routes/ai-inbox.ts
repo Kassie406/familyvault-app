@@ -73,7 +73,7 @@ function withTimeout<T>(promise: Promise<T>, ms = 20000): Promise<T> {
 
 /** Schema */
 const RegisterBody = z.object({
-  userId: z.string(),
+  userId: z.string().optional(), // Made optional - will derive from session if not provided
   fileKey: z.string(),     // s3 key you just uploaded to
   fileName: z.string(),
   mime: z.string().optional(),
@@ -88,9 +88,12 @@ aiInboxRouter.post("/register", async (req, res) => {
   const uploadId = nanoid();
 
   try {
+    // Use userId from body if provided, otherwise derive from session/auth context
+    const userId = body.userId || (req as any).user?.id || "anonymous";
+    
     await db.insert(inboxItems).values({
       familyId: "family-1", // TODO: get from user context
-      userId: body.userId,
+      userId: userId,
       filename: body.fileName,
       fileUrl: body.fileKey, // S3 key serves as file URL
       fileSize: body.size,
@@ -153,12 +156,16 @@ function isoDate(s: string): string {
 
 async function analyzeIdDoc(bucket: string, key: string, docType: 'driverLicense'|'passport'|'idCard'): Promise<AISuggestions> {
   try {
-    // Get bytes from S3 and feed directly to Textract
-    const bytes = await getObjectBytes(bucket, key);
+    // Get bytes from S3 and feed directly to Textract with timeout
+    const bytes = await withTimeout(getObjectBytes(bucket, key), 15000);
+    
+    // Preprocess image if needed
+    const processedBytes = await withTimeout(preprocessImage(bytes), 10000);
+    
     const command = new AnalyzeIDCommand({
-      Document: { Bytes: bytes }
+      Document: { Bytes: processedBytes }
     });
-    const resp = await textractClient.send(command);
+    const resp = await withTimeout(textractClient.send(command), 30000);
 
     const fields: ExtractField[] = [];
     const page = resp.IdentityDocuments?.[0];
@@ -198,52 +205,75 @@ async function analyzeIdDoc(bucket: string, key: string, docType: 'driverLicense
       if (addr.postal) fields.push(toField('ZIP', 'postal', addr.postal, 92, 'person.address.postal'));
     }
 
-    const confidence = fields.length >= 4 ? 'high' : 'medium';
+    const confidence = fields.length >= 4 ? 'high' : fields.length >= 2 ? 'medium' : 'low';
     return { docType, fields, confidence, reasoning: 'Extracted using AWS Textract AnalyzeID' };
   } catch (error) {
     console.error('[TEXTRACT] AnalyzeID failed:', error);
-    // Fallback to demo data
-    return fakeAnalyzeDriverLicense();
+    // Return structured error instead of demo data
+    throw new Error(`Failed to analyze ${docType}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
 async function analyzeInsuranceDoc(bucket: string, key: string): Promise<AISuggestions> {
   try {
-    // Get bytes from S3 and use AnalyzeDocument for PDFs
-    const bytes = await getObjectBytes(bucket, key);
+    // Get bytes from S3 and use AnalyzeDocument for PDFs with timeout
+    const bytes = await withTimeout(getObjectBytes(bucket, key), 15000);
     const command = new AnalyzeDocumentCommand({
       Document: { Bytes: bytes },
       FeatureTypes: ['FORMS', 'TABLES']
     });
-    const resp = await textractClient.send(command);
+    const resp = await withTimeout(textractClient.send(command), 30000);
     
     // Extract fields from forms/tables response
     const fields: ExtractField[] = [];
-    // TODO: Parse the AnalyzeDocument response for insurance fields
     
+    // Parse key-value pairs from forms
+    resp.Blocks?.forEach(block => {
+      if (block.BlockType === 'KEY_VALUE_SET' && block.EntityTypes?.includes('KEY')) {
+        const key = block.Text?.toLowerCase() || '';
+        const valueBlock = resp.Blocks?.find(b => 
+          b.BlockType === 'KEY_VALUE_SET' && 
+          b.EntityTypes?.includes('VALUE') &&
+          block.Relationships?.[0]?.Ids?.includes(b.Id || '')
+        );
+        
+        const value = valueBlock?.Text?.trim() || '';
+        
+        if (key && value) {
+          if (key.includes('carrier') || key.includes('company')) {
+            fields.push(toField('Insurance Carrier', 'carrier', value, 85, 'insurance.carrier'));
+          } else if (key.includes('policy') && key.includes('number')) {
+            fields.push(toField('Policy Number', 'policyNumber', value, 90, 'insurance.policyNumber'));
+          } else if (key.includes('coverage') || key.includes('type')) {
+            fields.push(toField('Coverage Type', 'coverage', value, 80, 'insurance.coverage'));
+          } else if (key.includes('premium') || key.includes('amount')) {
+            fields.push(toField('Premium Amount', 'premium', value, 75, 'insurance.premium'));
+          } else if (key.includes('effective') || key.includes('start')) {
+            fields.push(toField('Effective Date', 'effectiveDate', isoDate(value), 80, 'insurance.effectiveDate'));
+          } else if (key.includes('expir') || key.includes('end')) {
+            fields.push(toField('Expiration Date', 'expirationDate', isoDate(value), 80, 'insurance.expirationDate'));
+          }
+        }
+      }
+    });
+    
+    const confidence = fields.length >= 3 ? 'high' : fields.length >= 1 ? 'medium' : 'low';
     return { 
       docType: 'insurance', 
       fields,
-      confidence: 'medium', 
+      confidence, 
       reasoning: 'Extracted using AWS Textract AnalyzeDocument' 
     };
   } catch (error) {
     console.error('[TEXTRACT] AnalyzeDocument failed:', error);
-    // Fallback to demo data
-    return { 
-      docType: 'insurance', 
-      fields: [
-        toField('Insurance Carrier', 'carrier', 'State Farm', 85, 'insurance.carrier'),
-        toField('Policy Number', 'policyNumber', 'SF123456789', 90, 'insurance.policyNumber'),
-        toField('Coverage Type', 'coverage', 'Auto Liability', 80, 'insurance.coverage'),
-      ], 
-      confidence: 'medium', 
-      reasoning: 'Demo insurance extraction (Textract fallback)' 
-    };
+    // Return structured error instead of demo data
+    throw new Error(`Failed to analyze insurance document: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
 async function analyzeGeneric(bucket: string, key: string): Promise<AISuggestions> {
+  // For unsupported document types, return empty analysis rather than throwing
+  console.log(`[ANALYZE] Generic analysis for unsupported document type: ${key}`);
   return { 
     docType: 'other', 
     fields: [], 
@@ -252,25 +282,6 @@ async function analyzeGeneric(bucket: string, key: string): Promise<AISuggestion
   };
 }
 
-function fakeAnalyzeDriverLicense(): AISuggestions {
-  const fields: ExtractField[] = [
-    toField('License Number', 'number', 'C0336 42600 56932', 96, 'ids.driverLicense.number'),
-    toField('Expiration', 'expiration', '2027-04-06', 92, 'ids.driverLicense.expiration'),
-    toField('State', 'state', 'NJ', 90, 'ids.driverLicense.state'),
-    toField('Name', 'name', 'ANGEL QUINTANA', 93, 'person.name'),
-    toField('Date of Birth', 'dateOfBirth', '1985-03-15', 91, 'person.dateOfBirth'),
-    toField('Address', 'line1', '123 Maple Ave', 85, 'person.address.line1'),
-    toField('City', 'city', 'Linden', 85, 'person.address.city'),
-    toField('State', 'addressState', 'NJ', 90, 'person.address.state'),
-    toField('ZIP', 'postal', '07036', 85, 'person.address.postal'),
-  ];
-  return {
-    docType: 'driverLicense',
-    confidence: 'high',
-    fields,
-    reasoning: 'Demo driver license data (Textract fallback)',
-  };
-}
 
 // Member best-match by name and DOB
 async function bestMatchMemberId(fields: ExtractField[]): Promise<string | undefined> {
@@ -316,35 +327,6 @@ aiInboxRouter.post("/:id/analyze", async (req, res) => {
 
     await db.update(inboxItems).set({ status: 'analyzing' }).where(eq(inboxItems.id, id));
     step('updated status to analyzing');
-
-    // Fetch S3 object
-    let processedBuffer: Buffer;
-    try {
-      const s3Object = await s3Client.send(new GetObjectCommand({ 
-        Bucket: process.env.S3_BUCKET_DOCS!, 
-        Key: item.fileUrl 
-      }));
-      step('fetched S3 object');
-
-      const chunks: Uint8Array[] = [];
-      if (s3Object.Body) {
-        const stream = s3Object.Body as any;
-        for await (const chunk of stream) {
-          chunks.push(chunk);
-        }
-      }
-      const originalBuffer = Buffer.concat(chunks);
-      step('converted S3 stream to buffer');
-
-      // Preprocess image with sharp
-      processedBuffer = await withTimeout(preprocessImage(originalBuffer), 10000);
-      step('preprocessed image with sharp');
-    } catch (error) {
-      console.error('[AI] S3 fetch/preprocessing failed:', error);
-      // Fall back to demo mode if S3 fails
-      processedBuffer = Buffer.from('demo-content');
-      step('fell back to demo mode');
-    }
 
     // ---- COMPREHENSIVE ANALYSIS ----
     const routing = routeDocType(item.filename || '', item.mimeType || '');
