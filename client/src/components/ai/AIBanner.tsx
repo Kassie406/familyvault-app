@@ -122,7 +122,17 @@ export default function AIBanner() {
             </div>
             <div className="opacity-80">
               {scan.state === "none" && "This file doesn't contain enough readable text. Use PDFs or clear, flat photos."}
-              {scan.state === "failed" && "Something went wrong. Try again."}
+              {scan.state === "failed" && (
+                <div className="space-y-1">
+                  <div>{scan.error || scan.message || "Something went wrong. Try again."}</div>
+                  {scan.stage && (
+                    <div className="text-xs opacity-60">Failed at: {scan.stage}</div>
+                  )}
+                  {scan.code && (
+                    <div className="text-xs opacity-60">Error code: {scan.code}</div>
+                  )}
+                </div>
+              )}
               {scan.state === "unsupported" && "Please upload PDF, PNG, or JPEG."}
             </div>
             <div className="flex gap-2">
