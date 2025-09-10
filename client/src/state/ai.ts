@@ -1,11 +1,14 @@
 import { create } from "zustand";
+import type { ExtractField, AISuggestions } from "@shared/types/inbox";
 
-export type ExtractField = { key: string; value: string; confidence: number; pii?: boolean };
+// Legacy format for backward compatibility
+type LegacyExtractField = { key: string; value: string; confidence: number; pii?: boolean };
+type LegacySuggestion = { memberId: string; memberName: string; confidence: number };
 
 type AIScan =
   | { state: "idle" }
   | { state: "analyzing"; id: string; step: 1 | 2 | 3 }
-  | { state: "ready" | "partial"; id: string; count: number; fields: ExtractField[]; suggestion?: { memberId: string; memberName: string; confidence: number } }
+  | { state: "ready" | "partial"; id: string; count: number; fields: ExtractField[]; suggestion?: LegacySuggestion; suggestions?: AISuggestions }
   | { state: "none" | "failed" | "unsupported"; id: string; message: string };
 
 type AIStore = {

@@ -158,12 +158,12 @@ export default function InboxDrawer({ isOpen, onClose }: InboxDrawerProps) {
 
   // Accept suggestion mutation
   const acceptMutation = useMutation({
-    mutationFn: async ({ id, memberId, fields }: { id: string; memberId: string; fields: any[] }) => {
+    mutationFn: async ({ id, memberId, suggestions }: { id: string; memberId: string; suggestions: any }) => {
       const response = await fetch(`/api/inbox/${id}/accept`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ memberId, fields }),
+        body: JSON.stringify({ memberId, suggestions }),
       });
       if (!response.ok) throw new Error('Failed to accept suggestion');
     },
@@ -199,10 +199,21 @@ export default function InboxDrawer({ isOpen, onClose }: InboxDrawerProps) {
   const acceptSuggestion = (id: string) => {
     const item = items.find((item: InboxItem) => item.id === id);
     if (item?.suggestion) {
+      // Convert legacy format to new comprehensive format for backend
+      const suggestions = {
+        fields: item.suggestion.fields.map((field: any) => ({
+          label: field.key || field.label,
+          key: field.key,
+          value: field.value,
+          confidence: field.confidence,
+          path: field.path || 'person.unknown' // fallback path for legacy fields
+        }))
+      };
+      
       acceptMutation.mutate({
         id,
         memberId: item.suggestion.memberId,
-        fields: item.suggestion.fields,
+        suggestions,
       });
     }
   };
