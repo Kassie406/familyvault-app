@@ -2927,6 +2927,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/ai-status - Check AI availability for progressive enhancement
+  app.get("/api/ai-status", async (req, res) => {
+    try {
+      // Check if AI services are available
+      const available = true; // For now, always available - could check OCR service health
+      
+      res.json({ 
+        available,
+        features: {
+          ocr: true,
+          familyMatching: true,
+          autofill: true
+        }
+      });
+    } catch (error) {
+      console.error("Error checking AI status:", error);
+      res.json({ available: false });
+    }
+  });
+
   // GET /api/inbox - List inbox items for the drawer
   app.get("/api/inbox", async (req, res) => {
     try {
