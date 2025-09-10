@@ -24,9 +24,27 @@ export const useAI = create<AIStore>((set, get) => ({
   scan: { state: "idle" },
   
   start: async (id) => {
-    set({ scan: { state: "analyzing", id, step: "Starting analysis...", progress: 0 } });
+    // Start clean - don't show "analyzing" until job actually starts
+    set({ scan: { state: "idle" } });
     
     try {
+      // ✅ ONLY set analyzing after start request succeeds
+      console.info('[AI] Starting analysis for id:', id);
+      const startRes = await fetch(`/api/inbox/${id}/analyze`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" }
+      });
+      
+      if (!startRes.ok) {
+        const text = await startRes.text().catch(() => "");
+        throw new Error(`Start analysis failed: ${startRes.status} ${text.slice(0,200)}`);
+      }
+      
+      console.info('[AI] Analysis started successfully, beginning polling');
+      // Now we can show analyzing state
+      set({ scan: { state: "analyzing", id, step: "Looking for key fields and destination...", progress: 10 } });
+      
       const suggestions = await pollWithHeartbeat(
         id,
         (step, progress) => {
@@ -55,13 +73,14 @@ export const useAI = create<AIStore>((set, get) => ({
       const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
       const isTimeout = errorMessage.includes('Timeout') || errorMessage.includes('heartbeat');
       
+      console.error('[AI] Analysis failed:', error);
       set({
         scan: {
           state: isTimeout ? 'timeout' : 'failed',
           id,
           message: errorMessage,
           error: errorMessage,
-          stage: isTimeout ? 'timeout' : 'unknown',
+          stage: isTimeout ? 'timeout' : 'start_request',
           code: isTimeout ? 408 : 500
         }
       });
