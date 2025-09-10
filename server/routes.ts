@@ -41,7 +41,7 @@ import {
 } from "@shared/schema";
 import crypto from "crypto";
 import PDFDocument from "pdfkit";
-import { runOcr, buildSuggestion } from "./ocr";
+import { runOcr } from "./ocr";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Family Management API endpoints
@@ -2770,10 +2770,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .set({ status: "analyzing" })
         .where(eq(inboxItems.id, id));
 
-      // Run OCR analysis
+      // Run OCR analysis - extract key information from the document
+      console.log("🔍 Starting OCR analysis for file:", item.fileUrl);
       const fields = await runOcr({ url: item.fileUrl });
+      console.log("📄 Extracted fields:", fields);
 
-      // Store extracted fields
+      // Store extracted fields in database
       for (const field of fields) {
         await db.insert(extractedFields).values({
           id: crypto.randomUUID(),
@@ -2785,12 +2787,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Get family members for suggestion matching
-      const members = await db.select().from(familyMembers)
-        .where(eq(familyMembers.familyId, item.familyId));
+      // Import the family matching service
+      const { getFamilyMembersForUser, suggestMember } = await import("./services/family-matcher");
 
-      // Build suggestion
-      const suggestion = await buildSuggestion(fields, members);
+      // Get family members for suggestion matching
+      const members = await getFamilyMembersForUser(item.familyId);
+
+      // Extract relevant data for matching
+      const extractedData = {
+        name: fields.find(f => f.key.toLowerCase().includes("name"))?.value,
+        dob: fields.find(f => f.key.toLowerCase().includes("birth") || f.key.toLowerCase().includes("dob"))?.value,
+        ssn: fields.find(f => f.key.toLowerCase().includes("ssn") || f.key.toLowerCase().includes("social"))?.value,
+      };
+
+      // Build intelligent suggestion using matching algorithm
+      const suggestion = suggestMember(extractedData, members);
 
       // Update inbox item with suggestion
       await db.update(inboxItems).set({
