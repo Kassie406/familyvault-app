@@ -131,16 +131,21 @@ type Props = {
 /** ---------------------------------------------
  * Component
  * --------------------------------------------- */
+
+// Move default arrays outside component to prevent re-creation
+const DEFAULT_MEMBERS = [
+  { id: "1", name: "Sarah", role: "Mom" },
+  { id: "2", name: "Michael", role: "Dad" },
+  { id: "3", name: "Emma", role: "Sister" },
+  { id: "4", name: "Jake", role: "Brother" }
+];
+const DEFAULT_PRESELECT_IDS: string[] = [];
+
 export const NewMessageModal: React.FC<Props> = ({
   open,
   onClose,
-  members = [
-    { id: "1", name: "Sarah", role: "Mom" },
-    { id: "2", name: "Michael", role: "Dad" },
-    { id: "3", name: "Emma", role: "Sister" },
-    { id: "4", name: "Jake", role: "Brother" }
-  ],
-  preselectIds = [],
+  members = DEFAULT_MEMBERS,
+  preselectIds = DEFAULT_PRESELECT_IDS,
   onCreated,
 }) => {
   const [query, setQuery] = useState("");
@@ -150,8 +155,9 @@ export const NewMessageModal: React.FC<Props> = ({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Reset form when modal opens
   useEffect(() => {
-    if (!open) {
+    if (open) {
       setQuery("");
       setBody("");
       setFiles([]);
@@ -159,7 +165,14 @@ export const NewMessageModal: React.FC<Props> = ({
       setError(null);
       setSending(false);
     }
-  }, [open, preselectIds]);
+  }, [open]);
+
+  // Update selected when preselectIds change (only when modal is open)
+  useEffect(() => {
+    if (open) {
+      setSelected(preselectIds);
+    }
+  }, [preselectIds, open]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
