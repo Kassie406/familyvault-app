@@ -2684,8 +2684,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI INBOX API ENDPOINTS
   // ===========================
   
-  // POST /api/uploads - Register an upload for AI analysis
-  app.post("/api/uploads", async (req, res) => {
+  // POST /api/inbox/register - Register an upload for AI analysis
+  app.post("/api/inbox/register", async (req, res) => {
     try {
       const { userId, fileKey, fileName, mime, size } = req.body;
       

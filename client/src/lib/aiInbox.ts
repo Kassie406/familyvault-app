@@ -24,9 +24,9 @@ export async function aiInboxProcessFile(
   });
 
   // 1) Register the upload (this is where the current error is)
-  console.log("📡 Calling /api/uploads registration...");
+  console.log("📡 Calling /api/inbox/register...");
   
-  const regRes = await fetch("/api/uploads", {
+  const regRes = await fetch("/api/inbox/register", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
