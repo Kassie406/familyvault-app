@@ -144,34 +144,36 @@ export default function UploadCenter({
   };
 
   // Banner actions
-  const dismiss = () => setBanner({ state: 'idle' });
+  const dismiss = () => resetAI();
   const openInbox = () => setInboxOpen(true);
   
   const regenerate = async () => {
-    if (banner.state === 'ready' || banner.state === 'failed' || banner.state === 'partial') {
-      setBanner({ 
+    if (scan.state === 'ready' || scan.state === 'failed' || scan.state === 'partial') {
+      updateAI({ 
         state: 'analyzing', 
-        uploadId: banner.uploadId, 
-        fileName: banner.fileName,
+        id: scan.id, 
         step: 1 
       });
-      if (banner.uploadId) {
-        fetch(`/api/inbox/${banner.uploadId}/analyze`, { method: "POST" }).catch(console.warn);
-        bus.emit('autofill:started', { uploadId: banner.uploadId, fileName: banner.fileName });
+      if ('id' in scan) {
+        fetch(`/api/inbox/${scan.id}/analyze`, { method: "POST" }).catch(console.warn);
+        // Note: bus.emit removed - using direct API calls instead
       }
     }
   };
   
   const acceptAll = async () => {
-    if (banner.state !== 'ready' && banner.state !== 'partial') return;
-    if (!banner.uploadId) return;
+    if (scan.state !== 'ready' && scan.state !== 'partial') return;
+    if (!('id' in scan)) return;
     
-    await fetch(`/api/inbox/${banner.uploadId}/accept`, {
+    await fetch(`/api/inbox/${scan.id}/accept`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ fields: banner.fields, memberId: banner.suggestion?.memberId }),
+      body: JSON.stringify({ 
+        fields: 'fields' in scan ? scan.fields : [], 
+        memberId: 'suggestion' in scan ? scan.suggestion?.memberId : undefined 
+      }),
     });
-    setBanner({ state: 'idle' });
+    resetAI();
     toast({
       title: "Autofill accepted",
       description: "All details have been applied successfully.",

@@ -1,0 +1,162 @@
+1) Make Textract read Bytes, not a parsed URL
+
+This bypasses bucket/key parsing issues entirely and only requires s3:GetObject.
+
+server/routes/ai-inbox.ts
+
+import { Router } from 'express';
+import { TextractClient, AnalyzeIDCommand, AnalyzeDocumentCommand } from '@aws-sdk/client-textract';
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+
+const textract = new TextractClient({ region: process.env.AWS_REGION || 'us-east-1' });
+const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' });
+
+export const aiInbox = Router();
+
+async function getObjectBytes(bucket: string, key: string): Promise<Buffer> {
+  const out = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+  const arr = await out.Body!.transformToByteArray(); // aws-sdk v3 helper
+  return Buffer.from(arr);
+}
+
+
+Now change your analyzer to fetch bytes from the bucket/key you stored at registration (don’t parse a public URL):
+
+// After you load the upload record:
+const { s3_bucket: bucket, s3_key: key, content_type: mime } = upload; // <-- store these at register time
+
+// Route by mime or filename:
+const isImage = /^image\//.test(mime);
+const isPdf   = mime === 'application/pdf';
+
+if (isImage) {
+  const bytes = await getObjectBytes(bucket, key);
+  const resp = await textract.send(new AnalyzeIDCommand({ Document: { Bytes: bytes }}));
+  // ... map to fields (same as before)
+} else if (isPdf) {
+  const bytes = await getObjectBytes(bucket, key);
+  const resp = await textract.send(new AnalyzeDocumentCommand({
+    Document: { Bytes: bytes },
+    FeatureTypes: ['FORMS','TABLES']
+  }));
+  // ... map insurance/policy forms here
+} else {
+  // fallback (OpenAI or generic)
+}
+
+
+Registration tip: when you create the upload record, save s3_bucket, s3_key, and content_type. You already have the S3 key right after your PUT; add bucket and mime there so we avoid URL parsing forever.
+
+2) Return the real error to the UI
+
+Wrap analyze in a very explicit catcher:
+
+aiInbox.post('/:uploadId/analyze', async (req, res) => {
+  const { uploadId } = req.params;
+  try {
+    // ... load upload, get bytes, call Textract, map fields
+    return res.json({ ok: true, suggestions });
+  } catch (e: any) {
+    const payload = {
+      ok: false,
+      stage: 'analyze',
+      error: e.name || 'Error',
+      message: e.message || String(e),
+      code: e.$metadata?.httpStatusCode,
+    };
+    console.error('ANALYZE_FAIL', uploadId, payload);
+    // 200 with ok:false keeps UI logic simple; or use 500 if you prefer
+    return res.status(200).json(payload);
+  }
+});
+
+
+And on the client banner, display that message:
+
+// wherever you handle the analyze response
+if (!res.ok) {
+  setAIBanner({
+    status: 'error',
+    title: 'Analysis failed',
+    detail: res.message || 'Unknown error',
+    hint: res.stage ? `Stage: ${res.stage}` : undefined
+  });
+}
+
+
+This changes the banner from “Something went wrong” to e.g.:
+
+Analysis failed — AccessDenied (Textract).
+Hint: textract:AnalyzeID permission missing.
+
+3) Quick permissions checklist (AWS IAM)
+
+The role/credentials used by your server need:
+
+s3:GetObject on the bucket that stores the uploads (object read)
+
+textract:AnalyzeID
+
+textract:AnalyzeDocument
+
+If you are using KMS, add kms:Decrypt for that key.
+
+4) Make routing safe for file types (prevents AnalyzeID on PDFs)
+function routeDocType(fileName: string, mime: string) {
+  const f = (fileName || '').toLowerCase();
+  if (/^image\//.test(mime)) {
+    if (f.includes('license') || f.match(/\b(dl|driver-?id)\b/)) return 'driverLicense';
+    if (f.includes('passport')) return 'passport';
+    return 'idCard';
+  }
+  if (mime === 'application/pdf') {
+    if (f.includes('insurance') || f.includes('policy')) return 'insurancePdf';
+    return 'genericPdf';
+  }
+  return 'other';
+}
+
+
+Then switch to AnalyzeID only when it’s an image; use AnalyzeDocument for PDFs.
+
+5) (Optional) verify the S3 record before calling Textract
+
+Early failures are clearer if we confirm the object exists:
+
+try {
+  await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+} catch {
+  throw new Error(`S3 object not found: ${bucket}/${key}`);
+}
+
+6) Minimal UI polish for the failure state
+
+Your current failure banner looks great, just add the reason:
+
+Title: “AI Suggestions”
+
+Status: “Analysis failed — {detail}”
+
+Buttons: “Try again” (re-calls analyze), “How to get better results” (modal with “Use clear photos / upload as PDF / crop to the document”)
+
+7) Smoke test (one minute)
+
+Upload a small JPEG of a US driver’s license.
+
+Check server logs: you should see no ANALYZE_FAIL.
+
+Banner should say “Suggested autofill • N details found”.
+
+If it still fails, the banner will now show the exact AWS error (permissions, unsupported type, etc.).
+
+TL;DR Fixes to apply right now
+
+Fetch S3 Bytes and feed Textract with Document: { Bytes } (no URL parsing).
+
+Store s3_bucket, s3_key, content_type in your upload row.
+
+Route images → AnalyzeID, PDFs → AnalyzeDocument.
+
+Surface real error in the banner.
+
+Ensure IAM has s3:GetObject, textract:AnalyzeID, textract:AnalyzeDocument.
