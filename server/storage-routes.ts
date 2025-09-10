@@ -22,7 +22,7 @@ const storage = Router();
 // Security: Rate limiting for upload endpoints
 const uploadRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // limit each IP to 20 uploads per windowMs
+  max: process.env.NODE_ENV === 'development' ? 200 : 20, // Higher limit for development testing
   message: {
     error: "Too many upload requests, please try again later"
   },
