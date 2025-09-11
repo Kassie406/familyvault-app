@@ -164,7 +164,6 @@ function PublicPortalHome() {
 function Router() {
   return (
     <Switch>
-      <Route path="/inbox" component={Inbox} />
       <Route path="/invite/:token" component={InviteAccept} />
       <Route path="/" component={PublicPortalHome} />
       <Route path="/security" component={Security} />
@@ -246,7 +245,6 @@ function Router() {
       <Route path="/when-someone-dies-legal-responsibilities" component={WhenSomeoneDiesLegalResponsibilities} />
       <Route path="/when-someone-dies-important-deadlines" component={WhenSomeoneDiesImportantDeadlines} />
       <Route path="/m/u/:sessionId" component={MobileUpload} />
-      <Route path="/upload" component={UploadCenter} />
       
       <Route component={NotFound} />
     </Switch>
