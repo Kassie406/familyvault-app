@@ -3274,6 +3274,29 @@ app.post('/api/public/consent', optionalAuth, async (req: AuthenticatedRequest, 
 });
 
 (async () => {
+  // AI Health Check - validate AWS and OpenAI connectivity before starting
+  try {
+    const { checkAIHealth } = await import("./lib/aiHealth");
+    const health = await checkAIHealth();
+    
+    if (!health.awsReady && !health.openaiReady) {
+      console.error("[AI HEALTH] Both AWS and OpenAI services unavailable - running in limited mode");
+      console.error("[AI HEALTH] Details:", health.details);
+      // Don't exit, but warn that analysis features will be limited
+    } else if (!health.awsReady) {
+      console.warn("[AI HEALTH] AWS Textract unavailable, using OpenAI Vision only");
+      console.warn("[AI HEALTH] AWS:", health.details.aws);
+    } else if (!health.openaiReady) {
+      console.warn("[AI HEALTH] OpenAI unavailable, using AWS Textract only");
+      console.warn("[AI HEALTH] OpenAI:", health.details.openai);
+    } else {
+      console.log("[AI HEALTH] ✅ All AI services ready:", health.details);
+    }
+  } catch (healthCheckError) {
+    console.error("[AI HEALTH] Health check failed:", healthCheckError);
+    // Continue startup - don't let health check failure prevent server start
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
