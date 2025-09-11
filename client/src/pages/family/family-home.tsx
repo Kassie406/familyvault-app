@@ -3,6 +3,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
+import { useAiSuggestions } from "@/hooks/useAiSuggestions";
 import {
   Users, FileText, MessageCircle, Calendar, Image as ImageIcon, Shield,
   Heart, Clock, Star, Bell, Plus, ArrowRight, Activity,
@@ -79,7 +80,26 @@ export default function FamilyHome() {
   const [couplesConnectionOpen, setCouplesConnectionOpen] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [aiState, setAiState] = useState({ kind: "idle" as const });
+  // AI state managed at parent level (single source of truth)
+  const { state: aiState, run: runAI, retry: retryAI, cancel: cancelAI } = useAiSuggestions({ 
+    logs: true,
+    totalTimeoutMs: 90000 
+  });
+  const lastArgsRef = useRef<{ file?: File; familyId?: string } | null>(null);
+
+  // Centralized AI runners (single source of truth)
+  const startAIAnalysis = (file: File) => {
+    lastArgsRef.current = { file, familyId: "family-1" };
+    return runAI({ file, familyId: "family-1" });
+  };
+
+  const tryAgainAI = () => {
+    const args = lastArgsRef.current;
+    if (args?.file) {
+      return runAI({ file: args.file, familyId: args.familyId || "family-1" });
+    }
+    return retryAI(); // fallback
+  };
   
   // Current user mock (TODO: replace with real user data)
   const currentUser = { 
@@ -900,14 +920,11 @@ export default function FamilyHome() {
               </div>
             </div>
             
-            {/* AI Banner - now uses props instead of centralized state */}
+            {/* AI Banner - single source of truth from parent */}
             <AIBanner 
               aiState={aiState}
-              onDismiss={() => setAiState({ kind: "idle" })}
-              onRegenerate={() => {
-                // Regeneration is handled by the useAiSuggestions hook
-                console.log('Regenerate requested - this will be handled by UploadCenter');
-              }}
+              onDismiss={cancelAI}
+              onRegenerate={tryAgainAI}
               onReview={() => setInboxOpen(true)}
             />
             
@@ -922,7 +939,7 @@ export default function FamilyHome() {
                     setHighlightPhotoUpload(false);
                   }, 3000);
                 }}
-                onAIStateChange={setAiState}
+                onAnalyzeFile={startAIAnalysis}
               />
             </div>
           </div>

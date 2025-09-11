@@ -1,0 +1,79 @@
+The “Analysis failed” card is rendering, but your wiring still has two sources of truth and no way for the banner’s Try Again to actually call the hook with the last args. Here’s a clean structure that fixes that and makes the flow traceable.
+
+The structure that won’t break
+Option A (recommended): Lift the hook to the parent
+
+Make family-home.tsx own the AI state and actions. Pass them down to both AIBanner and UploadCenter.
+
+// family-home.tsx
+import AIBanner from "@/components/upload/AIBanner";
+import UploadCenter from "@/components/upload/UploadCenter";
+import { useAiSuggestions } from "@/hooks/useAiSuggestions";
+import { useRef } from "react";
+
+export default function FamilyHome({ familyId }: { familyId: string }) {
+  const { state, run, retry, cancel } = useAiSuggestions({ logs: true });
+  const lastArgsRef = useRef<{ file?: File; inboxItemId?: string; familyId?: string } | null>(null);
+
+  // Centralized runners
+  const startFromFile = (file: File) => {
+    lastArgsRef.current = { file, familyId };
+    return run({ file, familyId });
+  };
+  const startFromInbox = (inboxItemId: string) => {
+    lastArgsRef.current = { inboxItemId };
+    return run({ inboxItemId });
+  };
+  const tryAgain = () => {
+    const args = lastArgsRef.current;
+    if (args?.file) return run({ file: args.file, familyId });
+    if (args?.inboxItemId) return run({ inboxItemId: args.inboxItemId });
+    return retry(); // fallback
+  };
+
+  return (
+    <>
+      <AIBanner
+        state={state}                // <- single source of truth
+        onRetry={tryAgain}
+        onDismiss={cancel}
+        onViewLogs={() => console.log("open dev logs panel")}
+      />
+      <UploadCenter
+        familyId={familyId}
+        onAnalyzeFile={startFromFile}       // <- UploadCenter never owns AI state
+        onAnalyzeInbox={startFromInbox}
+      />
+    </>
+  );
+}
+
+// UploadCenter.tsx (excerpt)
+export default function UploadCenter({
+  familyId,
+  onAnalyzeFile,
+  onAnalyzeInbox,
+}: {
+  familyId: string;
+  onAnalyzeFile: (file: File) => Promise<void>;
+  onAnalyzeInbox: (id: string) => Promise<void>;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+
+  return (
+    <section>
+      {/* …your uploader… */}
+      <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+      <button disabled={!file} onClick={() => file && onAnalyzeFile(file)}>
+        AI Document Analysis
+      </button>
+    </section>
+  );
+}
+
+
+AIBanner receives state and simple callbacks only.
+
+UploadCenter never manages AI state; it just passes a file/inbox id up.
+
+Try Again in the banner reuses the last args kept by the parent.

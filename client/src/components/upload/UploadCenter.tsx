@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, AlertCircle, UploadCloud, FileText, Image as ImageIcon, ShieldCheck, X, Camera, Smartphone, Sparkles } from "lucide-react";
-import { useAiSuggestions } from "@/hooks/useAiSuggestions";
 import { usePresignedUpload } from "@/hooks/usePresignedUpload";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -43,7 +42,7 @@ interface UploadCenterProps {
   onFileUploaded?: (file: File, s3Key: string, type: 'document' | 'photo') => void;
   onUploaded?: (file: File, filename: string) => void;  // Simple callback for AI autofill
   className?: string;
-  onAIStateChange?: (state: any) => void; // Callback to notify parent of AI state changes
+  onAnalyzeFile?: (file: File) => Promise<void>; // Callback to start AI analysis
 }
 
 export default function UploadCenter({ 
@@ -52,7 +51,7 @@ export default function UploadCenter({
   onFileUploaded,
   onUploaded,
   className,
-  onAIStateChange 
+  onAnalyzeFile 
 }: UploadCenterProps) {
   const [tab, setTab] = useState<"docs" | "photos">("docs");
   const [rows, setRows] = useState<FileRow[]>([]);
@@ -68,28 +67,10 @@ export default function UploadCenter({
   const [photoAltText, setPhotoAltText] = useState("");
   const [photoLocation, setPhotoLocation] = useState("");
 
-  // AI state from new robust hook
-  const { state: aiState, run: runAI, retry: retryAI, cancel: cancelAI } = useAiSuggestions({ 
-    logs: true,
-    totalTimeoutMs: 90000 // 90 seconds
-  });
-
-  // Notify parent of AI state changes
-  useEffect(() => {
-    onAIStateChange?.(aiState);
-  }, [aiState, onAIStateChange]);
-  
-  // AI analysis trigger function with robust patterns
+  // AI analysis trigger - now just calls parent callback
   const triggerAIAnalysis = async (file: File, s3Key: string) => {
     try {
-      await runAI({ file, familyId });
-      
-      // Show success toast if analysis completed
-      if (aiState.kind === 'success') {
-        toast({
-          description: `✨ AI found suggestions for your document`,
-        });
-      }
+      await onAnalyzeFile?.(file);
     } catch (error) {
       console.error('AI analysis failed:', error);
     }
