@@ -312,7 +312,7 @@ Return a JSON object with these optional fields when present:
 {
   "documentType": string,                 // e.g., "Driver License", "Passport", "Invoice", "Insurance Card", "Bank Statement", "Social Security Card"
   "fullName": string,
-  "ssnMasked": string,                    // mask as XXX-XX-1234 if SSN present
+  "ssn": string,                         // raw SSN value when present
   "idNumber": string,
   "accountNumber": string,
   "policyNumber": string,
@@ -325,7 +325,7 @@ Return a JSON object with these optional fields when present:
   "confidenceNotes": string               // brief notes about confidence & assumptions
 }
 If the document appears to be a Social Security card, set documentType to "Social Security Card"
-and include "ssnMasked" only (mask the first 5 digits).
+and include "ssn" with the raw value (no masking).
 Only include fields you can infer with reasonable confidence.
 `;
 
@@ -376,7 +376,7 @@ export async function analyzeUniversal(key: string, options: { previewOnly?: boo
         const ssn = extractSsnFromText(raw);
         if (ssn) {
           signal.queries.ssn = ssn;
-          console.log(`[ANALYZE_UNIVERSAL] SSN fallback extraction found: ${maskSsn(ssn)}`);
+          console.log(`[ANALYZE_UNIVERSAL] SSN fallback extraction found: ***redacted***`);
         }
       }
       
@@ -396,7 +396,7 @@ export async function analyzeUniversal(key: string, options: { previewOnly?: boo
           { type: "text", text:
 `You are an information extraction system. ${SCHEMA}
 
-If this appears to be a Social Security card, extract the name and mask the SSN as XXX-XX-1234.
+If this appears to be a Social Security card, extract the name and SSN as raw value.
 Prefer Textract query results when present; use the image for layout disambiguation.` },
           { type: "text", text: `QUERIES:\n${JSON.stringify(signal.queries, null, 2)}\n\nKEY_VALUES:\n${JSON.stringify(signal.kvs.slice(0, 40), null, 2)}\n\nTABLE_ROWS:\n${JSON.stringify(signal.tableRows.slice(0, 10), null, 2)}` },
         ];
@@ -450,7 +450,7 @@ Prefer Textract query results when present; use the image for layout disambiguat
       
       // Add SSN handling for fallback
       if (signal.queries?.ssn) {
-        fallbackResult.ssnMasked = maskSsn(signal.queries.ssn);
+        fallbackResult.ssn = signal.queries.ssn;
         fallbackResult.documentType = "Social Security Card";
         fallbackResult.issuer = "Social Security Administration";
       }
@@ -460,26 +460,19 @@ Prefer Textract query results when present; use the image for layout disambiguat
     
     console.log(`[ANALYZE_UNIVERSAL] Phase 3/3: Analysis complete`);
     
-    // Ensure SSN masking for safety
-    const ssnMasked = signal.queries?.ssn ? maskSsn(signal.queries.ssn) : undefined;
-    
-    // Prepare return data with masked SSN
+    // Prepare return data with raw SSN (logs will remain redacted)
     const safeQueries = { ...signal.queries };
-    if (safeQueries.ssn) {
-      safeQueries.ssnMasked = ssnMasked;
-      delete safeQueries.ssn; // Remove unmasked SSN from response
-    }
     
     return {
       documentKey: key,
       mime,
-      queries: safeQueries, // Contains ssnMasked instead of ssn
+      queries: safeQueries, // Contains raw ssn value
       kvs: signal.kvs,
       tableRows: signal.tableRows,
       ai: {
         ...aiResult,
         // Ensure SSN lands in suggestions even if the model didn't include it
-        ssnMasked: ssnMasked ?? aiResult?.ssnMasked ?? null,
+        ssn: signal.queries?.ssn ?? aiResult?.ssn ?? null,
         documentType: aiResult?.documentType ?? "Social Security Card",
         issuer: aiResult?.issuer ?? "Social Security Administration",
       },
