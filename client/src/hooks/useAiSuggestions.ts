@@ -212,15 +212,52 @@ export function useAiSuggestions(options: UseAiSuggestionsOptions = {}) {
       }, totalTimeoutMs);
 
       try {
-        // Step 1: Register upload
-        log("Step 1: Registering upload");
+        // Step 1: Get presigned URL for S3 upload
+        log("Step 1: Getting presigned URL");
+        const presignResponse = await fetch(`${apiBase}/storage/presign`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            type: 'document',
+            fileName: file.name,
+            contentType: file.type,
+            contentLength: file.size,
+            familyId: familyId || 'family-1'
+          })
+        });
+
+        if (!presignResponse.ok) {
+          throw new Error(`Presign failed: ${presignResponse.status}`);
+        }
+
+        const { uploadUrl, key: s3Key } = await presignResponse.json();
+        log("Got presigned URL and S3 key:", s3Key);
+
+        // Step 2: Upload file to S3
+        setState({ kind: "analyzing", step: "Uploading file..." });
+        log("Step 2: Uploading to S3");
+        const uploadResponse = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': file.type,
+          },
+          body: file
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`S3 upload failed: ${uploadResponse.status}`);
+        }
+
+        // Step 3: Register with AI inbox
+        log("Step 3: Registering with AI inbox");
         const registerResponse = await fetch(`${apiBase}/inbox/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({
             userId: 'current-user',
-            fileKey: `uploads/${file.name}`,
+            fileKey: s3Key, // Use real S3 key, not hardcoded path
             fileName: file.name,
             mime: file.type,
             size: file.size
@@ -234,15 +271,9 @@ export function useAiSuggestions(options: UseAiSuggestionsOptions = {}) {
         const { uploadId: jobId } = await registerResponse.json();
         log("Got jobId:", jobId);
 
-        // Step 2: Upload to S3 (simulate for now)
-        setState({ kind: "analyzing", step: "Uploading file..." });
-        log("Step 2: Uploading to S3");
-        // TODO: Implement actual S3 upload when ready
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Step 3: Start analysis
+        // Step 4: Start analysis
         setState({ kind: "analyzing", step: "Starting analysis..." });
-        log("Step 3: Starting analysis");
+        log("Step 4: Starting analysis");
         
         const analyzeResponse = await fetch(`${apiBase}/inbox/${jobId}/analyze`, {
           method: 'POST',
@@ -250,7 +281,6 @@ export function useAiSuggestions(options: UseAiSuggestionsOptions = {}) {
           credentials: 'include',
           body: JSON.stringify({
             userId: 'current-user',
-            fileKey: `uploads/${file.name}`,
             fileName: file.name
           })
         });
@@ -266,7 +296,6 @@ export function useAiSuggestions(options: UseAiSuggestionsOptions = {}) {
               credentials: 'include',
               body: JSON.stringify({
                 userId: 'current-user',
-                fileKey: `uploads/${file.name}`,
                 fileName: file.name,
                 retryAttempt: 2
               })
