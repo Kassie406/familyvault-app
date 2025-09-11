@@ -1,0 +1,168 @@
+What your logs show (short + actionable)
+
+React infinite re-render
+Warning: Maximum update depth exceeded in FamilyUpdates.tsx:75 and family-home.tsx:108.
+➜ You have a useEffect(() => setState(...)) without a stable dependency array or with a dep that changes on every render.
+
+Fix pattern
+
+// BAD: runs every render → setState → render → loop
+useEffect(() => { setRange(computeRange()); });
+
+// GOOD: run once
+useEffect(() => { setRange(computeRange()); }, []);
+
+// or: memoize the dependency
+const stable = useMemo(() => computeRangeDeps(raw), [raw.key]);
+useEffect(() => { setRange(computeRange(stable)); }, [stable]);
+
+
+Auth flapping
+GET /api/auth/me → 401 appears intermittently. That will make any downstream API (including analysis) bail.
+
+Frontend: all API calls must use cookies
+
+fetch(API('/...'), { credentials: 'include', ... })
+
+
+Server (CORS/Cookies)
+
+Access-Control-Allow-Origin: https://<your-portal-domain>
+Access-Control-Allow-Credentials: true
+Set-Cookie: ...; Secure; SameSite=None; Domain=.familycirclesecure.com
+
+
+WebSocket misconfig
+WebSocket wss://localhost:undefined?... is invalid and socket.io “closed before connection established.”
+➜ Your WS URL is being built from localhost + undefined port. Either set SOCKET_URL/VITE_WS_URL, or disable sockets in dev until configured.
+
+CSP is too strict (not the main block, but noisy)
+Fonts and the Replit banner are blocked; also ensure connect-src includes your API + SSE/WS hosts (wss).
+
+Content-Security-Policy:
+  connect-src 'self' https://api.familycirclesecure.com https://*.amazonaws.com wss://api.familycirclesecure.com wss://<your-socket-host>;
+  style-src   'self' 'unsafe-inline';
+  script-src  'self';
+
+
+Storage is fine ✅
+Your logs show /api/storage/presign → PUT to S3 200 OK repeatedly. So upload is good.
+What’s missing is: create inbox row → /analysis/start. That’s why your banner still fails.
+
+Paste-once DIAGNOSTIC (runs the whole AI path in Console)
+
+This will:
+
+register (or presign) a tiny text file,
+
+upload it to S3,
+
+create the Inbox row,
+
+start analysis,
+
+poll for completion, with clear logs at each step.
+
+Set API_BASE and FAMILY_ID to your real values first.
+
+(async () => {
+  const API_BASE = '/api';           // or 'https://api.familycirclesecure.com'
+  const FAMILY_ID = 'family-1';      // <-- your family id
+
+  const j = v => JSON.stringify(v);
+  const ok = (r) => { if (!r.ok) throw new Error(r.status + ' ' + r.statusText); return r; };
+
+  const post = (p, body) =>
+    fetch(API_BASE + p, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: j(body)
+    }).then(ok);
+
+  console.log('— START —');
+
+  // 1) Register / presign (adjust path to your real one)
+  console.log('Presigning…');
+  let r = await post('/storage/presign', {
+    fileName: 'diagnostic.txt',
+    contentType: 'text/plain',
+    type: 'document',
+    familyId: FAMILY_ID
+  });
+  const presign = await r.json();
+  console.log('presign:', presign);
+
+  // 2) Upload to S3
+  const uploadUrl = presign.uploadUrl || presign.url;
+  if (!uploadUrl) throw new Error('No uploadUrl in presign response');
+  console.log('Uploading to S3…', uploadUrl.slice(0,120)+'…');
+  const blob = new Blob([`diagnostic ${new Date().toISOString()}`], { type: 'text/plain' });
+  let put = await fetch(uploadUrl, { method: 'PUT', body: blob, headers: { 'content-type': 'text/plain' } });
+  if (!put.ok) throw new Error('S3 PUT failed: ' + put.status);
+  console.log('S3 PUT: OK');
+
+  // 3) Create inbox item (adjust path/name to your API)
+  console.log('Creating inbox item…');
+  r = await post('/inbox', {
+    fileId: presign.fileId,     // many backends return fileId with the presign
+    familyId: FAMILY_ID,
+    title: 'diagnostic.txt'
+  });
+  const inbox = await r.json();
+  const inboxItemId = inbox.inboxItemId || inbox.id;
+  if (!inboxItemId) throw new Error('No inboxItemId from /inbox');
+  console.log('Inbox item:', inboxItemId);
+
+  // 4) Start analysis
+  console.log('Starting analysis…');
+  r = await post('/analysis/start', { inboxItemId });
+  const start = await r.json();
+  const jobId = start.jobId;
+  if (!jobId) throw new Error('No jobId from /analysis/start');
+  console.log('jobId:', jobId);
+
+  // 5) Poll status (fallback if you don’t use SSE)
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  let tries = 0;
+  while (tries++ < 30) {
+    const s = await fetch(`${API_BASE}/analysis/status?jobId=${encodeURIComponent(jobId)}`, { credentials: 'include' }).then(ok).then(r => r.json());
+    console.log('status:', s);
+    if (s.status === 'completed') { console.log('✅ DONE:', s.suggestions); break; }
+    if (s.status === 'failed') { throw new Error('❌ FAILED: ' + (s.error || '(no error message)')); }
+    await wait(1500);
+  }
+  if (tries >= 30) throw new Error('⏳ Timeout waiting for completion');
+})().catch(e => console.error('DIAGNOSTIC ERROR →', e));
+
+How to read the result
+
+If it fails at /inbox → your backend isn’t creating the row (auth/tenant/endpoint mismatch).
+
+If it fails at /analysis/start with 404 { "error": "inbox_item_not_found" } → you’re sending the wrong id or the server isn’t looking it up in the correct tenant.
+
+If status never reaches completed → the worker pipeline is stuck; check server logs.
+
+If all steps succeed here but the UI still fails → the component wiring (not the backend) is the bug.
+
+Two quick code patches to make the UI reliable
+
+Single source of truth (parent owns the hook)
+
+// family-home.tsx
+const { state, run, retry, cancel } = useAiSuggestions({ logs: true });
+const lastArgs = useRef(null);
+const startFromFile  = (file: File) => (lastArgs.current = {file, familyId}, run({ file, familyId }));
+const startFromInbox = (id: string) => (lastArgs.current = {inboxItemId:id}, run({ inboxItemId:id }));
+const tryAgain = () => lastArgs.current && run(lastArgs.current);
+
+<AIBanner state={state} onRetry={tryAgain} onDismiss={cancel} />
+<UploadCenter familyId={familyId} onAnalyzeFile={startFromFile} onAnalyzeInbox={startFromInbox} />
+
+
+Kill the infinite effect
+
+// FamilyUpdates.tsx (around line 75)
+useEffect(() => {
+  // ... your setState calls ...
+}, []); // <-- add deps properly or memoize inputs used inside
