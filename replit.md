@@ -6,7 +6,7 @@ FamilyVault is a React-based web application designed to help families organize,
 
 Preferred communication style: Simple, everyday language.
 
-## Current Project Phase (January 29, 2025)
+## Current Project Phase (September 11, 2025)
 - **Share Link Generation**: ✓ Completed - Fixed stuck "Generating..." button with robust timeout handling
 - **Database Integration**: ✓ Completed - Real API endpoints with database persistence for share links
 - **Error Handling**: ✓ Completed - Safe abort controller logic prevents double-abort errors
@@ -16,6 +16,7 @@ Preferred communication style: Simple, everyday language.
 - **Getting Married Redesign**: ✓ Completed - Upgraded to luxury dark theme with 6 professional wedding planning category sections, always-visible add menu, search functionality, and full routing setup for comprehensive wedding planning management
 - **Complete Chores Workflow**: ✓ Completed - Full workflow with real-time updates including complete/approve/unapprove/reject actions, live dashboard refresh, and proper allowance point management with transaction-based integrity
 - **Dropdown Hover Effects Fix**: ✓ Completed - Fixed Family Members card dropdown to have consistent light gold hover effects (January 29, 2025)
+- **Enhanced MCP Server**: ✓ Completed - Comprehensive upgrade with design, UX, and collaboration tools for full team involvement (September 11, 2025)
 
 # System Architecture
 
@@ -81,6 +82,35 @@ Preferred communication style: Simple, everyday language.
 - **Production Build**: Optimized client bundle with static asset generation
 - **Server Bundle**: ESBuild compilation for Node.js deployment
 - **Asset Management**: Vite-based asset optimization and bundling
+
+## Enhanced MCP Server (September 11, 2025)
+
+### Design & UX Collaboration Tools
+- **analyze_ui_component**: Comprehensive component analysis for design consistency, accessibility, and UX
+- **audit_design_system**: Full design system audit covering colors, typography, spacing, and components
+- **review_user_journey**: User journey analysis with metrics and UX improvement recommendations
+- **create_design_feedback**: Detailed design feedback generation for pages and components
+
+### Project Management & Collaboration
+- **track_project_progress**: Comprehensive project status tracking across design, development, and UX
+- **manage_design_tasks**: Design and UX task management with priority and assignment capabilities
+- **analyze_collaboration_metrics**: Team collaboration analysis with velocity and quality metrics
+
+### Enhanced Document Management
+- **get_upload_center_status**: Upload center status with optional UX metrics integration
+- **analyze_document**: AI-powered document analysis with AWS Textract integration
+- **get_extracted_data**: Retrieved structured data from analyzed documents
+- **search_family_documents**: Advanced search across documents and extracted fields
+
+### Family Management Integration
+- **get_family_members**: Family member management with real database integration
+- **add_family_member**: New family member creation with role assignment
+
+### Technical Implementation
+- **Endpoints**: RESTful API at `/mcp/` with JSON-RPC compatibility
+- **Testing**: Individual tool endpoints for easy testing and debugging
+- **Health Monitoring**: Comprehensive health check endpoint with tool status
+- **Security**: Integrated with existing authentication and session management
 
 # UI/UX Fixes & Patterns
 
