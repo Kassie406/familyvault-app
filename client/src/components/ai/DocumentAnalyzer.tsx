@@ -9,17 +9,17 @@ import { Copy, Eye, EyeOff, Sparkles, FileText, CreditCard, Shield, Receipt } fr
 import { useToast } from "@/hooks/use-toast";
 
 // Convert [{key,value,confidence}] → { KEY: { value, confidence } }
-function fieldsArrayToMap(fieldsArr = []) {
-  const out = {};
+function fieldsArrayToMap(fieldsArr: any[] = []): Record<string, any> {
+  const out: Record<string, any> = {};
   for (const f of fieldsArr) {
-    const key = String(f.key || '').toUpperCase().replace(/\s+/g, '_');
-    out[key] = { value: f.value ?? '', confidence: typeof f.confidence === 'number' ? f.confidence : 0, pii: !!f.pii };
+    const key = String(f?.key || '').toUpperCase().replace(/\s+/g, '_');
+    out[key] = { value: f?.value ?? '', confidence: typeof f?.confidence === 'number' ? f.confidence : 0, pii: !!f?.pii };
   }
   return out;
 }
 
 // Pretty label for API pill
-function prettyApiFor(docType) {
+function prettyApiFor(docType: string): string {
   if (docType === 'drivers_license' || docType === 'passport') return 'AnalyzeID';
   if (docType === 'ssn_card') return 'AnalyzeDocument (Queries)';
   if (docType === 'insurance_card') return 'AnalyzeDocument (Queries)';
@@ -27,7 +27,7 @@ function prettyApiFor(docType) {
 }
 
 // Document types with FIXED SSN mapping
-const documentTypes = {
+const documentTypes: Record<string, any> = {
   'drivers_license': {
     label: 'Driver\'s License',
     icon: CreditCard,
@@ -110,8 +110,8 @@ export default function DocumentAnalyzer({ onAnalyze, className }: DocumentAnaly
           fields: fieldsMap,
           suggestions: {
             title: file.name.replace(/\.[^/.]+$/, ''),
-            category: documentTypes[docType]?.category?.toLowerCase().replace(/\s+/g, '_') || 'general',
-            description: `${documentTypes[docType]?.label || 'Document'} analyzed with ${apiUsed}`
+            category: (documentTypes as any)[docType]?.category?.toLowerCase().replace(/\s+/g, '_') || 'general',
+            description: `${(documentTypes as any)[docType]?.label || 'Document'} analyzed with ${apiUsed}`
           }
         };
         setExtractedData(results);
@@ -121,11 +121,11 @@ export default function DocumentAnalyzer({ onAnalyze, className }: DocumentAnaly
       }
       throw new Error('Bad response');
     } catch (e) {
-      console.warn('Analyze via backend failed; using mock:', e?.message || e);
+      console.warn('Analyze via backend failed; using mock:', (e as any)?.message || e);
     }
 
     // 2) MOCK DATA fallback with FIXED SSN mapping
-    const mockData = {
+    const mockData: Record<string, any> = {
       'drivers_license': {
         api_used: 'AnalyzeID',
         confidence: 'high',
@@ -202,7 +202,7 @@ export default function DocumentAnalyzer({ onAnalyze, className }: DocumentAnaly
       }
     };
 
-    const result = mockData[docType] || {
+    const result = (mockData as any)[docType] || {
       api_used: 'DetectDocumentText',
       confidence: 'low',
       fields: {},
