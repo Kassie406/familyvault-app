@@ -139,12 +139,27 @@ function AdminRouter() {
   );
 }
 
+// Component to handle public portal routing
+function PublicPortalHome() {
+  const isPublicPortal = import.meta.env.VITE_PUBLIC_PORTAL === 'true';
+  
+  if (isPublicPortal) {
+    return (
+      <RequireAuth>
+        <FamilyRouter />
+      </RequireAuth>
+    );
+  }
+  
+  return <MaintenancePage />;
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/inbox" component={Inbox} />
       <Route path="/invite/:token" component={InviteAccept} />
-      <Route path="/" component={MaintenancePage} />
+      <Route path="/" component={PublicPortalHome} />
       <Route path="/security" component={Security} />
       <Route path="/security-documentation" component={SecurityDocumentation} />
       <Route path="/trust-overview" component={TrustOverview} />
