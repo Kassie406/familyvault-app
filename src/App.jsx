@@ -23,21 +23,19 @@ function App() {
   const [mode, setMode] = useState("auto"); // auto | id | forms | tables
   const fileRef = useRef(null);
 
-  // Convert file to base64
-  async function fileToBase64(file) {
-    const dataUrl = await new Promise((res, rej) => {
-      const reader = new FileReader();
-      reader.onload = () => res(reader.result);
-      reader.onerror = rej;
-      reader.readAsDataURL(file);
+  // Helper: file -> base64 (NO data: prefix)
+  const fileToBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result.split(",")[1]); // strip "data:...;base64,"
+      r.onerror = reject;
+      r.readAsDataURL(file);
     });
-    // strip "data:image/...;base64," prefix
-    return dataUrl.split(',')[1];
-  }
 
   async function analyzeDocument(file, mode = "auto") {
-    // Get API URL from environment
-    const API_URL = import.meta?.env?.VITE_API_URL || process.env.REACT_APP_API_URL;
+    // Get API URL from environment and add /analyze endpoint
+    const BASE_API_URL = import.meta?.env?.VITE_API_URL || process.env.REACT_APP_API_URL;
+    const API_URL = BASE_API_URL ? `${BASE_API_URL}/analyze` : null;
     
     if (!API_URL) {
       console.warn('No VITE_API_URL configured, falling back to proxy endpoint');
@@ -52,9 +50,6 @@ function App() {
       return r.json();
     }
 
-    // Use direct Lambda API call
-    const fileContent = await fileToBase64(file);
-    
     // Map analysis modes to document types for Lambda
     const docTypeMap = {
       'auto': 'auto',
@@ -65,22 +60,25 @@ function App() {
     
     const documentType = docTypeMap[mode] || 'auto';
     
-    const resp = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    // Call your Lambda through API Gateway
+    const fileContent = await fileToBase64(file);
+
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         fileContent,
-        filename: file.name,
+        filename: file.name || "upload.jpg",
         documentType
       })
     });
 
-    if (!resp.ok) {
-      const text = await resp.text();
-      throw new Error(`API ${resp.status}: ${text}`);
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`API ${res.status}: ${text}`);
     }
-    
-    const result = await resp.json();
+
+    const result = await res.json();
     
     // Transform Lambda response to match UI expectations
     return {
