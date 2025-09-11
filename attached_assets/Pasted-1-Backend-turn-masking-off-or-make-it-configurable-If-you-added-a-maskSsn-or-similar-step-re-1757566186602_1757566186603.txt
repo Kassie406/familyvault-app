@@ -1,0 +1,79 @@
+1) Backend: turn masking off (or make it configurable)
+
+If you added a maskSsn() or similar step, remove it or guard it with a flag.
+
+// config.ts
+export const MASK_PII = process.env.MASK_PII === "true"; // default false
+
+// analyzers/normalize.ts
+export function normalizeField(key: string, value: string) {
+  // If you ever want masking again, flip MASK_PII=true in env.
+  if (!MASK_PII) return value;
+
+  if (/^SSN$/i.test(key)) {
+    return value.replace(/\d(?=\d{4}\b)/g, "X"); // XXX-XX-1234
+  }
+  return value;
+}
+
+
+In your merge/parse code, stop calling maskSsn(...) or route all values through normalizeField(key, value) (which now respects the flag).
+
+TL;DR: set MASK_PII to false (or delete the masking step entirely) and pass the raw SSN through.
+
+2) Frontend: show the raw value (optional “eye” toggle)
+
+If you previously hid PII in the UI, render it as-is. If you want a quick privacy toggle per field:
+
+import { useState } from "react"
+import { Eye, EyeOff } from "lucide-react"
+import { Button } from "@/components/ui/button"
+
+function PiiField({ label, value, isPII }: { label: string; value: string; isPII?: boolean }) {
+  const [show, setShow] = useState(true) // default to visible since you prefer unmasked
+  const obfuscate = (s: string) => s.replace(/\d(?=\d{4}\b)/g, "•") // visual only
+
+  return (
+    <div className="p-3 border rounded">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        {isPII && (
+          <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setShow(v => !v)}>
+            {show ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+          </Button>
+        )}
+      </div>
+      <div className="font-mono text-sm">{isPII && !show ? obfuscate(value) : value}</div>
+    </div>
+  )
+}
+
+
+In your results list, mark isPII for SSN:
+
+<PiiField label="SSN" value={field.value} isPII={/^(ssn|social[_\s]?security)$/i.test(field.key)} />
+
+3) Logging & storage (important if you keep SSN raw)
+
+Never log raw fields. Ensure your server logs don’t console.log(JSON.stringify(result)).
+
+Redact in logs only (even if you display raw):
+
+const safeLog = (fields) =>
+  fields.map(f => ({ ...f, value: f.key === "SSN" ? "***redacted***" : f.value }))
+
+
+Keep your existing S3 server-side encryption + TLS. Don’t include SSNs in analytics/telemetry.
+
+4) Hook into the new UI button (no masking)
+
+The UploadCenterAIActions I gave you doesn’t mask—just make sure your /api/inbox/analyze returns the SSN value directly in result.fields.
+
+Example from your server:
+
+result.fields.push({
+  key: "SSN",
+  value: parsed.ssn,        // <-- raw value (e.g., 123-45-6789)
+  confidence: parsed.confidence,
+  pii: true                 // optional flag for the UI toggle
+})
