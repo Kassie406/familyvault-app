@@ -180,7 +180,7 @@ export const messages = pgTable("messages", {
   content: text("content").notNull(),
   attachments: text("attachments"), // JSON array of file info
   messageType: varchar("message_type").default("text"), // text, image, file, system
-  replyToId: varchar("reply_to_id").references(() => messages.id),
+  replyToId: varchar("reply_to_id"),
   editedAt: timestamp("edited_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
