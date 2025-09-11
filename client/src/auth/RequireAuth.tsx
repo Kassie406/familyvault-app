@@ -6,6 +6,14 @@ interface RequireAuthProps {
 }
 
 export default function RequireAuth({ children }: RequireAuthProps) {
+  // Always bypass authentication for public portal access
+  return <>{children}</>;
+  
+  // Note: Authentication bypass is enabled for public portal access
+  // If you need to re-enable authentication, uncomment the code below
+  
+  /*
+
   const [ready, setReady] = useState(false);
   const [user, setUser] = useState<any>(null);
 
@@ -60,4 +68,5 @@ export default function RequireAuth({ children }: RequireAuthProps) {
   ) : (
     <NewSignIn />
   );
+  */
 }
