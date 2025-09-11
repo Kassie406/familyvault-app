@@ -1,0 +1,144 @@
+1) One-click “Happy Path” probe (run in DevTools Console)
+
+This creates a tiny file, does presign → S3 → inbox → start → poll. If this succeeds, your backend + new keys are good.
+
+(async () => {
+  const API = '/api';                // or full API origin
+  const FAMILY_ID = 'family-1';      // set yours
+
+  const post = (p,b) => fetch(API+p,{
+    method:'POST', credentials:'include',
+    headers:{'content-type':'application/json'},
+    body: JSON.stringify(b)
+  }).then(r=>r.ok?r:r.text().then(t=>Promise.reject(new Error(r.status+' '+t))));
+
+  console.log('▶ presign');
+  const pr = await post('/storage/presign', {
+    fileName:'diagnostic.txt', contentType:'text/plain', type:'document', familyId:FAMILY_ID
+  }).then(r=>r.json());
+  if (!pr.uploadUrl || !pr.fileId) throw new Error('presign missing uploadUrl/fileId');
+
+  console.log('▶ put to S3');
+  const put = await fetch(pr.uploadUrl, {
+    method:'PUT', headers:{'content-type':'text/plain'},
+    body:new Blob(['diag '+new Date().toISOString()],{type:'text/plain'})
+  });
+  if (!put.ok) throw new Error('S3 PUT failed: '+put.status);
+
+  console.log('▶ create inbox');
+  const inbox = await post('/inbox', { fileId: pr.fileId, familyId:FAMILY_ID, title:'diagnostic.txt' })
+                 .then(r=>r.json());
+  if (!inbox.inboxItemId) throw new Error('no inboxItemId');
+
+  console.log('▶ start analysis');
+  const start = await post('/analysis/start', { inboxItemId: inbox.inboxItemId }).then(r=>r.json());
+  if (!start.jobId) throw new Error('no jobId');
+
+  console.log('▶ poll status');
+  const wait = ms => new Promise(r=>setTimeout(r,ms));
+  for (let i=0;i<30;i++){
+    const st = await fetch(`${API}/analysis/status?jobId=${encodeURIComponent(start.jobId)}`,
+                           { credentials:'include' }).then(r=>r.json());
+    console.log('status', st.status, st.progress ?? '', st.error ?? '');
+    if (st.status==='completed') return console.log('✅ suggestions:', st.suggestions);
+    if (st.status==='failed')   throw new Error('❌ '+(st.error||'failed'));
+    await wait(1500);
+  }
+  throw new Error('⏳ timeout waiting for completion');
+})().catch(e=>console.error('DIAG FAIL →', e));
+
+
+Interpretation
+
+Success ⇒ new pipeline is correct; only legacy rows are breaking UX.
+
+Fail at /inbox or /analysis/start ⇒ show me the thrown JSON; that’s the next blocker.
+
+2) Quarantine + fix legacy rows safely
+
+Until you finish a full migration, make the app resilient to old uploads/… paths.
+
+Backend guard (in /analysis/start)
+// After you load the inboxItem + file
+if (file.key?.startsWith('uploads/')) {
+  // Return actionable error (not 500); UI can show “re-upload” CTA
+  return res.status(410).json({
+    error: 'legacy_key_unusable',
+    hint: 'This file was uploaded with an old path. Please re-upload to analyze.',
+  });
+}
+
+UI handling (AIBanner)
+if (e.message?.includes('legacy_key_unusable')) {
+  setAiState({
+    kind:'error',
+    message:'This document was saved in an old format and can’t be analyzed. Please re-upload it.',
+  });
+}
+
+SQL to find and tag legacy rows (not delete by default)
+
+Adjust table/column names to yours. The idea is: mark legacy items so the UI can disable “Analyze” and show a re-upload banner.
+
+-- 1) Detect legacy files (key starts with 'uploads/')
+SELECT f.id AS file_id, f.key, i.id AS inbox_item_id, i.family_id
+FROM files f
+JOIN inbox_items i ON i.file_id = f.id
+WHERE f.key LIKE 'uploads/%';
+
+-- 2) Add a column on inbox_items to mark legacy items (once)
+-- ALTER TABLE inbox_items ADD COLUMN is_legacy boolean NOT NULL DEFAULT false;
+
+-- 3) Mark them (non-destructive)
+UPDATE inbox_items i
+SET is_legacy = true
+FROM files f
+WHERE i.file_id = f.id AND f.key LIKE 'uploads/%';
+
+
+Then hide/disable the analyze button if is_legacy = true and show a “Re-upload to use AI” hint.
+
+3) Prevent regressions permanently
+
+Schema & constraints
+
+Ensure files.key is NOT NULL and must not start with uploads/ going forward:
+
+-- CHECK requires PG 12+; otherwise enforce in code.
+ALTER TABLE files
+ADD CONSTRAINT files_key_no_legacy CHECK (key NOT LIKE 'uploads/%');
+
+
+Analyzer input contract
+
+/analysis/start must accept inboxItemId only; resolve key server-side. Never accept a client file path.
+
+Unit/Integration tests
+
+Test that presign returns { fileId, key, uploadUrl }.
+
+Test that starting analysis on a legacy key returns 410 legacy_key_unusable.
+
+4) Clean up the noisy stuff (doesn’t block AI, but good hygiene)
+
+React re-render loop at FamilyUpdates.tsx:75 & family-home.tsx:108
+Add deps:
+
+useEffect(() => {
+  setRange(getDefaultRange());
+}, []); // or memoize inputs you use inside
+
+
+CSP
+Add your API and S3 to connect-src (and WS if you actually use sockets):
+
+connect-src 'self' https://api.<your-domain> https://*.amazonaws.com wss://api.<your-domain>;
+style-src 'self' 'unsafe-inline';
+script-src 'self';
+
+
+Socket URL
+Either set VITE_WS_URL explicitly or disable sockets in dev; current wss://localhost:undefined noise is harmless but distracting.
+
+Auth
+Ensure every fetch uses credentials: 'include' and server CORS sends Access-Control-Allow-Credentials: true.
