@@ -1095,7 +1095,9 @@ export const inboxItems = pgTable("inbox_items", {
   processedAt: timestamp("processed_at"),
   acceptedAt: timestamp("accepted_at"),
   dismissedAt: timestamp("dismissed_at"),
-});
+}, (table) => ({
+  fileUrlCheck: sql`CHECK (${table.fileUrl} NOT LIKE 'uploads/%')`
+}));
 
 // Extracted Fields - AI-extracted information from inbox items
 export const extractedFields = pgTable("extracted_fields", {

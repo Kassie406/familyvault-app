@@ -173,8 +173,10 @@ export function useAiSuggestions(options: UseAiSuggestionsOptions = {}) {
             const data = await response.json();
             log("Poll data:", data);
 
-            if (data.status === "completed") {
-              finish({ status: "completed", suggestions: data.suggestions });
+            if (data.status === "completed" || data.status === "suggested") {
+              // Handle both payload formats: SSE uses 'suggestions', polling uses 'result'
+              const suggestions = data.suggestions ?? data.result;
+              finish({ status: "completed", suggestions });
             } else if (data.status === "failed") {
               finish({ status: "failed", error: data.error });
             } else if (data.status === "analyzing") {

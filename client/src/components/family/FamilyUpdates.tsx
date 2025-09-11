@@ -101,10 +101,12 @@ const FamilyUpdates = forwardRef<{ refresh: () => Promise<void> }>((props, ref) 
     }
   });
 
-  // Update local state when data changes
+  // Update local state when data changes - prevent infinite loops
   useEffect(() => {
-    setUpdates(updatesData);
-  }, [updatesData]);
+    if (updatesData && JSON.stringify(updatesData) !== JSON.stringify(updates)) {
+      setUpdates(updatesData);
+    }
+  }, [updatesData]); // Removed updates from dependencies to prevent re-render loop
 
   // Load snoozed count - memoized to prevent infinite re-renders
   const loadSnoozedCount = useCallback(async () => {
