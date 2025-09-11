@@ -2,7 +2,7 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { eq, desc, sql, ilike, or, and, not, inArray } from "drizzle-orm";
 import { 
-  type User, type InsertUser,
+  type User, type UpsertUser,
   type Organization, type InsertOrganization,
   type Plan, type InsertPlan,
   type Coupon, type InsertCoupon,
@@ -33,6 +33,10 @@ import {
   type MessageReadReceipt, type InsertMessageReadReceipt,
   type MessageReaction, type InsertMessageReaction,
   type MessageAttachment, type InsertMessageAttachment,
+  // Enhanced Upload System Types
+  type UploadJob, type InsertUploadJob,
+  type AnalysisResult, type InsertAnalysisResult,
+  type UploadMetric, type InsertUploadMetric,
   users, organizations, plans, coupons, articles, consentEvents, auditLogs,
   adminSessions, securitySettings, impersonationSessions,
   gdprConsentEvents, dsarRequests, retentionPolicies, suppressionList,
@@ -63,8 +67,8 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined>;
+  createUser(user: UpsertUser): Promise<User>;
+  updateUser(id: string, updates: Partial<UpsertUser>): Promise<User | undefined>;
   deleteUser(id: string): Promise<boolean>;
   
   // Organization methods
@@ -315,6 +319,31 @@ export interface IStorage {
   
   getCoupleCheckins(coupleId: string): Promise<CoupleCheckin[]>;
   createCoupleCheckin(checkin: InsertCoupleCheckin): Promise<CoupleCheckin>;
+
+  // Enhanced Upload System methods
+  createUploadJob(job: InsertUploadJob): Promise<UploadJob>;
+  getUploadJob(jobId: string): Promise<UploadJob | undefined>;
+  getUploadJobsByFamily(familyId: string): Promise<UploadJob[]>;
+  getUploadJobsByUser(userId: string): Promise<UploadJob[]>;
+  updateUploadJob(jobId: string, updates: Partial<InsertUploadJob>): Promise<UploadJob | undefined>;
+  updateUploadProgress(jobId: string, progress: number, stage?: string): Promise<boolean>;
+  deleteUploadJob(jobId: string): Promise<boolean>;
+  
+  // Analysis Results methods
+  createAnalysisResult(result: InsertAnalysisResult): Promise<AnalysisResult>;
+  getAnalysisResults(uploadJobId: string): Promise<AnalysisResult[]>;
+  getAnalysisResultsWithConfidence(uploadJobId: string, minConfidence: number): Promise<AnalysisResult[]>;
+  deleteAnalysisResults(uploadJobId: string): Promise<boolean>;
+  
+  // Upload Metrics methods  
+  createUploadMetric(metric: InsertUploadMetric): Promise<UploadMetric>;
+  getUploadMetrics(uploadJobId: string): Promise<UploadMetric[]>;
+  getSystemMetrics(): Promise<{
+    totalUploads: number;
+    completedUploads: number;
+    avgProcessingTime: number;
+    avgUploadTime: number;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -334,12 +363,12 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async createUser(user: InsertUser): Promise<User> {
+  async createUser(user: UpsertUser): Promise<User> {
     const result = await db.insert(users).values(user).returning();
     return result[0];
   }
 
-  async updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined> {
+  async updateUser(id: string, updates: Partial<UpsertUser>): Promise<User | undefined> {
     const result = await db.update(users).set(updates).where(eq(users.id, id)).returning();
     return result[0];
   }
@@ -1669,6 +1698,272 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
+
+  // Enhanced Upload System methods - Not implemented in DatabaseStorage, use MemStorage
+  async createUploadJob(job: InsertUploadJob): Promise<UploadJob> {
+    throw new Error('Enhanced upload methods not implemented in DatabaseStorage. Use MemStorage.');
+  }
+  async getUploadJob(jobId: string): Promise<UploadJob | undefined> {
+    throw new Error('Enhanced upload methods not implemented in DatabaseStorage. Use MemStorage.');
+  }
+  async getUploadJobsByFamily(familyId: string): Promise<UploadJob[]> {
+    throw new Error('Enhanced upload methods not implemented in DatabaseStorage. Use MemStorage.');
+  }
+  async getUploadJobsByUser(userId: string): Promise<UploadJob[]> {
+    throw new Error('Enhanced upload methods not implemented in DatabaseStorage. Use MemStorage.');
+  }
+  async updateUploadJob(jobId: string, updates: Partial<InsertUploadJob>): Promise<UploadJob | undefined> {
+    throw new Error('Enhanced upload methods not implemented in DatabaseStorage. Use MemStorage.');
+  }
+  async updateUploadProgress(jobId: string, progress: number, stage?: string): Promise<boolean> {
+    throw new Error('Enhanced upload methods not implemented in DatabaseStorage. Use MemStorage.');
+  }
+  async deleteUploadJob(jobId: string): Promise<boolean> {
+    throw new Error('Enhanced upload methods not implemented in DatabaseStorage. Use MemStorage.');
+  }
+  async createAnalysisResult(result: InsertAnalysisResult): Promise<AnalysisResult> {
+    throw new Error('Enhanced upload methods not implemented in DatabaseStorage. Use MemStorage.');
+  }
+  async getAnalysisResults(uploadJobId: string): Promise<AnalysisResult[]> {
+    throw new Error('Enhanced upload methods not implemented in DatabaseStorage. Use MemStorage.');
+  }
+  async getAnalysisResultsWithConfidence(uploadJobId: string, minConfidence: number): Promise<AnalysisResult[]> {
+    throw new Error('Enhanced upload methods not implemented in DatabaseStorage. Use MemStorage.');
+  }
+  async deleteAnalysisResults(uploadJobId: string): Promise<boolean> {
+    throw new Error('Enhanced upload methods not implemented in DatabaseStorage. Use MemStorage.');
+  }
+  async createUploadMetric(metric: InsertUploadMetric): Promise<UploadMetric> {
+    throw new Error('Enhanced upload methods not implemented in DatabaseStorage. Use MemStorage.');
+  }
+  async getUploadMetrics(uploadJobId: string): Promise<UploadMetric[]> {
+    throw new Error('Enhanced upload methods not implemented in DatabaseStorage. Use MemStorage.');
+  }
+  async getSystemMetrics(): Promise<{ totalUploads: number; completedUploads: number; avgProcessingTime: number; avgUploadTime: number; }> {
+    throw new Error('Enhanced upload methods not implemented in DatabaseStorage. Use MemStorage.');
+  }
+}
+
+// Enhanced Upload System MemStorage - In-memory storage for upload jobs with atomic operations
+export class MemStorage implements Partial<IStorage> {
+  private uploadJobs = new Map<string, UploadJob>();
+  private analysisResults = new Map<string, AnalysisResult[]>();
+  private uploadMetrics = new Map<string, UploadMetric[]>();
+  private jobLocks = new Map<string, Promise<any>>(); // Atomic operation locks per job
+
+  // Atomic operation helper to prevent race conditions
+  private async atomicJobOperation<T>(jobId: string, operation: () => Promise<T> | T): Promise<T> {
+    // Wait for any existing operation on this job to complete
+    if (this.jobLocks.has(jobId)) {
+      await this.jobLocks.get(jobId);
+    }
+    
+    // Create new operation promise
+    const operationPromise = Promise.resolve().then(operation);
+    this.jobLocks.set(jobId, operationPromise);
+    
+    try {
+      const result = await operationPromise;
+      return result;
+    } finally {
+      // Clean up lock after operation completes
+      if (this.jobLocks.get(jobId) === operationPromise) {
+        this.jobLocks.delete(jobId);
+      }
+    }
+  }
+
+  // Enhanced Upload System methods
+  async createUploadJob(job: InsertUploadJob): Promise<UploadJob> {
+    const id = `upload-job-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+    const now = new Date();
+    const uploadJob: UploadJob = {
+      id,
+      ...job,
+      startedAt: job.startedAt || now,
+      uploadedAt: null,
+      completedAt: null,
+    };
+    this.uploadJobs.set(id, uploadJob);
+    
+    // Record initial metric
+    await this.createUploadMetric({
+      uploadJobId: id,
+      metricType: 'job_created',
+      value: now.getTime(),
+    });
+    
+    return uploadJob;
+  }
+
+  async getUploadJob(jobId: string): Promise<UploadJob | undefined> {
+    return this.uploadJobs.get(jobId);
+  }
+
+  async getUploadJobsByFamily(familyId: string): Promise<UploadJob[]> {
+    return Array.from(this.uploadJobs.values()).filter(job => job.familyId === familyId);
+  }
+
+  async getUploadJobsByUser(userId: string): Promise<UploadJob[]> {
+    return Array.from(this.uploadJobs.values()).filter(job => job.userId === userId);
+  }
+
+  async updateUploadJob(jobId: string, updates: Partial<InsertUploadJob>): Promise<UploadJob | undefined> {
+    const existingJob = this.uploadJobs.get(jobId);
+    if (!existingJob) return undefined;
+
+    const updatedJob: UploadJob = {
+      ...existingJob,
+      ...updates,
+    };
+    this.uploadJobs.set(jobId, updatedJob);
+    return updatedJob;
+  }
+
+  async updateUploadProgress(jobId: string, progress: number, stage?: string): Promise<boolean> {
+    return await this.atomicJobOperation(jobId, () => {
+      const existingJob = this.uploadJobs.get(jobId);
+      if (!existingJob) return false;
+
+      const updates: Partial<UploadJob> = { 
+        progress: Math.max(0, Math.min(100, progress)) // Clamp progress between 0-100
+      };
+      if (stage) {
+        updates.stage = stage;
+        // Update timestamps based on stage
+        if (stage === 'uploaded' && !existingJob.uploadedAt) {
+          updates.uploadedAt = new Date();
+        } else if (stage === 'completed' && !existingJob.completedAt) {
+          updates.completedAt = new Date();
+          updates.status = 'completed';
+        }
+      }
+      
+      const updatedJob: UploadJob = {
+        ...existingJob,
+        ...updates,
+      };
+      this.uploadJobs.set(jobId, updatedJob);
+      
+      // Record progress metric atomically
+      this.createUploadMetric({
+        uploadJobId: jobId,
+        metricType: 'progress_update',
+        value: progress,
+      });
+      
+      return true;
+    });
+  }
+
+  async deleteUploadJob(jobId: string): Promise<boolean> {
+    return await this.atomicJobOperation(jobId, () => {
+      const job = this.uploadJobs.get(jobId);
+      if (!job) return false;
+      
+      // Cascading delete - remove all related data
+      const deleted = this.uploadJobs.delete(jobId);
+      if (deleted) {
+        this.analysisResults.delete(jobId);
+        this.uploadMetrics.delete(jobId);
+        this.jobLocks.delete(jobId); // Clean up any remaining locks
+        
+        // Record deletion metric for monitoring
+        this.createUploadMetric({
+          uploadJobId: jobId,
+          metricType: 'job_deleted',
+          value: Date.now(),
+        }).catch(() => {}); // Fire-and-forget since job is being deleted
+      }
+      return deleted;
+    });
+  }
+
+  async createAnalysisResult(result: InsertAnalysisResult): Promise<AnalysisResult> {
+    const id = `analysis-result-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+    const analysisResult: AnalysisResult = {
+      id,
+      ...result,
+      extractedAt: result.extractedAt || new Date(),
+    };
+
+    const jobId = result.uploadJobId;
+    const existing = this.analysisResults.get(jobId) || [];
+    existing.push(analysisResult);
+    this.analysisResults.set(jobId, existing);
+    
+    return analysisResult;
+  }
+
+  async getAnalysisResults(uploadJobId: string): Promise<AnalysisResult[]> {
+    return this.analysisResults.get(uploadJobId) || [];
+  }
+
+  async getAnalysisResultsWithConfidence(uploadJobId: string, minConfidence: number): Promise<AnalysisResult[]> {
+    const results = this.analysisResults.get(uploadJobId) || [];
+    return results.filter(result => result.confidence >= minConfidence);
+  }
+
+  async deleteAnalysisResults(uploadJobId: string): Promise<boolean> {
+    return this.analysisResults.delete(uploadJobId);
+  }
+
+  async createUploadMetric(metric: InsertUploadMetric): Promise<UploadMetric> {
+    const id = `upload-metric-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+    const uploadMetric: UploadMetric = {
+      id,
+      ...metric,
+      recordedAt: metric.recordedAt || new Date(),
+    };
+
+    const jobId = metric.uploadJobId;
+    const existing = this.uploadMetrics.get(jobId) || [];
+    existing.push(uploadMetric);
+    this.uploadMetrics.set(jobId, existing);
+    
+    return uploadMetric;
+  }
+
+  async getUploadMetrics(uploadJobId: string): Promise<UploadMetric[]> {
+    return this.uploadMetrics.get(uploadJobId) || [];
+  }
+
+  async getSystemMetrics(): Promise<{
+    totalUploads: number;
+    completedUploads: number;
+    avgProcessingTime: number;
+    avgUploadTime: number;
+  }> {
+    const allJobs = Array.from(this.uploadJobs.values());
+    const completedJobs = allJobs.filter(job => job.status === 'completed');
+    
+    // Calculate averages from metrics
+    let totalProcessingTime = 0;
+    let totalUploadTime = 0;
+    let processingCount = 0;
+    let uploadCount = 0;
+
+    for (const job of allJobs) {
+      const metrics = this.uploadMetrics.get(job.id) || [];
+      for (const metric of metrics) {
+        if (metric.metricType === 'processing_time') {
+          totalProcessingTime += metric.value;
+          processingCount++;
+        } else if (metric.metricType === 'upload_time') {
+          totalUploadTime += metric.value;
+          uploadCount++;
+        }
+      }
+    }
+
+    return {
+      totalUploads: allJobs.length,
+      completedUploads: completedJobs.length,
+      avgProcessingTime: processingCount > 0 ? Math.round(totalProcessingTime / processingCount) : 0,
+      avgUploadTime: uploadCount > 0 ? Math.round(totalUploadTime / uploadCount) : 0,
+    };
+  }
 }
 
 export const storage = new DatabaseStorage();
+export const uploadStorage = new MemStorage();
