@@ -320,6 +320,12 @@ export function useAiSuggestions(options: UseAiSuggestionsOptions = {}) {
       } catch (e: any) {
         const msg = String(e?.message || e);
         if (msg.includes("Timeout")) setState({ kind: "timeout", message: msg });
+        else if (msg.includes("legacy_key_unusable") || msg.includes("410")) {
+          setState({ 
+            kind: "error", 
+            message: "This document was saved in an old format and can't be analyzed. Please re-upload it to use AI features." 
+          });
+        }
         else setState({ kind: "error", message: msg });
       } finally {
         clearTimeout(guardTimer);

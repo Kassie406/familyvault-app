@@ -328,6 +328,18 @@ aiInboxRouter.post("/:id/analyze", async (req, res) => {
     if (!item) return res.status(404).json({ error: 'inbox_item_not_found' });
     step('fetched item from DB');
 
+    // Guard against legacy uploads with hardcoded paths
+    if (item.fileUrl?.startsWith('uploads/')) {
+      console.log(`[AI] Legacy upload detected: ${item.fileUrl}`);
+      await db.update(inboxItems).set({ status: 'failed' }).where(eq(inboxItems.id, id));
+      
+      return res.status(410).json({
+        error: 'legacy_key_unusable',
+        message: 'This file was uploaded with an old format and cannot be analyzed. Please re-upload it.',
+        hint: 'Re-upload to use AI analysis'
+      });
+    }
+
     await db.update(inboxItems).set({ status: 'analyzing' }).where(eq(inboxItems.id, id));
     step('updated status to analyzing');
 
