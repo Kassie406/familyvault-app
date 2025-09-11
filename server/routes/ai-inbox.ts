@@ -19,6 +19,7 @@ import sharp from "sharp";
 import { getIoServer } from "../realtime";
 import { normalizeAddress } from "../util/normalizeAddress";
 import type { ExtractField, AISuggestions, NormalizedAddress } from "@shared/types/inbox";
+import { analyzeUniversal } from "../lib/analyzeGeneric";
 
 // Helper functions
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -157,6 +158,82 @@ function isoDate(s: string): string {
   } catch {
     return s; // Return original if parsing fails
   }
+}
+
+// Convert universal analyzer result to AISuggestions format
+function convertUniversalToSuggestions(universalResult: any): AISuggestions {
+  const fields: ExtractField[] = [];
+  const ai = universalResult.ai || {};
+  
+  // Map structured AI fields to ExtractField format
+  if (ai.fullName) {
+    fields.push(toField('Full Name', 'fullName', ai.fullName, 90, 'person.name'));
+  }
+  if (ai.idNumber) {
+    fields.push(toField('ID Number', 'idNumber', ai.idNumber, 95, 'ids.idNumber'));
+  }
+  if (ai.accountNumber) {
+    fields.push(toField('Account Number', 'accountNumber', ai.accountNumber, 90, 'account.number'));
+  }
+  if (ai.policyNumber) {
+    fields.push(toField('Policy Number', 'policyNumber', ai.policyNumber, 90, 'insurance.policyNumber'));
+  }
+  if (ai.issuer) {
+    fields.push(toField('Issuer', 'issuer', ai.issuer, 85, 'document.issuer'));
+  }
+  if (ai.address) {
+    fields.push(toField('Address', 'address', ai.address, 80, 'person.address.full'));
+  }
+  if (ai.date) {
+    fields.push(toField('Date', 'date', ai.date, 85, 'document.date'));
+  }
+  if (ai.expiration) {
+    fields.push(toField('Expiration', 'expiration', ai.expiration, 90, 'document.expiration'));
+  }
+  if (ai.totalAmount) {
+    fields.push(toField('Total Amount', 'totalAmount', ai.totalAmount, 85, 'document.total'));
+  }
+  
+  // Add fields from Textract QUERIES
+  if (universalResult.queries) {
+    Object.entries(universalResult.queries).forEach(([alias, value]: [string, any]) => {
+      if (value && typeof value === 'string' && value.trim()) {
+        const confidence = 80; // Default confidence for query results
+        fields.push(toField(alias.replace(/_/g, ' '), alias, value, confidence, `query.${alias}`));
+      }
+    });
+  }
+  
+  // Add key-value pairs from Textract
+  if (universalResult.kvs) {
+    universalResult.kvs.slice(0, 10).forEach((kv: any) => {
+      if (kv.key && kv.value) {
+        fields.push(toField(kv.key, 'kv', kv.value, 75, `textract.${kv.key}`));
+      }
+    });
+  }
+  
+  // Determine document type
+  let docType = 'other';
+  if (ai.documentType) {
+    const type = ai.documentType.toLowerCase();
+    if (type.includes('driver') || type.includes('license')) docType = 'driverLicense';
+    else if (type.includes('passport')) docType = 'passport';
+    else if (type.includes('insurance')) docType = 'insurance';
+    else if (type.includes('invoice') || type.includes('bill')) docType = 'invoice';
+  }
+  
+  // Determine confidence level
+  let confidence: 'low' | 'medium' | 'high' = 'low';
+  if (fields.length >= 5) confidence = 'high';
+  else if (fields.length >= 2) confidence = 'medium';
+  
+  return {
+    docType,
+    fields,
+    confidence,
+    reasoning: `Advanced Textract QUERIES + OpenAI Vision analysis. Extracted ${fields.length} fields with ${ai.confidenceNotes || 'standard confidence'}`
+  };
 }
 
 // ——— New Textract API Routing with Fallbacks ———
@@ -566,25 +643,36 @@ aiInboxRouter.post("/:id/analyze", async (req, res) => {
     
     let suggestions: AISuggestions;
     
-    const bucket = process.env.S3_BUCKET_DOCS!;
     const key = item.fileUrl || '';
     
-    // Use new routing system
-    const route = routeDocType(item.filename || '', item.mimeType || '');
-    console.log(`[AI] Document routed as: ${route}`);
+    console.log(`[AI] Using universal analyzer for document: ${key}`);
     
-    // Get bytes from S3 and analyze with new routing
-    const bytes = await withTimeout(getObjectBytes(bucket, key), 15000);
-    const processedBytes = await withTimeout(preprocessImage(bytes), 10000);
-    
-    // Convert Buffer to Uint8Array
-    const uint8Array = new Uint8Array(processedBytes);
-    
-    // Use new analysis routing with fallbacks
-    const result = await withTimeout(analyzeByRoute(route, uint8Array), 30000);
-    
-    // Process results into suggestions format
-    suggestions = await processAnalysisResult(result, route);
+    try {
+      // Phase 1: Textract analysis
+      console.log(`[AI] Phase 1/3: Textract QUERIES analysis...`);
+      
+      // Use the new universal analyzer with Textract QUERIES + OpenAI Vision fusion
+      const universalResult = await withTimeout(analyzeUniversal(key), 45000);
+      console.log(`[AI] Phase 3/3: Analysis complete`);
+      
+      // Convert universal result to suggestions format
+      suggestions = convertUniversalToSuggestions(universalResult);
+      
+    } catch (error: any) {
+      console.error(`[AI] Universal analysis failed, falling back to legacy:`, error);
+      
+      // Fallback to legacy system for compatibility
+      const bucket = process.env.S3_BUCKET_DOCS!;
+      const route = routeDocType(item.filename || '', item.mimeType || '');
+      console.log(`[AI] Fallback: Document routed as: ${route}`);
+      
+      const bytes = await withTimeout(getObjectBytes(bucket, key), 15000);
+      const processedBytes = await withTimeout(preprocessImage(bytes), 10000);
+      const uint8Array = new Uint8Array(processedBytes);
+      const result = await withTimeout(analyzeByRoute(route, uint8Array), 30000);
+      
+      suggestions = await processAnalysisResult(result, route);
+    }
     
     // Best-match member by name/DOB from extracted fields
     suggestions.memberId = await bestMatchMemberId(suggestions.fields);
