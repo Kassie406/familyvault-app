@@ -991,70 +991,15 @@ aiInboxRouter.post("/analyze-upload", upload.single('file'), async (req, res) =>
     // 1) Upload to S3 first, then analyze, or 
     // 2) Create a version that works with raw bytes
     
-    // For now, let's simulate the analysis using the mock data structure
-    // that matches the documentTypes you defined
+    // FIXME: This endpoint currently returns mock data
+    // For real document analysis, use your AWS Lambda URL directly from the frontend
+    console.error("[DEPRECATED] This /analyze-upload endpoint returns mock data only!");
+    console.error("[SOLUTION] Frontend should call VITE_API_URL directly instead of this local endpoint");
     
-    const mockAnalysisResults = {
-      'drivers_license': {
-        documentType: 'DriverLicenseOrPassport',
-        fields: [
-          { key: 'FIRST_NAME', value: 'JOHN', confidence: 98.5 },
-          { key: 'LAST_NAME', value: 'DOE', confidence: 99.2 },
-          { key: 'MIDDLE_NAME', value: 'MICHAEL', confidence: 95.8 },
-          { key: 'ADDRESS', value: '123 MAIN STREET', confidence: 97.1 },
-          { key: 'DATE_OF_BIRTH', value: '01/15/1985', confidence: 99.1 },
-          { key: 'EXPIRATION_DATE', value: '01/15/2028', confidence: 98.7 },
-          { key: 'DOCUMENT_NUMBER', value: 'D1234567', confidence: 97.8 }
-        ]
-      },
-      'ssn_card': {
-        documentType: 'SocialSecurityCard',
-        fields: [
-          { key: 'FULL_NAME', value: 'JANE ELIZABETH SMITH', confidence: 98.8 },
-          { key: 'SSN_MASKED', value: 'XXX-XX-1234', confidence: 99.5, pii: true },
-          { key: 'ISSUER', value: 'Social Security Administration', confidence: 97.7 }
-        ]
-      },
-      'insurance_card': {
-        documentType: 'InsuranceCard',
-        fields: [
-          { key: 'MEMBER_ID', value: 'ABC123456789', confidence: 97.2 },
-          { key: 'GROUP_NUMBER', value: '12345', confidence: 95.8 },
-          { key: 'FULL_NAME', value: 'ROBERT JOHNSON', confidence: 97.9 },
-          { key: 'PLAN_NAME', value: 'PREMIUM HEALTH PLAN', confidence: 94.3 },
-          { key: 'ISSUER', value: 'BlueHealth PPO', confidence: 96.1 }
-        ]
-      },
-      'utility_bill': {
-        documentType: 'GenericDocument',
-        fields: [
-          { key: 'ACCOUNT_NUMBER', value: '1234567890', confidence: 96.8 },
-          { key: 'CUSTOMER_NAME', value: 'SARAH WILLIAMS', confidence: 97.5 },
-          { key: 'ADDRESS', value: '456 OAK AVENUE, CITYVILLE, TX 75001', confidence: 95.2 },
-          { key: 'DUE_DATE', value: '08/01/2024 - 08/31/2024', confidence: 94.1 },
-          { key: 'AMOUNT_DUE', value: '$127.45', confidence: 98.3 },
-          { key: 'UTILITY_COMPANY', value: 'CITYVILLE ELECTRIC', confidence: 96.9 }
-        ]
-      }
-    };
-    
-    // Get the appropriate mock result or default
-    const result = (mockAnalysisResults as any)[documentType] || {
-      documentType: 'GenericDocument',
-      fields: [
-        { key: 'FILE_NAME', value: file.originalname, confidence: 100 }
-      ]
-    };
-    
-    console.log(`[AI INBOX] Analysis complete for ${documentType}: ${result.fields.length} fields extracted`);
-    
-    // Return in the format expected by DocumentAnalyzer component
-    res.json({
-      ok: true,
-      result: {
-        documentType: result.documentType,
-        fields: result.fields
-      }
+    return res.status(501).json({
+      ok: false,
+      error: "DEPRECATED: This endpoint returns mock data. Frontend should call AWS Lambda URL directly.",
+      recommendation: "Configure VITE_API_URL and call your AWS Lambda endpoint from the frontend"
     });
     
   } catch (error) {
