@@ -1,0 +1,173 @@
+Got it—I can see exactly what’s happening from your screenshot and the result:
+
+{
+  "fields":[{"key":"Issuer","value":"Social Security Administration", ...}]
+}
+
+
+You didn’t do anything wrong. That JSON is coming from the old “AI Suggestions” card at the top of the Upload Center. That banner still runs your generic analyzer (the one we originally used for forms/SSN), not the new ID (AnalyzeID) path. So:
+
+The modal you open with Analyze with AI → ID (AnalyzeID) is correct (it shows First/Last/Middle, Address, DOB, etc.).
+
+The little JSON in the banner is a separate pipeline still using the generic/form analyzer and it’s misclassifying the image (and/or reusing stale output).
+
+That’s why you see “Issuer: Social Security Administration” even though you uploaded a New Jersey driver’s license.
+
+Fix it cleanly (no masking)
+
+Below are small, surgical changes so the banner uses the same result as the modal when the mode is ID (AnalyzeID), and we avoid any hidden masking of SSN.
+
+1) Normalize the analyze endpoint (server)
+
+Make one endpoint that always returns the same shape and route by mode. (You likely have most of this already—this shows the parts to unify the banner + modal and ensure no SSN masking unless requested.)
+
+// server/routes/ai-inbox.ts
+import { TextractClient, AnalyzeIDCommand, AnalyzeDocumentCommand } from "@aws-sdk/client-textract";
+import sharp from "sharp";
+
+const client = new TextractClient({ region: process.env.AWS_REGION });
+
+app.post("/api/inbox/analyze", async (req, res) => {
+  const { fileKey, mode = "auto", maskSSN = false } = req.body;
+
+  // 1) Load bytes from S3
+  const original = await getFromS3(fileKey); // Buffer
+
+  // 2) Fix EXIF rotation so Textract sees upright text
+  const bytes = await sharp(original).rotate().toBuffer();
+
+  const runAnalyzeID = async () => {
+    const r = await client.send(new AnalyzeIDCommand({ DocumentPages: [{ Bytes: bytes }] }));
+    return parseAnalyzeID(r, { maskSSN });            // return normalized fields
+  };
+
+  const runForms = async () => {
+    const r = await client.send(new AnalyzeDocumentCommand({
+      Document: { Bytes: bytes }, FeatureTypes: ["FORMS"]
+    }));
+    return parseForms(r);
+  };
+
+  let result;
+  if (mode === "id") {
+    result = await runAnalyzeID();
+  } else if (mode === "forms") {
+    result = await runForms();
+  } else {
+    // auto → try ID first, fallback to forms if no identity hits
+    result = await runAnalyzeID();
+    if (!hasIdentityHits(result)) result = await runForms();
+  }
+
+  // Add friendly suggestions derived from the normalized fields
+  result.suggestions = buildSuggestions(result);
+
+  res.json(result);
+});
+
+// helpers
+function parseAnalyzeID(resp, { maskSSN }: { maskSSN: boolean }) {
+  const fields: Record<string, { value: string; confidence: number }> = {};
+  for (const doc of resp.IdentityDocuments ?? []) {
+    for (const f of doc.IdentityDocumentFields ?? []) {
+      const key = f?.Type?.Text ?? "";
+      const val = f?.ValueDetection?.Text ?? "";
+      const conf = f?.ValueDetection?.Confidence ?? 0;
+
+      if (!key) continue;
+      let value = val;
+      if (maskSSN && key.toUpperCase() === "SSN") {
+        value = val.replace(/(\d{3})-(\d{2})-(\d{4})/, "***-**-$3");
+      }
+      fields[key.toUpperCase()] = { value, confidence: conf };
+    }
+  }
+  return { api_used: "AnalyzeID", fields };
+}
+
+function hasIdentityHits(result: any) {
+  const keys = Object.keys(result?.fields ?? {});
+  // Typical ID keys present when AnalyzeID worked
+  return keys.some(k => ["FIRST_NAME","LAST_NAME","DATE_OF_BIRTH","ID_NUMBER","DOCUMENT_NUMBER"].includes(k));
+}
+
+function parseForms(resp: any) {
+  // Map Textract FORMS to key/value pairs (keep it simple)
+  const fields: Record<string, { value: string; confidence: number }> = {};
+  for (const b of resp.Blocks ?? []) {
+    if (b.BlockType === "KEY_VALUE_SET" && b.EntityTypes?.includes("KEY")) {
+      const keyText = getText(resp, b.Id).toUpperCase().replace(/\s+/g, "_");
+      const valText = getValueText(resp, b.Id);
+      if (keyText && valText) fields[keyText] = { value: valText, confidence: b?.Confidence ?? 0 };
+    }
+  }
+  return { api_used: "AnalyzeDocument(FORMS)", fields };
+}
+
+// (implement getText/getValueText: standard Textract KV helpers)
+
+function buildSuggestions(result: any) {
+  const f = result.fields || {};
+  const first = f.FIRST_NAME?.value || "";
+  const last  = f.LAST_NAME?.value || "";
+  const docNo = f.DOCUMENT_NUMBER?.value || f.ID_NUMBER?.value || "";
+
+  if (result.api_used.startsWith("AnalyzeID")) {
+    return {
+      title: ["Driver License", [first,last].filter(Boolean).join(" ")].filter(Boolean).join(" - "),
+      category: "identity_documents",
+      description: [docNo && `ID: ${docNo}`, f.EXPIRATION_DATE?.value && `EXP: ${f.EXPIRATION_DATE.value}`]
+        .filter(Boolean).join(" • "),
+    };
+  }
+  // generic forms
+  const title = f.MEMBER_ID?.value || f.POLICY_NUMBER?.value || f.ACCOUNT_NUMBER?.value || "Document";
+  return {
+    title,
+    category: "general",
+    description: Object.entries(f).slice(0,3).map(([k,v]: any)=>`${k}: ${v.value}`).join(" • ")
+  };
+}
+
+
+Note: maskSSN defaults to false, so your SSN will not be masked.
+
+2) Use the same endpoint for both the modal and the banner
+
+When the dropdown mode is ID (AnalyzeID), call /api/inbox/analyze with { mode: "id", maskSSN: false }.
+Take the returned normalized payload and render it in both places:
+
+In the modal (you already do).
+
+In the “AI Suggestions” banner instead of the old generic JSON.
+
+That removes the mismatch.
+
+// client (Upload Center)
+const runAnalysis = async () => {
+  setBusy(true);
+  const resp = await fetch("/api/inbox/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fileKey: currentFileKey,
+      mode: selectedMode,   // 'id' | 'forms' | 'tables' | 'auto'
+      maskSSN: false
+    })
+  }).then(r => r.json());
+
+  setBannerResult(resp);   // <-- show this in the top banner
+  setModalResult(resp);    // <-- same normalized shape in the modal
+  setBusy(false);
+};
+
+
+Render the banner as a compact list of the top fields (First/Last, DOB, ID#, EXP) and the suggestions (title/category/description). Do not show the old {Issuer: "Social Security Administration"} path anymore when mode === 'id'.
+
+3) Small UX guards
+
+Rotation: Your NJ license image is rotated. We correct this server-side with sharp().rotate() before sending to Textract.
+
+Mode memory: Persist the last chosen mode (LocalStorage) and default to Auto if you want hands-free.
+
+No masking: Make sure maskSSN stays false unless the user toggles a “Mask SSN” switch.
