@@ -17,6 +17,7 @@ Preferred communication style: Simple, everyday language.
 - **Complete Chores Workflow**: ✓ Completed - Full workflow with real-time updates including complete/approve/unapprove/reject actions, live dashboard refresh, and proper allowance point management with transaction-based integrity
 - **Dropdown Hover Effects Fix**: ✓ Completed - Fixed Family Members card dropdown to have consistent light gold hover effects (January 29, 2025)
 - **Enhanced MCP Server**: ✓ Completed - Comprehensive upgrade with design, UX, and collaboration tools for full team involvement (September 11, 2025)
+- **Enhanced Upload API Routes**: ⚠️ Functionally Complete - 7 comprehensive API endpoints with MemStorage integration, multi-stage workflow, progress tracking, and authorization logic implemented. **Authentication stub requires integration with real auth system before production use.**
 
 # System Architecture
 
