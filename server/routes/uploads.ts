@@ -4,9 +4,24 @@ import { extension as extFromMime } from "mime-types";
 import sharp from "sharp";
 import crypto from "crypto";
 import { uploadBufferToS3 } from "../lib/s3";
+import { MemStorage } from "../storage";
+import { insertUploadJobSchema, insertAnalysisResultSchema, insertUploadMetricSchema } from "@shared/schema";
+import { z } from "zod";
+
+// Helper function to get user info from request (TODO: integrate with real auth)
+const getCurrentUser = (req: any) => {
+  // TODO: Replace with actual authentication logic
+  return {
+    userId: "current-user", // Get from authenticated session
+    familyId: "family-1"    // Get from user's family membership
+  };
+};
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+// Enhanced upload storage instance
+const enhancedStorage = new MemStorage();
 
 const ALLOWED = new Set([
   "image/png","image/jpeg","image/webp","image/gif",
@@ -107,6 +122,349 @@ router.post("/", upload.array("files", 5), async (req, res) => {
   } catch (error) {
     console.error("Upload error:", error);
     res.status(500).json({ error: "Upload failed" });
+  }
+});
+
+// Enhanced Upload API Routes
+
+// POST /api/uploads/enhanced/test - Test-only JSON endpoint for creating upload jobs (no file upload)
+router.post("/enhanced/test", async (req, res) => {
+  // Guard against non-test environments
+  if (process.env.NODE_ENV !== 'test') {
+    return res.status(403).json({
+      success: false,
+      error: "Test endpoint only available in test environment"
+    });
+  }
+
+  try {
+    // Get authenticated user
+    const { userId, familyId } = getCurrentUser(req);
+    
+    // Validate request body
+    const testJobData = z.object({
+      filename: z.string().optional(),
+      originalFilename: z.string().optional(),
+      fileSize: z.number().optional(),
+      mimeType: z.string().optional()
+    }).parse(req.body);
+
+    // Create upload job with authenticated user data
+    const uploadJob = await enhancedStorage.createUploadJob({
+      familyId,
+      userId,
+      filename: testJobData.filename || "test-document.pdf",
+      originalFilename: testJobData.originalFilename || "test-document.pdf",
+      fileSize: testJobData.fileSize || 1024,
+      mimeType: testJobData.mimeType || "application/pdf",
+      stage: 'pending',
+      status: 'pending', 
+      progress: 0,
+    });
+
+    // Simulate initial progress update for immediate feedback
+    await enhancedStorage.updateUploadProgress(uploadJob.id, 5, 'initializing');
+
+    res.status(201).json({
+      success: true,
+      job: uploadJob,
+      message: "Test upload job created successfully",
+      testMode: true
+    });
+  } catch (error) {
+    console.error("Error creating test upload job:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Validation failed",
+        details: error.errors 
+      });
+    }
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to create test upload job" 
+    });
+  }
+});
+
+// POST /api/uploads/enhanced - Create enhanced upload job with multi-stage workflow
+router.post("/enhanced", upload.single("file"), async (req, res) => {
+  try {
+    // Get authenticated user
+    const { userId, familyId } = getCurrentUser(req);
+    
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        error: "No file uploaded"
+      });
+    }
+
+    // Validate file metadata
+    const fileData = z.object({
+      originalname: z.string(),
+      size: z.number().max(10 * 1024 * 1024, "File too large"),
+      mimetype: z.string()
+    }).parse(file);
+
+    // Create upload job with authenticated user data
+    const uploadJob = await enhancedStorage.createUploadJob({
+      familyId,
+      userId,
+      filename: fileData.originalname,
+      originalFilename: fileData.originalname,
+      fileSize: fileData.size,
+      mimeType: fileData.mimetype,
+      stage: 'pending',
+      status: 'pending',
+      progress: 0,
+    });
+
+    // Simulate initial progress update for immediate feedback
+    await enhancedStorage.updateUploadProgress(uploadJob.id, 5, 'initializing');
+
+    res.status(201).json({
+      success: true,
+      job: uploadJob,
+      message: "Enhanced upload job created successfully"
+    });
+  } catch (error) {
+    console.error("Error creating enhanced upload job:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Validation failed",
+        details: error.errors 
+      });
+    }
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to create enhanced upload job" 
+    });
+  }
+});
+
+// GET /api/uploads/enhanced/:jobId/status - Get job status and progress
+router.get("/enhanced/:jobId/status", async (req, res) => {
+  try {
+    // Get authenticated user
+    const { userId, familyId } = getCurrentUser(req);
+    
+    const { jobId } = req.params;
+    const job = await enhancedStorage.getUploadJob(jobId);
+    
+    if (!job) {
+      return res.status(404).json({ 
+        success: false,
+        error: "Upload job not found" 
+      });
+    }
+
+    // Verify family ownership
+    if (job.familyId !== familyId) {
+      return res.status(403).json({
+        success: false,
+        error: "Access denied"
+      });
+    }
+
+    res.json({
+      success: true,
+      job,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("Error fetching upload job status:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to fetch upload job status" 
+    });
+  }
+});
+
+// GET /api/uploads/enhanced/:jobId/results - Get analysis results
+router.get("/enhanced/:jobId/results", async (req, res) => {
+  try {
+    // Get authenticated user
+    const { userId, familyId } = getCurrentUser(req);
+    
+    const { jobId } = req.params;
+    
+    // Check if job exists
+    const job = await enhancedStorage.getUploadJob(jobId);
+    if (!job) {
+      return res.status(404).json({ 
+        success: false,
+        error: "Upload job not found" 
+      });
+    }
+
+    // Verify family ownership
+    if (job.familyId !== familyId) {
+      return res.status(403).json({
+        success: false,
+        error: "Access denied"
+      });
+    }
+
+    // Get analysis results
+    const results = await enhancedStorage.getAnalysisResults(jobId);
+    
+    res.json({
+      success: true,
+      jobId,
+      results,
+      count: results.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("Error fetching analysis results:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to fetch analysis results" 
+    });
+  }
+});
+
+// POST /api/uploads/enhanced/:jobId/analyze - Trigger analysis (placeholder for AWS Textract integration)
+router.post("/enhanced/:jobId/analyze", async (req, res) => {
+  try {
+    // Get authenticated user
+    const { userId, familyId } = getCurrentUser(req);
+    
+    const { jobId } = req.params;
+    
+    // Check if job exists
+    const job = await enhancedStorage.getUploadJob(jobId);
+    if (!job) {
+      return res.status(404).json({ 
+        success: false,
+        error: "Upload job not found" 
+      });
+    }
+
+    // Verify family ownership
+    if (job.familyId !== familyId) {
+      return res.status(403).json({
+        success: false,
+        error: "Access denied"
+      });
+    }
+
+    // Update job to analyzing stage
+    await enhancedStorage.updateUploadProgress(jobId, 60, 'analyzing');
+
+    // TODO: Integrate AWS Textract service (Task 4)
+    // For now, create a mock analysis result
+    const mockResult = await enhancedStorage.createAnalysisResult({
+      uploadJobId: jobId,
+      fieldType: 'document_text',
+      fieldKey: 'text_content',
+      fieldValue: 'Mock extracted text content',
+      confidence: 85.5,
+      bbox: { x: 10, y: 10, width: 200, height: 50 }
+    });
+
+    // Update job completion
+    await enhancedStorage.updateUploadProgress(jobId, 100, 'completed');
+
+    res.json({
+      success: true,
+      message: "Analysis completed",
+      jobId,
+      mockResult,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("Error analyzing upload job:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to analyze upload job" 
+    });
+  }
+});
+
+// DELETE /api/uploads/enhanced/:jobId - Cancel/delete upload job
+router.delete("/enhanced/:jobId", async (req, res) => {
+  try {
+    // Get authenticated user
+    const { userId, familyId } = getCurrentUser(req);
+    
+    const { jobId } = req.params;
+    
+    // Check if job exists and verify ownership before deletion
+    const job = await enhancedStorage.getUploadJob(jobId);
+    if (!job) {
+      return res.status(404).json({ 
+        success: false,
+        error: "Upload job not found" 
+      });
+    }
+
+    // Verify family ownership
+    if (job.familyId !== familyId) {
+      return res.status(403).json({
+        success: false,
+        error: "Access denied"
+      });
+    }
+    
+    const deleted = await enhancedStorage.deleteUploadJob(jobId);
+    
+    if (!deleted) {
+      return res.status(404).json({ 
+        success: false,
+        error: "Upload job not found" 
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Upload job deleted successfully",
+      jobId,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("Error deleting upload job:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to delete upload job" 
+    });
+  }
+});
+
+// GET /api/uploads/enhanced/family/:familyId - List upload jobs for family
+router.get("/enhanced/family/:familyId", async (req, res) => {
+  try {
+    // Get authenticated user
+    const { userId, familyId: userFamilyId } = getCurrentUser(req);
+    
+    const { familyId } = req.params;
+    
+    // Verify user can only access their own family's jobs
+    if (familyId !== userFamilyId) {
+      return res.status(403).json({
+        success: false,
+        error: "Access denied - can only access your own family's jobs"
+      });
+    }
+    
+    const jobs = await enhancedStorage.getUploadJobsByFamily(familyId);
+    
+    res.json({
+      success: true,
+      jobs,
+      count: jobs.length,
+      familyId,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("Error fetching family upload jobs:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to fetch family upload jobs" 
+    });
   }
 });
 
