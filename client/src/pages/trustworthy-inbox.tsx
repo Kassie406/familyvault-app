@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { Upload, Zap, Copy, Edit } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Upload, Zap, Copy, Edit, FileText, Image } from "lucide-react";
 
 // Define types for the components
 interface ButtonProps {
@@ -49,8 +49,40 @@ function TrustworthyInbox() {
   const [uploaded, setUploaded] = useState<UploadedItem[]>([]);
   const [selected, setSelected] = useState<UploadedItem | null>(null);
   const [show, setShow] = useState(false);
-  const [mode, setMode] = useState<"auto" | "id" | "forms" | "tables">("auto");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Auto-analyze files when uploaded (automatic background processing)
+  useEffect(() => {
+    uploaded.forEach(item => {
+      if (item.status === "pending" && !item.analyzed) {
+        analyzeDocument(item.file, "auto").then(result => {
+          setUploaded(prev => 
+            prev.map(i => i.id === item.id ? { 
+              ...i, 
+              status: "complete" as const, 
+              result,
+              analyzed: true 
+            } : i)
+          );
+        }).catch(err => {
+          console.error("Analysis error:", err);
+          setUploaded(prev => 
+            prev.map(i => i.id === item.id ? { 
+              ...i, 
+              status: "error" as const, 
+              error: (err as Error).message,
+              analyzed: true 
+            } : i)
+          );
+        });
+        
+        // Set analyzing state
+        setUploaded(prev => 
+          prev.map(i => i.id === item.id ? { ...i, status: "analyzing" as const, analyzed: true } : i)
+        );
+      }
+    });
+  }, [uploaded]);
 
   // Helper: file -> base64 (NO data: prefix)
   const fileToBase64 = (file: File): Promise<string> =>
@@ -131,40 +163,12 @@ function TrustworthyInbox() {
         name: f.name, 
         file: f, 
         status: "pending" as const, 
-        mode: mode, // Store the analysis mode
+        mode: "auto", // Always use auto mode for simplicity
         analyzed: false 
       }]);
     }
   };
 
-  const analyze = async (item: UploadedItem) => {
-    setUploaded(prev => 
-      prev.map(i => i.id === item.id ? { ...i, status: "analyzing" as const, analyzed: true } : i)
-    );
-
-    try {
-      const result = await analyzeDocument(item.file, item.mode);
-      
-      setUploaded(prev => 
-        prev.map(i => i.id === item.id ? { 
-          ...i, 
-          status: "complete" as const, 
-          result,
-          analyzed: true 
-        } : i)
-      );
-    } catch (err) {
-      console.error("Analysis error:", err);
-      setUploaded(prev => 
-        prev.map(i => i.id === item.id ? { 
-          ...i, 
-          status: "error" as const, 
-          error: (err as Error).message,
-          analyzed: true 
-        } : i)
-      );
-    }
-  };
 
   const remove = (id: number) => {
     setUploaded(prev => prev.filter(i => i.id !== id));
@@ -189,176 +193,127 @@ function TrustworthyInbox() {
     }
   };
 
-  const pending = uploaded.filter(u => !u.analyzed);
-  const processed = uploaded.filter(u => u.analyzed);
+  // Get files with thumbnail preview
+  const getFileIcon = (fileName: string) => {
+    const ext = fileName.toLowerCase().split('.').pop();
+    if (['jpg', 'jpeg', 'png', 'gif'].includes(ext || '')) {
+      return <Image className="h-5 w-5 text-blue-400" />;
+    }
+    return <FileText className="h-5 w-5 text-blue-400" />;
+  };
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Header */}
+      {/* Clean Header - No confusing mode selectors */}
       <div className="border-b border-gray-800">
-        <div className="max-w-5xl mx-auto p-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-white">Trustworthy</h1>
-              <p className="text-gray-400 mt-1">Document Analysis Inbox</p>
-            </div>
-            
-            {/* Analysis Mode Selector */}
-            <div className="flex gap-2">
-              {(["auto", "id", "forms", "tables"] as const).map((m) => (
-                <Button
-                  key={m}
-                  variant={mode === m ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setMode(m)}
-                  className={mode === m ? "bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90" : "border-gray-600 text-white hover:bg-gray-800"}
-                >
-                  {m}
-                </Button>
-              ))}
-            </div>
+        <div className="max-w-4xl mx-auto p-6">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-white mb-2">Family Vault</h1>
+            <p className="text-gray-400">Upload documents and we'll analyze them automatically</p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="max-w-4xl mx-auto p-6 space-y-8">
         
-        {/* Left Column - Upload and Pending */}
-        <div className="space-y-6">
-          
-          {/* Upload Area */}
-          <Card className="p-8 bg-gray-900 border-gray-700">
-            <div 
-              className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center hover:border-[#D4AF37] transition-colors cursor-pointer"
-              onClick={() => fileRef.current?.click()}
-            >
-              <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">Upload Documents</h3>
-              <p className="text-gray-400 mb-4">Drop files here or click to browse</p>
-              <p className="text-xs text-gray-500">Mode: {mode}</p>
-              <input
-                ref={fileRef}
-                type="file"
-                multiple
-                accept="image/*,.pdf"
-                onChange={upload}
-                className="hidden"
-              />
-            </div>
-          </Card>
+        {/* Simple Upload Area - Like Trustworthy */}
+        <Card className="p-12 bg-gray-900 border-gray-700">
+          <div 
+            className="border-2 border-dashed border-gray-600 rounded-xl p-12 text-center hover:border-[#D4AF37] transition-colors cursor-pointer group"
+            onClick={() => fileRef.current?.click()}
+            data-testid="upload-dropzone"
+          >
+            <Upload className="mx-auto h-16 w-16 text-gray-400 mb-6 group-hover:text-[#D4AF37] transition-colors" />
+            <h3 className="text-xl font-semibold text-white mb-3">Browse or drop files</h3>
+            <p className="text-gray-400 text-lg mb-4">Drop your documents here to get started</p>
+            <p className="text-sm text-gray-500">Supports IDs, passports, driver licenses, birth certificates, PDFs, and images</p>
+            <input
+              ref={fileRef}
+              type="file"
+              multiple
+              accept="image/*,.pdf"
+              onChange={upload}
+              className="hidden"
+              data-testid="file-input"
+            />
+          </div>
+        </Card>
 
-          {/* Pending Analysis */}
-          {pending.length > 0 && (
-            <div>
-              <h2 className="text-xl font-semibold text-white mb-4">
-                Pending Analysis ({pending.length})
-              </h2>
-              <div className="space-y-3">
-                {pending.map((item) => (
-                  <Card key={item.id} className="p-4 bg-gray-900 border-gray-700">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium text-white">{item.name}</p>
-                        <p className="text-sm text-gray-400">Mode: {item.mode}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          onClick={() => analyze(item)}
-                          className="bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90"
-                        >
-                          <Zap className="h-4 w-4 mr-1" />
-                          Analyze
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => remove(item.id)}>
-                          Remove
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right Column - Processed Documents */}
-        <div>
-          {processed.length > 0 && (
-            <div>
-              <h2 className="text-xl font-semibold text-white mb-4">
-                Processed Documents ({processed.length})
-              </h2>
-              <div className="space-y-3">
-                {processed.map((item) => (
-                  <Card key={item.id} className="p-4 bg-gray-900 border-gray-700">
-                    <div className="flex justify-between items-center mb-2">
-                      <div>
-                        <p className="font-medium text-white">{item.name}</p>
-                        <p className="text-sm text-gray-400">Mode: {item.mode}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          item.status === "complete" ? "bg-green-900 text-green-300" :
-                          item.status === "analyzing" ? "bg-yellow-900 text-yellow-300" :
-                          item.status === "error" ? "bg-red-900 text-red-300" :
-                          "bg-gray-700 text-gray-300"
-                        }`}>
-                          {item.status === "analyzing" ? "Processing..." : item.status}
-                        </span>
-                      </div>
+        {/* Uploaded Documents - Clean grid like Trustworthy */}
+        {uploaded.length > 0 && (
+          <div>
+            <h2 className="text-2xl font-semibold text-white mb-6">
+              Your Documents ({uploaded.length})
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {uploaded.map((item) => (
+                <Card key={item.id} className="p-4 bg-gray-900 border-gray-700 hover:border-gray-600 transition-colors" data-testid={`document-${item.id}`}>
+                  <div className="flex items-start gap-4">
+                    {/* File icon/thumbnail */}
+                    <div className="p-3 bg-gray-800 rounded-lg">
+                      {getFileIcon(item.name)}
                     </div>
                     
-                    {item.status === "complete" && item.result && (
-                      <div className="mt-3 space-y-2">
-                        {/* Details count with golden styling */}
-                        <div className="flex items-center justify-between">
-                          <span className="text-[#D4AF37] font-medium flex items-center">
-                            <Zap className="h-4 w-4 mr-1" />
-                            ⚡ Details {Object.keys(item.result.extractedData || {}).length}
-                          </span>
-                        </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-white truncate">{item.name}</p>
+                      
+                      {/* Status indicator */}
+                      <div className="mt-2">
+                        {item.status === "analyzing" && (
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                            <span className="text-sm text-yellow-400">Analyzing...</span>
+                          </div>
+                        )}
                         
-                        {/* Action buttons */}
-                        <div className="flex gap-2">
-                          <Button size="sm" onClick={() => showDetails(item)}>
-                            <Edit className="h-4 w-4 mr-1" />
-                            View Details
-                          </Button>
-                          {item.result.extractedText && (
-                            <Button variant="outline" size="sm" onClick={() => copyText(item)}>
-                              <Copy className="h-4 w-4 mr-1" />
-                              Copy Text
+                        {item.status === "complete" && item.result && (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                              <span className="text-sm text-green-400">Complete</span>
+                            </div>
+                            
+                            {/* Clean Details button - Only appears after analysis */}
+                            <Button 
+                              size="sm" 
+                              onClick={() => showDetails(item)}
+                              className="bg-[#D4AF37] text-black hover:bg-[#c6a02e] flex items-center gap-2"
+                              data-testid={`details-button-${item.id}`}
+                            >
+                              <Zap className="h-4 w-4" />
+                              ⚡ Details {Object.keys(item.result.extractedData || {}).length}
                             </Button>
-                          )}
-                          <Button variant="outline" size="sm" onClick={() => remove(item.id)}>
-                            Remove
-                          </Button>
-                        </div>
+                          </div>
+                        )}
+                        
+                        {item.status === "error" && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 bg-red-400 rounded-full"></div>
+                              <span className="text-sm text-red-400">Analysis failed</span>
+                            </div>
+                            <p className="text-xs text-red-300">{item.error}</p>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                     
-                    {item.status === "error" && (
-                      <div className="mt-3">
-                        <p className="text-red-400 text-sm">
-                          Error: {item.error}
-                        </p>
-                        <div className="flex gap-2 mt-2">
-                          <Button size="sm" onClick={() => analyze(item)}>
-                            Retry
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => remove(item.id)}>
-                            Remove
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </Card>
-                ))}
-              </div>
+                    {/* Remove button */}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => remove(item.id)}
+                      className="text-gray-400 hover:text-red-400"
+                      data-testid={`remove-button-${item.id}`}
+                    >
+                      ×
+                    </Button>
+                  </div>
+                </Card>
+              ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Details Modal */}
