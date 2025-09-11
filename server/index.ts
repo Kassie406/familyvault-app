@@ -23,6 +23,7 @@ import stepupRouter from "./stepup-routes";
 import testStepupRouter from "./test-stepup-routes";
 import businessRoutes from "./routes/business";
 import apiServicesRouter from "./routes/apiServices";
+import healthRouter from "./routes/health";
 import session from 'express-session';
 import passport from 'passport';
 import { customAuthRouter } from "./custom-auth";
@@ -497,6 +498,9 @@ app.use('/api/stepup', requireAuth, stepupRouter);
 
 // Test step-up authentication endpoints
 app.use('/api/test-stepup', requireAuth, testStepupRouter);
+
+// Health monitoring endpoints (no auth required)
+app.use('/api/health', healthRouter);
 
 // Business management API - Simple endpoint
 app.get('/api/business/managers', (_req, res) => {
