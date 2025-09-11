@@ -12,7 +12,7 @@ type AiState =
 interface AIBannerProps {
   aiState: AiState;
   onDismiss: () => void;
-  onRegenerate: () => void;
+  onRegenerate: () => Promise<void> | void;
   onReview?: () => void;
 }
 
@@ -25,8 +25,16 @@ export default function AIBanner({ aiState, onDismiss, onRegenerate, onReview }:
     onReview?.();
   };
 
-  const handleRegenerate = () => {
-    onRegenerate();
+  const handleRegenerate = async () => {
+    try {
+      await onRegenerate();
+    } catch (error) {
+      console.error('Regenerate failed:', error);
+      toast({
+        variant: "destructive",
+        description: "Failed to restart analysis. Please try again.",
+      });
+    }
   };
 
   const handleLearnMore = () => {
