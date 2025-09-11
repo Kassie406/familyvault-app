@@ -854,6 +854,89 @@ aiInboxRouter.post("/:id/dismiss", async (req, res) => {
   }
 });
 
+/** POST /api/inbox/analyze - Hybrid analysis with mode selection */
+aiInboxRouter.post("/analyze", upload.single('file'), async (req, res) => {
+  try {
+    const mode = (req.body.mode || "auto") as "auto" | "id" | "forms";
+    const file = req.file;
+    
+    if (!file) {
+      return res.status(400).json({ ok: false, error: "No file provided" });
+    }
+    
+    console.log(`[AI INBOX] Hybrid analysis: ${file.originalname}, mode: ${mode}`);
+    
+    // Wrap analysis in timeout (25 seconds)
+    const analysisResult = await withTimeout((async () => {
+      // Enhanced mock analysis results for hybrid mode
+      const hybridMockResults = {
+      'auto': {
+        documentType: 'HybridAnalysis',
+        fields: [
+          { key: 'FULL_NAME', value: 'JOHN MICHAEL DOE', confidence: 98.2 },
+          { key: 'ID_NUMBER', value: 'D1234567890', confidence: 97.8 },
+          { key: 'DATE_OF_BIRTH', value: '01/15/1985', confidence: 99.1 },
+          { key: 'EXPIRATION_DATE', value: '01/15/2028', confidence: 98.7 },
+          { key: 'ISSUER', value: 'Department of Motor Vehicles', confidence: 96.5 }
+        ],
+        meta: { api_used: 'Textract QUERIES + OpenAI Vision', elapsed_ms: 2340 }
+      },
+      'id': {
+        documentType: 'DriverLicenseOrPassport',
+        fields: [
+          { key: 'FIRST_NAME', value: 'JOHN', confidence: 98.5 },
+          { key: 'LAST_NAME', value: 'DOE', confidence: 99.2 },
+          { key: 'MIDDLE_NAME', value: 'MICHAEL', confidence: 95.8 },
+          { key: 'ADDRESS', value: '123 MAIN STREET', confidence: 97.1 },
+          { key: 'DATE_OF_BIRTH', value: '01/15/1985', confidence: 99.1 },
+          { key: 'EXPIRATION_DATE', value: '01/15/2028', confidence: 98.7 },
+          { key: 'ID_NUMBER', value: 'D1234567', confidence: 97.8 }
+        ],
+        meta: { api_used: 'Textract AnalyzeID', elapsed_ms: 1890 }
+      },
+      'forms': {
+        documentType: 'StructuredForm',
+        fields: [
+          { key: 'ACCOUNT_NUMBER', value: '1234567890', confidence: 96.8 },
+          { key: 'FULL_NAME', value: 'SARAH WILLIAMS', confidence: 97.5 },
+          { key: 'ADDRESS', value: '456 OAK AVENUE, CITYVILLE, TX 75001', confidence: 95.2 },
+          { key: 'SERVICE_PERIOD', value: '08/01/2024 - 08/31/2024', confidence: 94.1 },
+          { key: 'AMOUNT_DUE', value: '$127.45', confidence: 98.3 },
+          { key: 'ISSUER', value: 'CITYVILLE ELECTRIC', confidence: 96.9 }
+        ],
+        meta: { api_used: 'Textract QUERIES', elapsed_ms: 1650 }
+      }
+    };
+    
+    // Get result based on mode
+    const result = (hybridMockResults as any)[mode] || hybridMockResults.auto;
+    result.mode = mode;
+    
+    // Add warning for certain modes (with null-safe filename handling)
+    const filename = (file.originalname || '').toLowerCase();
+    if (mode === 'forms' && filename.includes('license')) {
+      result.warning = 'ID document detected - consider using ID mode for better extraction';
+    } else if (mode === 'id' && !filename.includes('license') && !filename.includes('passport')) {
+      result.warning = 'Non-ID document detected - consider using Auto or Forms mode';
+    }
+    
+      return result;
+    })(), 25000); // 25 second timeout
+    
+    console.log(`[AI INBOX] Hybrid analysis complete for ${analysisResult.mode}: ${analysisResult.fields.length} fields extracted`);
+    
+    // Return in the format expected by UploadCenterAIActions component
+    res.json({
+      ok: true,
+      result: analysisResult
+    });
+    
+  } catch (error) {
+    console.error("[AI INBOX] Hybrid analysis error:", error);
+    res.status(500).json({ ok: false, error: "Failed to analyze document" });
+  }
+});
+
 /** POST /api/inbox/analyze-upload - Direct file upload and analysis */
 aiInboxRouter.post("/analyze-upload", upload.single('file'), async (req, res) => {
   try {

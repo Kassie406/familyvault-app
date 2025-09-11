@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFileStatus } from "@/hooks/useFileStatus";
 import MobileUploadModal from "./MobileUploadModal";
 import InboxDrawer from "@/components/inbox/InboxDrawer";
+import { UploadCenterAIActions, type AIResult } from "./UploadCenterAIActions";
 
 type FileRow = {
   id: string;
@@ -57,6 +58,7 @@ export default function UploadCenter({
   const [rows, setRows] = useState<FileRow[]>([]);
   const [mobileModalOpen, setMobileModalOpen] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
   // Form fields for current upload
   const [documentTitle, setDocumentTitle] = useState("");
@@ -89,8 +91,65 @@ export default function UploadCenter({
 
   const accept = tab === "docs" ? documentAccept : photoAccept;
 
+  // Handle applying AI analysis results to form
+  function handleApplyAIResults(fields: AIResult["fields"]) {
+    const fieldMap = Object.fromEntries(fields.map(f => [f.key.toLowerCase(), f.value]));
+    
+    // Apply common field mappings for documents
+    if (tab === "docs") {
+      // Auto-generate title from document data
+      const docNumber = fieldMap.document_number || fieldMap.id_number || fieldMap.member_id;
+      const fullName = fieldMap.full_name || fieldMap.name;
+      const issuer = fieldMap.issuer;
+      
+      if (!documentTitle) {
+        if (docNumber && issuer) {
+          setDocumentTitle(`${issuer} - ${docNumber}`);
+        } else if (fullName && fieldMap.ssn_masked) {
+          setDocumentTitle(`SSN Card - ${fullName}`);
+        } else if (docNumber) {
+          setDocumentTitle(`Document ${docNumber}`);
+        } else if (fullName) {
+          setDocumentTitle(`Document - ${fullName}`);
+        }
+      }
+      
+      // Auto-set category based on document type
+      if (!documentCategory || documentCategory === "general") {
+        if (fieldMap.ssn_masked || fieldMap.ssn) {
+          setDocumentCategory("personal");
+        } else if (fieldMap.member_id || fieldMap.group_number) {
+          setDocumentCategory("insurance");
+        } else if (fieldMap.id_number || fieldMap.license_number) {
+          setDocumentCategory("personal");
+        } else if (fieldMap.account_number || fieldMap.amount_due) {
+          setDocumentCategory("financial");
+        }
+      }
+      
+      // Auto-generate description from key fields
+      if (!documentDescription) {
+        const descParts = [];
+        if (issuer) descParts.push(`Issuer: ${issuer}`);
+        if (fieldMap.expiration_date || fieldMap.date_of_expiry) {
+          descParts.push(`Expires: ${fieldMap.expiration_date || fieldMap.date_of_expiry}`);
+        }
+        if (fieldMap.date_of_birth) descParts.push(`DOB: ${fieldMap.date_of_birth}`);
+        if (descParts.length > 0) {
+          setDocumentDescription(descParts.join(" • "));
+        }
+      }
+    }
+  }
+
   function onPickFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
+    
+    // Set the first file as selected for AI analysis
+    if (files.length > 0) {
+      setSelectedFile(files[0]);
+    }
+    
     const mapped = files.map((f) => {
       // Enhanced image type detection
       const isImage = f.type.startsWith("image/") || 
@@ -301,16 +360,28 @@ export default function UploadCenter({
             </CardDescription>
           </div>
           <div className="hidden md:flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setInboxOpen(true)}
-              className="text-zinc-400 hover:text-[#D4AF37] border border-zinc-700 hover:border-[#D4AF37]"
-              data-testid="button-open-inbox"
-            >
-              <Sparkles className="h-4 w-4 mr-1" />
-              AI Document Analysis
-            </Button>
+            {/* AI Analysis Actions - only show for documents tab */}
+            {tab === "docs" && (
+              <UploadCenterAIActions
+                file={selectedFile}
+                onApply={handleApplyAIResults}
+              />
+            )}
+            
+            {/* Fallback inbox button for photos or when no file selected */}
+            {(tab === "photos" || !selectedFile) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setInboxOpen(true)}
+                className="text-zinc-400 hover:text-[#D4AF37] border border-zinc-700 hover:border-[#D4AF37]"
+                data-testid="button-open-inbox"
+              >
+                <Sparkles className="h-4 w-4 mr-1" />
+                AI Document Analysis
+              </Button>
+            )}
+            
             <div className="flex items-center gap-2 text-xs text-zinc-400">
               <ShieldCheck className="h-4 w-4 text-[#D4AF37]" />
               Encrypted in transit
