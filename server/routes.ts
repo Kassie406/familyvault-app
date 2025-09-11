@@ -2689,6 +2689,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // NOTE: All AI Inbox endpoints are now handled by aiInboxRouter in routes/ai-inbox.ts
   // This includes: /register, /:id/analyze, /:id/accept, /:id/dismiss, /:id/accept-autofill, /:id/status
 
+  // ===========================
+  // ANALYSIS API ENDPOINTS (for testing compatibility)
+  // ===========================
+  
+  // POST /api/inbox (create inbox item for analysis)
+  app.post("/api/inbox", async (req, res) => {
+    try {
+      const { fileId, familyId, title } = req.body;
+      
+      // Create inbox item using the existing system
+      const [created] = await db.insert(inboxItems).values({
+        familyId: familyId || "family-1",
+        userId: "anonymous", 
+        filename: title || "document.txt",
+        fileUrl: fileId, // S3 key serves as file URL
+        status: "uploaded" // Start as uploaded
+      }).returning({ id: inboxItems.id });
+
+      console.log(`[API] Created inbox item with ID: ${created.id}`);
+      res.json({ inboxItemId: created.id });
+    } catch (error) {
+      console.error("[API] Inbox creation error:", error);
+      res.status(500).json({ error: "Failed to create inbox item" });
+    }
+  });
+
+  // POST /api/analysis/start (start analysis job)
+  app.post("/api/analysis/start", async (req, res) => {
+    try {
+      const { inboxItemId } = req.body;
+      
+      console.log(`[ANALYSIS] Starting analysis for inbox item: ${inboxItemId}`);
+      
+      // Update status to analyzing
+      await db.update(inboxItems)
+        .set({ status: "analyzing" })
+        .where(eq(inboxItems.id, inboxItemId));
+
+      res.json({ 
+        jobId: inboxItemId, // Use inbox item ID as job ID for simplicity
+        status: "started" 
+      });
+
+      // Start analysis asynchronously
+      setTimeout(async () => {
+        try {
+          // Get the inbox item to find the S3 key
+          const [item] = await db.select().from(inboxItems).where(eq(inboxItems.id, inboxItemId));
+          if (!item) {
+            console.error(`[ANALYSIS] Inbox item not found: ${inboxItemId}`);
+            return;
+          }
+
+          console.log(`[ANALYSIS] Running analysis for S3 key: ${item.fileUrl}`);
+          
+          // Use the enhanced AI analyzer
+          const { analyzeUniversal } = await import("./lib/analyzeGeneric");
+          const result = await analyzeUniversal(item.fileUrl);
+          
+          // Update status and store results
+          await db.update(inboxItems)
+            .set({ 
+              status: "completed",
+              analysisCompleted: new Date(),
+              processedAt: new Date()
+            })
+            .where(eq(inboxItems.id, inboxItemId));
+
+          console.log(`[ANALYSIS] Analysis completed for: ${inboxItemId}`);
+          
+        } catch (error) {
+          console.error(`[ANALYSIS] Error analyzing ${inboxItemId}:`, error);
+          
+          // Update status to failed
+          await db.update(inboxItems)
+            .set({ status: "failed" })
+            .where(eq(inboxItems.id, inboxItemId));
+        }
+      }, 1000); // Start after 1 second delay
+
+    } catch (error) {
+      console.error("[ANALYSIS] Start error:", error);
+      res.status(500).json({ error: "Failed to start analysis" });
+    }
+  });
+
+  // GET /api/analysis/status (check analysis status)
+  app.get("/api/analysis/status", async (req, res) => {
+    try {
+      const { jobId } = req.query;
+      
+      if (!jobId) {
+        return res.status(400).json({ error: "jobId parameter is required" });
+      }
+
+      // Get inbox item (jobId is the inbox item ID)
+      const [item] = await db.select().from(inboxItems).where(eq(inboxItems.id, jobId as string));
+      
+      if (!item) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+
+      // Check if analysis completed successfully
+      if (item.status === "completed") {
+        // Get extracted fields for suggestions
+        const fields = await db.select().from(extractedFields)
+          .where(eq(extractedFields.inboxItemId, item.id));
+
+        // Convert fields to suggestions format
+        const suggestions: any = {};
+        const mini: any = { queries: {}, kvs: [], tableRows: [] };
+
+        fields.forEach(field => {
+          suggestions[field.field] = field.value;
+          mini.queries[field.field] = field.value;
+          mini.kvs.push({ key: field.field, value: field.value });
+        });
+
+        return res.json({
+          status: "completed",
+          suggestions,
+          mini
+        });
+      }
+
+      // Return current status
+      res.json({
+        status: item.status === "analyzing" ? "processing" : item.status,
+        progress: item.status === "analyzing" ? "Textract → Fusion → Finalizing" : undefined
+      });
+
+    } catch (error) {
+      console.error("[ANALYSIS] Status error:", error);
+      res.status(500).json({ error: "Failed to get analysis status" });
+    }
+  });
+
   // GET /api/inbox - List inbox items for the drawer
   app.get("/api/inbox", async (req, res) => {
     try {
