@@ -30,7 +30,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { StatCard } from '@/components/StatCard';
 import { InviteFamilyMemberDialog } from '@/components/InviteFamilyMemberDialog';
-import UploadCenter from '@/components/upload/UploadCenter';
+import { EnhancedUploadCenter } from '@/components/upload/enhanced/EnhancedUploadCenter';
+import '@/components/upload/enhanced/EnhancedUploadCenter.css';
 import AIBanner from '@/components/ai/AIBanner';
 import InboxDrawer from '@/components/inbox/InboxDrawer';
 import { NewMessageModal } from '@/components/messaging/NewMessageModal';
@@ -929,18 +930,7 @@ export default function FamilyHome() {
             />
             
             <div className={`flex-1 ${(highlightDocumentUpload || highlightPhotoUpload) ? 'upload-highlight' : ''}`}>
-              <UploadCenter 
-                familyId="family-1"
-                onUploadComplete={(id, type) => {
-                  console.log(`${type} uploaded with ID: ${id}`);
-                  // Clear highlights after successful upload
-                  setTimeout(() => {
-                    setHighlightDocumentUpload(false);
-                    setHighlightPhotoUpload(false);
-                  }, 3000);
-                }}
-                onAnalyzeFile={startAIAnalysis}
-              />
+              <EnhancedUploadCenter />
             </div>
           </div>
         );
