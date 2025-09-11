@@ -325,19 +325,78 @@ export function useAiSuggestions(options: UseAiSuggestionsOptions = {}) {
         }
       } catch (e: any) {
         const msg = String(e?.message || e);
-        // Map known backend codes to human help
+        console.log(`[AI] Analysis error:`, e);
+        
+        // Map AWS Textract and backend errors to user-friendly messages
         if (msg.includes("legacy_key_unusable") || msg.includes("410")) {
           setState({
             kind: "error",
-            message: "This document was saved with an old path and can't be analyzed. Please re-upload it."
+            message: "This document was saved with an old format and can't be analyzed. Please re-upload it.",
+            actionText: "Re-upload Document"
           });
           return;
         }
-        if (msg.includes("Timeout")) {
-          setState({ kind: "timeout", message: msg });
+        
+        if (msg.includes("InvalidParameter") || msg.includes("Request has invalid parameters")) {
+          setState({
+            kind: "error",
+            message: "This file type isn't supported for ID analysis. Try uploading a clear photo of your driver's license, passport, or ID card.",
+            actionText: "Upload Different File"
+          });
           return;
         }
-        setState({ kind: "error", message: msg });
+        
+        if (msg.includes("UnsupportedDocument") || msg.includes("unsupported document type")) {
+          setState({
+            kind: "error", 
+            message: "We can't analyze this document type yet. Try uploading an ID, insurance card, or other common document.",
+            actionText: "Try Different Document"
+          });
+          return;
+        }
+        
+        if (msg.includes("AccessDenied") || msg.includes("403")) {
+          setState({
+            kind: "error",
+            message: "There was a permissions issue accessing the document analysis service. Please try again.",
+            actionText: "Retry Analysis"
+          });
+          return;
+        }
+        
+        if (msg.includes("Timeout") || msg.includes("timeout")) {
+          setState({ 
+            kind: "timeout", 
+            message: "Document analysis is taking longer than usual. Please try again.",
+            actionText: "Try Again"
+          });
+          return;
+        }
+        
+        if (msg.includes("Network Error") || msg.includes("Failed to fetch")) {
+          setState({
+            kind: "error",
+            message: "Connection problem. Please check your internet and try again.",
+            actionText: "Retry Upload"
+          });
+          return;
+        }
+        
+        if (msg.includes("500") || msg.includes("Internal Server Error")) {
+          setState({
+            kind: "error",
+            message: "Our servers are having trouble right now. Please try again in a moment.",
+            actionText: "Try Again"
+          });
+          return;
+        }
+        
+        // Default user-friendly message for unknown errors
+        setState({ 
+          kind: "error", 
+          message: "Something went wrong during analysis. Please try uploading the document again.",
+          actionText: "Try Again"
+        });
       } finally {
         clearTimeout(guardTimer);
         cancelRef.current = null;

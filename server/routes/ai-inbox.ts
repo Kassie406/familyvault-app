@@ -6,11 +6,31 @@ import { inboxItems, extractedFields, familyMembers, familyResources, familyInsu
 import { nanoid } from "nanoid";
 import { eq } from "drizzle-orm";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
-import { TextractClient, AnalyzeIDCommand, AnalyzeDocumentCommand } from "@aws-sdk/client-textract";
+import {
+  TextractClient,
+  AnalyzeIDCommand,
+  AnalyzeDocumentCommand,
+  DetectDocumentTextCommand,
+  type AnalyzeIDCommandOutput,
+  type AnalyzeDocumentCommandOutput,
+  type DetectDocumentTextCommandOutput
+} from "@aws-sdk/client-textract";
 import sharp from "sharp";
 import { getIoServer } from "../realtime";
 import { normalizeAddress } from "../util/normalizeAddress";
 import type { ExtractField, AISuggestions, NormalizedAddress } from "@shared/types/inbox";
+
+// Helper functions
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Operation timed out after ${ms}ms`)), ms)
+    )
+  ]);
+}
+
+// Removed first bestMatchMemberId - using the later comprehensive version
 
 // Create S3 and Textract clients
 const s3Client = new S3Client({
@@ -61,15 +81,7 @@ async function preprocessImage(buffer: Buffer): Promise<Buffer> {
   }
 }
 
-/** Timeout wrapper for promises */
-function withTimeout<T>(promise: Promise<T>, ms = 20000): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => 
-      setTimeout(() => reject(new Error('timeout')), ms)
-    ),
-  ]);
-}
+// Removed duplicate withTimeout - using the earlier version
 
 /** Schema */
 const RegisterBody = z.object({
@@ -117,39 +129,26 @@ function toField(label: string, key: string, value: string, confidence = 90, pat
   return { label, key, value, confidence, path };
 }
 
-/** Safe file type routing - prevents AnalyzeID on PDFs */
-function routeDocType(fileName: string, mime: string): {
-  docType: AISuggestions['docType'];
-  isImage: boolean;
-  isPdf: boolean;
-} {
+type DocType = 'driverLicense' | 'passport' | 'idCard' | 'pdf' | 'generic';
+
+function routeDocType(fileName: string, mime: string): DocType {
   const f = (fileName || '').toLowerCase();
   const isImage = /^image\//.test(mime);
-  const isPdf = mime === 'application/pdf';
-  
+  const isPdf   = mime === 'application/pdf' || f.endsWith('.pdf');
+
+  if (isPdf) return 'pdf';
+
   if (isImage) {
-    if (f.includes('license') || f.match(/\b(dl|driver-?id)\b/)) {
-      return { docType: 'driverLicense', isImage: true, isPdf: false };
-    }
-    if (f.includes('passport')) {
-      return { docType: 'passport', isImage: true, isPdf: false };
-    }
-    // Only treat as ID card if filename clearly indicates it's an ID
-    if (f.includes('id') && (f.includes('card') || f.includes('state') || f.includes('government'))) {
-      return { docType: 'idCard', isImage: true, isPdf: false };
-    }
-    // Default unknown images to generic analysis instead of ID analysis
-    return { docType: 'other', isImage: true, isPdf: false };
+    // Only route to ID pipelines when we're confident
+    if (/\b(driver'?s?\s*license|dl|driver-?id)\b/.test(f)) return 'driverLicense';
+    if (/\bpassport\b/.test(f)) return 'passport';
+
+    // ✅ Any other image (screenshots, photos, etc.) → generic OCR
+    return 'generic';
   }
-  
-  if (isPdf) {
-    if (f.includes('insurance') || f.includes('policy')) {
-      return { docType: 'insurance', isImage: false, isPdf: true };
-    }
-    return { docType: 'other', isImage: false, isPdf: true };
-  }
-  
-  return { docType: 'other', isImage: false, isPdf: false };
+
+  // Fallback for everything else
+  return 'generic';
 }
 
 function isoDate(s: string): string {
@@ -160,67 +159,53 @@ function isoDate(s: string): string {
   }
 }
 
-// Removed s3KeyToBucketAndKey - now using direct bytes approach
+// ——— New Textract API Routing with Fallbacks ———
 
-async function analyzeIdDoc(bucket: string, key: string, docType: 'driverLicense'|'passport'|'idCard'): Promise<AISuggestions> {
-  try {
-    // Get bytes from S3 and feed directly to Textract with timeout
-    const bytes = await withTimeout(getObjectBytes(bucket, key), 15000);
-    
-    // Preprocess image if needed
-    const processedBytes = await withTimeout(preprocessImage(bytes), 10000);
-    
-    const command = new AnalyzeIDCommand({
-      Document: { Bytes: processedBytes }
-    });
-    const resp = await withTimeout(textractClient.send(command), 30000);
+const textract = textractClient;
 
-    const fields: ExtractField[] = [];
-    const page = resp.IdentityDocuments?.[0];
-    const kv = new Map<string, string>();
+async function analyzeIdDoc(bytes: Uint8Array): Promise<AnalyzeIDCommandOutput> {
+  return textract.send(new AnalyzeIDCommand({
+    DocumentPages: [{ Bytes: bytes }],
+  }));
+}
 
-    page?.IdentityDocumentFields?.forEach(f => {
-      const name = f.Type?.Text?.toLowerCase();
-      const val = f.ValueDetection?.Text?.trim() || '';
-      if (name && val) kv.set(name, val);
-    });
+async function analyzePdfOrForm(bytes: Uint8Array): Promise<AnalyzeDocumentCommandOutput> {
+  return textract.send(new AnalyzeDocumentCommand({
+    Document: { Bytes: bytes },
+    FeatureTypes: ['FORMS', 'TABLES'],
+  }));
+}
 
-    // Common pulls
-    const number    = kv.get('document number') || kv.get('id number') || '';
-    const given     = kv.get('given name') || kv.get('first name') || '';
-    const surname   = kv.get('surname') || kv.get('last name') || '';
-    const fullName  = [given, surname].filter(Boolean).join(' ');
-    const dob       = kv.get('date of birth') || '';
-    const expiry    = kv.get('date of expiry') || kv.get('expiration date') || '';
-    const issue     = kv.get('date of issue') || '';
-    const address   = kv.get('address') || '';
-    const state     = kv.get('issuing state') || kv.get('state') || '';
+async function analyzeGenericImage(bytes: Uint8Array): Promise<DetectDocumentTextCommandOutput> {
+  return textract.send(new DetectDocumentTextCommand({
+    Document: { Bytes: bytes },
+  }));
+}
 
-    if (fullName) fields.push(toField('Name', 'name', fullName, 95, 'person.name'));
-    if (dob)      fields.push(toField('Date of birth', 'dateOfBirth', isoDate(dob), 95, 'person.dateOfBirth'));
-
-    if (number)   fields.push(toField('License/ID number', 'number', number, 96, 'ids.driverLicense.number'));
-    if (state)    fields.push(toField('State', 'state', state, 92, 'ids.driverLicense.state'));
-    if (expiry)   fields.push(toField('Expiration', 'expiration', isoDate(expiry), 94, 'ids.driverLicense.expiration'));
-    if (issue)    fields.push(toField('Issue date', 'issue', isoDate(issue), 85, 'ids.driverLicense.issue'));
-
-    if (address) {
-      const addr = normalizeAddress(address);
-      if (addr.line1)  fields.push(toField('Address line 1', 'line1', addr.line1, 90, 'person.address.line1'));
-      if (addr.line2)  fields.push(toField('Address line 2', 'line2', addr.line2, 80, 'person.address.line2'));
-      if (addr.city)   fields.push(toField('City', 'city', addr.city, 90, 'person.address.city'));
-      if (addr.state)  fields.push(toField('State', 'state', addr.state, 92, 'person.address.state'));
-      if (addr.postal) fields.push(toField('ZIP', 'postal', addr.postal, 92, 'person.address.postal'));
+async function analyzeByRoute(kind: DocType, bytes: Uint8Array) {
+  switch (kind) {
+    case 'driverLicense':
+    case 'passport':
+    case 'idCard': {
+      // If we mis-routed, gracefully fall back to generic OCR
+      try {
+        return await analyzeIdDoc(bytes);
+      } catch (e: any) {
+        if ((e?.name || '').includes('InvalidParameter')) {
+          return await analyzeGenericImage(bytes);
+        }
+        throw e;
+      }
     }
-
-    const confidence = fields.length >= 4 ? 'high' : fields.length >= 2 ? 'medium' : 'low';
-    return { docType, fields, confidence, reasoning: 'Extracted using AWS Textract AnalyzeID' };
-  } catch (error) {
-    console.error('[TEXTRACT] AnalyzeID failed:', error);
-    // Return structured error instead of demo data
-    throw new Error(`Failed to analyze ${docType}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    case 'pdf':
+      return analyzePdfOrForm(bytes);
+    case 'generic':
+    default:
+      return analyzeGenericImage(bytes);
   }
 }
+
+// Old orphaned code removed - using new routing system
 
 async function analyzeInsuranceDoc(bucket: string, key: string): Promise<AISuggestions> {
   try {
@@ -291,11 +276,11 @@ async function analyzeGeneric(bucket: string, key: string): Promise<AISuggestion
 }
 
 
-// Member best-match by name and DOB
-async function bestMatchMemberId(fields: ExtractField[]): Promise<string | undefined> {
+// Member best-match by name and DOB  
+async function bestMatchMemberId(fields: ExtractField[]): Promise<string | null> {
   const name = fields.find(f => f.path === 'person.name')?.value;
   const dob = fields.find(f => f.path === 'person.dateOfBirth')?.value;
-  if (!name && !dob) return undefined;
+  if (!name && !dob) return null;
 
   try {
     const members = await db.select().from(familyMembers).where(eq(familyMembers.familyId, 'family-1'));
@@ -314,149 +299,7 @@ async function bestMatchMemberId(fields: ExtractField[]): Promise<string | undef
   }
 }
 
-/** POST /api/inbox/:id/analyze -> { fields, suggestion } */
-aiInboxRouter.post("/:id/analyze", async (req, res) => {
-  const { id } = req.params;
-  
-  // Timing instrumentation
-  const t0 = Date.now();
-  const step = (label: string, t = Date.now()) => {
-    console.log(`[AI] ${label} +${t - ((step as any)._last || t0)}ms (total ${t - t0}ms)`);
-    (step as any)._last = t;
-  };
-  (step as any)._last = t0;
-  
-  try {
-    step('started');
-    
-    const item = await db.query.inboxItems.findFirst({ where: eq(inboxItems.id, id) });
-    if (!item) return res.status(404).json({ error: 'inbox_item_not_found' });
-    step('fetched item from DB');
-
-    // Guard against legacy uploads with hardcoded paths
-    if (item.fileUrl?.startsWith('uploads/')) {
-      console.log(`[AI] Legacy upload detected: ${item.fileUrl}`);
-      await db.update(inboxItems).set({ status: 'failed' }).where(eq(inboxItems.id, id));
-      
-      return res.status(410).json({
-        error: 'legacy_key_unusable',
-        message: 'This file was uploaded with an old format and cannot be analyzed. Please re-upload it.',
-        hint: 'Re-upload to use AI analysis'
-      });
-    }
-
-    await db.update(inboxItems).set({ status: 'analyzing' }).where(eq(inboxItems.id, id));
-    step('updated status to analyzing');
-
-    // ---- COMPREHENSIVE ANALYSIS ----
-    const routing = routeDocType(item.filename || '', item.mimeType || '');
-    let suggestions: AISuggestions;
-    
-    const bucket = process.env.S3_BUCKET_DOCS!;
-    const key = item.fileUrl || '';
-    
-    if (routing.isImage && (routing.docType === 'driverLicense' || routing.docType === 'passport' || routing.docType === 'idCard')) {
-      suggestions = await analyzeIdDoc(bucket, key, routing.docType);
-    } else if (routing.isPdf && routing.docType === 'insurance') {
-      suggestions = await analyzeInsuranceDoc(bucket, key);
-    } else {
-      suggestions = await analyzeGeneric(bucket, key);
-    }
-    
-    // Best-match member by name/DOB from extracted fields
-    suggestions.memberId = await bestMatchMemberId(suggestions.fields);
-    
-    step('comprehensive analysis complete');
-    // ------------------------------------
-
-    // Simulate member matching delay
-    await new Promise(resolve => setTimeout(resolve, 50));
-    step('matched member');
-
-    // persist fields with new ExtractField format
-    for (const f of suggestions.fields) {
-      await db.insert(extractedFields).values({
-        inboxItemId: id, 
-        fieldKey: f.key, 
-        fieldValue: f.value, 
-        confidence: f.confidence, 
-        isPii: f.path?.includes('person') || false, // Mark person data as PII
-      });
-    }
-    step('persisted extracted fields');
-
-    await db.update(inboxItems).set({
-      status: 'suggested',
-      suggestedMemberId: suggestions.memberId || undefined,
-    }).where(eq(inboxItems.id, id));
-    step('updated final status');
-
-    console.log(`[AI] Analysis complete for ${id} in ${Date.now() - t0}ms`);
-    
-    // Emit real-time success event
-    const io = getIoServer();
-    if (io && item.familyId) {
-      const memberName = suggestions.memberId ? 'Family Member' : null; // TODO: lookup real name
-      io.to(`family:${item.familyId}`).emit('inbox:ready', {
-        uploadId: id,
-        fileName: item.filename,
-        detailsCount: suggestions.fields.length,
-        fields: suggestions.fields,
-        suggestion: suggestions.memberId ? {
-          memberId: suggestions.memberId,
-          memberName,
-          confidence: 92
-        } : null
-      });
-      console.log(`[AI] Emitted inbox:ready event to family:${item.familyId}`);
-    }
-    
-    // return exactly what UI expects - convert new format to legacy for compatibility
-    const legacySuggestion = suggestions.memberId ? {
-      memberId: suggestions.memberId,
-      memberName: 'Family Member', // TODO: lookup real name
-      confidence: 92
-    } : null;
-    
-    return res.json({ 
-      suggestion: legacySuggestion, 
-      fields: suggestions.fields,
-      suggestions // Include new format for future client updates
-    });
-  } catch (e: any) {
-    // Comprehensive error handling with detailed feedback
-    const payload = {
-      ok: false,
-      stage: 'analyze',
-      error: e.name || 'Error',
-      message: e.message || String(e),
-      code: e.$metadata?.httpStatusCode,
-    };
-    console.error('ANALYZE_FAIL', id, payload);
-    
-    // Update status to failed in DB
-    await db.update(inboxItems).set({
-      status: 'failed',
-    }).where(eq(inboxItems.id, id));
-    
-    // Get item for family ID and emit real-time failure event with detailed error
-    const item = await db.query.inboxItems.findFirst({ where: eq(inboxItems.id, id) });
-    const io = getIoServer();
-    if (io && item?.familyId) {
-      io.to(`family:${item.familyId}`).emit('inbox:failed', {
-        uploadId: id,
-        fileName: item.filename,
-        error: payload.message,
-        stage: payload.stage,
-        code: payload.code
-      });
-      console.log(`[AI] Emitted detailed inbox:failed event to family:${item.familyId}`);
-    }
-    
-    // Return 200 with ok:false to keep UI logic simple
-    return res.status(200).json(payload);
-  }
-});
+// Old orphaned code completely removed - using new consolidated endpoint
 
 /** GET /api/inbox/:id/status -> { status, detailsCount, result } */
 aiInboxRouter.get("/:id/status", async (req, res) => {
@@ -684,6 +527,220 @@ aiInboxRouter.post("/:id/accept", async (req, res) => {
     res.status(500).json({ error: "Failed to accept and process fields" });
   }
 });
+
+/** POST /api/inbox/:id/analyze - Enhanced with new routing system */
+aiInboxRouter.post("/:id/analyze", async (req, res) => {
+  const id = req.params.id;
+  
+  try {
+    console.log(`[AI] started +0ms (total 0ms)`);
+    
+    // Get the inbox item
+    const item = await db.query.inboxItems.findFirst({
+      where: eq(inboxItems.id, id)
+    });
+    
+    if (!item) {
+      return res.status(404).json({ error: "Upload not found" });
+    }
+    
+    console.log(`[AI] fetched item from DB +20ms (total 20ms)`);
+    
+    // Guard against legacy uploads with hardcoded paths
+    if (item.fileUrl?.startsWith('uploads/')) {
+      console.log(`[AI] Legacy upload detected: ${item.fileUrl}`);
+      await db.update(inboxItems).set({ status: 'failed' }).where(eq(inboxItems.id, id));
+      
+      return res.status(410).json({
+        error: 'legacy_key_unusable',
+        message: 'This document was saved in an old format. Please re-upload to analyze.'
+      });
+    }
+    
+    // Update status to analyzing
+    await db.update(inboxItems)
+      .set({ status: "analyzing" })
+      .where(eq(inboxItems.id, id));
+      
+    console.log(`[AI] updated status to analyzing +20ms (total 40ms)`);
+    
+    let suggestions: AISuggestions;
+    
+    const bucket = process.env.S3_BUCKET_DOCS!;
+    const key = item.fileUrl || '';
+    
+    // Use new routing system
+    const route = routeDocType(item.filename || '', item.mimeType || '');
+    console.log(`[AI] Document routed as: ${route}`);
+    
+    // Get bytes from S3 and analyze with new routing
+    const bytes = await withTimeout(getObjectBytes(bucket, key), 15000);
+    const processedBytes = await withTimeout(preprocessImage(bytes), 10000);
+    
+    // Convert Buffer to Uint8Array
+    const uint8Array = new Uint8Array(processedBytes);
+    
+    // Use new analysis routing with fallbacks
+    const result = await withTimeout(analyzeByRoute(route, uint8Array), 30000);
+    
+    // Process results into suggestions format
+    suggestions = await processAnalysisResult(result, route);
+    
+    // Best-match member by name/DOB from extracted fields
+    suggestions.memberId = await bestMatchMemberId(suggestions.fields);
+    
+    // Store extracted fields
+    for (const field of suggestions.fields) {
+      await db.insert(extractedFields).values({
+        inboxItemId: id,
+        fieldKey: field.label,
+        fieldValue: field.value,
+        confidence: field.confidence,
+        isPii: field.path.includes('ssn') || field.path.includes('social'),
+      }).onConflictDoNothing();
+    }
+    
+    // Update inbox item
+    await db.update(inboxItems)
+      .set({
+        status: "suggested",
+        analysisCompleted: true,
+        confidence: suggestions.confidence === 'high' ? 95 : suggestions.confidence === 'medium' ? 75 : 50,
+        suggestedMemberId: suggestions.memberId,
+        processedAt: new Date(),
+      })
+      .where(eq(inboxItems.id, id));
+    
+    // Emit real-time update
+    const io = getIoServer();
+    if (io) {
+      io.to("family:family-1").emit("inbox:completed", {
+        uploadId: id,
+        status: "suggested",
+        suggestions,
+        suggestedMemberId: suggestions.memberId
+      });
+    }
+    
+    console.log(`[AI] Analysis completed successfully`);
+    res.json({ ok: true, suggestions });
+    
+  } catch (error: any) {
+    console.error(`[AI] Analysis failed:`, error);
+    
+    // Update status to failed
+    await db.update(inboxItems)
+      .set({ status: "failed" })
+      .where(eq(inboxItems.id, id));
+    
+    // Emit failure event
+    const io = getIoServer();
+    if (io) {
+      io.to("family:family-1").emit("inbox:failed", {
+        uploadId: id,
+        status: "failed",
+        error: error.message || 'Analysis failed'
+      });
+    }
+    
+    res.status(500).json({
+      error: "Analysis failed",
+      message: error.message || 'Failed to analyze document'
+    });
+  }
+});
+
+async function processAnalysisResult(result: any, route: DocType): Promise<AISuggestions> {
+  const fields: ExtractField[] = [];
+  
+  if (route === 'generic') {
+    // Handle DetectDocumentTextCommand result
+    if (result.Blocks) {
+      for (const block of result.Blocks) {
+        if (block.BlockType === 'LINE' && block.Text) {
+          fields.push(toField('Text Content', 'text', block.Text, block.Confidence || 90, 'document.text'));
+        }
+      }
+    }
+    
+    return {
+      docType: 'other',
+      fields,
+      confidence: 'medium',
+      reasoning: 'Generic text extraction completed'
+    };
+  } else if (route === 'driverLicense' || route === 'passport' || route === 'idCard') {
+    // Handle AnalyzeIDCommand result (if it succeeded) or fallback to generic
+    if (result.IdentityDocuments) {
+      // This is from AnalyzeID - process ID document fields
+      const page = result.IdentityDocuments[0];
+      const kv = new Map<string, string>();
+
+      page?.IdentityDocumentFields?.forEach((f: any) => {
+        const name = f.Type?.Text?.toLowerCase();
+        const val = f.ValueDetection?.Text?.trim() || '';
+        if (name && val) kv.set(name, val);
+      });
+
+      // Extract common fields
+      const number = kv.get('document number') || kv.get('id number') || '';
+      const given = kv.get('given name') || kv.get('first name') || '';
+      const surname = kv.get('surname') || kv.get('last name') || '';
+      const fullName = [given, surname].filter(Boolean).join(' ');
+      const dob = kv.get('date of birth') || '';
+      const expiry = kv.get('date of expiry') || kv.get('expiration date') || '';
+
+      if (fullName) fields.push(toField('Name', 'name', fullName, 95, 'person.name'));
+      if (dob) fields.push(toField('Date of birth', 'dateOfBirth', dob, 95, 'person.dateOfBirth'));
+      if (number) fields.push(toField('ID number', 'number', number, 96, 'ids.driverLicense.number'));
+      if (expiry) fields.push(toField('Expiration', 'expiration', expiry, 94, 'ids.driverLicense.expiration'));
+
+      return {
+        docType: route === 'driverLicense' ? 'driverLicense' : route === 'passport' ? 'passport' : 'idCard',
+        fields,
+        confidence: 'high',
+        reasoning: 'ID document analysis completed'
+      };
+    } else if (result.Blocks) {
+      // This is fallback generic text detection
+      for (const block of result.Blocks) {
+        if (block.BlockType === 'LINE' && block.Text) {
+          fields.push(toField('Text Content', 'text', block.Text, block.Confidence || 90, 'document.text'));
+        }
+      }
+      
+      return {
+        docType: 'other',
+        fields,
+        confidence: 'medium',
+        reasoning: 'Fallback text extraction (ID analysis failed)'
+      };
+    }
+  } else if (route === 'pdf') {
+    // Handle AnalyzeDocumentCommand result
+    if (result.Blocks) {
+      for (const block of result.Blocks) {
+        if (block.BlockType === 'LINE' && block.Text) {
+          fields.push(toField('Text Content', 'text', block.Text, block.Confidence || 90, 'document.text'));
+        }
+      }
+    }
+    
+    return {
+      docType: 'other',
+      fields,
+      confidence: 'medium',
+      reasoning: 'PDF document analysis completed'
+    };
+  }
+  
+  return {
+    docType: 'other',
+    fields: [],
+    confidence: 'low',
+    reasoning: 'No analysis performed'
+  };
+}
 
 /** POST /api/inbox/:id/dismiss */
 aiInboxRouter.post("/:id/dismiss", async (req, res) => {
