@@ -1,0 +1,469 @@
+// Enhanced Upload Center Component - Trustworthy Style Implementation
+// File: components/UploadCenter/EnhancedUploadCenter.jsx
+
+import React, { useState, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// Upload States
+const UPLOAD_STATES = {
+  EMPTY: 'empty',
+  DRAGOVER: 'dragover',
+  UPLOADING: 'uploading',
+  PROCESSING: 'processing',
+  COMPLETE: 'complete',
+  ERROR: 'error'
+};
+
+// Main Upload Center Component
+export const EnhancedUploadCenter = () => {
+  const [uploadState, setUploadState] = useState(UPLOAD_STATES.EMPTY);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [analysisResults, setAnalysisResults] = useState(null);
+  const [currentFile, setCurrentFile] = useState(null);
+  const [isDragActive, setIsDragActive] = useState(false);
+  const fileInputRef = useRef(null);
+
+  // File upload handler
+  const handleFileUpload = useCallback(async (files) => {
+    const file = files[0];
+    if (!file) return;
+
+    setCurrentFile(file);
+    setUploadState(UPLOAD_STATES.UPLOADING);
+    setUploadProgress(0);
+
+    try {
+      // Simulate upload progress
+      await simulateUploadProgress();
+      
+      // Start AI analysis
+      setUploadState(UPLOAD_STATES.PROCESSING);
+      const results = await analyzeDocumentWithAI(file);
+      
+      setAnalysisResults(results);
+      setUploadState(UPLOAD_STATES.COMPLETE);
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setUploadState(UPLOAD_STATES.ERROR);
+    }
+  }, []);
+
+  // Drag and drop handlers
+  const handleDragEnter = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(true);
+    if (uploadState === UPLOAD_STATES.EMPTY) {
+      setUploadState(UPLOAD_STATES.DRAGOVER);
+    }
+  }, [uploadState]);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+    if (uploadState === UPLOAD_STATES.DRAGOVER) {
+      setUploadState(UPLOAD_STATES.EMPTY);
+    }
+  }, [uploadState]);
+
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      handleFileUpload(files);
+    }
+  }, [handleFileUpload]);
+
+  // File input click handler
+  const handleFileInputClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileInputChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      handleFileUpload(files);
+    }
+  };
+
+  // Reset upload state
+  const resetUpload = () => {
+    setUploadState(UPLOAD_STATES.EMPTY);
+    setUploadProgress(0);
+    setAnalysisResults(null);
+    setCurrentFile(null);
+  };
+
+  return (
+    <div className="enhanced-upload-center">
+      <div className="upload-main-area">
+        <motion.div
+          className={`upload-zone ${uploadState} ${isDragActive ? 'drag-active' : ''}`}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          onClick={uploadState === UPLOAD_STATES.EMPTY ? handleFileInputClick : undefined}
+          whileHover={uploadState === UPLOAD_STATES.EMPTY ? { y: -2 } : {}}
+          transition={{ duration: 0.2 }}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            onChange={handleFileInputChange}
+            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+            style={{ display: 'none' }}
+          />
+          
+          <StateRenderer
+            state={uploadState}
+            progress={uploadProgress}
+            file={currentFile}
+            results={analysisResults}
+            onReset={resetUpload}
+          />
+        </motion.div>
+      </div>
+
+      <div className="upload-sidebar">
+        <RecentUploads />
+        <QuickActions />
+      </div>
+    </div>
+  );
+};
+
+// State Renderer Component
+const StateRenderer = ({ state, progress, file, results, onReset }) => {
+  return (
+    <AnimatePresence mode="wait">
+      {state === UPLOAD_STATES.EMPTY && <EmptyState key="empty" />}
+      {state === UPLOAD_STATES.DRAGOVER && <DragOverState key="dragover" />}
+      {state === UPLOAD_STATES.UPLOADING && <UploadingState key="uploading" progress={progress} file={file} />}
+      {state === UPLOAD_STATES.PROCESSING && <ProcessingState key="processing" file={file} />}
+      {state === UPLOAD_STATES.COMPLETE && <CompleteState key="complete" results={results} onReset={onReset} />}
+      {state === UPLOAD_STATES.ERROR && <ErrorState key="error" onReset={onReset} />}
+    </AnimatePresence>
+  );
+};
+
+// Empty State Component
+const EmptyState = () => (
+  <motion.div
+    className="upload-state upload-empty-state"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+    transition={{ duration: 0.3 }}
+  >
+    <div className="upload-icon">
+      <motion.svg
+        className="w-16 h-16 text-gold"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        whileHover={{ scale: 1.1 }}
+        transition={{ duration: 0.2 }}
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+        />
+      </motion.svg>
+    </div>
+    
+    <h3 className="upload-title">Upload Family Documents</h3>
+    <p className="upload-description">
+      Drag & drop files here or click to browse
+    </p>
+    <p className="upload-subtitle">
+      AI will automatically extract key information
+    </p>
+    
+    <div className="supported-formats">
+      <span className="format-badge">PDF</span>
+      <span className="format-badge">JPG</span>
+      <span className="format-badge">PNG</span>
+      <span className="format-badge">DOC</span>
+    </div>
+  </motion.div>
+);
+
+// Drag Over State Component
+const DragOverState = () => (
+  <motion.div
+    className="upload-state upload-dragover-state"
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    exit={{ opacity: 0, scale: 0.95 }}
+    transition={{ duration: 0.2 }}
+  >
+    <motion.div
+      className="drop-indicator"
+      animate={{ scale: [1, 1.05, 1] }}
+      transition={{ duration: 1, repeat: Infinity }}
+    >
+      <div className="drop-icon">📄</div>
+      <h3 className="drop-title">Drop your document here</h3>
+      <p className="drop-description">Release to start AI analysis</p>
+    </motion.div>
+  </motion.div>
+);
+
+// Uploading State Component
+const UploadingState = ({ progress, file }) => (
+  <motion.div
+    className="upload-state upload-uploading-state"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+  >
+    <div className="file-preview">
+      <div className="file-icon">📄</div>
+      <div className="file-info">
+        <h4 className="file-name">{file?.name}</h4>
+        <p className="file-size">{formatFileSize(file?.size)}</p>
+      </div>
+    </div>
+    
+    <div className="progress-container">
+      <div className="progress-bar">
+        <motion.div
+          className="progress-fill"
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.3 }}
+        />
+      </div>
+      <span className="progress-text">{Math.round(progress)}% uploaded</span>
+    </div>
+  </motion.div>
+);
+
+// Processing State Component (AI Analysis)
+const ProcessingState = ({ file }) => (
+  <motion.div
+    className="upload-state upload-processing-state"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+  >
+    <div className="ai-analysis-container">
+      <motion.div
+        className="ai-brain-icon"
+        animate={{
+          scale: [1, 1.2, 1],
+          rotate: [0, 180, 360],
+          opacity: [0.7, 1, 0.7]
+        }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      >
+        🧠
+      </motion.div>
+      
+      <h3 className="processing-title">AI Analyzing Document...</h3>
+      <p className="processing-description">
+        Extracting key information from {file?.name}
+      </p>
+      
+      <div className="processing-steps">
+        <ProcessingStep label="Reading document" completed />
+        <ProcessingStep label="Extracting data" active />
+        <ProcessingStep label="Categorizing content" />
+        <ProcessingStep label="Identifying family members" />
+      </div>
+    </div>
+  </motion.div>
+);
+
+// Complete State Component (Trustworthy Style Results)
+const CompleteState = ({ results, onReset }) => (
+  <motion.div
+    className="upload-state upload-complete-state"
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    exit={{ opacity: 0, scale: 0.9 }}
+    transition={{ duration: 0.4 }}
+  >
+    <div className="results-header">
+      <motion.div
+        className="lightning-icon"
+        animate={{ rotate: [0, 5, -5, 0] }}
+        transition={{ duration: 0.5 }}
+      >
+        ⚡
+      </motion.div>
+      <h3 className="results-title">
+        {results?.extractedFields?.length || 0} details extracted
+      </h3>
+    </div>
+    
+    <div className="extracted-preview">
+      {results?.extractedFields?.slice(0, 2).map((field, index) => (
+        <motion.div
+          key={index}
+          className="field-preview"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: index * 0.1 }}
+        >
+          <span className="field-label">{field.key}:</span>
+          <span className="field-value">{field.value}</span>
+          <span className="confidence-badge">{field.confidence}%</span>
+        </motion.div>
+      ))}
+      
+      {results?.extractedFields?.length > 2 && (
+        <div className="more-fields">
+          +{results.extractedFields.length - 2} more fields
+        </div>
+      )}
+    </div>
+    
+    <div className="action-buttons">
+      <motion.button
+        className="view-details-btn primary"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        View All Details
+      </motion.button>
+      
+      <motion.button
+        className="upload-another-btn secondary"
+        onClick={onReset}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        Upload Another
+      </motion.button>
+    </div>
+  </motion.div>
+);
+
+// Error State Component
+const ErrorState = ({ onReset }) => (
+  <motion.div
+    className="upload-state upload-error-state"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+  >
+    <div className="error-icon">❌</div>
+    <h3 className="error-title">Upload Failed</h3>
+    <p className="error-description">
+      Something went wrong. Please try again.
+    </p>
+    
+    <motion.button
+      className="retry-btn"
+      onClick={onReset}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      Try Again
+    </motion.button>
+  </motion.div>
+);
+
+// Processing Step Component
+const ProcessingStep = ({ label, completed = false, active = false }) => (
+  <motion.div
+    className={`processing-step ${completed ? 'completed' : ''} ${active ? 'active' : ''}`}
+    initial={{ opacity: 0, x: -20 }}
+    animate={{ opacity: 1, x: 0 }}
+    transition={{ duration: 0.3 }}
+  >
+    <div className="step-indicator">
+      {completed ? '✓' : active ? '⟳' : '○'}
+    </div>
+    <span className="step-label">{label}</span>
+  </motion.div>
+);
+
+// Recent Uploads Sidebar Component
+const RecentUploads = () => (
+  <div className="recent-uploads">
+    <h4 className="sidebar-title">Recent Uploads</h4>
+    <div className="upload-list">
+      <div className="upload-item">
+        <div className="upload-thumbnail">📄</div>
+        <div className="upload-details">
+          <span className="upload-name">Driver License</span>
+          <span className="upload-time">2 hours ago</span>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Quick Actions Sidebar Component
+const QuickActions = () => (
+  <div className="quick-actions">
+    <h4 className="sidebar-title">Quick Actions</h4>
+    <div className="action-list">
+      <button className="action-btn">
+        📷 Scan with Camera
+      </button>
+      <button className="action-btn">
+        📁 Browse Files
+      </button>
+    </div>
+  </div>
+);
+
+// Utility Functions
+const simulateUploadProgress = () => {
+  return new Promise((resolve) => {
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.random() * 30;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        resolve();
+      }
+    }, 200);
+  });
+};
+
+const analyzeDocumentWithAI = async (file) => {
+  // Simulate AI analysis delay
+  await new Promise(resolve => setTimeout(resolve, 3000));
+  
+  // Mock analysis results based on existing data format
+  return {
+    extractedFields: [
+      { key: "Issuer", value: "Social Security Administration", confidence: 85 },
+      { key: "Document Type", value: "Driver License", confidence: 92 },
+      { key: "Name", value: "Angel Quintana", confidence: 88 }
+    ],
+    documentType: "Identity Document",
+    confidence: 88
+  };
+};
+
+const formatFileSize = (bytes) => {
+  if (!bytes) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+export default EnhancedUploadCenter;
