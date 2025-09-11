@@ -55,18 +55,16 @@ async function fileToBase64(file: File): Promise<string> {
   });
 }
 
-// Analyze document using the AWS API
+// Analyze document via backend API (secure)
 async function analyzeDocument(file: File) {
-  const contentB64 = await fileToBase64(file);
-  const res = await fetch('https://r3dwein0wc.execute-api.us-east-2.amazonaws.com/prod/analyze', {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const res = await fetch('/api/ai-inbox/analyze', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      fileContent: contentB64.split(',')[1],
-      filename: file.name,
-      documentType: 'auto'
-    })
+    body: formData
   });
+  
   if (!res.ok) throw new Error('Analysis failed');
   return await res.json();
 }
@@ -81,7 +79,7 @@ export default function UploadCenter() {
 
   // Handle file uploads
   const handleFiles = async (files: FileList | File[]) => {
-    const fileArray = Array.from(files);
+    const fileArray = files instanceof FileList ? Array.from(files) : files;
     
     for (const file of fileArray) {
       const uploadFile: UploadFile = {
@@ -94,11 +92,12 @@ export default function UploadCenter() {
         status: 'uploading'
       };
 
+      // Add to queue first, then validate
+      setUploadQueue(prev => [...prev, uploadFile]);
+
       try {
         // Client-side validation
         validateFile(file);
-        
-        setUploadQueue(prev => [...prev, uploadFile]);
 
         // Simulate upload progress
         await simulateUpload(uploadFile.id);
@@ -135,7 +134,7 @@ export default function UploadCenter() {
           const eta = Math.round((100 - progress) / 10);
           setUploadQueue(prev => prev.map(f => 
             f.id === fileId 
-              ? { ...f, progress: Math.round(progress), eta }
+              ? { ...f, progress: Math.round(progress), eta: eta }
               : f
           ));
         }
@@ -172,10 +171,12 @@ export default function UploadCenter() {
 
       // Add to global store for sidebar inbox
       addUpload({
-        id: fileId,
+        id: Date.now(),
         name: uploadFile.name,
         file: uploadFile.file,
         status: 'complete',
+        mode: 'auto',
+        analyzed: true,
         uploadedAt: new Date(),
         result: {
           extractedData: result.extractedData || {},
@@ -223,8 +224,10 @@ export default function UploadCenter() {
   // Handle paste from clipboard
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
-      const items = [...(e.clipboardData?.files || [])];
-      if (items.length) handleFiles(items);
+      const files = e.clipboardData?.files;
+      if (files && files.length > 0) {
+        handleFiles(files);
+      }
     };
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
@@ -261,6 +264,7 @@ export default function UploadCenter() {
                   fileInputRef.current?.click();
                 }
               }}
+              data-testid="upload-drop-zone"
               className={`
                 border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-all duration-200
                 min-h-[200px] flex flex-col items-center justify-center
@@ -288,6 +292,7 @@ export default function UploadCenter() {
                     e.stopPropagation();
                     fileInputRef.current?.click();
                   }}
+                  data-testid="button-browse-files"
                 >
                   <Upload className="w-4 h-4 mr-2" />
                   Browse Files
@@ -302,6 +307,7 @@ export default function UploadCenter() {
                     // Camera input will be handled by the file input with capture attribute
                     fileInputRef.current?.click();
                   }}
+                  data-testid="button-take-photo"
                 >
                   <Camera className="w-4 h-4 mr-2" />
                   Take Photo
@@ -316,6 +322,7 @@ export default function UploadCenter() {
                 accept="image/*,.pdf,.doc,.docx,.txt"
                 capture="environment"
                 onChange={(e) => e.target.files && handleFiles(e.target.files)}
+                data-testid="input-file"
               />
             </div>
           </CardContent>
@@ -513,6 +520,7 @@ function UploadFileRow({
             variant="outline"
             className="h-7 text-xs border-[#d97706] text-[#d97706] hover:bg-[#d97706]/10"
             onClick={() => onShowDetails(file)}
+            data-testid={`button-details-${file.id}`}
           >
             <Zap className="w-3 h-3 mr-1" />
             Details {file.analysis.detailsCount}
@@ -525,6 +533,7 @@ function UploadFileRow({
             onClick={onCancel}
             className="text-xs text-[#9ca3af] hover:text-[#e5e7eb] p-1"
             aria-label={`Cancel upload of ${file.name}`}
+            data-testid={`button-cancel-${file.id}`}
           >
             <X className="w-4 h-4" />
           </button>
