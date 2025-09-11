@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -106,8 +106,8 @@ const FamilyUpdates = forwardRef<{ refresh: () => Promise<void> }>((props, ref) 
     setUpdates(updatesData);
   }, [updatesData]);
 
-  // Load snoozed count
-  const loadSnoozedCount = async () => {
+  // Load snoozed count - memoized to prevent infinite re-renders
+  const loadSnoozedCount = useCallback(async () => {
     try {
       const response = await fetch('/api/updates/snoozed/count', {
         cache: 'no-store',
@@ -118,7 +118,7 @@ const FamilyUpdates = forwardRef<{ refresh: () => Promise<void> }>((props, ref) 
     } catch (error) {
       console.error('Failed to load snoozed count:', error);
     }
-  };
+  }, []);
 
   // Internal refresh function with minimum 1s spin
   const handleRefresh = async () => {
@@ -147,7 +147,7 @@ const FamilyUpdates = forwardRef<{ refresh: () => Promise<void> }>((props, ref) 
 
   useEffect(() => {
     loadSnoozedCount();
-  }, []);
+  }, [loadSnoozedCount]);
 
   // Dismiss update mutation
   const dismissMutation = useMutation({
