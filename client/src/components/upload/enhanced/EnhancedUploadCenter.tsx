@@ -2,8 +2,9 @@
 // Enhanced by Manus (Design & UX Lead) via MCP Server
 
 import { useState, useCallback, useRef } from 'react';
+import type { DragEvent, ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { enhancedUploadWorkflow, validateFile, formatFileSize } from '@/utils/uploadApiIntegration';
+import { enhancedUploadWorkflow, validateFile, formatFileSize, type AnalysisResult } from '@/utils/uploadApiIntegration';
 
 // Upload States
 const UPLOAD_STATES = {
@@ -16,16 +17,6 @@ const UPLOAD_STATES = {
 } as const;
 
 type UploadState = typeof UPLOAD_STATES[keyof typeof UPLOAD_STATES];
-
-interface AnalysisResult {
-  extractedFields: Array<{
-    key: string;
-    value: string;
-    confidence: number;
-  }>;
-  documentType: string;
-  confidence: number;
-}
 
 // Main Upload Center Component
 export const EnhancedUploadCenter = () => {
