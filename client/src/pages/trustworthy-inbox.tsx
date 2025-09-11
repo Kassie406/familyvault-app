@@ -65,21 +65,19 @@ function TrustworthyInbox() {
     });
 
   async function analyzeDocument(file: File, mode: string = "auto") {
-    // Get API URL from environment and add /analyze endpoint
-    const BASE_API_URL = import.meta?.env?.VITE_API_URL || process.env.REACT_APP_API_URL;
+    // Get API URL from environment - this should be your AWS Lambda URL
+    const BASE_API_URL = import.meta?.env?.VITE_API_URL;
     const API_URL = BASE_API_URL ? `${BASE_API_URL}/analyze` : null;
     
+    console.log("[DEBUG] Environment check:", {
+      VITE_API_URL: import.meta?.env?.VITE_API_URL,
+      API_URL: API_URL,
+      hasApiUrl: !!API_URL
+    });
+    
     if (!API_URL) {
-      console.warn('No VITE_API_URL configured, falling back to proxy endpoint');
-      // Fallback to proxy endpoint if no direct Lambda URL
-      const fileContent = await fileToBase64(file);
-      const r = await fetch("/api/inbox/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename: file.name, fileContent, mode })
-      });
-      if (!r.ok) throw new Error("Analysis failed");
-      return r.json();
+      console.error('❌ VITE_API_URL not configured - please set this to your AWS Lambda URL');
+      throw new Error("AWS Lambda URL not configured. Please set VITE_API_URL environment variable.");
     }
 
     // Map analysis modes to document types for Lambda
