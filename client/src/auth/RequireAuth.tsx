@@ -6,13 +6,16 @@ interface RequireAuthProps {
 }
 
 export default function RequireAuth({ children }: RequireAuthProps) {
-  // Always bypass authentication for public portal access
-  return <>{children}</>;
+  // Check if we're on a portal domain and should bypass authentication
+  const hostname = window.location.hostname;
+  const isPortalDomain = hostname.includes('replit.dev') || hostname.includes('repl.co') || 
+                         hostname === 'portal.familycirclesecure.com' || 
+                         hostname.includes('portal');
   
-  // Note: Authentication bypass is enabled for public portal access
-  // If you need to re-enable authentication, uncomment the code below
-  
-  /*
+  // Always bypass authentication for portal domains (public family portal)
+  if (isPortalDomain) {
+    return <>{children}</>;
+  }
 
   const [ready, setReady] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -68,5 +71,4 @@ export default function RequireAuth({ children }: RequireAuthProps) {
   ) : (
     <NewSignIn />
   );
-  */
 }
