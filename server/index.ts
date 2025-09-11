@@ -3301,6 +3301,10 @@ app.post('/api/public/consent', optionalAuth, async (req: AuthenticatedRequest, 
     // Continue startup - don't let health check failure prevent server start
   }
 
+  // Mount MCP server endpoint for AI assistant integration
+  const mcpRouter = (await import("./routes/mcp")).default;
+  app.use("/mcp", mcpRouter);
+
   const server = await registerRoutes(app);
 
 
