@@ -134,7 +134,12 @@ function routeDocType(fileName: string, mime: string): {
     if (f.includes('passport')) {
       return { docType: 'passport', isImage: true, isPdf: false };
     }
-    return { docType: 'idCard', isImage: true, isPdf: false };
+    // Only treat as ID card if filename clearly indicates it's an ID
+    if (f.includes('id') && (f.includes('card') || f.includes('state') || f.includes('government'))) {
+      return { docType: 'idCard', isImage: true, isPdf: false };
+    }
+    // Default unknown images to generic analysis instead of ID analysis
+    return { docType: 'other', isImage: true, isPdf: false };
   }
   
   if (isPdf) {
