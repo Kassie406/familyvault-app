@@ -1,5 +1,6 @@
 // useAiSuggestions.ts
 import { useState, useCallback, useRef } from "react";
+import { EventSourcePolyfill } from 'event-source-polyfill';
 
 // =========================
 // Types
@@ -115,7 +116,10 @@ export function useAiSuggestions(options: UseAiSuggestionsOptions = {}) {
       const trySSE = () => {
         log("Trying SSE...");
         const url = `${apiBase}/inbox/${jobId}/stream`;
-        sseSource = new EventSource(url, { withCredentials: true });
+        sseSource = new EventSourcePolyfill(url, {
+          withCredentials: true,        // send cookies
+          headers: { /* add token headers if needed */ }
+        });
 
         let lastHeartbeat = Date.now();
         heartbeatTimer = setInterval(() => {
@@ -321,14 +325,19 @@ export function useAiSuggestions(options: UseAiSuggestionsOptions = {}) {
         }
       } catch (e: any) {
         const msg = String(e?.message || e);
-        if (msg.includes("Timeout")) setState({ kind: "timeout", message: msg });
-        else if (msg.includes("legacy_key_unusable") || msg.includes("410")) {
-          setState({ 
-            kind: "error", 
-            message: "This document was saved in an old format and can't be analyzed. Please re-upload it to use AI features." 
+        // Map known backend codes to human help
+        if (msg.includes("legacy_key_unusable") || msg.includes("410")) {
+          setState({
+            kind: "error",
+            message: "This document was saved with an old path and can't be analyzed. Please re-upload it."
           });
+          return;
         }
-        else setState({ kind: "error", message: msg });
+        if (msg.includes("Timeout")) {
+          setState({ kind: "timeout", message: msg });
+          return;
+        }
+        setState({ kind: "error", message: msg });
       } finally {
         clearTimeout(guardTimer);
         cancelRef.current = null;
