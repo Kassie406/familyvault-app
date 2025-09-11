@@ -1,0 +1,179 @@
+What to add (in priority order)
+1) Drag & drop that feels alive (High)
+
+States: idle → dragOver → uploading → complete → error
+
+Behaviors: highlight the whole drop zone on drag, show file count on drop.
+
+Mobile: keep the zone tappable; also show “Take photo” when camera is available.
+
+Why: Clear cues + multiple entry points are a top pattern. 
+
+Family vault_-_The_Gold_Standard
+
+Do this in your React zone
+
+const [isOver, setIsOver] = useState(false);
+
+<div
+  onDragOver={(e)=>{e.preventDefault(); setIsOver(true);}}
+  onDragLeave={()=>setIsOver(false)}
+  onDrop={(e)=>{e.preventDefault(); setIsOver(false); handleFiles(e.dataTransfer.files);}}
+  className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer
+              ${isOver ? 'border-blue-500 bg-blue-500/10' : 'border-gray-600 bg-gray-800'}`}
+  onClick={()=>fileInputRef.current?.click()}
+>
+  <p className="text-gray-300 text-lg mb-2">{isOver ? 'Release to upload' : 'Drag files here or click to upload'}</p>
+  <input ref={fileInputRef} type="file" multiple className="hidden"
+         accept="image/*,.pdf,.doc,.docx,.txt" capture="environment"
+         onChange={(e)=>handleFiles(e.target.files)} />
+</div>
+
+2) Clear, per-file progress rows (High)
+
+Show: filename, size, animated progress bar, time remaining estimate, Cancel.
+
+Allow uploads to continue while users keep working.
+
+{queue.map(f => (
+  <div key={f.id} className="flex items-center justify-between py-2">
+    <div className="min-w-0">
+      <div className="truncate text-gray-200 text-sm">{f.name}</div>
+      <div className="h-1 bg-gray-700 rounded mt-1">
+        <div className="h-1 bg-blue-500 rounded" style={{width: `${f.progress}%`}} />
+      </div>
+      <div className="text-xs text-gray-400 mt-1">
+        {f.progress}% • ~{f.eta}s left
+      </div>
+    </div>
+    <button onClick={()=>cancelUpload(f.id)} className="text-xs text-gray-300 hover:text-white">Cancel</button>
+  </div>
+))}
+
+3) Helpful, specific errors (High)
+
+Inline messages like “File too large (26 MB). Max is 25 MB. Try compressing or upload PDF.”
+
+Provide Retry right there.
+
+{error && (
+  <div className="mt-3 rounded-md border border-red-600 bg-red-900/30 text-red-200 p-3 text-sm">
+    {error.message}
+    {error.canRetry && <button onClick={error.retry} className="ml-3 underline">Retry</button>}
+  </div>
+)}
+
+4) File preview & quick management (Medium)
+
+Image thumbnails; generic icons for PDFs/Word.
+
+Batch actions: Remove, Reorder.
+
+<img src={URL.createObjectURL(file)} alt="" className="w-12 h-12 object-cover rounded border border-gray-600" />
+
+5) Multiple entry points (High)
+
+Keep Browse button.
+
+Enable paste from clipboard (desktop) and camera capture (mobile).
+
+useEffect(()=>{
+  const onPaste = (e) => {
+    const items = [...(e.clipboardData?.files || [])];
+    if (items.length) handleFiles(items);
+  };
+  window.addEventListener('paste', onPaste);
+  return () => window.removeEventListener('paste', onPaste);
+},[]);
+
+6) Client-side validation before upload (Medium)
+
+Block disallowed types with a friendly message.
+
+Surface size limits before hitting the network.
+
+const ALLOWED = ['image/', 'application/pdf', 
+                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                 'application/msword', 'text/plain'];
+function validate(file){
+  const okType = ALLOWED.some(p => file.type.startsWith(p));
+  if(!okType) throw new Error(`“${file.name}” is not supported. Allowed: images, PDF, DOC/DOCX, TXT.`);
+  if(file.size > 25 * 1024 * 1024) throw new Error(`“${file.name}” is ${Math.round(file.size/1e6)}MB. Max is 25MB.`);
+}
+
+7) The “Trustworthy-style” AI pattern (High)
+
+Zap icon + count on each analyzed file: ⚡ Details 6.
+
+Details modal with extracted fields; Accept/Dismiss on filename & fields.
+
+Exact counts build trust; keep the blue/purple accent for the zap pill.
+
+<Button size="sm" variant="outline" className="h-7 text-xs border-yellow-600 text-yellow-400"
+        onClick={()=>openDetailsModal(file)}>
+  <Zap className="w-3 h-3 mr-1" />
+  Details {file.analysis.detailsCount}
+</Button>
+
+
+You already have this flow—keep it consistent and ensure it triggers after the upload completes and your AWS API returns (no more mock data).
+
+8) Mobile-first touch targets (High)
+
+Hit areas ≥ 44px; avoid dense controls.
+
+Keep the drop zone tall enough to be obvious; show Mobile Upload CTA near the zone.
+
+9) Performance polish (Medium)
+
+Debounce progress updates to 60–120 ms.
+
+Offload thumbnail generation to a createImageBitmap worker when available.
+
+10) Accessibility (High)
+
+role="button" and keyboard handling on the drop zone (Enter/Space).
+
+aria-live="polite" region for progress updates and error announcements.
+
+Dark-theme styling tokens (plug into your CSS)
+:root {
+  --bg: #0f172a;        /* slate-900 */
+  --panel: #111827;     /* gray-900 */
+  --muted: #374151;     /* gray-700 */
+  --text: #e5e7eb;      /* gray-200 */
+  --subtext: #9ca3af;   /* gray-400 */
+  --brand: #60a5fa;     /* blue-400 */
+  --accent: #d97706;    /* amber-600 (for “Upload” & Details) */
+  --danger: #ef4444;    /* red-500 */
+  --success: #10b981;   /* emerald-500 */
+}
+.upload-zone { background: var(--panel); border-color: var(--muted); color: var(--text); }
+.upload-zone--over { border-color: var(--brand); box-shadow: 0 0 0 2px color-mix(in oklab, var(--brand) 30%, transparent); }
+.progress { background: var(--muted); }
+.progress__bar { background: var(--brand); }
+.button--primary { background: var(--accent); color: #fff; }
+.button--outline { border: 1px solid var(--muted); color: var(--text); }
+.alert--error { background: color-mix(in oklab, var(--danger) 20%, transparent); border-color: var(--danger); }
+
+Hooking the Analyze call to your new API
+
+(Use your API Gateway URL.)
+
+async function analyzeDocument(file) {
+  const contentB64 = await fileToBase64(file);
+  const res = await fetch('https://r3dwein0wc.execute-api.us-east-2.amazonaws.com/prod/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fileContent: contentB64.split(',')[1],
+      filename: file.name,
+      documentType: 'auto'
+    })
+  });
+  if (!res.ok) throw new Error('Analysis failed');
+  return await res.json();
+}
+
+
+Important: keep client validation; show progress while this runs; update each row with the ⚡ pill when results land.
