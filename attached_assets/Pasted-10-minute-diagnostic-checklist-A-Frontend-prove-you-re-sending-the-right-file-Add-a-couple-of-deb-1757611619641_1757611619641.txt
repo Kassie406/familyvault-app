@@ -1,0 +1,125 @@
+10-minute diagnostic checklist
+A) Frontend: prove you’re sending the right file
+
+Add a couple of debug lines right before the fetch:
+
+// after const fileContent = await fileToBase64(file);
+console.log("[ANALYZE] sending", {
+  filename: file.name,
+  size: file.size,
+  base64Head: fileContent.slice(0, 40),
+  base64Len: fileContent.length,
+});
+
+// put a simple correlation id in the payload
+const requestId = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+
+const res = await fetch(API_URL, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    fileContent,
+    filename: file.name || "upload.jpg",
+    documentType: "identity",
+    requestId,
+  }),
+});
+
+
+Open the Network tab in your browser DevTools and click your /analyze request:
+
+Confirm filename, requestId, base64Len are present.
+
+Make sure base64 is very large (hundreds of KB to a few MB). If it’s tiny, you’re not sending the image you think you are.
+
+Make sure the URL is exactly your new one:
+
+https://r3dwein0wc.execute-api.us-east-2.amazonaws.com/prod/analyze
+
+B) Lambda: log what you actually received
+
+Add a little logging at the top of your lambda_handler so you can verify the payload and correlate with the UI:
+
+import json, base64, hashlib, os
+
+def lambda_handler(event, context):
+    # If API Gateway proxy integration is used, body will be a string.
+    body = json.loads(event["body"]) if isinstance(event.get("body"), str) else event
+
+    file_b64 = body.get("fileContent", "")
+    filename = body.get("filename", "unknown")
+    request_id = body.get("requestId", "none")
+
+    # Compute a quick hash to verify which bytes you analyzed
+    try:
+        file_bytes = base64.b64decode(file_b64)
+    except Exception as e:
+        print(f"[REQ {request_id}] base64 decode error: {e}")
+        return {"statusCode": 400, "body": json.dumps({"error": "bad base64"})}
+
+    sha = hashlib.sha256(file_bytes).hexdigest()
+    print(f"[REQ {request_id}] filename={filename} bytes={len(file_bytes)} sha256={sha[:16]}...")
+
+    # ... then call your existing analyzer:
+    analyzer = DocumentAnalyzer()
+    doc_type = body.get("documentType", "auto")
+
+    if doc_type == "identity" or any(k in filename.lower() for k in ["license","passport","ssn"]):
+        result = analyzer.analyze_identity_document(file_bytes, filename)
+    else:
+        result = analyzer.analyze_form_document(file_bytes, filename)
+
+    # echo back debug so UI can see it matches
+    result["debug"] = {"filename": filename, "sha256": sha, "requestId": request_id}
+
+    return {
+        "statusCode": 200,
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+        },
+        "body": json.dumps(result),
+    }
+
+
+Now, after you upload from the UI, open CloudWatch Logs for the Lambda and confirm you see:
+
+The same requestId you printed on the frontend.
+
+A bytes length that matches your image size (roughly).
+
+A SHA256 hash you can compare (we also return it to the UI in result.debug).
+
+If CloudWatch doesn’t show a new log line when you click the UI button, you’re not hitting this Lambda (wrong URL/stage, or CORS failure on the client).
+
+If CloudWatch shows a log line but the payload length is tiny or different, the frontend is sending the wrong thing.
+
+C) UI linking issue (most common in clones)
+
+If the backend logs look correct but the banner/card shows a different person, the UI is probably showing the last analysis result, not the result tied to the file you just uploaded. Fix by attaching results to the same id you created for the file:
+
+// when you create the fileData:
+const fileData = {
+  id: Date.now().toString(), // unique id
+  file,
+  name: file.name,
+  ...
+};
+
+// after you receive the analysis:
+setUploadedFiles(prev =>
+  prev.map(f => f.id === fileData.id ? { ...f, analysis, isAnalyzing: false } : f)
+);
+
+// and if you show a top "AI Suggestions" card, render it from the
+// currently selected file (or the one you just analyzed), not from a
+// global "lastAnalysis" variable.
+
+
+Make sure you removed all mock results. In some earlier snippets there was a mockResults block—if any fallback path still returns mock data, you can get “someone else” results.
+
+D) A couple of accuracy notes (less likely here)
+
+AnalyzeID works best on clear, upright images (JPG/PNG). If you send PDFs or sideways photos, consider rotating/cropping first or using AnalyzeDocument for forms.
+
+If your image is very low-res or heavily compressed, Textract may confuse characters. That won’t produce a completely different full name though—it would produce garbled/partial values. Your symptom screams wrong bytes or wrong UI binding.

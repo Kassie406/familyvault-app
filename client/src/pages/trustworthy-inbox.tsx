@@ -95,13 +95,25 @@ function TrustworthyInbox() {
     // Call your Lambda through API Gateway
     const fileContent = await fileToBase64(file);
 
+    // DEBUG: Add diagnostic logging
+    console.log("[ANALYZE] sending", {
+      filename: file.name,
+      size: file.size,
+      base64Head: fileContent.slice(0, 40),
+      base64Len: fileContent.length,
+    });
+
+    // Put a simple correlation id in the payload
+    const requestId = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         fileContent,
         filename: file.name || "upload.jpg",
-        documentType
+        documentType,
+        requestId,
       })
     });
 
