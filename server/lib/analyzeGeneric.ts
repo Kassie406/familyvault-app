@@ -146,14 +146,18 @@ export async function textractAnalyzeDocument(originalBytes: Uint8Array, isPrevi
   const QueriesConfig = {
     Queries: [
       { Text: "What is the document type?", Alias: "document_type" },
+      { Text: "What is the issuing agency or organization?", Alias: "issuer" },
+      // SSN card specific queries
+      { Text: "What is the Social Security Number (SSN)?", Alias: "ssn" },
+      { Text: "What is the name on the Social Security card?", Alias: "ssn_name" },
+      
       { Text: "What is the full name on the document?", Alias: "full_name" },
-      { Text: "What is the date of birth or issue date?", Alias: "date" },
+      { Text: "What is the date (issue or printed date)?", Alias: "date" },
       { Text: "What is the address?", Alias: "address" },
       { Text: "What is the ID number or account number?", Alias: "id_or_account" },
       { Text: "What is the expiration date?", Alias: "expiration" },
-      { Text: "What is the issuer or organization?", Alias: "issuer" },
-      { Text: "What is the total amount due or total?", Alias: "total" },
       { Text: "What is the policy or certificate number?", Alias: "policy_or_certificate" },
+      { Text: "What is the total amount due or total?", Alias: "total" },
     ],
   };
 
@@ -166,7 +170,36 @@ export async function textractAnalyzeDocument(originalBytes: Uint8Array, isPrevi
   return textract.send(cmd);
 }
 
-// --- 3) Build a compact signal from Textract blocks ---
+// --- SSN Extraction Helper Functions ---
+function allWordsText(blocks: any[]): string {
+  return blocks
+    .filter((b: any) => b.BlockType === "WORD" && typeof b.Text === "string")
+    .map((b: any) => b.Text)
+    .join(" ");
+}
+
+function extractSsnFromText(txt: string): string | null {
+  // Normalize separators like '123 45 6789' or '123-45-6789'
+  const candidates = [
+    /\b(\d{3})[-\s]?(\d{2})[-\s]?(\d{4})\b/g,
+  ];
+  for (const r of candidates) {
+    const m = r.exec(txt);
+    if (m) {
+      const ssn = `${m[1]}-${m[2]}-${m[3]}`;
+      // Filter obviously invalid SSNs (000/666 or 900-999 area)
+      const area = +m[1];
+      if (area !== 0 && area !== 666 && area < 900) return ssn;
+    }
+  }
+  return null;
+}
+
+function maskSsn(ssn: string): string {
+  return ssn.replace(/^\d{3}-\d{2}/, "XXX-XX"); // show last 4 only
+}
+
+// --- 4) Build a compact signal from Textract blocks ---
 type KV = { key: string; value: string };
 function extractSignalFromTextract(resp: any) {
   const kvs: KV[] = [];
@@ -277,8 +310,9 @@ async function getPreviewImage(mime: string, bytes: Buffer): Promise<Buffer> {
 const SCHEMA = `
 Return a JSON object with these optional fields when present:
 {
-  "documentType": string,                 // e.g., "Driver License", "Passport", "Invoice", "Insurance Card", "Bank Statement"
+  "documentType": string,                 // e.g., "Driver License", "Passport", "Invoice", "Insurance Card", "Bank Statement", "Social Security Card"
   "fullName": string,
+  "ssnMasked": string,                    // mask as XXX-XX-1234 if SSN present
   "idNumber": string,
   "accountNumber": string,
   "policyNumber": string,
@@ -290,6 +324,8 @@ Return a JSON object with these optional fields when present:
   "items": [ { "description": string, "qty": string, "amount": string } ],
   "confidenceNotes": string               // brief notes about confidence & assumptions
 }
+If the document appears to be a Social Security card, set documentType to "Social Security Card"
+and include "ssnMasked" only (mask the first 5 digits).
 Only include fields you can infer with reasonable confidence.
 `;
 
@@ -333,6 +369,17 @@ export async function analyzeUniversal(key: string, options: { previewOnly?: boo
       
       textractResult = await textractAnalyzeDocument(bytes, shouldUsePreview, mime);
       signal = extractSignalFromTextract(textractResult);
+      
+      // SSN fallback from raw text if query didn't find it
+      if (!signal.queries.ssn && textractResult?.Blocks) {
+        const raw = allWordsText(textractResult.Blocks);
+        const ssn = extractSsnFromText(raw);
+        if (ssn) {
+          signal.queries.ssn = ssn;
+          console.log(`[ANALYZE_UNIVERSAL] SSN fallback extraction found: ${maskSsn(ssn)}`);
+        }
+      }
+      
       console.log(`[ANALYZE_UNIVERSAL] Textract extracted: ${Object.keys(signal.queries).length} queries, ${signal.kvs.length} KVs, ${signal.tableRows.length} table rows`);
     } catch (textractError: any) {
       console.warn(`[ANALYZE_UNIVERSAL] Textract failed, continuing with fallback:`, textractError.message);
@@ -346,7 +393,11 @@ export async function analyzeUniversal(key: string, options: { previewOnly?: boo
         const preview = await getPreviewImage(mime, bytes);
         
         const parts: any[] = [
-          { type: "text", text: `You are an information extraction system. ${SCHEMA}\n\nHere is the OCR signal from Textract (queries, key-values, tables). Use it as primary evidence and the image for layout disambiguation.` },
+          { type: "text", text:
+`You are an information extraction system. ${SCHEMA}
+
+If this appears to be a Social Security card, extract the name and mask the SSN as XXX-XX-1234.
+Prefer Textract query results when present; use the image for layout disambiguation.` },
           { type: "text", text: `QUERIES:\n${JSON.stringify(signal.queries, null, 2)}\n\nKEY_VALUES:\n${JSON.stringify(signal.kvs.slice(0, 40), null, 2)}\n\nTABLE_ROWS:\n${JSON.stringify(signal.tableRows.slice(0, 10), null, 2)}` },
         ];
         
@@ -383,21 +434,55 @@ export async function analyzeUniversal(key: string, options: { previewOnly?: boo
       }
     } else {
       console.log(`[ANALYZE_UNIVERSAL] Skipping Vision fusion (disabled or preview mode)`);
-      aiResult = {
-        documentType: "textract_only", 
+      
+      // Create structured fallback results based on available Textract queries
+      const fallbackResult: any = {
+        documentType: signal.queries?.document_type || "Document",
+        fullName: signal.queries?.full_name || signal.queries?.ssn_name || null,
+        issuer: signal.queries?.issuer || null,
+        date: signal.queries?.date || null,
+        address: signal.queries?.address || null,
+        idNumber: signal.queries?.id_or_account || null,
+        expiration: signal.queries?.expiration || null,
+        totalAmount: signal.queries?.total || null,
         confidenceNotes: options.previewOnly ? "Preview mode - basic analysis only" : "Vision fusion disabled"
       };
+      
+      // Add SSN handling for fallback
+      if (signal.queries?.ssn) {
+        fallbackResult.ssnMasked = maskSsn(signal.queries.ssn);
+        fallbackResult.documentType = "Social Security Card";
+        fallbackResult.issuer = "Social Security Administration";
+      }
+      
+      aiResult = fallbackResult;
     }
     
     console.log(`[ANALYZE_UNIVERSAL] Phase 3/3: Analysis complete`);
     
+    // Ensure SSN masking for safety
+    const ssnMasked = signal.queries?.ssn ? maskSsn(signal.queries.ssn) : undefined;
+    
+    // Prepare return data with masked SSN
+    const safeQueries = { ...signal.queries };
+    if (safeQueries.ssn) {
+      safeQueries.ssnMasked = ssnMasked;
+      delete safeQueries.ssn; // Remove unmasked SSN from response
+    }
+    
     return {
       documentKey: key,
       mime,
-      queries: signal.queries,
+      queries: safeQueries, // Contains ssnMasked instead of ssn
       kvs: signal.kvs,
       tableRows: signal.tableRows,
-      ai: aiResult,
+      ai: {
+        ...aiResult,
+        // Ensure SSN lands in suggestions even if the model didn't include it
+        ssnMasked: ssnMasked ?? aiResult?.ssnMasked ?? null,
+        documentType: aiResult?.documentType ?? "Social Security Card",
+        issuer: aiResult?.issuer ?? "Social Security Administration",
+      },
       metadata: {
         textractSuccess: textractResult !== null,
         visionFusionUsed: COST_SETTINGS.ENABLE_VISION_FUSION && !options.previewOnly,
