@@ -1,6 +1,7 @@
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { useAutoAnalyze } from "@/hooks/useAutoAnalyze";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { StepUpProvider } from "@/components/StepUpProvider";
@@ -74,6 +75,12 @@ import MarriedWeddingPlanning from "@/pages/married-wedding-planning";
 import MarriedEstatePlanning from "@/pages/married-estate-planning";
 import DisasterEmergencyContacts from "@/pages/disaster-emergency-contacts";
 import TrustworthyInbox from "@/pages/trustworthy-inbox";
+
+// Wrapper component that includes global auto-analyze functionality
+function FamilyRouterWithAutoAnalyze() {
+  useAutoAnalyze(); // Global auto-analyze hook
+  return <FamilyRouter />;
+}
 import DisasterImportantDocuments from "@/pages/disaster-important-documents";
 import DisasterMedicalInformation from "@/pages/disaster-medical-information";
 import MobileUpload from "@/pages/MobileUpload";
@@ -146,7 +153,7 @@ function PublicPortalHome() {
   if (isPublicPortal) {
     return (
       <RequireAuth>
-        <FamilyRouter />
+        <FamilyRouterWithAutoAnalyze />
       </RequireAuth>
     );
   }
@@ -290,7 +297,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <RequireAuth>
-            <FamilyRouter />
+            <FamilyRouterWithAutoAnalyze />
           </RequireAuth>
         </TooltipProvider>
       </QueryClientProvider>

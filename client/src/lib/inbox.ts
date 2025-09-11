@@ -42,9 +42,9 @@ export async function analyzeUpload(item: InboxItem): Promise<Suggestion | undef
       memberName: 'Angel Quintana',
       confidence: 92,
       fields: [
-        { key: "Person Name", value: "ANGEL D QUINTANA", confidence: 94 },
-        { key: "Social Security Number", value: "141-85-2645", confidence: 91, pii: true },
-        { key: "Date of Birth", value: "June 16, 1983", confidence: 89 },
+        { key: "Person Name", label: "Person Name", value: "ANGEL D QUINTANA", confidence: 94, path: "ids.idCard.fullName" },
+        { key: "Social Security Number", label: "SSN", value: "141-85-2645", confidence: 91, pii: true, path: "ids.idCard.ssn" },
+        { key: "Date of Birth", label: "Date of Birth", value: "June 16, 1983", confidence: 89, path: "ids.idCard.dateOfBirth" },
       ],
     };
   }
@@ -55,11 +55,11 @@ export async function analyzeUpload(item: InboxItem): Promise<Suggestion | undef
       memberName: 'John Smith',
       confidence: 87,
       fields: [
-        { key: "Person Name", value: "JOHN SMITH", confidence: 91 },
-        { key: "License Number", value: "D123456789", confidence: 93, pii: true },
-        { key: "Date of Birth", value: "March 15, 1980", confidence: 88 },
-        { key: "State Issued", value: "CA", confidence: 95 },
-        { key: "Expiration Date", value: "03/15/2028", confidence: 90 },
+        { key: "Person Name", label: "Person Name", value: "JOHN SMITH", confidence: 91, path: "ids.driverLicense.fullName" },
+        { key: "License Number", label: "License Number", value: "D123456789", confidence: 93, pii: true, path: "ids.driverLicense.number" },
+        { key: "Date of Birth", label: "Date of Birth", value: "March 15, 1980", confidence: 88, path: "ids.driverLicense.dateOfBirth" },
+        { key: "State Issued", label: "State", value: "CA", confidence: 95, path: "ids.driverLicense.state" },
+        { key: "Expiration Date", label: "Expiration Date", value: "03/15/2028", confidence: 90, path: "ids.driverLicense.expirationDate" },
       ],
     };
   }
@@ -70,10 +70,10 @@ export async function analyzeUpload(item: InboxItem): Promise<Suggestion | undef
       memberName: 'Sarah Johnson',
       confidence: 85,
       fields: [
-        { key: "Person Name", value: "SARAH ELIZABETH JOHNSON", confidence: 92 },
-        { key: "Passport Number", value: "987654321", confidence: 89, pii: true },
-        { key: "Date of Birth", value: "November 1, 1980", confidence: 91 },
-        { key: "Country Issued", value: "United States of America", confidence: 98 },
+        { key: "Person Name", label: "Person Name", value: "SARAH ELIZABETH JOHNSON", confidence: 92, path: "ids.passport.fullName" },
+        { key: "Passport Number", label: "Passport Number", value: "987654321", confidence: 89, pii: true, path: "ids.passport.number" },
+        { key: "Date of Birth", label: "Date of Birth", value: "November 1, 1980", confidence: 91, path: "ids.passport.dateOfBirth" },
+        { key: "Country Issued", label: "Country", value: "United States of America", confidence: 98, path: "ids.passport.country" },
       ],
     };
   }
