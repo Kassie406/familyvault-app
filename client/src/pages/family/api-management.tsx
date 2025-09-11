@@ -184,7 +184,7 @@ export default function ApiManagement() {
       category: service.category,
       description: service.description || '',
       baseUrl: service.baseUrl || '',
-      status: service.status,
+      status: service.status as 'active' | 'inactive' | 'deprecated',
       variables: service.variables.join(', '),
       notes: service.notes || '',
     });

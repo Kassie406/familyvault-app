@@ -1,0 +1,165 @@
+Python (boto3) drop-ins
+1) Router
+import boto3
+
+textract = boto3.client("textract", region_name=os.environ["AWS_REGION"])
+
+def classify_doc(text: str) -> str:
+    T = text.upper()
+    if "SOCIAL SECURITY" in T or "SOCIAL SECURITY ADMINISTRATION" in T:
+        return "ssn_card"
+    if ("DRIVER" in T and "LICENSE" in T) or "DEPARTMENT OF MOTOR VEHICLES" in T or "DMV" in T:
+        return "drivers_license"
+    if "INSURANCE" in T or "MEMBER ID" in T or "RXBIN" in T or "RXPCN" in T or "GROUP #" in T:
+        return "insurance_card"
+    return "generic"
+
+def detect_text(bytes_):
+    dt = textract.detect_document_text(Document={"Bytes": bytes_})
+    return " ".join([b.get("Text","") for b in dt.get("Blocks", []) if b.get("Text")])
+
+def analyze_document(bytes_, doc_type: str):
+    if doc_type in ["drivers_license", "passport", "id"]:
+        return analyze_id(bytes_)  # AnalyzeID route
+    elif doc_type == "ssn_card":
+        return analyze_ssn(bytes_) # QUERIES route
+    elif doc_type == "insurance_card":
+        return analyze_insurance(bytes_) # QUERIES route
+    else:
+        return analyze_generic(bytes_) # QUERIES route
+
+2) Driver license / ID: AnalyzeID
+def analyze_id(bytes_):
+    resp = textract.analyze_id(DocumentPages=[{"Bytes": bytes_}])
+    doc = (resp.get("IdentityDocuments") or [None])[0] or {}
+    out = []
+    for f in doc.get("IdentityDocumentFields", []):
+        t = (f.get("Type") or {}).get("Text") or ""
+        v = (f.get("ValueDetection") or {}).get("Text") or ""
+        conf = (f.get("ValueDetection") or {}).get("Confidence") or (f.get("Type") or {}).get("Confidence") or 0
+        if not (t and v): 
+            continue
+        key = {
+            "FIRST_NAME":"firstName","LAST_NAME":"lastName","MIDDLE_NAME":"middleName","FULL_NAME":"fullName",
+            "DOCUMENT_NUMBER":"idNumber","ID_NUMBER":"idNumber","DATE_OF_BIRTH":"dob","BIRTH_DATE":"dob",
+            "EXPIRATION_DATE":"expirationDate","ISSUE_DATE":"issueDate","ADDRESS":"address",
+            "STATE":"issuerState","COUNTRY":"issuerCountry"
+        }.get(t, t.lower())
+        out.append({"key": key, "value": v, "confidence": conf})
+    return {"documentType":"DriverLicenseOrPassport","fields":out}
+
+3) SSN card: AnalyzeDocument + QUERIES + masking
+import re
+
+def mask_ssn(s):
+    digits = re.sub(r"\D", "", s)
+    return f"XXX-XX-{digits[-4:]}" if len(digits) == 9 else s
+
+def analyze_ssn(bytes_):
+    queries = [
+        {"Text":"What is the Social Security Number (SSN)?","Alias":"ssn"},
+        {"Text":"What is the name on the Social Security card?","Alias":"fullName"},
+        {"Text":"Who is the issuer of the document?","Alias":"issuer"}
+    ]
+    resp = textract.analyze_document(
+        Document={"Bytes": bytes_},
+        FeatureTypes=["QUERIES"],
+        QueriesConfig={"Queries": queries}
+    )
+    out=[]
+    for b in resp.get("Blocks", []):
+        if b.get("BlockType") == "QUERY_RESULT" and b.get("Text"):
+            alias=b.get("Alias")
+            text=b.get("Text")
+            conf=b.get("Confidence",0)
+            if alias=="ssn":
+                out.append({"key":"ssnMasked","value":mask_ssn(text),"confidence":conf,"pii":True})
+            elif alias=="fullName":
+                out.append({"key":"fullName","value":text,"confidence":conf})
+            elif alias=="issuer":
+                out.append({"key":"issuer","value":text,"confidence":conf})
+    return {"documentType":"SocialSecurityCard","fields":out}
+
+4) Insurance card: AnalyzeDocument + QUERIES
+def analyze_insurance(bytes_):
+    queries = [
+        {"Text":"What is the Member ID?","Alias":"memberId"},
+        {"Text":"What is the Group Number?","Alias":"groupNumber"},
+        {"Text":"What is the Plan name?","Alias":"plan"},
+        {"Text":"What is the Issuer or Insurance company?","Alias":"issuer"},
+        {"Text":"What is the RxBIN?","Alias":"rxBin"},
+        {"Text":"What is the RxPCN?","Alias":"rxPcn"},
+        {"Text":"What is the Subscriber name?","Alias":"fullName"}
+    ]
+    resp = textract.analyze_document(
+        Document={"Bytes": bytes_},
+        FeatureTypes=["QUERIES"],
+        QueriesConfig={"Queries": queries}
+    )
+    out=[]
+    for b in resp.get("Blocks", []):
+        if b.get("BlockType")=="QUERY_RESULT" and b.get("Text"):
+            out.append({"key":b.get("Alias","field"),"value":b["Text"],"confidence":b.get("Confidence",0)})
+    return {"documentType":"InsuranceCard","fields":out}
+
+5) Generic docs: AnalyzeDocument + QUERIES
+def analyze_generic(bytes_):
+    queries = [
+        {"Text":"What is the document issuer or company name?","Alias":"issuer"},
+        {"Text":"What is the full name on the document?","Alias":"fullName"},
+        {"Text":"What is the account or document number?","Alias":"accountNumber"},
+        {"Text":"What is the invoice number or statement number?","Alias":"invoiceNumber"},
+        {"Text":"What is the document date?","Alias":"date"},
+        {"Text":"What is the address?","Alias":"address"},
+        {"Text":"What is the phone number listed?","Alias":"phone"},
+        {"Text":"What is the email address listed?","Alias":"email"}
+    ]
+    resp = textract.analyze_document(
+        Document={"Bytes": bytes_},
+        FeatureTypes=["QUERIES"],
+        QueriesConfig={"Queries": queries}
+    )
+    out=[]
+    for b in resp.get("Blocks", []):
+        if b.get("BlockType")=="QUERY_RESULT" and b.get("Text"):
+            out.append({"key":b.get("Alias","field"),"value":b["Text"],"confidence":b.get("Confidence",0)})
+    return {"documentType":"GenericDocument","fields":out}
+
+🧪 How to wire into your existing flow
+
+Keep your current upload → S3 step.
+
+Read S3 object as bytes, run detect_text() once, call classify_doc() to pick the route, then call the proper analyze_* function.
+
+Return a normalized payload like:
+
+{
+  "documentType": "InsuranceCard",
+  "fields": [
+    {"key":"issuer","value":"BlueHealth PPO","confidence":98},
+    {"key":"memberId","value":"ABC123456","confidence":96}
+  ]
+}
+
+
+In the UI, show fields + confidence, and for PII (like SSN) show only the masked variant.
+
+🔐 IAM (you already set this, just confirming)
+
+textract:AnalyzeID
+
+textract:AnalyzeDocument
+
+s3:GetObject on arn:aws:s3:::<your-bucket>/*
+
+s3:ListBucket on arn:aws:s3:::<your-bucket>
+
+✅ Results you should expect now
+
+Driver license: documentType=DriverLicenseOrPassport with idNumber, dob, expirationDate, fullName, address, etc.
+
+SSN card: documentType=SocialSecurityCard with ssnMasked, fullName, issuer.
+
+Insurance card: documentType=InsuranceCard with memberId, groupNumber, rxBin, rxPcn, issuer, fullName.
+
+Everything else: documentType=GenericDocument with issuer, accountNumber/invoiceNumber, date, address, etc.
