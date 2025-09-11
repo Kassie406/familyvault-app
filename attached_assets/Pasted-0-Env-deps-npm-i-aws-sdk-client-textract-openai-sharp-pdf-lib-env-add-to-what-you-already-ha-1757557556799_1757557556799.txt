@@ -1,0 +1,264 @@
+0) Env & deps
+npm i @aws-sdk/client-textract openai sharp pdf-lib
+
+
+.env (add to what you already have):
+
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+OPENAI_API_KEY=sk-...
+S3_BUCKET=familyportal-docs-prod
+
+1) Server code: generic analyzer (TypeScript)
+
+File: server/lib/analyzeGeneric.ts
+
+import {
+  TextractClient,
+  AnalyzeDocumentCommand,
+} from "@aws-sdk/client-textract";
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import OpenAI from "openai";
+import sharp from "sharp";
+import { PDFDocument } from "pdf-lib";
+import { Readable } from "node:stream";
+
+const textract = new TextractClient({});
+const s3 = new S3Client({});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+
+function streamToBuffer(stream: Readable): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    stream.on("data", (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
+    stream.on("end", () => resolve(Buffer.concat(chunks)));
+    stream.on("error", reject);
+  });
+}
+
+// --- 1) Pull bytes from S3 (first page image for multi-page PDFs) ---
+export async function loadBytesFromS3(key: string): Promise<{ mime: string; bytes: Buffer }> {
+  const obj = await s3.send(new GetObjectCommand({ Bucket: process.env.S3_BUCKET!, Key: key }));
+  const body = await streamToBuffer(obj.Body as any);
+  const ct = (obj.ContentType || "").toLowerCase();
+
+  // If PDF, render page 1 to PNG for OpenAI Vision preview, but keep PDF bytes for Textract.
+  if (ct.includes("pdf") || key.toLowerCase().endsWith(".pdf")) {
+    return { mime: "application/pdf", bytes: body };
+  }
+  return { mime: ct || "application/octet-stream", bytes: body };
+}
+
+// --- 2) Textract AnalyzeDocument WITH QUERIES ---
+export async function textractAnalyzeDocument(bytes: Uint8Array) {
+  // QUERIES: generic questions that work across doc types.
+  // Textract supports up to ~30 queries. Start small; expand as needed.
+  const QueriesConfig = {
+    Queries: [
+      { Text: "What is the document type?", Alias: "document_type" },
+      { Text: "What is the full name on the document?", Alias: "full_name" },
+      { Text: "What is the date of birth or issue date?", Alias: "date" },
+      { Text: "What is the address?", Alias: "address" },
+      { Text: "What is the ID number or account number?", Alias: "id_or_account" },
+      { Text: "What is the expiration date?", Alias: "expiration" },
+      { Text: "What is the issuer or organization?", Alias: "issuer" },
+      { Text: "What is the total amount due or total?", Alias: "total" },
+      { Text: "What is the policy or certificate number?", Alias: "policy_or_certificate" },
+    ],
+  };
+
+  const cmd = new AnalyzeDocumentCommand({
+    Document: { Bytes: bytes },
+    FeatureTypes: ["TABLES", "FORMS", "QUERIES"],
+    QueriesConfig,
+  });
+
+  return textract.send(cmd);
+}
+
+// --- 3) Build a compact signal from Textract blocks ---
+type KV = { key: string; value: string };
+function extractSignalFromTextract(resp: any) {
+  const kvs: KV[] = [];
+  const tableRows: string[][] = [];
+  const queries: Record<string, string> = {};
+
+  const blocks = resp.Blocks || [];
+
+  // Queries
+  for (const b of blocks) {
+    if (b.BlockType === "QUERY_RESULT" && b.Text && b.Query && b.Query.Alias) {
+      queries[b.Query.Alias] = b.Text;
+    }
+  }
+
+  // Forms KVs (lightweight association)
+  const byId: Record<string, any> = Object.fromEntries(blocks.map((b: any) => [b.Id, b]));
+  for (const b of blocks) {
+    if (b.BlockType === "KEY_VALUE_SET" && b.EntityTypes?.includes("KEY")) {
+      const keyText = (b.Relationships || [])
+        .flatMap((r: any) => r.Ids || [])
+        .map((id: string) => byId[id])
+        .filter((n: any) => n?.BlockType === "WORD" || n?.BlockType === "SELECTION_ELEMENT")
+        .map((w: any) => w.Text || (w.SelectionStatus === "SELECTED" ? "☑︎" : ""))
+        .join(" ")
+        .trim();
+      // find VALUE partner
+      const valueSet = blocks.find(
+        (bb: any) =>
+          bb.BlockType === "KEY_VALUE_SET" &&
+          bb.EntityTypes?.includes("VALUE") &&
+          bb.Relationships?.some((rr: any) => (rr.Ids || []).includes(b.Id)),
+      );
+      const valueText = valueSet
+        ? (valueSet.Relationships || [])
+            .flatMap((r: any) => r.Ids || [])
+            .map((id: string) => byId[id])
+            .filter((n: any) => n?.BlockType === "WORD" || n?.BlockType === "SELECTION_ELEMENT")
+            .map((w: any) => w.Text || (w.SelectionStatus === "SELECTED" ? "☑︎" : ""))
+            .join(" ")
+            .trim()
+        : "";
+      if (keyText || valueText) kvs.push({ key: keyText, value: valueText });
+    }
+  }
+
+  // Tables (first few rows)
+  const cellText: Record<string, string> = {};
+  for (const b of blocks) {
+    if (b.BlockType === "CELL") {
+      cellText[b.Id] = (b.Relationships || [])
+        .flatMap((r: any) => r.Ids || [])
+        .map((id: string) => byId[id])
+        .filter((n: any) => n?.BlockType === "WORD")
+        .map((w: any) => w.Text)
+        .join(" ")
+        .trim();
+    }
+  }
+  for (const b of blocks) {
+    if (b.BlockType === "TABLE") {
+      const rows: Record<number, Record<number, string>> = {};
+      for (const rel of b.Relationships || []) {
+        for (const id of rel.Ids || []) {
+          const c = byId[id];
+          if (c?.BlockType === "CELL") {
+            rows[c.RowIndex] ||= {};
+            rows[c.RowIndex][c.ColumnIndex] = cellText[c.Id] || "";
+          }
+        }
+      }
+      const normalized: string[][] = Object.keys(rows)
+        .sort((a, b) => +a - +b)
+        .map((ri) => {
+          const row = rows[+ri];
+          const cols = Object.keys(row).sort((a, b) => +a - +b).map((ci) => row[+ci]);
+          return cols;
+        });
+      tableRows.push(...normalized.slice(0, 10));
+    }
+  }
+
+  return { kvs, queries, tableRows };
+}
+
+// --- 4) Convert PDF page1 to PNG for Vision context (optional but very nice) ---
+async function getPreviewImage(mime: string, bytes: Buffer): Promise<Buffer> {
+  if (mime === "application/pdf") {
+    // Create a PNG thumbnail from page 1 using pdf-lib + sharp
+    // (Simple approach: render vector preview by rasterizing whole page at 144 dpi approx)
+    // Here we just pass PDF bytes to Textract, and give Vision a 1000px-wide preview.
+    // If you already have page images, reuse them.
+    // Quick hack: many PDFs are actually scanned images, so just send the PDF bytes to Vision as file content too.
+    // To keep runtime small, we’ll return a downscaled JPEG from PDF bytes using sharp (works for many scanned PDFs).
+    try {
+      const img = await sharp(bytes, { pages: 1 }).jpeg({ quality: 80 }).resize({ width: 1000 }).toBuffer();
+      return img;
+    } catch {
+      // Fallback: empty buffer; Vision step will skip image
+      return Buffer.alloc(0);
+    }
+  } else {
+    return await sharp(bytes).jpeg({ quality: 80 }).resize({ width: 1000 }).toBuffer();
+  }
+}
+
+// --- 5) OpenAI Vision fusion step: unify fields into a typed schema ---
+const SCHEMA = `
+Return a JSON object with these optional fields when present:
+{
+  "documentType": string,                 // e.g., "Driver License", "Passport", "Invoice", "Insurance Card", "Bank Statement"
+  "fullName": string,
+  "idNumber": string,
+  "accountNumber": string,
+  "policyNumber": string,
+  "issuer": string,
+  "address": string,
+  "date": string,                         // issue or statement date (ISO if possible)
+  "expiration": string,                   // (ISO if possible)
+  "totalAmount": string,                  // numeric string if money
+  "items": [ { "description": string, "qty": string, "amount": string } ],
+  "confidenceNotes": string               // brief notes about confidence & assumptions
+}
+Only include fields you can infer with reasonable confidence.
+`;
+
+export async function analyzeUniversal(key: string) {
+  // 1) Load
+  const { mime, bytes } = await loadBytesFromS3(key);
+
+  // 2) Textract (generic AnalyzeDocument with QUERIES + FORMS/TABLES)
+  const tex = await textractAnalyzeDocument(bytes);
+  const signal = extractSignalFromTextract(tex);
+
+  // 3) Vision fusion (optional image preview)
+  const preview = await getPreviewImage(mime, bytes);
+  const parts: any[] = [
+    { type: "text", text: `You are an information extraction system. ${SCHEMA}\n\nHere is the OCR signal from Textract (queries, key-values, tables). Use it as primary evidence and the image for layout disambiguation.` },
+    { type: "text", text: `QUERIES:\n${JSON.stringify(signal.queries, null, 2)}\n\nKEY_VALUES:\n${JSON.stringify(signal.kvs.slice(0, 40), null, 2)}\n\nTABLE_ROWS:\n${JSON.stringify(signal.tableRows.slice(0, 10), null, 2)}` },
+  ];
+  if (preview.length) {
+    parts.push({ type: "image", image_url: `data:image/jpeg;base64,${preview.toString("base64")}` });
+  }
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini", // or "gpt-4o" if you want stronger OCR reasoning
+    messages: [
+      { role: "system", content: "Extract and normalize document data. Be conservative; prefer 'not present' to hallucination." },
+      { role: "user", content: parts as any },
+    ],
+    temperature: 0.1,
+    response_format: { type: "json_object" },
+  });
+
+  let parsed: any = {};
+  try { parsed = JSON.parse(completion.choices[0]?.message?.content || "{}"); } catch {}
+
+  return {
+    documentKey: key,
+    mime,
+    queries: signal.queries,
+    kvs: signal.kvs,
+    tableRows: signal.tableRows,
+    ai: parsed,
+  };
+}
+
+2) Wire it into your existing /analysis/start
+
+File: server/routes/ai-inbox.ts (or wherever you enqueue/execute the job)
+
+import { analyzeUniversal } from "../lib/analyzeGeneric";
+// ...
+// inside your worker or request handler AFTER you resolve the S3 key from inboxItemId:
+const result = await analyzeUniversal(file.key);  // <- returns unified JSON
+// persist result and/or stream it to the client:
+return res.json({ status: "completed", suggestions: result.ai, raw: { textract: { /* omit heavy blocks */ }, mini: { queries: result.queries, kvs: result.kvs } } });
+
+
+(If you stream progress, send a “phase” update before/after Textract and before/after Vision so the banner shows 1/3, 2/3, 3/3.)
+
+3) Client: show results
+
+You already have the AI banner. When status: "completed" arrives, render suggestions (the ai JSON) and optionally show a “view details” drawer with queries/kvs/tableRows.

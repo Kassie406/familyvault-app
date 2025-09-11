@@ -1,0 +1,157 @@
+1) Server: fix doc-type routing (unknown images → generic OCR)
+
+File: server/routes/ai-inbox.ts (where you decide which analyzer to call)
+
+Replace your routeDocType function with this:
+
+type DocType = 'driverLicense' | 'passport' | 'idCard' | 'pdf' | 'generic';
+
+function routeDocType(fileName: string, mime: string): DocType {
+  const f = (fileName || '').toLowerCase();
+  const isImage = /^image\//.test(mime);
+  const isPdf   = mime === 'application/pdf' || f.endsWith('.pdf');
+
+  if (isPdf) return 'pdf';
+
+  if (isImage) {
+    // Only route to ID pipelines when we're confident
+    if (/\b(driver'?s?\s*license|dl|driver-?id)\b/.test(f)) return 'driverLicense';
+    if (/\bpassport\b/.test(f)) return 'passport';
+
+    // ✅ Any other image (screenshots, photos, etc.) → generic OCR
+    return 'generic';
+  }
+
+  // Fallback for everything else
+  return 'generic';
+}
+
+2) Server: call the right Textract API (with safe fallback)
+
+In the same file, add/replace these helpers and the router:
+
+import {
+  TextractClient,
+  AnalyzeIDCommand,
+  AnalyzeDocumentCommand,
+  DetectDocumentTextCommand,
+} from '@aws-sdk/client-textract';
+
+const textract = new TextractClient({});
+
+async function analyzeIdDoc(bytes: Uint8Array) {
+  return textract.send(new AnalyzeIDCommand({
+    DocumentPages: [{ Bytes: bytes }],
+  }));
+}
+
+async function analyzePdfOrForm(bytes: Uint8Array) {
+  return textract.send(new AnalyzeDocumentCommand({
+    Document: { Bytes: bytes },
+    FeatureTypes: ['FORMS', 'TABLES'],
+  }));
+}
+
+async function analyzeGenericImage(bytes: Uint8Array) {
+  return textract.send(new DetectDocumentTextCommand({
+    Document: { Bytes: bytes },
+  }));
+}
+
+async function analyzeByRoute(kind: DocType, bytes: Uint8Array) {
+  switch (kind) {
+    case 'driverLicense':
+    case 'passport':
+    case 'idCard': {
+      // If we mis-routed, gracefully fall back to generic OCR
+      try {
+        return await analyzeIdDoc(bytes);
+      } catch (e: any) {
+        if ((e?.name || '').includes('InvalidParameter')) {
+          return await analyzeGenericImage(bytes);
+        }
+        throw e;
+      }
+    }
+    case 'pdf':
+      return analyzePdfOrForm(bytes);
+    case 'generic':
+    default:
+      return analyzeGenericImage(bytes);
+  }
+}
+
+
+Then wherever you previously did something like:
+
+const route = routeDocType(fileName, mime);
+const result = await analyzeIdDoc(bytes); // ❌ old
+
+
+replace with:
+
+const route = routeDocType(fileName, mime);
+const result = await analyzeByRoute(route, bytes); // ✅ new
+
+3) Client (optional but recommended): show clear banner errors
+
+File: client/src/hooks/useAiSuggestions.ts
+In your catch block, map common errors to friendly text:
+
+catch (e: any) {
+  const msg = String(e?.message || e);
+
+  if (msg.includes('legacy_key_unusable')) {
+    setState({ kind: 'error', message: 'This document was saved in an old format. Please re-upload to analyze.' });
+    return;
+  }
+  if (msg.includes('unsupported_file_type')) {
+    setState({ kind: 'error', message: 'That file type isn’t supported. Try a PDF or a JPG/PNG image.' });
+    return;
+  }
+  if (msg.includes('InvalidParameter') && msg.toLowerCase().includes('analyzeid')) {
+    setState({ kind: 'error', message: 'Looks like a screenshot/photo, not a government ID. We switched to text extraction.' });
+    return;
+  }
+
+  setState({ kind: 'error', message: msg });
+}
+
+
+(If you already applied the server fallback in #2, users won’t usually see the AnalyzeID error, but this keeps the UI helpful.)
+
+4) DevTools Console probe (paste to verify end-to-end)
+
+Open the Upload Center page → Console → paste this:
+
+(async () => {
+  const API='/api';          // or your full API origin
+  const FAMILY_ID='family-1'; // set yours
+
+  const ok = async (r) => { if (r.ok) return r; const t = await r.text().catch(()=> ''); throw new Error(`[${r.status}] ${r.url} :: ${t||r.statusText}`); };
+  const POST = (p,b)=>fetch(API+p,{method:'POST',credentials:'include',headers:{'content-type':'application/json'},body:JSON.stringify(b)}).then(ok);
+
+  console.log('▶ presign');
+  const pr = await POST('/storage/presign',{fileName:'diag.txt',contentType:'text/plain',type:'document',familyId:FAMILY_ID}).then(r=>r.json());
+
+  console.log('▶ put');
+  const put = await fetch(pr.uploadUrl,{method:'PUT',headers:{'content-type':'text/plain'},body:new Blob(['diag '+Date.now()],{type:'text/plain'})});
+  if (!put.ok) throw new Error(`[${put.status}] S3 PUT failed`);
+
+  console.log('▶ inbox');
+  const inbox = await POST('/inbox',{fileId:pr.fileId,familyId:FAMILY_ID,title:'diag.txt'}).then(r=>r.json());
+
+  console.log('▶ start');
+  const start = await POST('/analysis/start',{inboxItemId:inbox.inboxItemId}).then(r=>r.json());
+
+  console.log('▶ poll');
+  const sleep = ms=>new Promise(r=>setTimeout(r,ms));
+  for (let i=0;i<30;i++){
+    const st = await fetch(`${API}/analysis/status?jobId=${encodeURIComponent(start.jobId)}`,{credentials:'include'}).then(ok).then(r=>r.json());
+    console.log('status:', st);
+    if (st.status==='completed') return console.log('✅ suggestions:', st.suggestions);
+    if (st.status==='failed') throw new Error(`❌ ${st.error||'failed'}`);
+    await sleep(1500);
+  }
+  throw new Error('⏳ timeout');
+})().catch(e=>console.error('DIAG FAIL →', e.message||e));
