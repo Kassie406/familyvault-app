@@ -1130,3 +1130,103 @@ export type ExtractedField = typeof extractedFields.$inferSelect;
 export type InsertExtractedField = typeof extractedFields.$inferInsert;
 export type MemberFileAssignment = typeof memberFileAssignments.$inferSelect;
 export type InsertMemberFileAssignment = typeof memberFileAssignments.$inferInsert;
+
+// ===========================
+// ENHANCED UPLOAD SYSTEM  
+// ===========================
+
+// Enhanced Upload Jobs - Real-time upload tracking with multi-state interface
+export const uploadJobs = pgTable("upload_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: varchar("family_id").notNull(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  filename: varchar("filename").notNull(),
+  originalFilename: varchar("original_filename").notNull(),
+  fileUrl: varchar("file_url"),
+  fileSize: integer("file_size").notNull(),
+  mimeType: varchar("mime_type").notNull(),
+  status: varchar("status").notNull().default("queued"), // queued, uploading, uploaded, analyzing, processing, completed, error
+  progress: integer("progress").default(0), // 0-100
+  stage: varchar("stage").default("empty"), // empty, dragover, uploading, processing, complete, error
+  error: text("error"),
+  startedAt: timestamp("started_at").defaultNow(),
+  uploadedAt: timestamp("uploaded_at"),
+  completedAt: timestamp("completed_at"),
+  // Analysis results
+  analysisCompleted: boolean("analysis_completed").default(false),
+  confidence: integer("confidence"), // Overall confidence score 0-100
+  suggestedCategory: varchar("suggested_category"),
+  suggestedMemberId: varchar("suggested_member_id").references(() => familyMembers.id),
+  analysisResults: jsonb("analysis_results").default({}), // Full AWS Textract results
+});
+
+// Enhanced Analysis Results - Structured field extraction with confidence scoring
+export const analysisResults = pgTable("analysis_results", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  uploadJobId: varchar("upload_job_id").notNull().references(() => uploadJobs.id, { onDelete: 'cascade' }),
+  fieldKey: varchar("field_key").notNull(), // "full_name", "date_of_birth", "license_number", etc.
+  fieldValue: text("field_value").notNull(),
+  fieldType: varchar("field_type").notNull(), // "name", "date", "number", "address", "text"
+  confidence: integer("confidence").notNull(), // 0-100
+  bbox: jsonb("bbox").default({}), // Bounding box coordinates from AWS Textract
+  isPii: boolean("is_pii").default(false),
+  isKeyField: boolean("is_key_field").default(false), // High-priority field for lightning results
+  extractedAt: timestamp("extracted_at").defaultNow(),
+});
+
+// Upload Metrics - Performance tracking for Manus's monitoring requirements
+export const uploadMetrics = pgTable("upload_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  uploadJobId: varchar("upload_job_id").notNull().references(() => uploadJobs.id, { onDelete: 'cascade' }),
+  metricType: varchar("metric_type").notNull(), // "upload_time", "processing_time", "total_time", "first_result_time"
+  value: integer("value").notNull(), // Time in milliseconds or percentage
+  recordedAt: timestamp("recorded_at").defaultNow(),
+});
+
+// Enhanced Upload Types
+export type UploadJob = typeof uploadJobs.$inferSelect;
+export type InsertUploadJob = typeof uploadJobs.$inferInsert;
+export type AnalysisResult = typeof analysisResults.$inferSelect;
+export type InsertAnalysisResult = typeof analysisResults.$inferInsert;
+export type UploadMetric = typeof uploadMetrics.$inferSelect;
+export type InsertUploadMetric = typeof uploadMetrics.$inferInsert;
+
+// Zod Validation Schemas for Enhanced Upload System
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { z } from "zod";
+
+export const insertUploadJobSchema = createInsertSchema(uploadJobs, {
+  progress: z.number().min(0).max(100),
+  fileSize: z.number().positive(),
+  confidence: z.number().min(0).max(100).optional(),
+}).omit({
+  id: true,
+  startedAt: true,
+  uploadedAt: true,
+  completedAt: true,
+});
+
+export const selectUploadJobSchema = createSelectSchema(uploadJobs);
+
+export const insertAnalysisResultSchema = createInsertSchema(analysisResults, {
+  confidence: z.number().min(0).max(100),
+}).omit({
+  id: true,
+  extractedAt: true,
+});
+
+export const selectAnalysisResultSchema = createSelectSchema(analysisResults);
+
+export const insertUploadMetricSchema = createInsertSchema(uploadMetrics).omit({
+  id: true,
+  recordedAt: true,
+});
+
+// Frontend-friendly types for API responses
+export type UploadJobResponse = z.infer<typeof selectUploadJobSchema> & {
+  analysisFields?: AnalysisResult[];
+  metrics?: UploadMetric[];
+};
+
+export type CreateUploadJobRequest = z.infer<typeof insertUploadJobSchema>;
+export type AnalysisFieldResponse = z.infer<typeof selectAnalysisResultSchema>;
