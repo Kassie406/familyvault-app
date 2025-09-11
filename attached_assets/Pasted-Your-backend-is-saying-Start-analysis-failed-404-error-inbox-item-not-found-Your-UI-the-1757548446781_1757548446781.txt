@@ -1,0 +1,159 @@
+Your backend is saying:
+
+Start analysis failed: 404 { "error": "inbox_item_not_found" }
+
+Your UI then wraps it and shows “Error code: 500” (that second code is just your generic UI error mapping).
+
+What this means (exactly)
+
+The /analysis/start endpoint expects an inbox item id (or a record it can look up) and it can’t find it. Common causes:
+
+Wrong ID type — you’re sending a fileId or a temporary client id instead of the inboxItemId the API expects.
+
+Race condition — you start analysis before the server has finished creating/committing the inbox item row.
+
+Tenant mismatch — the inbox item was created under family A, but the analysis query is running under family B (auth cookie / header context mismatch).
+
+Not actually created — the inbox record was never inserted after S3 upload (UI shows “Uploaded” because S3 succeeded, but DB insert failed).
+
+Fix the sequence (golden path)
+
+Correct order should be:
+
+POST /files/register → returns { fileId, uploadUrl, s3Key }
+
+PUT uploadUrl to S3 → 200
+
+POST /inbox with { fileId, familyId, title?, category? } → returns { inboxItemId }
+
+POST /analysis/start with { inboxItemId } → returns { jobId }
+
+poll/SSE on { jobId } → completed | failed
+
+If your API only takes fileId, then the backend must be the one that resolves fileId → inboxItemId. Right now it’s not finding a row.
+
+Drop-in client code that won’t 404
+type RegisterResp = { fileId: string; uploadUrl: string; s3Key: string };
+type InboxResp    = { inboxItemId: string };
+type StartResp    = { jobId: string };
+
+const API = (path: string) => `${apiBase().replace(/\/$/,'')}${path}`;
+
+async function ensureInboxItemAfterUpload(file: File, familyId: string) {
+  // 1) register
+  const reg = await fetch(API('/files/register'), {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ filename: file.name, size: file.size, type: file.type }),
+  }).then(r => r.json() as Promise<RegisterResp>);
+
+  // 2) upload
+  await fetch(reg.uploadUrl, { method: 'PUT', body: file, headers: { 'content-type': file.type } })
+    .then(r => { if (!r.ok) throw new Error('S3 PUT failed'); });
+
+  // 3) create inbox item (server persists the file → inbox row)
+  const inbox = await fetch(API('/inbox'), {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ fileId: reg.fileId, familyId }),
+  }).then(async r => {
+    if (!r.ok) throw new Error(`inbox create failed: ${r.status} ${await r.text()}`);
+    return r.json() as Promise<InboxResp>;
+  });
+
+  return { fileId: reg.fileId, inboxItemId: inbox.inboxItemId };
+}
+
+async function startAnalysisGuaranteed(inboxItemId: string) {
+  // Small retry to cover DB commit lag/race conditions
+  const attempt = async () => {
+    const res = await fetch(API('/analysis/start'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ inboxItemId }),
+    });
+    if (res.status === 404) throw new Error('INBOX_404');
+    if (!res.ok) throw new Error(`start failed: ${res.status} ${await res.text()}`);
+    return (await res.json() as StartResp).jobId;
+  };
+
+  try {
+    return await attempt();
+  } catch (e:any) {
+    if (e.message === 'INBOX_404') {
+      // Revalidate on the server (eventual consistency window)
+      await fetch(API(`/inbox/${encodeURIComponent(inboxItemId)}`), { credentials: 'include' });
+      await new Promise(r => setTimeout(r, 500)); // tiny backoff
+      return await attempt();
+    }
+    throw e;
+  }
+}
+
+
+UI guard (no more fake spinners):
+
+setAiState({ kind: 'idle' });
+try {
+  const { inboxItemId } = await ensureInboxItemAfterUpload(file, familyId);
+  const jobId = await startAnalysisGuaranteed(inboxItemId);
+  setAiState({ kind: 'analyzing', step: 'Looking for key fields (1/3)' });
+  const suggestions = await streamOrPoll(jobId); // your existing wait logic
+  setAiState({ kind: 'success', suggestions });
+} catch (e:any) {
+  const msg =
+    e.message === 'INBOX_404'
+    ? 'We couldn’t find the uploaded document in your Inbox yet. Please retry.'
+    : e.message;
+  setAiState({ kind: 'error', message: msg });
+}
+
+Backend checks (do these now)
+1) Verify the record exists
+-- Replace with your table/columns
+SELECT id, file_id, family_id, created_at
+FROM inbox_items
+WHERE id = $1; -- the inboxItemId you’re sending
+
+
+If 0 rows → the client never created it or sent the wrong id.
+
+2) Confirm same family/tenant
+SELECT i.id, i.family_id, u.family_id AS user_family
+FROM inbox_items i
+JOIN users u ON u.id = $current_user
+WHERE i.id = $1;
+
+
+If i.family_id != u.family_id, your analysis query scope will 404.
+
+3) Contract of /analysis/start
+
+Ensure it does one of these:
+
+Takes { inboxItemId } and 404s only if that row doesn’t exist in the caller’s tenant.
+
+Or takes { fileId } and internally resolves it to the row; return 409/400 if not linked.
+
+4) Don’t mask 404 as 500
+
+Return:
+
+// 404
+{ "error": "inbox_item_not_found", "hint": "Create inbox item after upload" }
+
+
+Your UI should show the 404 details, not “500”.
+
+Quick things to try (will likely fix it immediately)
+
+Send inboxItemId, not fileId to /analysis/start.
+
+Await the response from POST /inbox and use that returned id (don’t reuse a client-side temp id).
+
+Add a 300–800 ms backoff and one retry on 404 to cover commit lag.
+
+Pass the same familyId/cookie to /inbox and /analysis/start. If you changed subdomains, ensure credentials: "include" and your CORS allows credentials.

@@ -85,23 +85,26 @@ const RegisterBody = z.object({
 /** POST /api/inbox/register -> { uploadId } */
 aiInboxRouter.post("/register", async (req, res) => {
   const body = RegisterBody.parse(req.body);
-  const uploadId = nanoid();
 
   try {
     // Use userId from body if provided, otherwise derive from session/auth context
     const userId = body.userId || (req as any).user?.id || "anonymous";
     
-    await db.insert(inboxItems).values({
+    // Insert and return the created record to get the actual database ID
+    const [created] = await db.insert(inboxItems).values({
       familyId: "family-1", // TODO: get from user context
       userId: userId,
       filename: body.fileName,
       fileUrl: body.fileKey, // S3 key serves as file URL
       fileSize: body.size,
       mimeType: body.contentType || body.mime, // Prioritize contentType
-      status: "analyzing"
-    });
+      status: "uploaded" // Start as uploaded, not analyzing
+    }).returning({ id: inboxItems.id });
 
-    res.json({ uploadId });
+    console.log(`[AI INBOX] Created inbox item with ID: ${created.id}`);
+    
+    // Return the actual database record ID
+    res.json({ uploadId: created.id });
   } catch (error) {
     console.error("[AI INBOX] Registration error:", error);
     res.status(500).json({ error: "Failed to register upload" });
