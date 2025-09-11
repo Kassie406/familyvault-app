@@ -874,6 +874,7 @@ aiInboxRouter.post("/analyze", upload.single('file'), async (req, res) => {
         documentType: 'HybridAnalysis',
         fields: [
           { key: 'FULL_NAME', value: 'JOHN MICHAEL DOE', confidence: 98.2 },
+          { key: 'SSN', value: '123-45-6789', confidence: 99.5, pii: true },
           { key: 'ID_NUMBER', value: 'D1234567890', confidence: 97.8 },
           { key: 'DATE_OF_BIRTH', value: '01/15/1985', confidence: 99.1 },
           { key: 'EXPIRATION_DATE', value: '01/15/2028', confidence: 98.7 },
@@ -887,6 +888,7 @@ aiInboxRouter.post("/analyze", upload.single('file'), async (req, res) => {
           { key: 'FIRST_NAME', value: 'JOHN', confidence: 98.5 },
           { key: 'LAST_NAME', value: 'DOE', confidence: 99.2 },
           { key: 'MIDDLE_NAME', value: 'MICHAEL', confidence: 95.8 },
+          { key: 'SSN', value: '987-65-2468', confidence: 88.1, pii: true },
           { key: 'ADDRESS', value: '123 MAIN STREET', confidence: 97.1 },
           { key: 'DATE_OF_BIRTH', value: '01/15/1985', confidence: 99.1 },
           { key: 'EXPIRATION_DATE', value: '01/15/2028', confidence: 98.7 },
@@ -899,6 +901,7 @@ aiInboxRouter.post("/analyze", upload.single('file'), async (req, res) => {
         fields: [
           { key: 'ACCOUNT_NUMBER', value: '1234567890', confidence: 96.8 },
           { key: 'FULL_NAME', value: 'SARAH WILLIAMS', confidence: 97.5 },
+          { key: 'SSN', value: '555-44-1357', confidence: 92.7, pii: true },
           { key: 'ADDRESS', value: '456 OAK AVENUE, CITYVILLE, TX 75001', confidence: 95.2 },
           { key: 'SERVICE_PERIOD', value: '08/01/2024 - 08/31/2024', confidence: 94.1 },
           { key: 'AMOUNT_DUE', value: '$127.45', confidence: 98.3 },
