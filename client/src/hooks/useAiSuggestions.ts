@@ -211,118 +211,41 @@ export function useAiSuggestions(options: UseAiSuggestionsOptions = {}) {
       }
 
       log("Starting AI analysis for:", file.name);
-      setState({ kind: "analyzing", step: "Preparing upload..." });
+      setState({ kind: "analyzing", step: "Analyzing document..." });
 
       const guardTimer = setTimeout(() => {
         setState({ kind: "error", message: "Analysis startup timeout" });
       }, totalTimeoutMs);
 
       try {
-        // Step 1: Get presigned URL for S3 upload
-        log("Step 1: Getting presigned URL");
-        const presignResponse = await fetch(`${apiBase}/storage/presign`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            type: 'document',
-            fileName: file.name,
-            contentType: file.type,
-            contentLength: file.size,
-            familyId: familyId || 'family-1'
-          })
-        });
-
-        if (!presignResponse.ok) {
-          throw new Error(`Presign failed: ${presignResponse.status}`);
-        }
-
-        const { uploadUrl, key: s3Key } = await presignResponse.json();
-        log("Got presigned URL and S3 key:", s3Key);
-
-        // Step 2: Upload file to S3
-        setState({ kind: "analyzing", step: "Uploading file..." });
-        log("Step 2: Uploading to S3");
-        const uploadResponse = await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': file.type,
-          },
-          body: file
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error(`S3 upload failed: ${uploadResponse.status}`);
-        }
-
-        // Step 3: Register with AI inbox
-        log("Step 3: Registering with AI inbox");
-        const registerResponse = await fetch(`${apiBase}/inbox/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            userId: 'current-user',
-            fileKey: s3Key, // Use real S3 key, not hardcoded path
-            fileName: file.name,
-            mime: file.type,
-            size: file.size
-          })
-        });
-
-        if (!registerResponse.ok) {
-          throw new Error(`Register failed: ${registerResponse.status}`);
-        }
-
-        const { uploadId: jobId } = await registerResponse.json();
-        log("Got jobId:", jobId);
-
-        // Step 4: Start analysis
+        // Direct analysis using the same normalized endpoint as modal
         setState({ kind: "analyzing", step: "Starting analysis..." });
         log("Step 4: Starting analysis");
         
-        const analyzeResponse = await fetch(`${apiBase}/inbox/${jobId}/analyze`, {
+        // Use the same endpoint as UploadCenterAIActions with mode selection
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("mode", "auto"); // Default to auto mode for banner
+        formData.append("maskSSN", "false"); // No SSN masking
+        
+        const analyzeResponse = await fetch(`${apiBase}/inbox/analyze`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({
-            userId: 'current-user',
-            fileName: file.name
-          })
+          body: formData
         });
 
         if (!analyzeResponse.ok) {
-          if (analyzeResponse.status === 404) {
-            // 404 race retry after brief delay
-            log("404 race condition, retrying analysis...");
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            const retryResponse = await fetch(`${apiBase}/inbox/${jobId}/analyze`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({
-                userId: 'current-user',
-                fileName: file.name,
-                retryAttempt: 2
-              })
-            });
-            if (!retryResponse.ok) {
-              throw new Error(`Analyze retry failed: ${retryResponse.status}`);
-            }
-          } else {
-            throw new Error(`Analyze failed: ${analyzeResponse.status}`);
-          }
+          throw new Error(`Analyze failed: ${analyzeResponse.status}`);
         }
-
-        // Only now show analyzing state
-        setState({ kind: "analyzing", step: "Looking for key fields (1/3)" });
-
-        const result = await streamOrPoll(apiBase, jobId, sseHeartbeatMs, pollCfg, totalTimeoutMs);
-        if (result.status === "completed") {
-          setState({ kind: "success", suggestions: result.suggestions });
-        } else if (result.status === "failed") {
-          setState({ kind: "error", message: result.error || "Analysis failed" });
+        
+        // Parse the normalized response from the new endpoint
+        const analyzeResult = await analyzeResponse.json();
+        if (!analyzeResult.ok || !analyzeResult.result) {
+          throw new Error(analyzeResult.error || "Analysis failed");
         }
+        
+        // Set success state immediately since the new endpoint returns results synchronously
+        setState({ kind: "success", suggestions: analyzeResult.result });
       } catch (e: any) {
         const msg = String(e?.message || e);
         console.log(`[AI] Analysis error:`, e);
@@ -331,8 +254,7 @@ export function useAiSuggestions(options: UseAiSuggestionsOptions = {}) {
         if (msg.includes("legacy_key_unusable") || msg.includes("410")) {
           setState({
             kind: "error",
-            message: "This document was saved with an old format and can't be analyzed. Please re-upload it.",
-            actionText: "Re-upload Document"
+            message: "This document was saved with an old format and can't be analyzed. Please re-upload it."
           });
           return;
         }
@@ -340,8 +262,7 @@ export function useAiSuggestions(options: UseAiSuggestionsOptions = {}) {
         if (msg.includes("InvalidParameter") || msg.includes("Request has invalid parameters")) {
           setState({
             kind: "error",
-            message: "This file type isn't supported for ID analysis. Try uploading a clear photo of your driver's license, passport, or ID card.",
-            actionText: "Upload Different File"
+            message: "This file type isn't supported for ID analysis. Try uploading a clear photo of your driver's license, passport, or ID card."
           });
           return;
         }
@@ -349,8 +270,7 @@ export function useAiSuggestions(options: UseAiSuggestionsOptions = {}) {
         if (msg.includes("UnsupportedDocument") || msg.includes("unsupported document type")) {
           setState({
             kind: "error", 
-            message: "We can't analyze this document type yet. Try uploading an ID, insurance card, or other common document.",
-            actionText: "Try Different Document"
+            message: "We can't analyze this document type yet. Try uploading an ID, insurance card, or other common document."
           });
           return;
         }
@@ -358,8 +278,7 @@ export function useAiSuggestions(options: UseAiSuggestionsOptions = {}) {
         if (msg.includes("AccessDenied") || msg.includes("403")) {
           setState({
             kind: "error",
-            message: "There was a permissions issue accessing the document analysis service. Please try again.",
-            actionText: "Retry Analysis"
+            message: "There was a permissions issue accessing the document analysis service. Please try again."
           });
           return;
         }
@@ -367,8 +286,7 @@ export function useAiSuggestions(options: UseAiSuggestionsOptions = {}) {
         if (msg.includes("Timeout") || msg.includes("timeout")) {
           setState({ 
             kind: "timeout", 
-            message: "Document analysis is taking longer than usual. Please try again.",
-            actionText: "Try Again"
+            message: "Document analysis is taking longer than usual. Please try again."
           });
           return;
         }
@@ -376,8 +294,7 @@ export function useAiSuggestions(options: UseAiSuggestionsOptions = {}) {
         if (msg.includes("Network Error") || msg.includes("Failed to fetch")) {
           setState({
             kind: "error",
-            message: "Connection problem. Please check your internet and try again.",
-            actionText: "Retry Upload"
+            message: "Connection problem. Please check your internet and try again."
           });
           return;
         }
@@ -385,8 +302,7 @@ export function useAiSuggestions(options: UseAiSuggestionsOptions = {}) {
         if (msg.includes("500") || msg.includes("Internal Server Error")) {
           setState({
             kind: "error",
-            message: "Our servers are having trouble right now. Please try again in a moment.",
-            actionText: "Try Again"
+            message: "Our servers are having trouble right now. Please try again in a moment."
           });
           return;
         }
@@ -394,8 +310,7 @@ export function useAiSuggestions(options: UseAiSuggestionsOptions = {}) {
         // Default user-friendly message for unknown errors
         setState({ 
           kind: "error", 
-          message: "Something went wrong during analysis. Please try uploading the document again.",
-          actionText: "Try Again"
+          message: "Something went wrong during analysis. Please try uploading the document again."
         });
       } finally {
         clearTimeout(guardTimer);

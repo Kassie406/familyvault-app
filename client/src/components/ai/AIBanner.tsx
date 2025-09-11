@@ -79,10 +79,40 @@ export default function AIBanner({ aiState, onDismiss, onRegenerate, onReview }:
           
           {aiState.suggestions && (
             <div className="rounded-md bg-muted/50 p-3 text-sm" data-testid="suggestion-card">
-              <div className="font-medium">Analysis Results:</div>
-              <pre className="text-xs mt-2 overflow-auto max-h-32">
-                {JSON.stringify(aiState.suggestions, null, 2)}
-              </pre>
+              <div className="font-medium mb-2">Analysis Results:</div>
+              
+              {/* Document Type and API */}
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                  {aiState.suggestions.documentType || 'Document'}
+                </span>
+                {aiState.suggestions.meta?.api_used && (
+                  <span className="text-xs bg-secondary px-2 py-1 rounded">
+                    {aiState.suggestions.meta.api_used}
+                  </span>
+                )}
+              </div>
+              
+              {/* Key Fields */}
+              {aiState.suggestions.fields && aiState.suggestions.fields.length > 0 && (
+                <div className="space-y-1">
+                  {aiState.suggestions.fields.slice(0, 4).map((field: any, idx: number) => (
+                    <div key={idx} className="flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground">
+                        {field.key.replace(/_/g, ' ')}:
+                      </span>
+                      <span className="font-mono max-w-[60%] truncate">
+                        {field.value}
+                      </span>
+                    </div>
+                  ))}
+                  {aiState.suggestions.fields.length > 4 && (
+                    <div className="text-xs text-muted-foreground">
+                      +{aiState.suggestions.fields.length - 4} more fields
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
           
