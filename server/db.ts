@@ -13,3 +13,6 @@ if (!process.env.DATABASE_URL) {
 
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 export const db = drizzle({ client: pool, schema });
+
+// Re-export schema tables to ensure consistent object references
+export { inboxItems, extractedFields, familyMembers } from "@shared/schema";
