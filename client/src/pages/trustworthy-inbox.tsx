@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Upload, Zap, Copy, Edit, FileText, Image } from "lucide-react";
+import { useUploadStore, type UploadedItem } from "@/stores/uploadStore";
 
 // Define types for the components
 interface ButtonProps {
@@ -16,19 +17,6 @@ interface CardProps {
   className?: string;
 }
 
-interface UploadedItem {
-  id: number;
-  name: string;
-  file: File;
-  status: "pending" | "analyzing" | "complete" | "error";
-  mode: string;
-  analyzed: boolean;
-  result?: {
-    extractedData?: Record<string, any>;
-    extractedText?: string;
-  };
-  error?: string;
-}
 
 // Basic button component for the Trustworthy inbox
 const Button = ({ children, onClick, variant = "default", size = "default", className = "", ...p }: ButtonProps) => {
@@ -46,43 +34,11 @@ const Button = ({ children, onClick, variant = "default", size = "default", clas
 const Card = ({ children, className = "" }: CardProps) => <div className={`rounded-lg border bg-white shadow-sm ${className}`}>{children}</div>;
 
 function TrustworthyInbox() {
-  const [uploaded, setUploaded] = useState<UploadedItem[]>([]);
+  const { uploads, addUpload, updateUpload, removeUpload } = useUploadStore();
   const [selected, setSelected] = useState<UploadedItem | null>(null);
   const [show, setShow] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Auto-analyze files when uploaded (automatic background processing)
-  useEffect(() => {
-    uploaded.forEach(item => {
-      if (item.status === "pending" && !item.analyzed) {
-        analyzeDocument(item.file, "auto").then(result => {
-          setUploaded(prev => 
-            prev.map(i => i.id === item.id ? { 
-              ...i, 
-              status: "complete" as const, 
-              result,
-              analyzed: true 
-            } : i)
-          );
-        }).catch(err => {
-          console.error("Analysis error:", err);
-          setUploaded(prev => 
-            prev.map(i => i.id === item.id ? { 
-              ...i, 
-              status: "error" as const, 
-              error: (err as Error).message,
-              analyzed: true 
-            } : i)
-          );
-        });
-        
-        // Set analyzing state
-        setUploaded(prev => 
-          prev.map(i => i.id === item.id ? { ...i, status: "analyzing" as const, analyzed: true } : i)
-        );
-      }
-    });
-  }, [uploaded]);
 
   // Helper: file -> base64 (NO data: prefix)
   const fileToBase64 = (file: File): Promise<string> =>
@@ -158,20 +114,21 @@ function TrustworthyInbox() {
   const upload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     for (const f of files) {
-      setUploaded((prev) => [...prev, { 
+      addUpload({ 
         id: Date.now() + Math.random(), 
         name: f.name, 
         file: f, 
         status: "pending" as const, 
         mode: "auto", // Always use auto mode for simplicity
-        analyzed: false 
-      }]);
+        analyzed: false,
+        uploadedAt: new Date()
+      });
     }
   };
 
 
   const remove = (id: number) => {
-    setUploaded(prev => prev.filter(i => i.id !== id));
+    removeUpload(id);
     if (selected?.id === id) {
       setSelected(null);
       setShow(false);
@@ -240,13 +197,13 @@ function TrustworthyInbox() {
         </Card>
 
         {/* Uploaded Documents - Clean grid like Trustworthy */}
-        {uploaded.length > 0 && (
+        {uploads.length > 0 && (
           <div>
             <h2 className="text-2xl font-semibold text-white mb-6">
-              Your Documents ({uploaded.length})
+              Your Documents ({uploads.length})
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {uploaded.map((item) => (
+              {uploads.map((item) => (
                 <Card key={item.id} className="p-4 bg-gray-900 border-gray-700 hover:border-gray-600 transition-colors" data-testid={`document-${item.id}`}>
                   <div className="flex items-start gap-4">
                     {/* File icon/thumbnail */}

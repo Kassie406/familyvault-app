@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useDropzone } from "react-dropzone";
 import {
@@ -18,20 +18,38 @@ import {
   Mail,
   Sparkles,
   ChevronRight,
+  Zap,
+  Image,
+  X,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useUploadStore } from "@/stores/uploadStore";
 
 export default function InboxPanel() {
   const [location, setLocation] = useLocation();
   const isOpen = location === "/family/inbox";
+  const { uploads, addUpload, removeUpload } = useUploadStore();
+  const [selectedUpload, setSelectedUpload] = useState<any>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   const onClose = useCallback(() => {
     setLocation("/family");
   }, [setLocation]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    // TODO: Implement file upload logic
-    console.log("Files dropped:", acceptedFiles);
-  }, []);
+    // Add files to upload store
+    for (const file of acceptedFiles) {
+      addUpload({
+        id: Date.now() + Math.random(),
+        name: file.name,
+        file: file,
+        status: "pending" as const,
+        mode: "auto",
+        analyzed: false,
+        uploadedAt: new Date()
+      });
+    }
+  }, [addUpload]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -153,8 +171,150 @@ export default function InboxPanel() {
               ))}
             </div>
           </div>
+
+          {/* Uploaded Documents Section */}
+          {uploads.length > 0 && (
+            <div className="pt-2">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium">Your Uploads ({uploads.length})</h3>
+                <Button variant="ghost" className="h-8 px-2 text-xs text-neutral-300 hover:text-white">
+                  View all
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                {uploads.map((upload) => (
+                  <div 
+                    key={upload.id} 
+                    className="rounded-xl border border-[#2A2A33] bg-[#0F0F13] p-3 flex items-center gap-3 hover:border-[#D4AF37]/30 transition-colors"
+                    data-testid={`upload-item-${upload.id}`}
+                  >
+                    {/* File thumbnail/icon */}
+                    <div className="h-9 w-9 rounded-lg grid place-items-center bg-[#111111] border border-[#2A2A33]">
+                      {upload.file.type.startsWith('image/') ? (
+                        <Image className="h-4 w-4 text-neutral-300" />
+                      ) : (
+                        <FileText className="h-4 w-4 text-neutral-300" />
+                      )}
+                    </div>
+                    
+                    {/* File info */}
+                    <div className="flex-1 text-sm">
+                      <p className="font-medium truncate" data-testid={`upload-name-${upload.id}`}>
+                        {upload.name}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-neutral-400">
+                          {(upload.file.size / 1024 / 1024).toFixed(1)} MB
+                        </span>
+                        <Badge 
+                          variant={upload.status === "complete" ? "default" : upload.status === "analyzing" ? "secondary" : upload.status === "error" ? "destructive" : "outline"}
+                          className="text-xs h-5"
+                        >
+                          {upload.status === "analyzing" ? "Processing..." : upload.status}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      {upload.status === "complete" && (
+                        <Button
+                          size="sm"
+                          className="bg-[#D4AF37] text-black hover:bg-[#c6a02e] transition-colors"
+                          onClick={() => {
+                            setSelectedUpload(upload);
+                            setShowDetailsModal(true);
+                          }}
+                          data-testid={`button-details-${upload.id}`}
+                        >
+                          <Zap className="w-3 h-3 mr-1" />
+                          Details {upload.result?.extractedData ? Object.keys(upload.result.extractedData).length : ''}
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-neutral-400 hover:text-white hover:bg-[#111111]"
+                        onClick={() => removeUpload(upload.id)}
+                        data-testid={`button-remove-${upload.id}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </SheetContent>
+
+      {/* Details Modal */}
+      <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
+        <DialogContent className="bg-[#0A0A1A] border-[#2A2A33] text-white max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-white">
+              Document Analysis Results
+            </DialogTitle>
+          </DialogHeader>
+          {selectedUpload && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 pb-4 border-b border-[#2A2A33]">
+                <div className="h-10 w-10 rounded-lg grid place-items-center bg-[#111111] border border-[#2A2A33]">
+                  {selectedUpload.file.type.startsWith('image/') ? (
+                    <Image className="h-5 w-5 text-neutral-300" />
+                  ) : (
+                    <FileText className="h-5 w-5 text-neutral-300" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-medium">{selectedUpload.name}</h3>
+                  <p className="text-sm text-neutral-400">
+                    {(selectedUpload.file.size / 1024 / 1024).toFixed(1)} MB
+                  </p>
+                </div>
+              </div>
+
+              {selectedUpload.result?.extractedData && (
+                <div className="space-y-3">
+                  <h4 className="font-medium text-[#D4AF37]">Extracted Information</h4>
+                  <div className="grid gap-3">
+                    {Object.entries(selectedUpload.result.extractedData).map(([key, value]) => (
+                      <div key={key} className="bg-[#0F0F13] border border-[#2A2A33] rounded-lg p-3">
+                        <div className="text-sm font-medium text-neutral-300 capitalize mb-1">
+                          {key.replace(/([A-Z])/g, ' $1').trim()}
+                        </div>
+                        <div className="text-sm text-white">
+                          {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedUpload.result?.extractedText && (
+                <div className="space-y-3">
+                  <h4 className="font-medium text-[#D4AF37]">Full Text</h4>
+                  <div className="bg-[#0F0F13] border border-[#2A2A33] rounded-lg p-3 max-h-40 overflow-y-auto">
+                    <pre className="text-sm text-neutral-300 whitespace-pre-wrap">
+                      {selectedUpload.result.extractedText}
+                    </pre>
+                  </div>
+                </div>
+              )}
+
+              {selectedUpload.status === "error" && (
+                <div className="bg-red-900/20 border border-red-800 rounded-lg p-3">
+                  <h4 className="font-medium text-red-400 mb-1">Error</h4>
+                  <p className="text-sm text-red-300">{selectedUpload.error}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }
