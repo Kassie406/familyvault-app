@@ -23,22 +23,76 @@ function App() {
   const [mode, setMode] = useState("auto"); // auto | id | forms | tables
   const fileRef = useRef(null);
 
+  // Convert file to base64
+  async function fileToBase64(file) {
+    const dataUrl = await new Promise((res, rej) => {
+      const reader = new FileReader();
+      reader.onload = () => res(reader.result);
+      reader.onerror = rej;
+      reader.readAsDataURL(file);
+    });
+    // strip "data:image/...;base64," prefix
+    return dataUrl.split(',')[1];
+  }
+
   async function analyzeDocument(file, mode = "auto") {
-    // convert to base64
-    const fileContent = await new Promise((resolve) => {
-      const r = new FileReader();
-      r.onload = () => resolve(r.result.split(",")[1]);
-      r.readAsDataURL(file);
+    // Get API URL from environment
+    const API_URL = import.meta?.env?.VITE_API_URL || process.env.REACT_APP_API_URL;
+    
+    if (!API_URL) {
+      console.warn('No VITE_API_URL configured, falling back to proxy endpoint');
+      // Fallback to proxy endpoint if no direct Lambda URL
+      const fileContent = await fileToBase64(file);
+      const r = await fetch("/api/inbox/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name, fileContent, mode })
+      });
+      if (!r.ok) throw new Error("Analysis failed");
+      return r.json();
+    }
+
+    // Use direct Lambda API call
+    const fileContent = await fileToBase64(file);
+    
+    // Map analysis modes to document types for Lambda
+    const docTypeMap = {
+      'auto': 'auto',
+      'id': 'identity', 
+      'forms': 'form',
+      'tables': 'form' // Use form for tables as well
+    };
+    
+    const documentType = docTypeMap[mode] || 'auto';
+    
+    const resp = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileContent,
+        filename: file.name,
+        documentType
+      })
     });
 
-    const r = await fetch("/api/inbox/analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filename: file.name, fileContent, mode })
-    });
-
-    if (!r.ok) throw new Error("Analysis failed");
-    return r.json();
+    if (!resp.ok) {
+      const text = await resp.text();
+      throw new Error(`API ${resp.status}: ${text}`);
+    }
+    
+    const result = await resp.json();
+    
+    // Transform Lambda response to match UI expectations
+    return {
+      extractedFields: result.extractedFields || {},
+      detailsCount: result.detailsCount || Object.keys(result.extractedFields || {}).length,
+      suggestedFilename: result.suggestedFilename || result.filename || file.name,
+      suggestedDestinations: result.suggestedDestinations?.map(dest => ({
+        name: typeof dest === 'string' ? dest : dest.name
+      })) || [],
+      engine: result.engine || `AWS Textract (${documentType})`,
+      rawResponse: result // Keep full response for debugging
+    };
   }
 
   async function handleUpload(files) {
