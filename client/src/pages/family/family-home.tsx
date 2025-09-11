@@ -79,6 +79,7 @@ export default function FamilyHome() {
   const [couplesConnectionOpen, setCouplesConnectionOpen] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [aiState, setAiState] = useState({ kind: "idle" as const });
   
   // Current user mock (TODO: replace with real user data)
   const currentUser = { 
@@ -899,8 +900,16 @@ export default function FamilyHome() {
               </div>
             </div>
             
-            {/* AI Banner - centralized state */}
-            <AIBanner />
+            {/* AI Banner - now uses props instead of centralized state */}
+            <AIBanner 
+              aiState={aiState}
+              onDismiss={() => setAiState({ kind: "idle" })}
+              onRegenerate={() => {
+                // Regeneration is handled by the useAiSuggestions hook
+                console.log('Regenerate requested - this will be handled by UploadCenter');
+              }}
+              onReview={() => setInboxOpen(true)}
+            />
             
             <div className={`flex-1 ${(highlightDocumentUpload || highlightPhotoUpload) ? 'upload-highlight' : ''}`}>
               <UploadCenter 
@@ -913,7 +922,7 @@ export default function FamilyHome() {
                     setHighlightPhotoUpload(false);
                   }, 3000);
                 }}
-                // AI analysis is now handled directly in UploadCenter
+                onAIStateChange={setAiState}
               />
             </div>
           </div>
