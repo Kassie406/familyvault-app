@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Copy, Eye, EyeOff, Sparkles, FileText, CreditCard, Shield, Receipt } from "lucide-react";
+import { PiiField } from "@/components/ui/pii-field";
 import { useToast } from "@/hooks/use-toast";
 
 // Convert [{key,value,confidence}] → { KEY: { value, confidence } }
@@ -303,8 +304,14 @@ export default function DocumentAnalyzer({ onAnalyze, className }: DocumentAnaly
                             )}
                           </div>
                           <div className="text-sm text-zinc-400 mt-1">
-                            {field.pii && !showSensitiveData[key] ? (
-                              <span className="font-mono">••••••••••</span>
+                            {field.pii ? (
+                              <PiiField 
+                                value={field.value}
+                                variant="mono"
+                                showToggle={false}
+                                initialVisible={showSensitiveData[key]}
+                                className="text-zinc-200"
+                              />
                             ) : (
                               <span className="font-mono">{field.value}</span>
                             )}
