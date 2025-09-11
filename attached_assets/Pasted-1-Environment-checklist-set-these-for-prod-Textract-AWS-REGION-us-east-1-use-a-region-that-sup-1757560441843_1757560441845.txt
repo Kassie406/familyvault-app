@@ -1,0 +1,167 @@
+1) Environment checklist (set these for prod)
+
+Textract
+
+AWS_REGION=us-east-1 (use a region that supports Textract QUERIES)
+
+AWS_ACCESS_KEY_ID=…
+
+AWS_SECRET_ACCESS_KEY=…
+
+IAM policy must include:
+
+textract:AnalyzeDocument
+
+s3:GetObject on your bucket
+
+Bucket and Textract should be in the same region.
+
+OpenAI
+
+OPENAI_API_KEY=sk-…
+
+Outbound HTTPS egress to api.openai.com must be allowed (no proxy blocking).
+
+Use supported model: gpt-4o-mini or gpt-4o.
+
+App
+
+S3_BUCKET=familyportal-docs-prod
+
+2) Startup validator (fail fast if anything is wrong)
+
+Create server/lib/aiHealth.ts:
+
+import { TextractClient, AnalyzeDocumentCommand } from "@aws-sdk/client-textract";
+import OpenAI from "openai";
+
+export type AIHealth = {
+  awsReady: boolean;
+  openaiReady: boolean;
+  details: Record<string,string>;
+};
+
+export async function checkAIHealth(): Promise<AIHealth> {
+  const details: Record<string,string> = {};
+  let awsReady = false, openaiReady = false;
+
+  // AWS check: validate creds/region by sending a tiny dry-call with invalid bytes
+  try {
+    const aws = new TextractClient({});
+    // minimal ping: ensure the client constructs and region is set; we don't actually execute a real call here.
+    // Optionally run a very small AnalyzeDocument on a 1x1 PNG buffer to confirm permissions:
+    const bytes = new Uint8Array([0x89,0x50,0x4e,0x47]); // PNG magic, intentionally too small, expect 400/Validation
+    await aws.send(new AnalyzeDocumentCommand({
+      Document: { Bytes: bytes },
+      FeatureTypes: ["FORMS"],
+    })).catch(e => { if (e?.$metadata?.httpStatusCode) awsReady = true; else throw e; });
+    if (!awsReady) awsReady = true; // reached call boundary
+    details.aws = "ok";
+  } catch (e:any) {
+    details.aws = `error: ${e?.name || e?.message || String(e)}`;
+  }
+
+  // OpenAI check
+  try {
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+    await openai.models.list(); // cheap list call validates key and egress
+    openaiReady = true;
+    details.openai = "ok";
+  } catch (e:any) {
+    details.openai = `error: ${e?.message || String(e)}`;
+  }
+
+  return { awsReady, openaiReady, details };
+}
+
+
+Call it at server start (e.g., in server/index.ts):
+
+import { checkAIHealth } from "./lib/aiHealth";
+
+(async () => {
+  const health = await checkAIHealth();
+  if (!health.awsReady || !health.openaiReady) {
+    console.error("[AI HEALTH] failed", health);
+    // HARD FAIL so you never start in a degraded mode:
+    process.exit(1);
+  } else {
+    console.log("[AI HEALTH] OK", health.details);
+  }
+})();
+
+
+If you prefer not to exit in dev, keep running but show a red banner in your admin UI.
+
+3) Per-request guard + smart retry
+
+In your analyzer (analyzeGeneric.ts) wrap external calls with retry + clear errors so transient hiccups don’t bubble as “null”.
+
+async function withRetry<T>(fn:()=>Promise<T>, label:string, tries=3, delayMs=400): Promise<T> {
+  let last: any;
+  for (let i=0;i<tries;i++){
+    try { return await fn(); } 
+    catch (e){ last=e; await new Promise(r=>setTimeout(r, delayMs*(i+1))); }
+  }
+  throw new Error(`${label} failed after ${tries} tries: ${last?.message || last}`);
+}
+
+
+Use it:
+
+const tex = await withRetry(() => textractAnalyzeDocument(bytes), "textract");
+const completion = await withRetry(() =>
+  openai.chat.completions.create({ /* … */ }), "openai");
+
+
+Return explicit errors to your banner when something is truly down:
+
+catch (err) {
+  return res.status(503).json({
+    status: "failed",
+    error: String(err),
+    hint: "External AI service unavailable (AWS/OpenAI). Retry shortly."
+  });
+}
+
+4) Health endpoint (so you can see it from the UI)
+// server/routes/health.ts
+import { Router } from "express";
+import { checkAIHealth } from "../lib/aiHealth";
+const r = Router();
+r.get("/ai", async (_req, res) => {
+  const health = await checkAIHealth();
+  res.status(health.awsReady && health.openaiReady ? 200 : 503).json(health);
+});
+export default r;
+
+
+Mount at /health/ai. Your admin page can show green/red for AWS + OpenAI.
+
+5) IAM policy (attach to the execution role)
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Effect": "Allow", "Action": ["textract:AnalyzeDocument"], "Resource": "*" },
+    { "Effect": "Allow", "Action": ["s3:GetObject"], "Resource": "arn:aws:s3:::familyportal-docs-prod/*" }
+  ]
+}
+
+6) Common blockers to double-check
+
+❌ Missing OPENAI_API_KEY → Vision skipped; you’ll see the log line you posted.
+
+❌ AWS creds present but wrong region → Textract QUERIES not supported → 400.
+
+❌ VPC blocks egress to api.openai.com → timeouts.
+
+❌ IAM missing textract:AnalyzeDocument or S3 read → 403.
+
+⏱ Rate limits (either side) → wrap with withRetry.
+
+7) Quick verification
+curl -sS http://localhost:3000/health/ai | jq
+# Expect: { "awsReady": true, "openaiReady": true, "details": { "aws":"ok", "openai":"ok" } }
+
+
+If that’s green, both providers will be used on every analysis (no fallback path engaged). If it’s red, fix the specific detail the endpoint returns.

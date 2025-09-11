@@ -367,7 +367,8 @@ export async function analyzeUniversal(key: string, options: { previewOnly?: boo
         console.log(`[ANALYZE_UNIVERSAL] Using preview mode: document size ${(bytes.length / 1024 / 1024).toFixed(1)}MB`);
       }
       
-      textractResult = await textractAnalyzeDocument(bytes, shouldUsePreview, mime);
+      const { withRetry } = await import("./aiHealth");
+      textractResult = await withRetry(() => textractAnalyzeDocument(bytes, shouldUsePreview, mime), "textract");
       signal = extractSignalFromTextract(textractResult);
       
       // SSN fallback from raw text if query didn't find it
@@ -406,7 +407,7 @@ Prefer Textract query results when present; use the image for layout disambiguat
           console.log(`[ANALYZE_UNIVERSAL] Added image preview (${preview.length} bytes) to Vision request`);
         }
         
-        const completion = await openai.chat.completions.create({
+        const completion = await withRetry(() => openai.chat.completions.create({
           model: "gpt-4o-mini", // Cost-optimized model
           messages: [
             { role: "system", content: "Extract and normalize document data. Be conservative; prefer 'not present' to hallucination." },
@@ -415,7 +416,7 @@ Prefer Textract query results when present; use the image for layout disambiguat
           temperature: 0.1,
           max_tokens: COST_SETTINGS.VISION_MAX_TOKENS, // Cost control
           response_format: { type: "json_object" },
-        });
+        }), "openai");
         
         try { 
           aiResult = JSON.parse(completion.choices[0]?.message?.content || "{}"); 
