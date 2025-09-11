@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, AlertCircle, UploadCloud, FileText, Image as ImageIcon, ShieldCheck, X, Camera, Smartphone, Sparkles } from "lucide-react";
-import { useAI } from "@/state/ai";
+import { useAiSuggestions } from "@/hooks/useAiSuggestions";
 import { usePresignedUpload } from "@/hooks/usePresignedUpload";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -43,6 +43,7 @@ interface UploadCenterProps {
   onFileUploaded?: (file: File, s3Key: string, type: 'document' | 'photo') => void;
   onUploaded?: (file: File, filename: string) => void;  // Simple callback for AI autofill
   className?: string;
+  onAIStateChange?: (state: any) => void; // Callback to notify parent of AI state changes
 }
 
 export default function UploadCenter({ 
@@ -50,7 +51,8 @@ export default function UploadCenter({
   onUploadComplete,
   onFileUploaded,
   onUploaded,
-  className 
+  className,
+  onAIStateChange 
 }: UploadCenterProps) {
   const [tab, setTab] = useState<"docs" | "photos">("docs");
   const [rows, setRows] = useState<FileRow[]>([]);
@@ -66,85 +68,34 @@ export default function UploadCenter({
   const [photoAltText, setPhotoAltText] = useState("");
   const [photoLocation, setPhotoLocation] = useState("");
 
-  // AI state from centralized store
-  const { scan, start: startAI, update: updateAI, reset: resetAI } = useAI();
+  // AI state from new robust hook
+  const { state: aiState, run: runAI, retry: retryAI, cancel: cancelAI } = useAiSuggestions({ 
+    logs: true,
+    totalTimeoutMs: 90000 // 90 seconds
+  });
+
+  // Notify parent of AI state changes
+  useEffect(() => {
+    onAIStateChange?.(aiState);
+  }, [aiState, onAIStateChange]);
   
-  // AI analysis trigger function with unstickable patterns
+  // AI analysis trigger function with robust patterns
   const triggerAIAnalysis = async (file: File, s3Key: string) => {
     try {
-      // 1) Register with AI inbox using robust API request
-      const registration = await fetch('/api/inbox/register', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          fileKey: s3Key,
-          fileName: file.name,
-          mime: file.type,
-          size: file.size,
-        }),
-      });
+      await runAI({ file, familyId });
       
-      if (!registration.ok) {
-        throw new Error('Failed to register file for AI analysis');
-      }
-      
-      const { uploadId } = await registration.json();
-      
-      // 2) Trigger analysis endpoint
-      await fetch(`/api/inbox/${uploadId}/analyze`, { method: 'POST' });
-      
-      // 3) Start robust polling via centralized store (includes heartbeat detection, exponential backoff, timeouts)
-      await startAI(uploadId);
-      
-      // 4) Show success toast if analysis completed
-      if (scan.state === 'ready' || scan.state === 'partial') {
+      // Show success toast if analysis completed
+      if (aiState.kind === 'success') {
         toast({
-          description: `✨ AI found ${('count' in scan) ? scan.count : 0} details`,
+          description: `✨ AI found suggestions for your document`,
         });
       }
-      
     } catch (error) {
       console.error('AI analysis failed:', error);
-      // Error handling is now managed by the AI store's robust polling
     }
   };
 
-  // Banner actions
-  const dismiss = () => resetAI();
-  const openInbox = () => setInboxOpen(true);
-  
-  const regenerate = async () => {
-    if (scan.state === 'ready' || scan.state === 'failed' || scan.state === 'partial' || scan.state === 'timeout') {
-      if ('id' in scan) {
-        // Use the robust polling system for regeneration
-        try {
-          await fetch(`/api/inbox/${scan.id}/analyze`, { method: "POST" });
-          await startAI(scan.id);
-        } catch (error) {
-          console.warn('Regenerate failed:', error);
-        }
-      }
-    }
-  };
-  
-  const acceptAll = async () => {
-    if (scan.state !== 'ready' && scan.state !== 'partial') return;
-    if (!('id' in scan)) return;
-    
-    await fetch(`/api/inbox/${scan.id}/accept`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ 
-        fields: 'fields' in scan ? scan.fields : [], 
-        memberId: 'suggestion' in scan ? scan.suggestion?.memberId : undefined 
-      }),
-    });
-    resetAI();
-    toast({
-      title: "Autofill accepted",
-      description: "All details have been applied successfully.",
-    });
-  };
+  // Banner actions (now handled by parent component with AIBanner)
 
   const inputRef = useRef<HTMLInputElement>(null);
   const { uploadFile } = usePresignedUpload();
@@ -218,7 +169,7 @@ export default function UploadCenter({
       // Notify parent about file upload for potential AI analysis
       onFileUploaded?.(row.file, result.key, 'document');
       
-      // Trigger AI analysis via new centralized store
+      // Trigger AI analysis via new robust hook
       if (result.key) {
         triggerAIAnalysis(row.file, result.key);
       }
@@ -292,7 +243,7 @@ export default function UploadCenter({
       // Notify parent about file upload for potential AI analysis
       onFileUploaded?.(row.file, result.key, 'photo');
       
-      // Trigger AI analysis via new centralized store
+      // Trigger AI analysis via new robust hook
       if (result.key) {
         triggerAIAnalysis(row.file, result.key);
       }
@@ -355,7 +306,7 @@ export default function UploadCenter({
 
   return (
     <Card className={`bg-zinc-950/70 border-zinc-800 ${className}`}>
-      {/* AI banner is now rendered in parent component */}
+      {/* AI banner is now rendered in parent component using onAIStateChange callback */}
       
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
