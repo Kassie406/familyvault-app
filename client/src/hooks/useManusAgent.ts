@@ -21,20 +21,18 @@ interface ConversationData {
   lastActivity?: Date;
 }
 
-export function useManusAgent(sessionId?: string) {
+export function useManusAgent() {
   const [isLoading, setIsLoading] = useState(false);
   const [conversation, setConversation] = useState<ConversationData>({
     messages: [],
     totalMessages: 0
   });
-  const [currentSessionId, setCurrentSessionId] = useState<string>(
-    sessionId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-  );
+  // No client-side sessionId - server manages this securely
 
-  // Load conversation history on mount
+  // Load conversation history on mount (using secure endpoint)
   const loadConversation = useCallback(async () => {
     try {
-      const res = await axios.get(`/api/ai-agent/conversation/${currentSessionId}`);
+      const res = await axios.get('/api/ai-agent/conversation'); // No sessionId in URL
       if (res.data) {
         const conversationData = {
           ...res.data,
@@ -48,7 +46,7 @@ export function useManusAgent(sessionId?: string) {
     } catch (err) {
       console.warn('[ManusAgent] Failed to load conversation history:', err);
     }
-  }, [currentSessionId]);
+  }, []);
 
   // Load conversation on mount and when sessionId changes
   useEffect(() => {
@@ -59,16 +57,37 @@ export function useManusAgent(sessionId?: string) {
     setIsLoading(true);
     try {
       const res = await axios.post('/api/ai-agent/ask', {
-        prompt,
-        sessionId: currentSessionId
+        prompt // No sessionId - server manages this securely
       });
       
-      // Refresh conversation after new message
-      await loadConversation();
+      // Use conversation data from response (UX optimization - no extra round trip)
+      if (res.data?.conversation) {
+        const conversationData = {
+          ...res.data.conversation,
+          messages: res.data.conversation.messages.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp)
+          }))
+        };
+        setConversation(conversationData);
+      }
       
       return res.data?.response || 'No response received.';
     } catch (err: any) {
       console.error('[ManusAgent Error]', err);
+      
+      // Even error responses might include conversation data
+      if (err.response?.data?.conversation) {
+        const conversationData = {
+          ...err.response.data.conversation,
+          messages: err.response.data.conversation.messages.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp)
+          }))
+        };
+        setConversation(conversationData);
+      }
+      
       return '⚠️ Failed to reach Manus backend.';
     } finally {
       setIsLoading(false);
@@ -77,7 +96,7 @@ export function useManusAgent(sessionId?: string) {
 
   const clearConversation = async (): Promise<void> => {
     try {
-      await axios.delete(`/api/ai-agent/conversation/${currentSessionId}`);
+      await axios.delete('/api/ai-agent/conversation'); // No sessionId in URL
       setConversation({ messages: [], totalMessages: 0 });
     } catch (err) {
       console.error('[ManusAgent] Failed to clear conversation:', err);
@@ -94,8 +113,8 @@ export function useManusAgent(sessionId?: string) {
     isLoading, 
     conversation,
     clearConversation,
-    sessionId: currentSessionId,
     refreshConversation: loadConversation,
     conversationSummary: getConversationSummary()
+    // No sessionId exposed - server manages this securely
   };
 }
