@@ -1,0 +1,666 @@
+// Complete Upload Backend - Integrates all upload methods with mobile sessions
+// Handles Browse Files, Take Photo, Mobile Upload, and AI Analysis
+
+const express = require('express');
+const multer = require('multer');
+const { v4: uuidv4 } = require('uuid');
+const path = require('path');
+const fs = require('fs').promises;
+const AWS = require('aws-sdk');
+
+const app = express();
+const router = express.Router();
+
+// Configure AWS Textract for AI analysis
+const textract = new AWS.Textract({
+  region: process.env.AWS_REGION || 'us-east-1',
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+});
+
+// In-memory session storage (use Redis in production)
+const uploadSessions = new Map();
+const documentStore = new Map();
+
+// Middleware
+app.use(express.json());
+app.use(express.static('public'));
+
+// Configure multer for different upload types
+const createMulterConfig = (destination, filenamePrefix) => {
+  return multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        const uploadDir = path.join(__dirname, destination);
+        cb(null, uploadDir);
+      },
+      filename: (req, file, cb) => {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const sessionId = req.params.sessionId || req.body.sessionId || 'direct';
+        const filename = `${filenamePrefix}-${sessionId}-${timestamp}-${file.originalname}`;
+        cb(null, filename);
+      }
+    }),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit
+      files: 10 // Max 10 files per upload
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = [
+        'image/jpeg',
+        'image/png',
+        'image/heic',
+        'image/webp',
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain'
+      ];
+      
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('File type not supported'), false);
+      }
+    }
+  });
+};
+
+// Different upload configurations
+const directUpload = createMulterConfig('../uploads/direct', 'direct');
+const mobileUpload = createMulterConfig('../uploads/mobile', 'mobile');
+const cameraUpload = createMulterConfig('../uploads/camera', 'camera');
+
+// ===== MOBILE UPLOAD SESSION MANAGEMENT =====
+
+// Create mobile upload session
+router.post('/mobile-upload/create-session', async (req, res) => {
+  try {
+    const { familyId, expiresIn = 3600 } = req.body;
+    
+    if (!familyId) {
+      return res.status(400).json({ error: 'Family ID is required' });
+    }
+    
+    const sessionId = uuidv4();
+    const expiresAt = new Date(Date.now() + (expiresIn * 1000));
+    
+    const session = {
+      sessionId,
+      familyId,
+      createdAt: new Date(),
+      expiresAt,
+      isActive: true,
+      uploadCount: 0,
+      maxUploads: 50,
+      documents: []
+    };
+    
+    uploadSessions.set(sessionId, session);
+    
+    // Clean up expired sessions
+    cleanupExpiredSessions();
+    
+    res.json({
+      sessionId,
+      expiresAt,
+      maxUploads: session.maxUploads
+    });
+    
+  } catch (error) {
+    console.error('Failed to create upload session:', error);
+    res.status(500).json({ error: 'Failed to create upload session' });
+  }
+});
+
+// Get session info
+router.get('/mobile-upload/session/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const session = uploadSessions.get(sessionId);
+    
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    
+    if (new Date() > session.expiresAt) {
+      uploadSessions.delete(sessionId);
+      return res.status(410).json({ error: 'Session expired' });
+    }
+    
+    res.json({
+      sessionId: session.sessionId,
+      familyId: session.familyId,
+      expiresAt: session.expiresAt,
+      uploadCount: session.uploadCount,
+      maxUploads: session.maxUploads,
+      isActive: session.isActive
+    });
+    
+  } catch (error) {
+    console.error('Failed to get session info:', error);
+    res.status(500).json({ error: 'Failed to get session info' });
+  }
+});
+
+// Serve mobile upload page
+router.get('/mobile-upload/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const session = uploadSessions.get(sessionId);
+    
+    if (!session) {
+      return res.status(404).sendFile(path.join(__dirname, 'error-pages/session-not-found.html'));
+    }
+    
+    if (new Date() > session.expiresAt) {
+      uploadSessions.delete(sessionId);
+      return res.status(410).sendFile(path.join(__dirname, 'error-pages/session-expired.html'));
+    }
+    
+    // Serve the mobile upload page
+    res.sendFile(path.join(__dirname, 'mobile_upload_page.html'));
+    
+  } catch (error) {
+    console.error('Failed to serve mobile upload page:', error);
+    res.status(500).sendFile(path.join(__dirname, 'error-pages/server-error.html'));
+  }
+});
+
+// ===== UPLOAD ENDPOINTS =====
+
+// Direct upload (Browse Files)
+router.post('/trustworthy/upload', directUpload.array('document'), async (req, res) => {
+  try {
+    const { familyId } = req.body;
+    const files = req.files;
+    
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded' });
+    }
+    
+    const processedDocuments = [];
+    
+    for (const file of files) {
+      const document = await createDocumentRecord(file, familyId, 'direct_upload');
+      processedDocuments.push(document);
+      
+      // Start AI analysis in background
+      startAIAnalysisBackground(document.id);
+    }
+    
+    res.json({
+      success: true,
+      documents: processedDocuments
+    });
+    
+  } catch (error) {
+    console.error('Direct upload failed:', error);
+    res.status(500).json({ error: 'Upload failed' });
+  }
+});
+
+// Mobile upload
+router.post('/mobile-upload/upload/:sessionId', mobileUpload.array('documents'), async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const session = uploadSessions.get(sessionId);
+    
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    
+    if (new Date() > session.expiresAt) {
+      uploadSessions.delete(sessionId);
+      return res.status(410).json({ error: 'Session expired' });
+    }
+    
+    if (!session.isActive) {
+      return res.status(403).json({ error: 'Session is not active' });
+    }
+    
+    if (session.uploadCount >= session.maxUploads) {
+      return res.status(429).json({ error: 'Upload limit reached' });
+    }
+    
+    const files = req.files;
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded' });
+    }
+    
+    const processedFiles = [];
+    
+    for (const file of files) {
+      try {
+        const document = await createDocumentRecord(file, session.familyId, 'mobile_upload', sessionId);
+        processedFiles.push({
+          id: document.id,
+          originalName: document.originalName,
+          size: document.size,
+          status: 'processing'
+        });
+        
+        // Add to session
+        session.documents.push(document.id);
+        session.uploadCount++;
+        
+        // Start AI analysis
+        startAIAnalysisBackground(document.id);
+        
+      } catch (fileError) {
+        console.error(`Failed to process file ${file.originalname}:`, fileError);
+      }
+    }
+    
+    // Update session
+    uploadSessions.set(sessionId, session);
+    
+    res.json({
+      success: true,
+      uploadedFiles: processedFiles,
+      sessionInfo: {
+        uploadCount: session.uploadCount,
+        maxUploads: session.maxUploads,
+        remainingUploads: session.maxUploads - session.uploadCount
+      }
+    });
+    
+  } catch (error) {
+    console.error('Mobile upload failed:', error);
+    res.status(500).json({ error: 'Upload failed' });
+  }
+});
+
+// Camera upload
+router.post('/camera/upload', cameraUpload.single('photo'), async (req, res) => {
+  try {
+    const { familyId } = req.body;
+    const file = req.file;
+    
+    if (!file) {
+      return res.status(400).json({ error: 'No photo uploaded' });
+    }
+    
+    const document = await createDocumentRecord(file, familyId, 'camera_capture');
+    
+    // Start AI analysis
+    startAIAnalysisBackground(document.id);
+    
+    res.json({
+      success: true,
+      document: document
+    });
+    
+  } catch (error) {
+    console.error('Camera upload failed:', error);
+    res.status(500).json({ error: 'Camera upload failed' });
+  }
+});
+
+// ===== AI ANALYSIS ENDPOINTS =====
+
+// Start AI analysis
+router.post('/trustworthy/analyze', async (req, res) => {
+  try {
+    const { documentId } = req.body;
+    
+    if (!documentId) {
+      return res.status(400).json({ error: 'Document ID is required' });
+    }
+    
+    const document = documentStore.get(documentId);
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+    
+    const analysis = await performAIAnalysis(document);
+    
+    // Update document with analysis results
+    document.analysisResults = analysis;
+    document.status = 'analyzed';
+    document.analyzedAt = new Date();
+    documentStore.set(documentId, document);
+    
+    res.json({
+      success: true,
+      analysis: analysis
+    });
+    
+  } catch (error) {
+    console.error('AI analysis failed:', error);
+    res.status(500).json({ error: 'Analysis failed' });
+  }
+});
+
+// Get analysis results
+router.get('/analysis/:documentId', async (req, res) => {
+  try {
+    const { documentId } = req.params;
+    const document = documentStore.get(documentId);
+    
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+    
+    res.json({
+      documentId: document.id,
+      status: document.status,
+      analysisResults: document.analysisResults || null,
+      analyzedAt: document.analyzedAt || null
+    });
+    
+  } catch (error) {
+    console.error('Failed to get analysis results:', error);
+    res.status(500).json({ error: 'Failed to get analysis results' });
+  }
+});
+
+// ===== DOCUMENT MANAGEMENT =====
+
+// Get documents for family
+router.get('/documents/:familyId', async (req, res) => {
+  try {
+    const { familyId } = req.params;
+    const { limit = 50, offset = 0 } = req.query;
+    
+    const familyDocuments = Array.from(documentStore.values())
+      .filter(doc => doc.familyId === familyId)
+      .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))
+      .slice(offset, offset + parseInt(limit));
+    
+    res.json({
+      documents: familyDocuments.map(doc => ({
+        id: doc.id,
+        originalName: doc.originalName,
+        size: doc.size,
+        mimetype: doc.mimetype,
+        status: doc.status,
+        uploadedAt: doc.uploadedAt,
+        source: doc.source,
+        analysisResults: doc.analysisResults
+      })),
+      total: familyDocuments.length
+    });
+    
+  } catch (error) {
+    console.error('Failed to get documents:', error);
+    res.status(500).json({ error: 'Failed to get documents' });
+  }
+});
+
+// Get upload status for session
+router.get('/mobile-upload/status/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const session = uploadSessions.get(sessionId);
+    
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    
+    const documents = session.documents.map(docId => {
+      const doc = documentStore.get(docId);
+      return doc ? {
+        id: doc.id,
+        originalName: doc.originalName,
+        status: doc.status,
+        uploadedAt: doc.uploadedAt,
+        analysisResults: doc.analysisResults
+      } : null;
+    }).filter(Boolean);
+    
+    res.json({
+      sessionId,
+      uploadCount: session.uploadCount,
+      documents: documents
+    });
+    
+  } catch (error) {
+    console.error('Failed to get upload status:', error);
+    res.status(500).json({ error: 'Failed to get status' });
+  }
+});
+
+// ===== HELPER FUNCTIONS =====
+
+// Create document record
+async function createDocumentRecord(file, familyId, source, sessionId = null) {
+  const document = {
+    id: uuidv4(),
+    originalName: file.originalname,
+    filename: file.filename,
+    path: file.path,
+    size: file.size,
+    mimetype: file.mimetype,
+    familyId: familyId,
+    sessionId: sessionId,
+    uploadedAt: new Date(),
+    status: 'uploaded',
+    source: source,
+    analysisResults: null,
+    analyzedAt: null
+  };
+  
+  documentStore.set(document.id, document);
+  return document;
+}
+
+// Perform AI analysis using AWS Textract
+async function performAIAnalysis(document) {
+  try {
+    // Read file
+    const fileBuffer = await fs.readFile(document.path);
+    
+    let textractParams;
+    
+    if (document.mimetype === 'application/pdf') {
+      textractParams = {
+        Document: {
+          Bytes: fileBuffer
+        },
+        FeatureTypes: ['TABLES', 'FORMS']
+      };
+    } else if (document.mimetype.startsWith('image/')) {
+      textractParams = {
+        Document: {
+          Bytes: fileBuffer
+        },
+        FeatureTypes: ['TABLES', 'FORMS']
+      };
+    } else {
+      // For other file types, return basic analysis
+      return {
+        documentType: 'document',
+        extractedText: 'Text extraction not available for this file type',
+        keyValuePairs: [],
+        tables: [],
+        confidence: 0
+      };
+    }
+    
+    // Call AWS Textract
+    const result = await textract.analyzeDocument(textractParams).promise();
+    
+    // Process results
+    const analysis = processTextractResults(result);
+    
+    // Add document classification
+    analysis.documentType = classifyDocument(analysis.extractedText, document.originalName);
+    
+    return analysis;
+    
+  } catch (error) {
+    console.error('AI analysis error:', error);
+    return {
+      documentType: 'unknown',
+      extractedText: 'Analysis failed',
+      keyValuePairs: [],
+      tables: [],
+      confidence: 0,
+      error: error.message
+    };
+  }
+}
+
+// Process AWS Textract results
+function processTextractResults(textractResult) {
+  const blocks = textractResult.Blocks || [];
+  
+  let extractedText = '';
+  const keyValuePairs = [];
+  const tables = [];
+  
+  // Extract text
+  const textBlocks = blocks.filter(block => block.BlockType === 'LINE');
+  extractedText = textBlocks.map(block => block.Text).join('\n');
+  
+  // Extract key-value pairs
+  const keyValueBlocks = blocks.filter(block => block.BlockType === 'KEY_VALUE_SET');
+  for (const block of keyValueBlocks) {
+    if (block.EntityTypes && block.EntityTypes.includes('KEY')) {
+      const key = block.Text || '';
+      // Find corresponding value block
+      const valueBlock = blocks.find(b => 
+        b.BlockType === 'KEY_VALUE_SET' && 
+        b.EntityTypes && 
+        b.EntityTypes.includes('VALUE') &&
+        block.Relationships &&
+        block.Relationships.some(rel => rel.Type === 'VALUE' && rel.Ids.includes(b.Id))
+      );
+      
+      if (valueBlock) {
+        keyValuePairs.push({
+          key: key.trim(),
+          value: (valueBlock.Text || '').trim(),
+          confidence: Math.min(block.Confidence || 0, valueBlock.Confidence || 0)
+        });
+      }
+    }
+  }
+  
+  // Extract tables (simplified)
+  const tableBlocks = blocks.filter(block => block.BlockType === 'TABLE');
+  for (const table of tableBlocks) {
+    tables.push({
+      rowCount: table.RowCount || 0,
+      columnCount: table.ColumnCount || 0,
+      confidence: table.Confidence || 0
+    });
+  }
+  
+  // Calculate overall confidence
+  const allConfidences = blocks
+    .filter(block => block.Confidence)
+    .map(block => block.Confidence);
+  
+  const averageConfidence = allConfidences.length > 0 
+    ? allConfidences.reduce((sum, conf) => sum + conf, 0) / allConfidences.length 
+    : 0;
+  
+  return {
+    extractedText,
+    keyValuePairs,
+    tables,
+    confidence: averageConfidence
+  };
+}
+
+// Classify document type
+function classifyDocument(text, filename) {
+  const lowerText = text.toLowerCase();
+  const lowerFilename = filename.toLowerCase();
+  
+  // Document type patterns
+  const patterns = {
+    'birth_certificate': ['birth certificate', 'certificate of birth', 'born on'],
+    'passport': ['passport', 'passport number', 'place of birth'],
+    'drivers_license': ['driver license', 'drivers license', 'class', 'restrictions'],
+    'social_security': ['social security', 'ssn', 'social security number'],
+    'insurance': ['insurance', 'policy', 'coverage', 'premium'],
+    'medical': ['medical', 'patient', 'diagnosis', 'prescription'],
+    'financial': ['bank', 'account', 'balance', 'statement', 'transaction'],
+    'tax': ['tax', 'irs', 'w-2', '1099', 'return'],
+    'legal': ['contract', 'agreement', 'legal', 'court', 'attorney'],
+    'education': ['diploma', 'transcript', 'degree', 'university', 'college']
+  };
+  
+  for (const [type, keywords] of Object.entries(patterns)) {
+    if (keywords.some(keyword => lowerText.includes(keyword) || lowerFilename.includes(keyword))) {
+      return type;
+    }
+  }
+  
+  return 'document';
+}
+
+// Start AI analysis in background
+function startAIAnalysisBackground(documentId) {
+  setTimeout(async () => {
+    try {
+      const document = documentStore.get(documentId);
+      if (document && document.status === 'uploaded') {
+        const analysis = await performAIAnalysis(document);
+        document.analysisResults = analysis;
+        document.status = 'analyzed';
+        document.analyzedAt = new Date();
+        documentStore.set(documentId, document);
+      }
+    } catch (error) {
+      console.error(`Background analysis failed for document ${documentId}:`, error);
+      const document = documentStore.get(documentId);
+      if (document) {
+        document.status = 'analysis_failed';
+        documentStore.set(documentId, document);
+      }
+    }
+  }, 1000); // Start analysis after 1 second
+}
+
+// Cleanup expired sessions
+function cleanupExpiredSessions() {
+  const now = new Date();
+  for (const [sessionId, session] of uploadSessions.entries()) {
+    if (now > session.expiresAt) {
+      uploadSessions.delete(sessionId);
+    }
+  }
+}
+
+// Periodic cleanup
+setInterval(cleanupExpiredSessions, 5 * 60 * 1000); // Every 5 minutes
+
+// Error handling middleware
+app.use((error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
+    }
+    if (error.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({ error: 'Too many files. Maximum is 10 files per upload.' });
+    }
+  }
+  
+  console.error('Unhandled error:', error);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+// Mount routes
+app.use('/api', router);
+
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve React app for main interface
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/index.html'));
+});
+
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Upload center server running on port ${PORT}`);
+  console.log(`Mobile upload endpoint: http://localhost:${PORT}/mobile-upload/:sessionId`);
+  console.log(`Main interface: http://localhost:${PORT}`);
+});
+
+module.exports = app;
