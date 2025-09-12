@@ -1,10 +1,17 @@
 import express from 'express';
 import axios from 'axios';
+import OpenAI from 'openai';
+import { mcpFunctionSchema, validateFunctionCall } from '../../utils/mcpFunctions.js';
 
 const router = express.Router();
 
 // Security fix: Use environment variable instead of hardcoded URL
 const MCP_SERVER = process.env.MCP_SERVER_URL || 'https://3eb6ec39-b907-4c70-9a5b-e192bacee3ba-00-1739ki91gyn4k.kirk.replit.dev/mcp';
+
+// Initialize OpenAI client for intelligent function calling
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 // Enhanced conversation memory system
 interface ChatMessage {
@@ -88,75 +95,100 @@ function generateConversationSummary(messages: ChatMessage[]): string {
   return `Recent conversation context: Topics discussed: ${Array.from(topics).join(', ')}. Actions performed: ${Array.from(actions).join(', ')}. Last ${recentMessages.length} messages active.`;
 }
 
-// Enhanced prompt-to-intent mapping with context awareness
-function inferIntentWithContext(prompt: string, session: ConversationSession): { method: string; params: any } {
-  const lower = prompt.toLowerCase();
+// GPT-powered function calling for intelligent intent parsing
+async function parseUserIntentWithGPT(prompt: string, session: ConversationSession): Promise<{ method: string; params: any; reasoning?: string }> {
   const conversationSummary = generateConversationSummary(session.messages);
   
-  // Context-aware intent inference
-  const recentMethods = session.messages
-    .filter(m => m.method)
-    .slice(-5)
-    .map(m => m.method);
+  // Build conversation context for GPT
+  const recentMessages = session.messages.slice(-6).map(msg => ({
+    role: msg.role,
+    content: msg.content.substring(0, 200), // Truncate for context
+    method: msg.method || null
+  }));
   
-  // Check for follow-up context
-  const hasRecentTask = recentMethods.includes('manage_design_tasks');
-  const hasRecentAudit = recentMethods.includes('audit_design_system');
-  const hasRecentFamily = recentMethods.includes('add_family_member');
-  
-  if (lower.includes('task') || (hasRecentTask && (lower.includes('update') || lower.includes('status')))) {
-    return {
-      method: 'manage_design_tasks',
-      params: {
-        project: 'FamilyVault AI',
-        task: prompt,
-        priority: 'High',
-        assigned_to: 'UI Team',
-        context: conversationSummary
-      },
-    };
-  }
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4-turbo',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an intelligent assistant for FamilyVault, a family document management system. 
 
-  if (lower.includes('audit') || lower.includes('design system') || (hasRecentAudit && lower.includes('follow'))) {
-    return {
-      method: 'audit_design_system',
-      params: {
-        scope: 'full',
-        note: prompt,
-        context: conversationSummary
-      },
-    };
-  }
+Conversation Context: ${conversationSummary}
 
-  if (lower.includes('add') && lower.includes('member') || (hasRecentFamily && lower.includes('another'))) {
-    return {
-      method: 'add_family_member',
-      params: {
-        name: 'Sarah',
-        role: 'guardian',
-        context: conversationSummary
-      },
-    };
-  }
+Recent Messages: ${JSON.stringify(recentMessages, null, 2)}
 
-  if (lower.includes('progress') || lower.includes('status') || lower.includes('track')) {
+Analyze the user's request and call the most appropriate function. Be intelligent about extracting parameters from natural language. For family member tasks, extract names and roles intelligently. For design tasks, infer project context and priority.
+
+If the user's request doesn't clearly match any function, use 'track_project_progress' as a fallback.`
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      functions: mcpFunctionSchema,
+      function_call: 'auto',
+      temperature: 0.3
+    });
+
+    const message = completion.choices[0]?.message;
+    
+    if (message?.function_call) {
+      const functionName = message.function_call.name;
+      let functionParams;
+      
+      try {
+        functionParams = JSON.parse(message.function_call.arguments || '{}');
+      } catch (parseError) {
+        console.warn('[GPT Parse Error]', parseError);
+        functionParams = {};
+      }
+      
+      // Validate function call
+      const validation = validateFunctionCall(functionName, functionParams);
+      if (!validation.valid) {
+        console.warn('[Function Validation Failed]', validation.errors);
+        // Fallback with error context
+        return {
+          method: 'track_project_progress',
+          params: {
+            project: 'FamilyVault AI',
+            context: `GPT function validation failed: ${validation.errors?.join(', ')}. Original request: ${prompt}`
+          }
+        };
+      }
+      
+      return {
+        method: functionName,
+        params: functionParams,
+        reasoning: message.content || 'GPT function call'
+      };
+    }
+    
+    // No function call made, use fallback
     return {
       method: 'track_project_progress',
       params: {
         project: 'FamilyVault AI',
-        context: conversationSummary
+        context: `No clear function match. Original request: ${prompt}. Conversation summary: ${conversationSummary}`
       },
+      reasoning: 'No function match found'
+    };
+    
+  } catch (error) {
+    console.error('[GPT Function Calling Error]', error);
+    
+    // Enhanced fallback with error context
+    return {
+      method: 'track_project_progress',
+      params: {
+        project: 'FamilyVault AI',
+        context: `GPT parsing failed (${error instanceof Error ? error.message : 'unknown error'}). Original request: ${prompt}`
+      },
+      reasoning: 'GPT error fallback'
     };
   }
-
-  // Default fallback with context
-  return {
-    method: 'track_project_progress',
-    params: {
-      project: 'FamilyVault AI',
-      context: conversationSummary
-    },
-  };
 }
 
 // Get conversation history endpoint (SECURITY FIXED)
@@ -198,7 +230,7 @@ router.post('/ask', async (req, res) => {
     content: prompt
   });
   
-  const { method, params } = inferIntentWithContext(prompt, session);
+  const { method, params, reasoning } = await parseUserIntentWithGPT(prompt, session);
   
   try {
     const mcpRes = await axios.post(MCP_SERVER, {
