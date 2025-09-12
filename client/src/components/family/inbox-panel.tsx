@@ -198,8 +198,11 @@ export default function InboxPanel() {
 
   const visibleInboxItems = inboxItems.filter((item) => item.status !== "dismissed");
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    // Add files to upload store
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    // Upload files to server first
+    await handleFileUpload(acceptedFiles);
+    
+    // Also add to upload store for UI purposes
     for (const file of acceptedFiles) {
       addUpload({
         id: Date.now() + Math.random(),
@@ -211,7 +214,7 @@ export default function InboxPanel() {
         uploadedAt: new Date()
       });
     }
-  }, [addUpload]);
+  }, [addUpload, handleFileUpload]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -574,6 +577,144 @@ export default function InboxPanel() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Camera Modal */}
+      {showCameraModal && (
+        <Dialog open={showCameraModal} onOpenChange={(open) => {
+          if (!open) {
+            // Stop camera stream when modal closes
+            if (videoRef.current?.srcObject) {
+              const stream = videoRef.current.srcObject as MediaStream;
+              stream.getTracks().forEach(track => track.stop());
+              videoRef.current.srcObject = null;
+            }
+          }
+          setShowCameraModal(open);
+        }}>
+          <DialogContent className="bg-[#0A0A1A] border-[#2A2A33] text-white max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-[#6366f1]">
+                <Camera className="h-5 w-5" />
+                Take Photo
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="relative rounded-lg overflow-hidden bg-black">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full h-64 object-cover"
+                />
+                <canvas
+                  ref={canvasRef}
+                  style={{ display: 'none' }}
+                />
+              </div>
+              <div className="flex gap-2 justify-center">
+                <Button
+                  onClick={async () => {
+                    try {
+                      const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: 'environment' } 
+                      });
+                      if (videoRef.current) {
+                        videoRef.current.srcObject = stream;
+                      }
+                    } catch (error) {
+                      console.error('Failed to start camera:', error);
+                    }
+                  }}
+                  className="bg-[#6366f1] hover:bg-[#5855eb] text-white"
+                  data-testid="button-start-camera"
+                >
+                  Start Camera
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (videoRef.current && canvasRef.current) {
+                      const canvas = canvasRef.current;
+                      const video = videoRef.current;
+                      const context = canvas.getContext('2d');
+                      
+                      canvas.width = video.videoWidth;
+                      canvas.height = video.videoHeight;
+                      context.drawImage(video, 0, 0);
+                      
+                      canvas.toBlob(async (blob) => {
+                        const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
+                        await handleFileUpload([file]);
+                        setShowCameraModal(false);
+                        
+                        // Stop camera
+                        const stream = video.srcObject;
+                        if (stream) {
+                          stream.getTracks().forEach(track => track.stop());
+                        }
+                      }, 'image/jpeg', 0.8);
+                    }
+                  }}
+                  className="bg-[#D4AF37] hover:bg-[#B8941F] text-black"
+                  data-testid="button-capture-photo"
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  Capture Photo
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Mobile Upload Modal */}
+      {showMobileUploadModal && (
+        <Dialog open={showMobileUploadModal} onOpenChange={setShowMobileUploadModal}>
+          <DialogContent className="bg-[#0A0A1A] border-[#2A2A33] text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-[#10b981]">
+                <Smartphone className="h-5 w-5" />
+                Mobile Upload
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="text-center">
+                <div className="bg-white p-4 rounded-lg inline-block mb-4">
+                  {qrCodeUrl && (
+                    <img 
+                      src={qrCodeUrl} 
+                      alt="QR Code for Mobile Upload" 
+                      className="w-48 h-48"
+                    />
+                  )}
+                </div>
+                <h4 className="text-lg font-medium text-white mb-2">Scan with your phone camera</h4>
+                <p className="text-sm text-neutral-400">Point your phone's camera at the QR code to open the upload page</p>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm text-neutral-400">Or copy this link:</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={mobileUploadLink} 
+                    readOnly 
+                    className="flex-1 px-3 py-2 bg-[#1A1A1A] border border-[#2A2A33] rounded-lg text-white text-sm"
+                  />
+                  <Button
+                    onClick={() => {
+                      navigator.clipboard.writeText(mobileUploadLink);
+                    }}
+                    className="bg-[#10b981] hover:bg-[#059669] text-white px-3 py-2"
+                    data-testid="button-copy-link"
+                  >
+                    📋
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Sheet>
   );
 }

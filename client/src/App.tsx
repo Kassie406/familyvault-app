@@ -74,7 +74,6 @@ import MarriedFamilyInfo from "@/pages/married-family-info";
 import MarriedWeddingPlanning from "@/pages/married-wedding-planning";
 import MarriedEstatePlanning from "@/pages/married-estate-planning";
 import DisasterEmergencyContacts from "@/pages/disaster-emergency-contacts";
-import UploadCenter from "@/pages/upload-center";
 
 // Wrapper component that includes global auto-analyze functionality
 function FamilyRouterWithAutoAnalyze() {
@@ -245,7 +244,6 @@ function Router() {
       <Route path="/when-someone-dies-legal-responsibilities" component={WhenSomeoneDiesLegalResponsibilities} />
       <Route path="/when-someone-dies-important-deadlines" component={WhenSomeoneDiesImportantDeadlines} />
       <Route path="/m/u/:sessionId" component={MobileUpload} />
-      <Route path="/upload-center" component={UploadCenter} />
       
       <Route component={NotFound} />
     </Switch>
