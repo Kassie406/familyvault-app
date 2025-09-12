@@ -1,0 +1,717 @@
+// Complete Backend Structure for Trustworthy Upload Strategy
+// Node.js/Express backend with AWS Textract integration
+
+const express = require('express');
+const multer = require('multer');
+const AWS = require('aws-sdk');
+const mysql = require('mysql2/promise');
+const sharp = require('sharp');
+const path = require('path');
+const fs = require('fs').promises;
+const { v4: uuidv4 } = require('uuid');
+
+const app = express();
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// AWS Configuration
+AWS.config.update({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION || 'us-east-1'
+});
+
+const textract = new AWS.Textract();
+const s3 = new AWS.S3();
+
+// Database Configuration
+const dbConfig = {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+};
+
+const pool = mysql.createPool(dbConfig);
+
+// File Upload Configuration
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, 'uploads', 'documents');
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${uuidv4()}-${file.originalname}`;
+    cb(null, uniqueName);
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/heic',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain'
+    ];
+    
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type'), false);
+    }
+  }
+});
+
+// Database Schema Setup
+const initializeDatabase = async () => {
+  try {
+    const connection = await pool.getConnection();
+    
+    // Documents table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS documents (
+        id VARCHAR(255) PRIMARY KEY,
+        filename VARCHAR(255) NOT NULL,
+        original_filename VARCHAR(255) NOT NULL,
+        file_path VARCHAR(500) NOT NULL,
+        thumbnail_path VARCHAR(500),
+        file_size BIGINT NOT NULL,
+        mime_type VARCHAR(100) NOT NULL,
+        upload_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        family_id VARCHAR(255) NOT NULL,
+        status ENUM('uploaded', 'analyzing', 'analyzed', 'error') DEFAULT 'uploaded',
+        ai_confidence DECIMAL(5,2),
+        extracted_fields JSON,
+        suggested_filename VARCHAR(255),
+        person_identified VARCHAR(255),
+        document_type VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_family_id (family_id),
+        INDEX idx_status (status),
+        INDEX idx_upload_time (upload_time)
+      )
+    `);
+
+    // Family members table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS family_members (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        family_id VARCHAR(255) NOT NULL,
+        birth_date DATE,
+        profile_image VARCHAR(500),
+        documents_count INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_family_id (family_id),
+        INDEX idx_name (name)
+      )
+    `);
+
+    // Document analysis results table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS document_analysis (
+        id VARCHAR(255) PRIMARY KEY,
+        document_id VARCHAR(255) NOT NULL,
+        analysis_type ENUM('textract', 'custom') DEFAULT 'textract',
+        raw_response JSON,
+        extracted_data JSON,
+        confidence_scores JSON,
+        processing_time_ms INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
+        INDEX idx_document_id (document_id)
+      )
+    `);
+
+    connection.release();
+    console.log('Database initialized successfully');
+  } catch (error) {
+    console.error('Database initialization failed:', error);
+  }
+};
+
+// Initialize database on startup
+initializeDatabase();
+
+// Utility Functions
+const generateThumbnail = async (filePath, outputPath) => {
+  try {
+    await sharp(filePath)
+      .resize(300, 400, { 
+        fit: 'inside',
+        withoutEnlargement: true 
+      })
+      .jpeg({ quality: 80 })
+      .toFile(outputPath);
+    
+    return outputPath;
+  } catch (error) {
+    console.error('Thumbnail generation failed:', error);
+    return null;
+  }
+};
+
+const uploadToS3 = async (filePath, key) => {
+  try {
+    const fileContent = await fs.readFile(filePath);
+    
+    const params = {
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: key,
+      Body: fileContent,
+      ContentType: 'application/octet-stream'
+    };
+
+    const result = await s3.upload(params).promise();
+    return result.Location;
+  } catch (error) {
+    console.error('S3 upload failed:', error);
+    throw error;
+  }
+};
+
+const analyzeDocumentWithTextract = async (filePath) => {
+  try {
+    const fileContent = await fs.readFile(filePath);
+    
+    const params = {
+      Document: {
+        Bytes: fileContent
+      },
+      FeatureTypes: ['FORMS', 'TABLES']
+    };
+
+    const result = await textract.analyzeDocument(params).promise();
+    return result;
+  } catch (error) {
+    console.error('Textract analysis failed:', error);
+    throw error;
+  }
+};
+
+const extractStructuredData = (textractResponse) => {
+  const extractedData = {};
+  const confidenceScores = {};
+  
+  if (!textractResponse.Blocks) {
+    return { extractedData, confidenceScores };
+  }
+
+  // Extract key-value pairs
+  const keyValuePairs = textractResponse.Blocks.filter(block => 
+    block.BlockType === 'KEY_VALUE_SET'
+  );
+
+  keyValuePairs.forEach(block => {
+    if (block.EntityTypes && block.EntityTypes.includes('KEY')) {
+      const keyText = extractTextFromBlock(block, textractResponse.Blocks);
+      const valueBlock = findValueBlock(block, textractResponse.Blocks);
+      
+      if (valueBlock) {
+        const valueText = extractTextFromBlock(valueBlock, textractResponse.Blocks);
+        
+        if (keyText && valueText) {
+          const normalizedKey = normalizeFieldName(keyText);
+          extractedData[normalizedKey] = valueText;
+          confidenceScores[normalizedKey] = block.Confidence / 100;
+        }
+      }
+    }
+  });
+
+  // Extract specific document types
+  const documentType = identifyDocumentType(extractedData);
+  if (documentType) {
+    extractedData.documentType = documentType;
+    confidenceScores.documentType = 0.9;
+  }
+
+  // Extract person name
+  const personName = extractPersonName(extractedData);
+  if (personName) {
+    extractedData.personName = personName;
+    confidenceScores.personName = 0.85;
+  }
+
+  return { extractedData, confidenceScores };
+};
+
+const extractTextFromBlock = (block, allBlocks) => {
+  if (!block.Relationships) return '';
+  
+  const childRelationship = block.Relationships.find(rel => rel.Type === 'CHILD');
+  if (!childRelationship) return '';
+  
+  const childTexts = childRelationship.Ids
+    .map(id => allBlocks.find(b => b.Id === id))
+    .filter(b => b && b.BlockType === 'WORD')
+    .map(b => b.Text)
+    .join(' ');
+    
+  return childTexts.trim();
+};
+
+const findValueBlock = (keyBlock, allBlocks) => {
+  if (!keyBlock.Relationships) return null;
+  
+  const valueRelationship = keyBlock.Relationships.find(rel => rel.Type === 'VALUE');
+  if (!valueRelationship) return null;
+  
+  const valueId = valueRelationship.Ids[0];
+  return allBlocks.find(block => block.Id === valueId);
+};
+
+const normalizeFieldName = (fieldName) => {
+  return fieldName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, '_')
+    .replace(/^_+|_+$/g, '');
+};
+
+const identifyDocumentType = (extractedData) => {
+  const text = Object.values(extractedData).join(' ').toLowerCase();
+  
+  if (text.includes('social security') || text.includes('ssn')) {
+    return 'Social Security Card';
+  }
+  if (text.includes('driver') && text.includes('license')) {
+    return 'Driver License';
+  }
+  if (text.includes('passport')) {
+    return 'Passport';
+  }
+  if (text.includes('birth certificate')) {
+    return 'Birth Certificate';
+  }
+  if (text.includes('insurance')) {
+    return 'Insurance Document';
+  }
+  
+  return 'Document';
+};
+
+const extractPersonName = (extractedData) => {
+  // Look for common name fields
+  const nameFields = ['name', 'full_name', 'first_name', 'last_name', 'holder_name'];
+  
+  for (const field of nameFields) {
+    if (extractedData[field]) {
+      return extractedData[field];
+    }
+  }
+  
+  // Look for patterns in values
+  for (const [key, value] of Object.entries(extractedData)) {
+    if (typeof value === 'string' && value.match(/^[A-Z][a-z]+ [A-Z][a-z]+/)) {
+      return value;
+    }
+  }
+  
+  return null;
+};
+
+// API Routes
+
+// 1. Document Upload
+app.post('/api/trustworthy/upload', upload.single('document'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded'
+      });
+    }
+
+    const { familyId } = req.body;
+    const file = req.file;
+    
+    // Generate document ID
+    const documentId = uuidv4();
+    
+    // Generate thumbnail for images
+    let thumbnailPath = null;
+    if (file.mimetype.startsWith('image/')) {
+      const thumbnailDir = path.join(__dirname, 'uploads', 'thumbnails');
+      await fs.mkdir(thumbnailDir, { recursive: true });
+      
+      thumbnailPath = path.join(thumbnailDir, `thumb-${file.filename}`);
+      await generateThumbnail(file.path, thumbnailPath);
+    }
+
+    // Save document to database
+    const connection = await pool.getConnection();
+    
+    await connection.execute(`
+      INSERT INTO documents (
+        id, filename, original_filename, file_path, thumbnail_path,
+        file_size, mime_type, family_id, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      documentId,
+      file.filename,
+      file.originalname,
+      file.path,
+      thumbnailPath,
+      file.size,
+      file.mimetype,
+      familyId,
+      'uploaded'
+    ]);
+    
+    connection.release();
+
+    // Return document info
+    const document = {
+      id: documentId,
+      filename: file.originalname,
+      thumbnail: thumbnailPath ? `/api/thumbnails/${path.basename(thumbnailPath)}` : null,
+      uploadTime: new Date().toISOString(),
+      status: 'uploaded',
+      size: file.size,
+      mimeType: file.mimetype
+    };
+
+    res.json({
+      success: true,
+      document: document,
+      message: 'Document uploaded successfully'
+    });
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// 2. Document Analysis
+app.post('/api/trustworthy/analyze', async (req, res) => {
+  try {
+    const { documentId } = req.body;
+    
+    if (!documentId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Document ID required'
+      });
+    }
+
+    // Get document from database
+    const connection = await pool.getConnection();
+    
+    const [rows] = await connection.execute(
+      'SELECT * FROM documents WHERE id = ?',
+      [documentId]
+    );
+    
+    if (rows.length === 0) {
+      connection.release();
+      return res.status(404).json({
+        success: false,
+        error: 'Document not found'
+      });
+    }
+
+    const document = rows[0];
+    
+    // Update status to analyzing
+    await connection.execute(
+      'UPDATE documents SET status = ? WHERE id = ?',
+      ['analyzing', documentId]
+    );
+
+    connection.release();
+
+    // Start analysis
+    const startTime = Date.now();
+    
+    try {
+      // Analyze with AWS Textract
+      const textractResponse = await analyzeDocumentWithTextract(document.file_path);
+      
+      // Extract structured data
+      const { extractedData, confidenceScores } = extractStructuredData(textractResponse);
+      
+      // Calculate processing time
+      const processingTime = Date.now() - startTime;
+      
+      // Generate filename suggestion
+      const suggestedFilename = generateFilenameSuggestion(extractedData);
+      
+      // Save analysis results
+      const connection2 = await pool.getConnection();
+      
+      const analysisId = uuidv4();
+      await connection2.execute(`
+        INSERT INTO document_analysis (
+          id, document_id, analysis_type, raw_response, 
+          extracted_data, confidence_scores, processing_time_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, [
+        analysisId,
+        documentId,
+        'textract',
+        JSON.stringify(textractResponse),
+        JSON.stringify(extractedData),
+        JSON.stringify(confidenceScores),
+        processingTime
+      ]);
+      
+      // Update document with analysis results
+      await connection2.execute(`
+        UPDATE documents SET 
+          status = ?, 
+          extracted_fields = ?, 
+          ai_confidence = ?,
+          suggested_filename = ?,
+          person_identified = ?,
+          document_type = ?
+        WHERE id = ?
+      `, [
+        'analyzed',
+        JSON.stringify(extractedData),
+        Math.round(Object.values(confidenceScores).reduce((a, b) => a + b, 0) / Object.keys(confidenceScores).length * 100),
+        suggestedFilename,
+        extractedData.personName || null,
+        extractedData.documentType || null,
+        documentId
+      ]);
+      
+      connection2.release();
+
+      // Check if person exists, create if not
+      if (extractedData.personName) {
+        await ensureFamilyMemberExists(extractedData.personName, document.family_id);
+      }
+
+      res.json({
+        success: true,
+        analysis: {
+          extractedFields: extractedData,
+          confidence: confidenceScores,
+          suggestedFilename: suggestedFilename,
+          processingTimeMs: processingTime,
+          status: 'analyzed'
+        },
+        message: 'Document analyzed successfully'
+      });
+
+    } catch (analysisError) {
+      // Update status to error
+      const connection3 = await pool.getConnection();
+      await connection3.execute(
+        'UPDATE documents SET status = ? WHERE id = ?',
+        ['error', documentId]
+      );
+      connection3.release();
+      
+      throw analysisError;
+    }
+
+  } catch (error) {
+    console.error('Analysis error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// 3. Update Filename
+app.post('/api/trustworthy/update-filename', async (req, res) => {
+  try {
+    const { documentId, newFilename } = req.body;
+    
+    if (!documentId || !newFilename) {
+      return res.status(400).json({
+        success: false,
+        error: 'Document ID and new filename required'
+      });
+    }
+
+    const connection = await pool.getConnection();
+    
+    await connection.execute(
+      'UPDATE documents SET suggested_filename = ? WHERE id = ?',
+      [newFilename, documentId]
+    );
+    
+    connection.release();
+
+    res.json({
+      success: true,
+      message: 'Filename updated successfully'
+    });
+
+  } catch (error) {
+    console.error('Filename update error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// 4. Get Documents
+app.get('/api/trustworthy/documents/:familyId', async (req, res) => {
+  try {
+    const { familyId } = req.params;
+    const { limit = 50, offset = 0 } = req.query;
+
+    const connection = await pool.getConnection();
+    
+    const [rows] = await connection.execute(`
+      SELECT * FROM documents 
+      WHERE family_id = ? 
+      ORDER BY upload_time DESC 
+      LIMIT ? OFFSET ?
+    `, [familyId, parseInt(limit), parseInt(offset)]);
+    
+    connection.release();
+
+    const documents = rows.map(doc => ({
+      id: doc.id,
+      filename: doc.original_filename,
+      thumbnail: doc.thumbnail_path ? `/api/thumbnails/${path.basename(doc.thumbnail_path)}` : null,
+      uploadTime: doc.upload_time,
+      status: doc.status,
+      extractedFields: doc.extracted_fields ? JSON.parse(doc.extracted_fields) : {},
+      confidence: doc.ai_confidence,
+      suggestedFilename: doc.suggested_filename,
+      personIdentified: doc.person_identified,
+      documentType: doc.document_type
+    }));
+
+    res.json({
+      success: true,
+      documents: documents
+    });
+
+  } catch (error) {
+    console.error('Get documents error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// 5. Get Family Members
+app.get('/api/trustworthy/family-members/:familyId', async (req, res) => {
+  try {
+    const { familyId } = req.params;
+
+    const connection = await pool.getConnection();
+    
+    const [rows] = await connection.execute(
+      'SELECT * FROM family_members WHERE family_id = ? ORDER BY name',
+      [familyId]
+    );
+    
+    connection.release();
+
+    res.json({
+      success: true,
+      familyMembers: rows
+    });
+
+  } catch (error) {
+    console.error('Get family members error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// 6. Serve Thumbnails
+app.get('/api/thumbnails/:filename', async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const thumbnailPath = path.join(__dirname, 'uploads', 'thumbnails', filename);
+    
+    // Check if file exists
+    await fs.access(thumbnailPath);
+    
+    res.sendFile(thumbnailPath);
+  } catch (error) {
+    res.status(404).json({
+      success: false,
+      error: 'Thumbnail not found'
+    });
+  }
+});
+
+// Helper Functions
+const generateFilenameSuggestion = (extractedData) => {
+  const docType = extractedData.documentType || 'Document';
+  const personName = extractedData.personName || 'Unknown';
+  
+  return `${docType} ${personName}`;
+};
+
+const ensureFamilyMemberExists = async (personName, familyId) => {
+  try {
+    const connection = await pool.getConnection();
+    
+    // Check if family member exists
+    const [existing] = await connection.execute(
+      'SELECT id FROM family_members WHERE name = ? AND family_id = ?',
+      [personName, familyId]
+    );
+    
+    if (existing.length === 0) {
+      // Create new family member
+      const memberId = uuidv4();
+      await connection.execute(`
+        INSERT INTO family_members (id, name, family_id, documents_count)
+        VALUES (?, ?, ?, 1)
+      `, [memberId, personName, familyId]);
+    } else {
+      // Increment document count
+      await connection.execute(
+        'UPDATE family_members SET documents_count = documents_count + 1 WHERE id = ?',
+        [existing[0].id]
+      );
+    }
+    
+    connection.release();
+  } catch (error) {
+    console.error('Error ensuring family member exists:', error);
+  }
+};
+
+// Error handling middleware
+app.use((error, req, res, next) => {
+  console.error('Unhandled error:', error);
+  res.status(500).json({
+    success: false,
+    error: 'Internal server error'
+  });
+});
+
+// Start server
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`Trustworthy backend server running on port ${PORT}`);
+});
+
+module.exports = app;
