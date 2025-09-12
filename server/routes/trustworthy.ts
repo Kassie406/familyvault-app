@@ -777,7 +777,8 @@ router.post("/lambda-analyze", async (req, res) => {
     const keyValuePairs = Array.isArray(analysisResult.keyValuePairs) ? analysisResult.keyValuePairs : [];
     const lambdaDocumentType = analysisResult.documentType || 'unknown';
     const confidence = typeof analysisResult.confidence === 'number' ? analysisResult.confidence : 0;
-    const summary = analysisResult.summary || `Analysis completed for ${fileName}`;
+    const documentName = fileName || documentRecord.originalFilename || 'document';
+    const summary = analysisResult.summary || `Analysis completed for ${documentName}`;
 
     // Validate key-value pairs structure
     const validKeyValuePairs = keyValuePairs.filter((kv: any) => {
