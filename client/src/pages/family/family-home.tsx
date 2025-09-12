@@ -30,8 +30,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { StatCard } from '@/components/StatCard';
 import { InviteFamilyMemberDialog } from '@/components/InviteFamilyMemberDialog';
-import { EnhancedUploadCenter } from '@/components/upload/enhanced/EnhancedUploadCenter';
-import '@/components/upload/enhanced/EnhancedUploadCenter.css';
+import { DualUploadCenter } from '@/components/upload/DualUploadCenter';
+import '@/components/upload/DualUploadCenter.css';
 import AIBanner from '@/components/ai/AIBanner';
 import InboxDrawer from '@/components/inbox/InboxDrawer';
 import { NewMessageModal } from '@/components/messaging/NewMessageModal';
@@ -116,6 +116,278 @@ export default function FamilyHome() {
   
   // Navigation hook
   const [, setLocation] = useLocation();
+
+  // Handle document upload to Enhanced LEFT Sidebar workflow
+  const handleDocumentUpload = async (files: File[]) => {
+    try {
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        // Use fetch directly for FormData uploads to avoid content-type issues
+        const response = await fetch('/api/uploads/enhanced', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Document upload failed: ${errorText}`);
+        }
+        
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || 'Document upload failed');
+        }
+      }
+    } catch (error) {
+      console.error('Document upload error:', error);
+      throw error;
+    }
+  };
+
+  // Handle photo upload to Family Album
+  const handlePhotoUpload = async (files: File[]) => {
+    try {
+      const formData = new FormData();
+      files.forEach(file => formData.append('photos', file));
+      
+      // Use fetch directly for FormData uploads to avoid content-type issues
+      const response = await fetch('/api/uploads/photos', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Photo upload failed: ${errorText}`);
+      }
+      
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Photo upload failed');
+      }
+    } catch (error) {
+      console.error('Photo upload error:', error);
+      throw error;
+    }
+  };
+
+  // Navigate to Family Album
+  const handleNavigateToAlbum = () => {
+    setLocation('/photos-albums'); // Navigate to Family Album page
+  };
+
+  // Card renderer function for the sortable grid
+  const renderCard = (id: CardId): React.ReactNode => {
+    switch (id) {
+      case 'familyMembers':
+        const familyMembersData = familyStats.find(s => s.label === 'Family Members');
+        return (
+          <StatCard 
+            icon={<Users className="h-5 w-5" />}
+            value={familyMembersData?.value || 0}
+            label="Family Members"
+            href={familyMembersData?.href || '#'}
+            fetchPreview={async () => familyMembersData?.previewItems || []}
+            dropdownActions={familyMembersData?.dropdownActions || []}
+          />
+        );
+
+      case 'documents':
+        const documentsData = familyStats.find(s => s.label === 'Documents Shared');
+        return (
+          <StatCard 
+            icon={<FileText className="h-5 w-5" />}
+            value={documentsData?.value || 0}
+            label="Documents Shared"
+            href={documentsData?.href || '#'}
+            fetchPreview={documentsData?.fetchPreview || (async () => [])}
+            dropdownActions={documentsData?.dropdownActions || []}
+          />
+        );
+
+      case 'messages':
+        const messagesData = familyStats.find(s => s.label === 'Messages & Video Meetings');
+        return (
+          <StatCard 
+            icon={<MessageCircle className="h-5 w-5" />}
+            value={messagesData?.value || 0}
+            label="Messages & Video Meetings"
+            href={messagesData?.href || '#'}
+            fetchPreview={messagesData?.fetchPreview || (async () => [])}
+            dropdownActions={messagesData?.dropdownActions || []}
+          />
+        );
+
+      case 'photos':
+        const photosData = familyStats.find(s => s.label === 'Photos Uploaded');
+        return (
+          <StatCard 
+            icon={<ImageIcon className="h-5 w-5" />}
+            value={photosData?.value || 0}
+            label="Photos Uploaded"
+            href={photosData?.href || '#'}
+            fetchPreview={photosData?.fetchPreview || (async () => [])}
+            dropdownActions={photosData?.dropdownActions || []}
+          />
+        );
+
+      case 'sharedLists':
+        const sharedListsData = familyStats.find(s => s.label === 'Shared Lists');
+        return (
+          <StatCard 
+            icon={<ListTodo className="h-5 w-5" />}
+            value={sharedListsData?.value || 0}
+            label="Shared Lists"
+            href={sharedListsData?.href || '#'}
+            fetchPreview={sharedListsData?.fetchPreview || (async () => [])}
+            dropdownActions={sharedListsData?.dropdownActions || []}
+          />
+        );
+
+      case 'recipeBook':
+        const recipeBookData = familyStats.find(s => s.label === 'Recipe Book');
+        return (
+          <StatCard 
+            icon={<ChefHat className="h-5 w-5" />}
+            value={recipeBookData?.value || 0}
+            label="Recipe Book"
+            href={recipeBookData?.href || '#'}
+            fetchPreview={recipeBookData?.fetchPreview || (async () => [])}
+            dropdownActions={recipeBookData?.dropdownActions || []}
+          />
+        );
+
+      case 'budget':
+        const budgetData = familyStats.find(s => s.label === 'Budget Tracker');
+        return (
+          <StatCard 
+            icon={<DollarSign className="h-5 w-5" />}
+            value={budgetData?.value || '$0'}
+            label="Budget Tracker"
+            href={budgetData?.href || '#'}
+            fetchPreview={budgetData?.fetchPreview || (async () => [])}
+            dropdownActions={budgetData?.dropdownActions || []}
+          />
+        );
+
+      case 'couples':
+        const couplesData = familyStats.find(s => s.label === "Couple's Connection");
+        return (
+          <StatCard 
+            icon={<Heart className="h-5 w-5" />}
+            value={couplesData?.value || 'Together'}
+            label="Couple's Connection"
+            href={couplesData?.href || '#'}
+            fetchPreview={couplesData?.fetchPreview || (async () => [])}
+            dropdownActions={couplesData?.dropdownActions || []}
+          />
+        );
+
+      case 'mealPlanner':
+        const mealPlannerData = familyStats.find(s => s.label === 'Meal Planner');
+        return (
+          <StatCard 
+            icon={<CalendarDays className="h-5 w-5" />}
+            value={mealPlannerData?.value || 'Week View'}
+            label="Meal Planner"
+            href={mealPlannerData?.href || '#'}
+            fetchPreview={mealPlannerData?.fetchPreview || (async () => [])}
+            dropdownActions={mealPlannerData?.dropdownActions || []}
+          />
+        );
+
+      case 'familyVacation':
+        const familyVacationData = familyStats.find(s => s.label === 'Family Vacation');
+        return (
+          <StatCard 
+            icon={<MapPin className="h-5 w-5" />}
+            value={familyVacationData?.value || 'Plan Trip'}
+            label="Family Vacation"
+            href={familyVacationData?.href || '#'}
+            fetchPreview={familyVacationData?.fetchPreview || (async () => [])}
+            dropdownActions={familyVacationData?.dropdownActions || []}
+          />
+        );
+
+      case 'babysitter':
+        const babysitterData = familyStats.find(s => s.label === 'Babysitter');
+        return (
+          <StatCard 
+            icon={<User className="h-5 w-5" />}
+            value={babysitterData?.value || 'Available'}
+            label="Babysitter"
+            href={babysitterData?.href || '#'}
+            fetchPreview={babysitterData?.fetchPreview || (async () => [])}
+            dropdownActions={babysitterData?.dropdownActions || []}
+          />
+        );
+
+      case 'emergencyContacts':
+        const emergencyContactsData = familyStats.find(s => s.label === 'Emergency Contacts');
+        return (
+          <StatCard 
+            icon={<ShieldAlert className="h-5 w-5" />}
+            value={emergencyContactsData?.value || '24/7 Ready'}
+            label="Emergency Contacts"
+            href={emergencyContactsData?.href || '#'}
+            fetchPreview={emergencyContactsData?.fetchPreview || (async () => [])}
+            dropdownActions={emergencyContactsData?.dropdownActions || []}
+          />
+        );
+
+      case 'chores':
+        return <ChoresCard currentUser={currentUser} />;
+
+      case 'allowancePoints':
+        return <AllowanceMini />;
+
+      case 'uploadCenter':
+        return (
+          <div 
+            ref={uploadCenterRef}
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 h-auto flex flex-col"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-lg bg-blue-600/10">
+                <Upload className="h-5 w-5 text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-gray-200 font-semibold">Upload Center</h3>
+                <p className="text-xs text-gray-500">Add documents and photos to your family vault</p>
+              </div>
+            </div>
+            
+            {/* AI Banner - single source of truth from parent */}
+            <AIBanner 
+              aiState={aiState}
+              onDismiss={cancelAI}
+              onRegenerate={tryAgainAI}
+              onReview={() => setInboxOpen(true)}
+            />
+            
+            <div className={`flex-1 ${(highlightDocumentUpload || highlightPhotoUpload) ? 'upload-highlight' : ''}`}>
+              <DualUploadCenter 
+                onDocumentUpload={handleDocumentUpload}
+                onPhotoUpload={handlePhotoUpload}
+                onNavigateToAlbum={handleNavigateToAlbum}
+              />
+            </div>
+          </div>
+        );
+
+      default:
+        return (
+          <div className="h-full rounded-2xl bg-zinc-900 border border-zinc-800 p-4 shadow-sm">
+            <div className="text-sm text-gray-400 mb-2">Card: {id}</div>
+            <div className="text-xs text-gray-600">Coming soon...</div>
+          </div>
+        );
+    }
+  };
 
   // Logout function
   const handleLogout = async () => {
@@ -738,212 +1010,6 @@ export default function FamilyHome() {
     }
   ];
 
-  // Card renderer function for the sortable grid
-  const renderCard = (id: CardId): React.ReactNode => {
-    switch (id) {
-      case 'familyMembers':
-        const familyMembersData = familyStats.find(s => s.label === 'Family Members');
-        return (
-          <StatCard 
-            icon={<Users className="h-5 w-5" />}
-            value={familyMembersData?.value || 0}
-            label="Family Members"
-            href={familyMembersData?.href || '#'}
-            fetchPreview={async () => familyMembersData?.previewItems || []}
-            dropdownActions={familyMembersData?.dropdownActions || []}
-          />
-        );
-
-      case 'documents':
-        const documentsData = familyStats.find(s => s.label === 'Documents Shared');
-        return (
-          <StatCard 
-            icon={<FileText className="h-5 w-5" />}
-            value={documentsData?.value || 0}
-            label="Documents Shared"
-            href={documentsData?.href || '#'}
-            fetchPreview={documentsData?.fetchPreview || (async () => [])}
-            dropdownActions={documentsData?.dropdownActions || []}
-          />
-        );
-
-      case 'messages':
-        const messagesData = familyStats.find(s => s.label === 'Messages & Video Meetings');
-        return (
-          <StatCard 
-            icon={<MessageCircle className="h-5 w-5" />}
-            value={messagesData?.value || 0}
-            label="Messages & Video Meetings"
-            href={messagesData?.href || '#'}
-            fetchPreview={messagesData?.fetchPreview || (async () => [])}
-            dropdownActions={messagesData?.dropdownActions || []}
-          />
-        );
-
-      case 'photos':
-        const photosData = familyStats.find(s => s.label === 'Photos Uploaded');
-        return (
-          <StatCard 
-            icon={<ImageIcon className="h-5 w-5" />}
-            value={photosData?.value || 0}
-            label="Photos Uploaded"
-            href={photosData?.href || '#'}
-            fetchPreview={photosData?.fetchPreview || (async () => [])}
-            dropdownActions={photosData?.dropdownActions || []}
-          />
-        );
-
-      case 'sharedLists':
-        const sharedListsData = familyStats.find(s => s.label === 'Shared Lists');
-        return (
-          <StatCard 
-            icon={<ListTodo className="h-5 w-5" />}
-            value={sharedListsData?.value || 0}
-            label="Shared Lists"
-            href={sharedListsData?.href || '#'}
-            fetchPreview={sharedListsData?.fetchPreview || (async () => [])}
-            dropdownActions={sharedListsData?.dropdownActions || []}
-          />
-        );
-
-      case 'recipeBook':
-        const recipeBookData = familyStats.find(s => s.label === 'Recipe Book');
-        return (
-          <StatCard 
-            icon={<ChefHat className="h-5 w-5" />}
-            value={recipeBookData?.value || 0}
-            label="Recipe Book"
-            href={recipeBookData?.href || '#'}
-            fetchPreview={recipeBookData?.fetchPreview || (async () => [])}
-            dropdownActions={recipeBookData?.dropdownActions || []}
-          />
-        );
-
-      case 'budget':
-        const budgetData = familyStats.find(s => s.label === 'Budget Tracker');
-        return (
-          <StatCard 
-            icon={<DollarSign className="h-5 w-5" />}
-            value={budgetData?.value || '$0'}
-            label="Budget Tracker"
-            href={budgetData?.href || '#'}
-            fetchPreview={budgetData?.fetchPreview || (async () => [])}
-            dropdownActions={budgetData?.dropdownActions || []}
-          />
-        );
-
-      case 'couples':
-        const couplesData = familyStats.find(s => s.label === "Couple's Connection");
-        return (
-          <StatCard 
-            icon={<Heart className="h-5 w-5" />}
-            value={couplesData?.value || 'Together'}
-            label="Couple's Connection"
-            href={couplesData?.href || '#'}
-            fetchPreview={couplesData?.fetchPreview || (async () => [])}
-            dropdownActions={couplesData?.dropdownActions || []}
-          />
-        );
-
-      case 'mealPlanner':
-        const mealPlannerData = familyStats.find(s => s.label === 'Meal Planner');
-        return (
-          <StatCard 
-            icon={<CalendarDays className="h-5 w-5" />}
-            value={mealPlannerData?.value || 'Week View'}
-            label="Meal Planner"
-            href={mealPlannerData?.href || '#'}
-            fetchPreview={mealPlannerData?.fetchPreview || (async () => [])}
-            dropdownActions={mealPlannerData?.dropdownActions || []}
-          />
-        );
-
-      case 'familyVacation':
-        const familyVacationData = familyStats.find(s => s.label === 'Family Vacation');
-        return (
-          <StatCard 
-            icon={<MapPin className="h-5 w-5" />}
-            value={familyVacationData?.value || 'Plan Trip'}
-            label="Family Vacation"
-            href={familyVacationData?.href || '#'}
-            fetchPreview={familyVacationData?.fetchPreview || (async () => [])}
-            dropdownActions={familyVacationData?.dropdownActions || []}
-          />
-        );
-
-      case 'babysitter':
-        const babysitterData = familyStats.find(s => s.label === 'Babysitter');
-        return (
-          <StatCard 
-            icon={<User className="h-5 w-5" />}
-            value={babysitterData?.value || 'Available'}
-            label="Babysitter"
-            href={babysitterData?.href || '#'}
-            fetchPreview={babysitterData?.fetchPreview || (async () => [])}
-            dropdownActions={babysitterData?.dropdownActions || []}
-          />
-        );
-
-      case 'emergencyContacts':
-        const emergencyContactsData = familyStats.find(s => s.label === 'Emergency Contacts');
-        return (
-          <StatCard 
-            icon={<ShieldAlert className="h-5 w-5" />}
-            value={emergencyContactsData?.value || '24/7 Ready'}
-            label="Emergency Contacts"
-            href={emergencyContactsData?.href || '#'}
-            fetchPreview={emergencyContactsData?.fetchPreview || (async () => [])}
-            dropdownActions={emergencyContactsData?.dropdownActions || []}
-          />
-        );
-
-      case 'chores':
-        return <ChoresCard currentUser={currentUser} />;
-
-      case 'allowancePoints':
-        return <AllowanceMini />;
-
-      // quickActions case removed - duplicate of Legacy Actions section
-
-      case 'uploadCenter':
-        return (
-          <div 
-            ref={uploadCenterRef}
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 h-auto flex flex-col"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-lg bg-blue-600/10">
-                <Upload className="h-5 w-5 text-blue-400" />
-              </div>
-              <div>
-                <h3 className="text-gray-200 font-semibold">Upload Center</h3>
-                <p className="text-xs text-gray-500">Add documents and photos to your family vault</p>
-              </div>
-            </div>
-            
-            {/* AI Banner - single source of truth from parent */}
-            <AIBanner 
-              aiState={aiState}
-              onDismiss={cancelAI}
-              onRegenerate={tryAgainAI}
-              onReview={() => setInboxOpen(true)}
-            />
-            
-            <div className={`flex-1 ${(highlightDocumentUpload || highlightPhotoUpload) ? 'upload-highlight' : ''}`}>
-              <EnhancedUploadCenter />
-            </div>
-          </div>
-        );
-
-      default:
-        return (
-          <div className="h-full rounded-2xl bg-zinc-900 border border-zinc-800 p-4 shadow-sm">
-            <div className="text-sm text-gray-400 mb-2">Card: {id}</div>
-            <div className="text-xs text-gray-600">Coming soon...</div>
-          </div>
-        );
-    }
-  };
 
 
   return (
