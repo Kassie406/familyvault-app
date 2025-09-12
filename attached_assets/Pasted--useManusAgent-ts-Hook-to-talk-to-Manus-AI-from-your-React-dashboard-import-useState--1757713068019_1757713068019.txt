@@ -1,0 +1,176 @@
+// ✅ useManusAgent.ts
+// Hook to talk to Manus AI from your React dashboard
+
+import { useState } from 'react';
+import axios from 'axios';
+
+export function useManusAgent() {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const askManus = async (prompt: string): Promise<string> => {
+    setIsLoading(true);
+    try {
+      const res = await axios.post('/api/ai-agent/ask', {
+        prompt
+      });
+      return res.data?.response || 'No response received.';
+    } catch (err: any) {
+      console.error('[ManusAgent Error]', err);
+      return '⚠️ Failed to reach Manus backend.';
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return { askManus, isLoading };
+}
+
+// ------------------------------
+// 🚀 Assistant Backend Power-Ups (Cost Saver Kit)
+// Files below are drop‑in additions for your Express + TypeScript backend.
+// Add them and wire as shown at the end. These cap usage, queue bursts,
+// cache duplicate calls, and enforce a daily budget so Replit/infra spend stays low.
+// ------------------------------
+
+// 📁 server/middleware/rateLimit.ts
+import type { Request, Response, NextFunction } from 'express';
+
+type Bucket = { tokens: number; last: number };
+const buckets: Record<string, Bucket> = {};
+
+// Token-bucket: X requests/min and Y burst (per session or IP)
+export function rateLimit({ rpm = 30, burst = 10 }: { rpm?: number; burst?: number }) {
+  const refillPerMs = rpm / 60000; // tokens per ms
+  return (req: Request, res: Response, next: NextFunction) => {
+    const key = (req.sessionID || req.ip || 'anon') + ':' + (req.path || '');
+    const now = Date.now();
+    const b = (buckets[key] ||= { tokens: burst, last: now });
+    const elapsed = now - b.last;
+    b.tokens = Math.min(burst, b.tokens + elapsed * refillPerMs);
+    b.last = now;
+    if (b.tokens < 1) return res.status(429).json({ error: 'Rate limit: slow down' });
+    b.tokens -= 1;
+    next();
+  };
+}
+
+// 📁 server/utils/cache.ts
+export type CacheEntry<T = any> = { value: T; expires: number };
+const cache = new Map<string, CacheEntry>();
+
+export function cacheKey(path: string, body: unknown) {
+  return `${path}::${JSON.stringify(body)}`;
+}
+
+export function getCache<T>(key: string): T | null {
+  const hit = cache.get(key);
+  if (!hit) return null;
+  if (Date.now() > hit.expires) { cache.delete(key); return null; }
+  return hit.value as T;
+}
+
+export function setCache<T>(key: string, value: T, ttlMs: number) {
+  cache.set(key, { value, expires: Date.now() + ttlMs });
+}
+
+// 📁 server/services/budgetGuard.ts
+let dailyCount = 0;
+let day = new Date().toDateString();
+
+export function incAndCheckBudget() {
+  const today = new Date().toDateString();
+  if (today !== day) { day = today; dailyCount = 0; }
+  dailyCount += 1;
+  const MAX_REQ = Number(process.env.MAX_AGENT_REQUESTS_PER_DAY || 500);
+  if (dailyCount > MAX_REQ) throw new Error('Daily agent budget exceeded');
+  return { dailyCount, MAX_REQ };
+}
+
+export function getBudgetStatus() {
+  const MAX_REQ = Number(process.env.MAX_AGENT_REQUESTS_PER_DAY || 500);
+  return { dailyCount, MAX_REQ, day };
+}
+
+// 📁 server/services/semaphore.ts
+export class Semaphore {
+  private q: Array<() => void> = [];
+  private active = 0;
+  constructor(private readonly limit = 2) {}
+  async run<T>(fn: () => Promise<T>): Promise<T> {
+    if (this.active >= this.limit) await new Promise<void>(r => this.q.push(r));
+    this.active++;
+    try { return await fn(); }
+    finally {
+      this.active--;
+      const next = this.q.shift(); if (next) next();
+    }
+  }
+}
+
+// 📁 server/routes/admin.ts
+import express from 'express';
+import { getBudgetStatus } from '../services/budgetGuard';
+const admin = express.Router();
+
+admin.get('/usage', (_req, res) => {
+  res.json({ ok: true, budget: getBudgetStatus() });
+});
+
+export default admin;
+
+// 📁 server/cron/cleanup.ts
+export function registerCleanupJobs() {
+  const weekly = Number(process.env.CLEANUP_INTERVAL_HOURS || 168); // weekly
+  setInterval(() => {
+    // TODO: add Neon VACUUM / blob cleanup calls here
+    console.log('[CLEANUP] running storage/DB maintenance');
+  }, weekly * 3600 * 1000);
+}
+
+// 📁 server/routes/ai-agent.ts (patches to add)
+// 1) Imports at top:
+// import { rateLimit } from '../middleware/rateLimit';
+// import { cacheKey, getCache, setCache } from '../utils/cache';
+// import { incAndCheckBudget } from '../services/budgetGuard';
+// import { Semaphore } from '../services/semaphore';
+
+// 2) Create shared semaphore near top-level
+// const sem = new Semaphore(Number(process.env.AGENT_CONCURRENCY || 2));
+
+// 3) Wrap handler body
+// router.post('/ask', rateLimit({ rpm: Number(process.env.RPM||30), burst: Number(process.env.BURST||10) }), async (req, res) => {
+//   const { prompt } = req.body;
+//   if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
+//   try {
+//     const { dailyCount, MAX_REQ } = incAndCheckBudget();
+//     const key = cacheKey('ask', { prompt });
+//     const ttl = Number(process.env.AGENT_CACHE_TTL_MS || 60000);
+//     const hit = getCache<string>(key);
+//     if (hit) return res.json({ response: hit, cache: true, budget: { dailyCount, MAX_REQ } });
+//
+//     const result = await sem.run(async () => {
+//       // existing resolveWithOpenAI + MCP call
+//       // return finalResponseText;
+//     });
+//
+//     setCache(key, result, ttl);
+//     res.json({ response: result, cache: false, budget: { dailyCount, MAX_REQ } });
+//   } catch (e:any) {
+//     return res.status(429).json({ error: e.message || 'Agent throttled' });
+//   }
+// });
+
+// 📁 server/index.ts (wire it up)
+// import admin from './routes/admin';
+// import { registerCleanupJobs } from './cron/cleanup';
+// app.use('/api/admin', admin);
+// registerCleanupJobs();
+
+// 📁 .env (new knobs)
+// MAX_AGENT_REQUESTS_PER_DAY=300
+// AGENT_CONCURRENCY=2
+// RPM=20
+// BURST=8
+// AGENT_CACHE_TTL_MS=60000
+// CLEANUP_INTERVAL_HOURS=168
+

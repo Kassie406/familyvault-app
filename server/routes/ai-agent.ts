@@ -73,95 +73,83 @@ function getOrCreateSession(sessionId: string): ConversationSession {
 }
 
 // Add message to conversation
-function addMessage(sessionId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>): ChatMessage {
+function addMessage(sessionId: string, messageData: Omit<ChatMessage, 'id' | 'timestamp'>): ChatMessage {
   const session = getOrCreateSession(sessionId);
-  const newMessage: ChatMessage = {
-    ...message,
+  const message: ChatMessage = {
     id: generateMessageId(),
-    timestamp: new Date()
+    timestamp: new Date(),
+    ...messageData
   };
   
-  session.messages.push(newMessage);
+  session.messages.push(message);
   session.lastActivity = new Date();
-  session.totalMessages++;
+  session.totalMessages += 1;
   
-  // Trim old messages if too many
+  // Trim old messages if over limit
   if (session.messages.length > MAX_MESSAGES_PER_SESSION) {
     session.messages = session.messages.slice(-MAX_MESSAGES_PER_SESSION);
   }
   
-  return newMessage;
+  return message;
 }
 
-// Enhanced conversation summary with function call history
+// Generate conversation summary with enhanced context
 function generateConversationSummary(messages: ChatMessage[]): string {
   if (messages.length === 0) return '';
   
-  const recentMessages = messages.slice(-10); // Last 10 messages
-  const topics = new Set<string>();
-  const functionCalls = new Set<string>();
-  const gptReasonings: string[] = [];
+  const recentMessages = messages.slice(-10);
+  const topics: string[] = [];
+  const functionCalls: string[] = [];
   
   recentMessages.forEach(msg => {
-    // Track function calls with success/failure
-    if (msg.functionCall) {
-      const status = msg.functionCall.success ? '✅' : '❌';
-      functionCalls.add(`${status} ${msg.functionCall.name}`);
+    if (msg.method) {
+      const success = msg.functionCall?.success ? '✅' : '❌';
+      functionCalls.push(`${success} ${msg.method}`);
     }
-    
-    // Extract GPT reasoning
     if (msg.gptReasoning) {
-      gptReasonings.push(msg.gptReasoning.substring(0, 100));
+      topics.push(msg.gptReasoning.slice(0, 50));
     }
-    
-    // Traditional topic extraction
-    if (msg.content.includes('design')) topics.add('design');
-    if (msg.content.includes('family')) topics.add('family management');
-    if (msg.content.includes('task')) topics.add('task management');
-    if (msg.content.includes('project')) topics.add('project tracking');
-    if (msg.content.includes('member')) topics.add('member management');
-    if (msg.content.includes('audit')) topics.add('system audit');
+    if (msg.content && msg.role === 'user') {
+      topics.push(msg.content.slice(0, 100));
+    }
   });
   
-  const summary = [];
-  if (topics.size > 0) summary.push(`Topics: ${Array.from(topics).join(', ')}`);
-  if (functionCalls.size > 0) summary.push(`Recent actions: ${Array.from(functionCalls).join(', ')}`);
-  if (gptReasonings.length > 0) summary.push(`GPT context: ${gptReasonings[gptReasonings.length - 1]}`);
+  let summary = `Conversation with ${messages.length} messages. `;
+  if (topics.length > 0) {
+    summary += `Topics: ${[...new Set(topics)].join(', ').slice(0, 200)}. `;
+  }
+  if (functionCalls.length > 0) {
+    summary += `Functions: ${functionCalls.join(', ')}.`;
+  }
   
-  return `Conversation context (${recentMessages.length} recent messages): ${summary.join('. ')}`;
+  return summary;
 }
 
-// GPT-powered function calling for intelligent intent parsing
-async function parseUserIntentWithGPT(prompt: string, session: ConversationSession): Promise<{ method: string; params: any; reasoning?: string }> {
-  const conversationSummary = generateConversationSummary(session.messages);
-  
-  // Build conversation context for GPT
-  const recentMessages = session.messages.slice(-6).map(msg => ({
-    role: msg.role,
-    content: msg.content.substring(0, 200), // Truncate for context
-    method: msg.method || null
-  }));
-  
+// Enhanced GPT-4 function calling with conversation context
+async function parseUserIntentWithGPT(prompt: string, session: ConversationSession) {
   try {
+    // Build conversation context
+    const conversationSummary = session.summary || generateConversationSummary(session.messages);
+    const recentMessages = session.messages.slice(-5);
+    const contextStr = recentMessages.map(m => `${m.role}: ${m.content.slice(0, 100)}`).join('\n');
+    
+    const systemPrompt = `You are Manus, an AI assistant for the FamilyVault app. Parse user requests and call the appropriate function.
+
+Conversation Context:
+${conversationSummary}
+
+Recent Messages:
+${contextStr}
+
+Available functions: ${mcpFunctionSchema.map(f => f.name).join(', ')}
+
+Choose the most appropriate function for: "${prompt}"`;
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: [
-        {
-          role: 'system',
-          content: `You are an intelligent assistant for FamilyVault, a family document management system. 
-
-Conversation Context: ${conversationSummary}
-
-Recent Messages: ${JSON.stringify(recentMessages, null, 2)}
-
-Analyze the user's request and call the most appropriate function. Be intelligent about extracting parameters from natural language. For family member tasks, extract names and roles intelligently. For design tasks, infer project context and priority.
-
-If the user's request doesn't clearly match any function, use 'track_project_progress' as a fallback.`
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt }
       ],
       functions: mcpFunctionSchema,
       function_call: 'auto',
@@ -171,8 +159,8 @@ If the user's request doesn't clearly match any function, use 'track_project_pro
     const message = completion.choices[0]?.message;
     
     if (message?.function_call) {
-      const functionName = message.function_call.name;
-      let functionParams;
+      const functionName = message.function_call.name || 'track_project_progress';
+      let functionParams = {};
       
       try {
         functionParams = JSON.parse(message.function_call.arguments || '{}');
@@ -362,13 +350,71 @@ router.post('/ask', async (req, res) => {
       lastActivity: session.lastActivity
     };
     
-    return res.status(500).json({ 
-      error: 'MCP request failed',
-      response: errorMessage.content,
+    return res.status(500).json({
+      error: err.message || 'MCP request failed',
       messageId: errorMessage.id,
       sessionId,
+      conversationLength: session.messages.length,
       conversation: conversationData
     });
+  }
+});
+
+// Get available capabilities endpoint
+router.get('/capabilities', (req, res) => {
+  try {
+    // Group capabilities by category for better UX
+    const capabilities = {
+      version: "1.0.0",
+      total_functions: mcpFunctionSchema.length,
+      categories: {
+        "Family & Project Management": mcpFunctionSchema
+          .filter(f => ["add_family_member", "manage_design_tasks", "audit_design_system", "track_project_progress", "get_family_members", "analyze_ui_component"].includes(f.name))
+          .map(f => ({ name: f.name, description: f.description })),
+        
+        "File Operations": mcpFunctionSchema
+          .filter(f => f.name.startsWith("fs_"))
+          .map(f => ({ name: f.name, description: f.description })),
+        
+        "Code Analysis": mcpFunctionSchema
+          .filter(f => f.name.startsWith("code_"))
+          .map(f => ({ name: f.name, description: f.description })),
+        
+        "Bash & Workflows": mcpFunctionSchema
+          .filter(f => f.name.startsWith("bash_") || f.name.startsWith("workflow_"))
+          .map(f => ({ name: f.name, description: f.description })),
+        
+        "Package Management": mcpFunctionSchema
+          .filter(f => f.name.startsWith("pkg_"))
+          .map(f => ({ name: f.name, description: f.description })),
+        
+        "Git Operations": mcpFunctionSchema
+          .filter(f => f.name.startsWith("git_"))
+          .map(f => ({ name: f.name, description: f.description })),
+        
+        "Database Operations": mcpFunctionSchema
+          .filter(f => f.name.startsWith("db_"))
+          .map(f => ({ name: f.name, description: f.description })),
+        
+        "Environment Management": mcpFunctionSchema
+          .filter(f => f.name.startsWith("env_"))
+          .map(f => ({ name: f.name, description: f.description })),
+        
+        "Debugging & Diagnostics": mcpFunctionSchema
+          .filter(f => f.name.startsWith("get_"))
+          .map(f => ({ name: f.name, description: f.description }))
+      },
+      all_functions: mcpFunctionSchema.map(f => ({ 
+        name: f.name, 
+        description: f.description,
+        parameters: f.parameters 
+      }))
+    };
+    
+    return res.json(capabilities);
+  } catch (error) {
+    console.error('[CAPABILITIES ERROR]', error);
+    return res.status(500).json({ error: 'Failed to retrieve capabilities' });
   }
 });
 
