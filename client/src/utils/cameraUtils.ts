@@ -328,3 +328,243 @@ export class MobileUtils {
     };
   }
 }
+
+// Screen Capture Manager for Screenshots
+export class ScreenCaptureManager {
+  private stream: MediaStream | null = null;
+  private canvas: HTMLCanvasElement | null = null;
+  private context: CanvasRenderingContext2D | null = null;
+
+  // Initialize screen capture
+  async initializeScreenCapture(): Promise<boolean> {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        throw new Error('Screen capture not supported on this browser');
+      }
+
+      const constraints: DisplayMediaStreamConstraints = {
+        video: {
+          cursor: 'always',
+          width: { ideal: 1920, max: 1920 },
+          height: { ideal: 1080, max: 1080 },
+          frameRate: { ideal: 60, max: 60 }
+        },
+        audio: false
+      };
+
+      this.stream = await navigator.mediaDevices.getDisplayMedia(constraints);
+      return true;
+
+    } catch (error) {
+      console.error('Screen capture initialization failed:', error);
+      throw new Error(this.getScreenCaptureErrorMessage(error as DOMException));
+    }
+  }
+
+  // Capture full screen screenshot
+  async captureScreenshot(options: {
+    quality?: number;
+    format?: string;
+    filename?: string;
+  } = {}): Promise<{
+    file: File;
+    imageUrl: string;
+    width: number;
+    height: number;
+  }> {
+    try {
+      await this.initializeScreenCapture();
+      
+      const {
+        quality = 0.95,
+        format = 'image/png',
+        filename = `screenshot_${Date.now()}.png`
+      } = options;
+
+      // Create video element to capture stream
+      const video = document.createElement('video');
+      video.srcObject = this.stream;
+      video.muted = true;
+      
+      // Wait for video to load
+      await new Promise<void>((resolve, reject) => {
+        video.onloadedmetadata = () => {
+          video.play().then(() => resolve()).catch(reject);
+        };
+        video.onerror = reject;
+      });
+
+      // Create canvas for capture
+      this.canvas = document.createElement('canvas');
+      this.context = this.canvas.getContext('2d');
+      
+      if (!this.context) {
+        throw new Error('Unable to create canvas context');
+      }
+
+      // Set canvas dimensions to video dimensions
+      this.canvas.width = video.videoWidth;
+      this.canvas.height = video.videoHeight;
+
+      // Draw video frame to canvas
+      this.context.drawImage(video, 0, 0);
+
+      // Clean up stream
+      this.stopScreenCapture();
+
+      // Convert to blob
+      return new Promise((resolve, reject) => {
+        this.canvas!.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error('Failed to capture screenshot'));
+            return;
+          }
+          
+          const file = new File([blob], filename, { type: format });
+          const imageUrl = URL.createObjectURL(blob);
+          
+          resolve({
+            file,
+            imageUrl,
+            width: this.canvas!.width,
+            height: this.canvas!.height
+          });
+        }, format, quality);
+      });
+
+    } catch (error) {
+      this.stopScreenCapture();
+      throw error;
+    }
+  }
+
+  // Capture specific element as screenshot
+  async captureElement(element: HTMLElement, options: {
+    quality?: number;
+    format?: string;
+    filename?: string;
+  } = {}): Promise<{
+    file: File;
+    imageUrl: string;
+    width: number;
+    height: number;
+  }> {
+    const {
+      quality = 0.95,
+      format = 'image/png',
+      filename = `element_screenshot_${Date.now()}.png`
+    } = options;
+
+    try {
+      // Get element bounds
+      const rect = element.getBoundingClientRect();
+      
+      // Create canvas with element dimensions
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      
+      if (!context) {
+        throw new Error('Unable to create canvas context');
+      }
+
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+
+      // Use html2canvas alternative - convert element to blob
+      const clonedElement = element.cloneNode(true) as HTMLElement;
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+      
+      svg.setAttribute('width', rect.width.toString());
+      svg.setAttribute('height', rect.height.toString());
+      foreignObject.setAttribute('width', '100%');
+      foreignObject.setAttribute('height', '100%');
+      foreignObject.appendChild(clonedElement);
+      svg.appendChild(foreignObject);
+
+      const svgBlob = new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(svgBlob);
+
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          context.drawImage(img, 0, 0);
+          URL.revokeObjectURL(url);
+          
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              reject(new Error('Failed to capture element'));
+              return;
+            }
+            
+            const file = new File([blob], filename, { type: format });
+            const imageUrl = URL.createObjectURL(blob);
+            
+            resolve({
+              file,
+              imageUrl,
+              width: canvas.width,
+              height: canvas.height
+            });
+          }, format, quality);
+        };
+        img.onerror = reject;
+        img.src = url;
+      });
+
+    } catch (error) {
+      throw new Error(`Element capture failed: ${error}`);
+    }
+  }
+
+  // Stop screen capture and clean up resources
+  stopScreenCapture(): void {
+    if (this.stream) {
+      this.stream.getTracks().forEach(track => track.stop());
+      this.stream = null;
+    }
+  }
+
+  // Get user-friendly error messages for screen capture
+  private getScreenCaptureErrorMessage(error: DOMException): string {
+    switch (error.name) {
+      case 'NotAllowedError':
+        return 'Screen capture permission denied. Please allow screen sharing to take screenshots.';
+      case 'NotSupportedError':
+        return 'Screen capture not supported on this browser or device.';
+      case 'NotReadableError':
+        return 'Screen capture failed. Please try again.';
+      case 'AbortError':
+        return 'Screen capture was cancelled.';
+      default:
+        return 'Screen capture failed. Please ensure you have the latest browser version.';
+    }
+  }
+
+  // Check if screen capture is supported
+  static isScreenCaptureSupported(): boolean {
+    return !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+  }
+
+  // Quick screenshot utility function
+  static async takeQuickScreenshot(filename?: string): Promise<{
+    file: File;
+    imageUrl: string;
+    width: number;
+    height: number;
+  }> {
+    const manager = new ScreenCaptureManager();
+    return await manager.captureScreenshot({ filename });
+  }
+
+  // Quick element capture utility function
+  static async captureQuickElement(element: HTMLElement, filename?: string): Promise<{
+    file: File;
+    imageUrl: string;
+    width: number;
+    height: number;
+  }> {
+    const manager = new ScreenCaptureManager();
+    return await manager.captureElement(element, { filename });
+  }
+}

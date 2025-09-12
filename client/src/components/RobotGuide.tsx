@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X, Send, MessageCircle, Code, FileText, Database, Terminal, Paperclip, Camera, Image, Upload, Trash2 } from "lucide-react";
 import { validateFile, formatFileSize } from "@/utils/uploadApiIntegration";
+import { ScreenCaptureManager } from "@/utils/cameraUtils";
 
 type Step = { selector: string; message: string };
 type Props = {
@@ -385,30 +386,28 @@ export const RobotGuide: React.FC<Props> = ({ steps = [], start, onFinish, initi
 
   const captureScreenshot = async () => {
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true
-      });
-      
-      const video = document.createElement('video');
-      video.srcObject = stream;
-      await video.play();
-      
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx?.drawImage(video, 0, 0);
-      
-      stream.getTracks().forEach(track => track.stop());
-      
-      canvas.toBlob(blob => {
-        if (blob) {
-          const file = new File([blob], `screenshot_${Date.now()}.png`, { type: 'image/png' });
-          handleFileSelect([file]);
-        }
-      }, 'image/png', 0.9);
+      if (!ScreenCaptureManager.isScreenCaptureSupported()) {
+        alert('Screen capture is not supported in this browser. Please use Chrome, Firefox, or Edge.');
+        return;
+      }
+
+      const result = await ScreenCaptureManager.takeQuickScreenshot(`screenshot_${Date.now()}.png`);
+      handleFileSelect([result.file]);
     } catch (error) {
       console.error('Screenshot capture failed:', error);
+      let errorMessage = 'Failed to capture screenshot';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('denied') || error.message.includes('NotAllowedError')) {
+          errorMessage = 'Screen capture permission was denied. Please allow screen sharing to take screenshots.';
+        } else if (error.message.includes('cancelled') || error.message.includes('AbortError')) {
+          errorMessage = 'Screenshot capture was cancelled.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      alert(errorMessage);
     }
   };
 
