@@ -80,12 +80,12 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       analyzing: { 
         icon: Clock, 
         color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-        label: 'Analyzing' 
+        label: 'Analyzing...' 
       },
       analyzed: { 
         icon: CheckCircle, 
         color: 'bg-green-500/20 text-green-400 border-green-500/30',
-        label: 'Analyzed' 
+        label: 'Complete' 
       },
       error: { 
         icon: AlertCircle, 
@@ -245,9 +245,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
           {/* Sidebar */}
           <motion.div
-            initial={{ x: -400, opacity: 0 }}
+            initial={{ x: -350, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -400, opacity: 0 }}
+            exit={{ x: -350, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="trustworthy-sidebar"
             data-testid="trustworthy-left-sidebar"

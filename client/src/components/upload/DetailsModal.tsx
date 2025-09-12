@@ -479,38 +479,6 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
                   </div>
                 )}
 
-                {/* Save Changes Button */}
-                {(hasUnsavedChanges || extractedFields.some(field => field.isEditing)) && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-6"
-                  >
-                    <Button
-                      onClick={handleSaveAllChanges}
-                      disabled={isSaving}
-                      className="w-full"
-                      style={{
-                        backgroundColor: 'var(--trustworthy-primary-gold)',
-                        color: 'var(--trustworthy-dark-bg)'
-                      }}
-                      data-testid="save-all-changes"
-                    >
-                      {isSaving ? (
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          className="w-4 h-4 border-2 border-current border-t-transparent rounded-full"
-                        />
-                      ) : (
-                        <>
-                          <Save size={16} className="mr-2" />
-                          {hasUnsavedChanges ? 'Save Changes' : 'Save All Changes'}
-                        </>
-                      )}
-                    </Button>
-                  </motion.div>
-                )}
               </div>
 
               {/* Right: Profile Routing */}
@@ -646,52 +614,80 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
                     </motion.div>
                   )}
 
-                  {/* Route Button */}
-                  <Button
-                    onClick={handleRouteToProfile}
-                    disabled={!selectedMemberId || isRouting}
-                    className="w-full"
-                    style={{
-                      backgroundColor: selectedMemberId 
-                        ? 'var(--trustworthy-primary-gold)' 
-                        : 'var(--trustworthy-border)',
-                      color: selectedMemberId 
-                        ? 'var(--trustworthy-dark-bg)' 
-                        : 'var(--trustworthy-text-muted)'
-                    }}
-                    data-testid="route-to-profile-button"
-                  >
-                    {isRouting ? (
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        className="w-4 h-4 border-2 border-current border-t-transparent rounded-full"
-                      />
-                    ) : (
-                      <>
-                        <UserCheck size={16} className="mr-2" />
-                        Route to Profile
-                      </>
-                    )}
-                  </Button>
-
-                  {/* View Profile Link */}
-                  {selectedMemberId && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        // Navigate to profile and close modal
-                        setLocation(`/family/members/${selectedMemberId}`);
-                        onClose();
-                      }}
-                      className="w-full"
-                      data-testid="view-profile-button"
-                    >
-                      <ExternalLink size={16} className="mr-2" />
-                      View Profile
-                    </Button>
-                  )}
                 </div>
+              </div>
+            </div>
+
+            {/* Footer: Accept/Dismiss Actions (PDF Specification) */}
+            <div 
+              className="p-6 border-t"
+              style={{ borderColor: 'var(--trustworthy-border)' }}
+            >
+              <div className="flex items-center justify-end gap-4">
+                {/* Dismiss Button */}
+                <Button
+                  variant="outline"
+                  onClick={onClose}
+                  className="px-6 py-2 border border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                  data-testid="dismiss-document-button"
+                >
+                  Dismiss
+                </Button>
+
+                {/* Accept Button */}
+                <Button
+                  onClick={async () => {
+                    try {
+                      // First save any field edits
+                      if (hasUnsavedChanges || extractedFields.some(field => field.isEditing)) {
+                        await handleSaveAllChanges();
+                      }
+                      
+                      // Then route to profile if member is selected
+                      if (selectedMemberId) {
+                        await handleRouteToProfile();
+                        
+                        // Navigate to profile after successful routing
+                        setLocation(`/family/members/${selectedMemberId}`);
+                      }
+                      
+                      // Close the modal
+                      onClose();
+                    } catch (error) {
+                      console.error('Accept action failed:', error);
+                      toast({
+                        title: 'Action Failed',
+                        description: 'Failed to accept document. Please try again.',
+                        variant: 'destructive'
+                      });
+                    }
+                  }}
+                  disabled={!selectedMemberId || isRouting || isSaving}
+                  className="px-6 py-2"
+                  style={{
+                    backgroundColor: selectedMemberId 
+                      ? 'var(--trustworthy-primary-gold)' 
+                      : 'var(--trustworthy-border)',
+                    color: selectedMemberId 
+                      ? 'var(--trustworthy-dark-bg)' 
+                      : 'var(--trustworthy-text-muted)',
+                    borderColor: selectedMemberId 
+                      ? 'var(--trustworthy-primary-gold)' 
+                      : 'var(--trustworthy-border)'
+                  }}
+                  data-testid="accept-document-button"
+                >
+                  {(isRouting || isSaving) ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2"
+                    />
+                  ) : (
+                    <UserCheck size={16} className="mr-2" />
+                  )}
+                  Accept & Route
+                </Button>
               </div>
             </div>
           </motion.div>

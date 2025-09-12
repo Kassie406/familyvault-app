@@ -27,22 +27,41 @@ const getCurrentUser = (req: any) => {
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
-// Initialize AWS clients
-const textractClient = new TextractClient({ 
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
-  }
-});
+// Lazy AWS client initialization to avoid runtime errors when credentials are missing
+let textractClient: TextractClient | null = null;
+let s3Client: S3Client | null = null;
 
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
+const getTextractClient = (): TextractClient => {
+  if (!textractClient && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+    textractClient = new TextractClient({ 
+      region: process.env.AWS_REGION || 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+      }
+    });
   }
-});
+  if (!textractClient) {
+    throw new Error('Textract client not available - AWS credentials missing');
+  }
+  return textractClient;
+};
+
+const getS3Client = (): S3Client => {
+  if (!s3Client && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+    s3Client = new S3Client({
+      region: process.env.AWS_REGION || 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+      }
+    });
+  }
+  if (!s3Client) {
+    throw new Error('S3 client not available - AWS credentials missing');
+  }
+  return s3Client;
+};
 
 // Mock storage for Trustworthy documents (placeholder until real DB integration)
 const mockDocuments = new Map<string, any>();
@@ -86,22 +105,52 @@ router.post("/upload", upload.single("document"), async (req, res) => {
     const ext = "." + (extFromMime(file.mimetype) || "bin");
     const filename = `${fileId}${ext}`;
     
-    // Upload original document to S3
-    const fileUrl = await uploadBufferToS3(`${keyBase}${ext}`, file.buffer, file.mimetype);
+    let fileUrl: string;
+    let thumbnailUrl: string | null = null;
+
+    // Check if AWS credentials are available
+    const hasAWSCredentials = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.S3_BUCKET_DOCS;
     
-    // Create thumbnail for images
-    let thumbnailUrl = null;
-    if (file.mimetype.startsWith("image/")) {
-      try {
-        const thumbBuf = await sharp(file.buffer)
-          .rotate()
-          .resize({ width: 300, height: 300, fit: 'inside', withoutEnlargement: true })
-          .jpeg({ quality: 80 })
-          .toBuffer();
-        
-        thumbnailUrl = await uploadBufferToS3(`${keyBase}_thumb.jpg`, thumbBuf, "image/jpeg");
-      } catch (thumbError) {
-        console.warn("Failed to create thumbnail:", thumbError);
+    if (hasAWSCredentials) {
+      // Upload original document to S3
+      fileUrl = await uploadBufferToS3(`${keyBase}${ext}`, file.buffer, file.mimetype);
+      
+      // Create thumbnail for images
+      if (file.mimetype.startsWith("image/")) {
+        try {
+          const thumbBuf = await sharp(file.buffer)
+            .rotate()
+            .resize({ width: 300, height: 300, fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 80 })
+            .toBuffer();
+          
+          thumbnailUrl = await uploadBufferToS3(`${keyBase}_thumb.jpg`, thumbBuf, "image/jpeg");
+        } catch (thumbError) {
+          console.warn("Failed to create thumbnail:", thumbError);
+        }
+      }
+    } else {
+      // Development fallback: Use data URLs for local storage
+      console.log("AWS credentials not found, using development fallback");
+      
+      // Convert file buffer to data URL for local storage
+      const base64Data = file.buffer.toString('base64');
+      fileUrl = `data:${file.mimetype};base64,${base64Data}`;
+      
+      // Create thumbnail for images in development
+      if (file.mimetype.startsWith("image/")) {
+        try {
+          const thumbBuf = await sharp(file.buffer)
+            .rotate()
+            .resize({ width: 300, height: 300, fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 80 })
+            .toBuffer();
+          
+          const thumbBase64 = thumbBuf.toString('base64');
+          thumbnailUrl = `data:image/jpeg;base64,${thumbBase64}`;
+        } catch (thumbError) {
+          console.warn("Failed to create thumbnail:", thumbError);
+        }
       }
     }
 
@@ -125,7 +174,11 @@ router.post("/upload", upload.single("document"), async (req, res) => {
 
     // Trigger AI analysis automatically
     setTimeout(async () => {
-      await analyzeDocumentWithTextract(document.id, fileUrl, file.mimetype);
+      if (hasAWSCredentials) {
+        await analyzeDocumentWithTextract(document.id, fileUrl, file.mimetype);
+      } else {
+        await simulateAnalysisForDevelopment(document.id, file.originalname, file.mimetype);
+      }
     }, 1000);
 
     res.status(201).json({
@@ -413,7 +466,7 @@ async function analyzeDocumentWithTextract(documentId: string, fileUrl: string, 
     
     if (mimeType === 'application/pdf') {
       // For PDF files, use S3 object reference
-      textractResponse = await textractClient.send(new AnalyzeDocumentCommand({
+      textractResponse = await getTextractClient().send(new AnalyzeDocumentCommand({
         Document: {
           S3Object: {
             Bucket: bucket,
@@ -424,7 +477,7 @@ async function analyzeDocumentWithTextract(documentId: string, fileUrl: string, 
       }));
     } else if (mimeType.startsWith('image/')) {
       // For images, download and use bytes
-      const getObjectResponse = await s3Client.send(new GetObjectCommand({
+      const getObjectResponse = await getS3Client().send(new GetObjectCommand({
         Bucket: bucket,
         Key: key
       }));
@@ -435,7 +488,7 @@ async function analyzeDocumentWithTextract(documentId: string, fileUrl: string, 
       }
       const bytes = Buffer.concat(chunks);
 
-      textractResponse = await textractClient.send(new AnalyzeDocumentCommand({
+      textractResponse = await getTextractClient().send(new AnalyzeDocumentCommand({
         Document: {
           Bytes: bytes
         },
@@ -651,5 +704,236 @@ function calculateOverallConfidence(fields: any[]): number {
   const totalConfidence = fields.reduce((sum, field) => sum + field.confidence, 0);
   return Math.round(totalConfidence / fields.length);
 }
+
+// Development simulation function for AI analysis when AWS is not available
+async function simulateAnalysisForDevelopment(documentId: string, filename: string, mimeType: string) {
+  try {
+    console.log(`Starting simulated analysis for document ${documentId} in development mode`);
+    
+    // Update document status to analyzing
+    const documentToUpdate = mockDocuments.get(documentId);
+    if (documentToUpdate) {
+      documentToUpdate.status = "analyzing";
+      documentToUpdate.updatedAt = new Date();
+      mockDocuments.set(documentId, documentToUpdate);
+    }
+
+    // Simulate processing time (2-3 seconds as per PDF spec)
+    await new Promise(resolve => setTimeout(resolve, 2500));
+
+    // Create mock analysis results
+    const analysisId = crypto.randomUUID();
+    const mockFields = generateMockAnalysisFields(filename, mimeType);
+    
+    const analysis = {
+      id: analysisId,
+      documentId,
+      analysisType: 'mock_development',
+      rawResponse: { message: 'Simulated analysis for development' },
+      extractedData: {
+        blocks: mockFields.length,
+        forms: Math.floor(mockFields.length / 2),
+        tables: 0,
+        words: mockFields.length * 3
+      },
+      confidenceScores: {
+        average: 85,
+        min: 70,
+        max: 95
+      },
+      createdAt: new Date()
+    };
+    mockDocumentAnalysis.set(documentId, analysis);
+
+    // Store mock analysis fields
+    const analysisFieldsForDoc = mockFields.map(field => ({
+      id: crypto.randomUUID(),
+      documentId,
+      analysisId: analysis.id,
+      fieldKey: field.key,
+      fieldValue: field.value,
+      fieldType: field.type,
+      confidence: field.confidence,
+      boundingBox: null,
+      isPii: field.isPii,
+      isKeyField: field.confidence > 80,
+      extractedAt: new Date()
+    }));
+    
+    mockAnalysisFields.set(documentId, analysisFieldsForDoc);
+
+    // Try to identify person and document type from mock data
+    const personName = mockFields.find(f => f.key.includes('name'))?.value || null;
+    const documentType = identifyDocumentType(mockFields, mimeType);
+    const overallConfidence = 85;
+
+    // Update document with analysis results
+    const document = mockDocuments.get(documentId);
+    if (document) {
+      document.status = "analyzed";
+      document.aiConfidence = overallConfidence;
+      document.personIdentified = personName;
+      document.documentType = documentType;
+      document.extractedFields = mockFields.reduce((acc, field) => {
+        acc[field.key] = field.value;
+        return acc;
+      }, {} as any);
+      document.updatedAt = new Date();
+      mockDocuments.set(documentId, document);
+    }
+
+    console.log(`Simulated analysis completed for document ${documentId}: ${mockFields.length} fields extracted`);
+    
+  } catch (error) {
+    console.error(`Simulated analysis failed for document ${documentId}:`, error);
+    
+    // Update document status to error
+    const documentToUpdate = mockDocuments.get(documentId);
+    if (documentToUpdate) {
+      documentToUpdate.status = "error";
+      documentToUpdate.updatedAt = new Date();
+      mockDocuments.set(documentId, documentToUpdate);
+    }
+  }
+}
+
+// Generate mock analysis fields for development testing
+function generateMockAnalysisFields(filename: string, mimeType: string): any[] {
+  const baseFields = [
+    { key: 'document_name', value: filename, type: 'text', confidence: 95, isPii: false },
+    { key: 'full_name', value: 'John Smith', type: 'name', confidence: 90, isPii: true },
+    { key: 'date_of_birth', value: '01/15/1985', type: 'date', confidence: 85, isPii: true },
+    { key: 'document_number', value: 'ABC123456789', type: 'number', confidence: 88, isPii: true },
+    { key: 'address', value: '123 Main Street, Anytown, CA 90210', type: 'address', confidence: 82, isPii: true },
+    { key: 'issue_date', value: '03/15/2024', type: 'date', confidence: 80, isPii: false },
+    { key: 'expiration_date', value: '03/15/2029', type: 'date', confidence: 79, isPii: false }
+  ];
+
+  // Add document-type specific fields
+  if (filename.toLowerCase().includes('license') || mimeType.includes('image')) {
+    baseFields.push(
+      { key: 'license_class', value: 'Class C', type: 'text', confidence: 87, isPii: false },
+      { key: 'height', value: '5-09', type: 'text', confidence: 75, isPii: false },
+      { key: 'weight', value: '160', type: 'number', confidence: 73, isPii: false }
+    );
+  }
+
+  if (filename.toLowerCase().includes('passport')) {
+    baseFields.push(
+      { key: 'passport_number', value: 'P123456789', type: 'number', confidence: 92, isPii: true },
+      { key: 'country_code', value: 'USA', type: 'text', confidence: 95, isPii: false },
+      { key: 'place_of_birth', value: 'New York, NY', type: 'address', confidence: 78, isPii: true }
+    );
+  }
+
+  return baseFields;
+}
+
+// PATCH /api/trustworthy/documents/:id - Update document details
+router.patch("/documents/:id", async (req, res) => {
+  try {
+    const { userId, familyId } = getCurrentUser(req);
+    const documentId = req.params.id;
+    
+    const document = mockDocuments.get(documentId);
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        error: "Document not found"
+      });
+    }
+
+    // Validate request body with Zod
+    const updateSchema = z.object({
+      extractedFields: z.record(z.object({
+        value: z.string(),
+        confidence: z.number().optional(),
+        fieldType: z.string().optional()
+      })).optional(),
+      status: z.enum(["uploaded", "analyzing", "complete", "error"]).optional(),
+      personIdentified: z.string().optional(),
+      documentType: z.string().optional()
+    });
+
+    const validatedData = updateSchema.parse(req.body);
+
+    // Update document
+    const updatedDocument = {
+      ...document,
+      ...validatedData,
+      updatedAt: new Date()
+    };
+
+    mockDocuments.set(documentId, updatedDocument);
+
+    res.json({
+      success: true,
+      document: updatedDocument
+    });
+
+  } catch (error) {
+    console.error('Error updating document:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof z.ZodError ? error.errors : "Failed to update document"
+    });
+  }
+});
+
+// POST /api/trustworthy/documents/:id/route - Route document to family member
+router.post("/documents/:id/route", async (req, res) => {
+  try {
+    const { userId, familyId } = getCurrentUser(req);
+    const documentId = req.params.id;
+    
+    const document = mockDocuments.get(documentId);
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        error: "Document not found"
+      });
+    }
+
+    // Validate request body
+    const routeSchema = z.object({
+      memberId: z.string().min(1, "Member ID is required")
+    });
+
+    const { memberId } = routeSchema.parse(req.body);
+
+    // Update document with routing information
+    const updatedDocument = {
+      ...document,
+      routedToMemberId: memberId,
+      routedAt: new Date(),
+      status: "complete" as const,
+      updatedAt: new Date()
+    };
+
+    mockDocuments.set(documentId, updatedDocument);
+
+    // Store routing assignment
+    const memberAssignments = mockMemberAssignments.get(memberId) || [];
+    memberAssignments.push({
+      documentId,
+      assignedAt: new Date(),
+      assignedBy: userId
+    });
+    mockMemberAssignments.set(memberId, memberAssignments);
+
+    res.json({
+      success: true,
+      document: updatedDocument,
+      routedToMemberId: memberId
+    });
+
+  } catch (error) {
+    console.error('Error routing document:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof z.ZodError ? error.errors : "Failed to route document"
+    });
+  }
+});
 
 export default router;
