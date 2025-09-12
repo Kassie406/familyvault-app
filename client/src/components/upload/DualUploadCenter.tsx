@@ -165,20 +165,7 @@ export const DualUploadCenter: React.FC<DualUploadCenterProps> = ({
           data-testid="upload-documents"
         >
           <div className="upload-content">
-            <div className="upload-icon">
-              {uploadingDocuments ? (
-                <div className="uploading-spinner" data-testid="uploading-documents-spinner"></div>
-              ) : (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-              )}
-            </div>
-            
             <h3>Upload Family Documents</h3>
-            <p>Drag & drop files here or click to browse</p>
-            <p className="ai-text">AI will automatically extract key information</p>
             
             <motion.button
               className="browse-button primary"
@@ -188,10 +175,8 @@ export const DualUploadCenter: React.FC<DualUploadCenterProps> = ({
               whileTap={{ scale: 0.95 }}
               data-testid="button-browse-documents"
             >
-              {uploadingDocuments ? 'Uploading...' : '📁 Browse'}
+              {uploadingDocuments ? 'Uploading...' : 'Browse'}
             </motion.button>
-            
-            <span className="or-text">or drop files</span>
             
             {/* Document File Types */}
             <div className="file-types">
@@ -224,21 +209,7 @@ export const DualUploadCenter: React.FC<DualUploadCenterProps> = ({
           data-testid="upload-photos"
         >
           <div className="upload-content">
-            <div className="upload-icon photo-icon">
-              {uploadingPhotos ? (
-                <div className="uploading-spinner" data-testid="uploading-photos-spinner"></div>
-              ) : (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                  <circle cx="8.5" cy="8.5" r="1.5"/>
-                  <polyline points="21,15 16,10 5,21"/>
-                </svg>
-              )}
-            </div>
-            
             <h3>Upload Photos</h3>
-            <p>Add memories to your family album</p>
-            <p className="ai-text">Photos will be organized automatically</p>
             
             <motion.button
               className="browse-button secondary"
@@ -248,10 +219,8 @@ export const DualUploadCenter: React.FC<DualUploadCenterProps> = ({
               whileTap={{ scale: 0.95 }}
               data-testid="button-browse-photos"
             >
-              {uploadingPhotos ? 'Uploading...' : '📷 Browse Photos'}
+              {uploadingPhotos ? 'Uploading...' : 'Browse Photos'}
             </motion.button>
-            
-            <span className="or-text">or drop photos</span>
             
             {/* Photo File Types */}
             <div className="file-types">
@@ -259,6 +228,15 @@ export const DualUploadCenter: React.FC<DualUploadCenterProps> = ({
               <span className="file-type">PNG</span>
               <span className="file-type">HEIC</span>
             </div>
+            
+            {/* View Family Album Button */}
+            <button 
+              className="view-album-btn"
+              onClick={onNavigateToAlbum}
+              data-testid="button-view-album"
+            >
+              View Family Album
+            </button>
           </div>
 
           {/* Upload Progress Overlay */}
@@ -271,16 +249,6 @@ export const DualUploadCenter: React.FC<DualUploadCenterProps> = ({
             </div>
           )}
 
-          {/* Family Album Link */}
-          <div className="album-link">
-            <button 
-              className="view-album-btn"
-              onClick={onNavigateToAlbum}
-              data-testid="button-view-album"
-            >
-              📖 View Family Album
-            </button>
-          </div>
         </motion.div>
       </div>
 
@@ -319,9 +287,6 @@ export const DualUploadCenter: React.FC<DualUploadCenterProps> = ({
               data-testid={`notification-${notification.type}`}
             >
               <div className="notification-content">
-                <div className="notification-icon">
-                  {notification.type === 'document' ? '📄' : '📷'}
-                </div>
                 <span>{notification.message}</span>
               </div>
             </motion.div>
