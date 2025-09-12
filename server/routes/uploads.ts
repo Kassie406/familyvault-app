@@ -468,4 +468,185 @@ router.get("/enhanced/family/:familyId", async (req, res) => {
   }
 });
 
+// POST /api/uploads/photos - Upload photos to Family Album
+router.post("/photos", upload.array("photos", 20), async (req, res) => {
+  try {
+    const { userId, familyId } = getCurrentUser(req);
+    const files = (req.files as Express.Multer.File[] | undefined) || [];
+    
+    if (files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "No photos uploaded"
+      });
+    }
+
+    const uploadedPhotos: any[] = [];
+
+    for (const file of files) {
+      // Only process image files
+      if (!file.mimetype.startsWith('image/')) {
+        continue;
+      }
+
+      const keyBase = `family-album/${familyId}/${today()}/${crypto.randomUUID()}`;
+      
+      try {
+        // Process image with sharp
+        const img = sharp(file.buffer, { limitInputPixels: 268402689 });
+        const metadata = await img.metadata();
+
+        // Create full-size version (max 2048px wide)
+        const fullSizeBuf = await img
+          .rotate() // Respect EXIF orientation
+          .resize({ width: 2048, withoutEnlargement: true })
+          .jpeg({ quality: 90 })
+          .toBuffer();
+
+        // Create thumbnail (400px)
+        const thumbBuf = await img
+          .rotate()
+          .resize({ width: 400, height: 400, fit: 'cover', position: 'center' })
+          .jpeg({ quality: 80 })
+          .toBuffer();
+
+        // Upload to S3
+        const fullSizeUrl = await uploadBufferToS3(`${keyBase}.jpg`, fullSizeBuf, "image/jpeg");
+        const thumbnailUrl = await uploadBufferToS3(`${keyBase}_thumb.jpg`, thumbBuf, "image/jpeg");
+
+        // Get thumbnail metadata
+        const thumbMeta = await sharp(thumbBuf).metadata();
+
+        const photoData = {
+          id: crypto.randomUUID(),
+          filename: file.originalname,
+          url: fullSizeUrl,
+          thumbnailUrl: thumbnailUrl,
+          size: fullSizeBuf.length,
+          originalSize: file.size,
+          mimeType: "image/jpeg",
+          width: metadata.width || null,
+          height: metadata.height || null,
+          thumbWidth: thumbMeta.width || null,
+          thumbHeight: thumbMeta.height || null,
+          uploadTime: new Date().toISOString(),
+          familyId: familyId,
+          userId: userId,
+          // Extract EXIF data if available
+          dateTaken: metadata.exif ? extractDateFromExif(metadata.exif) : null,
+          camera: metadata.exif ? extractCameraFromExif(metadata.exif) : null
+        };
+
+        // Store photo metadata in MemStorage for now
+        // TODO: Replace with proper Family Album database storage
+        await enhancedStorage.createAnalysisResult({
+          uploadJobId: crypto.randomUUID(), // Temporary ID for photo storage
+          fieldType: 'photo_metadata',
+          fieldKey: 'family_album_photo',
+          fieldValue: JSON.stringify(photoData),
+          confidence: 100,
+          bbox: null
+        });
+
+        uploadedPhotos.push(photoData);
+      } catch (imageError) {
+        console.error(`Error processing image ${file.originalname}:`, imageError);
+        // Continue with other files if one fails
+        continue;
+      }
+    }
+
+    res.json({
+      success: true,
+      photos: uploadedPhotos,
+      message: `${uploadedPhotos.length} photo${uploadedPhotos.length > 1 ? 's' : ''} added to Family Album`,
+      familyId,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("Photo upload error:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Photo upload failed" 
+    });
+  }
+});
+
+// GET /api/uploads/photos/family/:familyId - Get family album photos
+router.get("/photos/family/:familyId", async (req, res) => {
+  try {
+    const { userId, familyId: userFamilyId } = getCurrentUser(req);
+    const { familyId } = req.params;
+    
+    // Verify family access
+    if (familyId !== userFamilyId) {
+      return res.status(403).json({
+        success: false,
+        error: "Access denied"
+      });
+    }
+
+    // TODO: Replace with proper Family Album database query
+    // For now, get photos from analysis results (temporary storage)
+    // Since MemStorage requires jobId, we'll get all family jobs and collect photo metadata
+    const familyJobs = await enhancedStorage.getUploadJobsByFamily(familyId);
+    const familyPhotos: any[] = [];
+    
+    for (const job of familyJobs) {
+      const jobResults = await enhancedStorage.getAnalysisResults(job.id);
+      const photoResults = jobResults.filter((result: any) => result.fieldType === 'photo_metadata');
+      
+      for (const result of photoResults) {
+        try {
+          const photoData = JSON.parse(result.fieldValue);
+          if (photoData.familyId === familyId) {
+            familyPhotos.push(photoData);
+          }
+        } catch {
+          // Skip invalid photo data
+          continue;
+        }
+      }
+    }
+    
+    // Sort by upload time (newest first)
+    familyPhotos.sort((a: any, b: any) => new Date(b.uploadTime).getTime() - new Date(a.uploadTime).getTime());
+
+    res.json({
+      success: true,
+      photos: familyPhotos,
+      count: familyPhotos.length,
+      familyId,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("Error fetching family photos:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to fetch family photos" 
+    });
+  }
+});
+
+// Helper functions for EXIF data extraction
+function extractDateFromExif(exif: any): string | null {
+  try {
+    // Try to extract date from EXIF data
+    // This is a simplified version - in practice you'd use a proper EXIF library
+    return null; // Placeholder for now
+  } catch {
+    return null;
+  }
+}
+
+function extractCameraFromExif(exif: any): string | null {
+  try {
+    // Try to extract camera info from EXIF data
+    // This is a simplified version - in practice you'd use a proper EXIF library
+    return null; // Placeholder for now
+  } catch {
+    return null;
+  }
+}
+
 export default router;
