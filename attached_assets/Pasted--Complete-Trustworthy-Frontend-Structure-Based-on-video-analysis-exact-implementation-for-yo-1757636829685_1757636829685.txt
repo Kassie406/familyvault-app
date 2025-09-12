@@ -1,0 +1,510 @@
+// Complete Trustworthy Frontend Structure
+// Based on video analysis - exact implementation for your app
+
+import React, { useState, useCallback, useRef } from 'react';
+
+// Main Trustworthy Upload Center - Exact video workflow
+export const TrustworthyUploadCenter = () => {
+  // State management based on video workflow
+  const [uploadState, setUploadState] = useState({
+    currentStep: 'browse', // browse, uploading, analyzing, details_ready, modal_open, profile_view
+    uploadProgress: 0,
+    uploadedDocument: null,
+    extractedData: null,
+    isLeftSidebarOpen: false,
+    isFilenameModalOpen: false,
+    selectedFamilyMember: null,
+    suggestedFilename: ''
+  });
+
+  const fileInputRef = useRef(null);
+
+  // Step 1: Handle Browse button click (from video)
+  const handleBrowseClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Step 2: Handle file upload (exact video workflow)
+  const handleFileUpload = useCallback(async (files) => {
+    const file = files[0];
+    if (!file) return;
+
+    try {
+      // Start upload process
+      setUploadState(prev => ({ ...prev, currentStep: 'uploading', uploadProgress: 0 }));
+
+      // Upload file to backend
+      const uploadResult = await uploadFileToBackend(file, (progress) => {
+        setUploadState(prev => ({ ...prev, uploadProgress: progress }));
+      });
+
+      // Open LEFT sidebar with document (key from video)
+      setUploadState(prev => ({
+        ...prev,
+        currentStep: 'analyzing',
+        uploadedDocument: uploadResult,
+        isLeftSidebarOpen: true
+      }));
+
+      // Start AI analysis
+      const analysisResult = await analyzeDocumentBackend(uploadResult.id);
+
+      // Show lightning bolt with details (from video)
+      setUploadState(prev => ({
+        ...prev,
+        currentStep: 'details_ready',
+        extractedData: analysisResult,
+        suggestedFilename: analysisResult.suggestedFilename
+      }));
+
+    } catch (error) {
+      console.error('Upload failed:', error);
+    }
+  }, []);
+
+  // Step 3: Handle lightning bolt click (from video)
+  const handleDetailsClick = () => {
+    setUploadState(prev => ({
+      ...prev,
+      currentStep: 'modal_open',
+      isFilenameModalOpen: true
+    }));
+  };
+
+  // Step 4: Handle filename acceptance (from video)
+  const handleFilenameAccept = async () => {
+    try {
+      // Update filename in backend
+      await updateDocumentFilename(uploadState.uploadedDocument.id, uploadState.suggestedFilename);
+
+      // Route to family member profile (from video)
+      setUploadState(prev => ({
+        ...prev,
+        currentStep: 'profile_view',
+        isFilenameModalOpen: false,
+        selectedFamilyMember: uploadState.extractedData.identifiedPerson
+      }));
+    } catch (error) {
+      console.error('Filename update failed:', error);
+    }
+  };
+
+  // Step 5: Handle filename dismissal
+  const handleFilenameDismiss = () => {
+    setUploadState(prev => ({
+      ...prev,
+      isFilenameModalOpen: false,
+      currentStep: 'details_ready'
+    }));
+  };
+
+  return (
+    <div className="trustworthy-upload-center">
+      {/* Main upload area */}
+      <MainUploadArea
+        uploadState={uploadState}
+        onBrowseClick={handleBrowseClick}
+        onReset={() => setUploadState({ currentStep: 'browse', uploadProgress: 0, uploadedDocument: null, extractedData: null, isLeftSidebarOpen: false, isFilenameModalOpen: false, selectedFamilyMember: null, suggestedFilename: '' })}
+      />
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        onChange={(e) => handleFileUpload(Array.from(e.target.files || []))}
+        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+        style={{ display: 'none' }}
+      />
+
+      {/* LEFT sidebar - key correction from video */}
+      <LeftSidebar
+        isOpen={uploadState.isLeftSidebarOpen}
+        document={uploadState.uploadedDocument}
+        extractedData={uploadState.extractedData}
+        analysisState={uploadState.currentStep}
+        onDetailsClick={handleDetailsClick}
+        onClose={() => setUploadState(prev => ({ ...prev, isLeftSidebarOpen: false }))}
+      />
+
+      {/* Filename suggestion modal - from video */}
+      <FilenameModal
+        isOpen={uploadState.isFilenameModalOpen}
+        document={uploadState.uploadedDocument}
+        extractedData={uploadState.extractedData}
+        suggestedFilename={uploadState.suggestedFilename}
+        onAccept={handleFilenameAccept}
+        onDismiss={handleFilenameDismiss}
+        onClose={() => setUploadState(prev => ({ ...prev, isFilenameModalOpen: false }))}
+      />
+
+      {/* Family member profile - destination from video */}
+      <FamilyMemberProfile
+        isOpen={uploadState.currentStep === 'profile_view'}
+        familyMember={uploadState.selectedFamilyMember}
+        uploadedDocument={uploadState.uploadedDocument}
+        onClose={() => setUploadState(prev => ({ ...prev, currentStep: 'browse' }))}
+      />
+    </div>
+  );
+};
+
+// Main Upload Area Component
+const MainUploadArea = ({ uploadState, onBrowseClick, onReset }) => {
+  return (
+    <div className="main-upload-area">
+      {/* Family header - from video */}
+      <div className="family-header">
+        <h2 className="family-title">camacho Family</h2>
+        <div className="user-avatars">
+          <div className="avatar">KC</div>
+          <div className="avatar">AQ</div>
+        </div>
+      </div>
+
+      {/* Upload zone based on state */}
+      {uploadState.currentStep === 'browse' && (
+        <BrowseState onBrowseClick={onBrowseClick} />
+      )}
+
+      {uploadState.currentStep === 'uploading' && (
+        <UploadingState progress={uploadState.uploadProgress} />
+      )}
+
+      {(uploadState.currentStep === 'analyzing' || 
+        uploadState.currentStep === 'details_ready' || 
+        uploadState.currentStep === 'modal_open') && (
+        <UploadCompleteState onReset={onReset} />
+      )}
+
+      {/* Quick start section - from video */}
+      <QuickStartSection />
+    </div>
+  );
+};
+
+// Browse State - exact video layout
+const BrowseState = ({ onBrowseClick }) => (
+  <div className="browse-state">
+    <div className="upload-area">
+      <div className="upload-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+      </div>
+      <h3>Upload Family Documents</h3>
+      <p>Drag & drop files here or click to browse</p>
+      <p>AI will automatically extract key information</p>
+      
+      <button className="browse-button" onClick={onBrowseClick}>
+        Browse
+      </button>
+      
+      <span className="or-text">or drop files</span>
+    </div>
+  </div>
+);
+
+// Uploading State
+const UploadingState = ({ progress }) => (
+  <div className="uploading-state">
+    <div className="progress-container">
+      <div className="progress-bar">
+        <div className="progress-fill" style={{ width: `${progress}%` }} />
+      </div>
+      <span>Uploading... {Math.round(progress)}%</span>
+    </div>
+  </div>
+);
+
+// Upload Complete State
+const UploadCompleteState = ({ onReset }) => (
+  <div className="upload-complete-state">
+    <div className="success-icon">✓</div>
+    <p>Document uploaded successfully</p>
+    <button className="upload-another-btn" onClick={onReset}>
+      Upload Another Document
+    </button>
+  </div>
+);
+
+// LEFT Sidebar - key correction from video analysis
+const LeftSidebar = ({ isOpen, document, extractedData, analysisState, onDetailsClick, onClose }) => {
+  return (
+    <div className={`left-sidebar ${isOpen ? 'open' : ''}`}>
+      <div className="sidebar-header">
+        <h3>Inbox +</h3>
+        <button className="close-btn" onClick={onClose}>×</button>
+      </div>
+
+      <div className="sidebar-content">
+        {/* Mini upload zone - from video */}
+        <div className="upload-zone-mini">
+          <div className="upload-icon-mini">📁</div>
+          <span>Drop files here or Browse files</span>
+        </div>
+
+        {/* Document item */}
+        {document && (
+          <div className="document-item">
+            <div className="document-thumbnail">
+              <img src={document.thumbnail} alt={document.filename} />
+              
+              {/* Lightning bolt button - exact video positioning */}
+              {analysisState === 'details_ready' && extractedData && (
+                <button className="lightning-bolt-button" onClick={onDetailsClick}>
+                  <span className="lightning-icon">⚡</span>
+                  <span>Details {extractedData.extractedFields.length}</span>
+                </button>
+              )}
+            </div>
+
+            <div className="document-info">
+              <div className="document-name">{document.filename}</div>
+              
+              {/* Analysis indicator */}
+              {analysisState === 'analyzing' && (
+                <div className="analyzing-indicator">
+                  <div className="spinner"></div>
+                  <span>Analyzing...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Suggested destination - from video */}
+            {extractedData && extractedData.identifiedPerson && (
+              <div className="suggested-destination">
+                <span className="suggestion-label">Suggested destination</span>
+                <div className="suggestion-item">
+                  <span className="suggestion-name">{extractedData.identifiedPerson.name}</span>
+                  <span className="suggestion-category">
+                    {extractedData.identifiedPerson.category} › {extractedData.identifiedPerson.subcategory}
+                  </span>
+                </div>
+                <button className="open-btn">Open</button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Filename Modal - exact video style
+const FilenameModal = ({ isOpen, document, extractedData, suggestedFilename, onAccept, onDismiss, onClose }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="filename-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{document?.filename}</h3>
+          <button className="modal-close-btn" onClick={onClose}>×</button>
+        </div>
+
+        <div className="modal-content">
+          {/* Suggested filename - from video */}
+          <div className="filename-suggestion">
+            <span className="suggestion-label">Suggested filename</span>
+            <div className="filename-display">{suggestedFilename}</div>
+            <div className="filename-actions">
+              <button className="dismiss-btn" onClick={onDismiss}>Dismiss</button>
+              <button className="accept-btn" onClick={onAccept}>Accept</button>
+            </div>
+          </div>
+
+          {/* Details section - from video */}
+          <div className="details-section">
+            <h4>Details</h4>
+            <div className="extracted-fields">
+              {extractedData?.extractedFields.map((field, index) => (
+                <div key={index} className="field-item">
+                  <div className="field-key">{field.key}</div>
+                  <div className="field-value">{field.value}</div>
+                </div>
+              ))}
+            </div>
+            <button className="copy-all-btn">📋 Copy all</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Family Member Profile - destination from video
+const FamilyMemberProfile = ({ isOpen, familyMember, uploadedDocument, onClose }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="profile-overlay">
+      <div className="profile-container">
+        <div className="profile-header">
+          <div className="breadcrumb">
+            Family IDs / 👤 {familyMember?.name}
+          </div>
+          <button className="profile-close" onClick={onClose}>×</button>
+        </div>
+
+        <div className="profile-content">
+          <div className="profile-main">
+            {/* Tabs - from video */}
+            <div className="profile-tabs">
+              <button className="tab active">Overview</button>
+              <button className="tab">Files 0</button>
+              <button className="tab">Notes</button>
+            </div>
+
+            {/* Birthday section - from video */}
+            <div className="profile-section">
+              <h4>Birthday</h4>
+              <div className="birthday-info">
+                <span className="date">June 16, 1983</span>
+                <span className="countdown">Birthday in 278 days</span>
+              </div>
+            </div>
+
+            {/* Driver's License section - from video */}
+            <div className="profile-section">
+              <h4>Driver's License</h4>
+              <div className="document-uploads">
+                <DocumentUploadArea title="Drop front side here or" linkText="Browse files" />
+                <DocumentUploadArea title="Drop back side here or" linkText="Browse files" />
+              </div>
+              <div className="additional-fields">
+                <button className="add-field">+ Number</button>
+                <button className="add-field">+ State issued</button>
+                <button className="add-field">+ Expiration date</button>
+              </div>
+            </div>
+
+            {/* Passport section - from video */}
+            <div className="profile-section">
+              <h4>Passport</h4>
+              <div className="document-uploads">
+                <DocumentUploadArea title="Drop front side here or" linkText="Browse files" />
+                <DocumentUploadArea title="Drop back side here or" linkText="Browse files" />
+              </div>
+              <div className="additional-fields">
+                <button className="add-field">+ Number</button>
+                <button className="add-field">+ Country issued</button>
+                <button className="add-field">+ Expiration date</button>
+              </div>
+            </div>
+          </div>
+
+          {/* Right sidebar - from video */}
+          <div className="profile-sidebar">
+            <div className="sidebar-section">
+              <h4>Contact Information</h4>
+              <button className="add-btn">+</button>
+            </div>
+
+            <div className="sidebar-section">
+              <h4>Reminders</h4>
+              <button className="add-btn">+</button>
+              <div className="reminder-item">
+                <div className="reminder-icon">🎂</div>
+                <div className="reminder-content">
+                  <div className="reminder-title">Birthday reminder</div>
+                  <div className="reminder-desc">
+                    Trustworthy will remind you 1 week before Angel's birthday each year.
+                  </div>
+                  <div className="reminder-date">Jun 16, 2026, Yearly</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="sidebar-section">
+              <h4>Linked Contacts</h4>
+              <button className="add-btn">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Document Upload Area - from video
+const DocumentUploadArea = ({ title, linkText }) => (
+  <div className="document-upload-area">
+    <div className="upload-icon">📄</div>
+    <div className="upload-text">
+      <span>{title}</span>
+      <button className="browse-link">{linkText}</button>
+    </div>
+  </div>
+);
+
+// Quick Start Section - from video
+const QuickStartSection = () => (
+  <div className="quick-start-section">
+    <h3>Quick start</h3>
+    <div className="quick-actions">
+      <div className="quick-action-card">
+        <div className="action-icon">🛡️</div>
+        <div className="action-content">
+          <h4>Add life insurance</h4>
+          <p>Ensure your policies are always accessible, with automated reminders to keep them from lapsing.</p>
+        </div>
+      </div>
+      <div className="quick-action-card">
+        <div className="action-icon">📱</div>
+        <div className="action-content">
+          <h4>Download the mobile app</h4>
+          <p>Keep your family's important information in your pocket, and add documents effortlessly with our mobile scanner.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Backend API functions
+const uploadFileToBackend = async (file, onProgress) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('familyId', 'family_123'); // Your family ID
+
+  const response = await fetch('/api/upload', {
+    method: 'POST',
+    body: formData,
+    onUploadProgress: (progressEvent) => {
+      const progress = (progressEvent.loaded / progressEvent.total) * 100;
+      onProgress(progress);
+    }
+  });
+
+  if (!response.ok) throw new Error('Upload failed');
+  
+  const result = await response.json();
+  return result.data;
+};
+
+const analyzeDocumentBackend = async (fileId) => {
+  const response = await fetch('/api/analyze-document', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fileId })
+  });
+
+  if (!response.ok) throw new Error('Analysis failed');
+  
+  const result = await response.json();
+  return result.data;
+};
+
+const updateDocumentFilename = async (documentId, filename) => {
+  const response = await fetch(`/api/documents/${documentId}/filename`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename })
+  });
+
+  if (!response.ok) throw new Error('Filename update failed');
+  
+  return await response.json();
+};
+
+export default TrustworthyUploadCenter;
