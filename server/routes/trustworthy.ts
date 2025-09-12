@@ -148,8 +148,15 @@ const today = () => new Date().toISOString().slice(0, 10);
 // POST /api/trustworthy/upload - Upload document for Trustworthy analysis
 router.post("/upload", upload.single("document"), async (req, res) => {
   try {
+    console.log("🔥 UPLOAD REQUEST RECEIVED");
+    console.log("AWS_ACCESS_KEY_ID present:", !!process.env.AWS_ACCESS_KEY_ID);
+    console.log("AWS_SECRET_ACCESS_KEY present:", !!process.env.AWS_SECRET_ACCESS_KEY);
+    console.log("AWS_REGION:", process.env.AWS_REGION);
+    
     const { userId, familyId } = getCurrentUser(req);
     const file = req.file;
+    
+    console.log("File received:", !!file, file?.originalname, file?.size);
     
     if (!file) {
       return res.status(400).json({
