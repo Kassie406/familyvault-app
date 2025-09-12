@@ -1230,3 +1230,91 @@ export type UploadJobResponse = z.infer<typeof selectUploadJobSchema> & {
 
 export type CreateUploadJobRequest = z.infer<typeof insertUploadJobSchema>;
 export type AnalysisFieldResponse = z.infer<typeof selectAnalysisResultSchema>;
+
+// ===========================
+// TRUSTWORTHY UPLOAD STRATEGY SYSTEM
+// ===========================
+
+// Trustworthy Documents - Comprehensive document management with AI analysis
+export const trustworthyDocuments = pgTable("trustworthy_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  filename: varchar("filename").notNull(),
+  originalFilename: varchar("original_filename").notNull(),
+  filePath: varchar("file_path").notNull(),
+  thumbnailPath: varchar("thumbnail_path"),
+  fileSize: integer("file_size").notNull(),
+  mimeType: varchar("mime_type").notNull(),
+  uploadTime: timestamp("upload_time").defaultNow(),
+  familyId: varchar("family_id").notNull(),
+  status: varchar("status").notNull().default("uploaded"), // uploaded, analyzing, analyzed, error
+  aiConfidence: integer("ai_confidence"), // 0-100
+  extractedFields: jsonb("extracted_fields").default({}),
+  suggestedFilename: varchar("suggested_filename"),
+  personIdentified: varchar("person_identified"),
+  documentType: varchar("document_type"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Trustworthy Document Analysis - AWS Textract analysis results
+export const trustworthyDocumentAnalysis = pgTable("trustworthy_document_analysis", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull().references(() => trustworthyDocuments.id, { onDelete: 'cascade' }),
+  analysisType: varchar("analysis_type").notNull().default("textract"), // textract, custom
+  rawResponse: jsonb("raw_response").default({}),
+  extractedData: jsonb("extracted_data").default({}),
+  confidenceScores: jsonb("confidence_scores").default({}),
+  processingTimeMs: integer("processing_time_ms"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Trustworthy Analysis Fields - Individual extracted fields with confidence
+export const trustworthyAnalysisFields = pgTable("trustworthy_analysis_fields", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull().references(() => trustworthyDocuments.id, { onDelete: 'cascade' }),
+  analysisId: varchar("analysis_id").notNull().references(() => trustworthyDocumentAnalysis.id, { onDelete: 'cascade' }),
+  fieldKey: varchar("field_key").notNull(), // "personName", "documentType", "ssn", etc.
+  fieldValue: text("field_value").notNull(),
+  fieldType: varchar("field_type").notNull(), // "name", "date", "number", "text"
+  confidence: integer("confidence").notNull(), // 0-100
+  boundingBox: jsonb("bounding_box").default({}), // AWS Textract coordinates
+  isPii: boolean("is_pii").default(false),
+  isKeyField: boolean("is_key_field").default(false),
+  extractedAt: timestamp("extracted_at").defaultNow(),
+});
+
+// Trustworthy Types
+export type TrustworthyDocument = typeof trustworthyDocuments.$inferSelect;
+export type InsertTrustworthyDocument = typeof trustworthyDocuments.$inferInsert;
+export type TrustworthyDocumentAnalysis = typeof trustworthyDocumentAnalysis.$inferSelect;
+export type InsertTrustworthyDocumentAnalysis = typeof trustworthyDocumentAnalysis.$inferInsert;
+export type TrustworthyAnalysisField = typeof trustworthyAnalysisFields.$inferSelect;
+export type InsertTrustworthyAnalysisField = typeof trustworthyAnalysisFields.$inferInsert;
+
+// Trustworthy Zod Schemas
+export const insertTrustworthyDocumentSchema = createInsertSchema(trustworthyDocuments, {
+  fileSize: z.number().positive(),
+  aiConfidence: z.number().min(0).max(100).optional(),
+}).omit({
+  id: true,
+  uploadTime: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const selectTrustworthyDocumentSchema = createSelectSchema(trustworthyDocuments);
+
+export const insertTrustworthyAnalysisFieldSchema = createInsertSchema(trustworthyAnalysisFields, {
+  confidence: z.number().min(0).max(100),
+}).omit({
+  id: true,
+  extractedAt: true,
+});
+
+export type TrustworthyDocumentResponse = z.infer<typeof selectTrustworthyDocumentSchema> & {
+  analysisFields?: TrustworthyAnalysisField[];
+  analysis?: TrustworthyDocumentAnalysis;
+};
+
+export type CreateTrustworthyDocumentRequest = z.infer<typeof insertTrustworthyDocumentSchema>;
+export type TrustworthyAnalysisFieldResponse = z.infer<typeof insertTrustworthyAnalysisFieldSchema>;
