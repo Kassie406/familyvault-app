@@ -6,7 +6,7 @@
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem;
 }
 
 /* Family Header (preserved from your original design) */
@@ -48,10 +48,10 @@
   background: var(--card-bg);
   border: 2px dashed var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 3rem 2rem;
+  padding: 2rem 1.5rem;
   text-align: center;
   transition: all 0.3s ease;
-  min-height: 400px;
+  min-height: 280px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -416,8 +416,8 @@
   }
 
   .main-upload-area {
-    padding: 2rem 1.5rem;
-    min-height: 300px;
+    padding: 1.5rem 1rem;
+    min-height: 240px;
   }
 
   .family-header {

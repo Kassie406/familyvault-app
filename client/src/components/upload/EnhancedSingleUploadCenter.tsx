@@ -157,15 +157,6 @@ export const EnhancedSingleUploadCenter: React.FC<EnhancedSingleUploadCenterProp
 
   return (
     <div className="enhanced-single-upload-center">
-      {/* Family Header */}
-      <div className="family-header">
-        <h2 className="family-title">camacho Family</h2>
-        <div className="user-avatars">
-          <div className="avatar">KC</div>
-          <div className="avatar">AQ</div>
-        </div>
-      </div>
-
       {/* Main Upload Area - Professional Single Box Design */}
       <motion.div
         className={`main-upload-area ${isDragActive ? 'drag-active' : ''} ${isUploading ? 'uploading' : ''}`}
