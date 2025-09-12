@@ -137,11 +137,13 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
 
   // Step 1: Handle Browse button click
   const handleBrowseClick = useCallback(() => {
+    console.log('Browse button clicked!');
     fileInputRef.current?.click();
   }, []);
 
   // Step 2: Handle Camera button click
   const handleCameraClick = useCallback(async () => {
+    console.log('Camera button clicked!');
     try {
       const isAvailable = await CameraManager.isCameraAvailable();
       if (!isAvailable) {
@@ -160,6 +162,7 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
 
   // Step 3: Handle Barcode Scanner button click
   const handleBarcodeClick = useCallback(async () => {
+    console.log('Barcode button clicked!');
     try {
       const isAvailable = await CameraManager.isCameraAvailable();
       if (!isAvailable) {
@@ -279,16 +282,83 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
 
   return (
     <div className="enhanced-trustworthy-upload-center">
-      {/* Main Upload Area */}
-      <MainUploadArea
-        uploadState={uploadState}
-        uploadProgress={uploadProgress}
-        error={error}
-        onBrowseClick={handleBrowseClick}
-        onCameraClick={handleCameraClick}
-        onBarcodeClick={handleBarcodeClick}
-        onReset={handleReset}
-      />
+      {/* Simplified Upload Buttons for Family Home Embedding */}
+      <div className="flex flex-col space-y-4">
+        {uploadState === TRUSTWORTHY_STATES.BROWSE && (
+          <div className="space-y-4">
+            {/* Upload Button Group */}
+            <div className="flex flex-wrap gap-3 justify-center">
+              <motion.button
+                className="flex items-center gap-2 px-4 py-3 bg-[#D4AF37] text-black rounded-lg font-semibold hover:bg-[#E5C054] transition-all duration-200"
+                onClick={handleBrowseClick}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                data-testid="button-browse-files"
+              >
+                <Upload size={18} />
+                Browse Files
+              </motion.button>
+              
+              <motion.button
+                className="flex items-center gap-2 px-4 py-3 bg-[#1a1a1a] text-[#D4AF37] border border-[#D4AF37]/30 rounded-lg hover:bg-[#D4AF37]/10 transition-all duration-200"
+                onClick={handleCameraClick}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                data-testid="button-camera-capture"
+              >
+                <Camera size={18} />
+                Take Photo
+              </motion.button>
+              
+              <motion.button
+                className="flex items-center gap-2 px-4 py-3 bg-[#1a1a1a] text-[#D4AF37] border border-[#D4AF37]/30 rounded-lg hover:bg-[#D4AF37]/10 transition-all duration-200"
+                onClick={handleBarcodeClick}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                data-testid="button-barcode-scan"
+              >
+                <BarChart3 size={18} />
+                Scan Barcode
+              </motion.button>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="text-red-400 text-sm text-center p-3 bg-red-500/10 border border-red-500/20 rounded-lg" data-testid="error-message">
+                {error}
+              </div>
+            )}
+          </div>
+        )}
+
+        {uploadState === TRUSTWORTHY_STATES.UPLOADING && (
+          <div className="text-center space-y-3">
+            <div className="flex items-center justify-center space-x-3">
+              <div className="w-6 h-6 border-2 border-gray-600 border-t-[#D4AF37] rounded-full animate-spin"></div>
+              <span data-testid="upload-progress">Uploading... {Math.round(uploadProgress)}%</span>
+            </div>
+          </div>
+        )}
+
+        {(uploadState === TRUSTWORTHY_STATES.INBOX_OPEN || 
+          uploadState === TRUSTWORTHY_STATES.ANALYZING || 
+          uploadState === TRUSTWORTHY_STATES.DETAILS_READY || 
+          uploadState === TRUSTWORTHY_STATES.MODAL_OPEN) && (
+          <div className="text-center space-y-3">
+            <div className="flex items-center justify-center space-x-2 text-[#D4AF37]">
+              <Zap size={20} />
+              <span>Document uploaded successfully!</span>
+            </div>
+            <button 
+              className="px-4 py-2 text-sm bg-[#1a1a1a] text-[#D4AF37] border border-[#D4AF37]/30 rounded-lg hover:bg-[#D4AF37]/10 transition-all duration-200"
+              onClick={handleReset} 
+              data-testid="button-upload-another"
+            >
+              Upload Another
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Hidden File Input */}
       <input
@@ -330,182 +400,9 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
   );
 };
 
-// Main Upload Area Component
-const MainUploadArea: React.FC<{
-  uploadState: TrustworthyState;
-  uploadProgress: number;
-  error: string | null;
-  onBrowseClick: () => void;
-  onCameraClick: () => void;
-  onBarcodeClick: () => void;
-  onReset: () => void;
-}> = ({ uploadState, uploadProgress, error, onBrowseClick, onCameraClick, onBarcodeClick, onReset }) => {
-  return (
-    <div className="main-upload-area">
-      {/* Family Header */}
-      <div className="family-header">
-        <h2 className="family-title">FamilyVault</h2>
-        <div className="user-avatars">
-          <div className="avatar">KC</div>
-          <div className="avatar">AQ</div>
-        </div>
-      </div>
+// Remove the MainUploadArea component - replaced with inline simplified version
 
-      {/* Upload Zone Based on State */}
-      <AnimatePresence mode="wait">
-        {uploadState === TRUSTWORTHY_STATES.BROWSE && (
-          <BrowseState 
-            onBrowseClick={onBrowseClick}
-            onCameraClick={onCameraClick}
-            onBarcodeClick={onBarcodeClick}
-            error={error} 
-          />
-        )}
-
-        {uploadState === TRUSTWORTHY_STATES.UPLOADING && (
-          <UploadingState progress={uploadProgress} />
-        )}
-
-        {(uploadState === TRUSTWORTHY_STATES.INBOX_OPEN || 
-          uploadState === TRUSTWORTHY_STATES.ANALYZING || 
-          uploadState === TRUSTWORTHY_STATES.DETAILS_READY || 
-          uploadState === TRUSTWORTHY_STATES.MODAL_OPEN) && (
-          <UploadCompleteState onReset={onReset} />
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-// Browse State with Enhanced Upload Options
-const BrowseState: React.FC<{
-  onBrowseClick: () => void;
-  onCameraClick: () => void;
-  onBarcodeClick: () => void;
-  error: string | null;
-}> = ({ onBrowseClick, onCameraClick, onBarcodeClick, error }) => (
-  <motion.div
-    key="browse"
-    className="browse-state"
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-  >
-    <div className="upload-area">
-      <div className="upload-icon">
-        <Upload size={48} color="var(--trustworthy-primary-gold)" />
-      </div>
-      
-      <h3>Upload Family Documents</h3>
-      <p>Drag & drop files here or choose an upload method</p>
-      <p>AI will automatically extract key information</p>
-      
-      {/* Enhanced Upload Button Group */}
-      <div className="upload-button-group">
-        <motion.button
-          className="browse-button primary"
-          onClick={onBrowseClick}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          data-testid="button-browse-files"
-        >
-          <Upload size={18} />
-          Browse Files
-        </motion.button>
-        
-        <motion.button
-          className="camera-button secondary"
-          onClick={onCameraClick}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          data-testid="button-camera-capture"
-        >
-          <Camera size={18} />
-          Take Photo
-        </motion.button>
-        
-        <motion.button
-          className="barcode-button secondary"
-          onClick={onBarcodeClick}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          data-testid="button-barcode-scan"
-        >
-          <BarChart3 size={18} />
-          Scan Barcode
-        </motion.button>
-      </div>
-      
-      <span className="or-text">or drop files anywhere</span>
-      
-      {/* File Type Indicators */}
-      <div className="file-types">
-        <span className="file-type">PDF</span>
-        <span className="file-type">JPG</span>
-        <span className="file-type">PNG</span>
-        <span className="file-type">DOC</span>
-        <span className="file-type">HEIC</span>
-      </div>
-
-      {error && (
-        <div className="error-message" data-testid="error-message">
-          {error}
-        </div>
-      )}
-    </div>
-  </motion.div>
-);
-
-// Uploading State
-const UploadingState: React.FC<{ progress: number }> = ({ progress }) => (
-  <motion.div
-    key="uploading"
-    className="uploading-state"
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-  >
-    <div className="progress-container">
-      <div className="upload-icon">
-        <Upload size={48} color="var(--trustworthy-primary-gold)" />
-      </div>
-      <h3>Processing Document</h3>
-      <div className="progress-bar">
-        <motion.div
-          className="progress-fill"
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          style={{ backgroundColor: 'var(--trustworthy-primary-gold)' }}
-        />
-      </div>
-      <span data-testid="upload-progress">Uploading... {Math.round(progress)}%</span>
-    </div>
-  </motion.div>
-);
-
-// Upload Complete State
-const UploadCompleteState: React.FC<{ onReset: () => void }> = ({ onReset }) => (
-  <motion.div
-    key="complete"
-    className="upload-complete-state"
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-  >
-    <div className="success-icon">
-      <Zap size={48} color="var(--trustworthy-primary-gold)" />
-    </div>
-    <h3>Document Uploaded Successfully</h3>
-    <p>Check the sidebar for AI analysis and extracted data</p>
-    <button 
-      className="upload-another-btn" 
-      onClick={onReset} 
-      data-testid="button-upload-another"
-    >
-      Upload Another Document
-    </button>
-  </motion.div>
-);
+// Remove the old state components - replaced with inline simplified versions
 
 // Camera Modal Component
 const CameraModal: React.FC<CameraModalProps> = ({ 
