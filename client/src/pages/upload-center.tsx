@@ -1,10 +1,18 @@
-import { EnhancedTrustworthyUploadCenter } from "@/components/upload/enhanced/EnhancedTrustworthyUploadCenter";
+import { CleanUploadCenter } from "@/components/upload/enhanced/CleanUploadCenter";
 
 export default function UploadCenter() {
   return (
-    <div className="min-h-screen bg-[#0f172a] text-[#e5e7eb]">
-      {/* Enhanced Trustworthy Upload Center with camera, barcode scanning, and complete workflow */}
-      <EnhancedTrustworthyUploadCenter />
+    <div className="min-h-screen">
+      {/* Clean Upload Center with three upload methods: Browse Files, Take Photo, Mobile Upload */}
+      <CleanUploadCenter 
+        familyId="camacho_family"
+        onDocumentProcessed={(documents) => {
+          console.log('Documents processed:', documents);
+        }}
+        onNavigateToProfile={(memberId) => {
+          console.log('Navigate to profile:', memberId);
+        }}
+      />
     </div>
   );
 }
