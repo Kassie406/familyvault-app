@@ -72,7 +72,7 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('document', file); // Fix: Use 'document' field name to match backend
       const response = await fetch('/api/trustworthy/upload', {
         method: 'POST',
         body: formData,
@@ -172,11 +172,12 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
     
     try {
       // Create secure mobile upload session via API
-      const response = await apiRequest('/api/mobile-upload/sessions', {
+      const response = await fetch('/api/mobile-upload/sessions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           purpose: 'documents',
           familyId: 'family-1' // TODO: Get from authenticated family context
