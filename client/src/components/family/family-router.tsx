@@ -52,6 +52,7 @@ import PhotosAlbums from '@/pages/photos-albums';
 import PhotosShared from '@/pages/photos-shared';
 import FamilyMeeting from '@/pages/family-meeting';
 import AuthCallback from '@/auth/AuthCallback';
+import UploadCenter from '@/pages/upload-center';
 
 // Placeholder components for family portal pages
 function FamilyMembers() {
@@ -222,6 +223,7 @@ export default function FamilyRouter() {
         <Route path="/family/calendar" component={() => <CalendarPage />} />
         <Route path="/family/messages" component={withSidebarLayout(FamilyMessages)} />
         <Route path="/messages" component={() => <MessagesPage />} />
+        <Route path="/upload-center" component={() => <UploadCenter />} />
         <Route path="/family/photos" component={withSidebarLayout(FamilyPhotos)} />
         <Route path="/photos/upload" component={() => <PhotosUpload />} />
         <Route path="/photos/albums" component={() => <PhotosAlbums />} />
