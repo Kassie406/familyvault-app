@@ -84,10 +84,21 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
       }
       return await response.json() as TrustworthyDocument;
     },
-    onSuccess: (document: TrustworthyDocument) => {
+    onSuccess: async (document: TrustworthyDocument) => {
       setUploadedDocument(document);
       setIsLeftSidebarOpen(true);
       setUploadState(TRUSTWORTHY_STATES.INBOX_OPEN);
+      
+      // Auto-trigger AWS Lambda analysis after successful upload
+      setTimeout(async () => {
+        setUploadState(TRUSTWORTHY_STATES.ANALYZING);
+        try {
+          await analysisMutation.mutateAsync(document);
+        } catch (error) {
+          console.error('Auto-analysis failed:', error);
+        }
+      }, 1000); // Small delay to show upload success
+      
       queryClient.invalidateQueries({ queryKey: ['/api/trustworthy/documents'] });
       queryClient.invalidateQueries({ queryKey: ['/api/family/members'] });
     },
@@ -97,10 +108,28 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
     }
   });
 
-  // Analysis mutation
+  // AWS Lambda + OpenAI Analysis integration
   const analysisMutation = useMutation({
-    mutationFn: async (documentId: string) => {
-      const response = await apiRequest('POST', `/api/trustworthy/analyze/${documentId}`);
+    mutationFn: async (document: TrustworthyDocument) => {
+      // Call your existing AWS Lambda endpoint for real AI analysis
+      const response = await fetch('/api/trustworthy/lambda-analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          documentUrl: document.filePath,
+          documentType: document.mimeType,
+          fileName: document.originalFilename,
+          documentId: document.id
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Lambda analysis failed: ${response.statusText}`);
+      }
+
       return await response.json();
     },
     onSuccess: (analysisResult: any) => {
@@ -108,8 +137,16 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
         const updatedDocument = {
           ...uploadedDocument,
           status: 'analyzed' as const,
-          extractedFields: JSON.stringify(analysisResult?.extractedFields || {}),
-          confidence: analysisResult?.confidence || 0.85
+          extractedFields: JSON.stringify({
+            extractedText: analysisResult.extractedText || '',
+            keyValuePairs: analysisResult.keyValuePairs || [],
+            documentType: analysisResult.documentType || 'unknown',
+            confidence: analysisResult.confidence || 0,
+            summary: analysisResult.summary || ''
+          }),
+          confidence: analysisResult.confidence || 0,
+          documentType: analysisResult.documentType || 'unknown',
+          aiConfidence: Math.round((analysisResult.confidence || 0) * 100)
         };
         setUploadedDocument(updatedDocument);
         setUploadState(TRUSTWORTHY_STATES.DETAILS_READY);
@@ -118,7 +155,26 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['/api/family/members'] });
     },
     onError: (error: Error) => {
-      setError(error.message || 'Analysis failed');
+      setError(error.message || 'AI analysis failed');
+      // Set fallback analysis data on error
+      if (uploadedDocument) {
+        const fallbackDocument = {
+          ...uploadedDocument,
+          status: 'analyzed' as const,
+          extractedFields: JSON.stringify({
+            extractedText: 'Analysis failed - please try again',
+            keyValuePairs: [],
+            documentType: 'unknown',
+            confidence: 0,
+            summary: 'Analysis could not be completed'
+          }),
+          confidence: 0,
+          documentType: 'unknown',
+          aiConfidence: 0
+        };
+        setUploadedDocument(fallbackDocument);
+        setUploadState(TRUSTWORTHY_STATES.DETAILS_READY);
+      }
     }
   });
 
@@ -260,7 +316,7 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
     if (!uploadedDocument) return;
 
     setUploadState(TRUSTWORTHY_STATES.ANALYZING);
-    await analysisMutation.mutateAsync(documentId);
+    await analysisMutation.mutateAsync(uploadedDocument);
   }, [uploadedDocument, analysisMutation]);
 
   // Step 7: Handle Details Modal (Lightning Bolt click when ready)
