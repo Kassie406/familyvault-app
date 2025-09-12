@@ -4,8 +4,9 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, BarChart3, Upload, X, RotateCcw, Zap } from 'lucide-react';
+import { Camera, QrCode, Upload, X, RotateCcw, Zap, Copy, CheckCircle } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { QRCodeSVG } from 'qrcode.react';
 import { apiRequest } from '@/lib/queryClient';
 import { CameraManager, BarcodeDetectionManager, MobileUtils } from '@/utils/cameraUtils';
 import { LeftSidebar } from '../LeftSidebar';
@@ -47,6 +48,11 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
   const [isBarcodeMode, setIsBarcodeMode] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  
+  // QR Code functionality state
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [mobileUploadUrl, setMobileUploadUrl] = useState<string>('');
+  const [urlCopied, setUrlCopied] = useState(false);
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -160,29 +166,18 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
     }
   }, []);
 
-  // Step 3: Handle Barcode Scanner button click
-  const handleBarcodeClick = useCallback(async () => {
-    console.log('Barcode button clicked!');
-    try {
-      const isAvailable = await CameraManager.isCameraAvailable();
-      if (!isAvailable) {
-        setError('No camera found on this device');
-        return;
-      }
-
-      if (!BarcodeDetectionManager.isSupported()) {
-        setError('Barcode scanning not supported on this browser');
-        return;
-      }
-
-      setIsCameraOpen(true);
-      setIsBarcodeMode(true);
-      setCameraError(null);
-      setScannedBarcode(null);
-    } catch (error) {
-      console.error('Barcode scanner access failed:', error);
-      setError('Barcode scanner access failed. Please enable camera permissions.');
-    }
+  // Step 3: Handle Mobile Upload button click (QR Code generation)
+  const handleMobileUploadClick = useCallback(() => {
+    console.log('Mobile Upload button clicked!');
+    
+    // Generate unique session ID for mobile upload
+    const sessionId = Math.random().toString(36).substring(2, 15);
+    const baseUrl = window.location.origin;
+    const mobileUrl = `${baseUrl}/mobile-upload?session=${sessionId}&family=family-1`;
+    
+    setMobileUploadUrl(mobileUrl);
+    setIsQRModalOpen(true);
+    setUrlCopied(false);
   }, []);
 
   // Step 4: Handle file upload (from browse or camera capture)
@@ -312,13 +307,13 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
               
               <motion.button
                 className="flex items-center gap-2 px-4 py-3 bg-[#1a1a1a] text-[#D4AF37] border border-[#D4AF37]/30 rounded-lg hover:bg-[#D4AF37]/10 transition-all duration-200"
-                onClick={handleBarcodeClick}
+                onClick={handleMobileUploadClick}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                data-testid="button-barcode-scan"
+                data-testid="button-mobile-upload"
               >
-                <BarChart3 size={18} />
-                Scan Barcode
+                <QrCode size={18} />
+                Mobile Upload
               </motion.button>
             </div>
 
@@ -395,6 +390,19 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
         isBarcodeMode={isBarcodeMode}
         onCapture={handleCameraCapture}
         onClose={handleCloseCameraModal}
+      />
+
+      {/* QR Code Modal for Mobile Upload */}
+      <QRCodeModal
+        isOpen={isQRModalOpen}
+        url={mobileUploadUrl}
+        onClose={() => setIsQRModalOpen(false)}
+        onCopyUrl={() => {
+          navigator.clipboard.writeText(mobileUploadUrl);
+          setUrlCopied(true);
+          setTimeout(() => setUrlCopied(false), 2000);
+        }}
+        urlCopied={urlCopied}
       />
     </div>
   );
@@ -519,17 +527,8 @@ const CameraModal: React.FC<CameraModalProps> = ({
         >
           <div className="camera-header">
             <h3>
-              {isBarcodeMode ? (
-                <>
-                  <BarChart3 size={20} />
-                  Scan Barcode
-                </>
-              ) : (
-                <>
-                  <Camera size={20} />
-                  Take Photo
-                </>
-              )}
+              <Camera size={20} />
+              Take Photo
             </h3>
             <button 
               className="camera-close-btn" 
@@ -614,7 +613,7 @@ const CameraModal: React.FC<CameraModalProps> = ({
                   data-testid="button-capture-photo"
                 >
                   <div className="capture-button-inner">
-                    {isBarcodeMode ? <BarChart3 size={24} /> : <Camera size={24} />}
+                    <Camera size={24} />
                   </div>
                 </motion.button>
                 
@@ -647,6 +646,124 @@ const CameraModal: React.FC<CameraModalProps> = ({
         </motion.div>
       </motion.div>
     </AnimatePresence>
+  );
+};
+
+// QR Code Modal Component for Mobile Upload
+interface QRCodeModalProps {
+  isOpen: boolean;
+  url: string;
+  onClose: () => void;
+  onCopyUrl: () => void;
+  urlCopied: boolean;
+}
+
+const QRCodeModal: React.FC<QRCodeModalProps> = ({ 
+  isOpen, 
+  url, 
+  onClose, 
+  onCopyUrl, 
+  urlCopied 
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <motion.div 
+        className="bg-zinc-900 border border-zinc-700 rounded-2xl p-8 max-w-md w-full shadow-2xl"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        transition={{ duration: 0.2 }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-[#D4AF37]/10">
+              <QrCode className="h-6 w-6 text-[#D4AF37]" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-white">Mobile Upload</h2>
+              <p className="text-sm text-gray-400">Scan with your phone to upload documents</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-zinc-800 rounded-lg transition-colors"
+            data-testid="button-close-qr-modal"
+          >
+            <X className="h-5 w-5 text-gray-400" />
+          </button>
+        </div>
+
+        {/* QR Code */}
+        <div className="flex flex-col items-center space-y-6">
+          <div className="bg-white p-6 rounded-2xl shadow-lg">
+            <QRCodeSVG
+              value={url}
+              size={200}
+              level="M"
+              includeMargin={true}
+              fgColor="#000000"
+              bgColor="#ffffff"
+            />
+          </div>
+
+          {/* Instructions */}
+          <div className="text-center space-y-2">
+            <h3 className="text-lg font-medium text-white">How to use:</h3>
+            <ol className="text-sm text-gray-300 space-y-1 text-left">
+              <li>1. Open your phone's camera app</li>
+              <li>2. Point at the QR code above</li>
+              <li>3. Tap the notification to open the link</li>
+              <li>4. Upload documents directly from your phone</li>
+            </ol>
+          </div>
+
+          {/* URL Copy Option */}
+          <div className="w-full">
+            <p className="text-xs text-gray-400 mb-2">Or copy the link:</p>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={url}
+                readOnly
+                className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-600 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-[#D4AF37]/50"
+                data-testid="input-mobile-url"
+              />
+              <button
+                onClick={onCopyUrl}
+                className={`px-3 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
+                  urlCopied 
+                    ? 'bg-green-600 text-white' 
+                    : 'bg-[#D4AF37] text-black hover:bg-[#E5C054]'
+                }`}
+                data-testid="button-copy-url"
+              >
+                {urlCopied ? (
+                  <>
+                    <CheckCircle className="h-4 w-4" />
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2 bg-zinc-800 text-gray-300 rounded-lg hover:bg-zinc-700 transition-colors"
+            data-testid="button-close-modal"
+          >
+            Close
+          </button>
+        </div>
+      </motion.div>
+    </div>
   );
 };
 
