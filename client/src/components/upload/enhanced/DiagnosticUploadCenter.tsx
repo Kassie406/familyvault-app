@@ -60,8 +60,19 @@ const DiagnosticUploadCenter = () => {
       if (import.meta.env.DEV) console.log('Response status:', response.status);
 
       if (!response.ok) {
-        const errorText = await response.text();
-        if (import.meta.env.DEV) console.error('Upload failed:', errorText);
+        // Handle both JSON and text error responses
+        let errorText = '';
+        let errorData = null;
+        
+        try {
+          errorData = await response.json();
+          errorText = errorData.error || JSON.stringify(errorData);
+        } catch {
+          // Fallback to text if JSON parsing fails
+          errorText = await response.text();
+        }
+        
+        if (import.meta.env.DEV) console.error('Upload failed:', errorText, errorData);
 
         // Explicitly detect AWS permissions issue per PDF specification
         if (errorText.includes('AccessDenied') || errorText.includes('s3:PutObject')) {
