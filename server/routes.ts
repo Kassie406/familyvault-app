@@ -17,6 +17,7 @@ import documentsRouter from "./routes/documents";
 import { calendarRouter } from "./routes/calendar";
 import familyMeetingsRouter from "./routes/family-meetings";
 import { aiInboxRouter } from "./routes/ai-inbox";
+import aiAgentRouter from "./routes/ai-agent";
 import axios from "axios";
 import { sendSMSNotification } from "./lib/twilio";
 import { sendSMSNotificationsForMessage, markUserOnline, markUserOffline } from "./lib/sms-notifications";
