@@ -8,11 +8,43 @@
 :root {
   --accent: rgba(212, 175, 55, 0.08);
   --accent-foreground: #fff;
+  
+  /* Trustworthy Upload Strategy - Dark Gold Theme Variables */
+  --trustworthy-primary-gold: hsl(45, 64%, 52%);
+  --trustworthy-gold-hover: hsl(48, 71%, 58%);
+  --trustworthy-gold-active: hsl(42, 66%, 41%);
+  --trustworthy-dark-bg: hsl(0, 0%, 6%);
+  --trustworthy-card-bg: hsl(0, 0%, 10%);
+  --trustworthy-border: hsl(0, 0%, 20%);
+  --trustworthy-text-primary: hsl(0, 0%, 100%);
+  --trustworthy-text-secondary: hsl(0, 0%, 80%);
+  --trustworthy-text-muted: hsl(0, 0%, 53%);
+  --trustworthy-success: hsl(158, 64%, 52%);
+  --trustworthy-warning: hsl(38, 92%, 50%);
+  --trustworthy-error: hsl(0, 84%, 60%);
+  --trustworthy-shadow: hsla(0, 0%, 0%, 0.3);
+  --trustworthy-shadow-gold: hsla(45, 64%, 52%, 0.2);
 }
 
 .dark {
   --accent: rgba(212, 175, 55, 0.08);
   --accent-foreground: #fff;
+  
+  /* Dark mode Trustworthy variables - same as light for this theme */
+  --trustworthy-primary-gold: hsl(45, 64%, 52%);
+  --trustworthy-gold-hover: hsl(48, 71%, 58%);
+  --trustworthy-gold-active: hsl(42, 66%, 41%);
+  --trustworthy-dark-bg: hsl(0, 0%, 6%);
+  --trustworthy-card-bg: hsl(0, 0%, 10%);
+  --trustworthy-border: hsl(0, 0%, 20%);
+  --trustworthy-text-primary: hsl(0, 0%, 100%);
+  --trustworthy-text-secondary: hsl(0, 0%, 80%);
+  --trustworthy-text-muted: hsl(0, 0%, 53%);
+  --trustworthy-success: hsl(158, 64%, 52%);
+  --trustworthy-warning: hsl(38, 92%, 50%);
+  --trustworthy-error: hsl(0, 84%, 60%);
+  --trustworthy-shadow: hsla(0, 0%, 0%, 0.3);
+  --trustworthy-shadow-gold: hsla(45, 64%, 52%, 0.2);
 }
 
 /* Chat FAB: never fade, ever */

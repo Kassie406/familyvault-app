@@ -1,0 +1,534 @@
+// Camera Utilities & Barcode Detection
+// Mobile-optimized camera functionality for your upload center
+
+// Camera Access and Management
+export class CameraManager {
+  constructor() {
+    this.stream = null;
+    this.video = null;
+    this.canvas = null;
+    this.context = null;
+    this.facingMode = 'environment'; // Start with back camera
+  }
+
+  // Initialize camera with optimal settings for document scanning
+  async initializeCamera(videoElement, canvasElement) {
+    try {
+      this.video = videoElement;
+      this.canvas = canvasElement;
+      this.context = canvasElement.getContext('2d');
+
+      const constraints = {
+        video: {
+          facingMode: this.facingMode,
+          width: { ideal: 1920, min: 1280 },
+          height: { ideal: 1080, min: 720 },
+          aspectRatio: { ideal: 16/9 },
+          // Enhanced settings for document scanning
+          focusMode: 'continuous',
+          exposureMode: 'continuous',
+          whiteBalanceMode: 'continuous'
+        }
+      };
+
+      this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.video.srcObject = this.stream;
+
+      return new Promise((resolve) => {
+        this.video.onloadedmetadata = () => {
+          resolve(true);
+        };
+      });
+
+    } catch (error) {
+      console.error('Camera initialization failed:', error);
+      throw new Error(this.getCameraErrorMessage(error));
+    }
+  }
+
+  // Switch between front and back camera
+  async switchCamera() {
+    this.facingMode = this.facingMode === 'environment' ? 'user' : 'environment';
+    
+    if (this.stream) {
+      this.stopCamera();
+    }
+    
+    return await this.initializeCamera(this.video, this.canvas);
+  }
+
+  // Capture high-quality photo optimized for document scanning
+  capturePhoto(options = {}) {
+    if (!this.video || !this.canvas) {
+      throw new Error('Camera not initialized');
+    }
+
+    const {
+      quality = 0.95,
+      format = 'image/jpeg',
+      maxWidth = 1920,
+      maxHeight = 1080,
+      filename = `document_${Date.now()}.jpg`
+    } = options;
+
+    // Set canvas dimensions to video dimensions
+    this.canvas.width = this.video.videoWidth;
+    this.canvas.height = this.video.videoHeight;
+
+    // Draw video frame to canvas
+    this.context.drawImage(this.video, 0, 0);
+
+    // Apply document enhancement filters
+    this.enhanceDocumentImage();
+
+    // Convert to blob with specified quality
+    return new Promise((resolve) => {
+      this.canvas.toBlob((blob) => {
+        const file = new File([blob], filename, { type: format });
+        const imageUrl = URL.createObjectURL(blob);
+        
+        resolve({
+          file,
+          imageUrl,
+          width: this.canvas.width,
+          height: this.canvas.height
+        });
+      }, format, quality);
+    });
+  }
+
+  // Enhance captured image for better document readability
+  enhanceDocumentImage() {
+    const imageData = this.context.getImageData(0, 0, this.canvas.width, this.canvas.height);
+    const data = imageData.data;
+
+    // Apply contrast and brightness enhancement
+    for (let i = 0; i < data.length; i += 4) {
+      // Increase contrast
+      data[i] = this.adjustContrast(data[i], 1.2);     // Red
+      data[i + 1] = this.adjustContrast(data[i + 1], 1.2); // Green
+      data[i + 2] = this.adjustContrast(data[i + 2], 1.2); // Blue
+      
+      // Slight brightness increase
+      data[i] = Math.min(255, data[i] + 10);
+      data[i + 1] = Math.min(255, data[i + 1] + 10);
+      data[i + 2] = Math.min(255, data[i + 2] + 10);
+    }
+
+    this.context.putImageData(imageData, 0, 0);
+  }
+
+  adjustContrast(value, contrast) {
+    return Math.max(0, Math.min(255, (value - 128) * contrast + 128));
+  }
+
+  // Stop camera and release resources
+  stopCamera() {
+    if (this.stream) {
+      this.stream.getTracks().forEach(track => track.stop());
+      this.stream = null;
+    }
+  }
+
+  // Get user-friendly error messages
+  getCameraErrorMessage(error) {
+    switch (error.name) {
+      case 'NotAllowedError':
+        return 'Camera access denied. Please enable camera permissions in your browser settings.';
+      case 'NotFoundError':
+        return 'No camera found on this device.';
+      case 'NotSupportedError':
+        return 'Camera not supported on this device.';
+      case 'NotReadableError':
+        return 'Camera is being used by another application.';
+      case 'OverconstrainedError':
+        return 'Camera constraints not supported.';
+      default:
+        return 'Camera access failed. Please try again.';
+    }
+  }
+
+  // Check if camera is available
+  static async isCameraAvailable() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return devices.some(device => device.kind === 'videoinput');
+    } catch (error) {
+      return false;
+    }
+  }
+
+  // Get available cameras
+  static async getAvailableCameras() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return devices.filter(device => device.kind === 'videoinput');
+    } catch (error) {
+      return [];
+    }
+  }
+}
+
+// Barcode Detection Manager
+export class BarcodeDetectionManager {
+  constructor() {
+    this.detector = null;
+    this.isDetecting = false;
+    this.detectionCallback = null;
+    this.supportedFormats = [
+      'qr_code',
+      'code_128',
+      'code_39',
+      'code_93',
+      'ean_13',
+      'ean_8',
+      'upc_a',
+      'upc_e',
+      'data_matrix',
+      'pdf417'
+    ];
+  }
+
+  // Initialize barcode detector
+  async initialize() {
+    try {
+      if ('BarcodeDetector' in window) {
+        this.detector = new BarcodeDetector({
+          formats: this.supportedFormats
+        });
+        return true;
+      } else {
+        console.warn('BarcodeDetector not supported, using fallback');
+        return false;
+      }
+    } catch (error) {
+      console.error('Barcode detector initialization failed:', error);
+      return false;
+    }
+  }
+
+  // Start barcode detection on video stream
+  startDetection(videoElement, callback) {
+    if (!this.detector) {
+      console.warn('Barcode detector not available');
+      return false;
+    }
+
+    this.isDetecting = true;
+    this.detectionCallback = callback;
+
+    const detectBarcodes = async () => {
+      if (!this.isDetecting || !videoElement) return;
+
+      try {
+        const barcodes = await this.detector.detect(videoElement);
+        
+        if (barcodes.length > 0) {
+          const barcode = barcodes[0];
+          const result = {
+            value: barcode.rawValue,
+            format: barcode.format,
+            boundingBox: barcode.boundingBox,
+            cornerPoints: barcode.cornerPoints,
+            confidence: this.calculateConfidence(barcode)
+          };
+
+          if (this.detectionCallback) {
+            this.detectionCallback(result);
+          }
+        }
+      } catch (error) {
+        console.error('Barcode detection error:', error);
+      }
+
+      // Continue detection
+      if (this.isDetecting) {
+        requestAnimationFrame(detectBarcodes);
+      }
+    };
+
+    detectBarcodes();
+    return true;
+  }
+
+  // Stop barcode detection
+  stopDetection() {
+    this.isDetecting = false;
+    this.detectionCallback = null;
+  }
+
+  // Calculate confidence score for detected barcode
+  calculateConfidence(barcode) {
+    // Simple confidence calculation based on barcode properties
+    let confidence = 80; // Base confidence
+
+    // Increase confidence for well-known formats
+    if (['qr_code', 'ean_13', 'code_128'].includes(barcode.format)) {
+      confidence += 10;
+    }
+
+    // Increase confidence for longer values (more data)
+    if (barcode.rawValue.length > 10) {
+      confidence += 5;
+    }
+
+    // Ensure confidence is within bounds
+    return Math.min(100, Math.max(0, confidence));
+  }
+
+  // Check if barcode detection is supported
+  static isSupported() {
+    return 'BarcodeDetector' in window;
+  }
+
+  // Get supported barcode formats
+  static async getSupportedFormats() {
+    try {
+      if ('BarcodeDetector' in window) {
+        return await BarcodeDetector.getSupportedFormats();
+      }
+      return [];
+    } catch (error) {
+      return [];
+    }
+  }
+}
+
+// Document Auto-Capture Manager
+export class DocumentAutoCapture {
+  constructor() {
+    this.isAnalyzing = false;
+    this.captureCallback = null;
+    this.documentThreshold = 0.7; // Confidence threshold for auto-capture
+  }
+
+  // Start document detection for auto-capture
+  startDocumentDetection(videoElement, canvasElement, callback) {
+    this.isAnalyzing = true;
+    this.captureCallback = callback;
+
+    const analyzeFrame = () => {
+      if (!this.isAnalyzing || !videoElement || !canvasElement) return;
+
+      try {
+        // Analyze frame for document presence
+        const documentScore = this.analyzeDocumentPresence(videoElement, canvasElement);
+        
+        if (documentScore > this.documentThreshold) {
+          // Document detected with high confidence
+          if (this.captureCallback) {
+            this.captureCallback({
+              confidence: documentScore,
+              autoCapture: true,
+              timestamp: Date.now()
+            });
+          }
+          
+          // Stop analysis after successful detection
+          this.stopDocumentDetection();
+          return;
+        }
+      } catch (error) {
+        console.error('Document analysis error:', error);
+      }
+
+      // Continue analysis
+      if (this.isAnalyzing) {
+        setTimeout(analyzeFrame, 500); // Analyze every 500ms
+      }
+    };
+
+    analyzeFrame();
+  }
+
+  // Analyze frame for document presence
+  analyzeDocumentPresence(videoElement, canvasElement) {
+    const context = canvasElement.getContext('2d');
+    
+    // Set canvas size to match video
+    canvasElement.width = videoElement.videoWidth;
+    canvasElement.height = videoElement.videoHeight;
+    
+    // Draw current video frame
+    context.drawImage(videoElement, 0, 0);
+    
+    // Get image data for analysis
+    const imageData = context.getImageData(0, 0, canvasElement.width, canvasElement.height);
+    
+    // Simple document detection based on edge detection and contrast
+    const edgeScore = this.detectEdges(imageData);
+    const contrastScore = this.analyzeContrast(imageData);
+    const stabilityScore = this.analyzeStability();
+    
+    // Combine scores for overall document confidence
+    return (edgeScore * 0.4 + contrastScore * 0.4 + stabilityScore * 0.2);
+  }
+
+  // Simple edge detection
+  detectEdges(imageData) {
+    const data = imageData.data;
+    const width = imageData.width;
+    const height = imageData.height;
+    let edgeCount = 0;
+    let totalPixels = 0;
+
+    // Sobel edge detection (simplified)
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const idx = (y * width + x) * 4;
+        
+        // Get grayscale value
+        const gray = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+        
+        // Simple edge detection
+        const rightGray = (data[idx + 4] + data[idx + 5] + data[idx + 6]) / 3;
+        const bottomGray = (data[(y + 1) * width * 4 + x * 4] + 
+                           data[(y + 1) * width * 4 + x * 4 + 1] + 
+                           data[(y + 1) * width * 4 + x * 4 + 2]) / 3;
+        
+        const edgeStrength = Math.abs(gray - rightGray) + Math.abs(gray - bottomGray);
+        
+        if (edgeStrength > 30) { // Edge threshold
+          edgeCount++;
+        }
+        totalPixels++;
+      }
+    }
+
+    return Math.min(1, edgeCount / (totalPixels * 0.1)); // Normalize to 0-1
+  }
+
+  // Analyze image contrast
+  analyzeContrast(imageData) {
+    const data = imageData.data;
+    let min = 255, max = 0;
+    
+    // Find min and max brightness values
+    for (let i = 0; i < data.length; i += 4) {
+      const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
+      min = Math.min(min, brightness);
+      max = Math.max(max, brightness);
+    }
+    
+    const contrast = (max - min) / 255;
+    return Math.min(1, contrast * 2); // Normalize and boost
+  }
+
+  // Analyze camera stability (simplified)
+  analyzeStability() {
+    // For now, return a fixed value
+    // In a real implementation, you'd compare consecutive frames
+    return 0.8;
+  }
+
+  // Stop document detection
+  stopDocumentDetection() {
+    this.isAnalyzing = false;
+    this.captureCallback = null;
+  }
+}
+
+// Mobile-specific utilities
+export class MobileUtils {
+  // Check if device is mobile
+  static isMobile() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }
+
+  // Check if device is iOS
+  static isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent);
+  }
+
+  // Check if device is Android
+  static isAndroid() {
+    return /Android/.test(navigator.userAgent);
+  }
+
+  // Get device orientation
+  static getOrientation() {
+    if (screen.orientation) {
+      return screen.orientation.angle;
+    }
+    return window.orientation || 0;
+  }
+
+  // Lock screen orientation (if supported)
+  static async lockOrientation(orientation = 'portrait') {
+    try {
+      if (screen.orientation && screen.orientation.lock) {
+        await screen.orientation.lock(orientation);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.warn('Orientation lock not supported:', error);
+      return false;
+    }
+  }
+
+  // Unlock screen orientation
+  static unlockOrientation() {
+    try {
+      if (screen.orientation && screen.orientation.unlock) {
+        screen.orientation.unlock();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.warn('Orientation unlock not supported:', error);
+      return false;
+    }
+  }
+
+  // Vibrate device (for feedback)
+  static vibrate(pattern = [100]) {
+    if (navigator.vibrate) {
+      navigator.vibrate(pattern);
+      return true;
+    }
+    return false;
+  }
+
+  // Request fullscreen for better camera experience
+  static async requestFullscreen(element) {
+    try {
+      if (element.requestFullscreen) {
+        await element.requestFullscreen();
+      } else if (element.webkitRequestFullscreen) {
+        await element.webkitRequestFullscreen();
+      } else if (element.msRequestFullscreen) {
+        await element.msRequestFullscreen();
+      }
+      return true;
+    } catch (error) {
+      console.warn('Fullscreen not supported:', error);
+      return false;
+    }
+  }
+
+  // Exit fullscreen
+  static exitFullscreen() {
+    try {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
+      return true;
+    } catch (error) {
+      console.warn('Exit fullscreen failed:', error);
+      return false;
+    }
+  }
+}
+
+// Export all utilities
+export default {
+  CameraManager,
+  BarcodeDetectionManager,
+  DocumentAutoCapture,
+  MobileUtils
+};
