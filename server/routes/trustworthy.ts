@@ -145,28 +145,6 @@ const ALLOWED_DOCUMENT_TYPES = new Set([
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-// Helper function to detect potentially sensitive information
-const isPotentiallyPII = (key: string, value: string): boolean => {
-  const sensitivePatterns = [
-    /social.security|ssn|social/i,
-    /credit.card|card.number|cc|cvv/i,
-    /passport|license|dl|driver/i,
-    /phone|telephone|mobile/i,
-    /email|e-mail/i,
-    /address|street|zip|postal/i,
-    /birth.date|dob|birthday/i,
-    /salary|income|wage/i,
-    /account.number|bank/i
-  ];
-
-  const keyLower = key.toLowerCase();
-  const valueLower = value.toLowerCase();
-  
-  return sensitivePatterns.some(pattern => 
-    pattern.test(keyLower) || pattern.test(valueLower)
-  );
-};
-
 // POST /api/trustworthy/upload - Upload document for Trustworthy analysis
 router.post("/upload", upload.single("document"), async (req, res) => {
   try {

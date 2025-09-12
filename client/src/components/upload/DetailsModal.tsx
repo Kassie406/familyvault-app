@@ -81,7 +81,7 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
     enabled: isVisible
   });
 
-  // Parse extracted fields from document
+  // Parse extracted fields from document (AWS Lambda + OpenAI format)
   useEffect(() => {
     if (document.extractedFields) {
       try {
@@ -89,15 +89,31 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
           ? JSON.parse(document.extractedFields)
           : document.extractedFields;
         
-        const parsedFields: ExtractedField[] = Object.entries(fields || {}).map(([key, value]: [string, any]) => ({
-          key,
-          value: String(value?.value || value || ''),
-          confidence: Number(value?.confidence || document.aiConfidence || 0),
-          fieldType: value?.fieldType || 'text',
-          label: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
-          isEditing: false,
-          editValue: String(value?.value || value || '')
-        }));
+        let parsedFields: ExtractedField[] = [];
+        
+        // Handle AWS Lambda + OpenAI format
+        if (fields?.keyValuePairs && Array.isArray(fields.keyValuePairs)) {
+          parsedFields = fields.keyValuePairs.map((pair: any) => ({
+            key: pair.key || 'Unknown',
+            value: String(pair.value || ''),
+            confidence: Number(pair.confidence || 0),
+            fieldType: 'text',
+            label: (pair.key || 'Unknown').replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+            isEditing: false,
+            editValue: String(pair.value || '')
+          }));
+        } else if (fields && typeof fields === 'object') {
+          // Fallback to legacy format
+          parsedFields = Object.entries(fields || {}).map(([key, value]: [string, any]) => ({
+            key,
+            value: String(value?.value || value || ''),
+            confidence: Number(value?.confidence || document.aiConfidence || 0),
+            fieldType: value?.fieldType || 'text',
+            label: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+            isEditing: false,
+            editValue: String(value?.value || value || '')
+          }));
+        }
         
         setExtractedFields(parsedFields);
       } catch (error) {
@@ -360,14 +376,52 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
 
             {/* Content */}
             <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
-              {/* Left: Extracted Fields */}
+              {/* Left: AI Analysis Results */}
               <div className="flex-1 p-6 overflow-y-auto">
-                <h3 
-                  className="text-lg font-semibold mb-4"
-                  style={{ color: 'var(--trustworthy-text-primary)' }}
-                >
-                  AI Extracted Information
-                </h3>
+                {/* AWS Lambda + OpenAI Summary */}
+                {document.extractedFields && (() => {
+                  try {
+                    const fields = typeof document.extractedFields === 'string' 
+                      ? JSON.parse(document.extractedFields)
+                      : document.extractedFields;
+                    return fields?.summary ? (
+                      <div className="mb-6">
+                        <h3 
+                          className="text-lg font-semibold mb-3"
+                          style={{ color: 'var(--trustworthy-text-primary)' }}
+                        >
+                          🤖 AI Analysis Summary
+                        </h3>
+                        <div 
+                          className="p-4 rounded-xl border"
+                          style={{
+                            backgroundColor: 'color-mix(in srgb, var(--trustworthy-primary-gold) 10%, transparent)',
+                            borderColor: 'color-mix(in srgb, var(--trustworthy-primary-gold) 30%, transparent)'
+                          }}
+                        >
+                          <p 
+                            className="text-sm leading-relaxed"
+                            style={{ color: 'var(--trustworthy-text-secondary)' }}
+                            data-testid="ai-summary"
+                          >
+                            {fields.summary}
+                          </p>
+                        </div>
+                      </div>
+                    ) : null;
+                  } catch {
+                    return null;
+                  }
+                })()}
+
+                {/* Extracted Key-Value Pairs */}
+                <div className="mb-6">
+                  <h3 
+                    className="text-lg font-semibold mb-4"
+                    style={{ color: 'var(--trustworthy-text-primary)' }}
+                  >
+                    ⚡ Extracted Information
+                  </h3>
 
                 {extractedFields.length === 0 ? (
                   <div 
@@ -478,6 +532,59 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
                     ))}
                   </div>
                 )}
+                </div>
+
+                {/* Extracted Text Preview */}
+                {document.extractedFields && (() => {
+                  try {
+                    const fields = typeof document.extractedFields === 'string' 
+                      ? JSON.parse(document.extractedFields)
+                      : document.extractedFields;
+                    return fields?.extractedText ? (
+                      <div className="mb-6">
+                        <h3 
+                          className="text-lg font-semibold mb-3"
+                          style={{ color: 'var(--trustworthy-text-primary)' }}
+                        >
+                          📄 Extracted Text Preview
+                        </h3>
+                        <div 
+                          className="p-4 rounded-xl border max-h-48 overflow-y-auto"
+                          style={{
+                            backgroundColor: 'var(--trustworthy-card-bg)',
+                            borderColor: 'var(--trustworthy-border)'
+                          }}
+                        >
+                          <pre 
+                            className="text-xs font-mono whitespace-pre-wrap leading-relaxed"
+                            style={{ color: 'var(--trustworthy-text-secondary)' }}
+                            data-testid="extracted-text-preview"
+                          >
+                            {fields.extractedText.length > 500 
+                              ? `${fields.extractedText.substring(0, 500)}...` 
+                              : fields.extractedText}
+                          </pre>
+                          {fields.extractedText.length > 500 && (
+                            <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--trustworthy-border)' }}>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleCopyField(fields.extractedText)}
+                                className="text-xs"
+                                data-testid="copy-full-text"
+                              >
+                                <Copy size={12} className="mr-1" />
+                                Copy Full Text
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : null;
+                  } catch {
+                    return null;
+                  }
+                })()}
 
               </div>
 
