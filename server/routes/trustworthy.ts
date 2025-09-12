@@ -130,6 +130,12 @@ class TrustworthyMemStorage {
 // Initialize storage instance
 const trustworthyStorage = new TrustworthyMemStorage();
 
+// Mock storage for compatibility (TODO: migrate to trustworthyStorage)
+const mockDocuments = new Map<string, any>();
+const mockAnalysisFields = new Map<string, any[]>();
+const mockDocumentAnalysis = new Map<string, any>();
+const mockMemberAssignments = new Map<string, any[]>();
+
 const ALLOWED_DOCUMENT_TYPES = new Set([
   "image/png", "image/jpeg", "image/webp", "image/gif",
   "application/pdf", "text/plain",
@@ -138,6 +144,28 @@ const ALLOWED_DOCUMENT_TYPES = new Set([
 ]);
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+// Helper function to detect potentially sensitive information
+const isPotentiallyPII = (key: string, value: string): boolean => {
+  const sensitivePatterns = [
+    /social.security|ssn|social/i,
+    /credit.card|card.number|cc|cvv/i,
+    /passport|license|dl|driver/i,
+    /phone|telephone|mobile/i,
+    /email|e-mail/i,
+    /address|street|zip|postal/i,
+    /birth.date|dob|birthday/i,
+    /salary|income|wage/i,
+    /account.number|bank/i
+  ];
+
+  const keyLower = key.toLowerCase();
+  const valueLower = value.toLowerCase();
+  
+  return sensitivePatterns.some(pattern => 
+    pattern.test(keyLower) || pattern.test(valueLower)
+  );
+};
 
 // POST /api/trustworthy/upload - Upload document for Trustworthy analysis
 router.post("/upload", upload.single("document"), async (req, res) => {
