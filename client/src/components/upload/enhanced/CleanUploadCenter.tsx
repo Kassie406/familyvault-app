@@ -7,7 +7,7 @@ import { Camera, Smartphone, Upload, X, RotateCcw, Zap, Copy, CheckCircle, Loade
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
 import { apiRequest } from '@/lib/queryClient';
-import { LeftSidebar } from '../LeftSidebar';
+import InboxPanel from '@/components/family/inbox-panel';
 import DetailsModal from '../DetailsModal';
 import type { TrustworthyDocument, FamilyMember } from '@shared/schema';
 
@@ -89,7 +89,7 @@ export const CleanUploadCenter: React.FC<CleanUploadCenterProps> = ({
 
   // Generate upload session for mobile
   const generateUploadSession = async () => {
-    const response = await fetch('/api/mobile-upload/create-session', {
+    const response = await fetch('/api/mobile-upload/sessions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -310,27 +310,21 @@ export const CleanUploadCenter: React.FC<CleanUploadCenterProps> = ({
         onShareLink={shareMobileLink}
       />
 
-      {/* Left Sidebar */}
-      {sidebarOpen && (
-        <LeftSidebar
-          documents={uploadedDocuments}
-          onClose={() => setSidebarOpen(false)}
-          onDocumentClick={setSelectedDocument}
-          onDetailsClick={(doc: TrustworthyDocument) => {
-            setSelectedDocument(doc);
-            setShowDetailsModal(true);
-          }}
-        />
-      )}
-
-      {/* Details Modal */}
-      {selectedDocument && (
-        <DetailsModal
-          isOpen={showDetailsModal}
-          document={selectedDocument}
-          onClose={() => setShowDetailsModal(false)}
-          onNavigateToProfile={onNavigateToProfile}
-        />
+      {/* Integration with Inbox - Documents automatically appear in inbox after upload */}
+      {uploadState === 'complete' && (
+        <div className="upload-success-notification">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="success-card"
+          >
+            <CheckCircle size={24} className="text-green-400" />
+            <div>
+              <h4>Documents uploaded successfully!</h4>
+              <p>Check your inbox to review AI suggestions and add them to family profiles.</p>
+            </div>
+          </motion.div>
+        </div>
       )}
 
       {/* Hidden File Input */}
