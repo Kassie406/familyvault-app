@@ -708,7 +708,7 @@ router.post("/lambda-analyze", async (req, res) => {
       extractedData: {
         extractedText,
         keyValuePairs: validKeyValuePairs,
-        documentType,
+        documentType: lambdaDocumentType,
         confidence,
         summary
       },
@@ -726,7 +726,7 @@ router.post("/lambda-analyze", async (req, res) => {
     // **VALIDATE LAMBDA RESPONSE DATA INTEGRITY**
     const extractedText = analysisResult.extractedText || '';
     const keyValuePairs = Array.isArray(analysisResult.keyValuePairs) ? analysisResult.keyValuePairs : [];
-    const documentType = analysisResult.documentType || 'unknown';
+    const lambdaDocumentType = analysisResult.documentType || 'unknown';
     const confidence = typeof analysisResult.confidence === 'number' ? analysisResult.confidence : 0;
     const summary = analysisResult.summary || `Analysis completed for ${fileName}`;
 
@@ -761,7 +761,7 @@ router.post("/lambda-analyze", async (req, res) => {
     const documentToUpdate = mockDocuments.get(documentId);
     if (documentToUpdate) {
       documentToUpdate.status = 'analyzed';
-      documentToUpdate.documentType = documentType;
+      documentToUpdate.documentType = lambdaDocumentType;
       documentToUpdate.aiConfidence = Math.round(confidence * 100);
       documentToUpdate.analysisMethod = 'lambda_openai';
       documentToUpdate.analysisTimestamp = new Date();
