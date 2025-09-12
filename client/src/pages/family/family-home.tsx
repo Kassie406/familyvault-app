@@ -59,6 +59,7 @@ import { MealPlannerWeek } from '@/components/family/MealPlannerWeek';
 import ChoresCard from '@/components/family/ChoresCard';
 import AllowanceMini from '@/components/family/AllowanceMini';
 import ActionCenter from '@/components/family/ActionCenter';
+import ManusAssistantPanel from '@/components/ManusAssistantPanel';
 
 export default function FamilyHome() {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -1258,6 +1259,11 @@ export default function FamilyHome() {
         className={highlightICE ? 'upload-highlight' : ''}
       >
         <ICECard />
+      </div>
+
+      {/* Manus AI Assistant Panel */}
+      <div className="mt-6">
+        <ManusAssistantPanel />
       </div>
 
       {/* Luxury Footer */}
