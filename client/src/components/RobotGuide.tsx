@@ -417,60 +417,24 @@ export const RobotGuide: React.FC<Props> = ({ steps = [], start, onFinish, initi
       {TutorialTip}
       {ChatInterface}
       {createPortal(
-        <motion.div
-          className="fixed z-[9999] cursor-grab active:cursor-grabbing"
-          style={{ x, y }}
-          drag
-          dragMomentum={false}
-          dragElastic={0.12}
-        >
-        {/* Robot orb */}
-        <motion.div
-          className="w-14 h-14 rounded-full bg-white/95 shadow-[0_0_30px_rgba(212,175,55,.35)] flex items-center justify-center border border-zinc-300 cursor-pointer"
-          animate={{ 
-            scale: showChat || open ? 1.05 : 1, 
-            boxShadow: showChat || open ? "0 0 38px rgba(212,175,55,.55)" : "0 0 24px rgba(212,175,55,.35)" 
-          }}
-          transition={{ duration: .35 }}
+        <div
+          className="fixed top-10 right-10 w-20 h-20 bg-red-500 rounded-full z-[99999] cursor-pointer shadow-2xl"
           onClick={() => setShowChat(!showChat)}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
+          style={{
+            border: '4px solid white',
+            background: 'linear-gradient(45deg, #ff0000, #ff6666)'
+          }}
         >
-          {/* Robot face - black oval visor with white dots for eyes */}
-          <div className="relative w-10 h-6 rounded-full bg-black">
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex gap-2">
-              <motion.div 
-                className="w-2.5 h-2.5 rounded-full bg-white"
-                style={{ transform: `translate(${eye("x")}px, ${eye("y")}px)` }}
-                animate={{
-                  scale: showChat ? [1, 1.2, 1] : 1
-                }}
-                transition={{ duration: 0.3 }}
-              />
-              <motion.div 
-                className="w-2.5 h-2.5 rounded-full bg-white"
-                style={{ transform: `translate(${eye("x")}px, ${eye("y")}px)` }}
-                animate={{
-                  scale: showChat ? [1, 1.2, 1] : 1
-                }}
-                transition={{ duration: 0.3 }}
-              />
-            </div>
+          <div className="flex items-center justify-center w-full h-full text-white font-bold text-lg">
+            🤖
           </div>
-        </motion.div>
-
-        {/* Chat indicator */}
-        {!showChat && (
-          <motion.div
-            className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#D4AF37] flex items-center justify-center"
-            animate={{ scale: [1, 1.2, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            <MessageCircle className="h-2 w-2 text-black" />
-          </motion.div>
-        )}
-      </motion.div>,
-      document.body
+          {!showChat && (
+            <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full animate-bounce flex items-center justify-center">
+              <span className="text-xs">💬</span>
+            </div>
+          )}
+        </div>,
+        document.body
       )}
     </>
   );
