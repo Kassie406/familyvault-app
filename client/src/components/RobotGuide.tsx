@@ -4,7 +4,8 @@ import { motion, useMotionValue, animate } from "framer-motion";
 import { useManusAgent } from "@/hooks/useManusAgent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Send, MessageCircle, Code, FileText, Database, Terminal } from "lucide-react";
+import { X, Send, MessageCircle, Code, FileText, Database, Terminal, Paperclip, Camera, Image, Upload, Trash2 } from "lucide-react";
+import { validateFile, formatFileSize } from "@/utils/uploadApiIntegration";
 
 type Step = { selector: string; message: string };
 type Props = {
@@ -51,12 +52,11 @@ export const RobotGuide: React.FC<Props> = ({ steps = [], start, onFinish, initi
   const [i, setI] = useState(start ? 0 : -1);
   const [showChat, setShowChat] = useState(false);
   const [prompt, setPrompt] = useState('');
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Debug logging
-  React.useEffect(() => {
-    console.log('🤖 RobotGuide component mounted!');
-    return () => console.log('🤖 RobotGuide component unmounted!');
-  }, []);
   
   const { 
     askManus, 
@@ -116,11 +116,25 @@ export const RobotGuide: React.FC<Props> = ({ steps = [], start, onFinish, initi
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prompt.trim() || isLoading) return;
+    if ((!prompt.trim() && attachedFiles.length === 0) || isLoading) return;
     
     const userPrompt = prompt;
+    const filesToSend = [...attachedFiles];
     setPrompt('');
-    await askManus(userPrompt);
+    setAttachedFiles([]);
+    
+    if (filesToSend.length > 0) {
+      // Include file information in the message
+      let messageWithFiles = userPrompt;
+      if (!messageWithFiles.trim()) {
+        messageWithFiles = "I've attached some files. Please analyze them and help me with any questions I might have.";
+      } else {
+        messageWithFiles += `\n\nI've attached ${filesToSend.length} file(s): ${filesToSend.map(f => f.name).join(', ')}`;
+      }
+      await askManus(messageWithFiles, filesToSend);
+    } else {
+      await askManus(userPrompt);
+    }
   };
 
   const handleQuickAction = async (action: string) => {
@@ -232,52 +246,193 @@ export const RobotGuide: React.FC<Props> = ({ steps = [], start, onFinish, initi
         )}
       </div>
 
-      {/* Input */}
-      <form onSubmit={handleSubmit} className="p-3 border-t border-zinc-800">
-        <div className="flex gap-2">
-          <Input
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Ask me anything..."
-            className="flex-1 h-8 text-xs bg-zinc-800 border-zinc-700"
-            disabled={isLoading}
-          />
-          <Button 
-            type="submit" 
-            size="sm" 
-            disabled={!prompt.trim() || isLoading}
-            className="h-8 w-8 p-0 bg-[#D4AF37] hover:bg-[#D4AF37]/80 text-black"
-          >
-            <Send className="h-3 w-3" />
-          </Button>
+      {/* Attached Files */}
+      {attachedFiles.length > 0 && (
+        <div className="px-3 py-2 border-t border-zinc-800 bg-zinc-800/50">
+          <div className="text-xs text-zinc-400 mb-2">Attached Files ({attachedFiles.length})</div>
+          <div className="space-y-1 max-h-24 overflow-y-auto">
+            {attachedFiles.map((file, index) => (
+              <div key={index} className="flex items-center justify-between bg-zinc-700/50 rounded px-2 py-1">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <Image className="h-3 w-3 text-zinc-400 flex-shrink-0" />
+                  <span className="text-xs text-zinc-300 truncate">{file.name}</span>
+                  <span className="text-xs text-zinc-500 flex-shrink-0">({formatFileSize(file.size)})</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeFile(index)}
+                  className="h-5 w-5 p-0 text-zinc-400 hover:text-red-400"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
         </div>
-      </form>
+      )}
+
+      {/* Input */}
+      <div className="p-3 border-t border-zinc-800">
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/*,.pdf,.txt,.doc,.docx,.json,.csv"
+          onChange={(e) => handleFileSelect(Array.from(e.target.files || []))}
+          className="hidden"
+        />
+        
+        <form 
+          onSubmit={handleSubmit} 
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          className={`relative rounded-lg transition-colors ${
+            isDragging ? 'bg-[#D4AF37]/10 border-2 border-dashed border-[#D4AF37]' : ''
+          }`}
+        >
+          {isDragging && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#D4AF37]/5 rounded-lg">
+              <div className="text-xs text-[#D4AF37] flex items-center gap-1">
+                <Upload className="h-3 w-3" />
+                Drop files here
+              </div>
+            </div>
+          )}
+          
+          <div className="flex gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading}
+              className="h-8 w-8 p-0 text-zinc-400 hover:text-[#D4AF37]"
+              title="Attach file"
+            >
+              <Paperclip className="h-3 w-3" />
+            </Button>
+            
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={captureScreenshot}
+              disabled={isLoading}
+              className="h-8 w-8 p-0 text-zinc-400 hover:text-[#D4AF37]"
+              title="Take screenshot"
+            >
+              <Camera className="h-3 w-3" />
+            </Button>
+            
+            <Input
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder={attachedFiles.length > 0 ? "Describe what you need help with..." : "Ask me anything..."}
+              className="flex-1 h-8 text-xs bg-zinc-800 border-zinc-700"
+              disabled={isLoading}
+            />
+            
+            <Button 
+              type="submit" 
+              size="sm" 
+              disabled={(!prompt.trim() && attachedFiles.length === 0) || isLoading}
+              className="h-8 w-8 p-0 bg-[#D4AF37] hover:bg-[#D4AF37]/80 text-black"
+            >
+              <Send className="h-3 w-3" />
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>, document.body
   ) : null;
+
+  // File handling functions
+  const handleFileSelect = (files: File[]) => {
+    const validFiles = files.filter(file => {
+      const validation = validateFile(file);
+      if (!validation.isValid) {
+        console.warn('File validation failed:', validation.errors);
+        return false;
+      }
+      return true;
+    });
+    setAttachedFiles(prev => [...prev, ...validFiles]);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    handleFileSelect(files);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const captureScreenshot = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true
+      });
+      
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      await video.play();
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(video, 0, 0);
+      
+      stream.getTracks().forEach(track => track.stop());
+      
+      canvas.toBlob(blob => {
+        if (blob) {
+          const file = new File([blob], `screenshot_${Date.now()}.png`, { type: 'image/png' });
+          handleFileSelect([file]);
+        }
+      }, 'image/png', 0.9);
+    } catch (error) {
+      console.error('Screenshot capture failed:', error);
+    }
+  };
 
   return (
     <>
       <Spotlight rect={open ? rect : null} />
       {TutorialTip}
       {ChatInterface}
-      
-      {/* DEBUG: Render robot directly in component (not portal) */}
-      <div className="fixed top-10 left-10 z-[9999] bg-red-500 text-white p-4 rounded">
-        DEBUG: RobotGuide is rendered!
-      </div>
-      
-      <motion.div
-        className="fixed z-[9999] cursor-grab active:cursor-grabbing"
-        style={{ left: '120px', top: '200px' }}
-      >
-        {/* Robot orb - VISIBLE DEBUG VERSION */}
+      {createPortal(
         <motion.div
-          className="w-20 h-20 rounded-full bg-[#D4AF37] shadow-[0_0_50px_rgba(212,175,55,.8)] flex items-center justify-center border-4 border-zinc-900 cursor-pointer"
+          className="fixed z-[9999] cursor-grab active:cursor-grabbing"
+          style={{ x, y }}
+          drag
+          dragMomentum={false}
+          dragElastic={0.12}
+        >
+        {/* Robot orb */}
+        <motion.div
+          className="w-14 h-14 rounded-full bg-white/95 shadow-[0_0_30px_rgba(212,175,55,.35)] flex items-center justify-center border border-zinc-300 cursor-pointer"
           animate={{ 
-            scale: [1, 1.1, 1], 
-            boxShadow: "0 0 60px rgba(212,175,55,.9)"
+            scale: showChat || open ? 1.05 : 1, 
+            boxShadow: showChat || open ? "0 0 38px rgba(212,175,55,.55)" : "0 0 24px rgba(212,175,55,.35)" 
           }}
-          transition={{ duration: 1, repeat: Infinity }}
+          transition={{ duration: .35 }}
           onClick={() => setShowChat(!showChat)}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
@@ -285,8 +440,22 @@ export const RobotGuide: React.FC<Props> = ({ steps = [], start, onFinish, initi
           {/* Robot face - black oval visor with white dots for eyes */}
           <div className="relative w-10 h-6 rounded-full bg-black">
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-white" />
-              <div className="w-2.5 h-2.5 rounded-full bg-white" />
+              <motion.div 
+                className="w-2.5 h-2.5 rounded-full bg-white"
+                style={{ transform: `translate(${eye("x")}px, ${eye("y")}px)` }}
+                animate={{
+                  scale: showChat ? [1, 1.2, 1] : 1
+                }}
+                transition={{ duration: 0.3 }}
+              />
+              <motion.div 
+                className="w-2.5 h-2.5 rounded-full bg-white"
+                style={{ transform: `translate(${eye("x")}px, ${eye("y")}px)` }}
+                animate={{
+                  scale: showChat ? [1, 1.2, 1] : 1
+                }}
+                transition={{ duration: 0.3 }}
+              />
             </div>
           </div>
         </motion.div>
@@ -301,7 +470,9 @@ export const RobotGuide: React.FC<Props> = ({ steps = [], start, onFinish, initi
             <MessageCircle className="h-2 w-2 text-black" />
           </motion.div>
         )}
-      </motion.div>
+      </motion.div>,
+      document.body
+      )}
     </>
   );
 };

@@ -78,13 +78,25 @@ export function useManusAgent(options: UseManusAgentOptions = {}) {
     }
   }, [autoload, loadConversation]);
 
-  const askManus = async (prompt: string): Promise<string> => {
+  const askManus = async (prompt: string, files?: File[]): Promise<string> => {
     if (isLoading) return 'Already processing...'; // Prevent parallel calls
     
     setIsLoading(true);
     try {
-      const res = await axios.post('/api/ai-agent/ask', {
-        prompt // No sessionId - server manages this securely
+      let requestData: any = { prompt };
+      
+      // If files are provided, create FormData for multipart upload
+      if (files && files.length > 0) {
+        const formData = new FormData();
+        formData.append('prompt', prompt);
+        files.forEach((file, index) => {
+          formData.append(`file_${index}`, file);
+        });
+        requestData = formData;
+      }
+      
+      const res = await axios.post('/api/ai-agent/ask', requestData, {
+        headers: files && files.length > 0 ? { 'Content-Type': 'multipart/form-data' } : {}
       });
       
       // Use conversation data from response (UX optimization - no extra round trip)
