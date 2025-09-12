@@ -30,8 +30,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { StatCard } from '@/components/StatCard';
 import { InviteFamilyMemberDialog } from '@/components/InviteFamilyMemberDialog';
-import { EnhancedSingleUploadCenter } from '@/components/upload/EnhancedSingleUploadCenter';
-import '@/components/upload/EnhancedSingleUploadCenter.css';
+import { EnhancedTrustworthyUploadCenter } from '@/components/upload/enhanced/EnhancedTrustworthyUploadCenter';
 import AIBanner from '@/components/ai/AIBanner';
 import InboxDrawer from '@/components/inbox/InboxDrawer';
 import { NewMessageModal } from '@/components/messaging/NewMessageModal';
@@ -373,11 +372,7 @@ export default function FamilyHome() {
             />
             
             <div className={`flex-1 ${(highlightDocumentUpload || highlightPhotoUpload) ? 'upload-highlight' : ''}`}>
-              <EnhancedSingleUploadCenter 
-                onDocumentUpload={handleDocumentUpload}
-                onPhotoUpload={handlePhotoUpload}
-                onNavigateToAlbum={handleNavigateToAlbum}
-              />
+              <EnhancedTrustworthyUploadCenter />
             </div>
           </div>
         );
