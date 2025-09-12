@@ -70,23 +70,13 @@ export default function UploadCenter() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-[#e5e7eb] p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 text-[#D4AF37]">Upload Center</h1>
-          <p className="text-[#9ca3af]">
-            Upload documents for AI-powered analysis or add photos to your Family Album. 
-            Experience the dual upload workflow with luxury theming and smooth animations.
-          </p>
-        </div>
-
-        {/* Dual Upload Center Component */}
-        <DualUploadCenter 
-          onDocumentUpload={handleDocumentUpload}
-          onPhotoUpload={handlePhotoUpload}
-          onNavigateToAlbum={handleNavigateToAlbum}
-        />
-      </div>
+    <div className="min-h-screen bg-[#0f172a] text-[#e5e7eb]">
+      {/* Dual Upload Center Component - matches user's layout specification exactly */}
+      <DualUploadCenter 
+        onDocumentUpload={handleDocumentUpload}
+        onPhotoUpload={handlePhotoUpload}
+        onNavigateToAlbum={handleNavigateToAlbum}
+      />
     </div>
   );
 }
