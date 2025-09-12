@@ -117,7 +117,7 @@ export const CleanUploadCenter: React.FC<CleanUploadCenterProps> = ({
       const fileArray = Array.from(files);
       const uploadPromises = fileArray.map(async (file, index) => {
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('document', file);
         formData.append('familyId', familyId);
 
         const uploadResponse = await fetch('/api/trustworthy/upload', {
