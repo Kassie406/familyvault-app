@@ -1,9 +1,34 @@
 import express from 'express';
 import axios from 'axios';
 import OpenAI from 'openai';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs/promises';
 import { mcpFunctionSchema, validateFunctionCall } from '../../utils/mcpFunctions';
 
 const router = express.Router();
+
+// Configure multer for file uploads
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+    files: 5 // Max 5 files
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+      'text/plain', 'application/json', 'text/csv',
+      'application/pdf'
+    ];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Unsupported file type: ${file.mimetype}`));
+    }
+  }
+});
 
 // Production-ready configuration validation
 if (!process.env.OPENAI_API_KEY) {
@@ -146,7 +171,7 @@ Available functions: ${mcpFunctionSchema.map(f => f.name).join(', ')}
 Choose the most appropriate function for: "${prompt}"`;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: prompt }
@@ -239,33 +264,72 @@ router.get('/conversation', (req, res) => {
   });
 });
 
-// Enhanced ask endpoint with memory (SECURITY ENHANCED)
-router.post('/ask', async (req, res) => {
-  const { prompt } = req.body; // Remove sessionId from client input
-  
-  if (!prompt) {
-    return res.status(400).json({ error: 'Prompt is required' });
+// Helper function to process files
+async function processAttachedFiles(files: Express.Multer.File[]) {
+  const processedFiles = [];
+  for (const file of files) {
+    const fileInfo = {
+      name: file.originalname,
+      type: file.mimetype,
+      size: file.size,
+      content: file.buffer.toString('utf-8'), // For text files
+    };
+    
+    // For images, just include metadata
+    if (file.mimetype.startsWith('image/')) {
+      fileInfo.content = `[Image file: ${file.originalname}, ${(file.size / 1024).toFixed(1)}KB]`;
+    }
+    
+    processedFiles.push(fileInfo);
   }
-  
-  // CRITICAL: Require proper session - no anonymous fallback in production
-  if (!req.sessionID) {
-    return res.status(401).json({ error: 'Session required for AI agent access' });
-  }
-  const sessionId = req.sessionID;
-  const session = getOrCreateSession(sessionId);
-  
-  // Track execution timing
-  const executionStart = Date.now();
-  
-  // Add user message to conversation
-  const userMessage = addMessage(sessionId, {
-    role: 'user',
-    content: prompt
-  });
-  
-  const { method, params, reasoning } = await parseUserIntentWithGPT(prompt, session);
-  
+  return processedFiles;
+}
+
+// Enhanced ask endpoint with memory and file support (SECURITY ENHANCED)
+router.post('/ask', upload.array('file', 5), async (req, res) => {
   try {
+    const { prompt } = req.body; // Remove sessionId from client input
+    const files = req.files as Express.Multer.File[];
+    
+    if (!prompt && (!files || files.length === 0)) {
+      return res.status(400).json({ error: 'Prompt or files are required' });
+    }
+  
+    // CRITICAL: Require proper session - no anonymous fallback in production
+    if (!req.sessionID) {
+      return res.status(401).json({ error: 'Session required for AI agent access' });
+    }
+    const sessionId = req.sessionID;
+    const session = getOrCreateSession(sessionId);
+    
+    // Process attached files if any
+    let fileContext = '';
+    if (files && files.length > 0) {
+      const processedFiles = await processAttachedFiles(files);
+      fileContext = `\n\n📎 **Attached Files (${files.length}):**\n${processedFiles.map(f => 
+        `- **${f.name}** (${f.type}, ${(f.size / 1024).toFixed(1)}KB)\n${f.content.substring(0, 500)}${f.content.length > 500 ? '...' : ''}`
+      ).join('\n\n')}`;
+    }
+    
+    // Track execution timing
+    const executionStart = Date.now();
+    
+    // Create enhanced prompt with file context
+    const enhancedPrompt = prompt + fileContext;
+    
+    // Add user message to conversation
+    const userMessage = addMessage(sessionId, {
+      role: 'user',
+      content: enhancedPrompt,
+      metadata: {
+        attachedFiles: files ? files.length : 0,
+        fileNames: files?.map(f => f.originalname) || []
+      }
+    });
+  
+    const { method, params, reasoning } = await parseUserIntentWithGPT(enhancedPrompt, session);
+    
+    try {
     const mcpCallStart = Date.now();
     const mcpRes = await axios.post(MCP_SERVER, {
       method,
@@ -356,6 +420,24 @@ router.post('/ask', async (req, res) => {
       sessionId,
       conversationLength: session.messages.length,
       conversation: conversationData
+    });
+  }
+  } catch (error) {
+    // Handle multer errors and other request-level errors
+    if (error instanceof multer.MulterError) {
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ error: 'File too large. Maximum size is 5MB.' });
+      }
+      if (error.code === 'LIMIT_FILE_COUNT') {
+        return res.status(413).json({ error: 'Too many files. Maximum is 5 files.' });
+      }
+      return res.status(400).json({ error: `File upload error: ${error.message}` });
+    }
+    
+    console.error('[AI AGENT] Request processing error:', error);
+    return res.status(500).json({ 
+      error: 'Internal server error processing request',
+      details: error.message 
     });
   }
 });
