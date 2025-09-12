@@ -14,7 +14,6 @@ export default function ManusAssistantPanel() {
     isLoading, 
     conversation, 
     clearConversation, 
-    sessionId,
     conversationSummary 
   } = useManusAgent();
 

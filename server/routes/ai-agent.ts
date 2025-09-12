@@ -116,7 +116,7 @@ function generateConversationSummary(messages: ChatMessage[]): string {
   
   let summary = `Conversation with ${messages.length} messages. `;
   if (topics.length > 0) {
-    summary += `Topics: ${[...new Set(topics)].join(', ').slice(0, 200)}. `;
+    summary += `Topics: ${Array.from(new Set(topics)).join(', ').slice(0, 200)}. `;
   }
   if (functionCalls.length > 0) {
     summary += `Functions: ${functionCalls.join(', ')}.`;
