@@ -517,6 +517,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/uploads", uploadsRouter);
   app.use("/api/trustworthy", trustworthyRouter);
   app.use("/api/inbox", aiInboxRouter);
+  app.use("/api/ai-agent", aiAgentRouter);
 
   // Mount file status routes for real-time updates
   app.use("/api/files", fileRoutes);
