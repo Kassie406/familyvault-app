@@ -52,6 +52,12 @@ export const RobotGuide: React.FC<Props> = ({ steps = [], start, onFinish, initi
   const [showChat, setShowChat] = useState(false);
   const [prompt, setPrompt] = useState('');
   
+  // Debug logging
+  React.useEffect(() => {
+    console.log('🤖 RobotGuide component mounted!');
+    return () => console.log('🤖 RobotGuide component unmounted!');
+  }, []);
+  
   const { 
     askManus, 
     isLoading, 
@@ -71,9 +77,9 @@ export const RobotGuide: React.FC<Props> = ({ steps = [], start, onFinish, initi
   const target = useMemo(() => (i >= 0 ? document.querySelector(steps[i]?.selector) as HTMLElement | null : null), [i, steps]);
   const rect = target?.getBoundingClientRect() ?? null;
 
-  // Robot position (floating widget)
+  // Robot position (floating widget) - debug positioning
   const x = useMotionValue(initial?.x ?? 120);
-  const y = useMotionValue(initial?.y ?? window.innerHeight - 180);
+  const y = useMotionValue(initial?.y ?? 200); // Fixed visible position for debugging
   const { x: cx, y: cy } = useCursor(); // cursor for eye-tracking
 
   // Fly to target when step changes
@@ -254,62 +260,48 @@ export const RobotGuide: React.FC<Props> = ({ steps = [], start, onFinish, initi
       <Spotlight rect={open ? rect : null} />
       {TutorialTip}
       {ChatInterface}
-      {createPortal(
+      
+      {/* DEBUG: Render robot directly in component (not portal) */}
+      <div className="fixed top-10 left-10 z-[9999] bg-red-500 text-white p-4 rounded">
+        DEBUG: RobotGuide is rendered!
+      </div>
+      
+      <motion.div
+        className="fixed z-[9999] cursor-grab active:cursor-grabbing"
+        style={{ left: '120px', top: '200px' }}
+      >
+        {/* Robot orb - VISIBLE DEBUG VERSION */}
         <motion.div
-          className="fixed z-[9999] cursor-grab active:cursor-grabbing"
-          style={{ x, y }}
-          drag // allow user to drag the bot
-          dragMomentum={false}
-          dragElastic={0.12}
+          className="w-20 h-20 rounded-full bg-[#D4AF37] shadow-[0_0_50px_rgba(212,175,55,.8)] flex items-center justify-center border-4 border-zinc-900 cursor-pointer"
+          animate={{ 
+            scale: [1, 1.1, 1], 
+            boxShadow: "0 0 60px rgba(212,175,55,.9)"
+          }}
+          transition={{ duration: 1, repeat: Infinity }}
+          onClick={() => setShowChat(!showChat)}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
         >
-          {/* Robot orb (matching the screenshot) */}
-          <motion.div
-            className="w-14 h-14 rounded-full bg-white/95 shadow-[0_0_30px_rgba(212,175,55,.35)] flex items-center justify-center border border-zinc-300 cursor-pointer"
-            animate={{ 
-              scale: showChat || open ? 1.05 : 1, 
-              boxShadow: showChat || open ? "0 0 38px rgba(212,175,55,.55)" : "0 0 24px rgba(212,175,55,.35)" 
-            }}
-            transition={{ duration: .35 }}
-            onClick={() => setShowChat(!showChat)}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            {/* Robot face - black oval visor with white dots for eyes */}
-            <div className="relative w-10 h-6 rounded-full bg-black">
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex gap-2">
-                <motion.div 
-                  className="w-2.5 h-2.5 rounded-full bg-white"
-                  style={{ transform: `translate(${eye("x")}px, ${eye("y")}px)` }}
-                  animate={{
-                    scale: showChat ? [1, 1.2, 1] : 1
-                  }}
-                  transition={{ duration: 0.3 }}
-                />
-                <motion.div 
-                  className="w-2.5 h-2.5 rounded-full bg-white"
-                  style={{ transform: `translate(${eye("x")}px, ${eye("y")}px)` }}
-                  animate={{
-                    scale: showChat ? [1, 1.2, 1] : 1
-                  }}
-                  transition={{ duration: 0.3 }}
-                />
-              </div>
+          {/* Robot face - black oval visor with white dots for eyes */}
+          <div className="relative w-10 h-6 rounded-full bg-black">
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-white" />
+              <div className="w-2.5 h-2.5 rounded-full bg-white" />
             </div>
-          </motion.div>
+          </div>
+        </motion.div>
 
-          {/* Chat indicator */}
-          {!showChat && (
-            <motion.div
-              className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#D4AF37] flex items-center justify-center"
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <MessageCircle className="h-2 w-2 text-black" />
-            </motion.div>
-          )}
-        </motion.div>,
-        document.body
-      )}
+        {/* Chat indicator */}
+        {!showChat && (
+          <motion.div
+            className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#D4AF37] flex items-center justify-center"
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <MessageCircle className="h-2 w-2 text-black" />
+          </motion.div>
+        )}
+      </motion.div>
     </>
   );
 };
