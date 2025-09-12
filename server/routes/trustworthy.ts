@@ -210,19 +210,7 @@ router.post("/upload", upload.single("document"), async (req, res) => {
     // Check if AWS credentials are available
     const hasAWSCredentials = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && bucket;
     
-    // Debug logging for AWS credentials
-    console.log(`AWS Credentials Check:`, {
-      hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
-      hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
-      hasBucket: !!bucket,
-      bucketName: bucket,
-      region: process.env.AWS_REGION,
-      willUseAWS: hasAWSCredentials,
-      fileType: file.mimetype
-    });
-    
     if (hasAWSCredentials) {
-      console.log(`✅ Using AWS S3 upload for ${file.originalname} to bucket: ${bucket}`);
       try {
         // Upload original document to appropriate S3 bucket
         fileUrl = await uploadBufferToS3(`${keyBase}${ext}`, file.buffer, file.mimetype, bucket);
