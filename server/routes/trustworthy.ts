@@ -63,11 +63,72 @@ const getS3Client = (): S3Client => {
   return s3Client;
 };
 
-// Mock storage for Trustworthy documents (placeholder until real DB integration)
-const mockDocuments = new Map<string, any>();
-const mockAnalysisFields = new Map<string, any[]>();
-const mockDocumentAnalysis = new Map<string, any>();
-const mockMemberAssignments = new Map<string, any[]>();
+// Trustworthy Document MemStorage implementation
+class TrustworthyMemStorage {
+  private documents = new Map<string, any>();
+  private analysisFields = new Map<string, any[]>();
+  private documentAnalysis = new Map<string, any>();
+  private memberAssignments = new Map<string, any[]>();
+
+  // Document CRUD methods
+  createDocument(document: any): any {
+    this.documents.set(document.id, document);
+    return document;
+  }
+
+  getDocument(id: string): any | undefined {
+    return this.documents.get(id);
+  }
+
+  updateDocument(id: string, updates: any): any | undefined {
+    const document = this.documents.get(id);
+    if (!document) return undefined;
+    
+    const updated = { ...document, ...updates, updatedAt: new Date() };
+    this.documents.set(id, updated);
+    return updated;
+  }
+
+  deleteDocument(id: string): boolean {
+    return this.documents.delete(id);
+  }
+
+  getDocumentsByFamily(familyId: string): any[] {
+    return Array.from(this.documents.values()).filter(doc => doc.familyId === familyId);
+  }
+
+  // Analysis fields methods
+  setAnalysisFields(documentId: string, fields: any[]): void {
+    this.analysisFields.set(documentId, fields);
+  }
+
+  getAnalysisFields(documentId: string): any[] {
+    return this.analysisFields.get(documentId) || [];
+  }
+
+  // Document analysis methods
+  setDocumentAnalysis(documentId: string, analysis: any): void {
+    this.documentAnalysis.set(documentId, analysis);
+  }
+
+  getDocumentAnalysis(documentId: string): any | undefined {
+    return this.documentAnalysis.get(documentId);
+  }
+
+  // Member assignments methods
+  addMemberAssignment(memberId: string, assignment: any): void {
+    const assignments = this.memberAssignments.get(memberId) || [];
+    assignments.push(assignment);
+    this.memberAssignments.set(memberId, assignments);
+  }
+
+  getMemberAssignments(memberId: string): any[] {
+    return this.memberAssignments.get(memberId) || [];
+  }
+}
+
+// Initialize storage instance
+const trustworthyStorage = new TrustworthyMemStorage();
 
 const ALLOWED_DOCUMENT_TYPES = new Set([
   "image/png", "image/jpeg", "image/webp", "image/gif",
