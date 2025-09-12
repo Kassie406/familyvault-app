@@ -1,0 +1,702 @@
+// Family Inbox Upload Component - For Replit Integration
+// This goes INSIDE the Family Inbox panel, not as a standalone page
+
+import React, { useState, useRef, useCallback } from 'react';
+
+const FamilyInboxUploadCenter = ({ 
+  familyId = 'camacho_family',
+  onDocumentUploaded,
+  onShowSidebar 
+}) => {
+  const [uploadState, setUploadState] = useState('ready');
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [showMobileUploadModal, setShowMobileUploadModal] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [mobileUploadLink, setMobileUploadLink] = useState('');
+
+  const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
+
+  // Handle Browse Files
+  const handleBrowseFiles = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Handle Take Photo
+  const handleTakePhoto = () => {
+    setShowCameraModal(true);
+    startCamera();
+  };
+
+  // Handle Mobile Upload
+  const handleMobileUpload = async () => {
+    try {
+      // Generate QR code for mobile access
+      const baseUrl = window.location.origin;
+      const sessionId = generateSessionId();
+      const mobileLink = `${baseUrl}/mobile-upload/${sessionId}?family=${familyId}`;
+      
+      const qrDataUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(mobileLink)}&bgcolor=0F0F0F&color=D4AF37`;
+      
+      setMobileUploadLink(mobileLink);
+      setQrCodeUrl(qrDataUrl);
+      setShowMobileUploadModal(true);
+      
+    } catch (error) {
+      console.error('Failed to generate mobile upload link:', error);
+    }
+  };
+
+  // Generate simple session ID
+  const generateSessionId = () => {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  };
+
+  // Handle file upload
+  const handleFileUpload = async (files) => {
+    if (!files || files.length === 0) return;
+
+    setUploadState('uploading');
+    setUploadProgress(0);
+
+    try {
+      // Simulate upload progress
+      const interval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(interval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 200);
+
+      // Process files
+      const processedFiles = Array.from(files).map(file => ({
+        id: generateSessionId(),
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        uploadedAt: new Date().toISOString(),
+        status: 'processing'
+      }));
+
+      // Complete upload
+      setTimeout(() => {
+        clearInterval(interval);
+        setUploadProgress(100);
+        setUploadState('complete');
+        
+        // Trigger sidebar and callback
+        if (onShowSidebar) {
+          onShowSidebar(processedFiles);
+        }
+        
+        if (onDocumentUploaded) {
+          onDocumentUploaded(processedFiles);
+        }
+
+        // Reset after 2 seconds
+        setTimeout(() => {
+          setUploadState('ready');
+          setUploadProgress(0);
+        }, 2000);
+      }, 1000);
+
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setUploadState('ready');
+      setUploadProgress(0);
+    }
+  };
+
+  // Handle file input change
+  const handleFileChange = (event) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      handleFileUpload(files);
+    }
+  };
+
+  // Camera functions
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.error('Failed to start camera:', error);
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      const context = canvas.getContext('2d');
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0);
+      
+      canvas.toBlob(async (blob) => {
+        const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        await handleFileUpload([file]);
+        setShowCameraModal(false);
+        stopCamera();
+      }, 'image/jpeg', 0.8);
+    }
+  };
+
+  // Drag and drop handlers
+  const [isDragActive, setIsDragActive] = useState(false);
+
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    setIsDragActive(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setIsDragActive(false);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragActive(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      handleFileUpload(files);
+    }
+  };
+
+  return (
+    <div className="family-inbox-upload">
+      {/* Upload Area */}
+      <div 
+        className={`upload-area ${isDragActive ? 'drag-active' : ''} ${uploadState}`}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+      >
+        {uploadState === 'ready' && (
+          <div className="upload-ready">
+            <div className="upload-icon">
+              {isDragActive ? (
+                <div className="drag-icon">📥</div>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="upload-svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              )}
+            </div>
+            
+            <h3>Upload Family Documents</h3>
+            <p>Add documents and photos to your family vault</p>
+            <p className="ai-text">AI will automatically extract key information</p>
+            
+            {/* Three Upload Methods */}
+            <div className="upload-button-group">
+              <button
+                className="upload-method-button browse-files"
+                onClick={handleBrowseFiles}
+              >
+                <span className="button-icon">📁</span>
+                <span className="button-text">Browse Files</span>
+              </button>
+              
+              <button
+                className="upload-method-button take-photo"
+                onClick={handleTakePhoto}
+              >
+                <span className="button-icon">📷</span>
+                <span className="button-text">Take Photo</span>
+              </button>
+              
+              <button
+                className="upload-method-button mobile-upload"
+                onClick={handleMobileUpload}
+              >
+                <span className="button-icon">📱</span>
+                <span className="button-text">Mobile Upload</span>
+              </button>
+            </div>
+            
+            <span className="or-text">or drag & drop files here</span>
+            
+            <div className="file-types">
+              <span className="file-type">PDF</span>
+              <span className="file-type">JPG</span>
+              <span className="file-type">PNG</span>
+              <span className="file-type">HEIC</span>
+              <span className="file-type">DOC</span>
+              <span className="file-type">TXT</span>
+            </div>
+          </div>
+        )}
+        
+        {uploadState === 'uploading' && (
+          <div className="uploading-state">
+            <div className="upload-spinner">⏳</div>
+            <h3>Uploading Files...</h3>
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: `${uploadProgress}%` }} />
+            </div>
+            <p>{Math.round(uploadProgress)}% complete</p>
+          </div>
+        )}
+        
+        {uploadState === 'complete' && (
+          <div className="complete-state">
+            <div className="success-icon">✅</div>
+            <h3>Upload Complete!</h3>
+            <p>Your documents have been processed and are ready for review.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Camera Modal */}
+      {showCameraModal && (
+        <div className="modal-backdrop" onClick={() => {
+          setShowCameraModal(false);
+          stopCamera();
+        }}>
+          <div className="camera-modal" onClick={e => e.stopPropagation()}>
+            <div className="camera-header">
+              <h3>📷 Take Photo</h3>
+              <button className="close-button" onClick={() => {
+                setShowCameraModal(false);
+                stopCamera();
+              }}>×</button>
+            </div>
+            
+            <div className="camera-content">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                className="camera-video"
+              />
+              <canvas
+                ref={canvasRef}
+                style={{ display: 'none' }}
+              />
+            </div>
+            
+            <div className="camera-controls">
+              <button className="capture-button" onClick={capturePhoto}>
+                📸 Capture Photo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Upload Modal */}
+      {showMobileUploadModal && (
+        <div className="modal-backdrop" onClick={() => setShowMobileUploadModal(false)}>
+          <div className="mobile-upload-modal" onClick={e => e.stopPropagation()}>
+            <div className="mobile-upload-header">
+              <h3>📱 Mobile Upload</h3>
+              <button className="close-button" onClick={() => setShowMobileUploadModal(false)}>×</button>
+            </div>
+            
+            <div className="mobile-upload-content">
+              <div className="qr-code-section">
+                <div className="qr-code-container">
+                  {qrCodeUrl && (
+                    <img 
+                      src={qrCodeUrl} 
+                      alt="QR Code for Mobile Upload" 
+                      className="qr-code-image"
+                    />
+                  )}
+                </div>
+                
+                <div className="qr-instructions">
+                  <h4>Scan with your phone camera</h4>
+                  <p>Point your phone's camera at the QR code to open the upload page</p>
+                </div>
+              </div>
+              
+              <div className="link-section">
+                <div className="link-container">
+                  <input 
+                    type="text" 
+                    value={mobileUploadLink} 
+                    readOnly 
+                    className="mobile-link-input"
+                  />
+                  <button 
+                    className="copy-link-button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(mobileUploadLink);
+                    }}
+                  >
+                    📋 Copy
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden File Input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        onChange={handleFileChange}
+        accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.heic"
+        multiple
+        style={{ display: 'none' }}
+      />
+
+      <style jsx>{`
+        .family-inbox-upload {
+          width: 100%;
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 1rem;
+        }
+
+        .upload-area {
+          background: #1a1a1a;
+          border-radius: 16px;
+          padding: 2rem;
+          border: 2px dashed #333;
+          transition: all 0.3s ease;
+          text-align: center;
+        }
+
+        .upload-area.drag-active {
+          border-color: #D4AF37;
+          background: rgba(212, 175, 55, 0.1);
+        }
+
+        .upload-ready h3 {
+          color: #FFFFFF;
+          font-size: 1.5rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .upload-ready p {
+          color: #888;
+          margin-bottom: 0.5rem;
+        }
+
+        .ai-text {
+          color: #D4AF37 !important;
+          font-weight: 500;
+          margin-bottom: 2rem !important;
+        }
+
+        .upload-icon {
+          width: 60px;
+          height: 60px;
+          margin: 0 auto 1.5rem;
+          color: #D4AF37;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .upload-svg {
+          width: 100%;
+          height: 100%;
+        }
+
+        .drag-icon {
+          font-size: 3rem;
+        }
+
+        .upload-button-group {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1rem;
+          margin: 2rem 0;
+          max-width: 500px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        .upload-method-button {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 1rem;
+          border: none;
+          border-radius: 8px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .upload-method-button:hover {
+          transform: translateY(-2px);
+        }
+
+        .button-icon {
+          font-size: 1.25rem;
+        }
+
+        .button-text {
+          font-size: 0.8rem;
+        }
+
+        .browse-files {
+          background: linear-gradient(135deg, #D4AF37 0%, #B8941F 100%);
+          color: #0F0F0F;
+        }
+
+        .take-photo {
+          background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+          color: white;
+        }
+
+        .mobile-upload {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+        }
+
+        .or-text {
+          display: block;
+          margin: 1.5rem 0 1rem;
+          color: #666;
+          font-size: 0.9rem;
+          position: relative;
+        }
+
+        .or-text::before,
+        .or-text::after {
+          content: '';
+          position: absolute;
+          top: 50%;
+          width: 35%;
+          height: 1px;
+          background: #333;
+        }
+
+        .or-text::before {
+          left: 0;
+        }
+
+        .or-text::after {
+          right: 0;
+        }
+
+        .file-types {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          justify-content: center;
+        }
+
+        .file-type {
+          background: rgba(212, 175, 55, 0.1);
+          color: #D4AF37;
+          padding: 0.25rem 0.5rem;
+          border-radius: 12px;
+          font-size: 0.7rem;
+          border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        .uploading-state,
+        .complete-state {
+          padding: 2rem;
+        }
+
+        .upload-spinner,
+        .success-icon {
+          font-size: 3rem;
+          margin-bottom: 1rem;
+        }
+
+        .progress-bar {
+          width: 100%;
+          height: 6px;
+          background: #333;
+          border-radius: 3px;
+          overflow: hidden;
+          margin: 1rem 0;
+        }
+
+        .progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #D4AF37, #B8941F);
+          transition: width 0.3s ease;
+        }
+
+        .modal-backdrop {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.8);
+          z-index: 1000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .camera-modal,
+        .mobile-upload-modal {
+          background: #1a1a1a;
+          border-radius: 12px;
+          padding: 1.5rem;
+          max-width: 90vw;
+          max-height: 90vh;
+          border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        .camera-header,
+        .mobile-upload-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1rem;
+        }
+
+        .camera-header h3,
+        .mobile-upload-header h3 {
+          color: #D4AF37;
+          margin: 0;
+        }
+
+        .close-button {
+          background: none;
+          border: none;
+          color: #888;
+          font-size: 1.5rem;
+          cursor: pointer;
+          padding: 0.25rem;
+        }
+
+        .close-button:hover {
+          color: #FFF;
+        }
+
+        .camera-video {
+          width: 100%;
+          max-width: 400px;
+          border-radius: 8px;
+        }
+
+        .capture-button {
+          background: #D4AF37;
+          color: #0F0F0F;
+          border: none;
+          padding: 1rem 2rem;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          margin-top: 1rem;
+        }
+
+        .qr-code-container {
+          background: white;
+          padding: 1rem;
+          border-radius: 8px;
+          display: inline-block;
+          margin-bottom: 1rem;
+        }
+
+        .qr-code-image {
+          width: 200px;
+          height: 200px;
+        }
+
+        .qr-instructions {
+          text-align: center;
+          margin-bottom: 1.5rem;
+        }
+
+        .qr-instructions h4 {
+          color: #FFF;
+          margin-bottom: 0.5rem;
+        }
+
+        .qr-instructions p {
+          color: #888;
+          font-size: 0.9rem;
+        }
+
+        .link-container {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .mobile-link-input {
+          flex: 1;
+          background: #2a2a2a;
+          border: 1px solid rgba(212, 175, 55, 0.2);
+          border-radius: 6px;
+          padding: 0.75rem;
+          color: #FFF;
+          font-size: 0.8rem;
+        }
+
+        .copy-link-button {
+          background: #D4AF37;
+          color: #0F0F0F;
+          border: none;
+          padding: 0.75rem 1rem;
+          border-radius: 6px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+          .upload-button-group {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+          }
+
+          .camera-modal,
+          .mobile-upload-modal {
+            width: 95vw;
+            padding: 1rem;
+          }
+
+          .qr-code-image {
+            width: 150px;
+            height: 150px;
+          }
+
+          .link-container {
+            flex-direction: column;
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default FamilyInboxUploadCenter;
