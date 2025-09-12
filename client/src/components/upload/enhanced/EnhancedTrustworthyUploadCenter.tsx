@@ -58,7 +58,7 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
 
   // Fetch family members for profile routing
   const { data: familyMembers = [] } = useQuery<FamilyMember[]>({
-    queryKey: ['/api/trustworthy/family-members'],
+    queryKey: ['/api/family/members'],
     enabled: isDetailsModalOpen
   });
 
@@ -83,7 +83,7 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
       setIsLeftSidebarOpen(true);
       setUploadState(TRUSTWORTHY_STATES.INBOX_OPEN);
       queryClient.invalidateQueries({ queryKey: ['/api/trustworthy/documents'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/trustworthy/family-members'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/family/members'] });
     },
     onError: (error: Error) => {
       setError(error.message || 'Upload failed');
@@ -109,7 +109,7 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
         setUploadState(TRUSTWORTHY_STATES.DETAILS_READY);
       }
       queryClient.invalidateQueries({ queryKey: ['/api/trustworthy/documents'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/trustworthy/family-members'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/family/members'] });
     },
     onError: (error: Error) => {
       setError(error.message || 'Analysis failed');
