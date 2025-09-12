@@ -61,7 +61,7 @@ router.post("/sessions", async (req, res) => {
     
     const id = nanoid(8);
     const baseUrl = process.env.REPL_URL || `${req.protocol}://${req.get('host')}`;
-    const url = `${baseUrl}/mobile-upload/${id}`;
+    const url = `${baseUrl}/m/u/${id}`;
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
     
     const session: MobileSession = {

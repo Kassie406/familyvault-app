@@ -167,17 +167,36 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
   }, []);
 
   // Step 3: Handle Mobile Upload button click (QR Code generation)
-  const handleMobileUploadClick = useCallback(() => {
+  const handleMobileUploadClick = useCallback(async () => {
     console.log('Mobile Upload button clicked!');
     
-    // Generate unique session ID for mobile upload
-    const sessionId = Math.random().toString(36).substring(2, 15);
-    const baseUrl = window.location.origin;
-    const mobileUrl = `${baseUrl}/mobile-upload?session=${sessionId}&family=family-1`;
-    
-    setMobileUploadUrl(mobileUrl);
-    setIsQRModalOpen(true);
-    setUrlCopied(false);
+    try {
+      // Create secure mobile upload session via API
+      const response = await apiRequest('/api/mobile-upload/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          purpose: 'documents',
+          familyId: 'family-1' // TODO: Get from authenticated family context
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create mobile upload session');
+      }
+
+      const session = await response.json();
+      console.log('Mobile upload session created:', session);
+      
+      setMobileUploadUrl(session.url);
+      setIsQRModalOpen(true);
+      setUrlCopied(false);
+    } catch (error) {
+      console.error('Failed to create mobile upload session:', error);
+      setError('Failed to create mobile upload session. Please try again.');
+    }
   }, []);
 
   // Step 4: Handle file upload (from browse or camera capture)
