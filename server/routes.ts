@@ -8,6 +8,7 @@ import storageRoutes from "./storage-routes";
 import fileRoutes from "./routes/files";
 import mobileUploadRoutes from "./routes/mobile-upload";
 import uploadsRouter from "./routes/uploads";
+import trustworthyRouter from "./routes/trustworthy";
 import smsRoutes from "./sms";
 import threadsListRouter from "./routes/threadsList";
 import threadMessagesRouter from "./routes/threadMessages";
@@ -513,6 +514,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount storage routes for file uploads
   app.use("/api/storage", storageRoutes);
   app.use("/api/uploads", uploadsRouter);
+  app.use("/api/trustworthy", trustworthyRouter);
   app.use("/api/inbox", aiInboxRouter);
 
   // Mount file status routes for real-time updates
