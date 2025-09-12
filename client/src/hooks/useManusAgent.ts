@@ -33,6 +33,8 @@ export function useManusAgent(options: UseManusAgentOptions = {}) {
     totalMessages: 0
   });
   const loadedRef = useRef(false);
+  const retryCountRef = useRef(0);
+  const maxRetries = 3; // Prevent infinite loops
   // No client-side sessionId - server manages this securely
 
   // Load conversation history (using secure endpoint)
@@ -51,17 +53,22 @@ export function useManusAgent(options: UseManusAgentOptions = {}) {
           }))
         };
         setConversation(conversationData);
+        retryCountRef.current = 0; // Reset retry count on success
       }
     } catch (err) {
-      if (err.response?.status === 429) {
-        // Rate limited, wait and retry
+      if (err.response?.status === 429 && retryCountRef.current < maxRetries) {
+        // Rate limited, wait with exponential backoff
+        const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 30000);
+        retryCountRef.current += 1;
         setTimeout(() => {
           loadedRef.current = false;
           loadConversation();
-        }, 5000);
+        }, delay);
         return;
       }
       console.warn('[ManusAgent] Failed to load conversation history:', err);
+      // Reset retry count on other errors or max retries reached
+      retryCountRef.current = 0;
     }
   }, []);
 
