@@ -40,7 +40,13 @@ export const DualUploadCenter: React.FC<DualUploadCenterProps> = ({
 
   // Document Upload Handlers
   const handleDocumentBrowse = () => {
-    documentInputRef.current?.click();
+    console.log('Document browse clicked, ref:', documentInputRef.current);
+    if (documentInputRef.current) {
+      documentInputRef.current.click();
+      console.log('File input clicked successfully');
+    } else {
+      console.error('Document input ref is null');
+    }
   };
 
   const handleDocumentDrop = (e: React.DragEvent) => {
@@ -75,7 +81,13 @@ export const DualUploadCenter: React.FC<DualUploadCenterProps> = ({
 
   // Photo Upload Handlers
   const handlePhotoBrowse = () => {
-    photoInputRef.current?.click();
+    console.log('Photo browse clicked, ref:', photoInputRef.current);
+    if (photoInputRef.current) {
+      photoInputRef.current.click();
+      console.log('Photo file input clicked successfully');
+    } else {
+      console.error('Photo input ref is null');
+    }
   };
 
   const handlePhotoDrop = (e: React.DragEvent) => {
