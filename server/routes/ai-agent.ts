@@ -1,17 +1,26 @@
 import express from 'express';
 import axios from 'axios';
 import OpenAI from 'openai';
-import { mcpFunctionSchema, validateFunctionCall } from '../../utils/mcpFunctions.js';
+import { mcpFunctionSchema, validateFunctionCall } from '../../utils/mcpFunctions';
 
 const router = express.Router();
 
-// Security fix: Use environment variable instead of hardcoded URL
-const MCP_SERVER = process.env.MCP_SERVER_URL || 'https://3eb6ec39-b907-4c70-9a5b-e192bacee3ba-00-1739ki91gyn4k.kirk.replit.dev/mcp';
+// Production-ready configuration validation
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error('OPENAI_API_KEY environment variable is required for AI agent functionality');
+}
+if (!process.env.MCP_SERVER_URL) {
+  throw new Error('MCP_SERVER_URL environment variable is required for AI agent functionality');
+}
+
+const MCP_SERVER = process.env.MCP_SERVER_URL;
 
 // Initialize OpenAI client for intelligent function calling
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+console.log('[AI AGENT] GPT-4 function calling initialized with MCP server:', MCP_SERVER);
 
 // Enhanced conversation memory system
 interface ChatMessage {
@@ -22,6 +31,14 @@ interface ChatMessage {
   method?: string;
   context?: any;
   metadata?: any;
+  gptReasoning?: string;  // GPT's reasoning for function selection
+  functionCall?: {        // Detailed function call info
+    name: string;
+    parameters: any;
+    success: boolean;
+    executionTime?: number;
+    mcpExecutionTime?: number;  // Time spent on MCP call specifically
+  };
 }
 
 interface ConversationSession {
@@ -76,23 +93,42 @@ function addMessage(sessionId: string, message: Omit<ChatMessage, 'id' | 'timest
   return newMessage;
 }
 
-// Generate conversation summary for context
+// Enhanced conversation summary with function call history
 function generateConversationSummary(messages: ChatMessage[]): string {
   if (messages.length === 0) return '';
   
   const recentMessages = messages.slice(-10); // Last 10 messages
   const topics = new Set<string>();
-  const actions = new Set<string>();
+  const functionCalls = new Set<string>();
+  const gptReasonings: string[] = [];
   
   recentMessages.forEach(msg => {
-    if (msg.method) actions.add(msg.method);
+    // Track function calls with success/failure
+    if (msg.functionCall) {
+      const status = msg.functionCall.success ? '✅' : '❌';
+      functionCalls.add(`${status} ${msg.functionCall.name}`);
+    }
+    
+    // Extract GPT reasoning
+    if (msg.gptReasoning) {
+      gptReasonings.push(msg.gptReasoning.substring(0, 100));
+    }
+    
+    // Traditional topic extraction
     if (msg.content.includes('design')) topics.add('design');
     if (msg.content.includes('family')) topics.add('family management');
     if (msg.content.includes('task')) topics.add('task management');
     if (msg.content.includes('project')) topics.add('project tracking');
+    if (msg.content.includes('member')) topics.add('member management');
+    if (msg.content.includes('audit')) topics.add('system audit');
   });
   
-  return `Recent conversation context: Topics discussed: ${Array.from(topics).join(', ')}. Actions performed: ${Array.from(actions).join(', ')}. Last ${recentMessages.length} messages active.`;
+  const summary = [];
+  if (topics.size > 0) summary.push(`Topics: ${Array.from(topics).join(', ')}`);
+  if (functionCalls.size > 0) summary.push(`Recent actions: ${Array.from(functionCalls).join(', ')}`);
+  if (gptReasonings.length > 0) summary.push(`GPT context: ${gptReasonings[gptReasonings.length - 1]}`);
+  
+  return `Conversation context (${recentMessages.length} recent messages): ${summary.join('. ')}`;
 }
 
 // GPT-powered function calling for intelligent intent parsing
@@ -108,7 +144,7 @@ async function parseUserIntentWithGPT(prompt: string, session: ConversationSessi
   
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4-turbo',
+      model: 'gpt-4',
       messages: [
         {
           role: 'system',
@@ -191,10 +227,13 @@ If the user's request doesn't clearly match any function, use 'track_project_pro
   }
 }
 
-// Get conversation history endpoint (SECURITY FIXED)
+// Get conversation history endpoint (SECURITY ENHANCED)
 router.get('/conversation', (req, res) => {
-  // Use ONLY server-side session ID - no client control
-  const sessionId = req.sessionID || 'anonymous';
+  // CRITICAL: Require proper session - no anonymous fallback in production
+  if (!req.sessionID) {
+    return res.status(401).json({ error: 'Session required for conversation access' });
+  }
+  const sessionId = req.sessionID;
   const session = conversationMemory[sessionId];
   
   if (!session) {
@@ -212,7 +251,7 @@ router.get('/conversation', (req, res) => {
   });
 });
 
-// Enhanced ask endpoint with memory (SECURITY FIXED)
+// Enhanced ask endpoint with memory (SECURITY ENHANCED)
 router.post('/ask', async (req, res) => {
   const { prompt } = req.body; // Remove sessionId from client input
   
@@ -220,9 +259,15 @@ router.post('/ask', async (req, res) => {
     return res.status(400).json({ error: 'Prompt is required' });
   }
   
-  // Use ONLY server-side session ID - no client control
-  const sessionId = req.sessionID || 'anonymous';
+  // CRITICAL: Require proper session - no anonymous fallback in production
+  if (!req.sessionID) {
+    return res.status(401).json({ error: 'Session required for AI agent access' });
+  }
+  const sessionId = req.sessionID;
   const session = getOrCreateSession(sessionId);
+  
+  // Track execution timing
+  const executionStart = Date.now();
   
   // Add user message to conversation
   const userMessage = addMessage(sessionId, {
@@ -233,25 +278,35 @@ router.post('/ask', async (req, res) => {
   const { method, params, reasoning } = await parseUserIntentWithGPT(prompt, session);
   
   try {
+    const mcpCallStart = Date.now();
     const mcpRes = await axios.post(MCP_SERVER, {
       method,
       params,
-    }, {
-      withCredentials: true,
     });
+    const mcpExecutionTime = Date.now() - mcpCallStart;
     
     // Format enhanced response
     const responseContent = `✅ **${method}** executed successfully\n\n📝 **Your Request:** ${prompt}\n\n🔧 **Action Taken:** ${method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}\n\n📊 **Result:**\n\`\`\`json\n${JSON.stringify(mcpRes.data, null, 2)}\n\`\`\``;
     
-    // Add assistant response to conversation
+    // Add assistant response with enhanced tracking
+    const totalExecutionTime = Date.now() - executionStart;
     const assistantMessage = addMessage(sessionId, {
       role: 'assistant',
       content: responseContent,
       method,
       context: params,
+      gptReasoning: reasoning,
+      functionCall: {
+        name: method,
+        parameters: params,
+        success: true,
+        executionTime: totalExecutionTime,
+        mcpExecutionTime
+      },
       metadata: {
         mcpResponse: mcpRes.data,
-        processingTime: Date.now()
+        processingTime: Date.now(),
+        gptModel: 'gpt-4'
       }
     });
     
@@ -278,14 +333,24 @@ router.post('/ask', async (req, res) => {
   } catch (err: any) {
     console.error('[MCP_ERROR]', err.message);
     
-    // Add error response to conversation
+    // Add error response with function call tracking
+    const totalExecutionTime = Date.now() - executionStart;
     const errorMessage = addMessage(sessionId, {
       role: 'assistant',
       content: `❌ **Error:** Failed to execute ${method}\n\n**Details:** ${err.message}\n\n**Suggestion:** Please try rephrasing your request or contact support if the issue persists.`,
       method,
+      gptReasoning: reasoning,
+      functionCall: {
+        name: method,
+        parameters: params,
+        success: false,
+        executionTime: totalExecutionTime
+      },
       metadata: {
         error: err.message,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        gptModel: 'gpt-4',
+        errorType: err.code || 'MCP_ERROR'
       }
     });
     
@@ -307,10 +372,13 @@ router.post('/ask', async (req, res) => {
   }
 });
 
-// Clear conversation endpoint (SECURITY FIXED)
+// Clear conversation endpoint (SECURITY ENHANCED)
 router.delete('/conversation', (req, res) => {
-  // Use ONLY server-side session ID - no client control
-  const sessionId = req.sessionID || 'anonymous';
+  // CRITICAL: Require proper session - no anonymous fallback
+  if (!req.sessionID) {
+    return res.status(401).json({ error: 'Session required to clear conversation' });
+  }
+  const sessionId = req.sessionID;
   delete conversationMemory[sessionId];
   return res.json({ message: 'Conversation cleared', sessionId });
 });
