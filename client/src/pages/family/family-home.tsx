@@ -30,8 +30,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { StatCard } from '@/components/StatCard';
 import { InviteFamilyMemberDialog } from '@/components/InviteFamilyMemberDialog';
-import { DualUploadCenter } from '@/components/upload/DualUploadCenter';
-import '@/components/upload/DualUploadCenter.css';
+import { EnhancedSingleUploadCenter } from '@/components/upload/EnhancedSingleUploadCenter';
+import '@/components/upload/EnhancedSingleUploadCenter.css';
 import AIBanner from '@/components/ai/AIBanner';
 import InboxDrawer from '@/components/inbox/InboxDrawer';
 import { NewMessageModal } from '@/components/messaging/NewMessageModal';
@@ -113,6 +113,9 @@ export default function FamilyHome() {
   const { layout, visible, hide, show, reorder, resetToRole } = useUserLayout(currentUser.id, currentUser.role);
   const [editing, setEditing] = useState(false);
   const hiddenIds = layout.filter((item) => item.hidden).map((item) => item.id);
+  
+  // Debug: Check if uploadCenter is in visible cards
+  const hasUploadCenter = visible.some(item => item.id === 'uploadCenter');
   
   // Navigation hook
   const [, setLocation] = useLocation();
@@ -370,7 +373,7 @@ export default function FamilyHome() {
             />
             
             <div className={`flex-1 ${(highlightDocumentUpload || highlightPhotoUpload) ? 'upload-highlight' : ''}`}>
-              <DualUploadCenter 
+              <EnhancedSingleUploadCenter 
                 onDocumentUpload={handleDocumentUpload}
                 onPhotoUpload={handlePhotoUpload}
                 onNavigateToAlbum={handleNavigateToAlbum}
@@ -1169,13 +1172,19 @@ export default function FamilyHome() {
         </div>
 
         {/* Sortable Dashboard Grid */}
-        <SortableGrid
-          items={visible}
-          onReorder={reorder}
-          editing={editing}
-          onHide={hide}
-          renderCard={renderCard}
-        />
+        <div data-testid="sortable-dashboard-grid">
+          <SortableGrid
+            items={visible}
+            onReorder={reorder}
+            editing={editing}
+            onHide={hide}
+            renderCard={renderCard}
+          />
+          {/* Debug info for testing */}
+          <div data-testid="debug-uploadcenter-status" style={{display: 'none'}}>
+            Upload Center in layout: {hasUploadCenter ? 'yes' : 'no'}
+          </div>
+        </div>
 
       {/* OLD UPLOAD CENTER SECTION - Now in sortable grid */}
 

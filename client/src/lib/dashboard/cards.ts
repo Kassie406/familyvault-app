@@ -49,8 +49,8 @@ export const DEFAULTS: Record<"parent" | "teen", Layout> = {
   teen: [
     { id: "messages" }, { id: "photos" }, { id: "sharedLists" }, { id: "chores" },
     { id: "allowancePoints" }, { id: "familyVacation" }, { id: "babysitter" },
+    { id: "uploadCenter" },
     { id: "mealPlanner", hidden: true }, { id: "documents", hidden: true },
-    { id: "budget", hidden: true }, { id: "couples", hidden: true }, 
-    { id: "uploadCenter", hidden: true },
+    { id: "budget", hidden: true }, { id: "couples", hidden: true },
   ],
 };
