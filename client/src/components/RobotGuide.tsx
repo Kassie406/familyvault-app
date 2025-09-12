@@ -75,6 +75,67 @@ export const RobotGuide: React.FC<Props> = ({ steps = [], start, onFinish, initi
     }
   }, [showChat, refreshConversation]);
 
+  // File handling functions
+  const handleFileSelect = (files: File[]) => {
+    const validFiles = files.filter(file => {
+      const validation = validateFile(file);
+      if (!validation.isValid) {
+        console.warn('File validation failed:', validation.errors);
+        return false;
+      }
+      return true;
+    });
+    setAttachedFiles(prev => [...prev, ...validFiles]);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    handleFileSelect(files);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const captureScreenshot = async () => {
+    try {
+      if (!ScreenCaptureManager.isScreenCaptureSupported()) {
+        alert('Screen capture is not supported in this browser. Please use Chrome, Firefox, or Edge.');
+        return;
+      }
+
+      const result = await ScreenCaptureManager.takeQuickScreenshot(`screenshot_${Date.now()}.png`);
+      handleFileSelect([result.file]);
+    } catch (error) {
+      console.error('Screenshot capture failed:', error);
+      let errorMessage = 'Failed to capture screenshot';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('denied') || error.message.includes('NotAllowedError')) {
+          errorMessage = 'Screen capture permission was denied. Please allow screen sharing to take screenshots.';
+        } else if (error.message.includes('cancelled') || error.message.includes('AbortError')) {
+          errorMessage = 'Screenshot capture was cancelled.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      alert(errorMessage);
+    }
+  };
+
   const target = useMemo(() => (i >= 0 ? document.querySelector(steps[i]?.selector) as HTMLElement | null : null), [i, steps]);
   const rect = target?.getBoundingClientRect() ?? null;
 
@@ -349,67 +410,6 @@ export const RobotGuide: React.FC<Props> = ({ steps = [], start, onFinish, initi
       </div>
     </div>, document.body
   ) : null;
-
-  // File handling functions
-  const handleFileSelect = (files: File[]) => {
-    const validFiles = files.filter(file => {
-      const validation = validateFile(file);
-      if (!validation.isValid) {
-        console.warn('File validation failed:', validation.errors);
-        return false;
-      }
-      return true;
-    });
-    setAttachedFiles(prev => [...prev, ...validFiles]);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const files = Array.from(e.dataTransfer.files);
-    handleFileSelect(files);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const removeFile = (index: number) => {
-    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const captureScreenshot = async () => {
-    try {
-      if (!ScreenCaptureManager.isScreenCaptureSupported()) {
-        alert('Screen capture is not supported in this browser. Please use Chrome, Firefox, or Edge.');
-        return;
-      }
-
-      const result = await ScreenCaptureManager.takeQuickScreenshot(`screenshot_${Date.now()}.png`);
-      handleFileSelect([result.file]);
-    } catch (error) {
-      console.error('Screenshot capture failed:', error);
-      let errorMessage = 'Failed to capture screenshot';
-      
-      if (error instanceof Error) {
-        if (error.message.includes('denied') || error.message.includes('NotAllowedError')) {
-          errorMessage = 'Screen capture permission was denied. Please allow screen sharing to take screenshots.';
-        } else if (error.message.includes('cancelled') || error.message.includes('AbortError')) {
-          errorMessage = 'Screenshot capture was cancelled.';
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
-      alert(errorMessage);
-    }
-  };
 
   return (
     <>
