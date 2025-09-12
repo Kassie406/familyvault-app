@@ -334,6 +334,11 @@ router.post('/ask', upload.array('file', 5), async (req, res) => {
     const mcpRes = await axios.post(MCP_SERVER, {
       method,
       params,
+    }, {
+      headers: {
+        'x-manus-agent': process.env.MANUS_AGENT_KEY || 'familyvault-dev',
+        'Content-Type': 'application/json'
+      }
     });
     const mcpExecutionTime = Date.now() - mcpCallStart;
     

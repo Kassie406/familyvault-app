@@ -55,7 +55,7 @@ export function useManusAgent(options: UseManusAgentOptions = {}) {
         setConversation(conversationData);
         retryCountRef.current = 0; // Reset retry count on success
       }
-    } catch (err) {
+    } catch (err: any) {
       if (err.response?.status === 429 && retryCountRef.current < maxRetries) {
         // Rate limited, wait with exponential backoff
         const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 30000);

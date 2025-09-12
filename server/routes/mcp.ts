@@ -6,6 +6,26 @@ import { inboxItems, extractedFields, familyMembers } from "../db";
 
 const router = Router();
 
+// Security gate: Only allow requests from Manus agent
+router.use((req, res, next) => {
+  // Log incoming request source for debugging
+  console.log('[MCP IN]', {
+    from: req.get('x-manus-agent') ? 'MANUS' : 'UNKNOWN/REPLIT',
+    ua: req.get('user-agent'),
+    keys: Object.keys(req.body || {})
+  });
+
+  // Only allow requests with proper Manus agent header
+  const manusHeader = req.get('x-manus-agent');
+  if (!manusHeader) {
+    return res.status(403).json({ 
+      error: 'Forbidden: Manus header missing. This endpoint is only accessible to authorized Manus agents.' 
+    });
+  }
+
+  next();
+});
+
 // Enhanced MCP Tools for Design, UX & Collaboration
 const AVAILABLE_TOOLS = [
   // === DESIGN & UX TOOLS ===
