@@ -159,33 +159,37 @@ function inferIntentWithContext(prompt: string, session: ConversationSession): {
   };
 }
 
-// Get conversation history endpoint
-router.get('/conversation/:sessionId?', (req, res) => {
-  const sessionId = req.params.sessionId || req.sessionID || 'anonymous';
+// Get conversation history endpoint (SECURITY FIXED)
+router.get('/conversation', (req, res) => {
+  // Use ONLY server-side session ID - no client control
+  const sessionId = req.sessionID || 'anonymous';
   const session = conversationMemory[sessionId];
   
   if (!session) {
     return res.json({ messages: [], summary: '', totalMessages: 0 });
   }
   
+  // Always generate fresh summary (fix stale summarization)
+  const freshSummary = generateConversationSummary(session.messages);
+  
   return res.json({
     messages: session.messages,
-    summary: session.summary || generateConversationSummary(session.messages),
+    summary: freshSummary,
     totalMessages: session.totalMessages,
     lastActivity: session.lastActivity
   });
 });
 
-// Enhanced ask endpoint with memory
+// Enhanced ask endpoint with memory (SECURITY FIXED)
 router.post('/ask', async (req, res) => {
-  const { prompt, sessionId: requestSessionId } = req.body;
+  const { prompt } = req.body; // Remove sessionId from client input
   
   if (!prompt) {
     return res.status(400).json({ error: 'Prompt is required' });
   }
   
-  // Use provided sessionId or fall back to express session or anonymous
-  const sessionId = requestSessionId || req.sessionID || 'anonymous';
+  // Use ONLY server-side session ID - no client control
+  const sessionId = req.sessionID || 'anonymous';
   const session = getOrCreateSession(sessionId);
   
   // Add user message to conversation
@@ -219,16 +223,25 @@ router.post('/ask', async (req, res) => {
       }
     });
     
-    // Update session summary if needed
-    if (session.messages.length > SUMMARIZE_THRESHOLD && !session.summary) {
+    // Update session summary dynamically (fix stale summarization)
+    if (session.messages.length > SUMMARIZE_THRESHOLD) {
       session.summary = generateConversationSummary(session.messages);
     }
+    
+    // Return conversation data to eliminate extra round trip (UX optimization)
+    const conversationData = {
+      messages: session.messages,
+      summary: session.summary || generateConversationSummary(session.messages),
+      totalMessages: session.totalMessages,
+      lastActivity: session.lastActivity
+    };
     
     return res.json({ 
       response: responseContent,
       messageId: assistantMessage.id,
       sessionId,
-      conversationLength: session.messages.length
+      conversationLength: session.messages.length,
+      conversation: conversationData // Include full conversation data
     });
   } catch (err: any) {
     console.error('[MCP_ERROR]', err.message);
@@ -244,18 +257,28 @@ router.post('/ask', async (req, res) => {
       }
     });
     
+    // Return conversation data even for errors (UX consistency)
+    const conversationData = {
+      messages: session.messages,
+      summary: session.summary || generateConversationSummary(session.messages),
+      totalMessages: session.totalMessages,
+      lastActivity: session.lastActivity
+    };
+    
     return res.status(500).json({ 
       error: 'MCP request failed',
       response: errorMessage.content,
       messageId: errorMessage.id,
-      sessionId
+      sessionId,
+      conversation: conversationData
     });
   }
 });
 
-// Clear conversation endpoint
-router.delete('/conversation/:sessionId?', (req, res) => {
-  const sessionId = req.params.sessionId || req.sessionID || 'anonymous';
+// Clear conversation endpoint (SECURITY FIXED)
+router.delete('/conversation', (req, res) => {
+  // Use ONLY server-side session ID - no client control
+  const sessionId = req.sessionID || 'anonymous';
   delete conversationMemory[sessionId];
   return res.json({ message: 'Conversation cleared', sessionId });
 });
