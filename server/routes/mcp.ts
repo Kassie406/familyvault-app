@@ -8,18 +8,30 @@ const router = Router();
 
 // Security gate: Only allow requests from Manus agent
 router.use((req, res, next) => {
+  const manusHeader = req.get('x-manus-agent');
+  const expectedKey = process.env.MANUS_AGENT_KEY || 'familyvault-dev';
+  
   // Log incoming request source for debugging
   console.log('[MCP IN]', {
-    from: req.get('x-manus-agent') ? 'MANUS' : 'UNKNOWN/REPLIT',
+    from: manusHeader ? 'MANUS' : 'UNKNOWN/REPLIT',
+    headerReceived: manusHeader ? 'YES' : 'NO',
+    headerValue: manusHeader,
+    expectedValue: expectedKey,
     ua: req.get('user-agent'),
     keys: Object.keys(req.body || {})
   });
 
   // Only allow requests with proper Manus agent header
-  const manusHeader = req.get('x-manus-agent');
-  if (!manusHeader) {
+  if (!manusHeader || manusHeader !== expectedKey) {
+    console.log('[MCP REJECTED]', {
+      reason: !manusHeader ? 'missing_header' : 'invalid_key',
+      received: manusHeader || 'none',
+      expected: expectedKey,
+      comparison: `"${manusHeader}" !== "${expectedKey}"`
+    });
     return res.status(403).json({ 
-      error: 'Forbidden: Manus header missing. This endpoint is only accessible to authorized Manus agents.' 
+      error: 'Unsupported protocol key:',
+      details: 'This endpoint requires valid Manus agent authorization'
     });
   }
 

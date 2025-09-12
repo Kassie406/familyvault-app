@@ -3301,6 +3301,12 @@ app.post('/api/public/consent', optionalAuth, async (req: AuthenticatedRequest, 
     // Continue startup - don't let health check failure prevent server start
   }
 
+  // Set default MANUS_AGENT_KEY if not provided
+  if (!process.env.MANUS_AGENT_KEY) {
+    process.env.MANUS_AGENT_KEY = 'familyvault-dev';
+    console.log('[SECURITY] Using default MANUS_AGENT_KEY for development');
+  }
+
   // Mount MCP server endpoint for AI assistant integration
   const mcpRouter = (await import("./routes/mcp")).default;
   app.use("/mcp", mcpRouter);

@@ -331,12 +331,15 @@ router.post('/ask', upload.array('file', 5), async (req, res) => {
     
     try {
     const mcpCallStart = Date.now();
+    const manusKey = process.env.MANUS_AGENT_KEY || 'familyvault-dev';
+    console.log('[AI AGENT] Sending MCP request with key:', manusKey);
+    
     const mcpRes = await axios.post(MCP_SERVER, {
       method,
       params,
     }, {
       headers: {
-        'x-manus-agent': process.env.MANUS_AGENT_KEY || 'familyvault-dev',
+        'x-manus-agent': manusKey,
         'Content-Type': 'application/json'
       }
     });
