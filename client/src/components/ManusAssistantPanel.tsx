@@ -3,20 +3,31 @@ import { useManusAgent } from '@/hooks/useManusAgent';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Bot, Send } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Loader2, Bot, Send, User, Trash2, RotateCcw } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
 export default function ManusAssistantPanel() {
   const [prompt, setPrompt] = useState('');
-  const [response, setResponse] = useState('');
-  const { askManus, isLoading } = useManusAgent();
+  const { 
+    askManus, 
+    isLoading, 
+    conversation, 
+    clearConversation, 
+    sessionId,
+    conversationSummary 
+  } = useManusAgent();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt.trim() || isLoading) return;
 
-    const result = await askManus(prompt);
-    setResponse(result);
+    await askManus(prompt);
     setPrompt('');
+  };
+
+  const handleClearConversation = async () => {
+    await clearConversation();
   };
 
   const quickActions = [
@@ -27,12 +38,28 @@ export default function ManusAssistantPanel() {
   ];
 
   return (
-    <Card className="w-full max-w-2xl mx-auto bg-gradient-to-br from-gray-900 to-black border-[#D4AF37]/20">
+    <Card className="w-full max-w-4xl mx-auto bg-gradient-to-br from-gray-900 to-black border-[#D4AF37]/20">
       <CardHeader className="border-b border-[#D4AF37]/20">
-        <CardTitle className="flex items-center gap-2 text-[#D4AF37]">
-          <Bot className="h-5 w-5" />
-          Manus AI Assistant
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-[#D4AF37]">
+            <Bot className="h-5 w-5" />
+            Manus AI Assistant
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">
+              {conversationSummary}
+            </span>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleClearConversation}
+              className="text-gray-400 hover:text-[#D4AF37]"
+              data-testid="button-clear-conversation"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="p-6 space-y-4">
         {/* Quick Actions */}
@@ -78,21 +105,76 @@ export default function ManusAssistantPanel() {
           </Button>
         </form>
 
-        {/* Response Display */}
-        {response && (
-          <div className="mt-4 p-4 bg-gray-800 rounded-lg border border-[#D4AF37]/20">
-            <p className="text-sm text-gray-300 mb-2">Manus Response:</p>
-            <pre className="text-sm text-white whitespace-pre-wrap overflow-x-auto" data-testid="text-manus-response">
-              {response}
-            </pre>
+        {/* Conversation History */}
+        {conversation.messages.length > 0 && (
+          <div className="bg-gray-800 rounded-lg border border-[#D4AF37]/20">
+            <div className="p-3 border-b border-[#D4AF37]/20">
+              <p className="text-sm text-gray-300 font-medium">Conversation History</p>
+            </div>
+            <ScrollArea className="h-64 p-4">
+              <div className="space-y-4">
+                {conversation.messages.map((message) => (
+                  <div 
+                    key={message.id} 
+                    className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`flex gap-2 max-w-[80%] ${
+                      message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                    }`}>
+                      <div className={`p-2 rounded-full ${
+                        message.role === 'user' 
+                          ? 'bg-[#D4AF37]/20' 
+                          : 'bg-blue-600/20'
+                      }`}>
+                        {message.role === 'user' ? (
+                          <User className="h-4 w-4 text-[#D4AF37]" />
+                        ) : (
+                          <Bot className="h-4 w-4 text-blue-400" />
+                        )}
+                      </div>
+                      <div className={`space-y-1 ${
+                        message.role === 'user' ? 'text-right' : 'text-left'
+                      }`}>
+                        <div className={`px-3 py-2 rounded-lg ${
+                          message.role === 'user'
+                            ? 'bg-[#D4AF37]/10 text-[#D4AF37]'
+                            : 'bg-gray-700 text-white'
+                        }`}>
+                          <pre className="text-sm whitespace-pre-wrap font-sans">
+                            {message.content}
+                          </pre>
+                        </div>
+                        <p className="text-xs text-gray-500 px-1">
+                          {formatDistanceToNow(new Date(message.timestamp), { addSuffix: true })}
+                          {message.method && (
+                            <span className="ml-2 text-[#D4AF37]">
+                              • {message.method.replace(/_/g, ' ')}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
           </div>
         )}
 
         {/* Loading State */}
-        {isLoading && !response && (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-[#D4AF37]" />
+        {isLoading && (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-5 w-5 animate-spin text-[#D4AF37]" />
             <span className="ml-2 text-gray-400">Manus is thinking...</span>
+          </div>
+        )}
+        
+        {/* Empty State */}
+        {conversation.messages.length === 0 && !isLoading && (
+          <div className="text-center py-8 text-gray-500">
+            <Bot className="h-12 w-12 mx-auto mb-3 text-gray-600" />
+            <p className="text-lg font-medium">Start a conversation with Manus AI</p>
+            <p className="text-sm">Ask me about design systems, project management, or family tasks!</p>
           </div>
         )}
       </CardContent>
