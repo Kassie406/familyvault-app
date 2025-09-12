@@ -210,23 +210,44 @@ router.post("/upload", upload.single("document"), async (req, res) => {
     // Check if AWS credentials are available
     const hasAWSCredentials = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && bucket;
     
+    // Debug logging for AWS credentials
+    console.log(`AWS Credentials Check:`, {
+      hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
+      hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
+      hasBucket: !!bucket,
+      bucketName: bucket,
+      region: process.env.AWS_REGION,
+      willUseAWS: hasAWSCredentials,
+      fileType: file.mimetype
+    });
+    
     if (hasAWSCredentials) {
-      // Upload original document to appropriate S3 bucket
-      fileUrl = await uploadBufferToS3(`${keyBase}${ext}`, file.buffer, file.mimetype, bucket);
-      
-      // Create thumbnail for images (uploaded to same bucket)
-      if (file.mimetype.startsWith("image/")) {
-        try {
-          const thumbBuf = await sharp(file.buffer)
-            .rotate()
-            .resize({ width: 300, height: 300, fit: 'inside', withoutEnlargement: true })
-            .jpeg({ quality: 80 })
-            .toBuffer();
-          
-          thumbnailUrl = await uploadBufferToS3(`${keyBase}_thumb.jpg`, thumbBuf, "image/jpeg", bucket);
-        } catch (thumbError) {
-          console.warn("Failed to create thumbnail:", thumbError);
+      console.log(`✅ Using AWS S3 upload for ${file.originalname} to bucket: ${bucket}`);
+      try {
+        // Upload original document to appropriate S3 bucket
+        fileUrl = await uploadBufferToS3(`${keyBase}${ext}`, file.buffer, file.mimetype, bucket);
+        
+        // Create thumbnail for images (uploaded to same bucket)
+        if (file.mimetype.startsWith("image/")) {
+          try {
+            const thumbBuf = await sharp(file.buffer)
+              .rotate()
+              .resize({ width: 300, height: 300, fit: 'inside', withoutEnlargement: true })
+              .jpeg({ quality: 80 })
+              .toBuffer();
+            
+            thumbnailUrl = await uploadBufferToS3(`${keyBase}_thumb.jpg`, thumbBuf, "image/jpeg", bucket);
+          } catch (thumbError) {
+            console.warn("Failed to create thumbnail:", thumbError);
+          }
         }
+      } catch (s3Error: any) {
+        console.error(`❌ AWS S3 upload failed for ${file.originalname}:`, s3Error.message);
+        console.log(`⚠️ Falling back to mock storage due to S3 error: ${s3Error.name}`);
+        
+        // Fall back to mock storage if S3 fails
+        const base64Data = file.buffer.toString('base64');
+        fileUrl = `data:${file.mimetype};base64,${base64Data}`;
       }
     } else {
       // Development fallback: Use data URLs for local storage
@@ -562,6 +583,72 @@ router.post("/documents/:documentId/reanalyze", async (req, res) => {
   }
 });
 
+// GET /api/trustworthy/aws-test - Test AWS S3 Connection
+router.get("/aws-test", async (req, res) => {
+  try {
+    const hasAWSCredentials = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY;
+    
+    if (!hasAWSCredentials) {
+      return res.json({
+        success: false,
+        error: "AWS credentials not found",
+        debug: {
+          hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
+          hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
+          region: process.env.AWS_REGION,
+          docsBucket: process.env.S3_BUCKET_DOCS,
+          photosBucket: process.env.S3_BUCKET_PHOTOS
+        }
+      });
+    }
+
+    // Test upload a small text file to S3
+    const testKey = `test/connection-test-${Date.now()}.txt`;
+    const testContent = "AWS S3 connection test successful!";
+    const testBuffer = Buffer.from(testContent, 'utf8');
+    
+    try {
+      const testUrl = await uploadBufferToS3(
+        testKey, 
+        testBuffer, 
+        'text/plain', 
+        process.env.S3_BUCKET_DOCS
+      );
+      
+      return res.json({
+        success: true,
+        message: "AWS S3 connection successful!",
+        testUploadUrl: testUrl,
+        debug: {
+          region: process.env.AWS_REGION,
+          bucket: process.env.S3_BUCKET_DOCS,
+          testKey: testKey
+        }
+      });
+    } catch (s3Error: any) {
+      return res.json({
+        success: false,
+        error: "S3 upload test failed",
+        s3Error: s3Error.message,
+        errorCode: s3Error.name,
+        debug: {
+          region: process.env.AWS_REGION,
+          bucket: process.env.S3_BUCKET_DOCS,
+          hasCredentials: true
+        }
+      });
+    }
+    
+  } catch (error: any) {
+    console.error("AWS test error:", error);
+    res.status(500).json({
+      success: false,
+      error: "AWS test failed",
+      details: error.message
+    });
+  }
+});
+
 // POST /api/trustworthy/lambda-analyze - AWS Lambda + OpenAI Analysis Integration
 router.post("/lambda-analyze", async (req, res) => {
   try {
@@ -697,12 +784,27 @@ router.post("/lambda-analyze", async (req, res) => {
       throw new Error('Lambda returned invalid response structure');
     }
 
+    // **VALIDATE LAMBDA RESPONSE DATA INTEGRITY**
+    const extractedText = analysisResult.extractedText || '';
+    const keyValuePairs = Array.isArray(analysisResult.keyValuePairs) ? analysisResult.keyValuePairs : [];
+    const lambdaDocumentType = analysisResult.documentType || 'unknown';
+    const confidence = typeof analysisResult.confidence === 'number' ? analysisResult.confidence : 0;
+    const summary = analysisResult.summary || `Analysis completed for ${fileName}`;
+
+    // Validate key-value pairs structure
+    const validKeyValuePairs = keyValuePairs.filter((kv: any) => {
+      return kv && typeof kv === 'object' && 
+             typeof kv.key === 'string' && 
+             typeof kv.value === 'string' &&
+             kv.key.trim() !== '' && kv.value.trim() !== '';
+    });
+
     // Log successful Lambda response for debugging
     console.log(`Lambda analysis successful for document ${documentId}:`, {
-      hasExtractedText: !!analysisResult.extractedText,
-      keyValuePairsCount: (analysisResult.keyValuePairs || []).length,
-      documentType: analysisResult.documentType || 'unknown',
-      confidence: analysisResult.confidence || 0
+      hasExtractedText: !!extractedText,
+      keyValuePairsCount: validKeyValuePairs.length,
+      documentType: lambdaDocumentType,
+      confidence: confidence
     });
 
     // Store analysis results in storage (mock)
@@ -729,21 +831,6 @@ router.post("/lambda-analyze", async (req, res) => {
       createdAt: new Date()
     };
     mockDocumentAnalysis.set(documentId, analysis);
-
-    // **VALIDATE LAMBDA RESPONSE DATA INTEGRITY**
-    const extractedText = analysisResult.extractedText || '';
-    const keyValuePairs = Array.isArray(analysisResult.keyValuePairs) ? analysisResult.keyValuePairs : [];
-    const lambdaDocumentType = analysisResult.documentType || 'unknown';
-    const confidence = typeof analysisResult.confidence === 'number' ? analysisResult.confidence : 0;
-    const summary = analysisResult.summary || `Analysis completed for ${fileName}`;
-
-    // Validate key-value pairs structure
-    const validKeyValuePairs = keyValuePairs.filter((kv: any) => {
-      return kv && typeof kv === 'object' && 
-             typeof kv.key === 'string' && 
-             typeof kv.value === 'string' &&
-             kv.key.trim() !== '' && kv.value.trim() !== '';
-    });
 
     if (validKeyValuePairs.length !== keyValuePairs.length) {
       console.warn(`Lambda returned ${keyValuePairs.length} key-value pairs, but only ${validKeyValuePairs.length} were valid for document ${documentId}`);
