@@ -1,0 +1,90 @@
+Short answer: that reply is from the Replit Agent, not your Manus panel.
+Why I’m confident:
+
+The screenshot shows the Replit “Quick Actions” panel UI and its error copy style.
+
+The error mentions track_project_progress with “Unsupported protocol key” — that’s exactly what happens when Replit Agent posts a payload with extra keys your MCP rejects. Your Manus hook sends only { method, params }.
+
+Prove it in 30 seconds
+
+Add a tiny logger on your MCP server:
+
+// before your /mcp routes
+app.use('/mcp', (req, _res, next) => {
+  console.log('[MCP IN]', {
+    from: req.get('x-manus-agent') ? 'MANUS' : 'UNKNOWN/REPLIT',
+    ua: req.get('user-agent'),
+    keys: Object.keys(req.body || {})
+  });
+  next();
+});
+
+
+Now make two calls:
+
+From ManusAssistantPanel → you’ll see from: MANUS, keys: ["method","params"].
+
+From Replit Agent → from: UNKNOWN/REPLIT, keys will include the extra field that trips your server.
+
+Fix it 3 ways (pick one)
+1) Gate the endpoint (recommended)
+
+Only accept requests that include your header/token.
+
+// lock /mcp to Manus only
+app.use('/mcp', (req, res, next) => {
+  if (req.get('x-manus-agent') !== process.env.MANUS_AGENT_KEY) {
+    return res.status(403).json({ error: 'Forbidden: Manus header missing' });
+  }
+  next();
+});
+
+
+Send that header from your Manus hook:
+
+await axios.post(MCP_URL, { method, params }, {
+  withCredentials: true,
+  headers: { 'x-manus-agent': process.env.VITE_MANUS_AGENT_KEY ?? 'local-dev' }
+});
+
+2) Sanitize unknown keys (be tolerant)
+
+If you want to allow both:
+
+app.post('/mcp', (req, res) => {
+  const { method, params } = req.body ?? {};
+  if (typeof method !== 'string') return res.status(400).json({ error: "Missing 'method'" });
+  // Strip everything else:
+  req.body = { method, params: params && typeof params === 'object' ? params : {} };
+  // dispatch(req.body.method, req.body.params)
+});
+
+3) Disable Replit Agent touching your MCP
+
+Turn Agent features OFF in the Replit sidebar.
+
+Remove any MCP server configured inside Replit Agent settings.
+
+Or block Replit hosts outright:
+
+app.use('/mcp', (req, res, next) => {
+  const ip = req.ip || '';
+  const ua = req.get('user-agent') || '';
+  if (/Replit|replit\.com/i.test(ua)) return res.status(403).json({ error:'Blocked Replit agent' });
+  next();
+});
+
+Quick health test
+# Manus-style (should succeed)
+curl -s -X POST "$MCP_SERVER_URL" \
+ -H 'Content-Type: application/json' \
+ -H 'x-manus-agent: test' \
+ --data '{"method":"track_project_progress","params":{"project":"FamilyVault AI"}}'
+
+# Replit-style (should be 403 after the gate)
+curl -s -X POST "$MCP_SERVER_URL" \
+ -H 'Content-Type: application/json' \
+ --data '{"protocol":"http","method":"track_project_progress","params":{"project":"FamilyVault AI"}}'
+
+
+Once you gate or sanitize, that red error in Replit will go away (or be blocked), and only Manus will be allowed to call your MCP cleanly.
