@@ -1,0 +1,359 @@
+/* Trustworthy Upload Strategy - Dark Gold Theme Styles */
+/* Note: Variables are defined in client/src/index.css to maintain centralized theme system */
+
+/* Trustworthy document card base styles */
+.trustworthy-document-card {
+  @apply p-4 rounded-xl transition-all duration-300;
+  background-color: var(--trustworthy-card-bg);
+  border: 1px solid var(--trustworthy-border);
+  box-shadow: 0 4px 6px -1px var(--trustworthy-shadow);
+}
+
+.trustworthy-document-card:hover {
+  border-color: var(--trustworthy-primary-gold);
+  box-shadow: 
+    0 10px 25px -3px var(--trustworthy-shadow),
+    0 0 0 1px var(--trustworthy-primary-gold),
+    0 0 20px -5px var(--trustworthy-shadow-gold);
+  transform: translateY(-1px);
+}
+
+/* Trustworthy upload center styles */
+.trustworthy-upload-center {
+  @apply min-h-screen;
+  background: 
+    radial-gradient(circle at 25% 25%, hsla(45, 64%, 52%, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, hsla(45, 64%, 52%, 0.02) 0%, transparent 50%),
+    var(--trustworthy-dark-bg);
+}
+
+/* Trustworthy main upload area */
+.trustworthy-upload-area {
+  @apply relative p-8 border-2 border-dashed rounded-2xl transition-all duration-300;
+  background-color: color-mix(in srgb, var(--trustworthy-card-bg) 50%, transparent);
+  border-color: var(--trustworthy-border);
+  backdrop-filter: blur(10px);
+}
+
+.trustworthy-upload-area.drag-active {
+  border-color: var(--trustworthy-primary-gold);
+  background-color: color-mix(in srgb, var(--trustworthy-primary-gold) 5%, transparent);
+  box-shadow: 
+    0 0 0 4px var(--trustworthy-shadow-gold),
+    0 0 30px var(--trustworthy-shadow-gold);
+  transform: scale(1.02);
+}
+
+.trustworthy-upload-area:hover {
+  border-color: color-mix(in srgb, var(--trustworthy-primary-gold) 50%, transparent);
+  background-color: color-mix(in srgb, var(--trustworthy-card-bg) 70%, transparent);
+  box-shadow: 0 8px 32px var(--trustworthy-shadow);
+}
+
+/* Upload progress styles */
+.trustworthy-progress-circle {
+  @apply relative w-24 h-24;
+}
+
+.trustworthy-progress-ring {
+  @apply w-full h-full transform -rotate-90;
+}
+
+.trustworthy-progress-background {
+  @apply fill-none stroke-[8];
+  stroke: var(--trustworthy-border);
+}
+
+.trustworthy-progress-foreground {
+  @apply fill-none stroke-[8] transition-all duration-500;
+  stroke: var(--trustworthy-primary-gold);
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px var(--trustworthy-shadow-gold));
+}
+
+/* Animation for progress ring */
+@keyframes trustworthy-progress-spin {
+  0% { stroke-dasharray: 0, 251.2; }
+  50% { stroke-dasharray: 125.6, 125.6; }
+  100% { stroke-dasharray: 251.2, 0; }
+}
+
+.trustworthy-progress-ring.loading .trustworthy-progress-foreground {
+  animation: trustworthy-progress-spin 2s ease-in-out infinite;
+}
+
+/* Lightning bolt animation */
+.trustworthy-lightning {
+  color: var(--trustworthy-primary-gold);
+  filter: drop-shadow(0 1px 2px var(--trustworthy-shadow));
+  animation: trustworthy-lightning-pulse 2s ease-in-out infinite;
+}
+
+@keyframes trustworthy-lightning-pulse {
+  0%, 100% { 
+    opacity: 1;
+    filter: drop-shadow(0 0 4px var(--trustworthy-shadow-gold));
+  }
+  50% { 
+    opacity: 0.7;
+    filter: drop-shadow(0 0 8px var(--trustworthy-shadow-gold));
+  }
+}
+
+/* Status indicator styles */
+.trustworthy-status-indicator {
+  @apply inline-flex items-center justify-center w-3 h-3 rounded-full;
+  animation: trustworthy-status-pulse 2s ease-in-out infinite;
+}
+
+.trustworthy-status-indicator.uploaded {
+  @apply bg-blue-500;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+}
+
+.trustworthy-status-indicator.analyzing {
+  @apply bg-yellow-500;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+}
+
+.trustworthy-status-indicator.analyzed {
+  @apply bg-green-500;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+.trustworthy-status-indicator.error {
+  @apply bg-red-500;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+@keyframes trustworthy-status-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+/* Button styles */
+.trustworthy-button-primary {
+  @apply px-6 py-3 bg-[#D4AF37] text-black rounded-lg font-semibold transition-all duration-200;
+  @apply hover:bg-[#E5C054] hover:shadow-lg active:bg-[#B8941F] active:scale-95;
+  box-shadow: 
+    0 4px 14px 0 rgba(212, 175, 55, 0.3),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+}
+
+.trustworthy-button-primary:hover {
+  box-shadow: 
+    0 6px 20px 0 rgba(212, 175, 55, 0.4),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.trustworthy-button-secondary {
+  @apply px-4 py-2 bg-[#1a1a1a] text-[#D4AF37] rounded-lg border border-[#D4AF37]/30;
+  @apply hover:bg-[#D4AF37]/10 hover:border-[#D4AF37]/50 transition-all duration-200;
+}
+
+.trustworthy-button-ghost {
+  @apply px-4 py-2 text-gray-400 rounded-lg transition-all duration-200;
+  @apply hover:bg-white/5 hover:text-white;
+}
+
+/* Modal styles */
+.trustworthy-modal-overlay {
+  @apply fixed inset-0 bg-black/70 backdrop-blur-sm z-50;
+  @apply flex items-center justify-center p-4;
+}
+
+.trustworthy-modal-content {
+  @apply bg-[#0F0F0F] border border-[#333] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden;
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(212, 175, 55, 0.1),
+    0 0 50px rgba(212, 175, 55, 0.1);
+}
+
+/* Field extraction styles */
+.trustworthy-field-card {
+  @apply p-4 bg-[#1a1a1a] border border-[#333] rounded-lg;
+  @apply hover:border-[#D4AF37]/30 transition-all duration-200;
+}
+
+.trustworthy-field-card.high-confidence {
+  @apply border-green-500/30 bg-green-500/5;
+}
+
+.trustworthy-field-card.medium-confidence {
+  @apply border-yellow-500/30 bg-yellow-500/5;
+}
+
+.trustworthy-field-card.low-confidence {
+  @apply border-red-500/30 bg-red-500/5;
+}
+
+/* Confidence bar */
+.trustworthy-confidence-bar {
+  @apply w-full bg-gray-700 rounded-full h-2 overflow-hidden;
+}
+
+.trustworthy-confidence-fill {
+  @apply h-full rounded-full transition-all duration-500;
+  background: linear-gradient(90deg, #EF4444 0%, #F59E0B 50%, #10B981 100%);
+}
+
+/* Thumbnail styles */
+.trustworthy-thumbnail {
+  @apply w-16 h-16 bg-[#1a1a1a] border border-[#333] rounded-lg overflow-hidden;
+  @apply flex items-center justify-center;
+}
+
+.trustworthy-thumbnail img {
+  @apply w-full h-full object-cover;
+}
+
+.trustworthy-thumbnail .icon {
+  @apply text-[#D4AF37]/60;
+}
+
+/* Loading animation */
+.trustworthy-loading-spinner {
+  @apply w-6 h-6 border-2 border-gray-600 border-t-[#D4AF37] rounded-full;
+  animation: trustworthy-spin 1s linear infinite;
+}
+
+@keyframes trustworthy-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Sidebar specific styles */
+.trustworthy-sidebar {
+  @apply fixed left-0 top-0 bottom-0 w-96 bg-[#0F0F0F] border-r border-[#333] z-50;
+  @apply flex flex-col;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+}
+
+.trustworthy-sidebar-content {
+  @apply flex-1 overflow-y-auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--trustworthy-primary-gold) transparent;
+}
+
+.trustworthy-sidebar-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.trustworthy-sidebar-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.trustworthy-sidebar-content::-webkit-scrollbar-thumb {
+  background: var(--trustworthy-primary-gold);
+  border-radius: 3px;
+}
+
+.trustworthy-sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: var(--trustworthy-gold-hover);
+}
+
+/* Form field styles */
+.trustworthy-input {
+  @apply w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg;
+  @apply text-white placeholder-gray-500;
+  @apply focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50 focus:border-[#D4AF37]/50;
+  @apply transition-all duration-200;
+}
+
+.trustworthy-input:focus {
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
+.trustworthy-select {
+  @apply w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg;
+  @apply text-white appearance-none cursor-pointer;
+  @apply focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50 focus:border-[#D4AF37]/50;
+  @apply transition-all duration-200;
+}
+
+/* Profile card styles */
+.trustworthy-profile-card {
+  @apply p-6 bg-[#1a1a1a] border border-[#333] rounded-xl;
+  @apply hover:border-[#D4AF37]/30 transition-all duration-300;
+}
+
+.trustworthy-profile-avatar {
+  @apply w-16 h-16 bg-[#D4AF37]/20 border-2 border-[#D4AF37]/30 rounded-full;
+  @apply flex items-center justify-center text-[#D4AF37] font-bold text-xl;
+}
+
+/* Document type icons */
+.trustworthy-doc-icon {
+  @apply w-8 h-8 text-[#D4AF37];
+  filter: drop-shadow(0 2px 4px rgba(212, 175, 55, 0.3));
+}
+
+/* Navigation animations */
+.trustworthy-slide-enter {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+.trustworthy-slide-enter-active {
+  transform: translateX(0);
+  opacity: 1;
+  transition: transform 300ms ease-out, opacity 300ms ease-out;
+}
+
+.trustworthy-slide-exit {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.trustworthy-slide-exit-active {
+  transform: translateX(-100%);
+  opacity: 0;
+  transition: transform 300ms ease-in, opacity 300ms ease-in;
+}
+
+/* Responsive styles */
+@media (max-width: 640px) {
+  .trustworthy-sidebar {
+    @apply w-full;
+  }
+  
+  .trustworthy-modal-content {
+    @apply mx-4 max-w-none;
+  }
+  
+  .trustworthy-upload-area {
+    @apply p-4;
+  }
+}
+
+/* High contrast mode adjustments */
+@media (prefers-contrast: high) {
+  .trustworthy-document-card {
+    @apply border-2;
+  }
+  
+  .trustworthy-button-primary {
+    @apply border-2 border-black;
+  }
+  
+  .trustworthy-field-card {
+    @apply border-2;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .trustworthy-lightning,
+  .trustworthy-status-indicator,
+  .trustworthy-progress-ring.loading .trustworthy-progress-foreground {
+    animation: none !important;
+  }
+  
+  .trustworthy-document-card,
+  .trustworthy-button-primary,
+  .trustworthy-input,
+  .trustworthy-select {
+    transition: none !important;
+  }
+}

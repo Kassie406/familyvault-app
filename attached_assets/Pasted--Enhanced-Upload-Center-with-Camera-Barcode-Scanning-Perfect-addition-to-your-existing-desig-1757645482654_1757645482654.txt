@@ -1,0 +1,393 @@
+// Enhanced Upload Center with Camera & Barcode Scanning
+// Perfect addition to your existing design
+
+import React, { useState, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// Enhanced Upload Center with Camera Features
+export const EnhancedCameraUploadCenter = () => {
+  const [uploadState, setUploadState] = useState('browse');
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isBarcodeMode, setIsBarcodeMode] = useState(false);
+  const [capturedImage, setCapturedImage] = useState(null);
+  const [scannedBarcode, setScannedBarcode] = useState(null);
+  
+  const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
+
+  // Your existing browse functionality
+  const handleBrowseClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // NEW: Camera functionality
+  const handleCameraClick = async () => {
+    try {
+      setIsCameraOpen(true);
+      setIsBarcodeMode(false);
+      
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: 'environment', // Use back camera on mobile
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      });
+      
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.error('Camera access failed:', error);
+      alert('Camera access denied. Please enable camera permissions.');
+    }
+  };
+
+  // NEW: Barcode scanning functionality
+  const handleBarcodeClick = async () => {
+    try {
+      setIsCameraOpen(true);
+      setIsBarcodeMode(true);
+      
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      });
+      
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        // Start barcode detection
+        startBarcodeDetection();
+      }
+    } catch (error) {
+      console.error('Camera access failed:', error);
+      alert('Camera access denied. Please enable camera permissions.');
+    }
+  };
+
+  // NEW: Capture photo from camera
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      context.drawImage(video, 0, 0);
+      
+      canvas.toBlob((blob) => {
+        const file = new File([blob], `camera_capture_${Date.now()}.jpg`, {
+          type: 'image/jpeg'
+        });
+        
+        setCapturedImage(URL.createObjectURL(blob));
+        closeCameraAndProcess(file);
+      }, 'image/jpeg', 0.9);
+    }
+  };
+
+  // NEW: Barcode detection
+  const startBarcodeDetection = () => {
+    if ('BarcodeDetector' in window) {
+      const barcodeDetector = new BarcodeDetector({
+        formats: ['qr_code', 'code_128', 'code_39', 'ean_13', 'ean_8']
+      });
+      
+      const detectBarcodes = async () => {
+        if (videoRef.current && isBarcodeMode) {
+          try {
+            const barcodes = await barcodeDetector.detect(videoRef.current);
+            if (barcodes.length > 0) {
+              const barcode = barcodes[0];
+              setScannedBarcode(barcode.rawValue);
+              
+              // Auto-capture when barcode is detected
+              setTimeout(() => {
+                capturePhoto();
+              }, 500);
+              
+              return;
+            }
+          } catch (error) {
+            console.error('Barcode detection error:', error);
+          }
+          
+          // Continue scanning
+          requestAnimationFrame(detectBarcodes);
+        }
+      };
+      
+      detectBarcodes();
+    } else {
+      // Fallback: Manual capture with barcode overlay
+      console.log('BarcodeDetector not supported, using manual capture');
+    }
+  };
+
+  // Close camera and process captured file
+  const closeCameraAndProcess = (file) => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
+    setIsCameraOpen(false);
+    
+    // Process the captured file through your existing upload workflow
+    handleFileUpload([file]);
+  };
+
+  // Close camera without capturing
+  const closeCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
+    setIsCameraOpen(false);
+    setIsBarcodeMode(false);
+    setCapturedImage(null);
+    setScannedBarcode(null);
+  };
+
+  // Your existing file upload handler
+  const handleFileUpload = async (files) => {
+    // Your existing upload logic here
+    console.log('Processing file:', files[0]);
+    // Connect to your Trustworthy workflow
+  };
+
+  return (
+    <div className="enhanced-camera-upload-center">
+      {/* Your existing upload area with enhancements */}
+      <div className="main-upload-area">
+        <div className="family-header">
+          <h2 className="family-title">camacho Family</h2>
+          <div className="user-avatars">
+            <div className="avatar">KC</div>
+            <div className="avatar">AQ</div>
+          </div>
+        </div>
+
+        <div className="upload-zone">
+          <div className="upload-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+          </div>
+          
+          <h3>Upload Family Documents</h3>
+          <p>Drag & drop files here or click to browse</p>
+          <p>AI will automatically extract key information</p>
+          
+          {/* Enhanced button group with camera options */}
+          <div className="upload-button-group">
+            <motion.button
+              className="browse-button primary"
+              onClick={handleBrowseClick}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              📁 Browse
+            </motion.button>
+            
+            {/* NEW: Camera button */}
+            <motion.button
+              className="camera-button secondary"
+              onClick={handleCameraClick}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              📷 Take Photo
+            </motion.button>
+            
+            {/* NEW: Barcode scanner button */}
+            <motion.button
+              className="barcode-button secondary"
+              onClick={handleBarcodeClick}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              📱 Scan Barcode
+            </motion.button>
+          </div>
+          
+          <span className="or-text">or drop files</span>
+          
+          {/* File type indicators */}
+          <div className="file-types">
+            <span className="file-type">PDF</span>
+            <span className="file-type">JPG</span>
+            <span className="file-type">PNG</span>
+            <span className="file-type">DOC</span>
+            <span className="file-type">TXT</span>
+          </div>
+        </div>
+
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          onChange={(e) => handleFileUpload(Array.from(e.target.files || []))}
+          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+          style={{ display: 'none' }}
+        />
+      </div>
+
+      {/* NEW: Camera Modal */}
+      <CameraModal
+        isOpen={isCameraOpen}
+        isBarcodeMode={isBarcodeMode}
+        videoRef={videoRef}
+        canvasRef={canvasRef}
+        scannedBarcode={scannedBarcode}
+        onCapture={capturePhoto}
+        onClose={closeCamera}
+      />
+
+      {/* Your existing Quick Start section */}
+      <div className="quick-start-section">
+        <h3>Quick start</h3>
+        <div className="quick-actions">
+          <div className="quick-action-card">
+            <div className="action-icon">🛡️</div>
+            <div className="action-content">
+              <h4>Add life insurance</h4>
+              <p>Ensure your policies are always accessible, with automated reminders to keep them from lapsing.</p>
+            </div>
+          </div>
+          <div className="quick-action-card enhanced">
+            <div className="action-icon">📱</div>
+            <div className="action-content">
+              <h4>Mobile document scanning</h4>
+              <p>Use your phone camera to instantly capture and upload documents with automatic barcode detection.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// NEW: Camera Modal Component
+const CameraModal = ({ 
+  isOpen, 
+  isBarcodeMode, 
+  videoRef, 
+  canvasRef, 
+  scannedBarcode, 
+  onCapture, 
+  onClose 
+}) => {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="camera-modal-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <motion.div
+            className="camera-modal"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+          >
+            <div className="camera-header">
+              <h3>
+                {isBarcodeMode ? '📱 Scan Barcode' : '📷 Take Photo'}
+              </h3>
+              <button className="camera-close-btn" onClick={onClose}>×</button>
+            </div>
+
+            <div className="camera-content">
+              <div className="camera-viewport">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="camera-video"
+                />
+                
+                {/* Barcode scanning overlay */}
+                {isBarcodeMode && (
+                  <div className="barcode-overlay">
+                    <div className="barcode-frame">
+                      <div className="corner top-left"></div>
+                      <div className="corner top-right"></div>
+                      <div className="corner bottom-left"></div>
+                      <div className="corner bottom-right"></div>
+                    </div>
+                    <p className="barcode-instruction">
+                      Position barcode within the frame
+                    </p>
+                    {scannedBarcode && (
+                      <div className="barcode-detected">
+                        ✅ Barcode detected: {scannedBarcode}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Photo capture overlay */}
+                {!isBarcodeMode && (
+                  <div className="photo-overlay">
+                    <div className="photo-frame"></div>
+                    <p className="photo-instruction">
+                      Position document within the frame
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="camera-controls">
+                <button className="camera-control-btn cancel" onClick={onClose}>
+                  Cancel
+                </button>
+                
+                <motion.button
+                  className="camera-control-btn capture"
+                  onClick={onCapture}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <div className="capture-button-inner">
+                    {isBarcodeMode ? '📱' : '📷'}
+                  </div>
+                </motion.button>
+                
+                <button className="camera-control-btn switch">
+                  🔄
+                </button>
+              </div>
+
+              {/* Tips section */}
+              <div className="camera-tips">
+                <h4>💡 Tips for best results:</h4>
+                <ul>
+                  <li>Ensure good lighting</li>
+                  <li>Hold camera steady</li>
+                  <li>Keep document flat and fully visible</li>
+                  {isBarcodeMode && <li>Center barcode in the frame</li>}
+                </ul>
+              </div>
+            </div>
+
+            {/* Hidden canvas for image capture */}
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+export default EnhancedCameraUploadCenter;
