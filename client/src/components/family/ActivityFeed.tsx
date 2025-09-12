@@ -106,26 +106,42 @@ export function ActivityFeed({ limit = 10, showFilters = true, className = '' }:
   // Fetch initial activity data
   const { data: initialActivities = [], isLoading, refetch, isFetching } = useQuery<ActivityItem[]>({
     queryKey: ['/api/family/activity', filter, timeRange, limit],
-    queryFn: () => {
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (filter !== 'all') params.append('filter', filter);
       params.append('timeRange', timeRange);
       params.append('limit', limit.toString());
-      return fetch(`/api/family/activity?${params.toString()}`).then(res => res.json());
+      
+      try {
+        const res = await fetch(`/api/family/activity?${params.toString()}`);
+        if (!res.ok) {
+          console.warn('Activity API failed:', res.status);
+          return []; // Return empty array on error
+        }
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.warn('Activity fetch error:', error);
+        return []; // Return empty array on error
+      }
     },
   });
 
   // State for real-time activities
   const [realtimeActivities, setRealtimeActivities] = useState<ActivityItem[]>([]);
   
+  // Ensure we always have arrays to work with
+  const safeInitialActivities = Array.isArray(initialActivities) ? initialActivities : [];
+  const safeRealtimeActivities = Array.isArray(realtimeActivities) ? realtimeActivities : [];
+  
   // Combine initial and real-time activities
-  const activities = realtimeActivities.length > 0 
-    ? [...realtimeActivities, ...(initialActivities || [])].slice(0, limit)
-    : initialActivities || [];
+  const activities = safeRealtimeActivities.length > 0 
+    ? [...safeRealtimeActivities, ...safeInitialActivities].slice(0, limit)
+    : safeInitialActivities;
 
   const filteredActivities = filter === 'all' 
     ? activities.slice(0, limit)
-    : activities.filter(activity => activity.type === filter).slice(0, limit);
+    : activities.filter(activity => activity && activity.type === filter).slice(0, limit);
 
   // Real-time Socket.IO connection for live activity updates
   useEffect(() => {
