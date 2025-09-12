@@ -127,14 +127,25 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
       setUploadState(TRUSTWORTHY_STATES.INBOX_OPEN);
       
       // Auto-trigger AWS Lambda analysis after successful upload
-      setTimeout(async () => {
-        setUploadState(TRUSTWORTHY_STATES.ANALYZING);
-        try {
-          await analysisMutation.mutateAsync(document);
-        } catch (error) {
-          console.error('Auto-analysis failed:', error);
-        }
-      }, 1000); // Small delay to show upload success
+      // Only call Lambda if we have a real S3 URL (not data URL)
+      const hasRealS3Url = document.filePath && !document.filePath.startsWith('data:');
+      
+      if (hasRealS3Url) {
+        setTimeout(async () => {
+          setUploadState(TRUSTWORTHY_STATES.ANALYZING);
+          try {
+            await analysisMutation.mutateAsync(document);
+          } catch (error) {
+            console.error('Auto-analysis failed:', error);
+          }
+        }, 1000); // Small delay to show upload success
+      } else {
+        // Skip Lambda for mock/development uploads and go straight to details
+        console.log('Skipping Lambda analysis - using mock document with data URL');
+        setTimeout(() => {
+          setUploadState(TRUSTWORTHY_STATES.DETAILS_READY);
+        }, 1000);
+      }
       
       queryClient.invalidateQueries({ queryKey: ['/api/trustworthy/documents'] });
       queryClient.invalidateQueries({ queryKey: ['/api/family/members'] });
