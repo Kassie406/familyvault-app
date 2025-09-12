@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useDropzone } from "react-dropzone";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -25,6 +25,8 @@ import {
   Loader2,
   CheckCircle,
   XCircle,
+  Camera,
+  FolderOpen,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useUploadStore } from "@/stores/uploadStore";
@@ -39,11 +41,79 @@ export default function InboxPanel() {
   const [selectedUpload, setSelectedUpload] = useState<any>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [showMobileUploadModal, setShowMobileUploadModal] = useState(false);
+  const [mobileUploadLink, setMobileUploadLink] = useState<string>("");
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   const onClose = useCallback(() => {
     setLocation("/family");
   }, [setLocation]);
+
+  // Upload handler functions
+  const handleBrowseFiles = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleTakePhoto = () => {
+    setShowCameraModal(true);
+  };
+
+  const handleMobileUpload = async () => {
+    try {
+      const response = await fetch('/api/mobile-upload/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          familyId: "family-1",
+          purpose: "documents"
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create upload session');
+      }
+
+      const sessionData = await response.json();
+      const baseUrl = window.location.origin;
+      const mobileLink = `${baseUrl}/m/u/${sessionData.id}?family=family-1`;
+      
+      setMobileUploadLink(mobileLink);
+      setQrCodeUrl(mobileLink);
+      setShowMobileUploadModal(true);
+      
+    } catch (error) {
+      console.error('Failed to generate mobile upload link:', error);
+    }
+  };
+
+  const handleFileUpload = async (files: FileList | File[]) => {
+    if (!files || files.length === 0) return;
+
+    for (const file of Array.from(files)) {
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('familyId', 'family-1');
+
+      try {
+        const response = await fetch('/api/trustworthy/upload', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData
+        });
+
+        if (response.ok) {
+          // Invalidate inbox query to refresh with new upload
+          queryClient.invalidateQueries({ queryKey: ["/api/inbox"] });
+        }
+      } catch (error) {
+        console.error('Upload failed:', error);
+      }
+    }
+  };
 
   // Fetch inbox items from API (trustworthy workflow integration)
   const { data: inboxItems = [], isLoading: inboxLoading, refetch } = useQuery<InboxItem[]>({
@@ -174,6 +244,45 @@ export default function InboxPanel() {
               Drop files, forward emails, or browse to add documents to your family vault.
             </p>
           </SheetHeader>
+
+          {/* Upload Toolbar */}
+          <div className="grid grid-cols-3 gap-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,application/pdf,.doc,.docx"
+              onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
+              className="hidden"
+            />
+            
+            <Button
+              onClick={handleBrowseFiles}
+              className="upload-button h-20 bg-[#D4AF37] hover:bg-[#B8941F] text-black font-medium rounded-2xl border-0 transition-all duration-200 hover:scale-105 flex flex-col items-center justify-center gap-2"
+              data-testid="button-browse-files"
+            >
+              <FolderOpen className="h-6 w-6" />
+              <span className="text-sm">Browse Files</span>
+            </Button>
+
+            <Button
+              onClick={handleTakePhoto}
+              className="upload-button h-20 bg-[#6366f1] hover:bg-[#5855eb] text-white font-medium rounded-2xl border-0 transition-all duration-200 hover:scale-105 flex flex-col items-center justify-center gap-2"
+              data-testid="button-take-photo"
+            >
+              <Camera className="h-6 w-6" />
+              <span className="text-sm">Take Photo</span>
+            </Button>
+
+            <Button
+              onClick={handleMobileUpload}
+              className="upload-button h-20 bg-[#10b981] hover:bg-[#059669] text-white font-medium rounded-2xl border-0 transition-all duration-200 hover:scale-105 flex flex-col items-center justify-center gap-2"
+              data-testid="button-mobile-upload"
+            >
+              <Smartphone className="h-6 w-6" />
+              <span className="text-sm">Mobile Upload</span>
+            </Button>
+          </div>
 
           {/* Dropzone */}
           <div
