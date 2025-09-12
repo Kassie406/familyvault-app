@@ -2,7 +2,7 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const provider = process.env.S3_PROVIDER || "aws";
-const bucket = process.env.S3_BUCKET!;
+const bucket = process.env.S3_BUCKET_DOCS || 'familyportal-docs-prod'; // Use docs bucket as default
 const publicBase = process.env.S3_PUBLIC_BASE_URL; // e.g., CloudFront or public bucket domain
 
 let client: S3Client;
@@ -30,12 +30,16 @@ if (provider === "r2") {
 export async function uploadBufferToS3(
   key: string,
   buffer: Buffer,
-  contentType: string
+  contentType: string,
+  targetBucket?: string
 ) {
+  // Use specific bucket or fall back to default
+  const bucketToUse = targetBucket || bucket;
+  
   // Do NOT set ACL here; manage public access via bucket policy / CDN.
   await client.send(
     new PutObjectCommand({
-      Bucket: bucket,
+      Bucket: bucketToUse,
       Key: key,
       Body: buffer,
       ContentType: contentType,
@@ -50,7 +54,7 @@ export async function uploadBufferToS3(
   // Private bucket: return presigned GET valid for 1 hour
   return await getSignedUrl(
     client,
-    new GetObjectCommand({ Bucket: bucket, Key: key }),
+    new GetObjectCommand({ Bucket: bucketToUse, Key: key }),
     { expiresIn: 3600 }
   );
 }

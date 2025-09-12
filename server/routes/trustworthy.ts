@@ -175,14 +175,39 @@ router.post("/upload", upload.single("document"), async (req, res) => {
     let fileUrl: string;
     let thumbnailUrl: string | null = null;
 
+    // Determine bucket based on file type (per your PDF specification)
+    let bucket: string;
+    let category: string;
+    let icon: string;
+
+    if (file.mimetype.startsWith('image/')) {
+      // Photos go to photos bucket
+      bucket = process.env.S3_BUCKET_PHOTOS || 'familyportal-photos-prod';
+      category = 'photo';
+      icon = '📷';
+    } else if (file.mimetype === 'application/pdf' || 
+               file.mimetype.includes('document') || 
+               file.mimetype.includes('spreadsheet') ||
+               file.mimetype === 'text/plain') {
+      // Documents go to docs bucket
+      bucket = process.env.S3_BUCKET_DOCS || 'familyportal-docs-prod';
+      category = 'document';
+      icon = '📄';
+    } else {
+      // Default to docs bucket
+      bucket = process.env.S3_BUCKET_DOCS || 'familyportal-docs-prod';
+      category = 'file';
+      icon = '📁';
+    }
+
     // Check if AWS credentials are available
-    const hasAWSCredentials = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.S3_BUCKET_DOCS;
+    const hasAWSCredentials = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && bucket;
     
     if (hasAWSCredentials) {
-      // Upload original document to S3
-      fileUrl = await uploadBufferToS3(`${keyBase}${ext}`, file.buffer, file.mimetype);
+      // Upload original document to appropriate S3 bucket
+      fileUrl = await uploadBufferToS3(`${keyBase}${ext}`, file.buffer, file.mimetype, bucket);
       
-      // Create thumbnail for images
+      // Create thumbnail for images (uploaded to same bucket)
       if (file.mimetype.startsWith("image/")) {
         try {
           const thumbBuf = await sharp(file.buffer)
@@ -191,7 +216,7 @@ router.post("/upload", upload.single("document"), async (req, res) => {
             .jpeg({ quality: 80 })
             .toBuffer();
           
-          thumbnailUrl = await uploadBufferToS3(`${keyBase}_thumb.jpg`, thumbBuf, "image/jpeg");
+          thumbnailUrl = await uploadBufferToS3(`${keyBase}_thumb.jpg`, thumbBuf, "image/jpeg", bucket);
         } catch (thumbError) {
           console.warn("Failed to create thumbnail:", thumbError);
         }
@@ -221,7 +246,7 @@ router.post("/upload", upload.single("document"), async (req, res) => {
       }
     }
 
-    // Create Trustworthy document record (mock)
+    // Create Trustworthy document record with S3 integration
     const documentId = crypto.randomUUID();
     const document = {
       id: documentId,
@@ -235,18 +260,35 @@ router.post("/upload", upload.single("document"), async (req, res) => {
       status: "uploaded",
       uploadTime: new Date(),
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      // S3 Integration fields (per your PDF specification)
+      s3Url: fileUrl,
+      s3Key: hasAWSCredentials ? `${keyBase}${ext}` : null,
+      bucket: hasAWSCredentials ? bucket : null,
+      category,
+      icon,
+      uploadMethod: req.body.uploadMethod || 'browse', // Will be set by frontend
     };
     mockDocuments.set(documentId, document);
 
-    // Trigger AI analysis automatically
-    setTimeout(async () => {
-      if (hasAWSCredentials) {
-        await analyzeDocumentWithTextract(document.id, fileUrl, file.mimetype);
-      } else {
-        await simulateAnalysisForDevelopment(document.id, file.originalname, file.mimetype);
-      }
-    }, 1000);
+    // **CONDITIONAL ANALYSIS** - Only auto-trigger when Lambda is NOT configured to prevent race condition
+    const LAMBDA_ENDPOINT_URL = process.env.LAMBDA_ENDPOINT_URL;
+    const isLambdaConfigured = LAMBDA_ENDPOINT_URL && LAMBDA_ENDPOINT_URL !== 'YOUR_LAMBDA_ENDPOINT_URL';
+    
+    if (!isLambdaConfigured) {
+      // Auto-trigger analysis only when Lambda is not available (single-sourced analysis)
+      setTimeout(async () => {
+        if (hasAWSCredentials) {
+          console.log(`Auto-triggering Textract analysis for document ${document.id} (Lambda not configured)`);
+          await analyzeDocumentWithTextract(document.id, fileUrl, file.mimetype);
+        } else {
+          console.log(`Auto-triggering development simulation for document ${document.id} (Lambda not configured)`);
+          await simulateAnalysisForDevelopment(document.id, file.originalname, file.mimetype);
+        }
+      }, 1000);
+    } else {
+      console.log(`Lambda endpoint configured - skipping auto-analysis for document ${document.id}. Use /lambda-analyze endpoint instead.`);
+    }
 
     res.status(201).json({
       success: true,
@@ -528,7 +570,7 @@ router.post("/lambda-analyze", async (req, res) => {
     }
 
     // Verify document exists and user has access
-    const document = trustworthyStorage.getDocument(documentId);
+    const document = mockDocuments.get(documentId);
     if (!document) {
       return res.status(404).json({
         success: false,
@@ -572,7 +614,33 @@ router.post("/lambda-analyze", async (req, res) => {
       });
     }
 
-    // Call your AWS Lambda endpoint for real AI analysis
+    // Get document for S3 information
+    const documentRecord = mockDocuments.get(documentId);
+    
+    // **CRITICAL S3 VALIDATION** - Ensure S3 parameters exist for production Lambda integration
+    if (!documentRecord?.bucket || !documentRecord?.s3Key) {
+      return res.status(400).json({
+        success: false,
+        error: "Document missing S3 information - cannot process with Lambda",
+        details: {
+          hasBucket: !!documentRecord?.bucket,
+          hasS3Key: !!documentRecord?.s3Key,
+          documentId,
+          message: "Document must be uploaded to S3 before Lambda analysis"
+        }
+      });
+    }
+
+    // Validate Lambda endpoint URL is properly configured
+    if (!LAMBDA_ENDPOINT_URL || LAMBDA_ENDPOINT_URL === 'YOUR_LAMBDA_ENDPOINT_URL') {
+      return res.status(500).json({
+        success: false,
+        error: "Lambda endpoint not configured",
+        details: "LAMBDA_ENDPOINT_URL environment variable must be set"
+      });
+    }
+    
+    // Call your AWS Lambda endpoint for real AI analysis with validated S3 details
     const lambdaResponse = await fetch(LAMBDA_ENDPOINT_URL, {
       method: 'POST',
       headers: {
@@ -583,91 +651,160 @@ router.post("/lambda-analyze", async (req, res) => {
         })
       },
       body: JSON.stringify({
-        documentUrl,
-        documentType,
-        fileName,
-        documentId
+        // **PRODUCTION LAMBDA PAYLOAD** - S3 Integration fields (per PDF specification)
+        s3Bucket: documentRecord.bucket,  // Now guaranteed to exist
+        s3Key: documentRecord.s3Key,      // Now guaranteed to exist
+        documentType: documentType || 'unknown',
+        fileName: fileName || documentRecord.originalFilename,
+        documentId,
+        // Additional metadata for Lambda function
+        familyId,
+        userId,
+        mimeType: documentRecord.mimeType,
+        fileSize: documentRecord.fileSize
       })
     });
 
+    // **ENHANCED LAMBDA RESPONSE HANDLING**
     if (!lambdaResponse.ok) {
-      throw new Error(`Lambda analysis failed: ${lambdaResponse.status} ${lambdaResponse.statusText}`);
+      let errorDetails = 'Unknown error';
+      try {
+        const errorBody = await lambdaResponse.text();
+        errorDetails = errorBody || `HTTP ${lambdaResponse.status}: ${lambdaResponse.statusText}`;
+      } catch (parseError) {
+        errorDetails = `HTTP ${lambdaResponse.status}: ${lambdaResponse.statusText}`;
+      }
+      
+      throw new Error(`Lambda analysis failed: ${errorDetails}`);
     }
 
-    const analysisResult = await lambdaResponse.json();
+    let analysisResult;
+    try {
+      analysisResult = await lambdaResponse.json();
+    } catch (parseError) {
+      throw new Error(`Lambda returned invalid JSON response: ${parseError instanceof Error ? parseError.message : 'Parse error'}`);
+    }
 
-    // Store analysis results in storage
-    trustworthyStorage.setDocumentAnalysis(documentId, {
-      id: crypto.randomUUID(),
+    // **VALIDATE LAMBDA RESPONSE STRUCTURE**
+    if (!analysisResult || typeof analysisResult !== 'object') {
+      throw new Error('Lambda returned invalid response structure');
+    }
+
+    // Log successful Lambda response for debugging
+    console.log(`Lambda analysis successful for document ${documentId}:`, {
+      hasExtractedText: !!analysisResult.extractedText,
+      keyValuePairsCount: (analysisResult.keyValuePairs || []).length,
+      documentType: analysisResult.documentType || 'unknown',
+      confidence: analysisResult.confidence || 0
+    });
+
+    // Store analysis results in storage (mock)
+    const analysisId = crypto.randomUUID();
+    const analysis = {
+      id: analysisId,
       documentId,
       analysisType: 'lambda_openai',
       rawResponse: analysisResult,
       extractedData: {
-        extractedText: analysisResult.extractedText || '',
-        keyValuePairs: analysisResult.keyValuePairs || [],
-        documentType: analysisResult.documentType || 'unknown',
-        confidence: analysisResult.confidence || 0,
-        summary: analysisResult.summary || ''
+        extractedText,
+        keyValuePairs: validKeyValuePairs,
+        documentType,
+        confidence,
+        summary
       },
       confidenceScores: {
-        overall: analysisResult.confidence || 0,
-        min: Math.min(...(analysisResult.keyValuePairs || []).map((kv: any) => kv.confidence || 0)),
-        max: Math.max(...(analysisResult.keyValuePairs || []).map((kv: any) => kv.confidence || 0))
+        overall: confidence,
+        min: validKeyValuePairs.length > 0 ? Math.min(...validKeyValuePairs.map((kv: any) => kv.confidence || 0)) : 0,
+        max: validKeyValuePairs.length > 0 ? Math.max(...validKeyValuePairs.map((kv: any) => kv.confidence || 0)) : 0,
+        fieldsProcessed: validKeyValuePairs.length,
+        fieldsDiscarded: keyValuePairs.length - validKeyValuePairs.length
       },
       createdAt: new Date()
+    };
+    mockDocumentAnalysis.set(documentId, analysis);
+
+    // **VALIDATE LAMBDA RESPONSE DATA INTEGRITY**
+    const extractedText = analysisResult.extractedText || '';
+    const keyValuePairs = Array.isArray(analysisResult.keyValuePairs) ? analysisResult.keyValuePairs : [];
+    const documentType = analysisResult.documentType || 'unknown';
+    const confidence = typeof analysisResult.confidence === 'number' ? analysisResult.confidence : 0;
+    const summary = analysisResult.summary || `Analysis completed for ${fileName}`;
+
+    // Validate key-value pairs structure
+    const validKeyValuePairs = keyValuePairs.filter((kv: any) => {
+      return kv && typeof kv === 'object' && 
+             typeof kv.key === 'string' && 
+             typeof kv.value === 'string' &&
+             kv.key.trim() !== '' && kv.value.trim() !== '';
     });
 
+    if (validKeyValuePairs.length !== keyValuePairs.length) {
+      console.warn(`Lambda returned ${keyValuePairs.length} key-value pairs, but only ${validKeyValuePairs.length} were valid for document ${documentId}`);
+    }
+
     // Convert key-value pairs to analysis fields format
-    const analysisFields = (analysisResult.keyValuePairs || []).map((kv: any) => ({
+    const analysisFields = validKeyValuePairs.map((kv: any) => ({
       id: crypto.randomUUID(),
       documentId,
-      fieldKey: kv.key,
-      fieldValue: kv.value,
+      fieldKey: kv.key.trim(),
+      fieldValue: kv.value.trim(),
       fieldType: 'extracted',
-      confidence: kv.confidence || 0,
+      confidence: typeof kv.confidence === 'number' ? Math.max(0, Math.min(100, kv.confidence)) : 0,
       isKeyField: (kv.confidence || 0) > 80,
       isPii: isPotentiallyPII(kv.key, kv.value),
       extractedAt: new Date()
     }));
 
-    trustworthyStorage.setAnalysisFields(documentId, analysisFields);
+    mockAnalysisFields.set(documentId, analysisFields);
 
-    // Update document with analysis results
-    trustworthyStorage.updateDocument(documentId, {
-      status: 'analyzed',
-      documentType: analysisResult.documentType || 'unknown',
-      aiConfidence: Math.round((analysisResult.confidence || 0) * 100),
-      extractedFields: JSON.stringify({
-        extractedText: analysisResult.extractedText || '',
-        keyValuePairs: analysisResult.keyValuePairs || [],
-        documentType: analysisResult.documentType || 'unknown',
-        confidence: analysisResult.confidence || 0,
-        summary: analysisResult.summary || ''
-      })
-    });
+    // **UPDATE DOCUMENT WITH VALIDATED ANALYSIS RESULTS**
+    const documentToUpdate = mockDocuments.get(documentId);
+    if (documentToUpdate) {
+      documentToUpdate.status = 'analyzed';
+      documentToUpdate.documentType = documentType;
+      documentToUpdate.aiConfidence = Math.round(confidence * 100);
+      documentToUpdate.analysisMethod = 'lambda_openai';
+      documentToUpdate.analysisTimestamp = new Date();
+      documentToUpdate.extractedFields = {
+        extractedText,
+        keyValuePairs: validKeyValuePairs,
+        documentType,
+        confidence,
+        summary,
+        fieldsCount: validKeyValuePairs.length
+      };
+      documentToUpdate.updatedAt = new Date();
+      mockDocuments.set(documentId, documentToUpdate);
+    }
 
     console.log(`AWS Lambda analysis completed for document ${documentId}: ${analysisFields.length} fields extracted`);
 
-    // Return the analysis result to frontend
+    // **RETURN VALIDATED ANALYSIS RESULT TO FRONTEND**
     res.json({
       success: true,
-      extractedText: analysisResult.extractedText || '',
-      keyValuePairs: analysisResult.keyValuePairs || [],
-      documentType: analysisResult.documentType || 'unknown',
-      confidence: analysisResult.confidence || 0,
-      summary: analysisResult.summary || '',
+      extractedText,
+      keyValuePairs: validKeyValuePairs,
+      documentType,
+      confidence,
+      summary,
+      fieldsCount: validKeyValuePairs.length,
+      analysisId: analysis.id,
+      processedAt: new Date().toISOString(),
       message: "AWS Lambda + OpenAI analysis completed successfully"
     });
 
   } catch (error) {
     console.error("AWS Lambda analysis error:", error);
     
-    // Update document status to error if analysis fails
+    // Update document status to error if analysis fails (mock)
     if (req.body.documentId) {
-      trustworthyStorage.updateDocument(req.body.documentId, {
-        status: 'error',
-        errorMessage: error instanceof Error ? error.message : 'Analysis failed'
-      });
+      const documentToUpdate = mockDocuments.get(req.body.documentId);
+      if (documentToUpdate) {
+        documentToUpdate.status = 'error';
+        documentToUpdate.errorMessage = error instanceof Error ? error.message : 'Analysis failed';
+        documentToUpdate.updatedAt = new Date();
+        mockDocuments.set(req.body.documentId, documentToUpdate);
+      }
     }
 
     res.status(500).json({
