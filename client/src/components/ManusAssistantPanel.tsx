@@ -31,10 +31,29 @@ export default function ManusAssistantPanel() {
   };
 
   const quickActions = [
+    // Family & Project Management
+    'Add Sarah as a family member',
+    'Track project progress',
     'Audit our design system',
-    'Add Sarah as a family member', 
-    'Create a task to fix layout issues',
-    'Track project progress'
+    
+    // File Operations
+    'List all TypeScript files in client/src',
+    'Read the package.json file',
+    'Find all components with "Button" in the name',
+    
+    // Code Analysis  
+    'Search for authentication code in the codebase',
+    'Analyze the database schema architecture',
+    
+    // Workflows & Development
+    'Start the application workflow',
+    'Check git status and recent changes',
+    'Install a new npm package',
+    
+    // Database & Environment
+    'Check database connection status',
+    'Show current environment variables',
+    'Get application logs for debugging'
   ];
 
   return (
