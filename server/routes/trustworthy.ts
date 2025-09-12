@@ -507,6 +507,171 @@ router.post("/documents/:documentId/reanalyze", async (req, res) => {
   }
 });
 
+// POST /api/trustworthy/lambda-analyze - AWS Lambda + OpenAI Analysis Integration
+router.post("/lambda-analyze", async (req, res) => {
+  try {
+    const { userId, familyId } = getCurrentUser(req);
+    const { documentUrl, documentType, fileName, documentId } = req.body;
+    
+    // Validate required fields
+    if (!documentUrl || !documentId) {
+      return res.status(400).json({
+        success: false,
+        error: "Document URL and ID are required"
+      });
+    }
+
+    // Verify document exists and user has access
+    const document = trustworthyStorage.getDocument(documentId);
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        error: "Document not found"
+      });
+    }
+
+    if (document.familyId !== familyId) {
+      return res.status(403).json({
+        success: false,
+        error: "Access denied"
+      });
+    }
+
+    console.log(`Starting AWS Lambda analysis for document ${documentId} (${fileName})`);
+
+    // TODO: Replace with your actual AWS Lambda endpoint URL
+    const LAMBDA_ENDPOINT_URL = process.env.LAMBDA_ENDPOINT_URL || 'YOUR_LAMBDA_ENDPOINT_URL';
+    
+    if (LAMBDA_ENDPOINT_URL === 'YOUR_LAMBDA_ENDPOINT_URL') {
+      // Development fallback - return mock analysis for demo
+      console.log('AWS Lambda endpoint not configured, using mock analysis');
+      
+      const mockAnalysisResult = {
+        extractedText: `Mock analysis for ${fileName}\n\nThis is simulated text extraction from your document. In production, this would contain the actual extracted text from your AWS Lambda + OpenAI integration.`,
+        keyValuePairs: [
+          { key: "Document Type", value: documentType || "Unknown", confidence: 85 },
+          { key: "File Name", value: fileName || "Unknown", confidence: 95 },
+          { key: "Analysis Date", value: new Date().toLocaleDateString(), confidence: 100 },
+          { key: "Status", value: "Processed", confidence: 90 }
+        ],
+        documentType: documentType || "General Document",
+        confidence: 0.87,
+        summary: `This document (${fileName}) has been analyzed using AWS Lambda + OpenAI integration. The analysis extracted key information and classified the document type.`
+      };
+
+      return res.json({
+        success: true,
+        ...mockAnalysisResult,
+        message: "Mock analysis completed (configure LAMBDA_ENDPOINT_URL for real analysis)"
+      });
+    }
+
+    // Call your AWS Lambda endpoint for real AI analysis
+    const lambdaResponse = await fetch(LAMBDA_ENDPOINT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Add authentication if needed
+        ...(process.env.LAMBDA_API_KEY && {
+          'Authorization': `Bearer ${process.env.LAMBDA_API_KEY}`
+        })
+      },
+      body: JSON.stringify({
+        documentUrl,
+        documentType,
+        fileName,
+        documentId
+      })
+    });
+
+    if (!lambdaResponse.ok) {
+      throw new Error(`Lambda analysis failed: ${lambdaResponse.status} ${lambdaResponse.statusText}`);
+    }
+
+    const analysisResult = await lambdaResponse.json();
+
+    // Store analysis results in storage
+    trustworthyStorage.setDocumentAnalysis(documentId, {
+      id: crypto.randomUUID(),
+      documentId,
+      analysisType: 'lambda_openai',
+      rawResponse: analysisResult,
+      extractedData: {
+        extractedText: analysisResult.extractedText || '',
+        keyValuePairs: analysisResult.keyValuePairs || [],
+        documentType: analysisResult.documentType || 'unknown',
+        confidence: analysisResult.confidence || 0,
+        summary: analysisResult.summary || ''
+      },
+      confidenceScores: {
+        overall: analysisResult.confidence || 0,
+        min: Math.min(...(analysisResult.keyValuePairs || []).map((kv: any) => kv.confidence || 0)),
+        max: Math.max(...(analysisResult.keyValuePairs || []).map((kv: any) => kv.confidence || 0))
+      },
+      createdAt: new Date()
+    });
+
+    // Convert key-value pairs to analysis fields format
+    const analysisFields = (analysisResult.keyValuePairs || []).map((kv: any) => ({
+      id: crypto.randomUUID(),
+      documentId,
+      fieldKey: kv.key,
+      fieldValue: kv.value,
+      fieldType: 'extracted',
+      confidence: kv.confidence || 0,
+      isKeyField: (kv.confidence || 0) > 80,
+      isPii: isPotentiallyPII(kv.key, kv.value),
+      extractedAt: new Date()
+    }));
+
+    trustworthyStorage.setAnalysisFields(documentId, analysisFields);
+
+    // Update document with analysis results
+    trustworthyStorage.updateDocument(documentId, {
+      status: 'analyzed',
+      documentType: analysisResult.documentType || 'unknown',
+      aiConfidence: Math.round((analysisResult.confidence || 0) * 100),
+      extractedFields: JSON.stringify({
+        extractedText: analysisResult.extractedText || '',
+        keyValuePairs: analysisResult.keyValuePairs || [],
+        documentType: analysisResult.documentType || 'unknown',
+        confidence: analysisResult.confidence || 0,
+        summary: analysisResult.summary || ''
+      })
+    });
+
+    console.log(`AWS Lambda analysis completed for document ${documentId}: ${analysisFields.length} fields extracted`);
+
+    // Return the analysis result to frontend
+    res.json({
+      success: true,
+      extractedText: analysisResult.extractedText || '',
+      keyValuePairs: analysisResult.keyValuePairs || [],
+      documentType: analysisResult.documentType || 'unknown',
+      confidence: analysisResult.confidence || 0,
+      summary: analysisResult.summary || '',
+      message: "AWS Lambda + OpenAI analysis completed successfully"
+    });
+
+  } catch (error) {
+    console.error("AWS Lambda analysis error:", error);
+    
+    // Update document status to error if analysis fails
+    if (req.body.documentId) {
+      trustworthyStorage.updateDocument(req.body.documentId, {
+        status: 'error',
+        errorMessage: error instanceof Error ? error.message : 'Analysis failed'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: "AWS Lambda analysis failed",
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // AWS Textract analysis function
 async function analyzeDocumentWithTextract(documentId: string, fileUrl: string, mimeType: string) {
   try {
