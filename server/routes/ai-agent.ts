@@ -437,7 +437,7 @@ router.post('/ask', upload.array('file', 5), async (req, res) => {
     console.error('[AI AGENT] Request processing error:', error);
     return res.status(500).json({ 
       error: 'Internal server error processing request',
-      details: error.message 
+      details: error instanceof Error ? error.message : String(error)
     });
   }
 });
