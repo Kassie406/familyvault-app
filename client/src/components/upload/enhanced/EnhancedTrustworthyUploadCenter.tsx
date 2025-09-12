@@ -1,0 +1,756 @@
+// Enhanced Trustworthy Upload Center with Camera & Barcode Scanning
+// Complete implementation of the Trustworthy Upload Strategy workflow
+// Browse → Upload → LEFT Sidebar → AI Analysis → Lightning Bolt → Details Modal → Profile Routing
+
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Camera, BarChart3, Upload, X, RotateCcw, Zap } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { CameraManager, BarcodeDetectionManager, MobileUtils } from '@/utils/cameraUtils';
+import { LeftSidebar } from '../LeftSidebar';
+import DetailsModal from '../DetailsModal';
+import '../TrustworthyStyles.css';
+import type { TrustworthyDocument, FamilyMember } from '@shared/schema';
+
+// Trustworthy Upload States
+const TRUSTWORTHY_STATES = {
+  BROWSE: 'browse',
+  UPLOADING: 'uploading', 
+  INBOX_OPEN: 'inbox_open',
+  ANALYZING: 'analyzing',
+  DETAILS_READY: 'details_ready',
+  MODAL_OPEN: 'modal_open'
+} as const;
+
+type TrustworthyState = typeof TRUSTWORTHY_STATES[keyof typeof TRUSTWORTHY_STATES];
+
+interface CameraModalProps {
+  isOpen: boolean;
+  isBarcodeMode: boolean;
+  onCapture: (file: File) => void;
+  onClose: () => void;
+}
+
+// Main Enhanced Trustworthy Upload Center Component
+export const EnhancedTrustworthyUploadCenter: React.FC = () => {
+  // Core Trustworthy workflow state
+  const [uploadState, setUploadState] = useState<TrustworthyState>(TRUSTWORTHY_STATES.BROWSE);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadedDocument, setUploadedDocument] = useState<TrustworthyDocument | null>(null);
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Camera functionality state
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isBarcodeMode, setIsBarcodeMode] = useState(false);
+  const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+
+  // Refs
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraManagerRef = useRef<CameraManager | null>(null);
+  const barcodeDetectorRef = useRef<BarcodeDetectionManager | null>(null);
+
+  // TanStack Query setup
+  const queryClient = useQueryClient();
+
+  // Fetch family members for profile routing
+  const { data: familyMembers = [] } = useQuery<FamilyMember[]>({
+    queryKey: ['/api/trustworthy/family-members'],
+    enabled: isDetailsModalOpen
+  });
+
+  // Upload mutation
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('/api/trustworthy/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Upload failed: ${errorText}`);
+      }
+      return await response.json() as TrustworthyDocument;
+    },
+    onSuccess: (document: TrustworthyDocument) => {
+      setUploadedDocument(document);
+      setIsLeftSidebarOpen(true);
+      setUploadState(TRUSTWORTHY_STATES.INBOX_OPEN);
+      queryClient.invalidateQueries({ queryKey: ['/api/trustworthy/documents'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/trustworthy/family-members'] });
+    },
+    onError: (error: Error) => {
+      setError(error.message || 'Upload failed');
+      setUploadState(TRUSTWORTHY_STATES.BROWSE);
+    }
+  });
+
+  // Analysis mutation
+  const analysisMutation = useMutation({
+    mutationFn: async (documentId: string) => {
+      const response = await apiRequest('POST', `/api/trustworthy/analyze/${documentId}`);
+      return await response.json();
+    },
+    onSuccess: (analysisResult: any) => {
+      if (uploadedDocument) {
+        const updatedDocument = {
+          ...uploadedDocument,
+          status: 'analyzed' as const,
+          extractedFields: JSON.stringify(analysisResult?.extractedFields || {}),
+          confidence: analysisResult?.confidence || 0.85
+        };
+        setUploadedDocument(updatedDocument);
+        setUploadState(TRUSTWORTHY_STATES.DETAILS_READY);
+      }
+      queryClient.invalidateQueries({ queryKey: ['/api/trustworthy/documents'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/trustworthy/family-members'] });
+    },
+    onError: (error: Error) => {
+      setError(error.message || 'Analysis failed');
+    }
+  });
+
+  // Initialize camera utilities
+  useEffect(() => {
+    cameraManagerRef.current = new CameraManager();
+    barcodeDetectorRef.current = new BarcodeDetectionManager();
+    
+    // Initialize barcode detector
+    barcodeDetectorRef.current.initialize();
+
+    return () => {
+      // Cleanup camera resources
+      if (cameraManagerRef.current) {
+        cameraManagerRef.current.stopCamera();
+      }
+      if (barcodeDetectorRef.current) {
+        barcodeDetectorRef.current.stopDetection();
+      }
+    };
+  }, []);
+
+  // Step 1: Handle Browse button click
+  const handleBrowseClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  // Step 2: Handle Camera button click
+  const handleCameraClick = useCallback(async () => {
+    try {
+      const isAvailable = await CameraManager.isCameraAvailable();
+      if (!isAvailable) {
+        setError('No camera found on this device');
+        return;
+      }
+
+      setIsCameraOpen(true);
+      setIsBarcodeMode(false);
+      setCameraError(null);
+    } catch (error) {
+      console.error('Camera access failed:', error);
+      setError('Camera access failed. Please enable camera permissions.');
+    }
+  }, []);
+
+  // Step 3: Handle Barcode Scanner button click
+  const handleBarcodeClick = useCallback(async () => {
+    try {
+      const isAvailable = await CameraManager.isCameraAvailable();
+      if (!isAvailable) {
+        setError('No camera found on this device');
+        return;
+      }
+
+      if (!BarcodeDetectionManager.isSupported()) {
+        setError('Barcode scanning not supported on this browser');
+        return;
+      }
+
+      setIsCameraOpen(true);
+      setIsBarcodeMode(true);
+      setCameraError(null);
+      setScannedBarcode(null);
+    } catch (error) {
+      console.error('Barcode scanner access failed:', error);
+      setError('Barcode scanner access failed. Please enable camera permissions.');
+    }
+  }, []);
+
+  // Step 4: Handle file upload (from browse or camera capture)
+  const handleFileUpload = useCallback(async (files: File[]) => {
+    const file = files[0];
+    if (!file) return;
+
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      setError('File too large. Maximum size is 10MB.');
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/heic',
+      'application/pdf', 'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+      setError('Unsupported file type. Please upload PDF, DOC, or image files.');
+      return;
+    }
+
+    setError(null);
+    setUploadState(TRUSTWORTHY_STATES.UPLOADING);
+    setUploadProgress(0);
+
+    // Simulate upload progress
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + 10;
+      });
+    }, 200);
+
+    try {
+      await uploadMutation.mutateAsync(file);
+      setUploadProgress(100);
+      clearInterval(progressInterval);
+    } catch (error) {
+      clearInterval(progressInterval);
+      setUploadProgress(0);
+    }
+  }, [uploadMutation]);
+
+  // Step 5: Handle camera capture
+  const handleCameraCapture = useCallback((file: File) => {
+    setIsCameraOpen(false);
+    setScannedBarcode(null);
+    handleFileUpload([file]);
+  }, [handleFileUpload]);
+
+  // Step 6: Handle AI Analysis (Lightning Bolt click)
+  const handleAnalyzeDocument = useCallback(async (documentId: string) => {
+    if (!uploadedDocument) return;
+
+    setUploadState(TRUSTWORTHY_STATES.ANALYZING);
+    await analysisMutation.mutateAsync(documentId);
+  }, [uploadedDocument, analysisMutation]);
+
+  // Step 7: Handle Details Modal (Lightning Bolt click when ready)
+  const handleViewDetails = useCallback((document: TrustworthyDocument) => {
+    setUploadedDocument(document);
+    setIsDetailsModalOpen(true);
+    setUploadState(TRUSTWORTHY_STATES.MODAL_OPEN);
+  }, []);
+
+  // Step 8: Close Details Modal
+  const handleCloseDetailsModal = useCallback(() => {
+    setIsDetailsModalOpen(false);
+    setUploadState(TRUSTWORTHY_STATES.DETAILS_READY);
+  }, []);
+
+  // Step 9: Reset workflow
+  const handleReset = useCallback(() => {
+    setUploadState(TRUSTWORTHY_STATES.BROWSE);
+    setUploadProgress(0);
+    setUploadedDocument(null);
+    setIsLeftSidebarOpen(false);
+    setIsDetailsModalOpen(false);
+    setError(null);
+    setScannedBarcode(null);
+  }, []);
+
+  // Handle camera modal close
+  const handleCloseCameraModal = useCallback(() => {
+    setIsCameraOpen(false);
+    setIsBarcodeMode(false);
+    setScannedBarcode(null);
+    setCameraError(null);
+  }, []);
+
+  return (
+    <div className="enhanced-trustworthy-upload-center">
+      {/* Main Upload Area */}
+      <MainUploadArea
+        uploadState={uploadState}
+        uploadProgress={uploadProgress}
+        error={error}
+        onBrowseClick={handleBrowseClick}
+        onCameraClick={handleCameraClick}
+        onBarcodeClick={handleBarcodeClick}
+        onReset={handleReset}
+      />
+
+      {/* Hidden File Input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        onChange={(e) => handleFileUpload(Array.from(e.target.files || []))}
+        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.heic"
+        style={{ display: 'none' }}
+        data-testid="input-trustworthy-files"
+      />
+
+      {/* LEFT Sidebar - Trustworthy workflow component */}
+      <LeftSidebar
+        isVisible={isLeftSidebarOpen}
+        documents={uploadedDocument ? [uploadedDocument] : []}
+        onDocumentSelect={(doc) => {}}
+        onAnalyzeDocument={handleAnalyzeDocument}
+        onShowDetails={handleViewDetails}
+        onClose={() => setIsLeftSidebarOpen(false)}
+      />
+
+      {/* Details Modal - Trustworthy workflow component */}
+      {uploadedDocument && (
+        <DetailsModal
+          document={uploadedDocument}
+          isVisible={isDetailsModalOpen}
+          onClose={handleCloseDetailsModal}
+        />
+      )}
+
+      {/* Camera Modal */}
+      <CameraModal
+        isOpen={isCameraOpen}
+        isBarcodeMode={isBarcodeMode}
+        onCapture={handleCameraCapture}
+        onClose={handleCloseCameraModal}
+      />
+    </div>
+  );
+};
+
+// Main Upload Area Component
+const MainUploadArea: React.FC<{
+  uploadState: TrustworthyState;
+  uploadProgress: number;
+  error: string | null;
+  onBrowseClick: () => void;
+  onCameraClick: () => void;
+  onBarcodeClick: () => void;
+  onReset: () => void;
+}> = ({ uploadState, uploadProgress, error, onBrowseClick, onCameraClick, onBarcodeClick, onReset }) => {
+  return (
+    <div className="main-upload-area">
+      {/* Family Header */}
+      <div className="family-header">
+        <h2 className="family-title">FamilyVault</h2>
+        <div className="user-avatars">
+          <div className="avatar">KC</div>
+          <div className="avatar">AQ</div>
+        </div>
+      </div>
+
+      {/* Upload Zone Based on State */}
+      <AnimatePresence mode="wait">
+        {uploadState === TRUSTWORTHY_STATES.BROWSE && (
+          <BrowseState 
+            onBrowseClick={onBrowseClick}
+            onCameraClick={onCameraClick}
+            onBarcodeClick={onBarcodeClick}
+            error={error} 
+          />
+        )}
+
+        {uploadState === TRUSTWORTHY_STATES.UPLOADING && (
+          <UploadingState progress={uploadProgress} />
+        )}
+
+        {(uploadState === TRUSTWORTHY_STATES.INBOX_OPEN || 
+          uploadState === TRUSTWORTHY_STATES.ANALYZING || 
+          uploadState === TRUSTWORTHY_STATES.DETAILS_READY || 
+          uploadState === TRUSTWORTHY_STATES.MODAL_OPEN) && (
+          <UploadCompleteState onReset={onReset} />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// Browse State with Enhanced Upload Options
+const BrowseState: React.FC<{
+  onBrowseClick: () => void;
+  onCameraClick: () => void;
+  onBarcodeClick: () => void;
+  error: string | null;
+}> = ({ onBrowseClick, onCameraClick, onBarcodeClick, error }) => (
+  <motion.div
+    key="browse"
+    className="browse-state"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+  >
+    <div className="upload-area">
+      <div className="upload-icon">
+        <Upload size={48} color="var(--trustworthy-primary-gold)" />
+      </div>
+      
+      <h3>Upload Family Documents</h3>
+      <p>Drag & drop files here or choose an upload method</p>
+      <p>AI will automatically extract key information</p>
+      
+      {/* Enhanced Upload Button Group */}
+      <div className="upload-button-group">
+        <motion.button
+          className="browse-button primary"
+          onClick={onBrowseClick}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          data-testid="button-browse-files"
+        >
+          <Upload size={18} />
+          Browse Files
+        </motion.button>
+        
+        <motion.button
+          className="camera-button secondary"
+          onClick={onCameraClick}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          data-testid="button-camera-capture"
+        >
+          <Camera size={18} />
+          Take Photo
+        </motion.button>
+        
+        <motion.button
+          className="barcode-button secondary"
+          onClick={onBarcodeClick}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          data-testid="button-barcode-scan"
+        >
+          <BarChart3 size={18} />
+          Scan Barcode
+        </motion.button>
+      </div>
+      
+      <span className="or-text">or drop files anywhere</span>
+      
+      {/* File Type Indicators */}
+      <div className="file-types">
+        <span className="file-type">PDF</span>
+        <span className="file-type">JPG</span>
+        <span className="file-type">PNG</span>
+        <span className="file-type">DOC</span>
+        <span className="file-type">HEIC</span>
+      </div>
+
+      {error && (
+        <div className="error-message" data-testid="error-message">
+          {error}
+        </div>
+      )}
+    </div>
+  </motion.div>
+);
+
+// Uploading State
+const UploadingState: React.FC<{ progress: number }> = ({ progress }) => (
+  <motion.div
+    key="uploading"
+    className="uploading-state"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+  >
+    <div className="progress-container">
+      <div className="upload-icon">
+        <Upload size={48} color="var(--trustworthy-primary-gold)" />
+      </div>
+      <h3>Processing Document</h3>
+      <div className="progress-bar">
+        <motion.div
+          className="progress-fill"
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
+          style={{ backgroundColor: 'var(--trustworthy-primary-gold)' }}
+        />
+      </div>
+      <span data-testid="upload-progress">Uploading... {Math.round(progress)}%</span>
+    </div>
+  </motion.div>
+);
+
+// Upload Complete State
+const UploadCompleteState: React.FC<{ onReset: () => void }> = ({ onReset }) => (
+  <motion.div
+    key="complete"
+    className="upload-complete-state"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+  >
+    <div className="success-icon">
+      <Zap size={48} color="var(--trustworthy-primary-gold)" />
+    </div>
+    <h3>Document Uploaded Successfully</h3>
+    <p>Check the sidebar for AI analysis and extracted data</p>
+    <button 
+      className="upload-another-btn" 
+      onClick={onReset} 
+      data-testid="button-upload-another"
+    >
+      Upload Another Document
+    </button>
+  </motion.div>
+);
+
+// Camera Modal Component
+const CameraModal: React.FC<CameraModalProps> = ({ 
+  isOpen, 
+  isBarcodeMode, 
+  onCapture, 
+  onClose 
+}) => {
+  const [cameraReady, setCameraReady] = useState(false);
+  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const cameraManagerRef = useRef<CameraManager | null>(null);
+  const barcodeDetectorRef = useRef<BarcodeDetectionManager | null>(null);
+
+  // Initialize camera when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const initializeCamera = async () => {
+      try {
+        cameraManagerRef.current = new CameraManager();
+        
+        if (videoRef.current && canvasRef.current) {
+          await cameraManagerRef.current.initializeCamera(
+            videoRef.current, 
+            canvasRef.current
+          );
+          setCameraReady(true);
+          setPermissionDenied(false);
+
+          // Start barcode detection if in barcode mode
+          if (isBarcodeMode && videoRef.current) {
+            barcodeDetectorRef.current = new BarcodeDetectionManager();
+            await barcodeDetectorRef.current.initialize();
+            
+            barcodeDetectorRef.current.startDetection(videoRef.current, (result) => {
+              setScannedBarcode(result.value);
+              // Auto-capture after 1 second when barcode is detected
+              setTimeout(() => {
+                handleCapture();
+              }, 1000);
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Camera initialization failed:', error);
+        setPermissionDenied(true);
+        setCameraReady(false);
+      }
+    };
+
+    initializeCamera();
+
+    // Cleanup function
+    return () => {
+      if (cameraManagerRef.current) {
+        cameraManagerRef.current.stopCamera();
+      }
+      if (barcodeDetectorRef.current) {
+        barcodeDetectorRef.current.stopDetection();
+      }
+    };
+  }, [isOpen, isBarcodeMode]);
+
+  // Handle photo capture
+  const handleCapture = useCallback(async () => {
+    if (!cameraManagerRef.current) return;
+
+    try {
+      const captureResult = await cameraManagerRef.current.capturePhoto({
+        quality: 0.9,
+        filename: isBarcodeMode ? 
+          `barcode_${Date.now()}.jpg` : 
+          `camera_${Date.now()}.jpg`
+      });
+      
+      onCapture(captureResult.file);
+    } catch (error) {
+      console.error('Photo capture failed:', error);
+    }
+  }, [isBarcodeMode, onCapture]);
+
+  // Handle camera switch
+  const handleSwitchCamera = useCallback(async () => {
+    if (!cameraManagerRef.current) return;
+
+    try {
+      await cameraManagerRef.current.switchCamera();
+    } catch (error) {
+      console.error('Camera switch failed:', error);
+    }
+  }, []);
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        className="camera-modal-overlay"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      >
+        <motion.div
+          className="camera-modal"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="camera-header">
+            <h3>
+              {isBarcodeMode ? (
+                <>
+                  <BarChart3 size={20} />
+                  Scan Barcode
+                </>
+              ) : (
+                <>
+                  <Camera size={20} />
+                  Take Photo
+                </>
+              )}
+            </h3>
+            <button 
+              className="camera-close-btn" 
+              onClick={onClose}
+              data-testid="button-close-camera"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="camera-content">
+            <div className="camera-viewport">
+              {permissionDenied ? (
+                <div className="camera-permission-denied">
+                  <div className="icon">📷</div>
+                  <h3>Camera Access Required</h3>
+                  <p>Please enable camera permissions to capture documents and scan barcodes.</p>
+                  <button onClick={() => window.location.reload()}>
+                    Try Again
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="camera-video"
+                    data-testid="camera-video"
+                  />
+                  <canvas ref={canvasRef} style={{ display: 'none' }} />
+                  
+                  {/* Barcode scanning overlay */}
+                  {isBarcodeMode && cameraReady && (
+                    <div className="barcode-overlay">
+                      <div className="barcode-frame">
+                        <div className="corner top-left"></div>
+                        <div className="corner top-right"></div>
+                        <div className="corner bottom-left"></div>
+                        <div className="corner bottom-right"></div>
+                      </div>
+                      <p className="barcode-instruction">
+                        Position barcode within the frame
+                      </p>
+                      {scannedBarcode && (
+                        <div className="barcode-detected" data-testid="barcode-detected">
+                          ✅ Barcode detected: {scannedBarcode}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Photo capture overlay */}
+                  {!isBarcodeMode && cameraReady && (
+                    <div className="photo-overlay">
+                      <div className="photo-frame"></div>
+                      <p className="photo-instruction">
+                        Position document within the frame
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {cameraReady && !permissionDenied && (
+              <div className="camera-controls">
+                <button 
+                  className="camera-control-btn cancel" 
+                  onClick={onClose}
+                  data-testid="button-cancel-camera"
+                >
+                  Cancel
+                </button>
+                
+                <motion.button
+                  className="camera-control-btn capture"
+                  onClick={handleCapture}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  data-testid="button-capture-photo"
+                >
+                  <div className="capture-button-inner">
+                    {isBarcodeMode ? <BarChart3 size={24} /> : <Camera size={24} />}
+                  </div>
+                </motion.button>
+                
+                <button 
+                  className="camera-control-btn switch" 
+                  onClick={handleSwitchCamera}
+                  data-testid="button-switch-camera"
+                >
+                  <RotateCcw size={20} />
+                </button>
+              </div>
+            )}
+
+            {/* Camera Tips */}
+            {cameraReady && !permissionDenied && (
+              <div className="camera-tips">
+                <h4>💡 Tips for best results:</h4>
+                <ul>
+                  <li>Ensure good lighting</li>
+                  <li>Hold camera steady</li>
+                  <li>Fill the frame with document</li>
+                  <li>Avoid shadows and glare</li>
+                  {isBarcodeMode && (
+                    <li>Center barcode in frame for automatic detection</li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
+export default EnhancedTrustworthyUploadCenter;

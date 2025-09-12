@@ -24,6 +24,15 @@
   --trustworthy-error: hsl(0, 84%, 60%);
   --trustworthy-shadow: hsla(0, 0%, 0%, 0.3);
   --trustworthy-shadow-gold: hsla(45, 64%, 52%, 0.2);
+  
+  /* Additional enhanced upload center variables */
+  --trustworthy-border-color: hsl(0, 0%, 20%);
+  --trustworthy-card-bg-light: hsl(0, 0%, 12%);
+  --trustworthy-radius-lg: 0.75rem;
+  --trustworthy-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --trustworthy-success-color: hsl(158, 64%, 52%);
+  --radius: 0.5rem;
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 }
 
 .dark {
@@ -45,6 +54,15 @@
   --trustworthy-error: hsl(0, 84%, 60%);
   --trustworthy-shadow: hsla(0, 0%, 0%, 0.3);
   --trustworthy-shadow-gold: hsla(45, 64%, 52%, 0.2);
+  
+  /* Additional enhanced upload center variables */
+  --trustworthy-border-color: hsl(0, 0%, 20%);
+  --trustworthy-card-bg-light: hsl(0, 0%, 12%);
+  --trustworthy-radius-lg: 0.75rem;
+  --trustworthy-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --trustworthy-success-color: hsl(158, 64%, 52%);
+  --radius: 0.5rem;
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 }
 
 /* Chat FAB: never fade, ever */
@@ -123,15 +141,525 @@ button:focus {
 
 .upload-highlight::before {
   content: '';
+}
+
+/* ===== Enhanced Trustworthy Upload Center Styles ===== */
+/* Camera and Barcode Scanning Integration */
+
+/* Enhanced Upload Button Group */
+.upload-button-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 1.5rem 0;
+  flex-wrap: wrap;
+}
+
+.browse-button,
+.camera-button,
+.barcode-button {
+  padding: 0.875rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  min-width: 120px;
+  justify-content: center;
+}
+
+/* Primary button (Browse) - Trustworthy gold theme */
+.browse-button.primary {
+  background: var(--trustworthy-primary-gold);
+  color: var(--trustworthy-dark-bg);
+}
+
+.browse-button.primary:hover {
+  background: var(--trustworthy-gold-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px 0 rgba(212, 175, 55, 0.3);
+}
+
+/* Secondary buttons (Camera & Barcode) - Complementary styling */
+.camera-button.secondary,
+.barcode-button.secondary {
+  background: transparent;
+  color: var(--trustworthy-primary-gold);
+  border: 1px solid var(--trustworthy-primary-gold);
+}
+
+.camera-button.secondary:hover,
+.barcode-button.secondary:hover {
+  background: var(--trustworthy-primary-gold);
+  color: var(--trustworthy-dark-bg);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px 0 rgba(212, 175, 55, 0.3);
+}
+
+/* Camera Modal Styles */
+.camera-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  padding: 1rem;
+}
+
+.camera-modal {
+  background: var(--trustworthy-card-bg);
+  border: 1px solid var(--trustworthy-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.camera-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--trustworthy-border);
+  background: var(--trustworthy-card-bg);
+}
+
+.camera-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--trustworthy-text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.camera-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--trustworthy-text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.camera-close-btn:hover {
+  background: var(--trustworthy-border);
+  color: var(--trustworthy-text-primary);
+}
+
+/* Camera Viewport */
+.camera-viewport {
+  position: relative;
+  background: #000;
+  aspect-ratio: 4/3;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Barcode Scanning Overlay */
+.barcode-overlay {
   position: absolute;
-  inset: -4px;
-  background: linear-gradient(45deg, 
-    rgba(212, 175, 55, 0.2) 0%, 
-    rgba(212, 175, 55, 0.1) 50%, 
-    rgba(212, 175, 55, 0.2) 100%);
-  border-radius: inherit;
-  z-index: -1;
-  animation: goldenGlow 2s ease-in-out;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.barcode-frame {
+  position: relative;
+  width: 250px;
+  height: 150px;
+  border: 2px solid var(--trustworthy-primary-gold);
+  border-radius: 8px;
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.corner {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--trustworthy-primary-gold);
+}
+
+.corner.top-left {
+  top: -3px;
+  left: -3px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.corner.top-right {
+  top: -3px;
+  right: -3px;
+  border-left: none;
+  border-bottom: none;
+}
+
+.corner.bottom-left {
+  bottom: -3px;
+  left: -3px;
+  border-right: none;
+  border-top: none;
+}
+
+.corner.bottom-right {
+  bottom: -3px;
+  right: -3px;
+  border-left: none;
+  border-top: none;
+}
+
+.barcode-instruction {
+  margin-top: 2rem;
+  color: var(--trustworthy-primary-gold);
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.barcode-detected {
+  position: absolute;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--trustworthy-success);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Photo Capture Overlay */
+.photo-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.photo-frame {
+  width: 80%;
+  height: 70%;
+  border: 2px dashed var(--trustworthy-primary-gold);
+  border-radius: 8px;
+  background: rgba(212, 175, 55, 0.05);
+}
+
+.photo-instruction {
+  margin-top: 1rem;
+  color: var(--trustworthy-primary-gold);
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* Camera Controls */
+.camera-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  background: var(--trustworthy-card-bg);
+  border-top: 1px solid var(--trustworthy-border);
+}
+
+.camera-control-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  min-width: 80px;
+}
+
+.camera-control-btn.cancel {
+  background: var(--trustworthy-border);
+  color: var(--trustworthy-text-secondary);
+}
+
+.camera-control-btn.cancel:hover {
+  background: var(--trustworthy-text-muted);
+  color: white;
+}
+
+.camera-control-btn.capture {
+  background: var(--trustworthy-primary-gold);
+  color: var(--trustworthy-dark-bg);
+  padding: 1rem;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px 0 rgba(212, 175, 55, 0.3);
+}
+
+.camera-control-btn.capture:hover {
+  background: var(--trustworthy-gold-hover);
+  transform: scale(1.05);
+}
+
+.capture-button-inner {
+  font-size: 1.5rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.camera-control-btn.switch {
+  background: transparent;
+  color: var(--trustworthy-primary-gold);
+  border: 1px solid var(--trustworthy-primary-gold);
+  font-size: 1.25rem;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-control-btn.switch:hover {
+  background: var(--trustworthy-primary-gold);
+  color: var(--trustworthy-dark-bg);
+}
+
+/* Camera Tips */
+.camera-tips {
+  padding: 1.5rem;
+  background: var(--trustworthy-card-bg);
+  border-top: 1px solid var(--trustworthy-border);
+}
+
+.camera-tips h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--trustworthy-primary-gold);
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.camera-tips ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.camera-tips li {
+  font-size: 0.875rem;
+  color: var(--trustworthy-text-secondary);
+  padding: 0.25rem 0;
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.camera-tips li::before {
+  content: '•';
+  color: var(--trustworthy-primary-gold);
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+}
+
+/* Permission Denied State */
+.camera-permission-denied {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: var(--trustworthy-text-secondary);
+}
+
+.camera-permission-denied .icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: var(--trustworthy-text-muted);
+}
+
+.camera-permission-denied h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: var(--trustworthy-text-primary);
+}
+
+.camera-permission-denied p {
+  max-width: 300px;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.camera-permission-denied button {
+  background: var(--trustworthy-primary-gold);
+  color: var(--trustworthy-dark-bg);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.camera-permission-denied button:hover {
+  background: var(--trustworthy-gold-hover);
+}
+
+/* Barcode scanning animation */
+@keyframes scanLine {
+  0% {
+    top: 0;
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    top: 100%;
+    opacity: 1;
+  }
+}
+
+.barcode-frame::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--trustworthy-primary-gold), transparent);
+  animation: scanLine 2s linear infinite;
+}
+
+/* Enhanced animations */
+@keyframes cameraOpen {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.camera-modal {
+  animation: cameraOpen 0.3s ease-out;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .upload-button-group {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .browse-button,
+  .camera-button,
+  .barcode-button {
+    width: 100%;
+    max-width: 250px;
+  }
+
+  .camera-modal {
+    margin: 0.5rem;
+    max-height: 95vh;
+  }
+
+  .camera-viewport {
+    aspect-ratio: 3/4;
+  }
+
+  .barcode-frame {
+    width: 200px;
+    height: 120px;
+  }
+
+  .camera-controls {
+    padding: 1rem;
+  }
+
+  .camera-control-btn.capture {
+    width: 50px;
+    height: 50px;
+    padding: 0.75rem;
+  }
+
+  .camera-tips ul {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Landscape mobile orientation */
+@media (max-width: 768px) and (orientation: landscape) {
+  .camera-modal {
+    max-width: 90vw;
+    max-height: 90vh;
+  }
+
+  .camera-viewport {
+    aspect-ratio: 16/9;
+  }
+
+  .camera-tips {
+    padding: 1rem;
+  }
+
+  .camera-tips ul {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @layer utilities {
