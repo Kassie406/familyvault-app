@@ -59,7 +59,7 @@ import { MealPlannerWeek } from '@/components/family/MealPlannerWeek';
 import ChoresCard from '@/components/family/ChoresCard';
 import AllowanceMini from '@/components/family/AllowanceMini';
 import ActionCenter from '@/components/family/ActionCenter';
-import ManusAssistantPanel from '@/components/ManusAssistantPanel';
+import { RobotGuide } from '@/components/RobotGuide';
 
 export default function FamilyHome() {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -1263,7 +1263,7 @@ export default function FamilyHome() {
 
       {/* Manus AI Assistant Panel */}
       <div className="mt-6">
-        <ManusAssistantPanel />
+        <RobotGuide />
       </div>
 
       {/* Luxury Footer */}

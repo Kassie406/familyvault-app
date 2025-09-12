@@ -1,7 +1,7 @@
 // ✅ useManusAgent.ts
 // Enhanced hook with context-aware chat memory
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import axios from 'axios';
 
 interface ChatMessage {
@@ -21,16 +21,25 @@ interface ConversationData {
   lastActivity?: Date;
 }
 
-export function useManusAgent() {
+interface UseManusAgentOptions {
+  autoload?: boolean;
+}
+
+export function useManusAgent(options: UseManusAgentOptions = {}) {
+  const { autoload = false } = options;
   const [isLoading, setIsLoading] = useState(false);
   const [conversation, setConversation] = useState<ConversationData>({
     messages: [],
     totalMessages: 0
   });
+  const loadedRef = useRef(false);
   // No client-side sessionId - server manages this securely
 
-  // Load conversation history on mount (using secure endpoint)
+  // Load conversation history (using secure endpoint)
   const loadConversation = useCallback(async () => {
+    if (loadedRef.current) return; // Prevent duplicate calls in StrictMode
+    loadedRef.current = true;
+    
     try {
       const res = await axios.get('/api/ai-agent/conversation'); // No sessionId in URL
       if (res.data) {
@@ -44,16 +53,34 @@ export function useManusAgent() {
         setConversation(conversationData);
       }
     } catch (err) {
+      if (err.response?.status === 429) {
+        // Rate limited, wait and retry
+        setTimeout(() => {
+          loadedRef.current = false;
+          loadConversation();
+        }, 5000);
+        return;
+      }
       console.warn('[ManusAgent] Failed to load conversation history:', err);
     }
   }, []);
 
-  // Load conversation on mount and when sessionId changes
-  useEffect(() => {
+  // Manually refresh conversation
+  const refreshConversation = useCallback(() => {
+    loadedRef.current = false;
     loadConversation();
   }, [loadConversation]);
 
+  // Load conversation on mount only if autoload is enabled
+  useEffect(() => {
+    if (autoload) {
+      loadConversation();
+    }
+  }, [autoload, loadConversation]);
+
   const askManus = async (prompt: string): Promise<string> => {
+    if (isLoading) return 'Already processing...'; // Prevent parallel calls
+    
     setIsLoading(true);
     try {
       const res = await axios.post('/api/ai-agent/ask', {
@@ -74,6 +101,12 @@ export function useManusAgent() {
       
       return res.data?.response || 'No response received.';
     } catch (err: any) {
+      if (err.response?.status === 429) {
+        // Rate limited, wait and retry once
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        return '⚠️ Rate limited. Please try again in a moment.';
+      }
+      
       console.error('[ManusAgent Error]', err);
       
       // Even error responses might include conversation data
