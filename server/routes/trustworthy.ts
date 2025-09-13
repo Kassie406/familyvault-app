@@ -989,7 +989,14 @@ async function analyzeDocumentWithTextract(documentId: string, fileUrl: string, 
     const highConfidenceFields = analysisFieldsForDoc.filter(f => f.confidence > 70);
 
     // Try to identify person and document type
-    const personName = identifyPersonFromFields(extractedFields);
+    let personName = identifyPersonFromFields(extractedFields);
+    
+    // If no person found from fields, try to extract from raw text
+    if (!personName) {
+      const allText = extractedFields.map(f => `${f.key}: ${f.value}`).join('\n');
+      personName = extractPersonFromText(allText);
+    }
+    
     const documentType = identifyDocumentType(extractedFields, mimeType);
     const overallConfidence = calculateOverallConfidence(extractedFields);
 
@@ -1115,6 +1122,42 @@ function isPotentiallyPII(key: string, value: string): boolean {
   return piiIndicators.some(indicator => keyLower.includes(indicator)) ||
          /^\d{3}-\d{2}-\d{4}$/.test(value) || // SSN pattern
          /^\d{3}\d{2}\d{4}$/.test(value); // SSN without dashes
+}
+
+// Helper function to extract person names from text using pattern matching
+function extractPersonFromText(text: string): string | null {
+  if (!text) return null;
+  
+  // Common patterns for names in documents
+  const namePatterns = [
+    // "Name: John Doe" pattern
+    /(?:name|patient|member|person|individual):\s*([A-Z][a-z]+\s+[A-Z][a-z]+)/gi,
+    // "John Doe" at start of lines
+    /^([A-Z][a-z]{2,}\s+[A-Z][a-z]{2,})/gm,
+    // "First Name: John Last Name: Doe" pattern
+    /first\s*name:\s*([A-Z][a-z]+).*?last\s*name:\s*([A-Z][a-z]+)/gi,
+    // Social Security card patterns
+    /SOCIAL SECURITY[\s\S]*?([A-Z][A-Z\s]+)/i
+  ];
+  
+  for (const pattern of namePatterns) {
+    const matches = text.match(pattern);
+    if (matches) {
+      // Clean and format the name
+      let name = matches[0];
+      if (name.includes(':')) {
+        name = name.split(':')[1].trim();
+      }
+      
+      // Validate it looks like a real name (2+ words, proper capitalization)
+      const words = name.trim().split(/\s+/);
+      if (words.length >= 2 && words.every(word => /^[A-Z][a-z]+$/.test(word))) {
+        return name.trim();
+      }
+    }
+  }
+  
+  return null;
 }
 
 function identifyPersonFromFields(fields: any[]): string | null {

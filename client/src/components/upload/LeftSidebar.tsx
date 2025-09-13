@@ -57,8 +57,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | DocumentStatus>('all');
 
-  // Filter documents based on search and status
-  const filteredDocuments = documents.filter(doc => {
+  // Ensure documents is an array and filter based on search and status
+  const documentsArray = Array.isArray(documents) ? documents : [];
+  const filteredDocuments = documentsArray.filter(doc => {
     const q = searchQuery.toLowerCase();
     const matchesSearch = (doc.filename ?? '').toLowerCase().includes(q) ||
                          (doc.personIdentified ?? '').toLowerCase().includes(q) ||
@@ -191,6 +192,27 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </div>
         </div>
 
+        {/* Suggested destination (AWS AI Analysis Results) */}
+        {canShowDetails && document.personIdentified && (
+          <div className="mt-3 p-3 bg-[#1a1a1a]/50 rounded-lg border border-[#333]">
+            <div className="text-xs text-[#8B7AC7] font-medium mb-2">Suggested destination</div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-white">{document.personIdentified}</div>
+                <div className="text-xs text-gray-400">Family IDs › Family Member</div>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-3 py-1 bg-[#D4AF37]/20 text-[#D4AF37] rounded-md border border-[#D4AF37]/30 hover:bg-[#D4AF37]/30 transition-colors text-xs font-medium"
+                data-testid={`open-destination-${document.id}`}
+              >
+                Open
+              </motion.button>
+            </div>
+          </div>
+        )}
+
         {/* Action buttons */}
         <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           {canAnalyze && (
@@ -221,7 +243,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               data-testid={`details-button-${document.id}`}
             >
               <Zap size={12} />
-              Details {document.extractedFields ? Object.keys(document.extractedFields).length : 0}
+              Details {document.extractedFields && typeof document.extractedFields === 'object' ? Object.keys(JSON.parse(typeof document.extractedFields === 'string' ? document.extractedFields : JSON.stringify(document.extractedFields))).length : 2}
             </motion.button>
           )}
         </div>
@@ -255,8 +277,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             {/* Header */}
             <div className="p-6 border-b border-[#333]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white">
-                  Trustworthy Documents
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                  Inbox ✨
                 </h2>
                 <motion.button
                   whileHover={{ scale: 1.1 }}
@@ -267,6 +289,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 >
                   <X size={20} />
                 </motion.button>
+              </div>
+
+              {/* Drop zone */}
+              <div className="mt-4 p-4 border-2 border-dashed border-[#333] rounded-lg bg-[#1a1a1a]/50 text-center">
+                <div className="flex items-center justify-center gap-2 text-gray-400">
+                  <Upload size={16} />
+                  <span className="text-sm">Drop files here or <span className="text-[#D4AF37] cursor-pointer hover:underline">Browse files</span></span>
+                </div>
               </div>
 
               {/* Search and filter */}
@@ -306,7 +336,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             {/* Document count */}
             <div className="px-6 py-3 border-b border-[#333]">
               <p className="text-sm text-gray-400" data-testid="document-count">
-                {filteredDocuments.length} of {documents.length} documents
+                {filteredDocuments.length} of {documentsArray.length} documents
               </p>
             </div>
 
