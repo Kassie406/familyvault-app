@@ -65,8 +65,8 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
   // Fetch all trustworthy documents for the left sidebar
   const { data: documents = [], isLoading: documentsLoading } = useQuery<TrustworthyDocument[]>({
     queryKey: ['/api/trustworthy/documents'],
-    enabled: isLeftSidebarOpen, // Only fetch when sidebar is open
-    staleTime: 30000, // Consider data fresh for 30 seconds
+    enabled: true, // Always fetch documents so they're ready when sidebar opens
+    staleTime: 10000, // Consider data fresh for 10 seconds
   });
 
   // Fetch family members for profile routing
@@ -103,19 +103,25 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
           const mockDocument: TrustworthyDocument = {
             id: `mock-${Date.now()}`,
             familyId: 'family-1',
+            filename: `mock-${file.name}`,
             originalFilename: file.name,
             filePath: `/mock/uploads/${file.name}`,
+            thumbnailPath: null,
+            fileSize: file.size,
             mimeType: file.type,
             uploadTime: new Date(),
             status: 'uploaded',
-            s3Bucket: file.type.startsWith('image/') ? 'familyportal-photos-prod' : 'familyportal-docs-prod',
-            s3Key: `mock-documents/${file.name}`,
-            metadata: {
+            aiConfidence: null,
+            extractedFields: {
               originalName: file.name,
               uploadSource: 'browse',
-              fileSize: file.size,
               mockUpload: true
-            }
+            },
+            suggestedFilename: null,
+            personIdentified: null,
+            documentType: null,
+            createdAt: new Date(),
+            updatedAt: new Date()
           };
           return mockDocument;
         }
