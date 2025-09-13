@@ -220,6 +220,8 @@ export default function FamilyRouter() {
         <Route path="/family/bereavement/memorial" component={withSidebarLayout(() => <BereavementSectionPage title="Memorial & Legacy" createTo="/family/bereavement/new/memorial" />)} />
         <Route path="/family/members" component={withSidebarLayout(FamilyMembers)} />
         <Route path="/family/documents" component={withSidebarLayout(FamilyDocuments)} />
+        <Route path="/family/inbox" component={withSidebarLayout(FamilyHome)} />
+        <Route path="/inbox" component={withSidebarLayout(FamilyHome)} />
         <Route path="/family/calendar" component={() => <CalendarPage />} />
         <Route path="/family/messages" component={withSidebarLayout(FamilyMessages)} />
         <Route path="/messages" component={() => <MessagesPage />} />
