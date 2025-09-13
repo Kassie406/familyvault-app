@@ -63,11 +63,14 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
   const queryClient = useQueryClient();
 
   // Fetch all trustworthy documents for the left sidebar
-  const { data: documents = [], isLoading: documentsLoading } = useQuery<TrustworthyDocument[]>({
+  const { data: documentsResponse, isLoading: documentsLoading } = useQuery({
     queryKey: ['/api/trustworthy/documents'],
     enabled: true, // Always fetch documents so they're ready when sidebar opens
     staleTime: 10000, // Consider data fresh for 10 seconds
   });
+  
+  // Extract documents from API response format: {success: true, documents: [...]}
+  const documents = documentsResponse?.documents || [];
 
   // Fetch family members for profile routing
   const { data: familyMembers = [] } = useQuery<FamilyMember[]>({
