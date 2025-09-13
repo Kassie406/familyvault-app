@@ -95,37 +95,7 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Upload failed:', errorText); // Debug log
-        
-        // If AWS permissions fail, create mock data for testing
-        if (errorText.includes('AccessDenied') || errorText.includes('s3:PutObject')) {
-          console.log('AWS permissions issue detected, creating mock document for testing');
-          const mockDocument: TrustworthyDocument = {
-            id: `mock-${Date.now()}`,
-            familyId: 'family-1',
-            filename: `mock-${file.name}`,
-            originalFilename: file.name,
-            filePath: `/mock/uploads/${file.name}`,
-            thumbnailPath: null,
-            fileSize: file.size,
-            mimeType: file.type,
-            uploadTime: new Date(),
-            status: 'uploaded',
-            aiConfidence: null,
-            extractedFields: {
-              originalName: file.name,
-              uploadSource: 'browse',
-              mockUpload: true
-            },
-            suggestedFilename: null,
-            personIdentified: null,
-            documentType: null,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          };
-          return mockDocument;
-        }
-        
+        console.error('Upload failed:', errorText);
         throw new Error(`Upload failed: ${errorText}`);
       }
       
