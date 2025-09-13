@@ -110,8 +110,9 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
       setIsLeftSidebarOpen(true);
       setUploadState(TRUSTWORTHY_STATES.INBOX_OPEN);
       
-      // Refresh documents list so the new document appears immediately
-      queryClient.invalidateQueries({ queryKey: ['/api/trustworthy/documents'] });
+      // Force refresh documents list so the new document appears immediately
+      await queryClient.invalidateQueries({ queryKey: ['/api/trustworthy/documents'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/trustworthy/documents'] });
       queryClient.invalidateQueries({ queryKey: ['/api/family/members'] });
       
       // Auto-trigger AI analysis after successful upload
