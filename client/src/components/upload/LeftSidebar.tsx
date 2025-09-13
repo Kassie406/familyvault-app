@@ -214,7 +214,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         )}
 
         {/* Action buttons */}
-        <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="flex items-center gap-2 mt-3 transition-opacity duration-200">
           {canAnalyze && (
             <motion.button
               whileHover={{ scale: 1.05 }}
