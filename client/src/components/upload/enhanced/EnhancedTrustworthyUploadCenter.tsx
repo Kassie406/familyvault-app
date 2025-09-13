@@ -62,6 +62,13 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
   // TanStack Query setup
   const queryClient = useQueryClient();
 
+  // Fetch all trustworthy documents for the left sidebar
+  const { data: documents = [], isLoading: documentsLoading } = useQuery<TrustworthyDocument[]>({
+    queryKey: ['/api/trustworthy/documents'],
+    enabled: isLeftSidebarOpen, // Only fetch when sidebar is open
+    staleTime: 30000, // Consider data fresh for 30 seconds
+  });
+
   // Fetch family members for profile routing
   const { data: familyMembers = [] } = useQuery<FamilyMember[]>({
     queryKey: ['/api/family/members'],
@@ -99,9 +106,8 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
             originalFilename: file.name,
             filePath: `/mock/uploads/${file.name}`,
             mimeType: file.type,
-            uploadedAt: new Date().toISOString(),
-            uploadedBy: 'current-user',
-            documentStatus: 'uploaded',
+            uploadTime: new Date(),
+            status: 'uploaded',
             s3Bucket: file.type.startsWith('image/') ? 'familyportal-photos-prod' : 'familyportal-docs-prod',
             s3Key: `mock-documents/${file.name}`,
             metadata: {
@@ -123,32 +129,26 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
     },
     onSuccess: async (document: TrustworthyDocument) => {
       setUploadedDocument(document);
+      
+      // Automatically open left sidebar and fetch documents
       setIsLeftSidebarOpen(true);
       setUploadState(TRUSTWORTHY_STATES.INBOX_OPEN);
       
-      // Auto-trigger AWS Lambda analysis after successful upload
-      // Only call Lambda if we have a real S3 URL (not data URL)
-      const hasRealS3Url = document.filePath && !document.filePath.startsWith('data:');
-      
-      if (hasRealS3Url) {
-        setTimeout(async () => {
-          setUploadState(TRUSTWORTHY_STATES.ANALYZING);
-          try {
-            await analysisMutation.mutateAsync(document);
-          } catch (error) {
-            console.error('Auto-analysis failed:', error);
-          }
-        }, 1000); // Small delay to show upload success
-      } else {
-        // Skip Lambda for mock/development uploads and go straight to details
-        console.log('Skipping Lambda analysis - using mock document with data URL');
-        setTimeout(() => {
-          setUploadState(TRUSTWORTHY_STATES.DETAILS_READY);
-        }, 1000);
-      }
-      
+      // Refresh documents list so the new document appears immediately
       queryClient.invalidateQueries({ queryKey: ['/api/trustworthy/documents'] });
       queryClient.invalidateQueries({ queryKey: ['/api/family/members'] });
+      
+      // Auto-trigger AI analysis after successful upload
+      setTimeout(async () => {
+        setUploadState(TRUSTWORTHY_STATES.ANALYZING);
+        try {
+          await analysisMutation.mutateAsync(document);
+        } catch (error) {
+          console.error('Auto-analysis failed:', error);
+          // On analysis failure, still show the document as ready for manual review
+          setUploadState(TRUSTWORTHY_STATES.DETAILS_READY);
+        }
+      }, 1500); // Small delay to show upload success and let documents refresh
     },
     onError: (error: Error) => {
       setError(error.message || 'Upload failed');
@@ -175,12 +175,32 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`Lambda analysis failed: ${response.statusText}`);
+        // If Lambda fails, try Textract as fallback
+        console.log('Lambda analysis failed, trying Textract fallback...');
+        const textractResponse = await fetch('/api/trustworthy/textract-analyze', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            documentUrl: document.filePath,
+            documentId: document.id
+          })
+        });
+
+        if (!textractResponse.ok) {
+          throw new Error(`Analysis failed: ${response.statusText}`);
+        }
+
+        return await textractResponse.json();
       }
 
       return await response.json();
     },
     onSuccess: (analysisResult: any) => {
+      console.log('AI Analysis completed:', analysisResult);
+      
       if (uploadedDocument) {
         const updatedDocument = {
           ...uploadedDocument,
@@ -199,6 +219,8 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
         setUploadedDocument(updatedDocument);
         setUploadState(TRUSTWORTHY_STATES.DETAILS_READY);
       }
+      
+      // Refresh documents list to show updated analysis status and lightning bolts
       queryClient.invalidateQueries({ queryKey: ['/api/trustworthy/documents'] });
       queryClient.invalidateQueries({ queryKey: ['/api/family/members'] });
     },
@@ -511,11 +533,13 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
       {/* LEFT Sidebar - Trustworthy workflow component */}
       <LeftSidebar
         isVisible={isLeftSidebarOpen}
-        documents={uploadedDocument ? [uploadedDocument] : []}
-        onDocumentSelect={(doc) => {}}
+        documents={documents}
+        onDocumentSelect={(doc) => setUploadedDocument(doc)}
         onAnalyzeDocument={handleAnalyzeDocument}
         onShowDetails={handleViewDetails}
         onClose={() => setIsLeftSidebarOpen(false)}
+        selectedDocumentId={uploadedDocument?.id}
+        isLoading={documentsLoading}
       />
 
       {/* Details Modal - Trustworthy workflow component */}
