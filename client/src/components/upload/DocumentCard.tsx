@@ -272,7 +272,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
 
       {/* Action buttons */}
       {showActions && (
-        <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="flex items-center gap-2 mt-3 transition-opacity duration-200">
           {canAnalyze && onAnalyze ? (
             <motion.button
               whileHover={{ scale: 1.05 }}
