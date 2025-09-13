@@ -60,7 +60,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   // Filter documents based on search and status
   const filteredDocuments = documents.filter(doc => {
     const q = searchQuery.toLowerCase();
-    const matchesSearch = doc.filename.toLowerCase().includes(q) ||
+    const matchesSearch = (doc.filename ?? '').toLowerCase().includes(q) ||
                          (doc.personIdentified ?? '').toLowerCase().includes(q) ||
                          (doc.documentType ?? '').toLowerCase().includes(q);
     
