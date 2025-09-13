@@ -63,7 +63,7 @@ export const EnhancedTrustworthyUploadCenter: React.FC = () => {
   const queryClient = useQueryClient();
 
   // Fetch all trustworthy documents for the left sidebar
-  const { data: documentsResponse, isLoading: documentsLoading } = useQuery({
+  const { data: documentsResponse, isLoading: documentsLoading } = useQuery<{success: boolean, documents: TrustworthyDocument[], count: number}>({
     queryKey: ['/api/trustworthy/documents'],
     enabled: true, // Always fetch documents so they're ready when sidebar opens
     staleTime: 10000, // Consider data fresh for 10 seconds
