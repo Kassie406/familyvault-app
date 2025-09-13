@@ -68,6 +68,11 @@ export default function FamilyHome() {
   const [highlightDocumentUpload, setHighlightDocumentUpload] = useState(false);
   const [highlightPhotoUpload, setHighlightPhotoUpload] = useState(false);
   const [highlightICE, setHighlightICE] = useState(false);
+  const [robotHidden, setRobotHidden] = useState(() => {
+    // Load robot visibility preference from localStorage
+    const saved = localStorage.getItem('familyvault-robot-hidden');
+    return saved === 'true';
+  });
   const [quickAccessOpen, setQuickAccessOpen] = useState(false);
   const familyUpdatesRef = useRef<{ refresh: () => Promise<void> } | null>(null);
   const [dashboardLayout, setDashboardLayout] = useState('default');
@@ -100,6 +105,13 @@ export default function FamilyHome() {
       return runAI({ file: args.file, familyId: args.familyId || "family-1" });
     }
     return retryAI(); // fallback
+  };
+
+  // Function to toggle robot visibility
+  const toggleRobotVisibility = () => {
+    const newValue = !robotHidden;
+    setRobotHidden(newValue);
+    localStorage.setItem('familyvault-robot-hidden', newValue.toString());
   };
   
   // Current user mock (TODO: replace with real user data)
@@ -1078,6 +1090,13 @@ export default function FamilyHome() {
                     <span>Settings</span>
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={toggleRobotVisibility}
+                  className="flex items-center gap-2 px-2 py-2 hover:bg-[#2A2A33] transition-colors cursor-pointer"
+                >
+                  {robotHidden ? <User className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                  <span>{robotHidden ? 'Show Robot' : 'Hide Robot'}</span>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-[#2A2A33]" />
                 <DropdownMenuItem 
                   onClick={handleLogout}
@@ -1262,9 +1281,11 @@ export default function FamilyHome() {
       </div>
 
       {/* Manus AI Assistant Panel */}
-      <div className="mt-6">
-        <RobotGuide />
-      </div>
+      {!robotHidden && (
+        <div className="mt-6">
+          <RobotGuide />
+        </div>
+      )}
 
       {/* Luxury Footer */}
       <div className="bg-gradient-to-r from-[#0A0A1A] to-[#111111] rounded-xl mt-12 relative overflow-hidden">
