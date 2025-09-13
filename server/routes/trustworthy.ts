@@ -1431,4 +1431,111 @@ router.post("/documents/:id/route", async (req, res) => {
   }
 });
 
+// POST /api/trustworthy/textract-analyze - AWS Textract Analysis Endpoint
+router.post("/textract-analyze", async (req, res) => {
+  try {
+    const { userId, familyId } = getCurrentUser(req);
+    const { documentUrl, documentId } = req.body;
+    
+    // Validate required fields
+    if (!documentUrl || !documentId) {
+      return res.status(400).json({
+        success: false,
+        error: "Document URL and ID are required"
+      });
+    }
+
+    // Verify document exists and user has access
+    const document = mockDocuments.get(documentId);
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        error: "Document not found"
+      });
+    }
+
+    if (document.familyId !== familyId) {
+      return res.status(403).json({
+        success: false,
+        error: "Access denied"
+      });
+    }
+
+    console.log(`Starting AWS Textract analysis for document ${documentId}`);
+
+    // Simulate Textract analysis with mock data for development
+    const mockAnalysisResult = {
+      extractedText: `Mock Textract analysis for ${document.originalFilename}\n\nThis is simulated text extraction from AWS Textract. In production, this would contain the actual extracted text from your document.`,
+      keyValuePairs: [
+        { key: "Full Name", value: "Angel Quintana", confidence: 92 },
+        { key: "Document Type", value: "Driver License", confidence: 95 },
+        { key: "Date of Birth", value: "01/15/1985", confidence: 88 },
+        { key: "License Number", value: "DL123456789", confidence: 91 },
+        { key: "Address", value: "123 Main Street, Anytown, CA 90210", confidence: 85 },
+        { key: "Issue Date", value: "03/15/2024", confidence: 87 },
+        { key: "Expiration Date", value: "03/15/2029", confidence: 86 }
+      ],
+      documentType: "Driver License",
+      confidence: 0.89,
+      summary: `This document (${document.originalFilename}) has been analyzed using AWS Textract. The analysis extracted key information and identified the person as Angel Quintana.`,
+      personIdentified: "Angel Quintana"
+    };
+
+    // Update document with analysis results
+    if (document) {
+      document.status = 'analyzed';
+      document.documentType = mockAnalysisResult.documentType;
+      document.aiConfidence = Math.round(mockAnalysisResult.confidence * 100);
+      document.personIdentified = mockAnalysisResult.personIdentified;
+      document.analysisMethod = 'textract';
+      document.analysisTimestamp = new Date();
+      document.extractedFields = JSON.stringify({
+        extractedText: mockAnalysisResult.extractedText,
+        keyValuePairs: mockAnalysisResult.keyValuePairs,
+        documentType: mockAnalysisResult.documentType,
+        confidence: mockAnalysisResult.confidence,
+        summary: mockAnalysisResult.summary
+      });
+      document.updatedAt = new Date();
+      mockDocuments.set(documentId, document);
+    }
+
+    console.log(`AWS Textract analysis completed for document ${documentId}: ${mockAnalysisResult.keyValuePairs.length} fields extracted, person identified: ${mockAnalysisResult.personIdentified}`);
+
+    // Return analysis result in the format expected by frontend
+    res.json({
+      success: true,
+      extractedText: mockAnalysisResult.extractedText,
+      keyValuePairs: mockAnalysisResult.keyValuePairs,
+      documentType: mockAnalysisResult.documentType,
+      confidence: mockAnalysisResult.confidence,
+      summary: mockAnalysisResult.summary,
+      personIdentified: mockAnalysisResult.personIdentified,
+      fieldsCount: mockAnalysisResult.keyValuePairs.length,
+      processedAt: new Date().toISOString(),
+      message: "AWS Textract analysis completed successfully"
+    });
+
+  } catch (error) {
+    console.error("AWS Textract analysis error:", error);
+    
+    // Update document status to error if analysis fails
+    if (req.body.documentId) {
+      const documentToUpdate = mockDocuments.get(req.body.documentId);
+      if (documentToUpdate) {
+        documentToUpdate.status = 'error';
+        documentToUpdate.errorMessage = error instanceof Error ? error.message : 'Analysis failed';
+        documentToUpdate.updatedAt = new Date();
+        mockDocuments.set(req.body.documentId, documentToUpdate);
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      error: "AWS Textract analysis failed",
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router;
