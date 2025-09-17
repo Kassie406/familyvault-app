@@ -31,6 +31,7 @@ import {
 import { StatCard } from '@/components/StatCard';
 import { InviteFamilyMemberDialog } from '@/components/InviteFamilyMemberDialog';
 import { EnhancedTrustworthyUploadCenter } from '@/components/upload/enhanced/EnhancedTrustworthyUploadCenter';
+import EnhancedSingleUploadCenter from '@/components/upload/EnhancedSingleUploadCenter';
 import AIBanner from '@/components/ai/AIBanner';
 import InboxDrawer from '@/components/inbox/InboxDrawer';
 import { NewMessageModal } from '@/components/messaging/NewMessageModal';
@@ -385,7 +386,19 @@ export default function FamilyHome() {
             />
             
             <div className={`flex-1 ${(highlightDocumentUpload || highlightPhotoUpload) ? 'upload-highlight' : ''}`}>
-              <EnhancedTrustworthyUploadCenter />
+              <EnhancedSingleUploadCenter
+                onFileUpload={(files) => {
+                  console.log('Files uploaded:', files);
+                  // Handle file upload
+                  files.forEach(file => startAIAnalysis(file));
+                }}
+                onAnalysisComplete={(fileId, analysis) => {
+                  console.log('Analysis complete:', fileId, analysis);
+                  // Handle analysis completion
+                }}
+                maxFiles={5}
+                acceptedTypes={['image/*', 'application/pdf', '.doc', '.docx']}
+              />
             </div>
           </div>
         );

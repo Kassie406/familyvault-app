@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 
-// Upload item for the trustworthy inbox
 export interface UploadedItem {
   id: number;
   name: string;
@@ -12,37 +11,57 @@ export interface UploadedItem {
     extractedData?: Record<string, any>;
     extractedText?: string;
   };
-  error?: string;
-  uploadedAt: Date;
 }
 
 interface UploadStore {
   uploads: UploadedItem[];
-  addUpload: (item: UploadedItem) => void;
+  addUpload: (file: File, mode: string) => number;
   updateUpload: (id: number, updates: Partial<UploadedItem>) => void;
   removeUpload: (id: number) => void;
   clearUploads: () => void;
+  getUpload: (id: number) => UploadedItem | undefined;
 }
 
-export const useUploadStore = create<UploadStore>((set) => ({
+export const useUploadStore = create<UploadStore>((set, get) => ({
   uploads: [],
   
-  addUpload: (item) =>
+  addUpload: (file: File, mode: string) => {
+    const id = Date.now() + Math.random();
+    const newUpload: UploadedItem = {
+      id,
+      name: file.name,
+      file,
+      status: "pending",
+      mode,
+      analyzed: false,
+    };
+    
     set((state) => ({
-      uploads: [...state.uploads, { ...item, uploadedAt: new Date() }],
-    })),
+      uploads: [...state.uploads, newUpload]
+    }));
+    
+    return id;
+  },
   
-  updateUpload: (id, updates) =>
+  updateUpload: (id: number, updates: Partial<UploadedItem>) => {
     set((state) => ({
       uploads: state.uploads.map((upload) =>
         upload.id === id ? { ...upload, ...updates } : upload
-      ),
-    })),
+      )
+    }));
+  },
   
-  removeUpload: (id) =>
+  removeUpload: (id: number) => {
     set((state) => ({
-      uploads: state.uploads.filter((upload) => upload.id !== id),
-    })),
+      uploads: state.uploads.filter((upload) => upload.id !== id)
+    }));
+  },
   
-  clearUploads: () => set({ uploads: [] }),
+  clearUploads: () => {
+    set({ uploads: [] });
+  },
+  
+  getUpload: (id: number) => {
+    return get().uploads.find((upload) => upload.id === id);
+  },
 }));

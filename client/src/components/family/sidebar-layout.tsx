@@ -7,16 +7,19 @@ import {
   AlertTriangle, FileText, Home as HouseIcon, Users as FamilyIcon, Leaf,
   Menu, X, ChevronLeft, ChevronRight
 } from 'lucide-react';
+import EnhancedLeftSidebar from './EnhancedLeftSidebar';
 
 interface SidebarLayoutProps {
   children: React.ReactNode;
+  onInboxClick?: () => void;
 }
 
-export default function SidebarLayout({ children }: SidebarLayoutProps) {
+export default function SidebarLayout({ children, onInboxClick }: SidebarLayoutProps) {
   const [location] = useLocation();
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState(() => {
     // Determine active section based on current path
     if (location === '/family' || location === '/') return 'dashboard';
@@ -74,9 +77,16 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMobile, sidebarOpen]);
 
+  const handleInboxClick = () => {
+    setLeftSidebarOpen(true);
+    if (onInboxClick) {
+      onInboxClick();
+    }
+  };
+
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, href: '/family' },
-    { id: 'inbox', label: 'Inbox', icon: Inbox, href: '/family/inbox' },
+    { id: 'inbox', label: 'Inbox', icon: Inbox, href: '/family/inbox', onClick: handleInboxClick },
     { id: 'reminders', label: 'Reminders', icon: AlarmClock, href: '/family/reminders' },
     { id: 'family-ids', label: 'Family IDs', icon: Users, href: '/family/ids' },
     { id: 'finance', label: 'Finance', icon: DollarSign, href: '/family/finance' },
@@ -162,7 +172,29 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
             {sidebarItems.map((item) => {
               const Icon = item.icon;
               const isActive = item.id === activeSection;
-              return (
+              return item.onClick ? (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveSection(item.id);
+                    item.onClick();
+                  }}
+                  className={`sidebar-nav-link flex items-center w-full ${desktopSidebarCollapsed ? 'px-4 justify-center' : 'px-6'} py-3 text-sm font-medium transition-all duration-200 relative group ${
+                    isActive
+                      ? 'text-[var(--gold)] border-r-2 border-[var(--gold)] bg-[var(--bg-800)]'
+                      : 'text-[var(--ink-300)]'
+                  }`}
+                  data-testid={`sidebar-${item.id}`}
+                  title={desktopSidebarCollapsed ? item.label : ''}
+                >
+                  <Icon className={`w-5 h-5 ${desktopSidebarCollapsed ? '' : 'mr-3'} transition-colors ${
+                    isActive ? 'text-[var(--gold)]' : 'text-[var(--ink-300)] group-hover:text-[var(--gold)]'
+                  }`} />
+                  {!desktopSidebarCollapsed && (
+                    <span className="transition-opacity duration-200">{item.label}</span>
+                  )}
+                </button>
+              ) : (
                 <Link
                   key={item.id}
                   to={item.href}
@@ -234,7 +266,27 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
             {sidebarItems.map((item) => {
               const Icon = item.icon;
               const isActive = item.id === activeSection;
-              return (
+              return item.onClick ? (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveSection(item.id);
+                    setSidebarOpen(false);
+                    item.onClick();
+                  }}
+                  className={`sidebar-nav-link flex items-center w-full px-6 py-4 text-sm font-medium transition-all duration-200 relative group touch-manipulation ${
+                    isActive
+                      ? 'text-[var(--gold)] border-r-2 border-[var(--gold)] bg-[var(--bg-800)]'
+                      : 'text-[var(--ink-300)]'
+                  }`}
+                  data-testid={`mobile-sidebar-${item.id}`}
+                >
+                  <Icon className={`w-6 h-6 mr-4 transition-colors ${
+                    isActive ? 'text-[var(--gold)]' : 'text-[var(--ink-300)] group-hover:text-[var(--gold)]'
+                  }`} />
+                  {item.label}
+                </button>
+              ) : (
                 <Link
                   key={item.id}
                   to={item.href}
@@ -282,6 +334,19 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
       }`}>
         {children}
       </div>
+
+      {/* Enhanced Left Sidebar */}
+      <EnhancedLeftSidebar
+        isOpen={leftSidebarOpen}
+        onClose={() => setLeftSidebarOpen(false)}
+        documents={[]} // This will be populated with actual documents
+        onDocumentAnalyze={(doc, analysis) => {
+          console.log('Document analyzed:', doc, analysis);
+        }}
+        onDocumentRoute={(doc, person) => {
+          console.log('Document routed:', doc, person);
+        }}
+      />
     </div>
   );
 }

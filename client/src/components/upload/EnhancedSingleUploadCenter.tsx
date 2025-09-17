@@ -1,347 +1,323 @@
-// Enhanced Single Upload Center - Professional Design
-// Intelligent file type detection: Documents → Sidebar, Photos → Album
-
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import './EnhancedSingleUploadCenter.css';
+import { Upload, FileText, Image, Video, Music, Archive, File, X, Check, AlertCircle, Brain } from 'lucide-react';
+import { useUploadStore } from '@/stores/uploadStore';
 
-export interface EnhancedSingleUploadCenterProps {
-  onDocumentUpload?: (files: File[]) => Promise<void>;
-  onPhotoUpload?: (files: File[]) => Promise<void>;
-  onNavigateToAlbum?: () => void;
+interface EnhancedSingleUploadCenterProps {
+  onFileUpload?: (files: File[]) => void;
+  onAnalysisComplete?: (fileId: number, analysis: any) => void;
+  maxFiles?: number;
+  acceptedTypes?: string[];
+  className?: string;
 }
 
-export const EnhancedSingleUploadCenter: React.FC<EnhancedSingleUploadCenterProps> = ({ 
-  onDocumentUpload, 
-  onPhotoUpload,
-  onNavigateToAlbum 
-}) => {
-  const [isDragActive, setIsDragActive] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadType, setUploadType] = useState<string | null>(null); // 'documents', 'photos', or 'mixed'
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadMessage, setUploadMessage] = useState('');
-
+export default function EnhancedSingleUploadCenter({
+  onFileUpload,
+  onAnalysisComplete,
+  maxFiles = 10,
+  acceptedTypes = ['*'],
+  className = ''
+}: EnhancedSingleUploadCenterProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+  
+  const { uploads, addUpload, updateUpload } = useUploadStore();
 
-  // File type detection
-  const detectFileTypes = (files: File[]) => {
-    const documents: File[] = [];
-    const photos: File[] = [];
-    
-    files.forEach(file => {
-      if (file.type.startsWith('image/')) {
-        photos.push(file);
-      } else if (
-        file.type.includes('pdf') || 
-        file.type.includes('document') || 
-        file.type.includes('text') ||
-        file.name.toLowerCase().match(/\.(doc|docx|pdf|txt)$/)
-      ) {
-        documents.push(file);
-      } else {
-        // Default to documents for unknown types
-        documents.push(file);
-      }
-    });
-
-    return { documents, photos };
+  const getFileIcon = (file: File) => {
+    const type = file.type.toLowerCase();
+    if (type.startsWith('image/')) return <Image className="h-8 w-8 text-blue-400" />;
+    if (type.startsWith('video/')) return <Video className="h-8 w-8 text-purple-400" />;
+    if (type.startsWith('audio/')) return <Music className="h-8 w-8 text-green-400" />;
+    if (type.includes('pdf') || type.includes('document')) return <FileText className="h-8 w-8 text-red-400" />;
+    if (type.includes('zip') || type.includes('rar')) return <Archive className="h-8 w-8 text-yellow-400" />;
+    return <File className="h-8 w-8 text-gray-400" />;
   };
 
-  // Handle file upload with intelligent routing
-  const handleFileUpload = async (files: File[]) => {
+  const getFileTypeIndicator = (file: File) => {
+    const type = file.type.toLowerCase();
+    if (type.startsWith('image/')) return { label: 'Image', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' };
+    if (type.startsWith('video/')) return { label: 'Video', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20' };
+    if (type.startsWith('audio/')) return { label: 'Audio', color: 'bg-green-500/10 text-green-400 border-green-500/20' };
+    if (type.includes('pdf')) return { label: 'PDF', color: 'bg-red-500/10 text-red-400 border-red-500/20' };
+    if (type.includes('document')) return { label: 'Document', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20' };
+    return { label: 'File', color: 'bg-gray-500/10 text-gray-400 border-gray-500/20' };
+  };
+
+  const handleBrowseClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileSelect = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
+    const fileArray = Array.from(files).slice(0, maxFiles);
     setIsUploading(true);
-    setUploadProgress(0);
 
     try {
-      const { documents, photos } = detectFileTypes(files);
+      // Add files to store and start upload process
+      const uploadIds: number[] = [];
       
-      // Determine upload type for UI feedback
-      if (documents.length > 0 && photos.length > 0) {
-        setUploadType('mixed');
-        setUploadMessage(`Processing ${documents.length} document${documents.length > 1 ? 's' : ''} and ${photos.length} photo${photos.length > 1 ? 's' : ''}...`);
-      } else if (documents.length > 0) {
-        setUploadType('documents');
-        setUploadMessage(`Processing ${documents.length} document${documents.length > 1 ? 's' : ''}...`);
-      } else if (photos.length > 0) {
-        setUploadType('photos');
-        setUploadMessage(`Adding ${photos.length} photo${photos.length > 1 ? 's' : ''} to Family Album...`);
+      for (const file of fileArray) {
+        const uploadId = addUpload(file, 'browse');
+        uploadIds.push(uploadId);
+        
+        // Simulate upload progress
+        const progressInterval = setInterval(() => {
+          setUploadProgress(prev => {
+            const currentProgress = prev[uploadId.toString()] || 0;
+            const newProgress = Math.min(currentProgress + Math.random() * 20, 100);
+            
+            if (newProgress >= 100) {
+              clearInterval(progressInterval);
+              // Mark as complete and start AI analysis
+              updateUpload(uploadId, { status: 'analyzing' });
+              startAIAnalysis(uploadId, file);
+            }
+            
+            return { ...prev, [uploadId.toString()]: newProgress };
+          });
+        }, 200);
       }
 
-      // Process documents
-      if (documents.length > 0) {
-        setUploadProgress(25);
-        if (onDocumentUpload) {
-          await onDocumentUpload(documents);
-        }
-        setUploadProgress(50);
+      // Notify parent component
+      if (onFileUpload) {
+        onFileUpload(fileArray);
       }
-
-      // Process photos
-      if (photos.length > 0) {
-        setUploadProgress(75);
-        if (onPhotoUpload) {
-          await onPhotoUpload(photos);
-        }
-        setUploadProgress(90);
-      }
-
-      // Complete
-      setUploadProgress(100);
-      
-      // Show success message
-      if (documents.length > 0 && photos.length > 0) {
-        setUploadMessage('Documents processed and photos added to album!');
-      } else if (documents.length > 0) {
-        setUploadMessage('Documents processed successfully!');
-      } else if (photos.length > 0) {
-        setUploadMessage('Photos added to Family Album!');
-        // Auto-navigate to album for photos
-        setTimeout(() => {
-          if (onNavigateToAlbum) {
-            onNavigateToAlbum();
-          }
-        }, 1500);
-      }
-
-      // Reset after delay
-      setTimeout(() => {
-        setIsUploading(false);
-        setUploadType(null);
-        setUploadProgress(0);
-        setUploadMessage('');
-      }, 2000);
 
     } catch (error) {
-      console.error('Upload failed:', error);
-      setUploadMessage('Upload failed. Please try again.');
-      setTimeout(() => {
-        setIsUploading(false);
-        setUploadType(null);
-        setUploadProgress(0);
-        setUploadMessage('');
-      }, 3000);
+      console.error('Upload error:', error);
+    } finally {
+      setIsUploading(false);
+    }
+  }, [addUpload, updateUpload, maxFiles, onFileUpload]);
+
+  const startAIAnalysis = async (uploadId: number, file: File) => {
+    try {
+      // Simulate AI analysis delay
+      await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000));
+      
+      // Mock analysis result
+      const analysisResult = {
+        documentType: detectDocumentType(file.name),
+        extractedText: `Extracted content from ${file.name}`,
+        confidence: 0.85 + Math.random() * 0.15,
+        suggestedCategory: 'documents',
+        identifiedPerson: 'Family Member'
+      };
+
+      updateUpload(uploadId, { 
+        status: 'complete', 
+        analyzed: true,
+        result: {
+          extractedData: analysisResult,
+          extractedText: analysisResult.extractedText
+        }
+      });
+
+      if (onAnalysisComplete) {
+        onAnalysisComplete(uploadId, analysisResult);
+      }
+
+    } catch (error) {
+      console.error('AI analysis error:', error);
+      updateUpload(uploadId, { status: 'error' });
     }
   };
 
-  // Browse button handler
-  const handleBrowseClick = () => {
-    fileInputRef.current?.click();
+  const detectDocumentType = (filename: string): string => {
+    const name = filename.toLowerCase();
+    if (name.includes('medical') || name.includes('health')) return 'Medical Record';
+    if (name.includes('insurance')) return 'Insurance Document';
+    if (name.includes('tax')) return 'Tax Document';
+    if (name.includes('legal')) return 'Legal Document';
+    return 'General Document';
   };
 
-  // Drag and drop handlers
-  const handleDragEnter = (e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragActive(true);
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    handleFileSelect(e.dataTransfer.files);
+  }, [handleFileSelect]);
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setIsDragActive(false);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragActive(false);
-    const files = Array.from(e.dataTransfer.files);
-    handleFileUpload(files);
-  };
+  const recentUploads = uploads.slice(-3);
 
   return (
-    <div className="enhanced-single-upload-center">
-      {/* Main Upload Area - Professional Single Box Design */}
-      <motion.div
-        className={`main-upload-area ${isDragActive ? 'drag-active' : ''} ${isUploading ? 'uploading' : ''}`}
-        onDrop={handleDrop}
+    <div className={`space-y-6 ${className}`}>
+      {/* Main Upload Area */}
+      <div
+        className={`relative border-2 border-dashed rounded-2xl p-8 transition-all duration-300 ${
+          isDragOver
+            ? 'border-[#D4AF37] bg-[#D4AF37]/5 scale-[1.02]'
+            : 'border-zinc-700 hover:border-zinc-600'
+        }`}
         onDragOver={handleDragOver}
-        onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
-        whileHover={!isUploading ? { scale: 1.01 } : {}}
-        transition={{ type: "spring", stiffness: 300 }}
-        data-testid="enhanced-upload-area"
+        onDrop={handleDrop}
       >
-        <div className="upload-content">
-          {/* Upload Icon with Smart Animation */}
-          <div className="upload-icon-container">
-            {isUploading ? (
-              <div className="upload-progress-circle">
-                <svg className="progress-ring" width="80" height="80">
-                  <circle
-                    className="progress-ring-background"
-                    stroke="var(--border-color)"
-                    strokeWidth="4"
-                    fill="transparent"
-                    r="36"
-                    cx="40"
-                    cy="40"
-                  />
-                  <circle
-                    className="progress-ring-progress"
-                    stroke="var(--primary-gold)"
-                    strokeWidth="4"
-                    fill="transparent"
-                    r="36"
-                    cx="40"
-                    cy="40"
-                    style={{
-                      strokeDasharray: `${2 * Math.PI * 36}`,
-                      strokeDashoffset: `${2 * Math.PI * 36 * (1 - uploadProgress / 100)}`,
-                      transition: 'stroke-dashoffset 0.5s ease'
-                    }}
-                  />
-                </svg>
-                <div className="progress-percentage">{uploadProgress}%</div>
-              </div>
-            ) : (
-              <motion.div
-                className="upload-icon"
-                animate={isDragActive ? { scale: 1.1, rotate: 5 } : { scale: 1, rotate: 0 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-              </motion.div>
-            )}
-          </div>
+        <div className="text-center">
+          <motion.div
+            className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+              isDragOver ? 'bg-[#D4AF37]/20' : 'bg-zinc-800'
+            }`}
+            animate={{ scale: isDragOver ? 1.1 : 1 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          >
+            <Upload className={`h-8 w-8 ${isDragOver ? 'text-[#D4AF37]' : 'text-zinc-400'}`} />
+          </motion.div>
           
-          {/* Dynamic Content Based on State */}
-          <AnimatePresence mode="wait">
-            {isUploading ? (
-              <motion.div
-                key="uploading"
-                className="upload-status"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-              >
-                <h3 className="upload-title">Processing Files</h3>
-                <p className="upload-message">{uploadMessage}</p>
-                <div className="upload-type-indicator">
-                  {uploadType === 'documents' && (
-                    <span className="type-badge documents">Documents → Analysis</span>
-                  )}
-                  {uploadType === 'photos' && (
-                    <span className="type-badge photos">Photos → Family Album</span>
-                  )}
-                  {uploadType === 'mixed' && (
-                    <div className="mixed-badges">
-                      <span className="type-badge documents">Documents</span>
-                      <span className="type-badge photos">Photos</span>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="ready"
-                className="upload-ready"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-              >
-                <h3>Upload Family Content</h3>
-                <p>Drag & drop files here or click to browse</p>
-                <p className="ai-text">AI will automatically organize documents and photos</p>
-                
-                <motion.button
-                  className="browse-button"
-                  onClick={handleBrowseClick}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  data-testid="button-browse-files"
-                >
-                  Browse Files
-                </motion.button>
-                
-                <span className="or-text">or drop files</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <h3 className="text-xl font-semibold text-white mb-2">
+            {isDragOver ? 'Drop files here' : 'Upload Documents & Photos'}
+          </h3>
           
-          {/* Smart File Type Indicators */}
-          {!isUploading && (
-            <div className="file-types-section">
-              <div className="file-types-group">
-                <span className="group-label">Documents</span>
-                <div className="file-types">
-                  <span className="file-type documents">PDF</span>
-                  <span className="file-type documents">DOC</span>
-                  <span className="file-type documents">TXT</span>
-                </div>
-              </div>
-              <div className="file-types-divider">•</div>
-              <div className="file-types-group">
-                <span className="group-label">Photos</span>
-                <div className="file-types">
-                  <span className="file-type photos">JPG</span>
-                  <span className="file-type photos">PNG</span>
-                  <span className="file-type photos">HEIC</span>
-                </div>
-              </div>
-            </div>
-          )}
+          <p className="text-zinc-400 mb-6">
+            Drag and drop files here, or click browse to select files
+          </p>
+
+          {/* Browse Button */}
+          <motion.button
+            className="browse-button inline-flex items-center gap-2 px-6 py-3 bg-[#D4AF37] text-black font-medium rounded-lg hover:bg-[#B8860B] transition-colors"
+            onClick={handleBrowseClick}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            data-testid="button-browse-files"
+            disabled={isUploading}
+          >
+            <FileText className="h-5 w-5" />
+            Browse Files
+          </motion.button>
+
+          {/* Hidden File Input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            accept={acceptedTypes.join(',')}
+            onChange={(e) => handleFileSelect(e.target.files)}
+          />
         </div>
 
-        {/* Drag Overlay */}
+        {/* Upload Progress Overlay */}
         <AnimatePresence>
-          {isDragActive && (
+          {isUploading && (
             <motion.div
-              className="drag-overlay"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-2xl flex items-center justify-center"
             >
-              <div className="drag-content">
-                <div className="drag-icon">⬇</div>
-                <span>Drop files to upload</span>
-                <div className="drag-hint">Documents and photos will be organized automatically</div>
+              <div className="text-center">
+                <div className="w-12 h-12 border-4 border-[#D4AF37] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-white font-medium">Uploading files...</p>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
-
-      {/* Quick Actions Section */}
-      <div className="quick-actions-section">
-        <div className="quick-action-item" onClick={onNavigateToAlbum} data-testid="button-view-album">
-          <div className="action-icon">📖</div>
-          <div className="action-content">
-            <span className="action-title">Family Album</span>
-            <span className="action-subtitle">View photos and memories</span>
-          </div>
-        </div>
-        
-        <div className="quick-action-item" data-testid="button-recent-documents">
-          <div className="action-icon">📄</div>
-          <div className="action-content">
-            <span className="action-title">Recent Documents</span>
-            <span className="action-subtitle">Access uploaded files</span>
-          </div>
-        </div>
       </div>
 
-      {/* Hidden File Input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        onChange={(e) => handleFileUpload(Array.from(e.target.files || []))}
-        accept="image/*,.pdf,.doc,.docx,.txt"
-        multiple
-        style={{ display: 'none' }}
-        data-testid="input-enhanced-files"
-      />
+      {/* Recent Uploads */}
+      {recentUploads.length > 0 && (
+        <div className="space-y-3">
+          <h4 className="text-lg font-semibold text-white flex items-center gap-2">
+            <Brain className="h-5 w-5 text-[#D4AF37]" />
+            Recent Uploads
+          </h4>
+          
+          <div className="space-y-2">
+            {recentUploads.map((upload) => {
+              const typeInfo = getFileTypeIndicator(upload.file);
+              const progress = uploadProgress[upload.id.toString()] || 0;
+              
+              return (
+                <motion.div
+                  key={upload.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-4 p-4 bg-zinc-900 border border-zinc-800 rounded-lg"
+                >
+                  <div className="flex-shrink-0">
+                    {getFileIcon(upload.file)}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-medium text-white truncate">{upload.file.name}</p>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${typeInfo.color}`}>
+                        {typeInfo.label}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 text-sm text-zinc-400">
+                      <span>{formatFileSize(upload.file.size)}</span>
+                      
+                      {upload.status === 'pending' && progress < 100 && (
+                        <div className="flex items-center gap-2">
+                          <div className="w-24 h-2 bg-zinc-700 rounded-full overflow-hidden">
+                            <motion.div
+                              className="h-full bg-[#D4AF37]"
+                              initial={{ width: 0 }}
+                              animate={{ width: `${progress}%` }}
+                              transition={{ duration: 0.3 }}
+                            />
+                          </div>
+                          <span>{Math.round(progress)}%</span>
+                        </div>
+                      )}
+                      
+                      {upload.status === 'analyzing' && (
+                        <div className="flex items-center gap-2 text-yellow-400">
+                          <Brain className="h-4 w-4 animate-pulse" />
+                          <span>AI Analyzing...</span>
+                        </div>
+                      )}
+                      
+                      {upload.status === 'complete' && (
+                        <div className="flex items-center gap-2 text-green-400">
+                          <Check className="h-4 w-4" />
+                          <span>Complete</span>
+                        </div>
+                      )}
+                      
+                      {upload.status === 'error' && (
+                        <div className="flex items-center gap-2 text-red-400">
+                          <AlertCircle className="h-4 w-4" />
+                          <span>Error</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* File Type Support Info */}
+      <div className="text-center text-sm text-zinc-500">
+        <p>Supports: PDF, Images (JPG, PNG), Documents (DOC, DOCX), and more</p>
+        <p>Maximum file size: 50MB per file</p>
+      </div>
     </div>
   );
-};
-
-export default EnhancedSingleUploadCenter;
+}
