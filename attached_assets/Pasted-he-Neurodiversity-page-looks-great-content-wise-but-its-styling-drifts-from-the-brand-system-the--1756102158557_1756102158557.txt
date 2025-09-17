@@ -1,0 +1,103 @@
+he (Neurodiversity) page looks great content-wise, but its styling drifts from the brand system the other pages use. Here’s a tight punch-list to make it visually consistent with the rest of the site (gold accents on dark, rounded cards, uniform chips, etc.), plus drop-in CSS/Tailwind tweaks you can paste into Replit.
+
+Global “theme consistency” fixes (apply site-wide)
+
+Use one palette via CSS variables
+
+:root{
+  --bg: #0b0b0b;            /* page background */
+  --surface: #111;          /* cards/sections */
+  --text: #e9e9e9;          /* body */
+  --muted: #b3b3b3;         /* secondary text */
+  --brand: #f4c542;         /* gold */
+  --brand-600:#d4aa2e;      /* hover/pressed */
+  --accent: #ffffff14;      /* subtle divider/surface */
+  --success:#44c77d; --danger:#ff6b6b; /* keep if needed */
+  --ring: #f4c54255;        /* focus ring */
+}
+.btn-brand{ background:var(--brand); color:#111 }
+.btn-brand:hover{ background:var(--brand-600) }
+.chip, .badge{ background:#ffffff12; color:var(--muted); border:1px solid #ffffff1f }
+.icon-ring{ color:var(--brand); background:#f4c5421a; }
+.card{ background:var(--surface); border:1px solid #ffffff12; border-radius:18px }
+.section{ background:transparent; }
+.section.alt{ background:#0e0e0e; }
+.halo{ box-shadow:0 0 0 6px var(--ring); }
+
+
+This eliminates the purple/lilac and blue chips that appear on a few pages.
+
+CTA buttons
+Replace any purple/blue “Get started” buttons with .btn-brand. Keep pill radius and medium weight (600).
+
+Pricing card highlight
+Swap the purple “Most Popular” highlight for the gold:
+
+.plan--popular{ outline:2px solid var(--brand); box-shadow:0 0 0 6px var(--ring) }
+.plan--popular .tag{ background:var(--brand); color:#111 }
+
+
+Icon chips
+All circular icon marks should use the “icon-ring” style (gold glyph, faint gold halo). Remove any blue/teal fills.
+
+Testimonials
+Use the same card style everywhere (.card + small gold stars + muted name line). Remove pink backgrounds that only appear on Neurodiversity.
+
+Section spacing
+Ensure uniform padding (py-16 md:py-24) between sections on all pages to match Child/Elderly/Married.
+
+Neurodiversity page — specific fixes
+
+Hero area
+
+Replace the light teal badge with the standard gold icon pill (.icon-ring).
+
+Make the hero CTA .btn-brand.
+
+Add the subtle gold corner “glint” on the image (you use this elsewhere): a 1px gold border or a small corner accent.
+
+Quote/Testimonial block
+
+Current pink card → convert to standard .card on dark with gold star row.
+
+Quote icon (play/triangle) → use a simple gold quote mark or keep triangle but with .icon-ring.
+
+Feature rows (“Managing Medical Information”, “Executive Function”, etc.)
+
+Ensure each mini-card uses .card + consistent icon chips.
+
+Headings should be the same text-xl md:text-2xl font-semibold you use on other lifecycle pages (not the thinner style currently here).
+
+Security strip
+
+It’s using green/blue icons. Swap to gold icon set and the same bullet order used on all pages (MFA → Threat detection → Tokenization → Encryption → Biometric).
+
+Pricing
+
+Replace purple “Most Popular” ribbon & button with the gold treatment from other pages (.plan--popular above).
+
+Ensure body text color is var(--muted) for inclusions; headings use var(--text).
+
+Resources block
+
+Feature card should follow the gold-accent resource pattern used on Disaster/Estate: gold tag, gold CTA chevron, .card surface.
+
+Quick Tailwind equivalents (if you’re using Tailwind)
+
+Page bg: class="bg-[#0b0b0b] text-zinc-200"
+
+Card: class="rounded-2xl border border-white/10 bg-[#111111]"
+
+CTA: class="rounded-full bg-[#f4c542] hover:bg-[#d4aa2e] text-black font-semibold px-5 py-2"
+
+Icon chip: class="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#f4c542] ring-1 ring-[#f4c542]/30 bg-[#f4c542]/10"
+
+Tiny content/UI nits I’d fix while you’re in there
+
+Make all security/compliance chips (EU GDPR, SOC2 Type II, HIPAA, CCPA) uniform pills with border-white/12 and the same order across pages.
+
+Ensure testimonial avatars (even if generic) are the same size and alignment across pages.
+
+Keep card shadows very light (or none) on the dark theme; rely on the border + subtle inner glow for depth.
+
+Double-check contrast: the light blue text on Neurodiversity subheads should be pure var(--text) or var(--muted); avoid pastel hues on dark backgrounds for accessibility.

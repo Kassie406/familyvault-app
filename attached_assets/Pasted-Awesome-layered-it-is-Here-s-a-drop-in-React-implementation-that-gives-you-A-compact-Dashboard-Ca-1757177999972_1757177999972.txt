@@ -1,0 +1,247 @@
+Awesome—layered it is. Here’s a drop-in React implementation that gives you:
+
+A compact Dashboard Card (matches your gold/black look)
+
+A click-to-open Detailed Panel (modal) with checkboxes, due dates, assignees, and add/delete
+
+No extra libraries beyond lucide-react + Tailwind.
+
+1) Install icons (if you haven’t)
+npm i lucide-react
+
+2) Paste this component (SharedLists.jsx)
+import { useMemo, useState } from "react";
+import {
+  ListTodo,
+  CalendarDays,
+  User,
+  Plus,
+  X,
+  CheckCircle2,
+  Trash2,
+} from "lucide-react";
+
+/**
+ * Drop this component in your Dashboard grid.
+ * <SharedLists initialItems={...optional seed...} />
+ */
+export default function SharedLists({ initialItems }) {
+  // ----- sample seed if none passed -----
+  const [items, setItems] = useState(
+    initialItems ?? [
+      { id: "1", text: "Buy broccoli", assignee: "Mom", due: "2025-09-10", done: false },
+      { id: "2", text: "Vacuum living room", assignee: "Alex", due: "2025-09-07", done: true },
+      { id: "3", text: "Pack kids’ bags", assignee: "Dad", due: "2025-09-08", done: false },
+      { id: "4", text: "Refill hand soap", assignee: "Kassandra", due: "2025-09-12", done: false },
+    ]
+  );
+
+  const [open, setOpen] = useState(false);
+
+  const pendingCount = useMemo(
+    () => items.filter(i => !i.done).length,
+    [items]
+  );
+
+  return (
+    <>
+      {/* DASHBOARD CARD */}
+      <div
+        role="button"
+        onClick={() => setOpen(true)}
+        className="p-4 rounded-2xl bg-black/90 text-white shadow border border-white/10 hover:border-[#c5a000]/50 transition cursor-pointer"
+      >
+        <h3 className="flex items-center gap-2 text-lg font-semibold">
+          <ListTodo size={26} color="#c5a000" strokeWidth={2.5} />
+          Shared Lists
+        </h3>
+        <p className="mt-1 text-sm text-gray-400">
+          Collaborative to-do lists for groceries, chores, or packing.
+        </p>
+        <div className="mt-3 text-3xl font-bold text-[#c5a000]">
+          {pendingCount} <span className="text-base font-medium text-gray-400">pending</span>
+        </div>
+      </div>
+
+      {/* DETAILED PANEL (MODAL) */}
+      {open && (
+        <SharedListsModal
+          items={items}
+          onClose={() => setOpen(false)}
+          onAdd={(newItem) => setItems(prev => [newItem, ...prev])}
+          onToggle={(id) => setItems(prev => prev.map(i => i.id === id ? { ...i, done: !i.done } : i))}
+          onDelete={(id) => setItems(prev => prev.filter(i => i.id !== id))}
+        />
+      )}
+    </>
+  );
+}
+
+/* ---------- Modal + List UI ---------- */
+
+function SharedListsModal({ items, onClose, onAdd, onToggle, onDelete }) {
+  const [text, setText] = useState("");
+  const [assignee, setAssignee] = useState("");
+  const [due, setDue] = useState("");
+
+  function addItem() {
+    if (!text.trim()) return;
+    onAdd({
+      id: crypto.randomUUID(),
+      text: text.trim(),
+      assignee: assignee.trim() || "Unassigned",
+      due: due || "",
+      done: false,
+    });
+    setText(""); setAssignee(""); setDue("");
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+      aria-modal="true" role="dialog"
+      onKeyDown={(e) => e.key === "Escape" && onClose()}
+    >
+      <div className="w-full max-w-2xl rounded-2xl bg-[#0b0b0b] text-white border border-white/10 shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <ListTodo size={22} color="#c5a000" strokeWidth={2.5} />
+            <h2 className="text-xl font-semibold">Shared Lists</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-white/10"
+            aria-label="Close"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Add Row */}
+        <div className="p-4 grid grid-cols-1 md:grid-cols-12 gap-3">
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Add an item (e.g., ‘Buy broccoli’)"
+            className="md:col-span-6 bg-black/40 border border-white/10 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-[#c5a000]"
+          />
+          <input
+            value={assignee}
+            onChange={(e) => setAssignee(e.target.value)}
+            placeholder="Assignee (optional)"
+            className="md:col-span-3 bg-black/40 border border-white/10 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-[#c5a000]"
+          />
+          <input
+            type="date"
+            value={due}
+            onChange={(e) => setDue(e.target.value)}
+            className="md:col-span-2 bg-black/40 border border-white/10 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-[#c5a000]"
+          />
+          <button
+            onClick={addItem}
+            className="md:col-span-1 inline-flex items-center justify-center gap-1 bg-[#c5a000] text-black font-semibold rounded-xl px-3 py-2 hover:brightness-95"
+          >
+            <Plus size={18} /> Add
+          </button>
+        </div>
+
+        {/* List */}
+        <div className="px-4 pb-4 max-h-[60vh] overflow-y-auto space-y-3">
+          {items.length === 0 && (
+            <div className="text-center text-gray-400 py-8">No items yet.</div>
+          )}
+
+          {items.map((i) => (
+            <ListRow
+              key={i.id}
+              item={i}
+              onToggle={() => onToggle(i.id)}
+              onDelete={() => onDelete(i.id)}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ListRow({ item, onToggle, onDelete }) {
+  const dueLabel = useMemo(() => {
+    if (!item.due) return null;
+    const d = new Date(item.due);
+    const days = Math.ceil((d - new Date()) / (1000 * 60 * 60 * 24));
+    if (isNaN(days)) return null;
+    const tone =
+      days < 0 ? "Overdue" : days === 0 ? "Due today" : `Due in ${days}d`;
+    return { tone, days };
+  }, [item.due]);
+
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
+      {/* Checkbox */}
+      <button
+        onClick={onToggle}
+        className={`w-6 h-6 rounded-lg flex items-center justify-center border transition
+          ${item.done ? "bg-[#c5a000] border-[#c5a000]" : "border-white/30 hover:border-[#c5a000]"}`}
+        aria-label={item.done ? "Mark as not done" : "Mark as done"}
+      >
+        {item.done && <CheckCircle2 size={18} className="text-black" />}
+      </button>
+
+      {/* Text + meta */}
+      <div className="flex-1">
+        <div className={`font-medium ${item.done ? "line-through text-gray-500" : ""}`}>
+          {item.text}
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-gray-400">
+          {item.assignee && (
+            <span className="inline-flex items-center gap-1">
+              <User size={14} /> {item.assignee}
+            </span>
+          )}
+          {dueLabel && (
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border
+                ${dueLabel.days < 1 ? "border-[#c5a000] text-[#c5a000]" : "border-white/20"}`}
+            >
+              <CalendarDays size={14} />
+              {dueLabel.tone}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Delete */}
+      <button
+        onClick={onDelete}
+        className="p-2 rounded-lg hover:bg-white/10 text-gray-300"
+        aria-label="Delete item"
+      >
+        <Trash2 size={18} />
+      </button>
+    </div>
+  );
+}
+
+3) Use it in your Dashboard grid
+import SharedLists from "./SharedLists";
+
+export default function Dashboard() {
+  return (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {/* …your other cards… */}
+      <SharedLists />
+    </div>
+  );
+}
+
+Notes & next steps
+
+Branding: gold #c5a000 is applied to accents/badges.
+
+Accessibility: Esc closes modal; buttons are labeled.
+
+Local state only: this demo stores items in memory. When you’re ready, I can wire it to your backend (Replit DB, Firebase, Supabase, or your API) so lists sync across devices and family members.
+
+Add “Open from icon”: If you want the 📋 icon on the dashboard card to be clickable as a shortcut, easy tweak.

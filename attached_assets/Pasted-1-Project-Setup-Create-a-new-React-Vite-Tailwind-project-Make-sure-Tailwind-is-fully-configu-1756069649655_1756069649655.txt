@@ -1,0 +1,64 @@
+1. Project Setup
+Create a new React + Vite + Tailwind project.  
+Make sure Tailwind is fully configured with index.css and tailwind.config.js.  
+I want a clean layout system with reusable sections and no JSX nesting errors.  
+
+2. Navbar
+Build a sticky navbar at the top with:  
+- Logo text on the left (FamilyVault placeholder)  
+- Links: Use Cases, Security, Pricing, Resources  
+- On the right: Login button and "Get Started Free" button  
+Use Tailwind classes, keep it responsive, mobile collapses into a hamburger.  
+
+3. Hero Section
+Create a hero section with two columns:  
+Left column: Large heading, subheading text, and two buttons (Get Started Free, See How It Works).  
+Right column: Rounded image placeholder (like a laptop mockup).  
+Add background that is clean and white.  
+
+4. Feature Checklist
+Add a section titled "Secure Everything That Matters".  
+Two columns of checklist items with icons (checkmarks).  
+In the middle column, put an image placeholder box that says "Document Collage".  
+Use Tailwind grid and spacing.  
+
+5. Stats Section
+Add a section with 3 equal-width cards.  
+Each card has: title, description, and a small source note.  
+Example: "You lose 51+ hours a year - Trying to stay on top of household paperwork".  
+Keep it centered and clean.  
+
+6. Benefits Section
+Create a two-column section.  
+Left: Image placeholder (video thumbnail with play button).  
+Right: Title "Life is Easier with FamilyVault" and 3 benefit cards stacked vertically.  
+Each benefit card has a bold title and small text.  
+
+7. Security Grid
+Make a section with 6 cards in a grid (2 per row on desktop).  
+Each card has an icon, a title, and a description.  
+Example: Multi-factor Authentication, Tokenization, Threat Detection.  
+
+8. Testimonials
+Add a testimonials section with 6 profile cards.  
+Each card has a circle avatar placeholder, name, and "Member since 2024".  
+Grid should be responsive.  
+
+9. FAQ Accordion
+Build a FAQ section with 3–5 questions.  
+Each question is clickable, expands to show the answer.  
+Use Tailwind, keep it simple and collapsible.  
+
+10. Footer
+Add a footer with © 2024 FamilyVault on the left.  
+On the right: links for Privacy, Terms, Security.  
+Background light gray with padding.  
+
+
+⚡ Pro Tips for Prompts
+
+Always say: “Use one root div per section to avoid adjacent JSX element errors” → this prevents crashes.
+
+Always say: “Use Tailwind for all styling, don’t add custom CSS unless necessary.”
+
+Always say: “Keep components small and separated, not one giant file.”

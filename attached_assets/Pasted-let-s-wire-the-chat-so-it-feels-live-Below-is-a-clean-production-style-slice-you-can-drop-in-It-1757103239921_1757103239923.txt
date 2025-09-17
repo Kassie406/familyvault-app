@@ -1,0 +1,488 @@
+let’s wire the chat so it feels “live”. Below is a clean, production-style slice you can drop in. It covers:
+
+WebSocket events (message:new, presence, typing)
+
+Unread counts (computed via lastReadAt / lastReadMessageId)
+
+A tiny “mark as read” API
+
+Client hooks and a minimal thread page wiring
+
+I’m keeping it Prisma only (as you asked), and using Redis (optional but recommended) for presence/typing TTL. If you don’t have Redis yet, I point to no-Redis fallbacks.
+
+1) Prisma schema (unread tracking + indexes)
+// prisma/schema.prisma
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  // …
+  threadMembers ThreadMember[]
+  messages     Message[]
+}
+
+model Thread {
+  id         String         @id @default(cuid())
+  title      String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  members    ThreadMember[]
+  messages   Message[]
+
+  @@index([createdAt])
+}
+
+model ThreadMember {
+  // Junction table + unread tracking
+  threadId            String
+  userId              String
+  role                String?   // "admin" | "member" etc.
+  joinedAt            DateTime  @default(now())
+
+  // Unread tracking (pick one strategy or keep both)
+  lastReadAt          DateTime?        // fast & simple
+  lastReadMessageId   String?          // precise tie-break at same timestamp
+
+  thread              Thread   @relation(fields: [threadId], references: [id])
+  user                User     @relation(fields: [userId], references: [id])
+
+  @@id([threadId, userId])
+  @@index([userId, threadId])
+  @@index([lastReadAt])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  threadId   String
+  authorId   String
+  body       String   @db.Text
+  createdAt  DateTime @default(now())
+
+  thread     Thread   @relation(fields: [threadId], references: [id])
+  author     User     @relation(fields: [authorId], references: [id])
+
+  // If you use attachments, model them here and link by messageId
+
+  @@index([threadId, createdAt])
+  @@index([threadId, id])
+}
+
+
+Why this design?
+
+Unread is derived: COUNT(messages WHERE createdAt > lastReadAt) (or id > lastReadMessageId) → no counter drift.
+
+Indexes make scroll and unread aggregation fast.
+
+Run prisma migrate dev -n "chat_realtime_unread".
+
+2) Socket.IO server + presence & typing
+
+This extends your existing getIO() from your Backend-api-stubs-messaging…ts.
+If you have Redis: use it to track presence/typing TTL (recommended). If not, the in-memory maps below are safe to start with.
+
+// lib/realtime.ts
+import { Server as IOServer, Socket } from "socket.io";
+import Redis from "ioredis";
+
+type PresenceEntry = { userId: string; at: number };
+const inMemPresence = new Map<string, Map<string, PresenceEntry>>(); // threadId -> userId -> entry
+const inMemTyping = new Map<string, Map<string, number>>(); // threadId -> userId -> expiresAt
+
+const TYPING_TTL_MS = 5000;
+
+let io: IOServer | null = null;
+// Optional Redis (comment out if not using yet)
+const redis = process.env.REDIS_URL ? new Redis(process.env.REDIS_URL) : null;
+
+export function getIO(server: any) {
+  if (io) return io;
+
+  io = new IOServer(server, {
+    cors: { origin: true, credentials: true },
+    path: "/ws",
+  });
+
+  io.on("connection", (socket: Socket) => {
+    // Expect you attach userId to socket via auth middleware
+    const userId = String(socket.handshake.auth?.userId || socket.handshake.query.userId || "anon");
+
+    socket.on("thread:join", ({ threadId }: { threadId: string }) => {
+      socket.join(room(threadId));
+      addPresence(threadId, userId);
+      broadcastPresence(threadId);
+    });
+
+    socket.on("thread:leave", ({ threadId }: { threadId: string }) => {
+      socket.leave(room(threadId));
+      removePresence(threadId, userId);
+      broadcastPresence(threadId);
+    });
+
+    socket.on("typing:start", ({ threadId }: { threadId: string }) => {
+      setTyping(threadId, userId);
+      broadcastTyping(threadId);
+    });
+
+    socket.on("typing:stop", ({ threadId }: { threadId: string }) => {
+      clearTyping(threadId, userId);
+      broadcastTyping(threadId);
+    });
+
+    socket.on("disconnect", () => {
+      // Best-effort cleanup (if you track active thread on socket)
+      // Or keep presence until TTL to prevent flicker
+    });
+  });
+
+  // Background typing TTL cleanup
+  setInterval(sweepTyping, 1000);
+
+  return io;
+}
+
+function room(threadId: string) {
+  return `thread:${threadId}`;
+}
+
+/** Presence helpers — in-memory (swap to Redis Sets if you have Redis) */
+function addPresence(threadId: string, userId: string) {
+  const m = inMemPresence.get(threadId) || new Map();
+  m.set(userId, { userId, at: Date.now() });
+  inMemPresence.set(threadId, m);
+}
+function removePresence(threadId: string, userId: string) {
+  const m = inMemPresence.get(threadId);
+  if (!m) return;
+  m.delete(userId);
+}
+function listPresence(threadId: string) {
+  return Array.from(inMemPresence.get(threadId)?.keys() || []);
+}
+function broadcastPresence(threadId: string) {
+  io?.to(room(threadId)).emit("presence:update", { threadId, onlineUserIds: listPresence(threadId) });
+}
+
+/** Typing helpers */
+function setTyping(threadId: string, userId: string) {
+  const m = inMemTyping.get(threadId) || new Map();
+  m.set(userId, Date.now() + TYPING_TTL_MS);
+  inMemTyping.set(threadId, m);
+}
+function clearTyping(threadId: string, userId: string) {
+  const m = inMemTyping.get(threadId);
+  if (!m) return;
+  m.delete(userId);
+}
+function currentTyping(threadId: string) {
+  const now = Date.now();
+  const m = inMemTyping.get(threadId);
+  if (!m) return [];
+  return Array.from(m.entries())
+    .filter(([, exp]) => exp > now)
+    .map(([uid]) => uid);
+}
+function broadcastTyping(threadId: string) {
+  io?.to(room(threadId)).emit("typing:update", { threadId, userIds: currentTyping(threadId) });
+}
+function sweepTyping() {
+  const now = Date.now();
+  for (const [tid, map] of inMemTyping) {
+    let changed = false;
+    for (const [uid, exp] of map) {
+      if (exp <= now) {
+        map.delete(uid);
+        changed = true;
+      }
+    }
+    if (changed) broadcastTyping(tid);
+  }
+}
+
+/** Message broadcast helper (use in your send API) */
+export function emitNewMessage(msg: {
+  id: string;
+  threadId: string;
+  authorId: string;
+  body: string;
+  createdAt: string;
+  attachments?: { id: string; name: string; url?: string }[];
+}) {
+  io?.to(room(msg.threadId)).emit("message:new", { threadId: msg.threadId, message: msg });
+}
+
+
+If you already have getIO() in a file, just merge these presence/typing helpers and emitNewMessage.
+
+3) Send message API → emit + unread updates
+
+Insert message.
+
+Update Thread.updatedAt.
+
+Do not manually increment counters; we’ll compute unread from lastReadAt.
+
+Broadcast message:new via Socket.IO.
+
+// pages/api/threads/[threadId]/messages.ts (Next.js example)
+import { NextApiRequest, NextApiResponse } from "next";
+import { prisma } from "@/server/prisma";
+import { emitNewMessage } from "@/lib/realtime";
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") return res.status(405).end();
+
+  const threadId = String(req.query.threadId);
+  const userId = String(req.headers["x-user-id"] || "me"); // replace with real auth
+
+  const { body } = (req.body ?? {}) as { body?: string };
+  if (!body?.trim()) return res.status(400).json({ error: "empty_message" });
+
+  const thread = await prisma.thread.findUnique({ where: { id: threadId } });
+  if (!thread) return res.status(404).json({ error: "thread_not_found" });
+
+  const message = await prisma.message.create({
+    data: { threadId, authorId: userId, body: body.trim() },
+    select: { id: true, threadId: true, authorId: true, body: true, createdAt: true },
+  });
+
+  await prisma.thread.update({ where: { id: threadId }, data: { updatedAt: new Date() } });
+
+  emitNewMessage({
+    ...message,
+    createdAt: message.createdAt.toISOString(),
+    attachments: [],
+  });
+
+  return res.status(201).json({ message });
+}
+
+4) “Mark as read” API (update lastReadAt / lastReadMessageId)
+
+Call this whenever a user views a thread (on focus or when they scroll to bottom).
+
+// pages/api/threads/[threadId]/read.ts
+import { NextApiRequest, NextApiResponse } from "next";
+import { prisma } from "@/server/prisma";
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") return res.status(405).end();
+  const threadId = String(req.query.threadId);
+  const userId = String(req.headers["x-user-id"] || "me"); // replace with real auth
+
+  const { lastReadMessageId } = (req.body ?? {}) as { lastReadMessageId?: string };
+
+  // We always set lastReadAt to now; lastReadMessageId is optional but precise
+  await prisma.threadMember.upsert({
+    where: { threadId_userId: { threadId, userId } },
+    update: { lastReadAt: new Date(), lastReadMessageId },
+    create: { threadId, userId, lastReadAt: new Date(), lastReadMessageId },
+  });
+
+  return res.json({ ok: true });
+}
+
+5) Unread API (dashboard badge and sidebar)
+
+Compute unread counts server-side using the derived strategy:
+
+// pages/api/threads/unread.ts
+import { NextApiRequest, NextApiResponse } from "next";
+import { prisma } from "@/server/prisma";
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const userId = String(req.headers["x-user-id"] || "me");
+
+  // 1) Fetch membership + lastReadAt
+  const membership = await prisma.threadMember.findMany({
+    where: { userId },
+    select: { threadId: true, lastReadAt: true, lastReadMessageId: true },
+  });
+
+  // 2) For each thread, count messages created after lastReadAt (or all if null)
+  const results = await Promise.all(
+    membership.map(async (m) => {
+      const where =
+        m.lastReadAt
+          ? { threadId: m.threadId, createdAt: { gt: m.lastReadAt } }
+          : { threadId: m.threadId };
+      const unread = await prisma.message.count({ where });
+      return { threadId: m.threadId, unread };
+    })
+  );
+
+  res.json({ byThread: results });
+}
+
+
+Optimizations (optional later): do it in one SQL with window functions or materialized views; or cache unread counts in Redis.
+
+6) Client: Socket hook + provider
+// lib/useSocket.ts
+import { useEffect, useMemo } from "react";
+import { io, Socket } from "socket.io-client";
+
+let socket: Socket | null = null;
+
+export function getSocket(auth: { userId: string }) {
+  if (!socket) {
+    socket = io("/", {
+      path: "/ws",
+      transports: ["websocket"],
+      auth,
+    });
+  }
+  return socket;
+}
+
+export function useThreadSocket(threadId: string, userId: string, handlers: {
+  onMessage?: (p: { threadId: string; message: any }) => void;
+  onPresence?: (p: { threadId: string; onlineUserIds: string[] }) => void;
+  onTyping?: (p: { threadId: string; userIds: string[] }) => void;
+}) {
+  useEffect(() => {
+    const s = getSocket({ userId });
+    s.emit("thread:join", { threadId });
+
+    const msg = (p: any) => p.threadId === threadId && handlers.onMessage?.(p);
+    const pres = (p: any) => p.threadId === threadId && handlers.onPresence?.(p);
+    const typing = (p: any) => p.threadId === threadId && handlers.onTyping?.(p);
+
+    s.on("message:new", msg);
+    s.on("presence:update", pres);
+    s.on("typing:update", typing);
+
+    return () => {
+      s.emit("thread:leave", { threadId });
+      s.off("message:new", msg);
+      s.off("presence:update", pres);
+      s.off("typing:update", typing);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [threadId, userId]);
+}
+
+export function emitTypingStart(threadId: string) {
+  const s = getSocket({ userId: "me" });
+  s.emit("typing:start", { threadId });
+}
+export function emitTypingStop(threadId: string) {
+  const s = getSocket({ userId: "me" });
+  s.emit("typing:stop", { threadId });
+}
+
+7) Minimal Thread page wiring (React)
+// app/threads/[id]/page.tsx or a component
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useThreadSocket, emitTypingStart, emitTypingStop } from "@/lib/useSocket";
+
+export default function ThreadView({ threadId, userId }: { threadId: string; userId: string }) {
+  const [messages, setMessages] = useState<any[]>([]);
+  const [online, setOnline] = useState<string[]>([]);
+  const [typing, setTyping] = useState<string[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const typingTimer = useRef<NodeJS.Timeout | null>(null);
+
+  useThreadSocket(threadId, userId, {
+    onMessage: ({ message }) => setMessages((m) => [...m, message]),
+    onPresence: ({ onlineUserIds }) => setOnline(onlineUserIds),
+    onTyping: ({ userIds }) => setTyping(userIds.filter((id) => id !== userId)),
+  });
+
+  useEffect(() => {
+    // mark read on mount & when new messages arrive (simple)
+    fetch(`/api/threads/${threadId}/read`, { method: "POST", headers: { "x-user-id": userId } });
+  }, [threadId, userId, messages.length]);
+
+  function handleInputChange() {
+    emitTypingStart(threadId);
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(() => emitTypingStop(threadId), 1200);
+  }
+
+  async function send(body: string) {
+    await fetch(`/api/threads/${threadId}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-user-id": userId },
+      body: JSON.stringify({ body }),
+    });
+    inputRef.current!.value = "";
+    emitTypingStop(threadId);
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="p-2 text-sm text-muted-foreground">
+        Online: {online.length ? online.join(", ") : "—"} • Typing: {typing.length ? typing.join(", ") : "—"}
+      </div>
+
+      <div className="flex-1 overflow-auto space-y-2 p-4">
+        {messages.map(m => (
+          <div key={m.id} className="rounded bg-muted/20 p-2">
+            <div className="text-xs opacity-70">{m.author?.name || m.authorId}</div>
+            <div>{m.body}</div>
+            <div className="text-[10px] opacity-60">{new Date(m.createdAt).toLocaleTimeString()}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="border-t p-3 flex gap-2">
+        <input
+          ref={inputRef}
+          className="flex-1 rounded bg-background border px-3 py-2"
+          placeholder="Type a message…"
+          onChange={handleInputChange}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && inputRef.current?.value.trim()) {
+              void send(inputRef.current.value.trim());
+            }
+          }}
+        />
+        <button
+          className="px-4 py-2 rounded bg-primary text-primary-foreground"
+          onClick={() => inputRef.current?.value.trim() && send(inputRef.current.value.trim())}
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  );
+}
+
+8) Dashboard badge: unread counts
+
+Fetch periodically (or on socket message:new globally) to update the badge:
+
+// lib/unread.ts
+export async function fetchUnread() {
+  const res = await fetch("/api/threads/unread", { headers: { "x-user-id": "me" } });
+  const data = await res.json();
+  return data.byThread as { threadId: string; unread: number }[];
+}
+
+
+If you want live unread updates: also listen to message:new at the root socket and, when threadId !== openThreadId, bump the stored count locally.
+
+What you just gained
+
+Live messages (message:new broadcast)
+
+Presence (who’s in the room)
+
+Typing indicators (with sensible TTL)
+
+Accurate unread (derived from lastReadAt / lastReadMessageId)
+
+Minimal, composable APIs you can call from any UI
+
+Next easy wins (optional)
+
+Read receipts: add MessageReceipt { messageId, userId, seenAt } (or just update lastSeen per-thread like we do, and render “Seen by X” when lastReadAt >= message.createdAt).
+
+Attachments: use your existing upload flow; include attachments in emitNewMessage.
+
+Global socket: add a root message:new listener to update nav badges without polling.

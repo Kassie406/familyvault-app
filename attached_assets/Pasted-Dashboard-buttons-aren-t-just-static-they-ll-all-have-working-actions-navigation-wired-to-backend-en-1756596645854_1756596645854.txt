@@ -1,0 +1,68 @@
+Dashboard buttons aren’t just static—they’ll all have working actions/navigation wired to backend endpoints or pages:
+
+🔹 Frontend Navigation (React/Next.js Example)
+// Example: Dashboard Button Handlers
+
+import { useRouter } from "next/router";
+
+function DashboardActions() {
+  const router = useRouter();
+
+  return (
+    <>
+      {/* KPI Cards */}
+      <button onClick={() => router.push("/users")}>Total Users</button>
+      <button onClick={() => router.push("/subscription-plans?audience=client")}>Active Plans</button>
+      <button onClick={() => router.push("/coupons")}>Active Coupons</button>
+      <button onClick={() => router.push("/content?status=published")}>Content Articles</button>
+
+      {/* Security Center Chips */}
+      <button onClick={() => router.push("/security#2fa-policy")}>2FA Status</button>
+      <button onClick={() => router.push("/security#admin-sessions")}>Active Sessions</button>
+      <button onClick={() => router.push("/security#ip-allowlist")}>IP Allowlist</button>
+      <button onClick={() => router.push("/security#api-keys")}>Key Rotation</button>
+
+      {/* Security Notices */}
+      <button onClick={() => router.push("/security#2fa-policy")}>Configure 2FA</button>
+      <button onClick={() => router.push("/security#ip-allowlist")}>Configure IPs</button>
+
+      {/* Row Actions */}
+      <button onClick={() => router.push("/security/audit?event=session")}>View Session History</button>
+      <button onClick={() => router.push("/users?role=admin")}>Manage Admin Users</button>
+      <button onClick={() => fetch("/api/security/api-keys/rotate", { method: "POST" })}>Rotate API Keys</button>
+
+      {/* Quick Actions */}
+      <button onClick={() => router.push("/coupons/new")}>Create New Coupon</button>
+      <button onClick={() => router.push("/users")}>View All Users</button>
+      <button onClick={() => router.push("/security/audit")}>Security Audit</button>
+      <button onClick={() => router.push("/compliance")}>GDPR Compliance</button>
+    </>
+  );
+}
+
+🔹 Backend Route Stubs (Node/Express Example)
+// Security API routes
+
+app.post("/api/security/2fa/enforce", (req, res) => {
+  // logic to enforce 2FA for admins
+  res.json({ success: true, message: "2FA enforced for all admins." });
+});
+
+app.post("/api/security/ip-allowlist", (req, res) => {
+  // save trusted IP addresses
+  res.json({ success: true, message: "IP allowlist updated." });
+});
+
+app.post("/api/security/api-keys/rotate", (req, res) => {
+  // rotate API keys securely
+  res.json({ success: true, newKey: "abc123xyz" });
+});
+
+
+✅ This way, every circled Dashboard item you showed:
+
+either navigates to a detail page (router.push(...)),
+
+opens a modal (like "New Coupon"),
+
+or makes a backend call (like rotating API keys).

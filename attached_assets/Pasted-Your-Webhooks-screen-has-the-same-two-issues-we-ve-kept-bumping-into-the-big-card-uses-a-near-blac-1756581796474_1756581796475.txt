@@ -1,0 +1,210 @@
+Your Webhooks screen has the same two issues we’ve kept bumping into:
+
+the big card uses a near-black surface → low contrast (esp. empty state),
+
+hover styles likely go pitch black again.
+
+Here’s a tight set of fixes + upgrades so this page feels as polished as Coupons/Content.
+
+Quick CSS (drop-in)
+/* Scope just to the Webhooks page */
+#webhooks-root .card {
+  background:#fff;
+  border:1px solid #E5EAF2;
+  border-radius:14px;
+  box-shadow:0 2px 12px rgba(16,24,40,.06);
+}
+
+#webhooks-root .card-header {
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:14px 16px;border-bottom:1px solid #EEF1F5;
+}
+
+#webhooks-root .empty {
+  padding:32px 16px;text-align:center;color:#6B7280;
+}
+#webhooks-root .empty .icon { font-size:40px; margin-bottom:8px; color:#9CA3AF; }
+
+#webhooks-root .btn.primary { background:#F4B400; color:#111; border:0; border-radius:12px; padding:10px 14px; }
+#webhooks-root .btn.ghost   { background:#fff; border:1px solid #CBD2E0; color:#344054; border-radius:12px; padding:10px 14px; }
+#webhooks-root .btn.ghost:hover { background:#F6F8FB; }
+
+#webhooks-root .filter-btn{
+  background:#111827; color:#F9FAFB; border:1px solid #1F2937; border-radius:12px; padding:10px 14px;
+}
+#webhooks-root .filter-btn:hover,
+#webhooks-root .filter-btn:focus{ background:#1F2937; color:#fff; }
+
+/* Table for endpoints & deliveries */
+#webhooks-root .table{ width:100%; border-collapse:separate; border-spacing:0; }
+#webhooks-root .table thead th{ background:#F9FAFB; border-bottom:1px solid #E5EAF2; padding:12px 16px; color:#111827; }
+#webhooks-root .table td{ padding:12px 16px; border-bottom:1px solid #F2F4F8; color:#1F2937; }
+#webhooks-root .table tbody tr:hover{ background:#F7FAFF; }
+
+/* Badges */
+.badge{ padding:3px 8px; border-radius:9999px; font-size:12px; font-weight:600; display:inline-block; }
+.badge-live{ background:#E8F6EE; color:#1B7F3B; }
+.badge-paused{ background:#FFF4E5; color:#AD7A00; }
+.badge-dead{ background:#FEECEC; color:#B42318; }
+.badge-2xx{ background:#E8F6EE; color:#1B7F3B; }
+.badge-4xx{ background:#FFF4E5; color:#AD7A00; }
+.badge-5xx{ background:#FEECEC; color:#B42318; }
+
+/* Action icons */
+.row-actions button{ background:#fff; border:1px solid #D7DEE8; color:#344054; border-radius:10px; padding:8px; margin-left:6px; }
+.row-actions button:hover{ background:#EEF3FF; border-color:#BFD3FF; color:#1F6FEB; }
+
+
+Wrap the page contents in:
+
+<div id="webhooks-root">
+  <!-- existing Webhooks page -->
+</div>
+
+Empty state (clear + helpful)
+<div class="card">
+  <div class="card-header">
+    <h3>Webhook Endpoints</h3>
+    <div>
+      <button class="btn ghost">Docs</button>
+      <button class="btn primary" id="wh-new">+ New Endpoint</button>
+    </div>
+  </div>
+
+  <div class="empty">
+    <div class="icon">🪝</div>
+    <h4>No webhook endpoints configured</h4>
+    <p>Add an endpoint to receive events from FamilyCircle Secure (user.created, plan.updated, payment.succeeded, etc.).</p>
+    <button class="btn primary" id="wh-cta">Create your first endpoint</button>
+  </div>
+</div>
+
+Populated state (endpoints list + recent deliveries)
+<div class="card">
+  <div class="card-header">
+    <h3>Webhook Endpoints</h3>
+    <div>
+      <button class="filter-btn">All Status ▾</button>
+      <input class="btn ghost" style="padding:10px 12px" placeholder="Search endpoints…">
+      <button class="btn primary">+ New Endpoint</button>
+    </div>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>URL</th>
+        <th>Secret</th>
+        <th>Events</th>
+        <th>Status</th>
+        <th>Last Delivery</th>
+        <th class="col-actions">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>https://example.com/webhooks/fcs</code></td>
+        <td><code>whsec_••••U8qJ</code></td>
+        <td>All events</td>
+        <td><span class="badge badge-live">Live</span></td>
+        <td><span class="badge badge-2xx">200</span> 3m ago</td>
+        <td class="row-actions">
+          <button title="Send test">🧪</button>
+          <button title="View deliveries">📜</button>
+          <button title="Reveal/rotate secret">🔑</button>
+          <button title="Pause">⏸️</button>
+          <button title="Delete">🗑️</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Recent deliveries table (optional second card) -->
+<div class="card" style="margin-top:12px">
+  <div class="card-header">
+    <h3>Recent Deliveries</h3>
+    <div>
+      <button class="filter-btn">All Attempts ▾</button>
+      <button class="filter-btn">Last 24h ▾</button>
+    </div>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Event</th>
+        <th>Endpoint</th>
+        <th>Response</th>
+        <th>Latency</th>
+        <th class="col-actions">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>08:14:10</td>
+        <td>user.created</td>
+        <td>/webhooks/fcs</td>
+        <td><span class="badge badge-2xx">200</span></td>
+        <td>182 ms</td>
+        <td class="row-actions">
+          <button title="View payload">👁️</button>
+          <button title="Redeliver">↻</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+“New Endpoint” modal (fields you actually need)
+
+Endpoint URL (POST)
+
+Secret (auto-generate + reveal/rotate)
+
+Signing method: HMAC-SHA256 (header: FCS-Signature)
+
+Events to send: All events / Select events (multi-select)
+
+Retry policy: backoff (e.g., 10s, 30s, 2m, 5m) up to N attempts
+
+Toggle: Pause after N consecutive failures (dead-letter)
+
+Test send: choose sample event (e.g., user.created) and “Send test”
+
+You can implement as a drawer like we did for Content/Flags.
+
+Minimal JS you’ll want (pseudocode)
+// Create endpoint
+async function createWebhookEndpoint(data){
+  // POST /api/webhooks/endpoints
+  // { url, secret, events, signing:'hmac-sha256', retries:{max:5}, pauseAfter:10 }
+}
+
+// Send test
+async function sendTest(id, type='user.created'){
+  // POST /api/webhooks/endpoints/:id/test { type }
+}
+
+// Redeliver
+async function redeliver(deliveryId){
+  // POST /api/webhooks/deliveries/:deliveryId/redeliver
+}
+
+// Rotate secret
+async function rotateSecret(id){
+  // POST /api/webhooks/endpoints/:id/rotate-secret
+}
+
+Security & legal guardrails (quick)
+
+Sign every delivery: FCS-Signature: t=<unix>, v1=<hex-hmac>; body must be raw bytes used for HMAC.
+
+Clock skew: receivers should accept only recent timestamps (e.g., ±5 min).
+
+Replay protection: include a unique delivery_id; receivers can store and reject duplicates.
+
+PII policy: document which events may include personal data; allow customers to choose minimal vs full payloads.
+
+Audit trail: log creation/rotation/deletion + redelivery actions (who, when, from where).

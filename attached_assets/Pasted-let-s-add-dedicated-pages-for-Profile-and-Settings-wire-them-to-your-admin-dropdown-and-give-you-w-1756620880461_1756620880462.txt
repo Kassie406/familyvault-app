@@ -1,0 +1,402 @@
+let’s add dedicated pages for Profile and Settings, wire them to your admin dropdown, and give you working API handlers. I’ll show a clean, production-ready structure that fits a typical React + Next.js (App Router) + Tailwind stack. If you’re not on Next.js, I also include Express route equivalents—use whichever matches your app.
+
+1) Routes & file structure (Next.js – App Router)
+app/
+  admin/
+    layout.tsx
+    profile/
+      page.tsx
+    settings/
+      page.tsx
+  api/
+    me/route.ts          # GET/PUT profile
+    me/password/route.ts # PUT change password
+    me/avatar/route.ts   # POST avatar upload
+    settings/route.ts    # GET/PUT user prefs
+lib/
+  auth.ts                # getSession() / requireAuth()
+  db.ts                  # your ORM
+components/
+  AccountLayout.tsx
+  forms/ProfileForm.tsx
+  forms/SecurityForm.tsx
+  forms/PreferencesForm.tsx
+
+Admin dropdown → links
+
+Make sure your dropdown uses real routes:
+
+// components/UserMenu.tsx (snippet)
+import Link from "next/link";
+
+export default function UserMenu() {
+  return (
+    <div className="rounded-xl bg-slate-900 text-slate-50 shadow-lg w-64 p-3">
+      <div className="px-3 py-2 text-sm font-semibold">admin</div>
+      <Link href="/admin/profile" className="flex items-center gap-2 px-3 py-2 hover:bg-slate-800 rounded-lg">👤 Profile</Link>
+      <Link href="/admin/settings" className="flex items-center gap-2 px-3 py-2 hover:bg-slate-800 rounded-lg">⚙️ Settings</Link>
+      <form action="/api/logout" method="post" className="mt-2">
+        <button className="w-full text-left px-3 py-2 hover:bg-slate-800 rounded-lg">↪︎ Log out</button>
+      </form>
+    </div>
+  );
+}
+
+2) Shared account layout
+// components/AccountLayout.tsx
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const tabs = [
+  { href: "/admin/profile", label: "Profile" },
+  { href: "/admin/settings", label: "Settings" },
+];
+
+export default function AccountLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  return (
+    <div className="max-w-5xl mx-auto p-6">
+      <h1 className="text-2xl font-semibold mb-4">Account</h1>
+      <nav className="mb-6 flex gap-2">
+        {tabs.map(t => (
+          <Link
+            key={t.href}
+            href={t.href}
+            className={`px-3 py-1.5 rounded-lg text-sm 
+              ${pathname === t.href ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"}`}
+          >
+            {t.label}
+          </Link>
+        ))}
+      </nav>
+      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+3) Profile page (UI)
+// app/admin/profile/page.tsx
+import AccountLayout from "@/components/AccountLayout";
+import ProfileForm from "@/components/forms/ProfileForm";
+import SecurityForm from "@/components/forms/SecurityForm";
+import { getSession } from "@/lib/auth";
+
+export default async function ProfilePage() {
+  const session = await getSession(); // server-side
+  // fetch user details
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/me`, { headers: { cookie: `session=${session?.token}` }, cache: "no-store" });
+  const me = await res.json();
+
+  return (
+    <AccountLayout>
+      <div className="grid md:grid-cols-2 gap-6">
+        <ProfileForm me={me} />
+        <SecurityForm />
+      </div>
+    </AccountLayout>
+  );
+}
+
+Profile Form (name/email/avatar)
+// components/forms/ProfileForm.tsx
+"use client";
+import { useState } from "react";
+
+export default function ProfileForm({ me }: { me: any }) {
+  const [name, setName] = useState(me.name || "");
+  const [email, setEmail] = useState(me.email || "");
+  const [loading, setLoading] = useState(false);
+  const [ok, setOk] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function onSave(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true); setOk(null); setErr(null);
+    const res = await fetch("/api/me", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email }),
+    });
+    setLoading(false);
+    if (res.ok) setOk("Profile updated");
+    else setErr((await res.json()).error || "Failed to update");
+  }
+
+  async function onAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.files?.[0]) return;
+    const form = new FormData();
+    form.append("file", e.target.files[0]);
+    await fetch("/api/me/avatar", { method: "POST", body: form });
+  }
+
+  return (
+    <form onSubmit={onSave} className="space-y-4">
+      <h2 className="text-lg font-semibold">Profile</h2>
+      <div>
+        <label className="block text-sm mb-1">Name</label>
+        <input className="w-full rounded-lg border px-3 py-2" value={name} onChange={e=>setName(e.target.value)} />
+      </div>
+      <div>
+        <label className="block text-sm mb-1">Email</label>
+        <input className="w-full rounded-lg border px-3 py-2" type="email" value={email} onChange={e=>setEmail(e.target.value)} />
+      </div>
+      <div>
+        <label className="block text-sm mb-1">Avatar</label>
+        <input type="file" accept="image/*" onChange={onAvatar}/>
+      </div>
+      <button disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded-lg">{loading ? "Saving..." : "Save changes"}</button>
+      {ok && <p className="text-emerald-600 text-sm">{ok}</p>}
+      {err && <p className="text-red-600 text-sm">{err}</p>}
+    </form>
+  );
+}
+
+Security (password change)
+// components/forms/SecurityForm.tsx
+"use client";
+import { useState } from "react";
+
+export default function SecurityForm() {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [ok, setOk] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function changePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setOk(null); setErr(null);
+    const res = await fetch("/api/me/password", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ current, next }),
+    });
+    if (res.ok) setOk("Password updated");
+    else setErr((await res.json()).error || "Failed to update");
+  }
+
+  return (
+    <form onSubmit={changePassword} className="space-y-4">
+      <h2 className="text-lg font-semibold">Security</h2>
+      <div>
+        <label className="block text-sm mb-1">Current password</label>
+        <input className="w-full rounded-lg border px-3 py-2" type="password" value={current} onChange={e=>setCurrent(e.target.value)} />
+      </div>
+      <div>
+        <label className="block text-sm mb-1">New password</label>
+        <input className="w-full rounded-lg border px-3 py-2" type="password" value={next} onChange={e=>setNext(e.target.value)} />
+      </div>
+      <button className="px-4 py-2 bg-blue-600 text-white rounded-lg">Change password</button>
+      {ok && <p className="text-emerald-600 text-sm">{ok}</p>}
+      {err && <p className="text-red-600 text-sm">{err}</p>}
+    </form>
+  );
+}
+
+4) Settings page (preferences/notifications)
+// app/admin/settings/page.tsx
+import AccountLayout from "@/components/AccountLayout";
+import PreferencesForm from "@/components/forms/PreferencesForm";
+import { getSession } from "@/lib/auth";
+
+export default async function SettingsPage() {
+  const session = await getSession();
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/settings`, {
+    headers: { cookie: `session=${session?.token}` }, cache: "no-store"
+  });
+  const settings = await res.json();
+
+  return (
+    <AccountLayout>
+      <PreferencesForm initial={settings} />
+    </AccountLayout>
+  );
+}
+
+// components/forms/PreferencesForm.tsx
+"use client";
+import { useState } from "react";
+
+export default function PreferencesForm({ initial }: { initial: any }) {
+  const [tz, setTz] = useState(initial.timezone || "UTC");
+  const [news, setNews] = useState(!!initial.marketingEmails);
+  const [alerts, setAlerts] = useState(!!initial.securityAlerts);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    await fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ timezone: tz, marketingEmails: news, securityAlerts: alerts }),
+    });
+  }
+
+  return (
+    <form onSubmit={save} className="space-y-6">
+      <h2 className="text-lg font-semibold">Preferences</h2>
+
+      <div>
+        <label className="block text-sm mb-1">Timezone</label>
+        <select value={tz} onChange={e=>setTz(e.target.value)} className="rounded-lg border px-3 py-2">
+          <option>UTC</option>
+          <option>America/New_York</option>
+          <option>America/Los_Angeles</option>
+          <option>Europe/London</option>
+        </select>
+      </div>
+
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-medium">Notifications</legend>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={alerts} onChange={e=>setAlerts(e.target.checked)} />
+          Security alerts
+        </label>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={news} onChange={e=>setNews(e.target.checked)} />
+          Product news & tips
+        </label>
+      </fieldset>
+
+      <button className="px-4 py-2 bg-blue-600 text-white rounded-lg">Save settings</button>
+    </form>
+  );
+}
+
+5) API handlers (Next.js Route Handlers)
+
+Replace db.user with your ORM calls (Prisma/Drizzle/etc.). getSession() should return the authenticated user id.
+
+// app/api/me/route.ts
+import { NextResponse } from "next/server";
+import { getSession } from "@/lib/auth";
+import { db } from "@/lib/db";
+
+export async function GET() {
+  const session = await getSession();
+  const user = await db.user.findUnique({ where: { id: session.userId }});
+  return NextResponse.json({ id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl });
+}
+
+export async function PUT(req: Request) {
+  const session = await getSession();
+  const body = await req.json();
+  const user = await db.user.update({
+    where: { id: session.userId },
+    data: { name: body.name, email: body.email },
+  });
+  return NextResponse.json({ ok: true, user: { id: user.id, name: user.name, email: user.email } });
+}
+
+// app/api/me/password/route.ts
+import { NextResponse } from "next/server";
+import { getSession } from "@/lib/auth";
+import { db } from "@/lib/db";
+import bcrypt from "bcryptjs";
+
+export async function PUT(req: Request) {
+  const session = await getSession();
+  const { current, next } = await req.json();
+
+  const user = await db.user.findUnique({ where: { id: session.userId }});
+  const ok = await bcrypt.compare(current, user.passwordHash);
+  if (!ok) return NextResponse.json({ error: "Current password incorrect" }, { status: 400 });
+
+  const hash = await bcrypt.hash(next, 12);
+  await db.user.update({ where: { id: user.id }, data: { passwordHash: hash } });
+  return NextResponse.json({ ok: true });
+}
+
+// app/api/me/avatar/route.ts
+import { NextResponse } from "next/server";
+import { getSession } from "@/lib/auth";
+import { db } from "@/lib/db";
+
+export async function POST(req: Request) {
+  const session = await getSession();
+  const form = await req.formData();
+  const file = form.get("file") as File;
+  // TODO: upload to S3/GCS and get URL
+  const url = await uploadToStorage(file); // implement
+  await db.user.update({ where: { id: session.userId }, data: { avatarUrl: url }});
+  return NextResponse.json({ ok: true, avatarUrl: url });
+}
+
+// app/api/settings/route.ts
+import { NextResponse } from "next/server";
+import { getSession } from "@/lib/auth";
+import { db } from "@/lib/db";
+
+export async function GET() {
+  const s = await getSession();
+  const settings = await db.userSettings.findUnique({ where: { userId: s.userId }});
+  return NextResponse.json(settings ?? { timezone: "UTC", marketingEmails: false, securityAlerts: true });
+}
+
+export async function PUT(req: Request) {
+  const s = await getSession();
+  const body = await req.json();
+  const settings = await db.userSettings.upsert({
+    where: { userId: s.userId },
+    update: body,
+    create: { userId: s.userId, ...body },
+  });
+  return NextResponse.json(settings);
+}
+
+6) Express versions (if you’re not on Next.js)
+// routes/account.js
+const router = require("express").Router();
+const requireAuth = require("../middleware/requireAuth");
+const db = require("../lib/db");
+const bcrypt = require("bcryptjs");
+
+router.get("/api/me", requireAuth, async (req, res) => {
+  const user = await db.user.findByPk(req.user.id);
+  res.json({ id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl });
+});
+
+router.put("/api/me", requireAuth, async (req, res) => {
+  const { name, email } = req.body;
+  const user = await db.user.update({ where: { id: req.user.id }, data: { name, email }});
+  res.json({ ok: true, user });
+});
+
+router.put("/api/me/password", requireAuth, async (req, res) => {
+  const { current, next } = req.body;
+  const user = await db.user.findByPk(req.user.id);
+  const ok = await bcrypt.compare(current, user.passwordHash);
+  if (!ok) return res.status(400).json({ error: "Current password incorrect" });
+  const hash = await bcrypt.hash(next, 12);
+  await db.user.update({ where: { id: user.id }, data: { passwordHash: hash }});
+  res.json({ ok: true });
+});
+
+router.post("/api/me/avatar", requireAuth, async (req, res) => {
+  // parse multipart/form-data, upload to storage, save URL
+  res.json({ ok: true, avatarUrl: "https://..." });
+});
+
+router.get("/api/settings", requireAuth, async (req, res) => {
+  const s = await db.userSettings.findUnique({ where: { userId: req.user.id }});
+  res.json(s ?? { timezone: "UTC", marketingEmails: false, securityAlerts: true });
+});
+
+router.put("/api/settings", requireAuth, async (req, res) => {
+  const s = await db.userSettings.upsert({ where: { userId: req.user.id }, update: req.body, create: { userId: req.user.id, ...req.body }});
+  res.json(s);
+});
+
+module.exports = router;
+
+7) Access control & polish
+
+Protect /admin/* with a requireAuth guard.
+
+Validate inputs (e.g., with Zod) before DB writes.
+
+Add toasts on success/error.
+
+Consider email change verification flow.
+
+Log profile/security changes to your Tamper-Evident Audit.

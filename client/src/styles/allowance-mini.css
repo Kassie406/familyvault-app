@@ -1,0 +1,9 @@
+/* Scoped to the Allowance mini card */
+
+/* Add gold glow on hover - matches luxury theme */
+#allowance-mini:hover {
+  border-color: rgba(212,175,55,0.40) !important;
+  box-shadow:
+    0 0 0 1px rgba(212,175,55,.35),
+    0 18px 50px rgba(212,175,55,.12) !important;
+}

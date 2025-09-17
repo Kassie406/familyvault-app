@@ -1,0 +1,219 @@
+here’s a clean Bulk Actions pattern for the Coupons table: header checkbox, per-row checkboxes, a smart toolbar that appears when items are selected, and handlers for Enable / Disable / Archive / Export CSV. Drop this in and it’ll “just work” with your existing table.
+
+🎯 Bulk Select + Actions (Coupons)
+1) HTML — add a checkbox column
+
+Update your table header + rows:
+
+<table class="table" id="coupons-table">
+  <thead>
+    <tr>
+      <th style="width:36px">
+        <input type="checkbox" id="select-all" aria-label="Select all coupons" />
+      </th>
+      <th>Code</th>
+      <th>Type</th>
+      <th>Value</th>
+      <th>Applies To</th>
+      <th>Usage</th>
+      <th>Expiration</th>
+      <th>Status</th>
+      <th class="col-actions">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Example row -->
+    <tr data-id="c_welcome10" data-status="active" data-type="percent" data-plans="*" data-code="WELCOME10" data-value="10% off">
+      <td><input type="checkbox" class="row-check" aria-label="Select WELCOME10" /></td>
+      <td><strong>WELCOME10</strong></td>
+      <td><span class="badge">Percent</span></td>
+      <td>10% off</td>
+      <td>All Plans</td>
+      <td>143 / ∞</td>
+      <td>12/31/2025</td>
+      <td><span class="badge badge-status-active">Active</span></td>
+      <td class="col-actions">
+        <!-- existing row actions -->
+      </td>
+    </tr>
+    <!-- repeat for the rest -->
+  </tbody>
+</table>
+
+2) Bulk actions toolbar (appears when items are selected)
+
+Place this above the table (or sticky to bottom if you prefer):
+
+<div id="bulk-bar" class="bulk-bar" hidden>
+  <div class="bulk-left">
+    <strong id="bulk-count">0 selected</strong>
+  </div>
+  <div class="bulk-right">
+    <button class="btn ghost" id="bulk-enable">Enable</button>
+    <button class="btn ghost" id="bulk-disable">Disable</button>
+    <button class="btn ghost danger" id="bulk-archive">Archive</button>
+    <div class="divider"></div>
+    <button class="btn ghost" id="bulk-export">Export CSV</button>
+    <button class="btn ghost" id="bulk-clear">Clear</button>
+  </div>
+</div>
+
+3) CSS (matches your theme)
+/* Checkbox alignment */
+#coupons-table input[type="checkbox"]{width:16px;height:16px;cursor:pointer}
+
+/* Bulk bar */
+.bulk-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  background:#fff;border:1px solid #E5EAF2;border-radius:12px;padding:10px 12px;margin:10px 0;
+  box-shadow:0 2px 10px rgba(16,24,40,.06)
+}
+.bulk-right{display:flex;gap:8px;align-items:center}
+.bulk-right .divider{width:1px;height:20px;background:#E5EAF2}
+.btn.danger{border-color:#F3C3C3;color:#B42318}
+.btn.danger:hover{background:#FEECEC}
+
+/* Optional: highlight selected rows */
+tr.is-selected{background:#F7FAFF}
+
+4) JS — select all, per-row select, actions
+<script>
+(function(){
+  const table = document.getElementById('coupons-table');
+  const selectAll = document.getElementById('select-all');
+  const bulkBar = document.getElementById('bulk-bar');
+  const bulkCount = document.getElementById('bulk-count');
+
+  const btnEnable  = document.getElementById('bulk-enable');
+  const btnDisable = document.getElementById('bulk-disable');
+  const btnArchive = document.getElementById('bulk-archive');
+  const btnExport  = document.getElementById('bulk-export');
+  const btnClear   = document.getElementById('bulk-clear');
+
+  const checks = () => [...table.querySelectorAll('tbody .row-check')];
+  const rows   = () => [...table.querySelectorAll('tbody tr[data-id]')];
+
+  function updateUI(){
+    const selected = checks().filter(c => c.checked).map(c => c.closest('tr'));
+    const n = selected.length;
+    bulkBar.hidden = (n === 0);
+    bulkCount.textContent = `${n} selected`;
+    // row highlight
+    rows().forEach(r => r.classList.toggle('is-selected', r.querySelector('.row-check')?.checked));
+    // tri-state select-all
+    const total = checks().length, checked = n;
+    selectAll.indeterminate = (checked > 0 && checked < total);
+    selectAll.checked = (checked === total && total > 0);
+  }
+
+  // master checkbox
+  selectAll.addEventListener('input', () => {
+    const val = selectAll.checked;
+    checks().forEach(c => { c.checked = val; });
+    updateUI();
+  });
+
+  // per-row
+  table.addEventListener('input', (e)=>{
+    if (e.target.classList.contains('row-check')) updateUI();
+  });
+
+  // Clear selection
+  btnClear.addEventListener('click', ()=>{
+    checks().forEach(c => c.checked = false);
+    updateUI();
+  });
+
+  // Helpers
+  const selectedIds = () =>
+    checks().filter(c=>c.checked).map(c=>c.closest('tr').dataset.id);
+
+  async function confirmAndRun(label, fn){
+    const ids = selectedIds();
+    if (!ids.length) return;
+    if (!confirm(`${label} ${ids.length} coupon(s)?`)) return;
+    await fn(ids); // call your API here
+    // Demo: update UI state locally
+    if (label.startsWith('Disable')) {
+      ids.forEach(id=>{
+        const r = table.querySelector(`tr[data-id="${id}"]`);
+        r.dataset.status = 'disabled';
+        r.querySelector('td:nth-last-child(2) .badge').className = 'badge badge-status-disabled';
+        r.querySelector('td:nth-last-child(2) .badge').textContent = 'Disabled';
+      });
+    }
+    if (label.startsWith('Enable')) {
+      ids.forEach(id=>{
+        const r = table.querySelector(`tr[data-id="${id}"]`);
+        r.dataset.status = 'active';
+        r.querySelector('td:nth-last-child(2) .badge').className = 'badge badge-status-active';
+        r.querySelector('td:nth-last-child(2) .badge').textContent = 'Active';
+      });
+    }
+    if (label.startsWith('Archive')) {
+      ids.forEach(id=>{
+        const r = table.querySelector(`tr[data-id="${id}"]`);
+        r.remove(); // or mark archived visually
+      });
+    }
+    checks().forEach(c=>c.checked=false);
+    updateUI();
+  }
+
+  // Wire actions (replace console.log with real fetch calls)
+  btnEnable.addEventListener('click', ()=>confirmAndRun('Enable', async (ids)=>{
+    console.log('Enable coupons →', ids);
+    // await fetch('/api/admin/coupons/bulk-enable', {method:'POST', body:JSON.stringify({ids})});
+  }));
+  btnDisable.addEventListener('click', ()=>confirmAndRun('Disable', async (ids)=>{
+    console.log('Disable coupons →', ids);
+  }));
+  btnArchive.addEventListener('click', ()=>confirmAndRun('Archive', async (ids)=>{
+    console.log('Archive coupons →', ids);
+  }));
+
+  // Export CSV of selected rows
+  btnExport.addEventListener('click', ()=>{
+    const ids = selectedIds();
+    if (!ids.length) return;
+    const headers = ['id','code','type','value','plans','usage','expires','status'];
+    const csvRows = [headers.join(',')];
+    ids.forEach(id=>{
+      const r = table.querySelector(`tr[data-id="${id}"]`);
+      const code = (r.dataset.code||'').replace(/,/g,'');
+      const type = r.dataset.type||'';
+      const value = (r.dataset.value||'').replace(/,/g,'');
+      const plans = (r.dataset.plans||'').replace(/,/g,';');
+      const usage = r.children[5].textContent.trim().replace(/,/g,'');
+      const expires = r.children[6].textContent.trim();
+      const status = r.dataset.status||'';
+      csvRows.push([id,code,type,value,plans,usage,expires,status].join(','));
+    });
+    const blob = new Blob([csvRows.join('\n')], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `coupons_export_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  });
+
+  updateUI();
+})();
+</script>
+
+Backend endpoints (suggested)
+
+POST /api/admin/coupons/bulk-enable { ids: string[] }
+
+POST /api/admin/coupons/bulk-disable { ids: string[] }
+
+POST /api/admin/coupons/bulk-archive { ids: string[] }
+
+Return the updated status per ID so the UI can reflect reality.
+
+Lawyer hat (quick compliance nudge)
+
+End dates & eligibility: your consumer-facing terms should state coupon validity, limits (per customer), and whether coupons stack.
+
+Truth-in-pricing: ensure discounts are applied to bona fide prices and shown before checkout confirmation.
+
+Recordkeeping: keep an audit trail of bulk changes (who enabled/disabled which codes, when, and why).

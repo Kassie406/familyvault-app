@@ -1,0 +1,233 @@
+rop-in Re-authenticate (step-up) flow so protected actions (downloads/shares/billing) can prompt a small modal when the API returns re_auth_required. It supports Passkey (WebAuthn) first, with TOTP fallback.
+
+1) Server: step-up endpoints
+
+Add these to app.js (or an authStepUp.js router) and reuse your existing helpers:
+
+// app.js (add near other routes)
+const { csrfProtection } = require('./security');
+const { markStrongAuth } = require('./highrisk');
+const { pool } = require('./db');
+const { authenticator } = require('otplib');
+const {
+  generateAuthenticationOptions,
+  verifyAuthenticationResponse,
+} = require('@simplewebauthn/server');
+
+const rpID = process.env.RP_ID;
+const allowedOrigins = (process.env.RP_ORIGINS || '').split(',').map(s=>s.trim());
+
+function originOK(origin){ return allowedOrigins.includes(origin); }
+
+/** 1) Start passkey step-up (assertion options) */
+app.get('/api/stepup/webauthn/options', async (req,res) => {
+  if (!req.session?.userId) return res.status(401).json({ error:'auth_required' });
+  const opts = await generateAuthenticationOptions({
+    rpID,
+    timeout: 60_000,
+    userVerification: 'required',     // stronger UX for step-up
+  });
+  req.session.stepUpChallenge = opts.challenge;
+  res.json(opts);
+});
+
+/** 2) Verify passkey step-up */
+app.post('/api/stepup/webauthn/verify', csrfProtection(), async (req,res) => {
+  if (!req.session?.userId) return res.status(401).json({ error:'auth_required' });
+  const challenge = req.session.stepUpChallenge;
+  if (!challenge) return res.status(400).json({ error:'no_challenge' });
+
+  const client = await pool.connect();
+  try {
+    const origin = req.get('origin');
+    if (!originOK(origin)) return res.status(400).json({ error:'bad_origin' });
+
+    // find credential by id
+    const credId = Buffer.from(req.body.id.replace(/-/g,'+').replace(/_/g,'/'), 'base64');
+    const { rows } = await client.query(
+      `SELECT credential_id, public_key, counter FROM webauthn_credentials WHERE user_id=$1 AND credential_id=$2 LIMIT 1`,
+      [req.session.userId, credId]
+    );
+    if (!rows[0]) return res.status(400).json({ error:'unknown_credential' });
+
+    const verification = await verifyAuthenticationResponse({
+      response: req.body,
+      expectedRPID: rpID,
+      expectedOrigin: origin,
+      expectedChallenge: challenge,
+      authenticator: {
+        credentialID: rows[0].credential_id,
+        credentialPublicKey: rows[0].public_key,
+        counter: Number(rows[0].counter),
+      },
+    });
+    if (!verification.verified) return res.status(401).json({ error:'not_verified' });
+
+    // update counter & mark recent strong auth
+    await client.query(`UPDATE webauthn_credentials SET counter=$1 WHERE user_id=$2 AND credential_id=$3`,
+      [verification.authenticationInfo.newCounter, req.session.userId, rows[0].credential_id]);
+
+    markStrongAuth(req);
+    delete req.session.stepUpChallenge;
+    res.json({ ok:true });
+  } finally { client.release(); }
+});
+
+/** 3) TOTP step-up (fallback) */
+app.post('/api/stepup/totp/verify', csrfProtection(), async (req,res) => {
+  if (!req.session?.userId) return res.status(401).json({ error:'auth_required' });
+  const { otp } = req.body || {};
+  if (!otp) return res.status(400).json({ error:'otp_required' });
+
+  const client = await pool.connect();
+  try {
+    const { rows } = await client.query(`SELECT mfa_secret FROM users WHERE id=$1`, [req.session.userId]);
+    const secret = rows[0]?.mfa_secret;
+    if (!secret) return res.status(400).json({ error:'mfa_not_enabled' });
+
+    const ok = authenticator.check(otp, secret);
+    if (!ok) return res.status(401).json({ error:'invalid_otp' });
+
+    markStrongAuth(req);
+    res.json({ ok:true });
+  } finally { client.release(); }
+});
+
+2) Front-end: reusable Step-Up Modal
+
+Drop this HTML/JS into your global layout (or a small component used by protected pages). It tries Passkey first; if the browser doesn’t support it or verification fails, it falls back to TOTP input.
+
+<!-- Step-Up Modal -->
+<div id="stepup-modal" class="fixed inset-0 hidden items-center justify-center z-50">
+  <div class="absolute inset-0 bg-black/60"></div>
+  <div class="relative w-full max-w-md rounded-2xl bg-neutral-900 border border-neutral-800 p-6">
+    <h3 class="text-lg font-semibold text-neutral-100">Confirm it’s you</h3>
+    <p class="mt-1 text-sm text-neutral-400">For this sensitive action, please verify with a passkey or your 6-digit code.</p>
+
+    <div id="stepup-passkey" class="mt-4">
+      <button id="btn-stepup-passkey" class="btn btn-primary w-full">Use passkey</button>
+    </div>
+
+    <div class="mt-4">
+      <label class="text-sm text-neutral-300">Or enter 6-digit code</label>
+      <div class="mt-2 flex gap-2">
+        <input id="stepup-otp" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+               class="w-full rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-2 text-neutral-100 tracking-widest text-center"
+               placeholder="••••••">
+        <button id="btn-stepup-otp" class="btn">Verify</button>
+      </div>
+      <p id="stepup-error" class="mt-2 text-sm text-rose-400 hidden"></p>
+    </div>
+
+    <button id="stepup-cancel" class="btn btn-ghost mt-4 w-full">Cancel</button>
+  </div>
+</div>
+
+<style>
+  .btn{ padding:.6rem .9rem; border-radius:.75rem; font-weight:600; }
+  .btn-primary{ background:#eab308; color:#0a0a0a; }
+  .btn-ghost{ background:transparent; color:#e5e7eb; }
+</style>
+
+<script type="module">
+  import { startAuthentication } from 'https://cdn.skypack.dev/@simplewebauthn/browser';
+
+  const M = document.querySelector('#stepup-modal');
+  const E = s => document.querySelector(s);
+  const show = () => (M.classList.remove('hidden'), M.classList.add('flex'));
+  const hide = () => (M.classList.add('hidden'), M.classList.remove('flex'));
+  const err = msg => { const e=E('#stepup-error'); e.textContent=msg||''; e.classList.toggle('hidden',!msg); };
+
+  async function passkeyStepUp() {
+    err('');
+    try {
+      const opts = await fetch('/api/stepup/webauthn/options', { credentials:'include' }).then(r=>r.json());
+      const assertion = await startAuthentication(opts);
+      const r = await fetch('/api/stepup/webauthn/verify', {
+        method:'POST', credentials:'include',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(assertion)
+      });
+      if (r.ok) { hide(); window.dispatchEvent(new CustomEvent('stepup:ok')); return; }
+      const j = await r.json().catch(()=>({}));
+      err(j.error || 'Passkey verification failed');
+    } catch (e) {
+      err('Passkey not available on this device/browser');
+    }
+  }
+
+  async function totpStepUp() {
+    err('');
+    const otp = (E('#stepup-otp').value || '').trim();
+    if (otp.length !== 6) return err('Enter your 6-digit code');
+    const r = await fetch('/api/stepup/totp/verify', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ otp })
+    });
+    if (r.ok) { hide(); window.dispatchEvent(new CustomEvent('stepup:ok')); }
+    else {
+      const j = await r.json().catch(()=>({}));
+      err(j.error || 'Invalid code');
+    }
+  }
+
+  E('#btn-stepup-passkey').addEventListener('click', passkeyStepUp);
+  E('#btn-stepup-otp').addEventListener('click', totpStepUp);
+  E('#stepup-cancel').addEventListener('click', ()=>{ hide(); window.dispatchEvent(new CustomEvent('stepup:cancel')); });
+
+  // Export helpers to open the modal from your app code:
+  window.openStepUpModal = () => { E('#stepup-otp').value=''; err(''); show(); };
+</script>
+
+3) Client helper: automatically show modal on re_auth_required
+
+Wrap your fetch calls to sensitive endpoints so if the server replies 401 { error: "re_auth_required" }, you open the modal, wait for success, then retry the original request.
+
+<script>
+  async function secureFetch(url, opts = {}) {
+    const go = async () => {
+      const r = await fetch(url, { credentials:'include', ...opts });
+      if (r.status !== 401) return r;
+      let j = {};
+      try { j = await r.clone().json(); } catch {}
+      if (j.error === 're_auth_required') {
+        await new Promise(resolve => {
+          window.addEventListener('stepup:ok', resolve, { once:true });
+          window.openStepUpModal();
+        });
+        // retry once after successful step-up
+        return fetch(url, { credentials:'include', ...opts });
+      }
+      return r;
+    };
+    return go();
+  }
+
+  // Example usage:
+  async function downloadDoc(id) {
+    const r = await secureFetch(`/api/storage/download-url/${id}`);
+    if (!r.ok) { alert('Unable to download'); return; }
+    const { url } = await r.json();
+    location.href = url;
+  }
+</script>
+
+4) Wire guards you already added
+
+You’ve already protected sensitive endpoints with:
+
+const { guardFor } = require('./middleware/sensitiveGuard');
+app.get('/api/storage/download-url/:docId', requireAuth, guardFor('download'), handler);
+app.post('/api/shares/create', requireAuth, guardFor('share'), handler);
+
+
+When guardFor() + requireRecentReauth detect an expired strong auth, they return 401 re_auth_required. The client wrapper shows the modal and retries—smooth UX, no page reloads.
+
+Done — you now have:
+
+Passkey/TOTP step-up for critical actions, in a small modal.
+
+Auto-handling on the client: intercepts re_auth_required and retries after success.
+
+Keeps your gold/charcoal style and doesn’t introduce heavy dependencies.

@@ -1,0 +1,86 @@
+your Upload Center layout matches the new Trustworthy-style flow you and I just set up. You’ve got the key pieces in the right spots:
+
+Mode dropdown (Auto (Hybrid)) ✅
+
+Primary action (Analyze with AI) ✅
+
+Secondary action (AI Document Analysis) chip ✅
+
+Security badge (“Encrypted in transit”) ✅
+
+Title / Category / Description fields ✅
+
+Drag-and-drop upload zone + action row (Mobile Upload / Select Files / Upload / Clear) ✅
+
+Where you’re still missing a couple things to fully mirror the behavior we built:
+
+Inbox + result cards (left column)
+
+Shows the uploaded file immediately, spinner while analyzing, then a ⚡ Details {n} button and “Suggested destination” chips.
+
+This is the biggest UX element Trustworthy users rely on.
+
+Details modal
+
+Opens from ⚡ Details, shows “Suggested filename” banner and the Details / Summary tabs with extracted fields and “Copy all / Edit”.
+
+Zap icon + count next to any “AI Suggestions” references
+
+E.g., the ⚡ button on the Inbox card and the count badge in the modal tab (we already have this in the code).
+
+Wire the mode dropdown to the backend
+
+Pass mode: 'auto' | 'id' | 'forms' | 'tables' with the file to your API (we handled this in the Lambda/proxy).
+
+Right now your UI shows “Auto (Hybrid)”, just make sure the value going to the API is "auto".
+
+Upload (0) counter
+
+Increment to “Upload (1)” when a file is selected (before analyze), reset after submit/clear.
+
+Disable SSN masking
+
+Confirm your Lambda keeps raw values (the sample Lambda I gave you already does).
+
+Quick hooks you can drop in
+1) Actions bar wiring (mode + analyze)
+// keep selected mode in state:
+const [mode, setMode] = useState('auto');
+
+// dropdown -> sets mode used on analyze
+<Select value={mode} onValueChange={setMode}>
+  <SelectItem value="auto">Auto (Hybrid)</SelectItem>
+  <SelectItem value="id">ID (AnalyzeID)</SelectItem>
+  <SelectItem value="forms">Forms (FORMS)</SelectItem>
+  <SelectItem value="tables">Tables (TABLES)</SelectItem>
+</Select>
+
+// Analyze button onClick => call the same handler you use after file choose
+<Button onClick={() => uploadedFile && analyzeDocument(uploadedFile, mode)}>
+  <Zap className="w-4 h-4 mr-2" /> Analyze with AI
+</Button>
+
+2) Upload counter
+<Button className="bg-yellow-600 hover:bg-yellow-700">
+  Upload ({selectedFiles.length})
+</Button>
+
+3) Show Inbox with ⚡ Details
+
+Place this left of the Upload Center (or in a drawer) and feed it from your upload state:
+
+{inboxItems.map(item => (
+  <Card key={item.id} className="p-3">
+    {/* thumbnail + name + size */}
+    {item.isAnalyzing ? (
+      <div className="mt-2 flex items-center gap-2">
+        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <span className="text-xs text-blue-400">Analyzing…</span>
+      </div>
+    ) : (
+      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openDetailsModal(item)}>
+        <Zap className="w-3 h-3 mr-1" /> Details {item.analysis.detailsCount}
+      </Button>
+    )}
+  </Card>
+))}

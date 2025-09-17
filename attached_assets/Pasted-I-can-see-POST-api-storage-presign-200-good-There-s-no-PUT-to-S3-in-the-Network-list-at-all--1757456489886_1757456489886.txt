@@ -1,0 +1,161 @@
+I can see:
+
+POST /api/storage/presign = 200 (good)
+
+There’s no PUT to S3 in the Network list at all.
+
+The file tile shows “Failed to fetch” and the toast says the same.
+
+When presign succeeds but there’s no S3 PUT request, the browser is blocking the request before it even leaves the page. That almost always boils down to one of the following:
+
+Wrong fetch options (e.g., sending cookies or missing mode:'cors')
+
+Mixed content (you’re trying to PUT to http://… from an https:// page)
+
+Content-Type mismatch between presign and PUT (browser blocks preflight or S3 rejects, but you don’t see the error because fetch is failing early)
+
+Preview iframe / extension blocking (but you’re already in a full tab, so less likely)
+
+Below is a tight, do-this-now sequence that both diagnoses and, if needed, patches the exact place that causes “Failed to fetch”.
+
+A) Quick inline test (proves browser → S3 works)
+
+Open DevTools → Console on your app (not the Replit preview iframe; your standalone tab is fine) and paste this:
+
+(async () => {
+  // 1) Make a tiny test blob
+  const blob = new Blob(['hello'], { type: 'text/plain' });
+
+  // 2) Ask your server for a presigned URL
+  const presignRes = await fetch('/api/storage/presign', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fileName: 'test.txt',
+      contentType: 'text/plain',
+      type: 'document',  // or 'photo' depending on which bucket you want to hit
+    }),
+  });
+
+  console.log('presign status:', presignRes.status);
+  const { uploadUrl } = await presignRes.json();
+  console.log('uploadUrl:', uploadUrl);
+
+  // Sanity check – MUST be https:
+  if (!uploadUrl.startsWith('https://')) {
+    console.error('❌ Presigned URL is not https. Mixed content will be blocked.');
+    return;
+  }
+
+  // 3) PUT to S3 with the **exact** fetch options we need
+  const putRes = await fetch(uploadUrl, {
+    method: 'PUT',
+    mode: 'cors',
+    credentials: 'omit',                   // critical: do NOT send cookies
+    headers: { 'Content-Type': 'text/plain' }, // must match what you presigned
+    body: blob,
+  });
+
+  // 4) Log what S3 says
+  console.log('PUT status:', putRes.status, putRes.statusText);
+  const text = await putRes.text();
+  console.log('PUT body:', text);
+})();
+
+
+Outcomes
+
+If you see 200 on the PUT: the browser and CORS are fine. The issue is in your Upload Center code path (see Section B fix).
+
+If you get a console error like Mixed Content: your presign endpoint is returning an http:// URL—fix server to return https://.
+
+If you get 403 SignatureDoesNotMatch: your Content-Type on the PUT doesn’t match the one you used to presign (fix in both places to use file.type || 'application/octet-stream').
+
+If you get CORS preflight errors: something is still off in bucket CORS (check for Access-Control-Allow-Origin/-Methods in the OPTIONS response).
+
+B) Front-end: make sure we send the correct fetch (this is the #1 reason for “Failed to fetch”)
+
+In the code that actually uploads (your usePresignedUpload hook / upload handler), the PUT must look exactly like this:
+
+// given: const { uploadUrl } = await presign(...)
+
+await fetch(uploadUrl, {
+  method: 'PUT',
+  mode: 'cors',                // REQUIRED
+  credentials: 'omit',         // REQUIRED (do not send cookies to S3)
+  headers: {
+    'Content-Type': file.type || 'application/octet-stream', // MUST match presign
+  },
+  body: file,
+});
+
+
+Also log what you’re sending so we can see it in the console:
+
+console.log('Uploading to:', uploadUrl);
+console.log('Headers Content-Type:', file.type || 'application/octet-stream');
+
+
+If you don’t see the PUT in Network, you’ll see a console error—copy that to me if it persists.
+
+C) Server (presign) must sign with the same ContentType you’ll use on PUT
+
+With AWS SDK v3 (Node):
+
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+const s3 = new S3Client({ region: process.env.S3_REGION });
+
+export async function presignHandler(req, res) {
+  const { fileName, contentType, type } = req.body; // type: 'photo' | 'document'
+  const Bucket = type === 'photo'
+    ? process.env.SS_BUCKET_PHOTOS
+    : process.env.SS_BUCKET_DOCS;
+
+  const command = new PutObjectCommand({
+    Bucket,
+    Key: fileName,
+    ContentType: contentType || 'application/octet-stream',
+  });
+
+  const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 60 }); // 60s is fine
+  res.json({ uploadUrl });
+}
+
+
+Make sure you pass file.type from the UI to this endpoint, and you reuse that exact value in the PUT.
+
+D) CORS that we now want on both buckets (final state)
+[
+  {
+    "AllowedOrigins": ["*"],
+    "AllowedMethods": ["GET", "PUT", "HEAD", "POST"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3000
+  }
+]
+
+
+(You already fixed this—just confirming the canonical version.)
+
+E) Why your Network shows no PUT
+
+That always means the browser didn’t send it. The only reasons for that are:
+
+Mixed content (http presigned URL) → hard block, “Failed to fetch”.
+
+Bad fetch options (no mode:"cors", credentials:"include") → blocked preflight / fetch fails before request.
+
+An extension blocking the request (rare; try Incognito).
+
+The code path never calls fetch (add the console.log('Uploading to:', uploadUrl) to be sure).
+
+F) What to do right now
+
+Paste the console test from (A). Tell me the two lines: PUT status: and PUT body: (or any console error you see).
+
+In your uploader code, ensure the exact fetch in (B). Add the two console.log lines. Try again and check Network for the PUT (or Console for a blocking error).
+
+Once we see either a 200 or a specific S3 XML error body, we’ll be 100% done. If the test in (A) returns 200 but the UI still fails, I’ll give you a tiny patch for the Upload Center to guarantee the right fetch path.

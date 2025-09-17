@@ -1,0 +1,494 @@
+let’s add the Meal Planner → Shopping List MVP. It plugs into your dark/gold look and keeps things simple for a husband–wife + kids setup.
+
+1) Server
+1.1 Prisma models
+// prisma/schema.prisma (append)
+
+model Recipe {
+  id         String   @id @default(cuid())
+  familyId   String
+  title      String
+  notes      String?
+  // Comma-separated or JSON string of ingredients (MVP-friendly)
+  ingredients String   // e.g. "chicken breast x2, garlic 3 cloves, rice 1 cup"
+  createdById String
+  createdAt   DateTime @default(now())
+  @@index([familyId, createdAt])
+}
+
+model MealPlanEntry {
+  id         String   @id @default(cuid())
+  familyId   String
+  date       DateTime    // day (ignore time)
+  mealType   MealType    // breakfast|lunch|dinner|snack
+  recipeId   String?
+  title      String?     // free-text if no recipe chosen (e.g., "Pizza night")
+  createdById String
+  createdAt   DateTime @default(now())
+  // relations
+  recipe     Recipe?  @relation(fields: [recipeId], references: [id])
+  @@index([familyId, date, mealType])
+}
+
+model ShoppingItem {
+  id        String   @id @default(cuid())
+  familyId  String
+  name      String
+  qty       String?     // "2", "1 lb", "3 cloves"
+  checked   Boolean  @default(false)
+  source    String?     // e.g., recipe title or "Manual"
+  createdAt DateTime @default(now())
+  @@index([familyId, createdAt])
+}
+
+enum MealType { breakfast lunch dinner snack }
+
+
+Run:
+
+npx prisma migrate dev -n meal_planner_mvp
+
+1.2 Routes
+// src/routes/recipes.ts
+import { Router } from "express";
+import { prisma } from "../prisma";
+import { requireAuth } from "../middleware/auth";
+export const recipes = Router();
+recipes.use(requireAuth);
+
+// List recipes (family)
+recipes.get("/", async (req: any, res) => {
+  const rows = await prisma.recipe.findMany({
+    where: { familyId: req.user.familyId },
+    orderBy: { createdAt: "desc" },
+    take: 100,
+  });
+  res.json(rows);
+});
+
+// Create recipe (quick add)
+recipes.post("/", async (req: any, res) => {
+  const { title, notes, ingredients } = req.body;
+  if (!title || !ingredients) return res.status(400).json({ error: "title & ingredients required" });
+  const row = await prisma.recipe.create({
+    data: {
+      familyId: req.user.familyId,
+      title: String(title).trim(),
+      notes: (notes ?? "").trim() || null,
+      ingredients: String(ingredients).trim(), // MVP: plain string
+      createdById: req.user.id,
+    },
+  });
+  res.status(201).json(row);
+});
+
+export default recipes;
+
+// src/routes/mealplan.ts
+import { Router } from "express";
+import { prisma } from "../prisma";
+import { requireAuth } from "../middleware/auth";
+
+export const mealplan = Router();
+mealplan.use(requireAuth);
+
+// Helper: normalize date to midnight local (store as Date)
+function atMidnight(d: Date) { const x = new Date(d); x.setHours(0,0,0,0); return x; }
+
+// Get a week view starting from ?start=YYYY-MM-DD (defaults to today’s Monday)
+mealplan.get("/week", async (req: any, res) => {
+  const startParam = req.query.start as string | undefined;
+  const now = startParam ? new Date(startParam) : new Date();
+  const day = now.getDay(); // 0 Sun … 6 Sat
+  const monday = new Date(now); monday.setDate(now.getDate() - ((day+6)%7)); monday.setHours(0,0,0,0);
+  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6); sunday.setHours(23,59,59,999);
+
+  const entries = await prisma.mealPlanEntry.findMany({
+    where: { familyId: req.user.familyId, date: { gte: monday, lte: sunday } },
+    include: { recipe: true },
+    orderBy: [{ date: "asc" }, { mealType: "asc" }],
+  });
+
+  res.json({ start: monday, end: sunday, entries });
+});
+
+// Set a meal (by day + mealType). If recipeId provided, link recipe; else use title.
+mealplan.post("/set", async (req: any, res) => {
+  const { date, mealType, recipeId, title } = req.body as { date: string; mealType: string; recipeId?: string; title?: string };
+  if (!date || !mealType) return res.status(400).json({ error: "date & mealType required" });
+
+  const day = atMidnight(new Date(date));
+  // Ensure single entry per day+mealType (upsert)
+  const row = await prisma.mealPlanEntry.upsert({
+    where: {
+      familyId_date_mealType: undefined as any, // Prisma needs a unique; if you prefer, create @@unique([familyId, date, mealType])
+    },
+    create: {
+      familyId: req.user.familyId,
+      date: day,
+      mealType,
+      recipeId: recipeId || null,
+      title: recipeId ? null : (title?.trim() || null),
+      createdById: req.user.id,
+    },
+    update: {
+      recipeId: recipeId || null,
+      title: recipeId ? null : (title?.trim() || null),
+    },
+  } as any); // (use a proper unique in real schema)
+  res.json(row);
+});
+
+// Generate shopping list for the current week from planned recipes
+mealplan.post("/generate-shopping-list", async (req: any, res) => {
+  const startParam = req.body.start as string | undefined;
+  const now = startParam ? new Date(startParam) : new Date();
+  const day = now.getDay();
+  const monday = new Date(now); monday.setDate(now.getDate() - ((day+6)%7)); monday.setHours(0,0,0,0);
+  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6); sunday.setHours(23,59,59,999);
+
+  const entries = await prisma.mealPlanEntry.findMany({
+    where: { familyId: req.user.familyId, date: { gte: monday, lte: sunday }, NOT: { recipeId: null } },
+    include: { recipe: true },
+  });
+
+  // Parse ingredients lines from each recipe (MVP: line-split, keep as-is)
+  const items: { name: string; qty?: string; source: string }[] = [];
+  for (const e of entries) {
+    const source = e.recipe?.title || "Meal";
+    const lines = (e.recipe?.ingredients || "").split(/\n|,/).map(s=>s.trim()).filter(Boolean);
+    for (const line of lines) {
+      // naive parse: split on first space to get qty; you can improve later
+      items.push({ name: line, qty: undefined, source });
+    }
+  }
+
+  // Create unchecked shopping items (don’t duplicate exact same name+source in one go)
+  if (items.length) {
+    await prisma.$transaction(items.map(it => prisma.shoppingItem.create({
+      data: { familyId: req.user.familyId, name: it.name, qty: it.qty || null, checked: false, source: it.source }
+    })));
+  }
+  res.json({ added: items.length });
+});
+
+// Shopping list endpoints
+mealplan.get("/shopping", async (req: any, res) => {
+  const rows = await prisma.shoppingItem.findMany({
+    where: { familyId: req.user.familyId },
+    orderBy: [{ checked: "asc" }, { createdAt: "asc" }],
+  });
+  res.json(rows);
+});
+
+mealplan.post("/shopping", async (req: any, res) => {
+  const { name, qty } = req.body as { name: string; qty?: string };
+  if (!name) return res.status(400).json({ error: "name required" });
+  const row = await prisma.shoppingItem.create({
+    data: { familyId: req.user.familyId, name: name.trim(), qty: qty?.trim() || null, source: "Manual" }
+  });
+  res.status(201).json(row);
+});
+
+mealplan.patch("/shopping/:id", async (req: any, res) => {
+  const { checked } = req.body as { checked?: boolean };
+  const row = await prisma.shoppingItem.update({
+    where: { id: req.params.id },
+    data: { checked: Boolean(checked) },
+  });
+  res.json(row);
+});
+
+mealplan.delete("/shopping/:id", async (req: any, res) => {
+  await prisma.shoppingItem.delete({ where: { id: req.params.id } });
+  res.json({ ok: true });
+});
+
+export default mealplan;
+
+
+Wire up routes:
+
+// src/server.ts
+import recipes from "./routes/recipes";
+import mealplan from "./routes/mealplan";
+app.use("/api/recipes", recipes);
+app.use("/api/mealplan", mealplan);
+
+
+Note: For a production-strong upsert on (familyId, date, mealType), add a Prisma unique:
+
+@@unique([familyId, date, mealType], name: "family_day_meal_unique")
+
+
+and then use that in the upsert where.
+
+2) Client (React)
+2.1 Meal Planner (Week) card
+// src/components/MealPlannerWeek.tsx
+import { useEffect, useMemo, useState } from "react";
+import { api } from "../lib/api";
+
+type Recipe = { id: string; title: string; ingredients: string };
+type Entry = { id: string; date: string; mealType: "breakfast"|"lunch"|"dinner"|"snack"; title?: string; recipe?: Recipe; recipeId?: string };
+
+function startOfWeek(d = new Date()) {
+  const day = d.getDay();
+  const monday = new Date(d); monday.setDate(d.getDate() - ((day+6)%7)); monday.setHours(0,0,0,0);
+  return monday;
+}
+function dayPlus(d: Date, i: number) { const x = new Date(d); x.setDate(x.getDate()+i); return x; }
+const MEALS: Entry["mealType"][] = ["breakfast","lunch","dinner","snack"];
+
+export default function MealPlannerWeek() {
+  const [weekStart] = useState<Date>(() => startOfWeek());
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [err, setErr] = useState<string|null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function load() {
+    setErr(null);
+    try {
+      const w = await api<{ start:string; end:string; entries: Entry[] }>(`/api/mealplan/week`);
+      setEntries(w.entries);
+      const r = await api<Recipe[]>(`/api/recipes`);
+      setRecipes(r);
+    } catch (e:any) { setErr(e.message); }
+  }
+  useEffect(()=>{ load(); }, []);
+
+  async function setMeal(date: Date, mealType: Entry["mealType"], recipeId?: string, title?: string) {
+    setBusy(true);
+    try {
+      await api(`/api/mealplan/set`, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({
+          date: date.toISOString(),
+          mealType,
+          recipeId: recipeId || undefined,
+          title: recipeId ? undefined : (title || undefined),
+        })
+      });
+      await load();
+    } catch (e:any) { alert(e.message || "Could not set meal"); }
+    finally { setBusy(false); }
+  }
+
+  const byKey = useMemo(()=> {
+    const m = new Map<string, Entry>();
+    for (const e of entries) m.set(`${new Date(e.date).toDateString()}_${e.mealType}`, e);
+    return m;
+  }, [entries]);
+
+  async function generateList() {
+    try {
+      await api(`/api/mealplan/generate-shopping-list`, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ start: weekStart.toISOString() }) });
+      alert("Shopping list generated from this week’s meals.");
+    } catch (e:any) { alert(e.message || "Could not generate list"); }
+  }
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="text-white/80">Meal Planner (Week)</div>
+        <div className="flex gap-2">
+          <button onClick={generateList} className="px-3 py-1 rounded-lg bg-[#b59732] text-black font-semibold hover:brightness-110">Generate Shopping List</button>
+        </div>
+      </div>
+
+      {err && <div className="text-rose-300 text-sm">{err}</div>}
+
+      <div className="grid grid-cols-1 lg:grid-cols-7 gap-3">
+        {Array.from({length:7}).map((_,i)=>{
+          const d = dayPlus(weekStart, i);
+          const label = d.toLocaleDateString(undefined, { weekday:"short", month:"numeric", day:"numeric" });
+          return (
+            <div key={i} className="rounded-xl border border-white/10 bg-black/40 p-2">
+              <div className="text-white/80 text-sm mb-1">{label}</div>
+              <div className="space-y-2">
+                {MEALS.map(mt=>{
+                  const e = byKey.get(`${d.toDateString()}_${mt}`);
+                  const text = e?.recipe?.title || e?.title || "Add…";
+                  return (
+                    <div key={mt} className="rounded-lg bg-white/5 border border-white/10 p-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-white/90 text-sm capitalize">{mt}</span>
+                        <MealPicker disabled={busy} recipes={recipes} onPick={(r)=> r==="__custom__"
+                          ? setMeal(d, mt, undefined, prompt("Meal name?") || undefined)
+                          : setMeal(d, mt, r)} />
+                      </div>
+                      <div className="text-white mt-1 text-sm truncate">{text}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function MealPicker({ recipes, onPick, disabled }:{
+  recipes: Recipe[]; onPick:(recipeIdOrCustom:"__custom__"|string)=>void; disabled?: boolean;
+}) {
+  return (
+    <select disabled={disabled} className="bg-black/60 border border-white/10 text-white text-sm rounded-md px-2 py-1"
+      onChange={(e)=>{ const v=e.target.value; if (!v) return; onPick(v as any); e.currentTarget.selectedIndex=0; }}>
+      <option value="">Choose</option>
+      <option value="__custom__">Custom…</option>
+      <optgroup label="Recipes">
+        {recipes.map(r=><option key={r.id} value={r.id}>{r.title}</option>)}
+      </optgroup>
+    </select>
+  );
+}
+
+2.2 Shopping List card
+// src/components/ShoppingList.tsx
+import { useEffect, useState } from "react";
+import { api } from "../lib/api";
+
+type Item = { id: string; name: string; qty?: string|null; checked: boolean; source?: string|null };
+
+export default function ShoppingList() {
+  const [items, setItems] = useState<Item[]|null>(null);
+  const [err, setErr] = useState<string|null>(null);
+  const [name, setName] = useState("");
+  const [qty, setQty] = useState("");
+
+  async function load() {
+    setErr(null);
+    try { setItems(await api<Item[]>("/api/mealplan/shopping")); }
+    catch (e:any) { setErr(e.message); }
+  }
+  useEffect(()=>{ load(); }, []);
+
+  async function addItem(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      await api("/api/mealplan/shopping", {
+        method:"POST", headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ name: name.trim(), qty: qty.trim() || undefined })
+      });
+      setName(""); setQty("");
+      await load();
+    } catch (e:any) { alert(e.message || "Could not add item"); }
+  }
+
+  async function toggle(id: string, checked: boolean) {
+    const prev = items!;
+    setItems(prev.map(x => x.id===id ? { ...x, checked } : x));
+    try { await api(`/api/mealplan/shopping/${id}`, { method:"PATCH", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ checked }) }); }
+    catch { setItems(prev); }
+  }
+
+  async function remove(id: string) {
+    const prev = items!;
+    setItems(prev.filter(x => x.id!==id));
+    try { await api(`/api/mealplan/shopping/${id}`, { method:"DELETE" }); }
+    catch { setItems(prev); }
+  }
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <div className="mb-2 text-white/80">Shopping List</div>
+      {err && <div className="text-rose-300 text-sm">{err}</div>}
+      <form onSubmit={addItem} className="flex gap-2 mb-3">
+        <input value={name} onChange={e=>setName(e.target.value)} placeholder="Add item (e.g., milk)"
+               className="flex-1 rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white placeholder-white/40" />
+        <input value={qty} onChange={e=>setQty(e.target.value)} placeholder="qty"
+               className="w-28 rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white placeholder-white/40" />
+        <button className="px-3 py-2 rounded-lg bg-[#b59732] text-black font-semibold hover:brightness-110">Add</button>
+      </form>
+
+      {!items ? (
+        <div className="animate-pulse text-white/60">Loading…</div>
+      ) : (
+        <ul className="space-y-2">
+          {items.map(i=>(
+            <li key={i.id} className="flex items-center justify-between rounded-lg border border-white/10 bg-black/40 p-2">
+              <label className="flex items-center gap-2 text-white/90">
+                <input type="checkbox" checked={i.checked} onChange={e=>toggle(i.id, e.target.checked)} />
+                <span className={i.checked ? "line-through text-white/50" : ""}>
+                  {i.name}{i.qty ? ` — ${i.qty}` : ""} {i.source ? <span className="text-white/40">({i.source})</span> : null}
+                </span>
+              </label>
+              <button onClick={()=>remove(i.id)} className="text-white/60 hover:text-white">✕</button>
+            </li>
+          ))}
+          {!items.length && <li className="text-white/60">No items yet.</li>}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+2.3 Add to Dashboard layout
+// src/pages/Dashboard.tsx (excerpt)
+import MealPlannerWeek from "../components/MealPlannerWeek";
+import ShoppingList from "../components/ShoppingList";
+import { ChoresSection } from "../components/ChoresSection";
+import AllowanceMini from "../components/AllowanceMini";
+import ActionCenter from "../components/ActionCenter";
+
+export default function Dashboard({ currentUser }: any) {
+  return (
+    <div className="space-y-4">
+      <ActionCenter />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ChoresSection currentUser={currentUser} />
+        <MealPlannerWeek />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ShoppingList />
+        <AllowanceMini memberId="me" />
+      </div>
+    </div>
+  );
+}
+
+2.4 Update Action Center (meals unplanned)
+
+Replace its naive mealsUnplanned with a real count:
+
+// src/components/ActionCenter.tsx (inside useEffect)
+const w = await api<{ start:string; end:string; entries: any[] }>(`/api/mealplan/week`);
+const plannedKeys = new Set(w.entries.map(e => `${new Date(e.date).toDateString()}_${e.mealType}`));
+const monday = new Date(w.start);
+let unplanned = 0;
+for (let i=0;i<7;i++){
+  const d = new Date(monday); d.setDate(monday.getDate()+i);
+  ["breakfast","lunch","dinner"].forEach(mt=>{
+    const key = `${d.toDateString()}_${mt}`;
+    if (!plannedKeys.has(key)) unplanned++;
+  });
+}
+const mealsUnplanned = unplanned;
+
+3) Quick test plan (≤5 min)
+
+Add two quick recipes (/api/recipes via your UI or REST client).
+
+In Meal Planner (Week), choose recipes or Custom… for each day’s dinner.
+
+Click Generate Shopping List → list fills with ingredients (grouping is MVP-simple).
+
+Check/uncheck items; add manual “Milk 1 gal”; remove an item.
+
+Action Center shows “meals unplanned” (3 per day if only dinners planned).
+
+4) Later improvements (when you’re ready)
+
+Make ingredients a structured array ([{name, qty, aisle}]) for aisle grouping.
+
+Pantry inventory: don’t add items already marked “in pantry”.
+
+Mobile drag & drop (nice-to-have).
+
+“Kid’s Choice” day: lock one dinner slot per week for a child to pick.
+
+Print/export shopping list.

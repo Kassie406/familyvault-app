@@ -1,0 +1,109 @@
+Shared Calendar & Ice Cards (drop‑in React Components)
+· typescript
+// Shared Calendar & ICE Cards — drop‑in components for your dashboard
+// =============================================
+// NOTES
+// - Run migrations to create tables calendar_events and family_ice
+// - Ensure pdfkit is installed: npm i pdfkit
+// - Role gating uses your existing requireOwnerOrAdmin middleware
+// - Optional: add WS broadcast on calendar create/update to live-refresh the SharedCalendarCard
+
+
+
+
+// =============================================
+// DRIZZLE SQL MIGRATIONS — Calendar + ICE tables
+// Drop these files into your drizzle migrations folder (e.g., /drizzle or /server/db/migrations)
+// Then run: npx drizzle-kit push
+
+
+// ---------------------------------------------
+// 001_add_calendar_events.sql
+-- Requires uuid-ossp for UUID defaults (safe if already enabled)
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+
+CREATE TABLE IF NOT EXISTS "calendar_events" (
+  "id" uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  "family_id" uuid NOT NULL,
+  "created_by" uuid NOT NULL,
+  "title" varchar(160) NOT NULL,
+  "type" varchar(20) DEFAULT 'meeting',
+  "start" timestamp NOT NULL,
+  "end" timestamp NULL,
+  "location" varchar(160) NULL,
+  "note" text NULL,
+  "created_at" timestamp DEFAULT NOW()
+);
+
+
+-- Indexes for lookups and range scans
+CREATE INDEX IF NOT EXISTS "calendar_family_idx" ON "calendar_events" ("family_id");
+CREATE INDEX IF NOT EXISTS "calendar_window_idx" ON "calendar_events" ("start", "end");
+
+
+-- Optional: basic FK references if you have families/users tables
+-- ALTER TABLE "calendar_events" ADD CONSTRAINT fk_calendar_family FOREIGN KEY ("family_id") REFERENCES "families"("id") ON DELETE CASCADE;
+-- ALTER TABLE "calendar_events" ADD CONSTRAINT fk_calendar_user   FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE SET NULL;
+
+
+-- Down migration (optional)
+-- DROP TABLE IF EXISTS "calendar_events";
+
+
+
+
+// ---------------------------------------------
+// 002_add_family_ice.sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+
+CREATE TABLE IF NOT EXISTS "family_ice" (
+  "family_id" uuid PRIMARY KEY,
+  "data" jsonb NULL,
+  "updated_at" timestamp DEFAULT NOW()
+);
+
+
+-- If you have a families table, you can enforce FK
+-- ALTER TABLE "family_ice" ADD CONSTRAINT fk_ice_family FOREIGN KEY ("family_id") REFERENCES "families"("id") ON DELETE CASCADE;
+
+
+-- Down migration (optional)
+-- DROP TABLE IF EXISTS "family_ice";
+
+
+
+
+// ---------------------------------------------
+// HOW TO APPLY
+// 1) Save these files into your migrations directory.
+// 2) Run: npx drizzle-kit push
+// 3) Restart server.
+
+
+// If you prefer programmatic migration, you can also run these SQL statements through your existing migration runner.
+
+
+
+
+
+Dropped in ready-to-run Drizzle SQL migrations for the two new features (Calendar + ICE). They’re in the canvas as two files’ contents:
+
+001_add_calendar_events.sql → creates calendar_events with indexes.
+
+002_add_family_ice.sql → creates family_ice.
+
+Apply them
+# from your project root
+npx drizzle-kit push
+# then restart your server
+
+
+Notes:
+
+Uses uuid_generate_v4() (enables uuid-ossp extension if needed).
+
+Timestamps are timestamp to match your Drizzle schema.
+
+Optional FK lines are commented—uncomment if you have families / users tables wired.

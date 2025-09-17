@@ -1,0 +1,91 @@
+our Family Updates (Reminders & Notices) section is already populated and looking good, but I see what you mean: the layout feels a little uneven with the Open button, due dates, and Reset Snooze list below. Let’s tighten the design so everything matches your overall dark + gold card system.
+
+🔧 Layout Adjustments
+1. Update Cards (Main List)
+
+Card structure: Each update should follow the same consistent layout:
+
+Left side: dot severity (red/yellow) + title + body
+
+Below: small gray text for “Due in X days” or “Action recommended”
+
+Right side: actions (Open / Dismiss / Snooze until…)
+
+<div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 flex justify-between items-start">
+  <div>
+    <div className="flex items-center gap-2">
+      <span className={`inline-block h-2 w-2 rounded-full ${dot(u.severity)}`} />
+      <div className="font-semibold">{u.title}</div>
+    </div>
+    {u.body && <div className="text-sm text-gray-400 mt-1">{u.body}</div>}
+    <div className="text-xs text-gray-500 mt-1">
+      {u.dueAt ? `Due: ${new Date(u.dueAt).toLocaleDateString()}` : "Action recommended"}
+    </div>
+  </div>
+  <div className="flex flex-col gap-2">
+    {u.actionUrl && <a href={u.actionUrl}><Button size="sm" variant="outline" className="border-yellow-500/30 text-yellow-400">Open</Button></a>}
+    <SnoozeUntilModal update={u} onSnoozed={onSnoozed} />
+    {isAdmin && <Button size="sm" variant="ghost" className="text-gray-400 hover:text-gray-200" onClick={()=>dismiss(u.id)}>Dismiss</Button>}
+  </div>
+</div>
+
+2. Snoozed Section
+
+Match it as a mini-card list under the main feed.
+
+Keep title + snoozed-until date on the left, gold “Reset snooze” button on the right.
+
+<div className="mt-4 border-t border-zinc-800 pt-3">
+  <div className="text-xs text-gray-500 mb-2">Snoozed until…</div>
+  {items.map(s => (
+    <div key={s.id} className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3 flex justify-between items-center">
+      <div>
+        <div className="font-medium">{s.update?.title}</div>
+        <div className="text-xs text-gray-500">Until {new Date(s.until).toLocaleString()}</div>
+      </div>
+      <Button size="sm" variant="outline" className="border-yellow-500/30 text-yellow-400" onClick={()=>unsnooze(s.updateId)}>Reset snooze</Button>
+    </div>
+  ))}
+</div>
+
+3. Section Header (with Badge)
+
+Clean title + snoozed badge in the top right.
+
+Optional Compose Update button for admins.
+
+<div className="flex items-center justify-between mb-4">
+  <div className="flex items-center gap-2">
+    <span className="text-lg font-semibold">Family Updates</span>
+    {snoozedCount > 0 && (
+      <span className="text-xs px-2 py-0.5 rounded-full border border-yellow-500/30 text-yellow-400">
+        {snoozedCount} snoozed
+      </span>
+    )}
+  </div>
+  {isAdmin && <ComposeUpdateModal afterCreate={load} />}
+</div>
+
+4. Consistent Colors & Spacing
+
+Gold buttons: border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10
+
+Inactive actions: text-gray-400 hover:text-gray-200
+
+Cards: rounded-2xl border border-zinc-800 bg-zinc-900 p-4
+
+Font scale:
+
+Title: .font-semibold
+
+Body: .text-sm text-gray-400
+
+Metadata (due/action): .text-xs text-gray-500
+
+✅ With this structure:
+
+All updates (active + snoozed) look like consistent dark cards with gold highlights.
+
+Action buttons align on the right.
+
+Header clearly shows snoozed badge + admin controls.

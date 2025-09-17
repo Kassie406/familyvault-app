@@ -1,0 +1,537 @@
+/* Enhanced Camera Upload Styles - Dark Gold Theme */
+/* Perfect addition to your existing design */
+
+/* Enhanced Upload Button Group */
+.upload-button-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 1.5rem 0;
+  flex-wrap: wrap;
+}
+
+.browse-button,
+.camera-button,
+.barcode-button {
+  padding: 0.875rem 1.5rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: var(--shadow);
+  min-width: 120px;
+  justify-content: center;
+}
+
+/* Primary button (Browse) - Your gold theme */
+.browse-button.primary {
+  background: var(--primary-gold);
+  color: var(--dark-bg);
+}
+
+.browse-button.primary:hover {
+  background: var(--primary-gold-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Secondary buttons (Camera & Barcode) - Complementary styling */
+.camera-button.secondary,
+.barcode-button.secondary {
+  background: transparent;
+  color: var(--primary-gold);
+  border: 1px solid var(--primary-gold);
+}
+
+.camera-button.secondary:hover,
+.barcode-button.secondary:hover {
+  background: var(--primary-gold);
+  color: var(--dark-bg);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Enhanced Quick Action Card */
+.quick-action-card.enhanced {
+  border: 1px solid var(--primary-gold);
+  background: rgba(212, 175, 55, 0.05);
+}
+
+.quick-action-card.enhanced:hover {
+  box-shadow: var(--shadow-gold);
+  transform: translateY(-2px);
+}
+
+/* Camera Modal Overlay */
+.camera-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  padding: 1rem;
+}
+
+/* Camera Modal */
+.camera-modal {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Camera Header */
+.camera-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--card-bg-light);
+}
+
+.camera-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.camera-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.camera-close-btn:hover {
+  background: var(--border-color);
+  color: var(--text-primary);
+}
+
+/* Camera Content */
+.camera-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Camera Viewport */
+.camera-viewport {
+  position: relative;
+  background: #000;
+  aspect-ratio: 4/3;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Barcode Scanning Overlay */
+.barcode-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.barcode-frame {
+  position: relative;
+  width: 250px;
+  height: 150px;
+  border: 2px solid var(--primary-gold);
+  border-radius: 8px;
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.corner {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--primary-gold);
+}
+
+.corner.top-left {
+  top: -3px;
+  left: -3px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.corner.top-right {
+  top: -3px;
+  right: -3px;
+  border-left: none;
+  border-bottom: none;
+}
+
+.corner.bottom-left {
+  bottom: -3px;
+  left: -3px;
+  border-right: none;
+  border-top: none;
+}
+
+.corner.bottom-right {
+  bottom: -3px;
+  right: -3px;
+  border-left: none;
+  border-top: none;
+}
+
+.barcode-instruction {
+  margin-top: 2rem;
+  color: var(--primary-gold);
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.barcode-detected {
+  position: absolute;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--success-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Photo Capture Overlay */
+.photo-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.photo-frame {
+  width: 80%;
+  height: 70%;
+  border: 2px dashed var(--primary-gold);
+  border-radius: 8px;
+  background: rgba(212, 175, 55, 0.05);
+}
+
+.photo-instruction {
+  margin-top: 1rem;
+  color: var(--primary-gold);
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* Camera Controls */
+.camera-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  background: var(--card-bg-light);
+  border-top: 1px solid var(--border-color);
+}
+
+.camera-control-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  min-width: 80px;
+}
+
+.camera-control-btn.cancel {
+  background: var(--border-color);
+  color: var(--text-secondary);
+}
+
+.camera-control-btn.cancel:hover {
+  background: var(--text-muted);
+  color: white;
+}
+
+.camera-control-btn.capture {
+  background: var(--primary-gold);
+  color: var(--dark-bg);
+  padding: 1rem;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+}
+
+.camera-control-btn.capture:hover {
+  background: var(--primary-gold-hover);
+  transform: scale(1.05);
+}
+
+.capture-button-inner {
+  font-size: 1.5rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.camera-control-btn.switch {
+  background: transparent;
+  color: var(--primary-gold);
+  border: 1px solid var(--primary-gold);
+  font-size: 1.25rem;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-control-btn.switch:hover {
+  background: var(--primary-gold);
+  color: var(--dark-bg);
+}
+
+/* Camera Tips */
+.camera-tips {
+  padding: 1.5rem;
+  background: var(--card-bg);
+  border-top: 1px solid var(--border-color);
+}
+
+.camera-tips h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--primary-gold);
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.camera-tips ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.camera-tips li {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  padding: 0.25rem 0;
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.camera-tips li::before {
+  content: '•';
+  color: var(--primary-gold);
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .upload-button-group {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .browse-button,
+  .camera-button,
+  .barcode-button {
+    width: 100%;
+    max-width: 250px;
+  }
+
+  .camera-modal {
+    margin: 0.5rem;
+    max-height: 95vh;
+  }
+
+  .camera-viewport {
+    aspect-ratio: 3/4;
+  }
+
+  .barcode-frame {
+    width: 200px;
+    height: 120px;
+  }
+
+  .camera-controls {
+    padding: 1rem;
+  }
+
+  .camera-control-btn.capture {
+    width: 50px;
+    height: 50px;
+    padding: 0.75rem;
+  }
+
+  .camera-tips ul {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Landscape mobile orientation */
+@media (max-width: 768px) and (orientation: landscape) {
+  .camera-modal {
+    max-width: 90vw;
+    max-height: 90vh;
+  }
+
+  .camera-viewport {
+    aspect-ratio: 16/9;
+  }
+
+  .camera-tips {
+    padding: 1rem;
+  }
+
+  .camera-tips ul {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Enhanced animations */
+@keyframes cameraOpen {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.camera-modal {
+  animation: cameraOpen 0.3s ease-out;
+}
+
+/* Barcode detection animation */
+@keyframes scanLine {
+  0% {
+    top: 0;
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    top: 100%;
+    opacity: 1;
+  }
+}
+
+.barcode-frame::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary-gold), transparent);
+  animation: scanLine 2s linear infinite;
+}
+
+/* Camera permission denied state */
+.camera-permission-denied {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.camera-permission-denied .icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: var(--error-color);
+}
+
+.camera-permission-denied h4 {
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.camera-permission-denied p {
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.camera-permission-denied button {
+  background: var(--primary-gold);
+  color: var(--dark-bg);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.camera-permission-denied button:hover {
+  background: var(--primary-gold-hover);
+}

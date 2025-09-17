@@ -1,0 +1,96 @@
+Api Management Landing Page + Backend (express + Drizzle)
+· typescript
+// =============================================
+    toast.success(decision === "approve"?"Approved":"Rejected");
+    setRejecting(null); setReason("");
+    load();
+  };
+
+
+  return (
+    <div className="p-6 md:p-10 text-gray-200">
+      <div className="flex items-center gap-3 mb-6"><FileText className="h-6 w-6 text-yellow-400"/><h1 className="text-2xl md:text-3xl font-bold">Pending Approvals</h1></div>
+      <p className="text-gray-400 mb-6">Review documents that require approval. Approve or reject with an optional reason.</p>
+      <div className="grid gap-4">
+        {items.map(a => (
+          <Card key={a.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl">
+            <CardHeader>
+              <CardTitle>{a.document?.title ?? "Document"}</CardTitle>
+              <CardDescription className="text-gray-400">Requested by {a.requesterName} • {new Date(a.createdAt).toLocaleString()}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-end gap-3">
+              <Button className="rounded-2xl border-green-600/30 text-green-400 hover:bg-green-600/10" onClick={()=>decide(a.id,"approve")}> <CheckCircle2 className="h-4 w-4 mr-1"/> Approve</Button>
+              <Dialog open={rejecting===a.id} onOpenChange={(o)=>!o && setRejecting(null)}>
+                <DialogTrigger asChild>
+                  <Button className="rounded-2xl border-red-600/30 text-red-400 hover:bg-red-600/10" onClick={()=>setRejecting(a.id)}> <XCircle className="h-4 w-4 mr-1"/> Reject</Button>
+                </DialogTrigger>
+                <DialogContent className="bg-zinc-900 border border-zinc-800">
+                  <DialogHeader><DialogTitle className="text-yellow-400">Reject Document</DialogTitle></DialogHeader>
+                  <div className="space-y-4">
+                    <Textarea placeholder="Reason (optional)" value={reason} onChange={(e)=>setReason(e.target.value)}/>
+                    <div className="flex justify-end"><Button variant="destructive" onClick={()=>decide(a.id,"reject",reason)}>Confirm Reject</Button></div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </CardContent>
+          </Card>
+        ))}
+        {items.length===0 && (<div className="text-gray-500">No pending approvals.</div>)}
+      </div>
+    </div>
+  );
+}
+
+
+// =============================================
+// BACKEND: Approvals routes
+// File: server/routes/approvals.ts
+import { Router } from "express";
+import { db } from "../db";
+import { docApprovals, documents } from "../db/schema/docs";
+import { eq, desc } from "drizzle-orm";
+import { requireAuth } from "../lib/auth";
+
+
+const ra = Router();
+ra.use(requireAuth);
+
+
+// list pending for this approver
+ra.get("/api/approvals/pending", async (req,res)=>{
+  const uid = req.user!.id;
+  const items = await db.select({
+    id: docApprovals.id,
+    documentId: docApprovals.documentId,
+    createdAt: docApprovals.createdAt,
+    requesterId: docApprovals.requestedBy,
+    status: docApprovals.status,
+  }).from(docApprovals).where(eq(docApprovals.status,"pending")).orderBy(desc(docApprovals.createdAt));
+
+
+  // join with docs and requester names (simplified)
+  const docs = await db.select().from(documents);
+  const itemsWithDocs = items.map(i => ({ ...i, document: docs.find(d=>d.id===i.documentId) }));
+  res.json({ items: itemsWithDocs });
+});
+
+
+// decide
+ra.post("/api/approvals/:id/decision", async (req,res)=>{
+  const { id } = req.params;
+  const { decision, reason } = req.body;
+  const values:any = { status: decision === "approve" ? "approved" : "rejected", approverId: req.user!.id, decidedAt: new Date() };
+  if (reason) values.reason = reason;
+  await db.update(docApprovals).set(values).where(eq(docApprovals.id,id));
+  res.json({ ok:true });
+});
+
+
+export default ra;
+
+
+// =============================================
+// FRONTEND: Wire Documents Shared dropdown
+// Replace the placeholder Pending Approvals button with:
+// <Link href="/family/approvals"><Button variant="outline" className="border-yellow-500/30 text-yellow-400">Pending Approvals</Button></Link>
+

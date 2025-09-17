@@ -1,0 +1,167 @@
+the shareable link and “nothing shows,” it usually means the link points to a route that isn’t implemented (or is blocked by requireLogin, expired, or revoked). Here’s a tight checklist + drop-in code to make share links work end-to-end.
+
+Quick checks
+
+Link enabled: toggle is ON in the panel.
+
+Not expired: your “Expires” setting hasn’t elapsed.
+
+Require login: if ON, the viewer must be logged in (otherwise show a friendly login gate—not a blank page).
+
+Public route exists: you need a public page like /share/[token] that reads the token and renders the credential view.
+
+Token resolves: backend endpoint must translate token → credential_id and policy, then return data.
+
+Minimal working implementation (Next.js App Router)
+1) DB model (concept)
+-- share_link table
+id UUID PK
+token TEXT UNIQUE NOT NULL
+credential_id UUID NOT NULL REFERENCES credentials(id)
+expires_at TIMESTAMPTZ NULL         -- null = never
+require_login BOOLEAN NOT NULL DEFAULT true
+revoked BOOLEAN NOT NULL DEFAULT false
+created_by UUID NOT NULL REFERENCES users(id)
+created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+
+2) Resolve API
+
+app/api/share/[token]/route.ts
+
+import { NextResponse } from "next/server";
+import { getShareByToken, getCredentialForShare } from "@/lib/db"; // implement
+
+export async function GET(_: Request, { params }: { params: { token: string } }) {
+  const share = await getShareByToken(params.token);
+  if (!share || share.revoked) {
+    return NextResponse.json({ error: "invalid" }, { status: 404 });
+  }
+  if (share.expires_at && new Date(share.expires_at) < new Date()) {
+    return NextResponse.json({ error: "expired" }, { status: 410 });
+  }
+  const credential = await getCredentialForShare(share.credential_id);
+
+  // Return only what a link viewer can see (no secret yet)
+  return NextResponse.json({
+    title: credential.title,
+    owner: credential.owner_name,
+    tag: credential.tag,         // Device/Network/Access
+    allowReveal: !share.require_login, // if true, visitor can reveal after confirm; otherwise login required
+    requireLogin: share.require_login,
+  });
+}
+
+3) Public share page
+
+app/share/[token]/page.tsx
+
+"use client";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+
+export default function ShareView({ params }: { params: { token: string } }) {
+  const [state, setState] = useState<{status:"loading"|"ok"|"expired"|"invalid"; data?: any}>({status:"loading"});
+
+  useEffect(() => {
+    fetch(`/api/share/${params.token}`)
+      .then(r => r.json().then(j => ({ ok: r.ok, j })))
+      .then(({ ok, j }) => {
+        if (!ok && j?.error === "expired") setState({status:"expired"});
+        else if (!ok) setState({status:"invalid"});
+        else setState({status:"ok", data: j});
+      })
+      .catch(() => setState({status:"invalid"}));
+  }, [params.token]);
+
+  if (state.status === "loading") return <Shell>Loading…</Shell>;
+  if (state.status === "expired") return <Empty title="Link expired" subtitle="Ask the owner to regenerate a new link." />;
+  if (state.status === "invalid") return <Empty title="Invalid link" subtitle="This share link is no longer valid." />;
+
+  const d = state.data!;
+  return (
+    <Shell>
+      <h1 className="text-xl font-semibold">{d.title}</h1>
+      <p className="text-sm text-neutral-400">Owner: {d.owner} {d.tag ? `· ${d.tag}` : ""}</p>
+
+      <div className="mt-4 rounded-xl border border-[#232530] bg-[#111] p-4">
+        <div className="text-sm text-neutral-300">Secret</div>
+        <div className="mt-2 text-[15px] tracking-widest text-neutral-500">•••• •••• ••••</div>
+
+        {d.requireLogin ? (
+          <div className="mt-3">
+            <Button className="bg-[#D4AF37] text-black" onClick={() => (window.location.href = `/login?next=/share/${params.token}`)}>
+              Log in to view
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-3">
+            <Button className="bg-[#D4AF37] text-black" onClick={() => reveal(params.token)}>Reveal</Button>
+          </div>
+        )}
+      </div>
+    </Shell>
+  );
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
+  return <div className="min-h-screen bg-[#0A0A0F] text-white grid place-items-center p-6">
+    <div className="max-w-lg w-full rounded-2xl border border-[#232530] bg-gradient-to-b from-[#161616] to-[#0F0F0F] p-6 shadow-[0_10px_28px_rgba(0,0,0,0.45)]">
+      {children}
+    </div>
+  </div>;
+}
+
+function Empty({ title, subtitle }: { title: string; subtitle: string }) {
+  return <Shell><h1 className="text-xl font-semibold">{title}</h1><p className="text-sm text-neutral-400 mt-1">{subtitle}</p></Shell>;
+}
+
+async function reveal(token: string) {
+  // optional: open confirm modal or 2FA, then call a protected endpoint
+  const r = await fetch(`/api/share/${token}/reveal`, { method: "POST" });
+  if (!r.ok) return alert("Unable to reveal");
+  const { secret } = await r.json();
+  alert(`Secret: ${secret}`); // replace with masked UI + auto-hide
+}
+
+4) Reveal endpoint (optional)
+
+app/api/share/[token]/reveal/route.ts
+
+import { NextResponse } from "next/server";
+import { getShareByToken, getSecretIfAllowed } from "@/lib/db";
+import { audit } from "@/lib/audit";
+
+export async function POST(req: Request, { params }: { params: { token: string } }) {
+  const share = await getShareByToken(params.token);
+  if (!share || share.revoked) return NextResponse.json({ error: "invalid" }, { status: 404 });
+  if (share.expires_at && new Date(share.expires_at) < new Date()) return NextResponse.json({ error: "expired" }, { status: 410 });
+
+  // If require_login, enforce session check here.
+  // const session = await getSession(); if (!session?.user) return NextResponse.json({ error: "auth" }, { status: 401 });
+
+  const secret = await getSecretIfAllowed(share);
+  if (!secret) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+
+  audit("share.revealed", { token: share.token, credential_id: share.credential_id });
+  return NextResponse.json({ secret }); // client should auto-hide after 15s
+}
+
+Why you saw “nothing”
+
+If /share/[token] and the API routes above don’t exist, the browser hits a dead route → blank page. Implementing these gives users a friendly:
+
+Invalid (revoked/bad token),
+
+Expired (410),
+
+Login required gate, or
+
+The limited view page with optional reveal.
+
+Sanity tests
+
+Incognito test: paste the link while logged out — should see login gate (if required) or the limited view.
+
+Expiry test: set Expires to 24h, manually backdate in DB to confirm 410 response.
+
+Regen test: Regenerate and confirm old link returns “Invalid”.

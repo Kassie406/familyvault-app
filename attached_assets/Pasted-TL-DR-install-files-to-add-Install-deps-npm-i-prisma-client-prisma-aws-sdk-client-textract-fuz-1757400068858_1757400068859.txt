@@ -1,0 +1,111 @@
+TL;DR install + files to add
+
+Install deps
+
+npm i @prisma/client prisma @aws-sdk/client-textract fuzzball
+# if you don’t use AWS yet, skip textract for now
+
+
+Prisma schema → prisma/schema.prisma (add/merge these models)
+
+FamilyMember, Upload, Extraction, Suggestion, MemberFile
+(I included them in my last message—paste as-is and npx prisma migrate dev.)
+
+Server routes (Next.js)
+Create these files:
+
+/app/api/uploads/route.ts
+/app/api/inbox/[id]/analyze/route.ts
+/app/api/inbox/[id]/accept/route.ts
+/app/api/inbox/[id]/dismiss/route.ts
+
+
+Paste the handlers I gave earlier. If you’re not ready for AWS yet, replace runOcr(...) with a stub that returns the same mock fields your frontend expects.
+
+OCR stub (no cloud yet)
+Create server/ocr.ts:
+
+export async function runOcr(_ref:any){
+  return [
+    { key:"Person Name", value:"ANGEL D QUINTANA", confidence:94 },
+    { key:"Social Security Number", value:"141-85-2645", confidence:91, pii:true },
+  ];
+}
+export async function buildSuggestion(fields:any[], members:any[]){
+  const angel = members.find((m:any)=>/angel/i.test(m.fullName));
+  if(!angel) return null;
+  return { memberId: angel.id, memberName: angel.fullName, confidence:92, fields };
+}
+
+
+Later, swap this with the Textract version.
+
+Wire your upload completion to the API
+Right after you finish the S3 upload:
+
+const res = await fetch("/api/uploads", {
+  method: "POST",
+  headers: {"content-type":"application/json"},
+  body: JSON.stringify({ fileKey, fileName: file.name, mime: file.type, size: file.size })
+});
+const { uploadId } = await res.json();
+await fetch(`/api/inbox/${uploadId}/analyze`, { method: "POST" });
+
+
+Your Inbox drawer will then show the item with a suggestion.
+
+Accept/Dismiss in modal
+Hook your existing button handlers:
+
+// Accept
+await fetch(`/api/inbox/${item.id}/accept`, {
+  method:"POST",
+  headers:{ "content-type":"application/json" },
+  body: JSON.stringify({ memberId: item.suggestion!.memberId, fields: item.suggestion!.fields })
+});
+
+// Dismiss
+await fetch(`/api/inbox/${item.id}/dismiss`, { method:"POST" });
+
+Env you’ll need (now vs later)
+
+Now (mock OCR)
+No env needed—DB only.
+
+DATABASE_URL=... (Prisma connection string)
+
+Later (AWS Textract)
+
+AWS_REGION=us-east-1
+
+AWS_ACCESS_KEY_ID=...
+
+AWS_SECRET_ACCESS_KEY=...
+
+S3_BUCKET=your-bucket-name
+
+IAM minimum for Textract + reading S3 object:
+
+textract:AnalyzeID, textract:AnalyzeDocument
+
+s3:GetObject on your bucket (and s3:PutObject if you’ll move/copy on accept)
+
+Quick test checklist (before AWS)
+
+npx prisma migrate dev
+
+Seed one family member named Angel Quintana (so the stub can match).
+
+Upload a file -> your frontend calls /api/uploads → /analyze.
+
+Open Inbox: you should see Suggested destination: Angel Quintana, Details (2).
+
+Click Accept → confirm a MemberFile row is created.
+
+When you flip to real OCR
+
+Replace server/ocr.ts with the Textract version I shared.
+
+Swap runOcr({ Bucket, Name }) to use your real S3 key.
+
+Optional: make analysis async via a worker (S3 upload → queue → worker → DB).

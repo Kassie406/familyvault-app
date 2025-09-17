@@ -1,0 +1,357 @@
+here’s a clean, production-ready Prisma schema + endpoint swaps so you can replace the in-memory Maps with a real DB.
+
+Prisma models
+
+Put this into prisma/schema.prisma (adjust provider as needed):
+
+// datasource & generator
+datasource db {
+  provider = "postgresql" // or mysql/sqlserver/sqlite; prefer Postgres in prod
+  url      = env("DATABASE_URL")
+}
+generator client {
+  provider = "prisma-client-js"
+}
+
+/* Core identities */
+model User {
+  id         String          @id @default(cuid())
+  email      String          @unique
+  name       String?
+  familyId   String
+  family     Family          @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  messages   Message[]       @relation("UserMessages")
+  memberships ThreadMember[]
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([familyId])
+}
+
+model Family {
+  id        String   @id @default(cuid())
+  name      String?
+  users     User[]
+  threads   Thread[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/* Chat */
+model Thread {
+  id         String         @id @default(cuid())
+  familyId   String
+  family     Family         @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  title      String?
+  kind       ThreadKind     @default(FAMILY)
+  members    ThreadMember[]
+  messages   Message[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@index([familyId])
+}
+
+model ThreadMember {
+  id        String   @id @default(cuid())
+  threadId  String
+  userId    String
+  role      MemberRole @default(MEMBER)
+  joinedAt  DateTime @default(now())
+
+  thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id         String    @id @default(cuid())
+  threadId   String
+  authorId   String
+  body       String?
+  createdAt  DateTime  @default(now())
+
+  thread     Thread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author     User      @relation("UserMessages", fields: [authorId], references: [id], onDelete: Cascade)
+  attachments MessageAttachment[]
+
+  @@index([threadId, createdAt])
+}
+
+/* Re-use your existing files table if you have one; otherwise: */
+model File {
+  id         String    @id @default(cuid())
+  familyId   String
+  ownerId    String
+  name       String
+  mime       String
+  size       Int
+  url        String?   // CDN/original
+  thumbUrl   String?   // generated
+  status     FileStatus @default(PENDING) // PENDING | READY | FAILED
+  createdAt  DateTime  @default(now())
+
+  // optional FKs if you want:
+  // owner     User      @relation(fields: [ownerId], references: [id])
+  // family    Family    @relation(fields: [familyId], references: [id])
+
+  @@index([familyId])
+  @@index([ownerId])
+}
+
+model MessageAttachment {
+  // join table between Message and File
+  id        String  @id @default(cuid())
+  messageId String
+  fileId    String
+
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  file      File    @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, fileId])
+}
+
+/* Enums */
+enum ThreadKind {
+  FAMILY
+  DM
+  GROUP
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum FileStatus {
+  PENDING
+  READY
+  FAILED
+}
+
+Migrate & generate
+npx prisma migrate dev -n "init_messaging"
+npx prisma generate
+
+Drop-in Prisma replacements for your Next.js API routes
+
+Create lib/prisma.ts:
+
+import { PrismaClient } from "@prisma/client";
+export const prisma = globalThis.prisma || new PrismaClient();
+if (process.env.NODE_ENV !== "production") (globalThis as any).prisma = prisma;
+
+POST /api/threads (create/resolve)
+// app/api/threads/route.ts  (App Router)
+// or pages/api/threads/index.ts for Pages Router
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
+
+export async function POST(req: NextRequest) {
+  try {
+    const { id: userId, familyId } = await requireUser(req);
+    const { memberIds, title } = await req.json() as { memberIds: string[]; title?: string };
+    if (!Array.isArray(memberIds) || memberIds.length === 0) {
+      return NextResponse.json({ error: "memberIds required" }, { status: 400 });
+    }
+
+    // Resolve existing FAMILY thread with EXACT same member set (order-agnostic)
+    const members = Array.from(new Set(memberIds)).sort();
+    const existing = await prisma.thread.findFirst({
+      where: {
+        familyId,
+        kind: "FAMILY",
+        members: {
+          every: { userId: { in: members } },
+          some: {}, // ensure not empty
+        },
+      },
+      include: { members: true },
+    });
+
+    let thread = existing;
+    if (!thread) {
+      thread = await prisma.thread.create({
+        data: {
+          familyId,
+          kind: "FAMILY",
+          title: title ?? "Family Chat",
+          members: {
+            create: members.map((uid) => ({ userId: uid })),
+          },
+        },
+      });
+    } else if (title && thread.title !== title) {
+      thread = await prisma.thread.update({ where: { id: thread.id }, data: { title } });
+    }
+
+    return NextResponse.json({ thread: { id: thread.id, title: thread.title, memberIds: members } }, { status: 201 });
+  } catch (e: any) {
+    const msg = e?.message || "Server error";
+    return NextResponse.json({ error: msg }, { status: msg === "UNAUTHENTICATED" ? 401 : 500 });
+  }
+}
+
+
+Note: Matching a member set exactly in SQL can be tricky. For stricter matching, store a sorted hash of memberIds on Thread (e.g., memberKey) and @@unique([familyId, memberKey]).
+
+GET /api/threads/[threadId]
+// app/api/threads/[threadId]/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
+
+export async function GET(req: NextRequest, { params }: { params: { threadId: string } }) {
+  try {
+    const { familyId } = await requireUser(req);
+    const t = await prisma.thread.findFirst({
+      where: { id: params.threadId, familyId },
+      include: { members: { include: { user: true } } },
+    });
+    if (!t) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    const memberIds = t.members.map(m => m.userId);
+    const memberNames = t.members.map(m => m.user?.name ?? m.userId);
+    return NextResponse.json({
+      id: t.id, title: t.title, memberIds, memberNames, createdAt: t.createdAt, updatedAt: t.updatedAt
+    });
+  } catch (e: any) {
+    const msg = e?.message || "Server error";
+    return NextResponse.json({ error: msg }, { status: msg === "UNAUTHENTICATED" ? 401 : 500 });
+  }
+}
+
+GET/POST /api/threads/[threadId]/messages
+// app/api/threads/[threadId]/messages/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
+// import { pusher } from "@/lib/pusher"; // if using Pusher
+
+export async function GET(req: NextRequest, { params }: { params: { threadId: string } }) {
+  try {
+    const { familyId } = await requireUser(req);
+    const thread = await prisma.thread.findFirst({ where: { id: params.threadId, familyId } });
+    if (!thread) return NextResponse.json({ error: "thread_not_found" }, { status: 404 });
+
+    const { searchParams } = new URL(req.url);
+    const limit = Math.min(parseInt(String(searchParams.get("limit") ?? "50"), 10) || 50, 200);
+    const cursor = searchParams.get("cursor");
+
+    const msgs = await prisma.message.findMany({
+      where: { threadId: thread.id },
+      take: limit,
+      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+      orderBy: { createdAt: "asc" },
+      include: {
+        author: true,
+        attachments: { include: { file: true } },
+      },
+    });
+
+    const nextCursor = msgs.length === limit ? msgs[msgs.length - 1].id : null;
+
+    return NextResponse.json({
+      messages: msgs.map(m => ({
+        id: m.id,
+        body: m.body ?? "",
+        author: { id: m.authorId, name: m.author?.name ?? m.authorId },
+        createdAt: m.createdAt,
+        attachments: m.attachments.map(a => ({
+          id: a.fileId,
+          name: a.file.name,
+          url: a.file.url ?? undefined
+        })),
+      })),
+      nextCursor,
+    });
+  } catch (e: any) {
+    const msg = e?.message || "Server error";
+    return NextResponse.json({ error: msg }, { status: msg === "UNAUTHENTICATED" ? 401 : 500 });
+  }
+}
+
+export async function POST(req: NextRequest, { params }: { params: { threadId: string } }) {
+  try {
+    const { id: userId, familyId } = await requireUser(req);
+    const { body, fileIds } = await req.json() as { body?: string; fileIds?: string[] };
+
+    const thread = await prisma.thread.findFirst({ where: { id: params.threadId, familyId } });
+    if (!thread) return NextResponse.json({ error: "thread_not_found" }, { status: 404 });
+
+    if ((!body || !body.trim()) && !(fileIds && fileIds.length)) {
+      return NextResponse.json({ error: "empty_message" }, { status: 400 });
+    }
+
+    const created = await prisma.message.create({
+      data: {
+        threadId: thread.id,
+        authorId: userId,
+        body: (body ?? "").trim(),
+        attachments: fileIds?.length
+          ? { create: fileIds.map(fid => ({ fileId: fid })) }
+          : undefined,
+      },
+      include: {
+        author: true,
+        attachments: { include: { file: true } },
+      },
+    });
+
+    // Realtime broadcast if using Pusher (or your Socket.IO bridge)
+    // await pusher.trigger(`thread-${thread.id}`, "message:new", {
+    //   threadId: thread.id,
+    //   message: {
+    //     id: created.id,
+    //     body: created.body ?? "",
+    //     author: { id: created.authorId, name: created.author?.name ?? created.authorId },
+    //     createdAt: created.createdAt,
+    //     attachments: created.attachments.map(a => ({ id: a.fileId, name: a.file.name, url: a.file.url ?? undefined })),
+    //   }
+    // });
+
+    return NextResponse.json({ message: { id: created.id } }, { status: 201 });
+  } catch (e: any) {
+    const msg = e?.message || "Server error";
+    return NextResponse.json({ error: msg }, { status: msg === "UNAUTHENTICATED" ? 401 : 500 });
+  }
+}
+
+GET /api/files/[id]/status (if you need it)
+// app/api/files/[id]/status/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
+
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    await requireUser(req); // optionally enforce same family ownership
+    const f = await prisma.file.findUnique({ where: { id: params.id } });
+    if (!f) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return NextResponse.json({
+      id: f.id,
+      name: f.name,
+      status: f.status,
+      url: f.url,
+      thumbUrl: f.thumbUrl,
+    });
+  } catch (e: any) {
+    const msg = e?.message || "Server error";
+    return NextResponse.json({ error: msg }, { status: msg === "UNAUTHENTICATED" ? 401 : 500 });
+  }
+}
+
+Notes & good defaults
+
+Member set uniqueness: for family chat, persist a memberKey on Thread = sha256(sorted(memberIds).join(',')) and @@unique([familyId, memberKey]) to resolve quickly.
+
+Indexes: already added common ones; consider @@index([threadId, createdAt]) (done) to page efficiently.
+
+Attachments: we used a MessageAttachment join so one message can carry many files.
+
+File pipeline: keep your AV scan/thumbnail worker updating File.status/thumbUrl; the chat UI can subscribe or poll.
+
+Auth: swap requireUser with NextAuth (session) or your JWT validator and return { id, familyId }.

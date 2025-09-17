@@ -1,0 +1,30 @@
+/* 100% scoped to the Action Center card */
+
+/* Force ALL inner backgrounds transparent (nuclear, but safe and scoped) */
+#action-center-card,
+#action-center-card * {
+  background: transparent !important;
+}
+
+/* Re-apply our card's dark gradient and border on the outer node only */
+#action-center-card {
+  border-radius: 16px;                               /* rounded-2xl */
+  border: 1px solid rgba(255,255,255,0.08);
+  background-image: linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.45);
+  transition: box-shadow .2s ease, border-color .2s ease;
+  isolation: isolate; overflow: hidden;
+}
+
+/* Light gold background wash on hover + gold border and glow */
+#action-center-card:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;
+  border-color: rgba(212, 175, 55, 0.40) !important;
+  box-shadow:
+    0 0 0 1px rgba(212, 175, 55, .35),
+    0 18px 50px rgba(212, 175, 55, .12) !important;
+}
+
+/* Optional: keep links from turning blue/underlined unless hover */
+#action-center-card a { color: inherit; text-decoration: none; }
+#action-center-card a:hover { text-decoration: underline; }

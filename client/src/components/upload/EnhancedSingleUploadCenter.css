@@ -1,0 +1,456 @@
+/* Enhanced Single Upload Center - Professional Design */
+/* Maintains your original elegant design with intelligent functionality */
+
+/* Main Container */
+.enhanced-single-upload-center {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* Family Header (preserved from your original design) */
+.family-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+}
+
+.family-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--primary-gold);
+  margin: 0;
+}
+
+.user-avatars {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary-gold);
+  color: var(--dark-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Main Upload Area - Professional Single Box (Your Original Style) */
+.main-upload-area {
+  position: relative;
+  background: var(--card-bg);
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 2rem 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.main-upload-area:hover {
+  border-color: var(--primary-gold);
+  background: rgba(212, 175, 55, 0.03);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-gold);
+}
+
+/* Drag Active State */
+.main-upload-area.drag-active {
+  border-color: var(--primary-gold);
+  border-style: solid;
+  background: rgba(212, 175, 55, 0.08);
+  transform: scale(1.02);
+  box-shadow: 0 12px 40px rgba(212, 175, 55, 0.2);
+}
+
+/* Uploading State */
+.main-upload-area.uploading {
+  border-color: var(--primary-gold);
+  background: rgba(212, 175, 55, 0.05);
+  pointer-events: none;
+}
+
+/* Upload Content Container */
+.upload-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* Upload Icon Container */
+.upload-icon-container {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-icon {
+  width: 64px;
+  height: 64px;
+  color: var(--primary-gold);
+}
+
+.upload-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Progress Circle */
+.upload-progress-circle {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-ring {
+  transform: rotate(-90deg);
+}
+
+.progress-ring-background {
+  opacity: 0.3;
+}
+
+.progress-ring-progress {
+  stroke-linecap: round;
+}
+
+.progress-percentage {
+  position: absolute;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--primary-gold);
+}
+
+/* Upload Status */
+.upload-status {
+  text-align: center;
+}
+
+.upload-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+}
+
+.upload-message {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0 0 1rem 0;
+  line-height: 1.4;
+}
+
+/* Upload Type Indicators */
+.upload-type-indicator {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.mixed-badges {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.type-badge {
+  background: var(--border-color);
+  color: var(--text-secondary);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.type-badge.documents {
+  background: rgba(212, 175, 55, 0.2);
+  color: var(--primary-gold);
+}
+
+.type-badge.photos {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10B981;
+}
+
+/* Upload Ready State */
+.upload-ready h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+}
+
+.upload-ready p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.5rem 0;
+  line-height: 1.4;
+}
+
+.ai-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-bottom: 1.5rem;
+}
+
+/* Browse Button - Professional Styling */
+.browse-button {
+  background: var(--primary-gold);
+  color: var(--dark-bg);
+  border: none;
+  padding: 0.875rem 2rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+  margin: 0 auto 1rem auto;
+  box-shadow: var(--shadow-sm);
+}
+
+.browse-button:hover {
+  background: var(--primary-gold-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+.browse-button:active {
+  transform: translateY(0);
+}
+
+/* Or Text */
+.or-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Smart File Types Section */
+.file-types-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  width: 100%;
+  justify-content: center;
+}
+
+.file-types-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.group-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.file-types {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.file-type {
+  background: var(--border-color);
+  color: var(--text-secondary);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.file-type.documents {
+  background: rgba(212, 175, 55, 0.15);
+  color: var(--primary-gold);
+}
+
+.file-type.photos {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10B981;
+}
+
+.file-types-divider {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* Drag Overlay */
+.drag-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(212, 175, 55, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(8px);
+}
+
+.drag-content {
+  text-align: center;
+  color: var(--dark-bg);
+}
+
+.drag-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  animation: bounce 1s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+.drag-content span {
+  font-size: 1.25rem;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.drag-hint {
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+
+/* Quick Actions Section */
+.quick-actions-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 2rem auto 0 auto;
+  max-width: 480px;
+  width: 100%;
+}
+
+.quick-action-item {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-action-item:hover {
+  border-color: var(--primary-gold);
+  background: rgba(212, 175, 55, 0.03);
+  transform: translateY(-1px);
+}
+
+.action-icon {
+  font-size: 1.25rem;
+  width: 40px;
+  height: 40px;
+  background: rgba(212, 175, 55, 0.1);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.action-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.action-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .enhanced-single-upload-center {
+    padding: 1rem;
+  }
+
+  .main-upload-area {
+    padding: 1.5rem 1rem;
+    min-height: 240px;
+  }
+
+  .family-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .file-types-section {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .quick-actions-section {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .upload-icon-container {
+    width: 60px;
+    height: 60px;
+  }
+
+  .upload-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .upload-progress-circle {
+    width: 60px;
+    height: 60px;
+  }
+}

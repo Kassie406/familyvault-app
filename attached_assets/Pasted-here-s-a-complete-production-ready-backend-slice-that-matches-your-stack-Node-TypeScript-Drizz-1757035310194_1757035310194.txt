@@ -1,0 +1,357 @@
+here’s a complete, production-ready backend slice that matches your stack (Node + TypeScript + Drizzle + Neon Postgres; you’ve been using drizzle-kit push). It wires the “Invite Family Member” modal end-to-end:
+
+DB schema (Drizzle)
+
+Zod validation
+
+Token generation + expiry
+
+API routes (create / list / resend / revoke / create link / fetch current)
+
+Email delivery (plug in Nodemailer or Resend)
+
+(Optional) accept-invite endpoint
+
+If you’re on Prisma instead, say the word and I’ll translate; the shapes stay the same.
+
+1) Drizzle schema (Postgres)
+// db/schema/invites.ts
+import { pgTable, uuid, text, timestamp, boolean, pgEnum, index } from "drizzle-orm/pg-core";
+
+export const permissionEnum = pgEnum("permission", ["view", "edit", "admin"]);
+export const familyRoleEnum = pgEnum("family_role", ["owner", "parent", "child", "grandparent", "member", "other"]);
+
+export const invites = pgTable("invites", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: text("email").notNull(),
+  permission: permissionEnum("permission").notNull().default("view"),
+  familyRole: familyRoleEnum("family_role").notNull().default("member"),
+  invitedByUserId: uuid("invited_by_user_id").notNull(),
+  token: text("token").notNull(), // random, non-guessable
+  status: text("status").notNull().default("pending"), // pending | accepted | revoked | expired | bounced
+  requireLogin: boolean("require_login").notNull().default(true),
+  message: text("message"),
+  expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  acceptedAt: timestamp("accepted_at", { mode: "date" }),
+}, (t) => ({
+  emailIdx: index("invites_email_idx").on(t.email),
+  tokenIdx: index("invites_token_idx").on(t.token),
+  statusIdx: index("invites_status_idx").on(t.status),
+}));
+
+export const inviteLinks = pgTable("invite_links", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  createdByUserId: uuid("created_by_user_id").notNull(),
+  permission: permissionEnum("permission").notNull().default("view"),
+  requireLogin: boolean("require_login").notNull().default(true),
+  token: text("token").notNull(),
+  expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+}, (t) => ({
+  tokenIdx: index("invite_links_token_idx").on(t.token),
+  expIdx: index("invite_links_exp_idx").on(t.expiresAt),
+}));
+
+
+Migration: drizzle-kit generate && drizzle-kit push will create the SQL.
+If you need raw SQL, I can paste it too.
+
+2) Utils: token, email, and helpers
+// lib/tokens.ts
+import crypto from "crypto";
+export const newToken = (len = 32) => crypto.randomBytes(len).toString("base64url");
+
+// lib/dates.ts
+export const addDays = (d: Date, days: number) => {
+  const copy = new Date(d);
+  copy.setDate(copy.getDate() + days);
+  return copy;
+};
+
+// lib/email.ts
+// Swap with your provider. Two quick options shown:
+
+// A) Resend
+// import { Resend } from "resend";
+// const resend = new Resend(process.env.RESEND_API_KEY);
+// export async function sendInviteEmail(opts: { to: string; inviteUrl: string; message?: string }) {
+//   await resend.emails.send({
+//     from: "FamilyVault <invites@yourdomain.com>",
+//     to: opts.to,
+//     subject: "You're invited to join FamilyVault",
+//     html: `<p>You’re invited.</p><p><a href="${opts.inviteUrl}">Accept invite</a></p><p>${opts.message ?? ""}</p>`,
+//   });
+// }
+
+// B) Nodemailer (SMTP)
+import nodemailer from "nodemailer";
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST!,
+  port: Number(process.env.SMTP_PORT || 587),
+  secure: false,
+  auth: { user: process.env.SMTP_USER!, pass: process.env.SMTP_PASS! },
+});
+
+export async function sendInviteEmail(opts: { to: string; inviteUrl: string; message?: string }) {
+  await transporter.sendMail({
+    from: "FamilyVault <invites@yourdomain.com>",
+    to: opts.to,
+    subject: "You're invited to join FamilyVault",
+    html: `
+      <div style="font-family:Inter,system-ui; color:#e5e7eb; background:#0b0b0d; padding:24px;">
+        <h2 style="color:#f59e0b;">Join the family vault</h2>
+        <p>You’ve been invited to view and collaborate on your family’s secure portal.</p>
+        <p><a href="${opts.inviteUrl}" style="background:#f59e0b;color:#111;padding:10px 14px;border-radius:8px;text-decoration:none;">Accept invite</a></p>
+        ${opts.message ? `<p style="opacity:.8;margin-top:12px;">Message: ${opts.message}</p>` : ""}
+      </div>
+    `,
+  });
+}
+
+3) Validation (Zod)
+// lib/validation/invites.ts
+import { z } from "zod";
+
+export const createInvitesSchema = z.object({
+  invites: z.array(z.object({
+    email: z.string().email(),
+    permission: z.enum(["view", "edit", "admin"]),
+    familyRole: z.enum(["owner", "parent", "child", "grandparent", "member", "other"]),
+  })).min(1),
+  notify: z.boolean().optional().default(true),
+  message: z.string().max(500).optional(),
+});
+
+export const createInviteLinkSchema = z.object({
+  permission: z.enum(["view", "edit", "admin"]).default("view"),
+  expiresInDays: z.number().int().min(1).max(90).default(7),
+  requireLogin: z.boolean().default(true),
+});
+
+4) API routes (Express / Hono / Next API—same logic)
+
+Below is Express style; adapt to your router. Assumes a db from Drizzle and a requireAuth middleware that sets req.user.id.
+
+// routes/family-invites.ts
+import { Router } from "express";
+import { db } from "@/db"; // your drizzle db instance
+import { invites, inviteLinks } from "@/db/schema/invites";
+import { and, eq, gt } from "drizzle-orm";
+import { newToken } from "@/lib/tokens";
+import { addDays } from "@/lib/dates";
+import { sendInviteEmail } from "@/lib/email";
+import { createInvitesSchema, createInviteLinkSchema } from "@/lib/validation/invites";
+
+export const familyInvitesRouter = Router();
+
+/**
+ * POST /api/family/invites
+ * Body: { invites:[{email,permission,familyRole}], notify, message }
+ */
+familyInvitesRouter.post("/invites", requireAuth, async (req, res) => {
+  const userId = req.user.id as string;
+  const parsed = createInvitesSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.format() });
+
+  // Basic rate-limit: 50 outbound invites per 10 minutes (tune for your app)
+  // (Implement with your Redis/ratelimiter; pseudo only)
+  // await rateLimitOrThrow({ key: `invite:${userId}`, limit: 50, windowSec: 600 });
+
+  const now = new Date();
+  const expiresAt = addDays(now, 14); // invite tokens valid 14 days
+
+  const rows = await db.insert(invites).values(
+    parsed.data.invites.map((i) => ({
+      email: i.email.toLowerCase(),
+      permission: i.permission,
+      familyRole: i.familyRole,
+      invitedByUserId: userId,
+      token: newToken(24),
+      requireLogin: true,
+      message: parsed.data.message,
+      expiresAt,
+    }))
+  ).returning({ id: invites.id, email: invites.email, token: invites.token });
+
+  // Send emails if requested
+  if (parsed.data.notify) {
+    await Promise.all(rows.map((r) => {
+      const acceptUrl = `${process.env.APP_URL}/accept-invite/${r.token}`;
+      return sendInviteEmail({ to: r.email, inviteUrl: acceptUrl, message: parsed.data.message });
+    }));
+  }
+
+  res.json({ ok: true, count: rows.length });
+});
+
+/**
+ * GET /api/family/invites?status=pending
+ */
+familyInvitesRouter.get("/invites", requireAuth, async (req, res) => {
+  const status = String(req.query.status || "pending");
+  const data = await db.query.invites.findMany({
+    where: eq(invites.status, status),
+    columns: {
+      id: true, email: true, permission: true, familyRole: true, status: true, expiresAt: true, createdAt: true,
+    },
+    orderBy: (t, { desc }) => desc(t.createdAt),
+    limit: 100,
+  });
+  res.json({ items: data });
+});
+
+/**
+ * POST /api/family/invites/:id/resend
+ */
+familyInvitesRouter.post("/invites/:id/resend", requireAuth, async (req, res) => {
+  const userId = req.user.id as string;
+  const id = String(req.params.id);
+
+  const [row] = await db.select().from(invites).where(eq(invites.id, id));
+  if (!row) return res.status(404).json({ error: "Not found" });
+  if (row.status !== "pending") return res.status(400).json({ error: "Invite is not pending" });
+
+  // Refresh token + extend expiry
+  const token = newToken(24);
+  const expiresAt = addDays(new Date(), 14);
+
+  await db.update(invites)
+    .set({ token, expiresAt, invitedByUserId: userId })
+    .where(eq(invites.id, id));
+
+  const acceptUrl = `${process.env.APP_URL}/accept-invite/${token}`;
+  await sendInviteEmail({ to: row.email, inviteUrl: acceptUrl, message: row.message ?? undefined });
+
+  res.json({ ok: true });
+});
+
+/**
+ * DELETE /api/family/invites/:id  (revoke)
+ */
+familyInvitesRouter.delete("/invites/:id", requireAuth, async (req, res) => {
+  const id = String(req.params.id);
+  await db.update(invites).set({ status: "revoked" }).where(eq(invites.id, id));
+  res.json({ ok: true });
+});
+
+/**
+ * POST /api/family/invite-links
+ * Body: { permission, expiresInDays, requireLogin }
+ */
+familyInvitesRouter.post("/invite-links", requireAuth, async (req, res) => {
+  const userId = req.user.id as string;
+  const parsed = createInviteLinkSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.format() });
+
+  const token = newToken(24);
+  const expiresAt = addDays(new Date(), parsed.data.expiresInDays);
+
+  const [row] = await db.insert(inviteLinks).values({
+    createdByUserId: userId,
+    permission: parsed.data.permission,
+    requireLogin: parsed.data.requireLogin,
+    token,
+    expiresAt,
+  }).returning();
+
+  const url = `${process.env.APP_URL}/invite-link/${row.token}`;
+  res.json({ id: row.id, url, expiresAt: row.expiresAt });
+});
+
+/**
+ * GET /api/family/invite-links/current  (optionally fetch latest active link)
+ */
+familyInvitesRouter.get("/invite-links/current", requireAuth, async (_req, res) => {
+  const now = new Date();
+  const rows = await db.select().from(inviteLinks).where(gt(inviteLinks.expiresAt, now));
+  const last = rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+  if (!last) return res.json({ url: null });
+  res.json({ url: `${process.env.APP_URL}/invite-link/${last.token}`, expiresAt: last.expiresAt });
+});
+
+5) (Optional) Accept-invite endpoints
+// routes/accept-invite.ts
+import { Router } from "express";
+import { db } from "@/db";
+import { invites } from "@/db/schema/invites";
+import { eq } from "drizzle-orm";
+
+// GET /api/invites/:token  -> show minimal details (used by accept page)
+export const acceptInviteRouter = Router();
+
+acceptInviteRouter.get("/invites/:token", async (req, res) => {
+  const token = String(req.params.token);
+  const [row] = await db.select().from(invites).where(eq(invites.token, token));
+  if (!row) return res.status(404).json({ error: "Invalid token" });
+
+  const expired = row.expiresAt.getTime() < Date.now();
+  if (expired || row.status !== "pending") {
+    return res.status(410).json({ error: "Invite expired or already used" });
+  }
+  res.json({
+    email: row.email, permission: row.permission, familyRole: row.familyRole,
+    requireLogin: row.requireLogin, expiresAt: row.expiresAt,
+  });
+});
+
+// POST /api/invites/:token/accept   Body: { accountId }
+acceptInviteRouter.post("/invites/:token/accept", requireAuth, async (req, res) => {
+  const token = String(req.params.token);
+  const userId = req.user.id as string; // account accepting
+
+  const [row] = await db.select().from(invites).where(eq(invites.token, token));
+  if (!row) return res.status(404).json({ error: "Invalid token" });
+  if (row.expiresAt.getTime() < Date.now()) return res.status(410).json({ error: "Invite expired" });
+  if (row.status !== "pending") return res.status(409).json({ error: "Invite not pending" });
+
+  // TODO: upsert person in Family IDs per familyRole, and grant permission
+  // await addMemberToFamily({ userId, role: row.familyRole, permission: row.permission });
+
+  await db.update(invites)
+    .set({ status: "accepted", acceptedAt: new Date() })
+    .where(eq(invites.id, row.id));
+
+  res.json({ ok: true });
+});
+
+6) Wiring into your server
+// server/index.ts (excerpt)
+import express from "express";
+import { familyInvitesRouter } from "./routes/family-invites";
+import { acceptInviteRouter } from "./routes/accept-invite";
+
+const app = express();
+app.use(express.json());
+
+// your auth middleware
+// app.use(requireAuthIfNeeded);
+
+app.use("/api/family", familyInvitesRouter);
+app.use("/api", acceptInviteRouter);
+
+// …
+
+7) Security notes & polish
+
+Rate limit create/resend; block list known disposable email domains if needed.
+
+Idempotency: de-dupe invites to the same email (optional).
+
+Email deliverability: use a verified sender domain (SPF/DKIM), and send a plaintext fallback.
+
+Telemetry: log invitation events (created, resent, revoked, accepted).
+
+GDPR: include link to privacy/terms in the email.
+
+Link model: if you want only one active link at a time, add a unique partial index or clean up old ones after create.
+
+8) Frontend accept page (very short sketch)
+
+The URL https://portal.familycirclesecure.com/accept-invite/:token should:
+
+GET /api/invites/:token → render invite info, email, expiration.
+
+If user not logged in and requireLogin=true, show sign-in/up; then “Accept”.
+
+Call POST /api/invites/:token/accept.

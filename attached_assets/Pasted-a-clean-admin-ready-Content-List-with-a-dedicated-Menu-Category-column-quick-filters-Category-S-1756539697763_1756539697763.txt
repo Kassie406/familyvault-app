@@ -1,0 +1,210 @@
+a clean, admin-ready Content List with a dedicated Menu Category column, quick filters (Category / Status / Tenant / Search), and always-visible actions. Drop it into your Content tab.
+
+Content List (with Menu Category)
+HTML
+<section class="content-list">
+  <!-- Filters -->
+  <div class="content-filters">
+    <div class="left">
+      <select id="f-tenant" aria-label="Filter by tenant">
+        <option value="ALL" selected>Tenant: All</option>
+        <option value="PUBLIC">Public (clients)</option>
+        <option value="FAMILY">Family portal</option>
+        <option value="STAFF">Staff hub</option>
+      </select>
+
+      <select id="f-category" aria-label="Filter by menu category">
+        <option value="ALL" selected>Menu: All</option>
+        <option>Child Information</option>
+        <option>Disaster Planning</option>
+        <option>Elderly Parents</option>
+        <option>Estate Planning</option>
+        <option>Getting Married</option>
+        <option>Home Buying</option>
+        <option>International Travel</option>
+        <option>Starting a Family</option>
+        <option>Moving</option>
+        <option>When Someone Dies</option>
+        <option>Digital Security</option>
+        <option>Neurodiversity</option>
+      </select>
+
+      <select id="f-status" aria-label="Filter by status">
+        <option value="ALL" selected>Status: All</option>
+        <option value="published">Published</option>
+        <option value="scheduled">Scheduled</option>
+        <option value="draft">Draft</option>
+        <option value="archived">Archived</option>
+      </select>
+    </div>
+
+    <div class="right">
+      <input id="f-search" type="search" placeholder="Search title, author…" aria-label="Search articles" />
+      <button class="btn ghost" id="f-clear">Clear</button>
+      <button class="btn primary" id="open-article-modal">+ Create Article</button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card">
+    <table class="table" id="articles-table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Menu Category</th>
+          <th>Tenant</th>
+          <th>Author</th>
+          <th>Published</th>
+          <th>Status</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Example row -->
+        <tr
+          data-tenant="PUBLIC"
+          data-category="Disaster Planning"
+          data-status="published"
+          data-title="Family Evacuation Checklist"
+          data-author="Sarah Martinez"
+        >
+          <td><strong>Family Evacuation Checklist</strong></td>
+          <td><span class="badge badge-menu">Disaster Planning</span></td>
+          <td><span class="badge badge-tenant-public">Public</span></td>
+          <td>Sarah Martinez</td>
+          <td>2025-08-20 10:00</td>
+          <td><span class="badge badge-status-published">Published</span></td>
+          <td class="col-actions">
+            <div class="row-actions" role="group" aria-label="Article actions">
+              <button aria-label="Edit"   data-tip="Edit">✏️</button>
+              <button aria-label="Preview" data-tip="Preview">👁️</button>
+              <button aria-label="Unpublish" data-tip="Unpublish">🚫</button>
+              <button aria-label="Archive" data-tip="Archive">📦</button>
+            </div>
+          </td>
+        </tr>
+
+        <tr
+          data-tenant="PUBLIC"
+          data-category="Home Buying"
+          data-status="draft"
+          data-title="Home Document Binder"
+          data-author="John Doe"
+        >
+          <td><strong>Home Document Binder</strong></td>
+          <td><span class="badge badge-menu">Home Buying</span></td>
+          <td><span class="badge badge-tenant-public">Public</span></td>
+          <td>John Doe</td>
+          <td>—</td>
+          <td><span class="badge badge-status-draft">Draft</span></td>
+          <td class="col-actions">
+            <div class="row-actions" role="group" aria-label="Article actions">
+              <button aria-label="Edit" data-tip="Edit">✏️</button>
+              <button aria-label="Preview" data-tip="Preview">👁️</button>
+              <button aria-label="Schedule" data-tip="Schedule">⏰</button>
+              <button aria-label="Archive" data-tip="Archive">📦</button>
+            </div>
+          </td>
+        </tr>
+
+        <tr
+          data-tenant="STAFF"
+          data-category="Digital Security"
+          data-status="scheduled"
+          data-title="SOC Playbook Update"
+          data-author="Emily Chen"
+        >
+          <td><strong>SOC Playbook Update</strong></td>
+          <td><span class="badge badge-menu">Digital Security</span></td>
+          <td><span class="badge badge-tenant-staff">Staff</span></td>
+          <td>Emily Chen</td>
+          <td>2025-09-01 09:00</td>
+          <td><span class="badge badge-status-scheduled">Scheduled</span></td>
+          <td class="col-actions">
+            <div class="row-actions" role="group" aria-label="Article actions">
+              <button aria-label="Edit" data-tip="Edit">✏️</button>
+              <button aria-label="Preview" data-tip="Preview">👁️</button>
+              <button aria-label="Unschedule" data-tip="Unschedule">🗓️</button>
+              <button aria-label="Archive" data-tip="Archive">📦</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="table-foot">Showing 3 articles</div>
+  </div>
+</section>
+
+CSS (brief; aligns with your existing tables)
+.content-filters{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:8px 0 12px}
+.content-filters .left,.content-filters .right{display:flex;gap:10px;align-items:center}
+.content-filters select,.content-filters input[type="search"]{border:1px solid #D7DEE8;border-radius:10px;padding:10px 12px}
+.content-filters input[type="search"]{width:280px}
+
+.table{width:100%;border-collapse:separate;border-spacing:0}
+.table thead th{padding:12px 16px;text-align:left;border-bottom:1px solid #E5EAF2;background:#F9FAFB;font-weight:600;color:#111827}
+.table td{padding:12px 16px;border-bottom:1px solid #F0F3F8;color:#1F2937}
+.table tbody tr:hover{background:#F7FAFF}
+.col-actions{width:210px;text-align:right;white-space:nowrap}
+.row-actions button{padding:6px;border-radius:8px;background:transparent;border:0;color:#667085;margin-left:6px;cursor:pointer;transition:.15s}
+.row-actions button:hover{background:#EEF3FF;color:#1F6FEB}
+.row-actions button[data-tip]{position:relative}
+.row-actions button[data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);right:0;background:#111827;color:#fff;font-size:12px;padding:6px 8px;border-radius:6px;white-space:nowrap;opacity:0;transform:translateY(4px);pointer-events:none;transition:opacity .15s,transform .15s}
+.row-actions button:hover[data-tip]::after{opacity:1;transform:translateY(0)}
+
+.badge{padding:3px 8px;border-radius:9999px;font-size:12px;font-weight:600;display:inline-block}
+.badge-menu{background:#EEF1F5;color:#374151}
+.badge-tenant-public{background:#E9F2FF;color:#0D6EFD}
+.badge-tenant-staff{background:#E6F5EC;color:#1B7F3B}
+.badge-tenant-family{background:#F0E9FF;color:#6F42C1}
+
+.badge-status-published{background:#E8F6EE;color:#1B7F3B}
+.badge-status-scheduled{background:#FFF4E5;color:#AD7A00}
+.badge-status-draft{background:#E5E7EB;color:#374151}
+
+JS — client-side filters
+<script>
+(function(){
+  const rows = [...document.querySelectorAll('#articles-table tbody tr')];
+  const fTenant = document.getElementById('f-tenant');
+  const fCat    = document.getElementById('f-category');
+  const fStatus = document.getElementById('f-status');
+  const fSearch = document.getElementById('f-search');
+  const fClear  = document.getElementById('f-clear');
+
+  function matches(r){
+    const tOK = fTenant.value==='ALL' || r.dataset.tenant===fTenant.value;
+    const cOK = fCat.value==='ALL'    || r.dataset.category===fCat.value;
+    const sOK = fStatus.value==='ALL' || r.dataset.status===fStatus.value;
+    const q   = fSearch.value.trim().toLowerCase();
+    const qOK = !q || (r.dataset.title||'').toLowerCase().includes(q) ||
+                      (r.dataset.author||'').toLowerCase().includes(q);
+    return tOK && cOK && sOK && qOK;
+  }
+
+  function apply(){
+    let shown=0;
+    rows.forEach(r=>{ const show = matches(r); r.hidden=!show; if(show) shown++; });
+    // optional: empty state
+    let empty = document.querySelector('#articles-table tbody tr.empty-row');
+    if(!empty){
+      empty = document.createElement('tr'); empty.className='empty-row'; empty.hidden=true;
+      empty.innerHTML = `<td colspan="7" class="tc muted" style="padding:16px">No articles match.</td>`;
+      document.querySelector('#articles-table tbody').appendChild(empty);
+    }
+    empty.hidden = shown!==0;
+  }
+
+  [fTenant,fCat,fStatus,fSearch].forEach(el=>el.addEventListener('input', apply));
+  fClear.addEventListener('click', ()=>{ fTenant.value='ALL'; fCat.value='ALL'; fStatus.value='ALL'; fSearch.value=''; apply(); });
+  apply();
+})();
+</script>
+
+Why this helps
+
+Menu Category column lets you (and other admins) see at a glance which mega-menu section an article powers.
+
+Filters mirror your three-audience model (Public / Family / Staff) and editorial states (Draft / Scheduled / Published).
+
+Consistent actions keep usability high: Edit / Preview / Publish-state toggle / Archive.

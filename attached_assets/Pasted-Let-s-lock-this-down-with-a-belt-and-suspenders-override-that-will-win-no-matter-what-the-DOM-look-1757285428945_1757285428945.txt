@@ -1,0 +1,83 @@
+Let’s lock this down with a “belt-and-suspenders” override that will win no matter what the DOM looks like.
+
+1) Make sure the CSS file is loaded
+
+Confirm this once:
+
+client/src/styles/header.css exists
+
+It’s imported exactly once (global):
+// client/src/main.tsx (or your global styles barrel)
+import "./styles/header.css";
+
+2) Paste this at the end of client/src/styles/header.css
+
+This targets the real DOM structure (sticky wrapper + any button), kills all white sources (Tailwind bg vars, DaisyUI rings, pseudo elements), and applies the light gold hover.
+
+/* ===== Header icon hover hardening (wins over utilities) ===== */
+
+/* Target the sticky header container + any of these identifiers */
+.sticky button.header-icon:hover,
+.sticky [aria-label="Quick Access"]:hover,
+.sticky [aria-label="Notifications"]:hover,
+.sticky [data-testid="mobile-quick-access"]:hover,
+.sticky [data-testid="mobile-notifications"]:hover,
+.sticky [data-qa="header-quick-access"]:hover,
+.sticky [data-qa="header-notifications"]:hover {
+  /* kill white backgrounds injected by Tailwind utilities */
+  --tw-bg-opacity: 0 !important;
+  background-color: rgba(212,175,55,0.08) !important; /* light gold */
+  /* kill rings/glow */
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+/* Apply the same when focused via keyboard */
+.sticky button.header-icon:focus,
+.sticky button.header-icon:focus-visible,
+.sticky [aria-label="Quick Access"]:focus,
+.sticky [aria-label="Quick Access"]:focus-visible,
+.sticky [aria-label="Notifications"]:focus,
+.sticky [aria-label="Notifications"]:focus-visible {
+  --tw-bg-opacity: 0 !important;
+  background-color: rgba(212,175,55,0.08) !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+/* Nuke pseudo-element overlays that can flash white */
+.sticky button.header-icon::before,
+.sticky button.header-icon::after,
+.sticky [aria-label="Quick Access"]::before,
+.sticky [aria-label="Quick Access"]::after,
+.sticky [aria-label="Notifications"]::before,
+.sticky [aria-label="Notifications"]::after {
+  content: none !important;
+}
+
+/* Defensive: prevent inner SVG/wrapper from re-introducing white */
+.sticky button.header-icon * {
+  background: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  box-shadow: none !important;
+}
+
+3) (If needed) Add a class to the buttons
+
+Open your header component (Header.tsx or your navbar component) and ensure both round buttons have the class header-icon:
+
+<button className="header-icon" aria-label="Quick Access" ... />
+<button className="header-icon" aria-label="Notifications" ... />
+
+
+(You already added this earlier; this is just to confirm.)
+
+4) Hard refresh properly
+
+Open DevTools → Network → check Disable cache
+
+Press Ctrl+Shift+R (Mac: Cmd+Shift+R) once
+
+5) If it still flashes white

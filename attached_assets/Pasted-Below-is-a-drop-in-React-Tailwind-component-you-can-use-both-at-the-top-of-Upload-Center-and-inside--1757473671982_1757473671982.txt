@@ -1,0 +1,431 @@
+Below is a drop-in React/Tailwind component you can use both at the top of Upload Center and inside the Inbox drawer. It extends the banner I sent earlier with icon variants, regenerate, feedback capture, accessibility, and graceful errors.
+
+1) Component: AutofillBannerTrust
+// components/AutofillBannerTrust.tsx
+import {
+  Sparkles, Wand2, Brain, Lightbulb,
+  Check, X, RefreshCw, ThumbsUp, ThumbsDown, Info, AlertTriangle
+} from "lucide-react";
+import { useEffect, useId, useMemo, useState } from "react";
+
+export type AISymbol = "sparkles" | "wand" | "brain" | "lightbulb";
+
+export type ExtractField = {
+  key: string;
+  label: string;
+  value: string;
+  confidence?: number;
+  pii?: boolean;
+};
+
+export type AutoFillSuggestion = {
+  uploadId: string;
+  itemType: string;
+  fields: ExtractField[];
+  target?: { memberId: string; memberName: string } | null;
+};
+
+type Props = {
+  suggestion: AutoFillSuggestion | null;   // null = hidden
+  loading?: boolean;                       // show “Analyzing…”
+  icon?: AISymbol;                         // default: "sparkles"
+  aiAvailable?: boolean;                   // enable progressive enhancement
+  error?: string | null;
+
+  onAcceptAll: (s: AutoFillSuggestion) => Promise<void> | void;
+  onDismissAll: (s: AutoFillSuggestion) => Promise<void> | void;
+  onRegenerate: (s: AutoFillSuggestion) => Promise<AutoFillSuggestion | null>;
+  onFeedback: (s: AutoFillSuggestion, type: "positive" | "negative" | "info") => void;
+  onViewDetails?: (s: AutoFillSuggestion) => void;
+};
+
+export default function AutofillBannerTrust({
+  suggestion,
+  loading = false,
+  icon = "sparkles",
+  aiAvailable = true,
+  error = null,
+  onAcceptAll,
+  onDismissAll,
+  onRegenerate,
+  onFeedback,
+  onViewDetails,
+}: Props) {
+  const [busy, setBusy] = useState(false);
+  const [regenBusy, setRegenBusy] = useState(false);
+  const liveId = useId();
+  const count = suggestion?.fields.length ?? 0;
+
+  // Pick the correct icon per Manus’ guidance
+  const Icon = useMemo(() => {
+    switch (icon) {
+      case "wand": return Wand2;
+      case "brain": return Brain;
+      case "lightbulb": return Lightbulb;
+      default: return Sparkles;
+    }
+  }, [icon]);
+
+  // Screen-reader live announcements
+  useEffect(() => {
+    if (loading) return;
+    if (!suggestion) return;
+    // No-op; the aria-live region below will read when banner appears
+  }, [loading, suggestion]);
+
+  if (!aiAvailable) {
+    return (
+      <div className="rounded-xl border border-slate-200/60 bg-slate-50 p-4 mt-3">
+        <div className="text-sm text-slate-600">
+          AI suggestions temporarily unavailable.
+        </div>
+      </div>
+    );
+  }
+
+  if (!loading && !suggestion && !error) return null;
+
+  const headline = suggestion ? pickHeadline(suggestion.fields) : [];
+
+  return (
+    <section
+      aria-labelledby="ai-autofill-title"
+      className="rounded-xl border border-indigo-200/30 bg-indigo-50/50 dark:bg-indigo-950/20 p-4 shadow-sm mt-3"
+    >
+      {/* SR-only live updates */}
+      <div id={liveId} aria-live="polite" className="sr-only">
+        {loading ? "Analyzing uploaded document for autofill suggestions."
+                 : suggestion ? `${count} details found for ${suggestion.itemType}.`
+                 : error ? `Autofill failed: ${error}` : ""}
+      </div>
+
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5">
+          <Icon className="h-5 w-5 text-indigo-500" />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 id="ai-autofill-title" className="text-sm font-semibold text-indigo-900 dark:text-indigo-100">
+              {loading ? "Analyzing…" : "Suggested autofill"}
+            </h3>
+
+            {!loading && suggestion && (
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200">
+                {count} {count === 1 ? "detail" : "details"} found
+              </span>
+            )}
+          </div>
+
+          {/* Error bar (transparent + clear) */}
+          {error && (
+            <div className="mt-3 p-2 rounded-md border border-red-200 bg-red-50 text-sm text-red-700 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Preview card */}
+          {!loading && suggestion && !error && (
+            <div className="mt-3 rounded-lg border border-indigo-200/30 bg-white/70 dark:bg-black/10 px-4 py-3">
+              <div className="text-sm font-medium mb-1 truncate">
+                {suggestion.itemType}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                {headline.map((f) => (
+                  <div key={f.key} className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">{f.label}</span>
+                    <span className="font-medium text-right break-all">{f.value}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                className="mt-3 w-full text-center text-sm text-indigo-700 dark:text-indigo-300 hover:underline"
+                onClick={() => suggestion && onViewDetails?.(suggestion)}
+                aria-label="View all extracted details"
+              >
+                View all details
+              </button>
+            </div>
+          )}
+
+          {/* Feedback row */}
+          {!loading && suggestion && !error && (
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                className="text-slate-600 hover:text-slate-800 dark:text-slate-300"
+                aria-label="Mark suggestion as helpful"
+                onClick={() => onFeedback(suggestion, "positive")}
+              >
+                <ThumbsUp className="w-4 h-4" />
+              </button>
+              <button
+                className="text-slate-600 hover:text-slate-800 dark:text-slate-300"
+                aria-label="Mark suggestion as not helpful"
+                onClick={() => onFeedback(suggestion, "negative")}
+              >
+                <ThumbsDown className="w-4 h-4" />
+              </button>
+              <button
+                className="text-slate-600 hover:text-slate-800 dark:text-slate-300"
+                aria-label="Why am I seeing this?"
+                onClick={() => onFeedback(suggestion, "info")}
+                title="We extract fields from your document using on-device and server models."
+              >
+                <Info className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-col gap-2 shrink-0">
+          <button
+            className="inline-flex items-center gap-1 rounded-md border border-slate-300/60 px-3 py-1.5 text-sm hover:bg-white/70 dark:border-slate-700 disabled:opacity-60"
+            onClick={async () => {
+              if (!suggestion) return;
+              setBusy(true);
+              await onDismissAll(suggestion);
+              setBusy(false);
+            }}
+            disabled={loading || busy || !!error || !suggestion}
+            aria-label="Dismiss all autofill suggestions"
+          >
+            <X className="h-4 w-4" />
+            Dismiss all
+          </button>
+
+          <button
+            className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-1.5 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
+            onClick={async () => {
+              if (!suggestion) return;
+              setBusy(true);
+              await onAcceptAll(suggestion);
+              setBusy(false);
+            }}
+            disabled={loading || busy || !!error || !suggestion}
+            aria-label="Accept all autofill suggestions"
+          >
+            <Check className="h-4 w-4" />
+            Accept all
+          </button>
+
+          <button
+            className="inline-flex items-center gap-1 rounded-md border border-slate-300/60 px-3 py-1.5 text-sm hover:bg-white/70 dark:border-slate-700 disabled:opacity-60"
+            onClick={async () => {
+              if (!suggestion) return;
+              setRegenBusy(true);
+              const next = await onRegenerate(suggestion);
+              setRegenBusy(false);
+              // parent should set new suggestion / error
+            }}
+            disabled={loading || regenBusy || !!error || !suggestion}
+            aria-label="Regenerate autofill suggestions"
+          >
+            {regenBusy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Regenerate
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// Prefer “Number” and “Expiration date”, otherwise first two fields
+function pickHeadline(fields: ExtractField[]) {
+  const get = (label: string) => fields.find((f) => f.label === label);
+  const a = get("Number") ?? fields[0];
+  const b = get("Expiration date") ?? fields.find((f) => f.key !== a?.key) ?? fields[1];
+  return [a, b].filter(Boolean) as ExtractField[];
+}
+
+
+What’s included (per Manus):
+
+Icon variants (sparkles, wand, brain, lightbulb)
+
+Clear label + count chip
+
+Loading, error, availability states
+
+Regenerate with spinner
+
+Thumbs up / down / info feedback hooks
+
+ARIA labels + live region
+
+Works in both Upload Center and Inbox
+
+2) Use it in Upload Center
+// pages/upload/UploadCenter.tsx (excerpt)
+import { useState, useEffect } from "react";
+import AutofillBannerTrust, { AutoFillSuggestion } from "@/components/AutofillBannerTrust";
+
+export default function UploadCenter() {
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [aiAvailable, setAiAvailable] = useState(true);
+  const [autoFill, setAutoFill] = useState<AutoFillSuggestion | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/ai-status")
+      .then(r => r.json()).then(d => setAiAvailable(!!d.available))
+      .catch(() => setAiAvailable(false));
+  }, []);
+
+  async function onUploadSuccess(file: File, s3Key: string) {
+    setAiError(null);
+    setAnalysisLoading(true);
+
+    // 1) register
+    const reg = await fetch("/api/inbox/register", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ fileName: file.name, fileKey: s3Key }),
+    }).then(r => r.json());
+
+    // 2) analyze
+    const res = await fetch(`/api/inbox/${reg.uploadId}/analyze`, { method: "POST" });
+    setAnalysisLoading(false);
+
+    if (!res.ok) {
+      setAutoFill(null);
+      setAiError("Unable to analyze upload. Please try Regenerate.");
+      return;
+    }
+
+    const data = await res.json();
+    if (Array.isArray(data?.fields) && data.fields.length) {
+      setAutoFill({
+        uploadId: reg.uploadId,
+        itemType: data.itemType ?? inferType(data.fields),
+        fields: data.fields,
+        target: data?.suggestion ?? null,
+      });
+    } else {
+      setAutoFill(null);
+      setAiError("No confident details were found.");
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <AutofillBannerTrust
+        icon="sparkles"
+        aiAvailable={aiAvailable}
+        loading={analysisLoading}
+        error={aiError}
+        suggestion={autoFill}
+        onAcceptAll={acceptAll}
+        onDismissAll={dismissAll}
+        onRegenerate={regenerate}
+        onFeedback={sendFeedback}
+        onViewDetails={(s) => openDetailsModal(s)}
+      />
+
+      {/* ...your existing Upload Center UI... */}
+    </div>
+  );
+
+  async function acceptAll(s: AutoFillSuggestion) {
+    await fetch(`/api/inbox/${s.uploadId}/accept-autofill`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        memberId: s.target?.memberId ?? null,
+        fields: s.fields,
+      }),
+    });
+    setAutoFill(null);
+  }
+
+  async function dismissAll(s: AutoFillSuggestion) {
+    await fetch(`/api/inbox/${s.uploadId}/dismiss`, { method: "POST" });
+    setAutoFill(null);
+  }
+
+  async function regenerate(s: AutoFillSuggestion) {
+    setAiError(null);
+    const res = await fetch(`/api/inbox/${s.uploadId}/analyze`, { method: "POST" });
+    if (!res.ok) {
+      setAiError("Regeneration failed. Please try again.");
+      return null;
+    }
+    const data = await res.json();
+    const next: AutoFillSuggestion | null = (Array.isArray(data?.fields) && data.fields.length)
+      ? { uploadId: s.uploadId, itemType: data.itemType ?? inferType(data.fields), fields: data.fields, target: data?.suggestion ?? null }
+      : null;
+    setAutoFill(next);
+    if (!next) setAiError("No details found on regeneration.");
+    return next;
+  }
+
+  function sendFeedback(s: AutoFillSuggestion, type: "positive" | "negative" | "info") {
+    fetch("/api/ai-feedback", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        uploadId: s.uploadId,
+        feedback: type,
+        memberId: s.target?.memberId ?? null,
+      }),
+    }).catch(() => {});
+  }
+
+  function openDetailsModal(s: AutoFillSuggestion) {
+    // show full extracted field list in your existing modal
+  }
+}
+
+function inferType(fields: { key: string }[]) {
+  return fields[0]?.key?.split(".")[0] ?? "Document";
+}
+
+
+Drop onUploadSuccess where you already handle the S3 upload success.
+
+3) Use it in the Inbox drawer (same API)
+// InboxDrawer item (excerpt)
+<AutofillBannerTrust
+  icon="brain"
+  aiAvailable={true}
+  loading={false}
+  error={null}
+  suggestion={{
+    uploadId: item.id,
+    itemType: item.itemType ?? "Document",
+    fields: item.fields ?? [],
+    target: item.suggestion
+      ? { memberId: item.suggestion.memberId, memberName: item.suggestion.memberName }
+      : null,
+  }}
+  onAcceptAll={acceptAllFromInbox}
+  onDismissAll={dismissFromInbox}
+  onRegenerate={(s) => fetch(`/api/inbox/${s.uploadId}/analyze`, { method: "POST" }).then(r => r.json())}
+  onFeedback={(s, t) => fetch("/api/ai-feedback", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({ uploadId: s.uploadId, feedback: t }) })}
+  onViewDetails={(s) => openDetailsModal(s)}
+/>
+
+4) Minimal endpoints you’ll want
+// POST /api/ai-status -> { available: boolean }
+
+// POST /api/ai-feedback
+// body: { uploadId: string, feedback: 'positive'|'negative'|'info', memberId?: string|null }
+
+// POST /api/inbox/register -> { uploadId }
+// POST /api/inbox/:id/analyze -> { itemType?: string, fields: ExtractField[], suggestion?: { memberId, memberName } }
+// POST /api/inbox/:id/accept-autofill -> { ok: true }
+// POST /api/inbox/:id/dismiss -> { ok: true }
+
+
+You already have register/analyze. The new ones are /ai-status and /ai-feedback, plus accept-autofill if you want to atomically attach + persist extracted fields.
+
+5) Visual/UX notes
+
+Use Sparkles for general suggestions, Brain for analysis-heavy contexts (Inbox), Wand for transformations, Lightbulb for “ideas”.
+
+“Why am I seeing this?” (Info) gives transparency without modal overhead (tooltips or short explainer).
+
+The banner is compact, but View all details takes them to your full modal (like your “Details 2” pill).

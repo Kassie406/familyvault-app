@@ -1,0 +1,55 @@
+Header hover: belt-and-suspenders patch
+
+If you already added header-overrides.css, you’re set. But if you prefer to keep everything in your existing quick-access.css, you can append this header-only block at the end of that file to make sure no white hover can slip in from DaisyUI/Tailwind button utilities:
+
+/* ===== Header icons: kill white hover & use very light gold ===== */
+:root {
+  --kc-gold-08: rgba(212, 175, 55, 0.08);
+  --kc-gold-24: rgba(212, 175, 55, 0.24);
+}
+
+/* Scope to header variants you might have */
+header, .topbar, [data-kc="header"], nav[aria-label="Header"] {}
+
+/* Neutralize DaisyUI/Tailwind white hover/rings */
+header .btn, .topbar .btn, [data-kc="header"] .btn, nav[aria-label="Header"] .btn,
+header button, .topbar button, [data-kc="header"] button, nav[aria-label="Header"] button,
+header a[role="button"], .topbar a[role="button"], [data-kc="header"] a[role="button"], nav[aria-label="Header"] a[role="button"] {
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 9999px;
+  transition: background-color .15s ease, box-shadow .15s ease;
+}
+
+/* Replace white hover with subtle gold */
+header .btn:hover, .topbar .btn:hover, [data-kc="header"] .btn:hover, nav[aria-label="Header"] .btn:hover,
+header button:hover, .topbar button:hover, [data-kc="header"] button:hover, nav[aria-label="Header"] button:hover,
+header a[role="button"]:hover, .topbar a[role="button"]:hover, [data-kc="header"] a[role="button"]:hover, nav[aria-label="Header"] a[role="button"]:hover {
+  background-color: var(--kc-gold-08) !important;
+}
+
+/* Accessible focus state without white */
+header .btn:focus-visible, .topbar .btn:focus-visible, [data-kc="header"] .btn:focus-visible, nav[aria-label="Header"] .btn:focus-visible,
+header button:focus-visible, .topbar button:focus-visible, [data-kc="header"] button:focus-visible, nav[aria-label="Header"] button:focus-visible,
+header a[role="button"]:focus-visible, .topbar a[role="button"]:focus-visible, [data-kc="header"] a[role="button"]:focus-visible, nav[aria-label="Header"] a[role="button"]:focus-visible {
+  box-shadow: 0 0 0 2px var(--kc-gold-24) !important;
+}
+
+
+Keep this after DaisyUI/Tailwind imports so it wins the cascade.
+Hard-refresh (Ctrl/Cmd+Shift+R) once after saving.
+
+Quick sanity checklist (saves credits)
+
+Search the codebase once for hover:bg-white / hover:bg-white/ and remove any stragglers (Agent often misses one).
+
+Verify quick-access.css (and/or header-overrides.css) is imported after Tailwind/DaisyUI.
+
+In DevTools, keep Network → Disable cache on for one refresh to force the new CSS.
+
+If you still see a white flash anywhere, shoot me the exact wrapper HTML for that element (from Inspect) and I’ll give you a precise, one-line rule that fixes just that without touching anything else.

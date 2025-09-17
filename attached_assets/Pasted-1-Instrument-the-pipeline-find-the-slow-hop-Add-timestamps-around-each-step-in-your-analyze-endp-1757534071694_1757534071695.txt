@@ -1,0 +1,149 @@
+1) Instrument the pipeline (find the slow hop)
+
+Add timestamps around each step in your analyze endpoint and log the elapsed ms. This tells you exactly where the time goes (upload → register → OCR → NLP → match → DB write).
+
+// server/routes/ai-inbox.ts (inside POST /api/inbox/:id/analyze)
+const t0 = Date.now();
+const step = (label: string, t=Date.now()) =>
+  console.log(`[AI] ${label} +${t - (step as any)._last || 0}ms (total ${t - t0}ms)`, (step as any)._last=t);
+
+step._last = Date.now();
+// 1) fetch S3 object
+step('fetched s3');
+// 2) preprocess
+step('preprocessed');
+// 3) ocr
+step('ocr');
+// 4) parse/NER
+step('parsed');
+// 5) match members
+step('matched');
+// 6) save + emit
+step('saved');
+
+
+You’ll know in one test whether OCR or DB or network is your culprit.
+
+2) Make OCR fast and reliable
+
+Preprocess every image before OCR (this is huge):
+
+Downscale largest side to ≤ 2000px,
+
+convert to grayscale,
+
+increase contrast,
+
+deskew/autoorient,
+
+crop borders.
+
+Using sharp:
+
+import sharp from 'sharp';
+
+async function preprocess(buffer: Buffer) {
+  return sharp(buffer)
+    .rotate()                 // auto-orient
+    .resize({ width: 2000, withoutEnlargement: true })
+    .grayscale()
+    .normalise()              // increase contrast
+    .toFormat('jpeg', { quality: 85 })
+    .toBuffer();
+}
+
+
+Pick the right OCR mode:
+
+For driver’s licenses/IDs: AWS Textract AnalyzeID is the fastest & most accurate (structured fields).
+
+For general docs: Textract DetectDocumentText or Google Vision. Use synchronous endpoints for single images.
+
+Set a hard timeout + retry (so you don’t spin forever):
+
+const withTimeout = <T,>(p: Promise<T>, ms=20000) =>
+  Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+
+
+Retry once with a lower resolution if the first pass fails.
+
+3) Make matching snappy
+
+Add an index on your members table: CREATE INDEX ON members (LOWER(full_name), birth_date);
+
+Normalize OCR tokens (strip punctuation, uppercase, remove spaces from numbers).
+
+Use a threshold (e.g., cosine > 0.85) before you claim a suggestion; if it’s lower, still show the banner but say “Not confident — open to review”.
+
+4) UX: Clear, step-wise progress + instant banner
+
+You already have the Inbox drawer spinner. Add step progress and push the result to the banner above Upload Center when done.
+
+You can copy this minimal event bus (if you haven’t yet):
+
+// client/src/lib/autofillBus.ts
+import mitt from 'mitt';
+type Events = {
+  'autofill:started': { uploadId: string; fileName: string };
+  'autofill:progress': { uploadId: string; step: string };
+  'autofill:ready': { uploadId: string; fileName: string; detailsCount: number; fields: any[]; suggestion?: any };
+  'autofill:failed': { uploadId: string; fileName: string; error: string };
+};
+export default mitt<Events>();
+
+
+From your analyze flow:
+
+bus.emit('autofill:started', { uploadId, fileName });
+bus.emit('autofill:progress', { uploadId, step: 'OCR' });
+// …
+bus.emit('autofill:ready', { uploadId, fileName, detailsCount, fields, suggestion });
+// or
+bus.emit('autofill:failed', { uploadId, fileName, error: err.message });
+
+
+In UploadCenter, subscribe and show a banner with “Analyzing (OCR)…” → “Suggested autofill • N details found” → “Failed (Try again)”. (You can reuse the banner I gave earlier; it will auto-pop once the Inbox finishes.)
+
+5) Guardrails (so it never feels stuck)
+
+SLA: If end-to-end takes > 15–20s, flip the banner to “We’ll keep working in the background” and keep the Inbox card in “processing”. You can complete via WebSocket and flip the banner later.
+
+Queue: If concurrency is causing spikes, run OCR in a BullMQ/Redis queue with a concurrency of, say, 2–4 workers. Emit progress via socket.
+
+File limits: Show a warning if image > 8–10 MB or resolution > 4000px — precompress client-side before S3 PUT to shave seconds.
+
+Graceful fallback: If AnalyzeID isn’t available, fall back to generic OCR + simple regexes for “DL/ID/Expires”.
+
+6) Common “0 details found” causes to check
+
+Cropped photo (only the back of the card, or badge clipped).
+
+Blurry/low light; try a straightened, high-contrast photo.
+
+Wrong OCR endpoint (e.g., sending a PDF to an image-only method).
+
+Your DB insert/find race (you fixed this earlier by moving registration to /api/inbox/register; make sure analyze reads the same uploadId).
+
+The CSP/CORS was blocking fonts earlier; ensure your analysis request isn’t being blocked (Network tab shows 200 + response body).
+
+7) If you want the fastest path for driver’s licenses
+
+Use Textract AnalyzeID (returns Number, Expiration, Name, DOB, Address) in <2–4s for a clean photo.
+
+Preprocess with sharp above.
+
+Map straight to the member suggestion via exact last-name match + DOB fallback. Only fall to fuzzy if exact fails.
+
+Quick checklist to try now
+
+Add the timing logs around your analyze endpoint and run one upload.
+
+If OCR > 5s → add the sharp preprocessing + switch to the best OCR mode for the doc type.
+
+If DB or matching is slow → add the index + threshold.
+
+Hook the event bus so the Upload Center banner auto-updates when the Inbox finishes (no more “0 details found” placeholder if it’s still working).
+
+Add a 20s timeout → “We’ll keep working” fallback.
+
+If you paste the file where your current analyze function lives (client side) and your analyze route signature (server), I’ll tailor the exact bus.emit lines and a 15-line sharp preprocessor that drops straight in.

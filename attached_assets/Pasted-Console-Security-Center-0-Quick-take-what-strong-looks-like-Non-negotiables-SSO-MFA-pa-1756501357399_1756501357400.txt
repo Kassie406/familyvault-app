@@ -1,0 +1,307 @@
+Console → Security Center.
+
+0) Quick take: what “strong” looks like
+
+Non-negotiables
+
+✅ SSO + MFA/passkeys for every account (WebAuthn first, magic link fallback).
+
+✅ RBAC + tenancy isolation (row-level security) at the database layer.
+
+✅ End-to-end TLS (HSTS, A+ SSL), strong security headers, strict CSP.
+
+✅ Argon2id hashing, short-lived sessions, refresh rotation, device binding.
+
+✅ Data encrypted in transit and at rest; documents additionally encrypted with tenant-scoped keys.
+
+✅ File uploads virus-scanned and validated; signed URLs only.
+
+✅ WAF/rate limits, brute-force protection, and anomaly detection.
+
+✅ Immutable audit logs + system status (OK/FAIL) surfaced in Console.
+
+✅ Automatic off-site encrypted backups with restore drills.
+
+✅ Privacy: explicit cookie consent + opt-out, minimal default cookies.
+
+Replit reality check: Replit is fine for building and staging. For production, use external managed services for the critical bits:
+
+Postgres (Neon/Supabase/Railway) with RLS on
+
+Object storage (S3/R2) with server-side encryption and signed URLs
+
+Cloudfront/Cloudflare in front of your app (WAF, DDoS, TLS)
+
+Optional: Auth provider (Clerk/Auth0/Supabase Auth) for instant passkeys
+
+1) Authentication & Sessions
+Option A (fastest): use Clerk or Auth0 with passkeys
+
+Passkeys (WebAuthn) out of the box, device management, risk signals
+
+Easy orgs + roles
+
+Add mandatory MFA for PRESIDENT/AGENT
+
+Option B: roll your own (Express)
+
+Install:
+
+npm i argon2 helmet cors cookie-parser csurf express-rate-limit express-session connect-redis ioredis @simplewebauthn/server @simplewebauthn/browser zod
+
+
+Middleware:
+
+// app.js
+import express from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import session from 'express-session';
+import RedisStore from 'connect-redis';
+import { createClient } from 'ioredis';
+import rateLimit from 'express-rate-limit';
+
+const app = express();
+const redis = new createClient(process.env.REDIS_URL);
+
+app.set('trust proxy', 1);
+
+app.use(helmet({
+  contentSecurityPolicy: false,         // set custom CSP below
+  crossOriginEmbedderPolicy: false
+}));
+
+app.use((req, res, next) => {
+  // Strict CSP: tweak domains you use
+  res.setHeader('Content-Security-Policy', [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    "connect-src 'self' https://api.familycirclesecure.com",
+    "frame-ancestors 'none'",
+    "base-uri 'none'",
+    "form-action 'self'"
+  ].join('; '));
+  next();
+});
+
+app.use(cors({ origin: ['https://familycirclesecure.com', 'https://console.familycirclesecure.com'], credentials: true }));
+app.use(cookieParser());
+
+const store = new RedisStore({ client: redis });
+app.use(session({
+  name: '__Secure.sid',
+  secret: process.env.SESSION_SECRET,
+  store,
+  resave: false,
+  saveUninitialized: false,
+  rolling: true,
+  cookie: {
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: true,           // required behind TLS
+    maxAge: 1000 * 60 * 30  // 30 mins
+  }
+}));
+
+// Basic rate limits
+app.use('/api/auth', rateLimit({ windowMs: 15*60*1000, max: 50 }));
+app.use('/api', rateLimit({ windowMs: 60*1000, max: 300 }));
+
+
+Password hashing:
+
+import argon2 from 'argon2';
+const hash = await argon2.hash(plain, { type: argon2.argon2id, memoryCost: 19456, timeCost: 3, parallelism: 1 });
+const ok = await argon2.verify(user.hash, input);
+
+
+WebAuthn (passkeys) server side: @simplewebauthn/server (registration / authentication routes). (I can drop the full routes when you’re ready.)
+
+Account safety
+
+Device approval (store device fingerprints)
+
+New-device login alerts (email/SMS)
+
+Enforce MFA for sensitive roles
+
+2) Tenancy & Authorization
+
+Use Postgres + RLS (Row Level Security) (Supabase/Neon both support it).
+
+Tables (simplified)
+
+organizations (id, name, owner_id)
+
+users (id, email, role) // role ∈ {PRESIDENT, FAMILY_ACCESSOR, MEMBER, AGENT, ADMIN}
+
+memberships (user_id, org_id, role_in_org)
+
+documents (id, org_id, owner_user_id, encrypted_key_id, …)
+
+RLS example (Supabase policy)
+
+-- Only members of an org see rows for that org
+create policy "org_members_can_select" on documents
+for select using (
+  exists (
+    select 1 from memberships m
+    where m.org_id = documents.org_id and m.user_id = auth.uid()
+  )
+);
+
+
+For PRESIDENT inviting FAMILY_ACCESSOR: grant read-only policy by role_in_org.
+
+3) Data & File Security
+At rest
+
+DB volume encryption (managed by provider)
+
+Application-level envelope encryption for documents:
+
+Generate a tenant key (DEK) per org, store it encrypted by a master key (KEK) in KMS (or at least in a secrets vault)
+
+Files encrypted with AES-256-GCM before put to S3/R2
+
+Store encrypted_key_id with doc metadata
+
+Node (server-side envelope pattern):
+
+import crypto from 'crypto';
+const kms = /* AWS KMS SDK or sodium sealed-box as KEK */;
+
+// 1) Acquire/unwrap org DEK
+const { plaintext: dek } = await kms.decrypt({ CiphertextBlob: org.encryptedDek });
+
+// 2) Encrypt file content with AES-GCM
+const iv = crypto.randomBytes(12);
+const cipher = crypto.createCipheriv('aes-256-gcm', dek, iv);
+const enc = Buffer.concat([cipher.update(fileBuffer), cipher.final()]);
+const tag = cipher.getAuthTag();
+
+// Store { iv, tag, ciphertext } to S3; never store plaintext
+
+In transit
+
+TLS everywhere, HSTS:
+
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+
+Upload hygiene
+
+Only signed URLs for upload/download; short expiry (1–5 minutes)
+
+Validate MIME + extension; reject dangerous types; strip EXIF
+
+AV scanning (ClamAV, VirusTotal API, or use Uploadcare/Filestack “scan on upload”)
+
+Size limits + thumbnailing in isolated workers
+
+4) Defenses: WAF, rate limits, bot protection
+
+Put Cloudflare in front of both www and console:
+
+DDoS/WAF managed rules
+
+Bot fight mode on
+
+Page rules enforcing HTTPS, HSTS, cache rules for static
+
+App-side rate limits (see snippet above)
+
+Lockout on brute force (progressive delays)
+
+5) Security Headers (must have)
+
+Already added with helmet, plus explicitly:
+
+Content-Security-Policy: (strict)
+Referrer-Policy: no-referrer
+X-Frame-Options: DENY
+Permissions-Policy: geolocation=(), camera=(), microphone=(), interest-cohort=()
+X-Content-Type-Options: nosniff
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-site
+
+6) Privacy & Cookies
+
+Use a CMP (Cookiebot, Osano) or the tiny open-source cookieconsent for opt-in.
+
+Two buckets:
+
+Essential (sessions, CSRF, security) – always on
+
+Analytics/marketing – off until consent
+
+Switch your analytics to self-hosted Plausible/Umami and respect DNT.
+
+7) Monitoring, Audit, and Incident Response
+What to log (structured, write-once)
+
+auth events (login, mfa, recovery, passkey register)
+
+role changes, org invites, document actions (upload, view, share, delete)
+
+admin console actions
+
+security events (rate limit trips, WAF blocks, AV hits)
+
+Ship to:
+
+Log store (Elastic/Meilisearch/ClickHouse), or third-party (Datadog, Logtail)
+
+Sentry for errors; OpenTelemetry for traces
+
+Surfacing in Console → Security
+
+Status cards (OK/FAIL): DB, Auth, Storage, KMS, AV scanning, Webhooks
+
+Recent activity stream (filter by user/org/event)
+
+Security tasks (rotate keys, expired invites, stale sessions)
+
+Export audit (CSV/JSON) with signed downloadable link
+
+Alerts: email + (optional) Twilio SMS escalation
+
+8) Backups & DR
+
+Nightly encrypted DB backups (>=14 days retention). Test restore monthly.
+
+Object storage: versioning + lifecycle rules + Cross-region replication for critical data.
+
+Document a runbook: who’s on call, RTO/RPO targets, escalation flow.
+
+9) Secure SDLC
+
+SCA/SAST: npm audit, Dependabot, Semgrep CI
+
+DAST: weekly OWASP ZAP scan against staging
+
+Secrets scanning: Gitleaks in CI
+
+Pre-commit hooks: lint + typecheck
+
+Least-privilege IAM for CI deploy keys
+
+10) What you can add to your Console right now
+
+Navigation → Security Center
+
+System Status (cards with OK/FAIL + tooltips)
+
+Audit Log (search + filters + export)
+
+Users & Devices (MFA/passkeys, risky logins, revoke device)
+
+Org Key Management (show last rotation date, rotate button)
+
+Cookie & Privacy (CMP config, analytics opt-in rates)
+
+Integrations (WAF, AV, KMS, Storage) – show config health
+
+Compliance (SOC2/ISO items you track; attach policies as PDFs)

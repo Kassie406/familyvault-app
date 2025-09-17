@@ -1,0 +1,170 @@
+A) Stop the overlay & show a clean message (no AbortController)
+
+Replace your client request with a no-abort timeout that never throws an AbortError. It “gives up” after N seconds and returns a controlled error object, while any late server reply is ignored.
+
+// client/src/utils/http.ts
+type Json = Record<string, any>;
+
+export async function postJsonNoAbort<T = Json>(
+  url: string,
+  body: Json,
+  { timeoutMs = 15000 }: { timeoutMs?: number } = {}
+): Promise<T> {
+  // Promise that resolves to a timeout result (no AbortError)
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error("Service timeout: no response from server")), timeoutMs);
+  });
+
+  // The real network call
+  const fetchPromise = (async () => {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body ?? {}),
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    const ct = res.headers.get("content-type") || "";
+    const text = await res.text();
+
+    if (!ct.includes("application/json")) {
+      throw new Error(`Non-JSON response (likely SPA/HTML). status=${res.status} body=${text.slice(0,120)}`);
+    }
+    const data = JSON.parse(text);
+    if (!res.ok || data?.ok === false) {
+      throw new Error(data?.error || `HTTP ${res.status}`);
+    }
+    return data as T;
+  })();
+
+  // Race them WITHOUT AbortController
+  return Promise.race([fetchPromise, timeoutPromise]);
+}
+
+
+Use it in the Passwords page:
+
+import { postJsonNoAbort } from "@/utils/http";
+
+async function regenerateShareLink(
+  credentialId: string,
+  expiry: "24h" | "7d" | "30d" | "never",
+  requireLogin: boolean
+) {
+  return postJsonNoAbort<{ token: string; url: string }>(
+    `/api/credentials/${credentialId}/shares/regenerate`,
+    { expiry, requireLogin },
+    { timeoutMs: 15000 }
+  );
+}
+
+setIsGenerating(true);
+regenerateShareLink(credentialId, expiry, requireLogin)
+  .then(({ url }) => {
+    setShareUrl(url);
+    toast.success("Share link created");
+  })
+  .catch((e) => {
+    toast.error(String(e?.message ?? "Failed to generate link"));
+  })
+  .finally(() => setIsGenerating(false));
+
+
+This eliminates the “signal is aborted without reason” overlay and gives your users a clean, accurate error (“Service timeout…”, “HTTP 401”, “Non-JSON response…”, etc.).
+
+B) Make sure the API actually answers (two smoke checks)
+
+Run these in the same browser you use for the portal:
+
+Health:
+
+https://portal.familycirclesecure.com/api/healthz
+
+
+Expected: JSON (not HTML / 404 / 502).
+
+Simple POST (DevTools → Console):
+
+fetch('/api/test-post',{method:'POST'}).then(r=>r.text()).then(console.log)
+
+
+Expected: {"ok":true} (or similar JSON).
+
+If either returns HTML → your SPA is intercepting /api/* or the Deployment isn’t running the API server. Make sure:
+
+The start command is your server (e.g., NODE_ENV=production node dist/index.js).
+
+Your API routes are registered before any SPA fallback.
+
+Deployment type is Web server, not static.
+
+C) Server guardrail (prevents client from hanging forever)
+
+In your Express server, wrap the regenerate logic so it always returns JSON quickly—even if the DB stalls:
+
+// server/index.ts
+app.get('/api/healthz', (_req,res)=>res.json({ok:true}));
+
+app.post('/api/test-post', (_req,res)=>res.json({ok:true}));
+
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`TIMEOUT ${label} after ${ms}ms`)), ms);
+    p.then(v => { clearTimeout(t); resolve(v); })
+     .catch(e => { clearTimeout(t); reject(e); });
+  });
+}
+
+app.post('/api/credentials/:id/shares/regenerate', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { expiry = '7d', requireLogin = true } = req.body ?? {};
+
+    // TODO: your real DB work here, wrapped with a hard cap:
+    await withTimeout(
+      Promise.resolve(), // replace with drizzle/neon upsert/insert
+      8000,
+      'share_links upsert'
+    );
+
+    const token = crypto.randomBytes(16).toString('base64url');
+    const url = `${process.env.APP_URL || ''}/share/${token}`;
+    return res.json({ token, url, requireLogin });
+  } catch (err: any) {
+    return res
+      .status(/TIMEOUT/.test(err?.message) ? 504 : 500)
+      .json({ ok: false, error: err?.message || 'unknown' });
+  }
+});
+
+// IMPORTANT: SPA/static fallback (if any) must be added AFTER all /api/* routes
+
+D) Deployment sanity (one-time but critical)
+
+Secrets (Deployment level):
+
+NODE_ENV=production
+APP_URL=https://portal.familycirclesecure.com
+DATABASE_URL=postgres://<neon>
+DEV_BYPASS_AUTH=true   // TEMPORARY to eliminate auth as a blocker
+
+
+Flip to false after API is proven.
+
+Post-deploy migration:
+
+npm run db:push
+
+
+Re-test B(1) and B(2), then click Generate again.
+
+What this achieves
+
+The UI never throws AbortError → no red Vite overlay.
+
+You’ll see a precise error in the toast if the server returns 401/500/HTML, so you know whether it’s auth, routing, or DB.
+
+The server won’t hang the client—worst case it returns a 504 JSON with “TIMEOUT …”.
+
+If you still get an error message after these changes, paste the exact toast text (e.g., “Non-JSON response…”, “HTTP 401…”, “TIMEOUT share_links upsert…”) and I’ll give you the exact one-line fix for that specific root cause.

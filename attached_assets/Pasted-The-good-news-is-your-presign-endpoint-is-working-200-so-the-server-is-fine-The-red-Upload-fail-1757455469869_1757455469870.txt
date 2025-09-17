@@ -1,0 +1,168 @@
+The good news is your presign endpoint is working (200), so the server is fine. The red “Upload failed / Failed to fetch” is happening on the second step (the browser’s PUT directly to S3). That can only fail for a few reasons:
+
+CORS/preflight rejection (S3 refuses the request before it’s sent)
+
+Content-Type mismatch between the value you signed and what you send
+
+The browser sandbox blocks the request (very common inside Replit’s Preview iframe)
+
+Minor client details (wrong URL/headers, credentials on, etc.)
+
+Below is a clean, known-good wiring for both sides plus a quick checklist to pinpoint what’s still off.
+
+1) Backend (presign) — final version
+
+Make sure you’re signing PUT and including the exact ContentType you’ll send.
+
+// server/routes/storage.ts (Node/AWS SDK v3)
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import express from "express";
+
+const router = express.Router();
+
+const s3 = new S3Client({
+  region: process.env.S3_REGION!,
+  credentials: {
+    accessKeyId: process.env.S3_ACCESS_KEY!,
+    secretAccessKey: process.env.S3_SECRET_KEY!,
+  },
+});
+
+router.post("/api/storage/presign", async (req, res) => {
+  try {
+    const { bucket, key, contentType } = req.body;
+    // fallback avoids "mismatch" if file.type is missing
+    const ct = contentType || "application/octet-stream";
+
+    const cmd = new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ContentType: ct, // <- MUST match what the client will send
+    });
+
+    const uploadUrl = await getSignedUrl(s3, cmd, { expiresIn: 60 }); // 60s
+    res.json({ uploadUrl, contentType: ct });
+  } catch (err) {
+    console.error("presign error", err);
+    res.status(500).json({ error: "presign_failed" });
+  }
+});
+
+export default router;
+
+S3 CORS (both buckets)
+
+You’ve already set this, keep it exactly like this:
+
+[
+  {
+    "AllowedOrigins": ["*"],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3000
+  }
+]
+
+2) Frontend (PUT to S3) — final version
+
+Use fetch (not XHR), omit credentials, and send exactly the same Content-Type you signed.
+
+// client/src/hooks/usePresignedUpload.ts
+export async function uploadToS3({
+  file,
+  bucket,
+  key,
+}: {
+  file: File;
+  bucket: string;
+  key: string;
+}) {
+  // 1) Ask our backend for the presigned PUT URL
+  const contentType = file.type || "application/octet-stream";
+
+  const presignRes = await fetch("/api/storage/presign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ bucket, key, contentType }),
+  });
+
+  if (!presignRes.ok) {
+    throw new Error("presign_failed");
+  }
+  const { uploadUrl } = await presignRes.json();
+
+  // 2) PUT the file to S3 with the SAME Content-Type
+  const putRes = await fetch(uploadUrl, {
+    method: "PUT",
+    credentials: "omit", // <-- critical for S3 CORS
+    headers: { "Content-Type": contentType },
+    body: file,
+    // You may omit mode; default is fine. If you keep it:
+    // mode: "cors",
+  });
+
+  if (!putRes.ok) {
+    // Try to surface a real reason instead of the generic toast
+    const msg = await safeReadText(putRes);
+    throw new Error(`s3_put_failed: ${putRes.status} ${msg}`);
+  }
+
+  // Success – S3 returns 200 OK with an ETag in the headers.
+  return { etag: putRes.headers.get("ETag") };
+}
+
+async function safeReadText(res: Response) {
+  try { return await res.text(); } catch { return ""; }
+}
+
+
+Important details
+
+Only send Content-Type. Do not add other headers (no Accept, no custom headers), because they trigger stricter preflight rules.
+
+Keep credentials: "omit". With AllowedOrigins: ["*"], credentials are not allowed by S3; sending them makes the browser block the request.
+
+3) Why you still see “Failed to fetch” in Replit Preview
+
+This exact symptom often means the browser never sent the PUT because the Preview iframe’s sandbox blocks it. Two super-quick ways to prove it:
+
+Click Replit’s “Open in new tab” (run the app outside the embedded Preview panel) and try the upload there.
+
+Or copy the app URL and open it in a normal browser tab (not inside the IDE iframe).
+
+If it works in a normal tab, the wiring is correct and the preview iframe was the blocker.
+
+If you want to be 100% sure it’s not the code: run this in DevTools Console:
+
+const url = "<paste the uploadUrl from the presign response>";
+const blob = new Blob(["x"], { type: "application/octet-stream" });
+fetch(url, { method: "PUT", headers: { "Content-Type": "application/octet-stream" }, body: blob, credentials: "omit" })
+  .then(r => console.log("PUT status", r.status))
+  .catch(e => console.error("PUT error", e));
+
+
+If this succeeds in a normal tab but fails inside the Replit Preview, it’s the sandbox.
+
+4) Quick checklist (in order)
+
+ Presign includes the same ContentType you will send.
+
+ Buckets CORS exactly as posted above on both buckets.
+
+ Client PUT uses fetch, credentials: "omit", headers: { "Content-Type": file.type || "application/octet-stream" }.
+
+ No extra headers on the PUT.
+
+ Test in a normal browser tab (not the Replit Preview iframe).
+
+5) Better errors in the UI (optional)
+
+Replace the generic toast with the message we throw above so you’ll see useful hints like:
+
+s3_put_failed: 403 … (invalid ACL header, content-type mismatch)
+
+s3_put_failed: 400 …
+
+TypeError: Failed to fetch (blocked by sandbox/preflight)

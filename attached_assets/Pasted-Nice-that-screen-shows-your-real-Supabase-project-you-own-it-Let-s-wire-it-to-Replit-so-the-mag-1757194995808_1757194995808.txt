@@ -1,0 +1,80 @@
+Nice — that screen shows your real Supabase project (you own it). Let’s wire it to Replit so the magic-link works.
+
+1) Put the keys in Replit
+
+In your Replit → Secrets (padlock):
+
+SUPABASE_URL → https://zzconzlitecbawulnbey.supabase.co
+
+SUPABASE_ANON_KEY → copy the anon public key (full string) from that page
+
+Hit Save and then Restart the repl.
+
+2) Initialize the client with those envs
+
+Make sure your code does this (new SDK syntax):
+
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+)
+
+3) Use the correct magic-link call
+async function sendMagic(email) {
+  const { data, error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: `${window.location.origin}/auth/callback`
+    }
+  })
+  if (error) {
+    console.error('OTP error:', error)
+    alert(`Auth error: ${error.message}`)
+  } else {
+    alert('Check your email for the sign-in link.')
+  }
+}
+
+4) Whitelist your Replit URL(s) in Supabase
+
+Supabase Dashboard → Authentication → URL Configuration:
+
+Site URL: open your app with Open in new tab and paste that full URL
+(Replit may give you a .replit.dev or .repl.co URL)
+
+Additional Redirect URLs (one per line):
+
+https://<your-replit-domain>
+
+https://<your-replit-domain>/auth/callback
+
+Also add the kirk.replit.dev origin you saw in the error popup, and the same with /auth/callback.
+
+Replit URLs can change on redeploy—if it changes, update these fields.
+
+Also: Authentication → Providers → Email must be Enabled (default).
+
+5) Test in a new tab (not the small preview)
+
+Press Open in new tab.
+
+Press F12 → Network, click Send Magic Link.
+
+You should see a request to
+https://zzconzlitecbawulnbey.supabase.co/auth/v1/otp (or magiclink)
+
+If it says (blocked by CORS) → URLs in step 4 need fixing.
+
+If the URL starts with undefined → Secrets from step 1 aren’t loading.
+
+If 401/403 → wrong ANON key (re-copy it).
+
+If 200 → email sent (check inbox/spam).
+
+6) Common gotchas
+
+Don’t ever expose the service_role key in the browser—only the anon key.
+
+If you enabled “Use cookies” in Auth, also add your domain under “Authorized Redirect URLs for cookie-based flows.” If not, ignore.

@@ -1,0 +1,312 @@
+Let’s drop Supabase for auth and ship a simple, zero-credit, Gmail-only login that you fully control.
+
+Below is a tiny Express server you can run on Replit. It sends a 6-digit code to your Gmail, verifies it, and then protects all portal pages with a signed cookie. No external auth provider, no credits.
+
+What you’ll get
+
+/login – enter email → receive 6-digit code via Gmail
+
+/verify – submit code → sets a secure cookie session
+
+/logout – clears session
+
+Middleware (requireAuth) – protects / and all your portal routes
+
+Allowlist – only emails you approve can sign in (yours by default)
+
+1) Files
+server.js
+views/
+  login.html
+  verify.html
+public/
+  (your existing portal files go here; index.html = dashboard)
+
+2) Install packages (Replit Shell)
+npm i express cookie-parser express-rate-limit nodemailer uuid
+
+3) Set environment vars (Replit Secrets)
+
+APP_DOMAIN = https://portal.familycirclesecure.com
+
+SESSION_SECRET = long random string
+
+ALLOWED_EMAILS = kassandrasantana406@gmail.com (comma-separated if more)
+
+Gmail sending (choose one):
+
+A) Gmail App Password (simplest)
+
+Turn on 2-Step Verification in your Google account
+
+Create an App password for “Mail”
+
+Secrets:
+
+SMTP_USER = your Gmail address
+
+SMTP_PASS = the 16-char app password
+
+B) Any SMTP (e.g., Zoho, Office365, etc.)
+
+SMTP_HOST, SMTP_PORT, SMTP_SECURE=true/false, SMTP_USER, SMTP_PASS
+
+4) server.js
+import express from 'express'
+import cookieParser from 'cookie-parser'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import nodemailer from 'nodemailer'
+import rateLimit from 'express-rate-limit'
+import crypto from 'crypto'
+import { v4 as uuid } from 'uuid'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+const app = express()
+app.use(express.urlencoded({ extended: true }))
+app.use(express.json())
+app.use(cookieParser(process.env.SESSION_SECRET))
+
+// ---- Config ----
+const APP_DOMAIN = process.env.APP_DOMAIN || 'http://localhost:3000'
+const ALLOWED = (process.env.ALLOWED_EMAILS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+if (ALLOWED.length === 0) {
+  console.warn('No ALLOWED_EMAILS set; defaulting to your email only.')
+}
+
+// ---- Mailer ----
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: Number(process.env.SMTP_PORT) || 465,
+  secure: (process.env.SMTP_SECURE ?? 'true') === 'true',
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
+  }
+})
+
+// ---- In-memory code store (OK for small project) ----
+// { email: { code, expiresAt, attempt, nonce } }
+const codes = new Map()
+
+// ---- Helpers ----
+const limiter = rateLimit({ windowMs: 60_000, max: 5 }) // 5 requests/min per IP
+
+function issueSession(res, email) {
+  const sessionId = uuid()
+  // Signed cookie; httpOnly; sameSite=lax so redirects work
+  res.cookie('fcs_session', sessionId, {
+    httpOnly: true,
+    secure: APP_DOMAIN.startsWith('https://'),
+    sameSite: 'lax',
+    signed: true,
+    maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+  })
+  // Also store who this session belongs to (very simple)
+  // In a real app, store in DB/Redis. For now, embed in another signed cookie.
+  const payload = Buffer.from(JSON.stringify({ email })).toString('base64url')
+  res.cookie('fcs_who', payload, {
+    httpOnly: true,
+    secure: APP_DOMAIN.startsWith('https://'),
+    sameSite: 'lax',
+    signed: true,
+    maxAge: 1000 * 60 * 60 * 24 * 7
+  })
+}
+
+function whoAmI(req) {
+  try {
+    const payload = req.signedCookies['fcs_who']
+    if (!payload) return null
+    const obj = JSON.parse(Buffer.from(payload, 'base64url').toString())
+    return obj?.email || null
+  } catch {
+    return null
+  }
+}
+
+function requireAuth(req, res, next) {
+  const has = req.signedCookies['fcs_session']
+  if (!has) return res.redirect('/login')
+  const email = whoAmI(req)
+  if (!email || (ALLOWED.length && !ALLOWED.includes(email.toLowerCase()))) {
+    return res.redirect('/login')
+  }
+  req.email = email
+  next()
+}
+
+// ---- Static (protected) ----
+app.use('/public', express.static(path.join(__dirname, 'public')))
+app.get('/', requireAuth, (_, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html')) // your dashboard
+})
+
+// ---- Auth pages (public) ----
+app.get('/login', (_, res) => res.sendFile(path.join(__dirname, 'views', 'login.html')))
+app.get('/verify', (_, res) => res.sendFile(path.join(__dirname, 'views', 'verify.html')))
+
+// ---- Start login: send code ----
+app.post('/login/start', limiter, async (req, res) => {
+  const email = String(req.body.email || '').trim().toLowerCase()
+  if (!email) return res.status(400).json({ ok: false, msg: 'Email required' })
+  if (ALLOWED.length && !ALLOWED.includes(email)) {
+    return res.status(403).json({ ok: false, msg: 'Not allowed' })
+  }
+  const code = Math.floor(100000 + Math.random() * 900000).toString()
+  const expiresAt = Date.now() + 1000 * 60 * 10 // 10 minutes
+  const nonce = crypto.randomBytes(16).toString('hex')
+  codes.set(email, { code, expiresAt, attempt: 0, nonce })
+
+  const html = `
+    <p>Your Family Portal sign-in code:</p>
+    <h2>${code}</h2>
+    <p>Expires in 10 minutes. If you didn’t request this, ignore.</p>
+  `
+  try {
+    await transporter.sendMail({
+      from: `"Family Portal" <${process.env.SMTP_USER}>`,
+      to: email,
+      subject: 'Your Family Portal sign-in code',
+      html
+    })
+    res.json({ ok: true, nonce })
+  } catch (e) {
+    console.error('Mail send error:', e)
+    res.status(500).json({ ok: false, msg: 'Email send failed' })
+  }
+})
+
+// ---- Verify code ----
+app.post('/login/verify', limiter, (req, res) => {
+  const email = String(req.body.email || '').trim().toLowerCase()
+  const code = String(req.body.code || '').trim()
+  const nonce = String(req.body.nonce || '').trim()
+  const entry = codes.get(email)
+  if (!entry) return res.status(400).json({ ok: false, msg: 'No code requested' })
+  if (entry.nonce !== nonce) return res.status(400).json({ ok: false, msg: 'Invalid attempt' })
+  if (Date.now() > entry.expiresAt) {
+    codes.delete(email)
+    return res.status(400).json({ ok: false, msg: 'Code expired' })
+  }
+  entry.attempt++
+  if (entry.attempt > 5) {
+    codes.delete(email)
+    return res.status(429).json({ ok: false, msg: 'Too many attempts' })
+  }
+  if (entry.code !== code) {
+    return res.status(400).json({ ok: false, msg: 'Wrong code' })
+  }
+  // success
+  codes.delete(email)
+  issueSession(res, email)
+  res.json({ ok: true, redirect: '/' })
+})
+
+// ---- Logout ----
+app.post('/logout', (req, res) => {
+  res.clearCookie('fcs_session')
+  res.clearCookie('fcs_who')
+  res.json({ ok: true, redirect: '/login' })
+})
+
+const PORT = process.env.PORT || 3000
+app.listen(PORT, () => console.log(`Family Portal running on :${PORT}`))
+
+5) views/login.html
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Sign in • Family Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>body{font-family:system-ui;background:#0b0b0b;color:#eee;display:grid;place-items:center;height:100vh} .card{background:#151515;padding:24px;border-radius:16px;width:340px} input,button{width:100%;padding:12px;margin-top:12px;border-radius:10px;border:1px solid #333;background:#111;color:#eee} button{background:#d8b24b;color:#111;font-weight:700;border:none;cursor:pointer}</style>
+</head>
+<body>
+  <div class="card">
+    <h2>Family Portal</h2>
+    <p>Enter your email to receive a 6-digit code.</p>
+    <input id="email" type="email" placeholder="you@email.com" />
+    <button id="send">Send Code</button>
+    <p id="msg"></p>
+  </div>
+  <script>
+    async function post(url, data) {
+      const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)})
+      return r.json()
+    }
+    document.getElementById('send').onclick = async () => {
+      const email = document.getElementById('email').value.trim()
+      if(!email) return alert('Enter email')
+      const res = await post('/login/start', { email })
+      if(!res.ok) return alert(res.msg || 'Failed')
+      sessionStorage.setItem('login.email', email)
+      sessionStorage.setItem('login.nonce', res.nonce)
+      window.location.href = '/verify'
+    }
+  </script>
+</body>
+</html>
+
+6) views/verify.html
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Enter Code • Family Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>body{font-family:system-ui;background:#0b0b0b;color:#eee;display:grid;place-items:center;height:100vh} .card{background:#151515;padding:24px;border-radius:16px;width:340px} input,button{width:100%;padding:12px;margin-top:12px;border-radius:10px;border:1px solid #333;background:#111;color:#eee} button{background:#d8b24b;color:#111;font-weight:700;border:none;cursor:pointer}</style>
+</head>
+<body>
+  <div class="card">
+    <h2>Check your email</h2>
+    <p>Enter the 6-digit code we sent.</p>
+    <input id="code" inputmode="numeric" maxlength="6" placeholder="123456"/>
+    <button id="verify">Verify & Sign in</button>
+    <p id="msg"></p>
+  </div>
+  <script>
+    async function post(url, data) {
+      const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)})
+      return r.json()
+    }
+    document.getElementById('verify').onclick = async () => {
+      const code = document.getElementById('code').value.trim()
+      const email = sessionStorage.getItem('login.email')
+      const nonce = sessionStorage.getItem('login.nonce')
+      if(!email || !nonce) return alert('Start again'); 
+      const res = await post('/login/verify', { email, code, nonce })
+      if(!res.ok) return alert(res.msg || 'Failed')
+      window.location.href = res.redirect || '/'
+    }
+  </script>
+</body>
+</html>
+
+7) Protect your portal
+
+Put your current portal at /public/index.html (dashboard).
+
+All routes like /inbox.html, /photos.html, etc. can be served from /public and will be protected because we mounted / behind requireAuth.
+
+To add a Logout button anywhere:
+
+<button onclick="fetch('/logout',{method:'POST'}).then(()=>location='/login')">Logout</button>
+
+8) DNS / Domain
+
+Point portal.familycirclesecure.com to your Replit project (or use a reverse proxy) so it hits this Express server. If you already have the domain mapped, you’re set.
+
+Why this solves your pain
+
+No Supabase/3rd-party auth or CORS hassle.
+
+No credits burned.
+
+Single allowlist = only you (and whomever you add) can get in.
+
+Cookie-based session so all pages are truly private.
+
+If you want, tell me your current repo layout and I’ll tailor the paths, or help you copy your existing static files into /public so they’re auto-protected by requireAuth.

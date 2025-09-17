@@ -1,0 +1,123 @@
+Rapid hot-fix (scoped CSS + 2 small JSX tweaks)
+
+Add a tiny scoped stylesheet
+
+Create src/styles/action-center.css:
+
+/* Kill any light background from wrappers (DaisyUI card, etc.) */
+#action-center-shell,
+#action-center-shell *:where(.card, .card-body) {
+  background: transparent !important;
+}
+
+/* Force our dark gradient + no white hover, with gold glow */
+#action-center-card {
+  position: relative;
+  border-radius: 16px; /* rounded-2xl */
+  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(180deg, #0b0b0e 0%, #0e0e14 100%);
+  box-shadow: 0 10px 28px rgba(0,0,0,.45);
+  transition: box-shadow .2s ease, border-color .2s ease;
+  overflow: hidden; isolation: isolate;
+}
+
+/* Gold glow on hover — no bg change */
+#action-center-card:hover {
+  border-color: rgba(212,175,55,0.40); /* gold */
+  box-shadow:
+    0 0 0 1px rgba(212,175,55,.35),
+    0 18px 50px rgba(212,175,55,.12);
+}
+
+/* Keep links from turning underlined/blue here */
+#action-center-card a {
+  text-decoration: none;
+  color: inherit;
+}
+#action-center-card a:hover {
+  text-decoration: underline; /* optional */
+}
+
+
+Wrap the component + apply the id
+
+In your Action Center component (e.g., src/components/family/ActionCenterCard.tsx):
+
+import "@/styles/action-center.css";
+// If you have a shared Card, you can still use it inside.
+
+export function ActionCenterCard() {
+  return (
+    <div id="action-center-shell" className="bg-transparent p-0">
+      <div id="action-center-card" className="p-4">
+        {/* existing Action Center content */}
+      </div>
+    </div>
+  );
+}
+
+
+This forces the dark gradient + gold glow and blocks any white backgrounds from parents. It also stops the blue/underline link look inside this card.
+
+If you prefer to use Tailwind (no CSS file)
+
+Replace the outer container with:
+
+<div id="action-center-shell" className="bg-transparent p-0">
+  <div
+    id="action-center-card"
+    className="
+      relative isolate overflow-hidden
+      rounded-2xl border border-white/8
+      bg-gradient-to-b from-[#0b0b0e] to-[#0e0e14]
+      shadow-[0_10px_28px_rgba(0,0,0,.45)]
+      transition-all duration-200 p-4
+      hover:border-[#D4AF37]/40
+      hover:shadow-[0_0_0_1px_rgba(212,175,55,.35),0_18px_50px_rgba(212,175,55,.12)]
+      [a]:no-underline [a]:text-inherit
+      hover:[a]:underline
+    "
+  >
+    {/* content */}
+  </div>
+</div>
+
+
+And delete any hover:bg-*, bg-white*, bg-base-100, card classes on this card’s wrappers.
+
+One-shot Agent prompt (copy-paste)
+Task: Repair “Action Center” styling to our luxury dark theme and gold glow. Remove light background and link underline.
+
+Acceptance:
+[A] Dark gradient + gold border/shadow on hover; no light/white bg visible.
+[B] No hover:bg-* or bg-white*/bg-base-100 on the card or its parents.
+[C] Links inside the card inherit color and are not blue; no underline unless hover.
+[D] ≤2 files changed; one run verification.
+
+Steps:
+1) In the Action Center component (e.g., src/components/family/ActionCenterCard.tsx):
+   - Wrap with <div id="action-center-shell" className="bg-transparent p-0">…</div>
+   - Replace the card container with:
+     <div id="action-center-card" className="p-4">…</div>
+
+2) Create src/styles/action-center.css with:
+   (paste the CSS below)
+   ---
+   #action-center-shell,
+   #action-center-shell *:where(.card, .card-body){background:transparent!important;}
+   #action-center-card{position:relative;border-radius:16px;border:1px solid rgba(255,255,255,.08);
+   background:linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%);box-shadow:0 10px 28px rgba(0,0,0,.45);
+   transition:box-shadow .2s,border-color .2s;overflow:hidden;isolation:isolate;}
+   #action-center-card:hover{border-color:rgba(212,175,55,.40);
+   box-shadow:0 0 0 1px rgba(212,175,55,.35),0 18px 50px rgba(212,175,55,.12);}
+   #action-center-card a{text-decoration:none;color:inherit;}
+   #action-center-card a:hover{text-decoration:underline;}
+   ---
+
+3) Import the css in the component:  import "@/styles/action-center.css";
+
+4) Remove any wrapper classes that set bg/hover bg: hover:bg-*, bg-white*, bg-base-100, card, group-hover:bg-*.
+
+Verification (one run):
+- Hover the card: border/shadow glow gold; bg stays dark.
+- Devtools: search the hovered card + parents for “hover:bg” and “bg-white/base-100” — none present.

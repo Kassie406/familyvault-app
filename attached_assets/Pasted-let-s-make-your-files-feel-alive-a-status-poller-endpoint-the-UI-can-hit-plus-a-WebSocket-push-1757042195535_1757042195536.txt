@@ -1,0 +1,157 @@
+let’s make your files feel “alive”:
+
+a status poller endpoint the UI can hit,
+
+plus a WebSocket push so rows update instantly when the worker finishes (scan/thumbnail).
+
+Below is copy-pasteable code for your Node/Express + Drizzle + BullMQ + Redis stack and a tiny React hook.
+
+1) REST status endpoint
+// routes/files.ts
+import { Router } from "express";
+import { db } from "../db";
+import { documentFiles } from "../db/schema/files";
+import { eq } from "drizzle-orm";
+
+// Guard: ensure the requester has access to the file's family (left as TODO)
+async function assertCanSeeFile(userId: string, fileId: string) { /* ... */ }
+
+const r = Router();
+
+/**
+ * GET /api/files/:id/status
+ * Returns live processing status for one file row.
+ */
+r.get("/:id/status", async (req, res) => {
+  const userId = req.user.id as string;
+  const id = String(req.params.id);
+
+  await assertCanSeeFile(userId, id);
+
+  const [f] = await db.select().from(documentFiles).where(eq(documentFiles.id, id)).limit(1);
+  if (!f) return res.status(404).json({ error: "not_found" });
+
+  res.json({
+    id: f.id,
+    scanStatus: f.scanStatus,        // "pending" | "clean" | "infected" | "error" | "skipped"
+    scanResult: f.scanResult,
+    quarantined: f.quarantined,
+    thumbStatus: f.thumbStatus,      // "pending" | "done" | "error" | "skipped"
+    thumbKey: f.thumbKey,
+    thumbWidth: f.thumbWidth,
+    thumbHeight: f.thumbHeight,
+    processedAt: f.processedAt,
+    // convenience booleans for UI:
+    ready: f.scanStatus === "clean" && (f.thumbStatus === "done" || f.thumbStatus === "skipped"),
+    blocked: !!f.quarantined || f.scanStatus === "infected",
+  });
+});
+
+export default r;
+
+
+Mount it:
+
+// server/index.ts
+import fileRoutes from "./routes/files";
+app.use("/api/files", fileRoutes);
+
+2) WebSocket: server side (Socket.IO + Redis adapter)
+
+Use the same Redis you already have for BullMQ so worker → server can broadcast.
+
+// server/realtime.ts
+import { Server } from "socket.io";
+import { createAdapter } from "@socket.io/redis-adapter";
+import IORedis from "ioredis";
+import type { Server as HttpServer } from "http";
+
+let io: Server | null = null;
+
+export function createIoServer(httpServer: HttpServer) {
+  const pub = new IORedis(process.env.REDIS_URL!);
+  const sub = new IORedis(process.env.REDIS_URL!);
+
+  io = new Server(httpServer, {
+    cors: { origin: process.env.WEB_ORIGIN ?? true, credentials: true },
+  });
+  io.adapter(createAdapter(pub, sub));
+
+  // (optional) auth/session wiring here
+  io.on("connection", (socket) => {
+    // Client asks to watch a file's status
+    socket.on("file:watch", ({ fileId }) => {
+      socket.join(`file:${fileId}`);
+    });
+    socket.on("file:unwatch", ({ fileId }) => {
+      socket.leave(`file:${fileId}`);
+    });
+  });
+
+  return io;
+}
+
+// Safe emitter used by your HTTP routes if needed
+export function emitFileUpdate(fileId: string, payload: any) {
+  if (!io) return;
+  io.to(`file:${fileId}`).emit("file:update", { fileId, ...payload });
+}
+
+
+Initialize with your HTTP server:
+
+// server/index.ts
+import { createServer } from "http";
+import { createIoServer } from "./realtime";
+
+const httpServer = createServer(app);
+createIoServer(httpServer);
+
+httpServer.listen(process.env.PORT || 5000);
+
+3) WebSocket: worker → server broadcast
+
+Your worker runs in a separate process. Use Redis pub/sub via the Socket.IO adapter by simply connecting a Socket.IO client in the worker, or—cleaner—just hit Redis pub/sub yourself? Since we already set the Socket.IO Redis adapter, the simplest is to connect a minimal Socket.IO client from the worker and emit directly.
+
+Option A (simple): socket.io-client from worker
+// jobs/realtimeClient.ts
+import { io as ioc } from "socket.io-client";
+export const ioClient = ioc(process.env.REALTIME_ORIGIN ?? "http://localhost:5000", {
+  transports: ["websocket"],
+  reconnection: true,
+  extraHeaders: { "x-internal-worker": "1" }, // if you want to gate worker emissions
+});
+
+// helper
+export function emitFileUpdateFromWorker(fileId: string, payload: any) {
+  ioClient.emit("file:update:server", { fileId, ...payload }); // we'll forward inside server
+}
+
+
+Add a small forwarder on the server:
+
+// server/realtime.ts (inside io.on('connection'))
+io.on("connection", (socket) => {
+  // Only allow from trusted worker (optional check: header or API key)
+  socket.on("file:update:server", ({ fileId, ...rest }) => {
+    io!.to(`file:${fileId}`).emit("file:update", { fileId, ...rest });
+  });
+});
+
+
+Use it in the worker after DB updates:
+
+// jobs/fileWorker.ts (after updating documentFiles)
+import { emitFileUpdateFromWorker } from "./realtimeClient";
+
+// after AV scan finishes:
+emitFileUpdateFromWorker(fileId, { scanStatus, quarantined, scanResult });
+
+// after thumbnail finishes:
+emitFileUpdateFromWorker(fileId, {
+  thumbStatus: "done",
+  thumbKey,
+  thumbWidth: meta.width ?? 0,
+  thumbHeight: meta.height ?? 0,
+  processedAt: new Date().toISOString(),
+});

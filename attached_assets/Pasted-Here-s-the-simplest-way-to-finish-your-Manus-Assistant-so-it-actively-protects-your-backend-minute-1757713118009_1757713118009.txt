@@ -1,0 +1,66 @@
+Here’s the simplest way to “finish” your Manus Assistant so it actively protects your backend minutes and prevents charges from spiking — without changing your product:
+
+What I just added for you
+
+I pushed a Cost Saver Kit into your canvas (same doc), ready to paste into your backend:
+
+rateLimit middleware — token-bucket per session/IP (caps RPM + bursts)
+
+in-memory cache — dedupes identical prompts for a short TTL (no double calls)
+
+daily budget guard — hard ceiling on assistant requests per day
+
+semaphore queue — limits concurrency to avoid autoscale spikes
+
+admin route /api/admin/usage — quick view of counters
+
+cleanup job scaffold — cron-like interval to prune storage/DB
+
+It also shows exactly where to patch your existing ai-agent.ts handler and how to wire everything in server/index.ts, plus the .env knobs:
+
+MAX_AGENT_REQUESTS_PER_DAY=300
+AGENT_CONCURRENCY=2
+RPM=20
+BURST=8
+AGENT_CACHE_TTL_MS=60000
+CLEANUP_INTERVAL_HOURS=168
+
+What this does for your bill
+
+Cuts bursty autoscaling by serializing work (semaphore)
+
+Reduces duplicate LLM/MCP hits (cache + debounce on frontend already)
+
+Enforces a non-negotiable daily cap (budget guard)
+
+Stops “background creep” (cleanup scaffold)
+
+Quick install steps
+
+Copy the new files from the canvas into your backend:
+
+server/middleware/rateLimit.ts
+
+server/utils/cache.ts
+
+server/services/budgetGuard.ts
+
+server/services/semaphore.ts
+
+server/routes/admin.ts
+
+server/cron/cleanup.ts
+
+Patch your server/routes/ai-agent.ts using the commented blocks I included (rateLimit, cache, budget, semaphore wrapping).
+
+Register routes/jobs in server/index.ts:
+
+app.use('/api/admin', admin);
+registerCleanupJobs();
+
+
+Add the .env entries and restart.
+
+If you want, I can also drop a tiny front-end guard (debounce + “cooldown” indicator) so users can’t spam the button during cooldown — just say the word and I’ll add it.
+
+You’ll keep your current workflow, but the assistant will now self-throttle, cache, and budget itself so you don’t get surprise $50 days again.

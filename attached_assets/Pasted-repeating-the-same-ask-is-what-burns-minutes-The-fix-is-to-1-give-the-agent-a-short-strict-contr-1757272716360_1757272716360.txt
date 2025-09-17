@@ -1,0 +1,106 @@
+repeating the same ask is what burns minutes. The fix is to (1) give the agent a short, strict contract it must follow every time, and (2) add a safety-net in your codebase so even if a library tries to reintroduce light backgrounds, they can’t show up.
+
+Below is a compact toolkit you can paste once per session + tiny code you can keep in the repo to stop regressions.
+
+1) Short “One-Shot Fix” contract (paste once per session)
+You are in ONE_SHOT mode.
+
+Rules:
+- Do the smallest correct change. Touch ≤2 files. No refactors/deps/config edits.
+- Plan → Patch → Verify → Stop. Exactly ONE run/preview.
+- This UI must use dark gradient + gold glow hover; never change bg on hover.
+- Forbidden anywhere in the card OR parents: hover:bg-*, bg-white*, bg-base-100*, bg-neutral*, DaisyUI 'card' bg skins.
+
+Acceptance (must restate for each task):
+[A] Visual: dark gradient, gold border/shadow on hover, no white seams/strips.
+[B] Technical: zero forbidden classes on the card or parent chain.
+[C] Scope: ≤2 files changed.
+[D] Verification: ONE run + show evidence (grep output + devtools proof).
+
+Verification you must perform:
+- Run: grep -R --line-number -E "hover:bg-|bg-white|bg-base-100|bg-neutral|class=.*\bcard\b" src/components/family | sed -n '1,40p'
+- In DevTools, inspect the card + parents; confirm no hover:bg-* and no light bg class is applied.
+Return both outputs.
+Acknowledge with “ONE_SHOT ready”.
+
+
+That grep forces the agent to prove it removed the root cause (bg classes), not just tweak the card.
+
+2) Tiny task wrapper (paste for each request)
+Task: Fix the Action Center card so there is no light background strip inside and hover shows the gold glow.
+
+Acceptance:
+[A] Dark gradient + gold glow on hover, no white seams/strip inside.
+[B] No forbidden classes on the card or its parents (hover:bg-*, bg-white*, bg-base-100*, bg-neutral*, DaisyUI 'card' bg).
+[C] ≤2 files changed.
+[D] ONE run only. Provide grep result + DevTools screenshot/note that no forbidden classes are applied.
+
+Implementation guidance:
+- Keep only ONE outer container with these classes:
+  "relative isolate overflow-hidden rounded-2xl border border-white/8
+   bg-gradient-to-b from-[#0b0b0e] to-[#0e0e14]
+   shadow-[0_10px_28px_rgba(0,0,0,.45)]
+   transition-all duration-200 p-4
+   hover:border-[#D4AF37]/40
+   hover:shadow-[0_0_0_1px_rgba(212,175,55,.35),0_18px_50px_rgba(212,175,55,.12)]"
+- Remove any inner `bg-*` (bg-white, bg-base-100, bg-neutral, DaisyUI 'card' body). If present, set to `bg-transparent`.
+- Only the outer container has rounded-2xl + border; inner wrappers must not.
+- If needed, add `id="action-center-card"` and make inner links inherit color and no underline.
+
+Output format:
+1) Plan (files + exact change)
+2) Patch (diff + full files)
+3) Verification: grep output + DevTools note (no forbidden classes)
+4) Done
+
+3) Permanent, cheap safety-net (prevents future regressions)
+
+Add this once and forget it—scoped to the Action Center so it won’t affect other cards:
+
+src/styles/action-center.css
+
+/* Kill any light bg injected by library wrappers INSIDE this card */
+#action-center-card :is(.card, .card-body,
+                        .bg-white, [class*="bg-white"],
+                        .bg-base-100, [class*="bg-base-100"],
+                        .bg-neutral, [class*="bg-neutral"]) {
+  background: transparent !important;
+}
+
+/* Make links not look blue/underlined unexpectedly */
+#action-center-card a { color: inherit; text-decoration: none; }
+#action-center-card a:hover { text-decoration: underline; } /* optional */
+
+
+In your component:
+
+import "@/styles/action-center.css";
+
+<div
+  id="action-center-card"
+  className="relative isolate overflow-hidden rounded-2xl border border-white/8
+             bg-gradient-to-b from-[#0b0b0e] to-[#0e0e14]
+             shadow-[0_10px_28px_rgba(0,0,0,.45)]
+             transition-all duration-200 p-4
+             hover:border-[#D4AF37]/40
+             hover:shadow-[0_0_0_1px_rgba(212,175,55,.35),0_18px_50px_rgba(212,175,55,.12)]"
+>
+  {/* existing content (ensure inner wrappers do NOT set their own bg or rounded) */}
+</div>
+
+
+This guarantees no “light strip” can reappear even if a DaisyUI card sneaks back in.
+
+4) (Optional) ultra-cheap guard in git to stop regressions
+
+Add a pre-commit hook so no one can reintroduce forbidden classes:
+
+.git/hooks/pre-commit (make it executable)
+
+#!/usr/bin/env bash
+set -e
+if git diff --cached -U0 | grep -E "hover:bg-|bg-white|bg-base-100|bg-neutral|\bclass=.*\bcard\b" >/dev/null; then
+  echo "❌ Forbidden UI class detected (hover:bg-*, bg-white*, bg-base-100*, bg-neutral*, 'card')."
+  echo "   Use our dark gradient card + gold hover instead."
+  exit 1
+fi

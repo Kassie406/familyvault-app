@@ -1,0 +1,94 @@
+this is the same “white hover from DaisyUI/Tailwind utilities winning the cascade” problem, but on the two header icons. Let’s nuke it with a high-specificity, scoped override so it can’t come back.
+
+Paste this CSS (exactly) into a loaded stylesheet
+
+If you already have client/src/styles/quick-access.css included, append it there.
+
+Otherwise create client/src/styles/header-icons.css and import it once (e.g., in client/src/App.tsx or main.tsx: import "./styles/header-icons.css";).
+
+/* ================================
+   HEADER ICONS — KILL WHITE HOVER
+   AND USE SOFT GOLD INSTEAD
+   ================================ */
+
+/* 1) Make every layer inside the icon buttons transparent by default */
+header .btn,
+header .btn-ghost,
+header .btn-circle,
+header .icon-btn,
+header button[aria-label],
+header [role="button"][aria-label] {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-color: transparent !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+}
+
+/* inner wrappers (some libs put a white bg on inner span/svg) */
+header .btn *,
+header .btn-ghost *,
+header .btn-circle *,
+header .icon-btn *,
+header button[aria-label] *,
+header [role="button"][aria-label] * {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 2) Replace white/gray hover with a very light gold */
+header .btn:hover,
+header .btn-ghost:hover,
+header .btn-circle:hover,
+header .icon-btn:hover,
+header button[aria-label]:hover,
+header [role="button"][aria-label]:hover {
+  background-color: rgba(212, 175, 55, 0.12) !important; /* soft gold */
+}
+
+/* keyboard focus (slightly stronger) */
+header .btn:focus-visible,
+header .btn-ghost:focus-visible,
+header .btn-circle:focus-visible,
+header .icon-btn:focus-visible,
+header button[aria-label]:focus-visible,
+header [role="button"][aria-label]:focus-visible {
+  background-color: rgba(212, 175, 55, 0.16) !important;
+  outline: none !important;
+}
+
+/* pressed */
+header .btn:active,
+header .btn-ghost:active,
+header .btn-circle:active,
+header .icon-btn:active,
+header button[aria-label]:active,
+header [role="button"][aria-label]:active {
+  background-color: rgba(212, 175, 55, 0.22) !important;
+}
+
+/* 3) Explicitly target the two known icons by aria-label in case classes change */
+header button[aria-label="Quick Access"],
+header button[aria-label="Developer"],
+header button[aria-label="Dev Tools"] {
+  background-color: transparent !important;
+}
+header button[aria-label="Quick Access"]:hover,
+header button[aria-label="Developer"]:hover,
+header button[aria-label="Dev Tools"]:hover {
+  background-color: rgba(212, 175, 55, 0.12) !important;
+}
+
+Important: hard refresh with cache off
+
+Open DevTools → Network → check Disable cache
+
+Press Ctrl/Cmd + Shift + R to reload
+
+Why this works
+
+It beats hover:bg-white/10, btn-ghost:hover, focus rings, and any white bg sneaking in on inner spans/SVGs.
+
+It’s scoped to header only, so other buttons elsewhere stay as they are.
+
+If the white circle still appears, it means those two buttons use a different wrapper (e.g., a unique class) or a different aria-label. In that case, right-click one of those icons → Inspect → copy the button’s opening tag (just the <button ...>) and send me that line—I’ll tailor the selector exactly to your markup so we can finish this in one shot.

@@ -1,0 +1,129 @@
+You’re seeing the dashboard with no login because the site isn’t enforcing auth yet. The page loads like a normal public page, so even without a Supabase session it renders the UI. We need to:
+
+Gate every protected route behind a session check, and
+
+Lock your data with RLS so nothing leaks even if someone reaches the UI.
+
+Here’s a clean fix you can drop in now.
+
+A) Frontend: block the UI unless there’s a session
+If it’s plain HTML/JS
+
+Put this at the very top of your dashboard script (before rendering/fetching):
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js'
+
+  const SUPABASE_URL = 'https://zzconzlitecbawulnbey.supabase.co'      // your URL
+  const SUPABASE_ANON = 'eyJhbGciOi...<anon key>...'                   // your anon key
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON)
+
+  async function requireSession() {
+    // 1) check current session
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      // 2) no session → go to login
+      const loginUrl = '/login.html' // or '/login'
+      window.location.replace(loginUrl)
+      return
+    }
+  }
+
+  await requireSession() // block page until this passes
+
+  // OPTIONAL: react to future logouts
+  supabase.auth.onAuthStateChange((_event, session) => {
+    if (!session) window.location.replace('/login.html')
+  })
+</script>
+
+
+Then make a simple /login.html that sends the magic link:
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js'
+  const supabase = createClient('https://zzconzlitecbawulnbey.supabase.co','<anon key>')
+
+  async function sendLink() {
+    const email = document.querySelector('#email').value.trim()
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` }
+    })
+    if (error) return alert(error.message)
+    alert('Check your email for the sign-in link.')
+  }
+
+  document.querySelector('#send').addEventListener('click', sendLink)
+</script>
+
+
+And add a tiny /auth/callback page that finishes the session then redirects:
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js'
+  const supabase = createClient('https://zzconzlitecbawulnbey.supabase.co','<anon key>')
+  await supabase.auth.getSession()   // completes magic-link
+  window.location.replace('/dashboard.html')  // your portal home
+</script>
+
+If you’re using a framework
+
+Next.js: use @supabase/auth-helpers-nextjs and a middleware.ts that redirects to /login if no cookie session.
+
+Express: add middleware that verifies the Supabase JWT on every protected route and redirects to /login.
+
+B) Supabase Auth settings (must-have)
+
+In Supabase → Authentication → URL Configuration:
+
+Site URL: your real domain: https://portal.familycirclesecure.com
+
+Additional Redirect URLs:
+
+https://portal.familycirclesecure.com
+https://portal.familycirclesecure.com/auth/callback
+
+
+(Keep your Replit .replit.dev URLs too if you’re still testing there.)
+
+Email provider must be Enabled.
+
+C) Data safety: enforce RLS on every table
+
+In SQL Editor, for each table that contains user/family data:
+
+alter table my_table enable row level security;
+
+-- Example policy tying rows to a user id column
+create policy "Users can read own rows"
+on my_table for select
+using (auth.uid() = user_id);
+
+create policy "Users can insert own rows"
+on my_table for insert
+with check (auth.uid() = user_id);
+
+create policy "Users can update own rows"
+on my_table for update
+using (auth.uid() = user_id);
+
+
+Storage: set buckets to Private. Use signed URLs or RLS policies for read/write.
+
+D) Quick hard stop (optional, while you wire auth)
+
+If you want an immediate gate on the live domain, you can add a temporary password wall:
+
+If served by Express, add basic-auth middleware on all routes except /login and /auth/callback.
+
+If behind Cloudflare, enable Cloudflare Access for the domain (email + one-time pin).
+This is a quick bandaid while you finish the proper Supabase guard.
+
+E) Why you got in without login
+
+The page is just static HTML/JS, and no session check ran before rendering.
+
+Without the guard, anyone hitting portal.familycirclesecure.com sees the UI.
+
+RLS ensures they still can’t read real data from Supabase, but you should still hide the UI and block actions.

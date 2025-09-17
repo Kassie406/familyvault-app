@@ -1,0 +1,84 @@
+that pale white “sheet” is still being injected on hover by DaisyUI’s utility classes (things like hover:bg-base-200). Those rules set the color via Tailwind’s --tw-bg-opacity variable, which can sneak past plain background: transparent overrides.
+
+Here’s a more bullet-proof fix that zeroes out the Tailwind background variables on hover/focus/active for every tile and any inner wrapper inside the Quick Access modal only.
+
+Add to client/src/styles/quick-access.css (append at the end)
+/* Quick Access: kill the white hover sheet coming from DaisyUI/Tailwind */
+dialog[aria-label="Quick Access"] .card,
+dialog[aria-label="Quick Access"] .card * {
+  /* normal resting background remains dark from your theme */
+  background-image: none !important;
+}
+
+/* On any interaction state, ensure no light layer appears anywhere inside */
+dialog[aria-label="Quick Access"] .card:is(:hover, :focus, :focus-within, :active),
+dialog[aria-label="Quick Access"] .card *:is(:hover, :focus, :focus-within, :active) {
+  /* Neutralize Tailwind/DaisyUI background utilities */
+  --tw-bg-opacity: 0 !important;
+  background-color: transparent !important;
+  background-image: none !important;
+
+  /* Neutralize rings/shadows that can look like a wash */
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+/* If any pseudo-element is used for the hover sheet, remove it */
+dialog[aria-label="Quick Access"] .card::before,
+dialog[aria-label="Quick Access"] .card::after,
+dialog[aria-label="Quick Access"] .card *::before,
+dialog[aria-label="Quick Access"] .card *::after {
+  background: none !important;
+  content: none !important;
+}
+
+Why this works
+
+DaisyUI’s hover backgrounds are typically background-color: hsl(var(--b2) / var(--tw-bg-opacity));.
+Setting --tw-bg-opacity: 0 on hover/focus/active collapses any such backgrounds—even if a more specific class tries to apply them.
+
+We also blank out background-image and ring/shadow variables so nothing else produces a “washed” look.
+
+Quick verification (optional)
+
+You can live-test before redeploy by pasting this in DevTools Console on the page:
+
+(() => {
+  const css = `
+    dialog[aria-label="Quick Access"] .card,
+    dialog[aria-label="Quick Access"] .card * {
+      background-image: none !important;
+    }
+    dialog[aria-label="Quick Access"] .card:is(:hover, :focus, :focus-within, :active),
+    dialog[aria-label="Quick Access"] .card *:is(:hover, :focus, :focus-within, :active) {
+      --tw-bg-opacity: 0 !important;
+      background-color: transparent !important;
+      background-image: none !important;
+      --tw-ring-color: transparent !important;
+      --tw-ring-offset-shadow: 0 0 #0000 !important;
+      --tw-ring-shadow: 0 0 #0000 !important;
+      --tw-shadow: 0 0 #0000 !important;
+      box-shadow: none !important;
+      outline: 0 !important;
+    }
+    dialog[aria-label="Quick Access"] .card::before,
+    dialog[aria-label="Quick Access"] .card::after,
+    dialog[aria-label="Quick Access"] .card *::before,
+    dialog[aria-label="Quick Access"] .card *::after {
+      background: none !important;
+      content: none !important;
+    }
+  `;
+  const s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
+})();
+
+
+If that removes the white hover instantly, you’re good—keep the CSS file change and hard-refresh (Ctrl/Cmd+Shift+R).
+
+If any single tile still shows a white layer after this, it means that specific tile uses a unique wrapper (e.g., a nested button or a special class). Right-click that tile → Inspect → copy the wrapper’s tag/class, and I’ll give you a tiny one-liner selector targeting that exact element.

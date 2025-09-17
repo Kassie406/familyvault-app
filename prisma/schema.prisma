@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String      @id @default(cuid())
+  email     String      @unique
+  createdAt DateTime    @default(now())
+  codes     EmailCode[]
+  otpCodes  OtpCode[]
+}
+
+model EmailCode {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  code       String
+  expiresAt  DateTime
+  consumed   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([userId, code])
+}
+
+model OtpCode {
+  id         String   @id @default(cuid())
+  userId     String
+  channel    String
+  sentTo     String
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int      @default(0)
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, channel])
+}

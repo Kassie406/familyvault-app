@@ -1,0 +1,503 @@
+/* Dual Upload Center Styles - Documents & Photos */
+/* Maintains your dark gold theme with dual layout */
+
+/* Main Container */
+.dual-upload-center {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* Family Header (preserved from your design) */
+.family-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.family-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--primary-gold, #D4AF37);
+  margin: 0;
+}
+
+.user-avatars {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary-gold, #D4AF37);
+  color: var(--dark-bg, #0F0F0F);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Dual Upload Boxes Container */
+.upload-boxes-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+/* Individual Upload Box */
+.upload-box {
+  position: relative;
+  background: var(--card-bg, #1a1a1a);
+  border: 2px dashed var(--border-color, #333);
+  border-radius: var(--radius-lg, 12px);
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.upload-box:hover {
+  border-color: var(--primary-gold, #D4AF37);
+  background: rgba(212, 175, 55, 0.05);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-gold, 0 8px 25px rgba(212, 175, 55, 0.2));
+}
+
+/* Drag Active State */
+.upload-box.drag-active {
+  border-color: var(--primary-gold, #D4AF37);
+  background: rgba(212, 175, 55, 0.1);
+  border-style: solid;
+  transform: scale(1.02);
+}
+
+/* Document Upload Box (Left) */
+.upload-box.document-upload {
+  border-color: var(--primary-gold, #D4AF37);
+}
+
+.upload-box.document-upload:hover {
+  box-shadow: 0 8px 25px rgba(212, 175, 55, 0.3);
+}
+
+/* Photo Upload Box (Right) */
+.upload-box.photo-upload {
+  border-color: #10B981; /* Green accent for photos */
+}
+
+.upload-box.photo-upload:hover {
+  border-color: #10B981;
+  background: rgba(16, 185, 129, 0.05);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+}
+
+/* Upload Content */
+.upload-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+/* Upload Icon */
+.upload-icon {
+  width: 64px;
+  height: 64px;
+  color: var(--primary-gold, #D4AF37);
+  margin-bottom: 1rem;
+}
+
+.upload-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.upload-icon.photo-icon {
+  color: #10B981;
+}
+
+/* Uploading Spinner */
+.uploading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color, #333);
+  border-top: 3px solid var(--primary-gold, #D4AF37);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.photo-upload .uploading-spinner {
+  border-top-color: #10B981;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Upload Text */
+.upload-box h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+  margin: 0;
+}
+
+.upload-box p {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #cccccc);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.ai-text {
+  font-size: 0.75rem;
+  color: var(--text-muted, #888888);
+  font-style: italic;
+}
+
+/* Browse Buttons */
+.browse-button {
+  padding: 0.875rem 1.5rem;
+  border-radius: var(--radius, 8px);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+  min-width: 140px;
+  margin: 1rem 0;
+}
+
+.browse-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Primary Button (Documents) */
+.browse-button.primary {
+  background: var(--primary-gold, #D4AF37);
+  color: var(--dark-bg, #0F0F0F);
+}
+
+.browse-button.primary:hover:not(:disabled) {
+  background: var(--primary-gold-hover, #C4A027);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg, 0 4px 20px rgba(0, 0, 0, 0.3));
+}
+
+/* Secondary Button (Photos) */
+.browse-button.secondary {
+  background: #10B981;
+  color: white;
+}
+
+.browse-button.secondary:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+}
+
+/* Or Text */
+.or-text {
+  font-size: 0.75rem;
+  color: var(--text-muted, #888888);
+  margin: 0.5rem 0;
+}
+
+/* File Types */
+.file-types {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.file-type {
+  background: var(--border-color, #333);
+  color: var(--text-secondary, #cccccc);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius, 8px);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.document-upload .file-type {
+  background: rgba(212, 175, 55, 0.2);
+  color: var(--primary-gold, #D4AF37);
+}
+
+.photo-upload .file-type {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10B981;
+}
+
+/* Upload Progress Overlay */
+.upload-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg, 12px);
+}
+
+.upload-progress {
+  text-align: center;
+  color: white;
+}
+
+.progress-bar {
+  width: 200px;
+  height: 4px;
+  background: var(--border-color, #333);
+  border-radius: 2px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: var(--primary-gold, #D4AF37);
+  animation: progress 2s ease-in-out infinite;
+}
+
+.progress-bar.photo-progress::after {
+  background: #10B981;
+}
+
+@keyframes progress {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(0%); }
+  100% { transform: translateX(100%); }
+}
+
+.upload-progress span {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Family Album Link */
+.album-link {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color, #333);
+}
+
+.view-album-btn {
+  background: transparent;
+  color: #10B981;
+  border: 1px solid #10B981;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius, 8px);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+  width: 100%;
+}
+
+.view-album-btn:hover {
+  background: #10B981;
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Upload Notifications */
+.upload-notifications {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.notification {
+  background: var(--card-bg, #1a1a1a);
+  border: 1px solid var(--border-color, #333);
+  border-radius: var(--radius, 8px);
+  padding: 1rem;
+  box-shadow: var(--shadow-lg, 0 4px 20px rgba(0, 0, 0, 0.3));
+  min-width: 250px;
+}
+
+.notification.document {
+  border-left: 4px solid var(--primary-gold, #D4AF37);
+}
+
+.notification.photo {
+  border-left: 4px solid #10B981;
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.notification-icon {
+  font-size: 1.25rem;
+}
+
+.notification-content span {
+  font-size: 0.875rem;
+  color: var(--text-primary, #ffffff);
+  font-weight: 500;
+}
+
+/* Camera Options (for photos) */
+.camera-options {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color, #333);
+}
+
+.camera-btn {
+  flex: 1;
+  background: transparent;
+  color: #10B981;
+  border: 1px solid #10B981;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius, 8px);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  justify-content: center;
+}
+
+.camera-btn:hover {
+  background: #10B981;
+  color: white;
+}
+
+/* Uploading State */
+.upload-box.uploading {
+  pointer-events: none;
+}
+
+.upload-box.uploading .upload-content {
+  opacity: 0.7;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .dual-upload-center {
+    padding: 1rem;
+  }
+
+  .upload-boxes-container {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .upload-box {
+    padding: 1.5rem;
+    min-height: 300px;
+  }
+
+  .family-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .upload-notifications {
+    top: 1rem;
+    right: 1rem;
+    left: 1rem;
+  }
+
+  .notification {
+    min-width: auto;
+  }
+
+  .camera-options {
+    flex-direction: column;
+  }
+}
+
+/* Tablet Responsive */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .upload-boxes-container {
+    gap: 1.5rem;
+  }
+
+  .upload-box {
+    padding: 1.75rem;
+  }
+}
+
+/* High DPI Displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .upload-icon svg {
+    stroke-width: 1.5;
+  }
+}
+
+/* Dark Mode Enhancements */
+@media (prefers-color-scheme: dark) {
+  .upload-box {
+    background: var(--card-bg, #1a1a1a);
+    border-color: var(--border-color, #333);
+  }
+  
+  .upload-box:hover {
+    background: rgba(212, 175, 55, 0.08);
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .upload-box,
+  .browse-button,
+  .notification {
+    transition: none;
+  }
+  
+  .uploading-spinner {
+    animation: none;
+  }
+  
+  .progress-bar::after {
+    animation: none;
+  }
+}

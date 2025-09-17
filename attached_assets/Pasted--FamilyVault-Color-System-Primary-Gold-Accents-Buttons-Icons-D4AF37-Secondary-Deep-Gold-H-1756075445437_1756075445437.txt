@@ -1,0 +1,81 @@
+🎨 FamilyVault Color System
+
+Primary Gold (Accents, Buttons, Icons): #D4AF37
+
+Secondary Deep Gold (Hover/Highlights): #B8860B
+
+Background: #000000 (or #111111 for softer black sections)
+
+Text: White #FFFFFF for titles, Light Gray #CCCCCC for body text
+
+Borders/Dividers: Subtle Gold Tint #C5A028
+
+🏠 Page-by-Page Prompts
+1. Navbar & Hero Section
+Update the navbar and hero section:
+- Background: solid black (#000000)
+- Navbar text color: white (#FFFFFF)
+- “Get Started Free” button: gold (#D4AF37) with white text
+- Button hover: deep gold (#B8860B)
+- Hero headline: white (#FFFFFF), bold, large
+- Subheadline text: light gray (#CCCCCC)
+- Hero button: gold (#D4AF37), white text, deep gold (#B8860B) hover
+
+2. “Secure Everything That Matters” Section
+Update this section:
+- Background: black (#111111)
+- Headline: white (#FFFFFF)
+- Bullet icons/checkmarks: gold (#D4AF37)
+- Text: light gray (#CCCCCC)
+- Center card (image box): black background with gold border (#D4AF37)
+
+3. Statistics Section (“51+ hours”, “$1268”, “84%”)
+Update the stats section:
+- Background: solid black (#000000)
+- Headline: white (#FFFFFF)
+- Numbers: gold (#D4AF37), bold and large
+- Labels/descriptions: light gray (#CCCCCC)
+
+4. “Life is Easier with FamilyVault” Section
+Update this section:
+- Background: black (#111111)
+- Headings: white (#FFFFFF)
+- Text: light gray (#CCCCCC)
+- Icons/badges: gold (#D4AF37)
+- Video play button: gold circle (#D4AF37) with black play icon
+
+5. “Rule at the Business of Life” Section
+Update this section:
+- Background: solid black (#000000)
+- Headline: white (#FFFFFF)
+- Subtitles: gold (#D4AF37)
+- Paragraphs: light gray (#CCCCCC)
+- Image boxes: add thin gold border (#D4AF37)
+
+6. Security Section (“Keep Your Information Safe”)
+Update the security features section:
+- Background: black (#111111)
+- Section title: white (#FFFFFF)
+- Feature box backgrounds: dark black (#000000) with gold border (#D4AF37)
+- Icons: gold (#D4AF37)
+- Feature titles: white (#FFFFFF)
+- Feature text: light gray (#CCCCCC)
+
+7. Testimonials Section
+Update testimonials section:
+- Background: solid black (#000000)
+- Title: white (#FFFFFF)
+- Member name: gold (#D4AF37)
+- Member details (location/date): light gray (#CCCCCC)
+- Quote text: white (#FFFFFF)
+- Quote box border: thin gold (#D4AF37)
+
+8. FAQ + Pricing Section
+Update FAQ and pricing section:
+- Background: black (#111111)
+- FAQ question text: gold (#D4AF37)
+- FAQ answer text: light gray (#CCCCCC)
+- Pricing section: dark black (#000000)
+- Pricing titles: white (#FFFFFF)
+- Pricing details: light gray (#CCCCCC)
+- Buttons: gold (#D4AF37), hover deep gold (#B8860B)

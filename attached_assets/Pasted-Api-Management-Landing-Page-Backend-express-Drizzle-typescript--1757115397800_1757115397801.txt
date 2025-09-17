@@ -1,0 +1,100 @@
+Api Management Landing Page + Backend (express + Drizzle)
+· typescript
+// =============================================
+// =============================================
+// BACKEND: log helper
+// File: server/lib/audit.ts
+import { db } from "../db";
+import { docAudit } from "../db/schema/audit";
+
+
+export async function logDocAction({ documentId, userId, action, ip, userAgent }:{ documentId:string; userId?:string; action:"view"|"download"; ip?:string; userAgent?:string; }){
+  await db.insert(docAudit).values({ documentId, userId, action, ip, userAgent });
+}
+
+
+// =============================================
+// BACKEND: integrate into documents url route
+// File: server/routes/documents.ts (inside GET /api/documents/:id/url)
+// After generating signed URL:
+import { logDocAction } from "../lib/audit";
+
+
+await logDocAction({ documentId: id, userId: user.id, action: mode as any, ip: req.ip, userAgent: req.headers["user-agent"] });
+
+
+// =============================================
+// FRONTEND: optional admin audit page
+// File: client/src/pages/family/doc-audit.tsx
+import React, { useEffect, useState } from "react";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+
+
+export default function DocAuditPage(){
+  const [items,setItems] = useState<any[]>([]);
+  useEffect(()=>{ fetch("/api/doc-audit?limit=50").then(r=>r.json()).then(d=>setItems(d.items??[])); },[]);
+  return (
+    <div className="p-6 md:p-10 text-gray-200">
+      <h1 className="text-2xl font-bold mb-4">Document Access Audit</h1>
+      <Card className="bg-zinc-900 border border-zinc-800 rounded-2xl">
+        <CardHeader><CardTitle>Recent Access</CardTitle><CardDescription className="text-gray-400">Last 50 view/download events</CardDescription></CardHeader>
+        <CardContent>
+          <table className="w-full text-sm">
+            <thead className="text-left text-gray-400"><tr><th>User</th><th>Action</th><th>When</th><th>IP</th></tr></thead>
+            <tbody>
+              {items.map((a:any)=>(
+                <tr key={a.id} className="border-t border-zinc-800">
+                  <td className="py-1">{a.userName ?? a.userId ?? "—"}</td>
+                  <td className="py-1">{a.action}</td>
+                  <td className="py-1">{new Date(a.createdAt).toLocaleString()}</td>
+                  <td className="py-1 text-gray-500">{a.ip}</td>
+                </tr>
+              ))}
+              {items.length===0 && <tr><td colSpan={4} className="text-gray-500 py-4">No events yet</td></tr>}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+
+// =============================================
+// BACKEND: audit listing route
+// File: server/routes/docAudit.ts
+import { Router } from "express";
+import { db } from "../db";
+import { docAudit } from "../db/schema/audit";
+import { desc } from "drizzle-orm";
+import { requireAuth } from "../lib/auth";
+
+
+const rt = Router();
+rt.use(requireAuth);
+
+
+rt.get("/api/doc-audit", async (req,res)=>{
+  const limit = Number(req.query.limit ?? 50);
+  const items = await db.select().from(docAudit).orderBy(desc(docAudit.createdAt)).limit(limit);
+  res.json({ items });
+});
+
+
+export default rt;
+
+
+
+
+
+✅ Added audit logging for document access:
+
+DB table doc_audit (documentId, userId, action, IP, user agent, timestamp).
+
+Helper logDocAction → called on every /api/documents/:id/url view/download.
+
+Audit page /family/doc-audit → shows last 50 access events.
+
+Backend route /api/doc-audit → fetches recent logs.
+
+Now every document view/download is recorded for compliance.

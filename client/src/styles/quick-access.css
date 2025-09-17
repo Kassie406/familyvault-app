@@ -1,0 +1,371 @@
+/* ===== Quick Access: global hardening ===== */
+
+/* Scope to both modal and any future quick access containers */
+dialog[aria-label="Quick Access"],
+#quick-access-modal,
+.quickAccessModal,
+.quick-access-modal,
+[data-qa="quick-access"] {
+  /* Ensure the dialog sits above frost overlays and catches events */
+  z-index: 60;
+  pointer-events: auto;
+}
+
+/* Kill all background injections from utilities & pseudo-elements - BUT EXCLUDE ACTIVE TABS */
+dialog[aria-label="Quick Access"] *:not(.bg-\[#D4AF37\]),
+#quick-access-modal *:not(.bg-\[#D4AF37\]),
+.quickAccessModal *:not(.bg-\[#D4AF37\]),
+.quick-access-modal *:not(.bg-\[#D4AF37\]),
+[data-qa="quick-access"] *:not(.bg-\[#D4AF37\]) {
+  /* block white flashes from Tailwind/DaisyUI utils on hover/focus */
+  --tw-bg-opacity: 0 !important;
+  background-color: transparent !important;
+  /* block rings, outlines, shadows that can look like a white glow */
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+dialog[aria-label="Quick Access"] *::before,
+dialog[aria-label="Quick Access"] *::after,
+#quick-access-modal *::before,
+#quick-access-modal *::after,
+.quickAccessModal *::before,
+.quickAccessModal *::after,
+.quick-access-modal *::before,
+.quick-access-modal *::after,
+[data-qa="quick-access"] *::before,
+[data-qa="quick-access"] *::after {
+  content: none !important;
+}
+
+/* Tile wrapper: consistent dark surface + gold border; NO white hover */
+.qa-tile,
+.qa-card,
+[data-qa-tile="true"] {
+  background: #0c0c0f !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(212,175,55,0.20) !important; /* subtle gold */
+  transition: border-color .15s ease, background-color .15s ease, transform .15s ease;
+}
+
+/* Dark hover tint instead of white */
+.qa-tile:hover,
+.qa-card:hover,
+[data-qa-tile="true"]:hover {
+  background: rgba(255,255,255,0.03) !important; /* faint darkening */
+  border-color: rgba(212,175,55,0.45) !important; /* brighter gold */
+  transform: translateZ(0); /* avoid GPU ghosting */
+}
+
+/* Make sure inner actionable elements don't reintroduce white */
+.qa-tile a,
+.qa-tile button,
+.qa-card a,
+.qa-card button,
+[data-qa-tile="true"] a,
+[data-qa-tile="true"] button {
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+}
+
+/* Tabs/filters ("All", "Chat", etc.) – remove white hover */
+.qa-filter,
+.qa-tab,
+[data-qa-filter="true"] {
+  background: transparent !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(212,175,55,0.20) !important;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.qa-filter:hover,
+.qa-tab:hover,
+[data-qa-filter="true"]:hover {
+  background: rgba(255,255,255,0.03) !important;
+  border-color: rgba(212,175,55,0.45) !important;
+}
+
+/* Header & mobile nav Quick Access icon/buttons – no white hover */
+.header-qa-btn,
+.mobile-qa-btn,
+.header-menu-btn,
+.header-notify-btn {
+  background: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+.header-qa-btn:hover,
+.mobile-qa-btn:hover,
+.header-menu-btn:hover,
+.header-notify-btn:hover {
+  background: rgba(255,255,255,0.03) !important; /* faint dark tint */
+}
+
+/* === Header icon hover: soft gold, no white === */
+
+/* Scope to the app header and target those specific icon buttons */
+header .icon-btn,
+header .icon-button,
+header button[aria-label],
+header [role="button"][aria-label],
+.header-notify-btn,
+.header-menu-btn,
+.header-qa-btn,
+.mobile-qa-btn {
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+/* remove any white/gray hovers coming from Tailwind/DaisyUI */
+header .icon-btn:hover,
+header .icon-btn:focus-visible,
+header .icon-btn:active,
+header .icon-button:hover,
+header .icon-button:focus-visible,
+header .icon-button:active,
+header button[aria-label]:hover,
+header button[aria-label]:focus-visible,
+header button[aria-label]:active,
+header [role="button"][aria-label]:hover,
+header [role="button"][aria-label]:focus-visible,
+header [role="button"][aria-label]:active,
+.header-notify-btn:hover,
+.header-notify-btn:focus-visible,
+.header-notify-btn:active,
+.header-menu-btn:hover,
+.header-menu-btn:focus-visible,
+.header-menu-btn:active,
+.header-qa-btn:hover,
+.header-qa-btn:focus-visible,
+.header-qa-btn:active,
+.mobile-qa-btn:hover,
+.mobile-qa-btn:focus-visible,
+.mobile-qa-btn:active {
+  /* soft gold (rgba of #D4AF37) — subtle on hover */
+  background-color: rgba(212, 175, 55, 0.10) !important;
+  box-shadow: none !important;          /* kill any glow/ring */
+}
+
+/* slightly stronger for keyboard focus */
+header .icon-btn:focus-visible,
+header .icon-button:focus-visible,
+header button[aria-label]:focus-visible,
+header [role="button"][aria-label]:focus-visible,
+.header-notify-btn:focus-visible,
+.header-menu-btn:focus-visible,
+.header-qa-btn:focus-visible,
+.mobile-qa-btn:focus-visible {
+  background-color: rgba(212, 175, 55, 0.16) !important;
+}
+
+/* on active/pressed */
+header .icon-btn:active,
+header .icon-button:active,
+header button[aria-label]:active,
+header [role="button"][aria-label]:active,
+.header-notify-btn:active,
+.header-menu-btn:active,
+.header-qa-btn:active,
+.mobile-qa-btn:active {
+  background-color: rgba(212, 175, 55, 0.22) !important;
+}
+
+/* neutralize DaisyUI/Tailwind white rings if present */
+header .icon-btn:hover,
+header .icon-button:hover,
+header button[aria-label]:hover,
+.header-notify-btn:hover,
+.header-menu-btn:hover,
+.header-qa-btn:hover,
+.mobile-qa-btn:hover {
+  --tw-bg-opacity: 1; /* prevents bg-white/xx from bleeding through */
+}
+
+/* ================================
+   HEADER ICONS — COMPREHENSIVE WHITE HOVER KILLER
+   ================================ */
+
+/* 1) Make every layer inside the icon buttons transparent by default */
+header .btn,
+header .btn-ghost,
+header .btn-circle,
+header .icon-btn,
+header button[aria-label],
+header [role="button"][aria-label] {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-color: transparent !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+}
+
+/* inner wrappers (some libs put a white bg on inner span/svg) */
+header .btn *,
+header .btn-ghost *,
+header .btn-circle *,
+header .icon-btn *,
+header button[aria-label] *,
+header [role="button"][aria-label] * {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 2) Replace white/gray hover with a very light gold */
+header .btn:hover,
+header .btn-ghost:hover,
+header .btn-circle:hover,
+header .icon-btn:hover,
+header button[aria-label]:hover,
+header [role="button"][aria-label]:hover {
+  background-color: rgba(212, 175, 55, 0.12) !important; /* soft gold */
+}
+
+/* keyboard focus (slightly stronger) */
+header .btn:focus-visible,
+header .btn-ghost:focus-visible,
+header .btn-circle:focus-visible,
+header .icon-btn:focus-visible,
+header button[aria-label]:focus-visible,
+header [role="button"][aria-label]:focus-visible {
+  background-color: rgba(212, 175, 55, 0.16) !important;
+  outline: none !important;
+}
+
+/* pressed */
+header .btn:active,
+header .btn-ghost:active,
+header .btn-circle:active,
+header .icon-btn:active,
+header button[aria-label]:active,
+header [role="button"][aria-label]:active {
+  background-color: rgba(212, 175, 55, 0.22) !important;
+}
+
+/* 3) Explicitly target the two known icons by aria-label in case classes change */
+header button[aria-label="Quick Access"],
+header button[aria-label="Developer"],
+header button[aria-label="Dev Tools"] {
+  background-color: transparent !important;
+}
+header button[aria-label="Quick Access"]:hover,
+header button[aria-label="Developer"]:hover,
+header button[aria-label="Dev Tools"]:hover {
+  background-color: rgba(212, 175, 55, 0.12) !important;
+}
+
+/* ================================
+   MOBILE NAVIGATION BAR — NUCLEAR WHITE HOVER KILLER
+   ================================ */
+
+/* MAXIMUM SPECIFICITY - Target all possible button selectors */
+button[data-testid="mobile-notifications"],
+button[data-testid="mobile-menu-open"],
+button.header-notify-btn,
+button.header-menu-btn,
+.mobile-nav button[data-testid="mobile-notifications"],
+.mobile-nav button[data-testid="mobile-menu-open"],
+.top-header button[data-testid="mobile-notifications"],
+.top-header button[data-testid="mobile-menu-open"],
+div button[data-testid="mobile-notifications"],
+div button[data-testid="mobile-menu-open"] {
+  background-color: transparent !important;
+  background: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  box-shadow: none !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-color: transparent !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-shadow: 0 0 #0000 !important;
+}
+
+/* Kill all inner elements too */
+button[data-testid="mobile-notifications"] *,
+button[data-testid="mobile-menu-open"] *,
+button.header-notify-btn *,
+button.header-menu-btn * {
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Soft gold hover - MAXIMUM SPECIFICITY */
+button[data-testid="mobile-notifications"]:hover,
+button[data-testid="mobile-menu-open"]:hover,
+button.header-notify-btn:hover,
+button.header-menu-btn:hover,
+div button[data-testid="mobile-notifications"]:hover,
+div button[data-testid="mobile-menu-open"]:hover {
+  background-color: rgba(212, 175, 55, 0.12) !important;
+  background: rgba(212, 175, 55, 0.12) !important;
+  --tw-bg-opacity: 1 !important;
+}
+
+/* Focus states - MAXIMUM SPECIFICITY */
+button[data-testid="mobile-notifications"]:focus-visible,
+button[data-testid="mobile-menu-open"]:focus-visible,
+button.header-notify-btn:focus-visible,
+button.header-menu-btn:focus-visible {
+  background-color: rgba(212, 175, 55, 0.16) !important;
+  background: rgba(212, 175, 55, 0.16) !important;
+  outline: none !important;
+}
+
+/* Active states - MAXIMUM SPECIFICITY */
+button[data-testid="mobile-notifications"]:active,
+button[data-testid="mobile-menu-open"]:active,
+button.header-notify-btn:active,
+button.header-menu-btn:active {
+  background-color: rgba(212, 175, 55, 0.22) !important;
+  background: rgba(212, 175, 55, 0.22) !important;
+}
+
+/* NUCLEAR OPTION - Kill ANY white backgrounds on hover in the header area */
+.sticky button:hover,
+.sticky button:focus,
+.sticky button:active {
+  background-color: rgba(212, 175, 55, 0.12) !important;
+  background: rgba(212, 175, 55, 0.12) !important;
+  --tw-bg-opacity: 1 !important;
+}
+
+/* ===== Header icons: belt-and-suspenders patch - kill white hover & use very light gold ===== */
+:root {
+  --kc-gold-08: rgba(212, 175, 55, 0.08);
+  --kc-gold-24: rgba(212, 175, 55, 0.24);
+}
+
+/* Scope to header variants you might have */
+header, .topbar, [data-kc="header"], nav[aria-label="Header"] {}
+
+/* Neutralize DaisyUI/Tailwind white hover/rings */
+header .btn, .topbar .btn, [data-kc="header"] .btn, nav[aria-label="Header"] .btn,
+header button, .topbar button, [data-kc="header"] button, nav[aria-label="Header"] button,
+header a[role="button"], .topbar a[role="button"], [data-kc="header"] a[role="button"], nav[aria-label="Header"] a[role="button"] {
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 9999px;
+  transition: background-color .15s ease, box-shadow .15s ease;
+}
+
+/* Replace white hover with subtle gold */
+header .btn:hover, .topbar .btn:hover, [data-kc="header"] .btn:hover, nav[aria-label="Header"] .btn:hover,
+header button:hover, .topbar button:hover, [data-kc="header"] button:hover, nav[aria-label="Header"] button:hover,
+header a[role="button"]:hover, .topbar a[role="button"]:hover, [data-kc="header"] a[role="button"]:hover, nav[aria-label="Header"] a[role="button"]:hover {
+  background-color: var(--kc-gold-08) !important;
+}
+
+/* Accessible focus state without white */
+header .btn:focus-visible, .topbar .btn:focus-visible, [data-kc="header"] .btn:focus-visible, nav[aria-label="Header"] .btn:focus-visible,
+header button:focus-visible, .topbar button:focus-visible, [data-kc="header"] button:focus-visible, nav[aria-label="Header"] button:focus-visible,
+header a[role="button"]:focus-visible, .topbar a[role="button"]:focus-visible, [data-kc="header"] a[role="button"]:focus-visible, nav[aria-label="Header"] a[role="button"]:focus-visible {
+  box-shadow: 0 0 0 2px var(--kc-gold-24) !important;
+}

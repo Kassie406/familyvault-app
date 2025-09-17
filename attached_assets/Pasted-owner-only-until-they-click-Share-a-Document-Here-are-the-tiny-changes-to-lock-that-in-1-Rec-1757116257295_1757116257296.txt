@@ -1,0 +1,69 @@
+owner-only until they click “Share a Document.”
+
+Here are the tiny changes to lock that in:
+
+1) “Recent Documents” should default to owner’s uploads (plus anything explicitly shared to them)
+
+Replace the recent query to not show all family docs by default:
+
+// GET /api/documents/recent
+r.get("/api/documents/recent", async (req, res) => {
+  const { id: userId } = req.user!;
+  const limit = Number(req.query.limit ?? 5);
+
+  // Owner’s own docs
+  const own = db.select().from(documents)
+    .where(eq(documents.ownerId, userId));
+
+  // Docs explicitly shared to this user or to family
+  const shared = db.select().from(documents)
+    .leftJoin(documentShares, eq(documentShares.documentId, documents.id))
+    .where(
+      or(
+        eq(documentShares.sharedWithUserId, userId),
+        eq(documentShares.scope, "family")
+      )
+    )
+    .fields({ ...documents }); // select doc columns
+
+  // Union + order desc
+  const items = await db
+    .select()
+    .from(own.union(shared).as("d"))
+    .orderBy(desc(sql`d.updated_at`))
+    .limit(limit);
+
+  res.json({ items });
+});
+
+2) Viewing rules
+
+Owner: can always open their own upload (even while virusStatus = 'pending'), to preview/verify.
+
+Others: must be shared to them (user/family/link) and virusStatus = 'clean'.
+
+Enforce in your signed-URL route:
+
+// inside GET /api/documents/:id/url
+const isOwner = doc.ownerId === user.id;
+
+if (!isOwner) {
+  // must be shared
+  const shares = await db.select().from(documentShares).where(eq(documentShares.documentId, id));
+  const allowed =
+    shares.some(s => s.scope === "family") ||
+    shares.some(s => s.scope === "user" && s.sharedWithUserId === user.id);
+  if (!allowed) return res.status(403).json({ error: "not_shared" });
+  // block if scan not clean
+  if (doc.virusStatus !== "clean") return res.status(409).json({ error: "not_ready" });
+}
+
+3) Upload flow stays owner-only
+
+No extra work needed—your POST /api/uploads/create already creates the doc with:
+
+ownerId = req.user!.id
+
+no document_shares rows
+
+Users won’t see it in their “Recent Items” until the owner uses Share a Document.

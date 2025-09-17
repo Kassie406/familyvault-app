@@ -1,0 +1,111 @@
+1) Make the UI show why it failed (legacy vs real error)
+
+In your banner state handling, surface the backend error code/message:
+
+// useAiSuggestions.ts – catch block
+catch (e: any) {
+  const msg = String(e?.message || e);
+  // Map known backend codes to human help
+  if (msg.includes('legacy_key_unusable')) {
+    setState({
+      kind: 'error',
+      message:
+        'This document was saved with an old path and can’t be analyzed. Please re-upload it.',
+    });
+    return;
+  }
+  setState({ kind: 'error', message: msg });
+}
+
+
+Server side (already mostly in place), keep returning a 410 legacy_key_unusable for old uploads/… rows so users get the “re-upload” CTA, not a generic “failed”.
+
+2) Event stream auth (your diagnostic got HTML)
+
+Native EventSource doesn’t include cookies cross-site. Use a polyfill that does:
+
+npm i event-source-polyfill
+
+// useAiSuggestions.ts
+import { EventSourcePolyfill } from 'event-source-polyfill';
+
+const url = `${apiBase}/analysis/stream?jobId=${encodeURIComponent(jobId)}`;
+const es = new EventSourcePolyfill(url, {
+  withCredentials: true,        // send cookies
+  headers: { /* if you use token headers, add here */ }
+});
+
+
+If you keep native EventSource, ensure:
+
+SameSite=None; Secure on your auth cookie
+
+Stream origin is the same site (or CORS allows credentials)
+and don’t set custom headers (native ES can’t).
+
+3) STOP the React infinite rerender (those warnings you saw)
+
+Anywhere you have useEffect(() => setState(...)) without a stable dep array—fix:
+
+// BAD: runs every render
+useEffect(() => { setRange(getDefaultRange()); });
+
+// GOOD:
+useEffect(() => { setRange(getDefaultRange()); }, []);
+
+// or memoize the dependency you use inside the effect:
+const dep = useMemo(() => compute(raw), [raw.id]);
+useEffect(() => { setRange(calc(dep)); }, [dep]);
+
+
+You already hit FamilyUpdates.tsx:75 and family-home.tsx:108. Patch both.
+
+4) Use real IDs through the whole pipeline (no paths)
+
+Your success path should look exactly like this (no hardcoded uploads/... anywhere):
+
+// 1) presign
+const { fileId, uploadUrl } = await presign(file);
+
+// 2) PUT to S3  (do NOT set Content-Length manually; the browser will)
+await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'content-type': file.type } });
+
+// 3) create inbox
+const { inboxItemId } = await POST('/inbox', { fileId, familyId });
+
+// 4) start analysis
+const { jobId } = await POST('/analysis/start', { inboxItemId });
+
+5) CSP + WS noise (cleanup, not blockers)
+
+CSP (server headers):
+
+Content-Security-Policy:
+  default-src 'self';
+  connect-src 'self' https://<your-api> https://*.amazonaws.com wss://<your-api>;
+  script-src 'self';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob: https://*.amazonaws.com;
+  font-src 'self' data:;
+  frame-ancestors 'self';
+
+
+If you don’t actually need websockets in dev, disable the socket client or set VITE_WS_URL properly to stop wss://localhost:undefined errors.
+
+6) DB migration (you started this—finish guard rails)
+
+You cleaned old rows; now make it impossible to regress:
+
+-- prevent future legacy keys
+ALTER TABLE files
+ADD CONSTRAINT files_key_no_legacy CHECK (key NOT LIKE 'uploads/%');
+
+-- optional: mark remaining legacy inbox items for UX
+-- ALTER TABLE inbox_items ADD COLUMN is_legacy boolean NOT NULL DEFAULT false;
+UPDATE inbox_items i
+SET is_legacy = true
+FROM files f
+WHERE i.file_id = f.id AND f.key LIKE 'uploads/%';
+
+
+In the UI, disable “Analyze” if is_legacy=true and show the re-upload hint.

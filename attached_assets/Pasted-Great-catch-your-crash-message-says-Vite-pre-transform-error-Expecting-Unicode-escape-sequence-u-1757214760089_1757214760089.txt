@@ -1,0 +1,185 @@
+Great catch—your crash message says:
+
+Vite pre-transform error: Expecting Unicode escape sequence \uXXXX in NewSignIn.tsx at the line where you set
+codeForm.innerHTML = ...
+
+That happens because the string you’re assigning contains backslashes or escape sequences that TS/JS is trying to parse (e.g., \t, \s, \ before ${} etc.). The clean fix is: don’t use innerHTML at all—render the UI with React state.
+
+Below is a drop-in NewSignIn.tsx that:
+
+shows the email form immediately (no infinite spinner),
+
+sends the code → switches to code entry,
+
+verifies the code → takes you to /dashboard,
+
+uses no innerHTML, no shadcn imports.
+
+Replace client/src/auth/NewSignIn.tsx with this
+import { useEffect, useState } from "react";
+
+type Step = "email" | "code";
+
+export default function NewSignIn() {
+  const [ready, setReady] = useState(false);
+  const [step, setStep] = useState<Step>("email");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+
+  // Warmup: even if it fails, show the form after 2.5s max
+  useEffect(() => {
+    let done = false;
+    const t = setTimeout(() => !done && setReady(true), 2500);
+    (async () => {
+      try {
+        await fetch("/login/start", { method: "POST" });
+      } catch {}
+      done = true;
+      clearTimeout(t);
+      setReady(true);
+    })();
+    return () => clearTimeout(t);
+  }, []);
+
+  const onSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSending(true);
+    try {
+      const clean = email.trim().toLowerCase();
+      const res = await fetch("/login/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: clean }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || "Could not send code");
+      }
+      setEmail(clean);
+      setStep("code");
+    } catch (err: any) {
+      setError(err.message || "Could not send code");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const onVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setVerifying(true);
+    try {
+      const cleanCode = code.trim();
+      if (!/^\d{6}$/.test(cleanCode)) {
+        throw new Error("Enter the 6-digit code");
+      }
+      const res = await fetch("/login/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code: cleanCode }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || "Invalid verification code");
+      }
+      window.location.href = "/dashboard";
+    } catch (err: any) {
+      setError(err.message || "Invalid verification code");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  if (!ready) {
+    return (
+      <div style={{minHeight:"100vh",display:"grid",placeItems:"center",color:"#fff"}}>
+        <div>Loading…</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{minHeight:"100vh",display:"grid",placeItems:"center",color:"#fff"}}>
+      <div style={{width:360, padding:16, borderRadius:12, background:"rgba(255,255,255,0.04)"}}>
+        <h1 style={{marginBottom:8}}>Welcome back</h1>
+
+        {step === "email" && (
+          <form onSubmit={onSend}>
+            <label style={{display:"block",fontSize:14,opacity:.8}}>Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@email.com"
+              required
+              style={{width:"100%",padding:"10px",margin:"8px 0 14px 0",borderRadius:8,border:"1px solid #333",background:"#0b0b0b",color:"#fff"}}
+            />
+            <button
+              type="submit"
+              disabled={sending}
+              style={{width:"100%",padding:"10px",borderRadius:8,background:"#b59732",border:"none",color:"#000",fontWeight:600}}
+            >
+              {sending ? "Sending…" : "Continue"}
+            </button>
+          </form>
+        )}
+
+        {step === "code" && (
+          <form onSubmit={onVerify}>
+            <p style={{margin:"0 0 12px 0", color:"#ccc"}}>
+              We sent a 6-digit code to <strong>{email}</strong>
+            </p>
+            <input
+              inputMode="numeric"
+              pattern="\d{6}"
+              maxLength={6}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="Enter 6-digit code"
+              required
+              style={{width:"100%",padding:"10px",margin:"8px 0 14px 0",borderRadius:8,border:"1px solid #333",background:"#0b0b0b",color:"#fff",letterSpacing:2}}
+            />
+            <button
+              type="submit"
+              disabled={verifying}
+              style={{width:"100%",padding:"10px",borderRadius:8,background:"#b59732",border:"none",color:"#000",fontWeight:600}}
+            >
+              {verifying ? "Verifying…" : "Verify & Sign In"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setStep("email")}
+              style={{marginTop:10, width:"100%",padding:"8px",borderRadius:8,background:"transparent",border:"1px solid #333",color:"#ddd"}}
+            >
+              ← Back to email
+            </button>
+          </form>
+        )}
+
+        {error && <p style={{color:"#ff8080", marginTop:12}}>{error}</p>}
+      </div>
+    </div>
+  );
+}
+
+Also confirm your router isn’t blocking /login
+
+In App.tsx (or your routes file), make sure /login renders this component and is not behind an auth guard:
+
+<Route path="/login" element={<NewSignIn />} />
+
+Why this fixes the crash
+
+No innerHTML → no escape sequences to break Vite/TS.
+
+No shadcn imports → nothing to misconfigure.
+
+Spinner has a timeout fallback → the form always appears.
+
+After replacing the file, do a hard refresh with cache disabled (DevTools → Network → “Disable cache”, then Ctrl/Cmd+Shift+R).
+
+If anything still breaks, paste the first red error from the browser Console and I’ll zero in on it.

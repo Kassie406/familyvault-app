@@ -1,0 +1,192 @@
+Admin — Subscription Plans (Client Users)
+HTML
+<section class="plans">
+  <div class="plans-header">
+    <h2>Subscription Plans</h2>
+    <div class="segmented">
+      <button class="seg is-active" data-scope="PUBLIC">Client Plans</button>
+      <button class="seg" data-scope="FAMILY">Family (no billing)</button>
+      <button class="seg" data-scope="STAFF">Staff (no billing)</button>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" id="btn-sync-stripe">Sync Stripe</button>
+      <button class="btn primary" id="btn-new-plan">+ New Plan</button>
+    </div>
+  </div>
+
+  <!-- stripe disconnected empty-state (hide when connected) -->
+  <div class="empty-state" id="stripe-empty" hidden>
+    <div class="icon">💳</div>
+    <h3>Stripe not connected</h3>
+    <p>Connect Stripe to create and manage Client subscription plans.</p>
+    <button class="btn primary" id="btn-connect-stripe">Connect Stripe</button>
+  </div>
+
+  <!-- plans table -->
+  <div class="card">
+    <table class="table" id="plans-table">
+      <thead>
+        <tr>
+          <th>Plan</th>
+          <th>Price</th>
+          <th>Interval</th>
+          <th>Users</th>
+          <th>Status</th>
+          <th>Stripe ID</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Free -->
+        <tr data-tenant="PUBLIC">
+          <td><strong>Free</strong> <span class="badge badge-muted">Most basic</span></td>
+          <td>$0</td>
+          <td>Forever</td>
+          <td>128</td>
+          <td><span class="badge badge-status-active">Active</span></td>
+          <td class="mono">price_free</td>
+          <td class="col-actions">
+            <div class="row-actions" role="group" aria-label="Plan actions">
+              <button aria-label="Edit plan" data-tip="Edit">✏️</button>
+              <button aria-label="Duplicate plan" data-tip="Duplicate">🧬</button>
+              <button aria-label="Archive plan" data-tip="Archive">📦</button>
+              <button aria-label="Open in Stripe" data-tip="Open in Stripe">🔗</button>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Silver -->
+        <tr data-tenant="PUBLIC">
+          <td><strong>Silver</strong> <span class="badge">Popular</span></td>
+          <td>$10</td>
+          <td>Monthly (annual billing)</td>
+          <td>43</td>
+          <td><span class="badge badge-status-active">Active</span></td>
+          <td class="mono">price_silver_10</td>
+          <td class="col-actions">
+            <div class="row-actions" role="group" aria-label="Plan actions">
+              <button aria-label="Edit plan" data-tip="Edit">✏️</button>
+              <button aria-label="Duplicate plan" data-tip="Duplicate">🧬</button>
+              <button aria-label="Archive plan" data-tip="Archive">📦</button>
+              <button aria-label="Open in Stripe" data-tip="Open in Stripe">🔗</button>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Gold -->
+        <tr data-tenant="PUBLIC">
+          <td><strong>Gold</strong></td>
+          <td>$20</td>
+          <td>Monthly (annual billing)</td>
+          <td>25</td>
+          <td><span class="badge badge-status-active">Active</span></td>
+          <td class="mono">price_gold_20</td>
+          <td class="col-actions">
+            <div class="row-actions" role="group" aria-label="Plan actions">
+              <button aria-label="Edit plan" data-tip="Edit">✏️</button>
+              <button aria-label="Duplicate plan" data-tip="Duplicate">🧬</button>
+              <button aria-label="Archive plan" data-tip="Archive">📦</button>
+              <button aria-label="Open in Stripe" data-tip="Open in Stripe">🔗</button>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Custom -->
+        <tr data-tenant="PUBLIC">
+          <td><strong>Custom (Advisors)</strong> <span class="badge badge-muted">By quote</span></td>
+          <td>Custom</td>
+          <td>Custom</td>
+          <td>8</td>
+          <td><span class="badge badge-status-active">Active</span></td>
+          <td class="mono">price_custom_quote</td>
+          <td class="col-actions">
+            <div class="row-actions" role="group" aria-label="Plan actions">
+              <button aria-label="Edit plan" data-tip="Edit">✏️</button>
+              <button aria-label="Duplicate plan" data-tip="Duplicate">🧬</button>
+              <button aria-label="Archive plan" data-tip="Archive">📦</button>
+              <button aria-label="Open in Stripe" data-tip="Open in Stripe">🔗</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="table-foot">Showing 4 plans</div>
+  </div>
+</section>
+
+CSS (consistent with your current theme)
+.plans-header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.plans-header h2{margin:0}
+.segmented{display:flex;background:#EAEEF5;border:1px solid #D7DEE8;padding:4px;border-radius:9999px}
+.seg{padding:8px 12px;border-radius:9999px;border:0;background:transparent;cursor:pointer}
+.seg.is-active{background:#FFFFFF;border:1px solid #D7DEE8}
+.actions .btn{margin-left:8px}
+
+.empty-state{text-align:center;background:#fff;border:1px solid #E5EAF2;border-radius:16px;padding:28px;margin-top:8px}
+.empty-state .icon{font-size:28px}
+
+.table{width:100%;border-collapse:separate;border-spacing:0}
+.table thead th{position:sticky;top:0;background:#fff;z-index:1;padding:12px 16px;border-bottom:1px solid #E5EAF2;text-align:left}
+.table td{padding:12px 16px;border-bottom:1px solid #F0F3F8}
+.table tbody tr:hover{background:#F7FAFF}
+.mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;color:#6B7280}
+
+.badge{padding:3px 8px;border-radius:9999px;font-weight:600;background:#E9F2FF;color:#0D6EFD;display:inline-block}
+.badge-muted{background:#EEF1F5;color:#697386}
+.badge-status-active{background:#E8F6EE;color:#1B7F3B}
+
+.card{background:#fff;border:1px solid #E5EAF2;border-radius:16px;box-shadow:0 2px 8px rgba(16,24,40,.04)}
+.table-foot{padding:10px 16px;color:#6B7280}
+
+.btn{border-radius:10px;padding:10px 14px;border:1px solid transparent;cursor:pointer}
+.btn.primary{background:#1F6FEB;color:#fff}
+.btn.primary:hover{background:#195BD2}
+.btn.ghost{background:#fff;border-color:#CBD2E0;color:#344054}
+.btn.ghost:hover{background:#F6F8FB}
+
+.col-actions{width:220px;text-align:right;white-space:nowrap}
+.row-actions button{padding:6px;border-radius:8px;background:transparent;border:0;color:#667085;margin-left:6px;cursor:pointer;transition:.15s}
+.row-actions button:hover{background:#EEF3FF;color:#1F6FEB}
+.row-actions button[data-tip]{position:relative}
+.row-actions button[data-tip]::after{
+  content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);right:0;background:#111827;color:#fff;
+  font-size:12px;padding:6px 8px;border-radius:6px;white-space:nowrap;opacity:0;transform:translateY(4px);
+  pointer-events:none;transition:opacity .15s, transform .15s}
+.row-actions button:hover[data-tip]::after{opacity:1;transform:translateY(0)}
+
+Minimal JS (scope tabs + Stripe empty-state demo)
+<script>
+  // Toggle segment scope (visual only; FAMILY/STAFF show info-only banner)
+  document.querySelectorAll('.segmented .seg').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      document.querySelectorAll('.seg').forEach(x=>x.classList.remove('is-active'));
+      b.classList.add('is-active');
+      const scope=b.dataset.scope;
+      const table=document.getElementById('plans-table');
+      // For this admin view, only PUBLIC has billable rows:
+      table.parentElement.style.display = scope==='PUBLIC' ? '' : 'none';
+      document.getElementById('stripe-empty').hidden = (scope!=='PUBLIC'); // FAMILY/STAFF: no billing
+      if(scope!=='PUBLIC'){
+        document.getElementById('stripe-empty').querySelector('h3').textContent =
+          scope==='FAMILY' ? 'Family plans do not use billing' : 'Staff plans do not use billing';
+        document.getElementById('stripe-empty').querySelector('p').textContent =
+          'Access is role-based only. Manage roles and permissions in Users.';
+        document.getElementById('btn-connect-stripe').hidden = true;
+      } else {
+        document.getElementById('btn-connect-stripe').hidden = false;
+      }
+    });
+  });
+
+  // Example: If Stripe is not connected, show empty-state
+  const stripeConnected = true; // hook to your real flag
+  document.getElementById('stripe-empty').hidden = stripeConnected;
+</script>
+
+Implementation notes (Stripe & Compliance)
+
+Stripe objects: maintain product_id + price_id per plan; show the Price ID (or “Open in Stripe”) for admins.
+
+Visibility: plans are tenant-scoped → only PUBLIC uses billing; FAMILY & STAFF are role/permission only.
+
+Legal: display renewal, refund, cancellation, tax terms on checkout and in your Client Terms; ensure proration and trial handling are documented.

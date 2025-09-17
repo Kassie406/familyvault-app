@@ -1,0 +1,169 @@
+Color Theme Audit
+1) Core palette (lock these in as CSS variables)
+
+These match the rest of your pages you showed.
+
+:root{
+  --bg: #0b0b0c;          /* page background */
+  --surface: #141415;     /* cards/sections */
+  --surface-2: #1a1b1c;   /* inset panels/stripes */
+  --text: #e7e7ea;        /* primary text */
+  --muted: #a8a9ad;       /* secondary text */
+  --line: #2a2b2e;        /* subtle borders */
+  --brand: #f6c33d;       /* gold */
+  --brand-2: #f0b90b;     /* hover gold */
+  --brand-ink: #111;      /* text on gold */
+  --focus: #ffe69070;     /* focus ring */
+}
+
+
+Target usage ratio:
+
+Backgrounds ~ 70–75% near-black
+
+Surfaces ~ 20% (cards/hero panel/footer band)
+
+Brand accents ≤ 5% (CTAs, highlights, icons)
+
+2) Header/Nav
+
+Keep
+
+Wordmark/brand in --brand.
+
+Links in --text at 80–90% opacity.
+
+Adjust
+
+Hover: underline + color: var(--brand).
+
+Active page: color: var(--brand) + a 2px bottom border (--brand at 70% opacity).
+
+.header { background: var(--bg); }
+.nav a { color: color-mix(in oklab, var(--text) 88%, transparent); }
+.nav a:hover { color: var(--brand); text-decoration: underline; }
+.nav .active { color: var(--brand); border-bottom:2px solid color-mix(in oklab, var(--brand) 70%, transparent); }
+
+3) Hero section
+
+Common issues: gray-on-gray low contrast, washed CTA.
+
+Do this
+
+Hero background: keep pure bg or use a very subtle vertical fade to --surface (no busy gradients).
+
+Headline in --text; subcopy in --muted.
+
+Primary CTA = brand button; Secondary CTA = ghost.
+
+.hero { background: linear-gradient(#0b0b0c, #0b0b0c 40%, #141415 100%); }
+.hero h1 { color: var(--text); }
+.hero p { color: var(--muted); }
+.btn-primary{
+  background: var(--brand); color: var(--brand-ink); border: none;
+}
+.btn-primary:hover{ background: var(--brand-2); }
+.btn-secondary{
+  background: transparent; color: var(--text);
+  border:1px solid var(--line);
+}
+.btn-secondary:hover{ background:#1a1b1c; }
+
+
+Contrast check
+
+Headline on --bg: > 8:1
+
+Muted on --bg: > 4.5:1 (meets AA for body text)
+
+4) Feature rows / value props
+
+Keep
+
+Card backgrounds = --surface.
+
+Icon badges = square/rounded with --brand glyph or border.
+
+Adjust
+
+Card border 1px solid var(--line).
+
+Titles --text, body --muted.
+
+On hover: lift slightly + border brighten.
+
+.card{
+  background: var(--surface);
+  border:1px solid var(--line);
+  border-radius: 16px;
+}
+.card:hover{ border-color:#3a3b3f; transform: translateY(-2px); }
+.card h3{ color: var(--text); }
+.card p{ color: var(--muted); }
+.icon-chip{
+  background:#202124; border:1px solid var(--line); color: var(--brand);
+}
+
+5) Testimonials / Logos
+
+Do not use colored logos on dark; prefer white or 70–80% white SVGs with opacity hover.
+
+Quote text = --text; attribution = --muted.
+
+6) Pricing preview band (if on Home)
+
+Use same styles as Pricing page (gold CTAs perfectly aligned).
+
+Ensure button heights and border radii are identical across columns.
+
+.pricing .btn-primary{ min-height: 52px; border-radius: 999px; }
+
+7) Footer
+
+Background: --surface.
+
+Headings --text; links --muted → hover --brand.
+
+Divider top border 1px solid var(--line).
+
+8) Accessibility & states
+
+Focus: outline: 3px solid var(--focus) on all interactive elements.
+
+Visited links: slightly dimmer gold: color-mix(in oklab, var(--brand) 80%, #9a7a00).
+
+Error/Success (if used on Home forms)
+
+Error: #ff6b6b on --surface;
+
+Success: #4cd97b on --surface.
+
+9) Quick “diff” checklist for the Home page
+
+ Body/section backgrounds ONLY --bg, --surface, --surface-2 (remove stray grays).
+
+ All body copy uses --text or --muted; no plain #ccc/#999.
+
+ Every card/panel has border:1px solid var(--line) + consistent radius.
+
+ All CTAs use the same primary/secondary styles as other pages.
+
+ Icons use gold accent or neutral outline; no random blues/greens.
+
+ Links hover = gold; underline present; active item = gold + subtle underline/border.
+
+ Focus rings visible and gold-tinted.
+
+ Contrast AA+ verified for text on all backgrounds.
+
+10) Minimal globals to enforce on Home
+
+Add this (if not already in your base):
+
+body{ background: var(--bg); color: var(--text); }
+a{ color: var(--text); text-decoration: none; }
+a:hover{ color: var(--brand); text-decoration: underline; }
+section{ border-color: var(--line); }
+
+
+If you share a screenshot or the current Home HTML/CSS block, I’ll mark up line-by-line changes. If not, applying the snippets above will produce a Home page that visually snaps to the rest of your site (International Travel, Moving, Digital Security, Disaster Planning, Estate, Home Buying, Starting a Family, Neurodiversity, Security, Reviews).

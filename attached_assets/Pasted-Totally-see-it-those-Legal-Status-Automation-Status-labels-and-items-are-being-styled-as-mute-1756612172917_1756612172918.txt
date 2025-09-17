@@ -1,0 +1,95 @@
+Totally see it — those “Legal Status / Automation Status” labels and items are being styled as “muted/disabled” on a light card, so their contrast drops to almost invisible. Two things are happening:
+
+The section containers have a low opacity (or a very light gray like #E5E7EB) applied.
+
+The text color is using a muted token (text-gray-300/400) that’s fine on dark backgrounds, but unreadable on white.
+
+Here’s a drop-in fix that keeps the subtle look but restores WCAG-compliant contrast.
+
+If you’re using plain CSS
+/* ----- GDPR Compliance overview readability fixes ----- */
+
+/* 1) Stop inherited fading on whole sections */
+.gdpr-overview .gdpr-section.is-muted,
+.gdpr-overview .gdpr-section[aria-disabled="true"] {
+  opacity: 1;                 /* was .4 or .5 on some builds */
+  filter: none;
+}
+
+/* 2) Strong section titles */
+.gdpr-overview .section-title {
+  font-weight: 600;
+  letter-spacing: .01em;
+  color: var(--fg-strong, #111827);      /* gray-900 fallback */
+}
+
+/* 3) Labels inside the lists (e.g., Data Protection Officer, Retention Policies) */
+.gdpr-overview .item-label {
+  color: var(--fg-muted, #374151);       /* gray-700 fallback on light */
+}
+
+/* 4) Light & dark theme guards */
+.theme-light .gdpr-overview .item-label       { color: #334155; }  /* slate-700 */
+.theme-dark  .gdpr-overview .item-label       { color: #cbd5e1; }  /* slate-300 */
+.theme-light .gdpr-overview .section-title    { color: #111827; }  /* gray-900 */
+.theme-dark  .gdpr-overview .section-title    { color: #f3f4f6; }  /* gray-100 */
+
+/* 5) Don’t dim text when showing a “disabled look”; dim only decorative bits */
+.gdpr-overview .gdpr-section.is-muted .badge,
+.gdpr-overview .gdpr-section[aria-disabled="true"] .badge {
+  opacity: .6;                 /* badges can look muted */
+}
+.gdpr-overview .gdpr-section.is-muted .item-label,
+.gdpr-overview .gdpr-section[aria-disabled="true"] .item-label {
+  opacity: 1;                   /* text stays readable */
+}
+
+/* 6) Hover/focus should never go “pitch black” on light theme */
+.gdpr-overview .row:hover,
+.gdpr-overview .row:focus-within {
+  background-color: rgba(15, 23, 42, 0.04);  /* slate-900 @ 4% */
+}
+
+Expected selectors (adjust if yours differ)
+
+#gdpr-compliance or .gdpr-overview wrapping the card
+
+.gdpr-section.section--legal, .gdpr-section.section--automation
+
+.section-title for the left/right column titles
+
+.item-label for each row label (“Data Protection Officer”, “Retention Policies”, etc.)
+
+.badge for the green “Active/Running/Complete” chips
+
+If you’re using Tailwind
+
+Change the headings/labels to use strong/muted tokens instead of ultra-light grays:
+
+<div className="gdpr-overview">
+  {/* Section title */}
+  <h3 className="section-title text-slate-900 dark:text-slate-100 font-semibold">
+    Legal Status
+  </h3>
+
+  {/* Item row */}
+  <div className="row flex items-center justify-between rounded-lg hover:bg-slate-900/5 focus-within:bg-slate-900/5">
+    <span className="item-label text-slate-700 dark:text-slate-300">
+      Data Protection Officer
+    </span>
+    <span className="badge inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 px-2 py-0.5 text-xs">
+      Appointed
+    </span>
+  </div>
+</div>
+
+
+And remove any opacity-40/opacity-50 from the column containers; if you need a muted look, apply it to the badges or icons only (e.g., text-slate-400), not the text.
+
+Why this fixes it
+
+We stop fading the entire section and keep the text at full opacity.
+
+We move text colors to slate-700 / slate-300 (or --fg-muted) which maintain a ≥4.5:1 contrast on light and dark.
+
+Hover/focus uses a very light background tint instead of flipping text to nearly black on dark chips.

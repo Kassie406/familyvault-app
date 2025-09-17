@@ -1,0 +1,351 @@
+0) Shell — create the app
+
+Paste this into Replit’s Shell:
+
+# create Next app
+npx create-next-app@latest app --ts --eslint --no-tailwind --src-dir=false --import-alias "@/*"
+cd app
+
+# tailwind + postcss
+npm i -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+
+# shadcn/ui
+npm i class-variance-authority clsx tailwind-merge lucide-react
+npx shadcn@latest init -d
+
+# add a few base components
+npx shadcn@latest add button card input label dialog sheet
+
+1) Tailwind config
+
+Replace tailwind.config.js with:
+
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: ["class"],
+  content: [
+    "./app/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./pages/**/*.{ts,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        kc: {
+          gold: "#D4AF37",          // brand gold
+          "gold-08": "rgba(212,175,55,0.08)",
+          "surface": "#0e0f12",
+          "bg": "#0b0c0f",
+        },
+      },
+      borderRadius: {
+        lg: "12px",
+        xl: "16px",
+        "2xl": "20px",
+      },
+      boxShadow: {
+        sm: "0 1px 2px rgba(0,0,0,.08)",
+        lg: "0 10px 30px rgba(0,0,0,.25)",
+      },
+    },
+  },
+  plugins: [],
+};
+
+2) Global CSS tokens
+
+Create app/globals.css:
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root{
+  --kc-gold:#D4AF37;
+  --kc-bg:#0b0c0f;
+  --kc-surface:#0e0f12;
+  --kc-text:#e7e7ea;
+  --kc-muted:#9aa0aa;
+
+  --radius:12px;
+  --ease:cubic-bezier(.2,.7,.2,1);
+  --speed:180ms;
+}
+
+html,body,#__next{height:100%}
+body{
+  color:var(--kc-text);
+  background:
+    radial-gradient(1200px 600px at 70% -10%, rgba(212,175,55,0.10), transparent 60%),
+    radial-gradient(900px 500px at 20% 0%, rgba(212,175,55,0.06), transparent 60%),
+    var(--kc-bg);
+}
+
+/* tiny utility buttons aligned with your brand */
+.btn{ @apply inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[var(--radius)] font-semibold transition; }
+.btn-primary{ background:var(--kc-gold); color:#111; }
+.btn-primary:hover{ filter:brightness(.96); }
+.btn-secondary{ @apply border border-white/10 bg-white/5 text-white; }
+.btn-secondary:hover{ @apply bg-white/10; }
+
+/* card baseline */
+.kc-card{ @apply bg-[var(--kc-surface)] border border-[rgba(212,175,55,0.18)] rounded-xl; }
+.kc-card:hover{ @apply border-[rgba(212,175,55,0.45)]; }
+
+
+Import it in app/layout.tsx (created by Next):
+
+export const metadata = { title: "Family Portal", description: "Private family hub" };
+
+import "./globals.css";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+}
+
+3) Minimal reusable building blocks
+
+Create components/Section.tsx:
+
+export default function Section(props: React.HTMLAttributes<HTMLDivElement>) {
+  const { className = "", ...rest } = props;
+  return <section className={`mx-auto max-w-6xl px-4 ${className}`} {...rest} />;
+}
+
+
+Create components/Header.tsx (uses shadcn Button + Sheet for mobile):
+
+"use client";
+
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Menu } from "lucide-react";
+
+export default function Header() {
+  return (
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-black/30 backdrop-blur">
+      <div className="mx-auto max-w-6xl px-4 h-16 flex items-center justify-between">
+        <Link href="/" className="font-bold tracking-wide">
+          <span className="text-white">Family</span>{" "}
+          <span className="text-[var(--kc-gold)]">Portal</span>
+        </Link>
+
+        <nav className="hidden md:flex items-center gap-6 text-sm text-white/80">
+          <Link href="/dashboard" className="hover:text-white">Dashboard</Link>
+          <Link href="/calendar" className="hover:text-white">Calendar</Link>
+          <Link href="/photos" className="hover:text-white">Photos</Link>
+        </nav>
+
+        <div className="hidden md:flex items-center gap-3">
+          <Link href="/search" className="btn btn-secondary">Search</Link>
+          <Link href="/quick" className="btn btn-primary">Quick Access</Link>
+        </div>
+
+        <div className="md:hidden">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button size="icon" variant="ghost" className="text-white">
+                <Menu />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="bg-[var(--kc-surface)] text-white">
+              <nav className="mt-10 grid gap-4">
+                <Link href="/dashboard">Dashboard</Link>
+                <Link href="/calendar">Calendar</Link>
+                <Link href="/photos">Photos</Link>
+                <Link href="/quick" className="btn btn-primary mt-2">Quick Access</Link>
+              </nav>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+
+Create components/CouplesConnectionCard.tsx (card that opens a full-screen modal):
+
+"use client";
+
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState } from "react";
+import { Heart, Lock } from "lucide-react";
+
+export default function CouplesConnectionCard() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Card
+        className="kc-card cursor-pointer transition"
+        onClick={() => setOpen(true)}
+        role="button"
+        aria-label="Open Couple’s Connection"
+      >
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(212,175,55,0.15)] text-[var(--kc-gold)]">
+                <Heart className="h-5 w-5" />
+              </span>
+              <div>
+                <h3 className="text-lg font-semibold">Couple’s Connection</h3>
+                <p className="text-sm text-white/70">Next date: Fri 7:30 PM • Italian near home</p>
+              </div>
+            </div>
+            <span className="text-[var(--kc-gold)]"><Lock className="h-4 w-4" /></span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Full-screen modal shell you’ll grow into /couple routes later */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[85vh] bg-[var(--kc-surface)] text-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Heart className="h-5 w-5 text-[var(--kc-gold)]" />
+              Couple’s Connection
+            </DialogTitle>
+          </DialogHeader>
+          <div className="h-full overflow-auto pr-1">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="kc-card p-5">
+                <h4 className="font-semibold">Date Ideas</h4>
+                <p className="text-sm text-white/70 mt-1">Add ideas, tag them, and rank mutually.</p>
+              </div>
+              <div className="kc-card p-5">
+                <h4 className="font-semibold">Couple Calendar</h4>
+                <p className="text-sm text-white/70 mt-1">Schedule date nights with conflict checks.</p>
+              </div>
+              <div className="kc-card p-5">
+                <h4 className="font-semibold">Journal</h4>
+                <p className="text-sm text-white/70 mt-1">Log memories with photos & “On This Day”.</p>
+              </div>
+              <div className="kc-card p-5">
+                <h4 className="font-semibold">Weekly Check-in</h4>
+                <p className="text-sm text-white/70 mt-1">3 prompts + 1–10 rating; private sparkline.</p>
+              </div>
+            </div>
+            <p className="text-xs text-white/60 mt-6">Private to you two • PIN/biometric recommended</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+4) Homepage scaffold (hero + three cards incl. Couple’s card)
+
+Create app/page.tsx:
+
+import Header from "@/components/Header";
+import Section from "@/components/Section";
+import { Card, CardContent } from "@/components/ui/card";
+import Link from "next/link";
+import CouplesConnectionCard from "@/components/CouplesConnectionCard";
+
+export default function Home() {
+  return (
+    <main className="min-h-screen">
+      <Header />
+
+      {/* Hero */}
+      <Section className="py-14 md:py-20 grid md:grid-cols-2 gap-10 items-center">
+        <div>
+          <h1 className="text-4xl md:text-5xl font-bold leading-tight">
+            Welcome to your <span className="text-[var(--kc-gold)]">Family Portal</span>
+          </h1>
+        <p className="mt-4 text-white/70">
+          A private, secure space for family life—quick actions, shared calendars, documents, and a place to
+          nurture your relationship.
+        </p>
+        <div className="mt-6 flex gap-3">
+          <Link href="/quick" className="btn btn-primary">Open Quick Access</Link>
+          <Link href="/calendar" className="btn btn-secondary">View Calendar</Link>
+        </div>
+        </div>
+        <div className="rounded-2xl overflow-hidden border border-white/10">
+          <img src="https://images.unsplash.com/photo-1542317853-0a47aa2f6c3d?q=80&w=1280&auto=format&fit=crop"
+               alt="Warm family gradient"
+               className="w-full h-[340px] object-cover" />
+        </div>
+      </Section>
+
+      {/* Key cards */}
+      <div className="bg-[var(--kc-surface)]/40 border-t border-white/10">
+        <Section className="py-12 grid md:grid-cols-3 gap-6">
+          {/* Couple’s Connection */}
+          <CouplesConnectionCard />
+
+          {/* Photos */}
+          <Card className="kc-card">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold">Photos Uploaded</h3>
+              <p className="text-sm text-white/70 mt-1">Keep memories safe and organized.</p>
+              <Link href="/photos" className="mt-4 inline-flex underline">Open Photos →</Link>
+            </CardContent>
+          </Card>
+
+          {/* Budget Tracker */}
+          <Card className="kc-card">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold">Budget Tracker</h3>
+              <p className="text-sm text-white/70 mt-1">Stay aligned on spending & goals.</p>
+              <Link href="/budget" className="mt-4 inline-flex underline">View Budget →</Link>
+            </CardContent>
+          </Card>
+        </Section>
+      </div>
+
+      <footer className="border-t border-white/10">
+        <Section className="py-10 text-sm text-white/60">
+          © {new Date().getFullYear()} Family Portal • Private by design
+        </Section>
+      </footer>
+    </main>
+  );
+}
+
+5) Replit config (so it “just runs”)
+
+Create .replit at the project root (same level as app/):
+
+run = "cd app && npm run dev -- -p 3000"
+entrypoint = "app/package.json"
+
+
+If Replit asks for Nix:
+
+replit.nix
+
+{ pkgs }: {
+  deps = [
+    pkgs.nodejs_20
+    pkgs.nodePackages.npm
+  ];
+}
+
+6) Start it
+npm run dev
+
+
+You’ll see the gold/dark theme, a clean header, and a Couple’s Connection card that opens a full-screen modal shell (Date Ideas, Calendar, Journal, Check-in) ready for your Phase-1 routes.
+
+What you have now
+
+✅ Next.js + Tailwind + shadcn wired up
+
+✅ Brand tokens (gold #D4AF37), dark gradient background
+
+✅ Reusable Header and Section
+
+✅ Dashboard with Couple’s Connection entry (modal) + 2 sample cards
+
+✅ Replit config to run smoothly

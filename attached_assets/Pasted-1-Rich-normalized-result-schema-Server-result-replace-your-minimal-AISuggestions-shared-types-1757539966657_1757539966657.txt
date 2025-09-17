@@ -1,0 +1,383 @@
+1) Rich, normalized result schema
+Server result (replace your minimal AISuggestions)
+// shared types used by client + server
+
+export type FieldConfidence = number; // 0-100
+
+export type NormalizedAddress = {
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;   // "NJ"
+  postal?: string;  // "07036"
+  country?: string; // "US"
+};
+
+export type ExtractField = {
+  key: string;              // "dlNumber", "firstName", "address.city"
+  label: string;            // "Driver License Number"
+  value: string;            // "C0336 42600 56932"
+  confidence: FieldConfidence;
+  section?: string;         // "driverLicense", "passport", "address", etc. (for UI grouping)
+  path?: string;            // path inside Family ID profile (see mappings below)
+  bbox?: number[];          // optional: [x1,y1,x2,y2]
+};
+
+export type MemberSuggestion = {
+  memberId: string;
+  memberName: string;
+  confidence: FieldConfidence;
+};
+
+export type AISuggestions = {
+  docType: string;                         // "driver-license" | "passport" | ...
+  confidence: "high"|"medium"|"low";
+  fields: ExtractField[];                  // flattened list for UI
+  address?: NormalizedAddress;             // convenience
+  fullName?: { first?: string; last?: string; middle?: string; };
+  member?: MemberSuggestion | null;        // "Angel Quintana", 92%
+  reasoning?: string;
+};
+
+2) Server: produce full fields (Textract OR fallback)
+
+Update your server/routes/ai-inbox.ts analyze helpers to fill address + state + name + everything.
+
+// inside server/routes/ai-inbox.ts
+// (keep your imports; showing only edits & helpers)
+
+function parseUSAddress(raw?: string): NormalizedAddress | undefined {
+  if (!raw) return;
+  // very simple US parser; good enough for DL / ID
+  const line = raw.replace(/\s+/g, " ").trim();
+  const m = line.match(/^(.*?),\s*([A-Z]{2})\s+(\d{5})(?:[-\s]\d{4})?$/i);
+  if (!m) return { line1: line };
+  return { line1: m[1], state: m[2].toUpperCase(), postal: m[3], country: "US" };
+}
+
+function confBucket(n: number): "high"|"medium"|"low" {
+  return n >= 80 ? "high" : n >= 50 ? "medium" : "low";
+}
+
+// Map Textract (AnalyzeID) to normalized fields
+function identityFieldsToExtractFields(doc: any): { fields: ExtractField[]; address?: NormalizedAddress; fullName?: any } {
+  const raw: Record<string, { text?: string; conf?: number }> = {};
+  doc?.IdentityDocumentFields?.forEach((f: any) => {
+    raw[f?.Type?.Text || ""] = {
+      text: f?.ValueDetection?.Text || "",
+      conf: Math.round(f?.ValueDetection?.Confidence || 0),
+    };
+  });
+
+  const address = parseUSAddress(raw.ADDRESS?.text);
+  const firstName = raw.FIRST_NAME?.text || "";
+  const lastName  = raw.LAST_NAME?.text || "";
+  const middle    = raw.MIDDLE_NAME?.text || "";
+  const state     = raw.STATE?.text || address?.state;
+
+  const fields: ExtractField[] = [
+    raw.DOCUMENT_NUMBER?.text && {
+      key: "dlNumber", label: "Driver License Number", value: raw.DOCUMENT_NUMBER.text,
+      confidence: raw.DOCUMENT_NUMBER.conf || 0, section: "driverLicense", path: "ids.driverLicense.number"
+    },
+    state && { key: "stateIssued", label: "State issued", value: state, confidence: 88, section: "driverLicense", path: "ids.driverLicense.state" },
+    raw.EXPIRATION_DATE?.text && {
+      key: "expirationDate", label: "Expiration date", value: raw.EXPIRATION_DATE.text,
+      confidence: raw.EXPIRATION_DATE.conf || 0, section: "driverLicense", path: "ids.driverLicense.expiration"
+    },
+    raw.ISSUE_DATE?.text && {
+      key: "issueDate", label: "Issue date", value: raw.ISSUE_DATE.text,
+      confidence: raw.ISSUE_DATE.conf || 0, section: "driverLicense", path: "ids.driverLicense.issue"
+    },
+    firstName && { key: "firstName", label: "First name", value: firstName, confidence: raw.FIRST_NAME?.conf || 0, section: "identity", path: "person.firstName" },
+    middle && { key: "middleName", label: "Middle name", value: middle, confidence: raw.MIDDLE_NAME?.conf || 0, section: "identity", path: "person.middleName" },
+    lastName && { key: "lastName", label: "Last name", value: lastName, confidence: raw.LAST_NAME?.conf || 0, section: "identity", path: "person.lastName" },
+    raw.DATE_OF_BIRTH?.text && { key: "dob", label: "Date of birth", value: raw.DATE_OF_BIRTH.text, confidence: raw.DATE_OF_BIRTH.conf || 0, section: "identity", path: "person.birth.date" },
+    address?.line1 && { key: "address.line1", label: "Address", value: address.line1, confidence: 85, section: "address", path: "person.address.line1" },
+    address?.city  && { key: "address.city", label: "City", value: address.city!, confidence: 85, section: "address", path: "person.address.city" },
+    address?.state && { key: "address.state", label: "State", value: address.state!, confidence: 90, section: "address", path: "person.address.state" },
+    address?.postal&& { key: "address.postal", label: "Postal code", value: address.postal!, confidence: 85, section: "address", path: "person.address.postal" },
+  ].filter(Boolean) as ExtractField[];
+
+  return { fields, address, fullName: { first: firstName, last: lastName, middle } };
+}
+
+async function analyzeWithTextract(objectURL: string, fileName: string): Promise<AISuggestions> {
+  // fetch → AnalyzeID (as in previous answer) ...
+  const client = new TextractClient({ region: process.env.AWS_REGION! });
+  const bytes = new Uint8Array(await (await fetch(objectURL)).arrayBuffer());
+  const out = await client.send(new AnalyzeIDCommand({ DocumentPages: [{ Bytes: bytes }] }));
+
+  const doc = out.IdentityDocuments?.[0];
+  const { fields, address, fullName } = identityFieldsToExtractFields(doc);
+
+  const overall = Math.round(fields.reduce((s, f) => s + f.confidence, 0) / (fields.length || 1));
+  const suggestions: AISuggestions = {
+    docType: "driver-license",
+    confidence: confBucket(overall),
+    fields,
+    address,
+    fullName,
+    reasoning: "AWS Textract AnalyzeID extracted identity and address fields.",
+  };
+
+  // Optional: attach member suggestion here (see helper below)
+  suggestions.member = await suggestMember(fullName);
+
+  return suggestions;
+}
+
+// Fallback fake analyzer — now returns address & name too
+async function fakeAnalyze(fileName: string): Promise<AISuggestions> {
+  const isDL = /license|dl|driver/i.test(fileName);
+  if (isDL) {
+    const fields: ExtractField[] = [
+      { key: "dlNumber", label: "Driver License Number", value: "C0336 42600 56932", confidence: 96, section: "driverLicense", path: "ids.driverLicense.number" },
+      { key: "expirationDate", label: "Expiration date", value: "2027-04-06", confidence: 92, section: "driverLicense", path: "ids.driverLicense.expiration" },
+      { key: "stateIssued", label: "State issued", value: "NJ", confidence: 90, section: "driverLicense", path: "ids.driverLicense.state" },
+      { key: "firstName", label: "First name", value: "ANGEL", confidence: 93, section: "identity", path: "person.firstName" },
+      { key: "lastName", label: "Last name", value: "QUINTANA", confidence: 93, section: "identity", path: "person.lastName" },
+      { key: "address.line1", label: "Address", value: "123 Maple Ave", confidence: 85, section: "address", path: "person.address.line1" },
+      { key: "address.city", label: "City", value: "Linden", confidence: 85, section: "address", path: "person.address.city" },
+      { key: "address.state", label: "State", value: "NJ", confidence: 90, section: "address", path: "person.address.state" },
+      { key: "address.postal", label: "Postal code", value: "07036", confidence: 85, section: "address", path: "person.address.postal" },
+    ];
+    return {
+      docType: "driver-license",
+      confidence: "high",
+      fields,
+      address: { line1: "123 Maple Ave", city: "Linden", state: "NJ", postal: "07036", country: "US" },
+      fullName: { first: "ANGEL", last: "QUINTANA" },
+      member: { memberId: "angel-id", memberName: "Angel Quintana", confidence: 92 },
+      reasoning: "Filename pattern + demo data.",
+    };
+  }
+  return {
+    docType: "document",
+    confidence: "low",
+    fields: [],
+    reasoning: "Unrecognized document; try a DL/passport PDF or a clearer image.",
+  };
+}
+
+Member suggestion (matches OCR name → family members)
+// naive fuzzy match (improve with better distance if you like)
+async function suggestMember(fullName?: { first?: string; last?: string }) : Promise<MemberSuggestion|null> {
+  if (!fullName?.first || !fullName?.last) return null;
+
+  // Replace with real DB query for current family
+  const members = await getFamilyMembers(); // [{id, firstName, lastName}, ...]
+
+  const target = `${fullName.first} ${fullName.last}`.toLowerCase();
+  let best: { score: number; id: string; name: string } | null = null;
+
+  for (const m of members) {
+    const cand = `${m.firstName} ${m.lastName}`.toLowerCase();
+    const score = jaccard(target, cand); // 0..1
+    if (!best || score > best.score) best = { score, id: m.id, name: `${m.firstName} ${m.lastName}` };
+  }
+  if (best && best.score >= 0.75) {
+    return { memberId: best.id, memberName: best.name, confidence: Math.round(best.score * 100) };
+  }
+  return null;
+}
+
+function jaccard(a: string, b: string) {
+  const A = new Set(a.split(/\s+/));
+  const B = new Set(b.split(/\s+/));
+  const inter = [...A].filter(x => B.has(x)).length;
+  const uni = new Set([...A, ...B]).size;
+  return uni ? inter / uni : 0;
+}
+
+async function getFamilyMembers() {
+  // TODO: replace with your Drizzle query for current user's family members
+  return [
+    { id: "angel-id", firstName: "Angel", lastName: "Quintana" },
+    { id: "emma-id", firstName: "Emma", lastName: "Johnson" },
+    // ...
+  ];
+}
+
+3) Accept to the correct Family ID section
+Client → new Accept call
+// client/src/lib/aiInbox.ts
+export async function acceptSuggestions(uploadId: string, memberId: string, suggestions: AISuggestions) {
+  const res = await fetch(`/api/inbox/${uploadId}/accept`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ memberId, suggestions }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+Server → /accept endpoint (upsert + attach file)
+// server/routes/ai-inbox.ts (append)
+router.post("/api/inbox/:id/accept", async (req, res) => {
+  const uploadId = req.params.id;
+  const { memberId, suggestions } = req.body as { memberId: string; suggestions: AISuggestions };
+
+  try {
+    // 1) attach file to member's vault or ids (depends on your schema)
+
+    // 2) map fields → DB columns by path
+    // Example Drizzle upserts (pseudo—adapt to your schema):
+    for (const f of suggestions.fields) {
+      switch (f.path) {
+        case "ids.driverLicense.number":
+          await upsertDriverLicense(memberId, { number: f.value });
+          break;
+        case "ids.driverLicense.state":
+          await upsertDriverLicense(memberId, { state: f.value });
+          break;
+        case "ids.driverLicense.expiration":
+          await upsertDriverLicense(memberId, { expiration: f.value });
+          break;
+        case "person.firstName":
+          await upsertPerson(memberId, { firstName: f.value });
+          break;
+        case "person.lastName":
+          await upsertPerson(memberId, { lastName: f.value });
+          break;
+        case "person.address.line1":
+        case "person.address.city":
+        case "person.address.state":
+        case "person.address.postal":
+          await upsertAddress(memberId, applyAddressPatch({}, f));
+          break;
+        // add more cases as you add doc types (passport, insurance, etc.)
+      }
+    }
+
+    return res.json({ ok: true });
+  } catch (e: any) {
+    return res.status(500).json({ error: e?.message || "failed to save" });
+  }
+});
+
+function applyAddressPatch(base: any, f: ExtractField) {
+  const m = f.path?.split("."); // person.address.state
+  if (m?.[0] === "person" && m?.[1] === "address") {
+    const key = m[2];
+    return { ...base, [key!]: f.value };
+  }
+  return base;
+}
+
+// Stubs to replace with your Drizzle models:
+
+async function upsertDriverLicense(memberId: string, patch: any) {
+  // await db.insert(driver_licenses).values({memberId, ...patch}).onConflictDoUpdate({target: driver_licenses.memberId, set: patch})
+}
+
+async function upsertPerson(memberId: string, patch: any) {
+  // await db.update(people).set(patch).where(eq(people.id, memberId));
+}
+
+async function upsertAddress(memberId: string, patch: any) {
+  // await db.insert(addresses).values({memberId, ...patch}).onConflictDoUpdate({target: addresses.memberId, set: patch})
+}
+
+4) UI: show who it belongs to + per-section fields
+
+In your AutofillBanner.tsx, if a member suggestion is present, show it with an Open button and use that memberId by default on Accept.
+
+// inside AutofillBanner
+const defaultMember = last.member; // { memberId, memberName, confidence }
+
+{defaultMember && (
+  <div className="mt-2 text-sm text-indigo-900">
+    Suggested destination: <strong>{defaultMember.memberName}</strong>
+    <span className="ml-2 text-xs text-indigo-700">{defaultMember.confidence}%</span>
+  </div>
+)}
+
+<div className="mt-3 flex gap-2">
+  <button className="text-sm px-3 py-1 rounded-md bg-indigo-600 text-white"
+    onClick={() => acceptAll(last, defaultMember?.memberId)}>
+    Accept all
+  </button>
+  {/* ... Dismiss button already shown ... */}
+</div>
+
+
+And wire acceptAll:
+
+import { acceptSuggestions } from "@/lib/aiInbox";
+import { useAI } from "@/state/ai";
+import { useToast } from "@/components/ui/use-toast"; // if you have one
+
+async function acceptAll(s: AISuggestions, memberId?: string) {
+  const { setResult } = useAI.getState();
+  if (!s) return;
+
+  // If no suggestion, let user choose member (open a small picker)
+  const chosenMemberId = memberId || await openMemberPicker(); // implement tiny modal if needed
+
+  // You have uploadId around when you called startAIAnalysis; store it in AI state
+  const uploadId = (s as any).__uploadId as string; // store this when analysis starts
+
+  try {
+    await acceptSuggestions(uploadId, chosenMemberId, s);
+    setResult(undefined);
+    // toast.success("Saved to profile");
+  } catch (e: any) {
+    // toast.error(e.message);
+  }
+}
+
+
+Tip: When you call startAIAnalysis(uploadId, url, file.name) in UploadCenter.tsx, do:
+
+const suggestions = await startAIAnalysis(uploadId, objectURL, file.name);
+(suggestions as any).__uploadId = uploadId; // so Accept has it
+setResult(suggestions);
+
+5) Add new document types easily
+
+Create little mappers so each doc type routes to the right Family ID section:
+
+// server/docTypeMaps.ts (or inline for now)
+export const docTypeToPathMap: Record<string, { section: string; fieldMap: Record<string,string> }> = {
+  "driver-license": {
+    section: "ids.driverLicense",
+    fieldMap: {
+      dlNumber: "number",
+      stateIssued: "state",
+      expirationDate: "expiration",
+      issueDate: "issue",
+    },
+  },
+  "passport": {
+    section: "ids.passport",
+    fieldMap: {
+      passportNumber: "number",
+      expirationDate: "expiration",
+      // ...
+    },
+  },
+  "insurance-policy": {
+    section: "insurance.policy",
+    fieldMap: {
+      policyNumber: "number",
+      carrier: "carrier",
+      effectiveDate: "effective",
+      // ...
+    },
+  },
+};
+
+
+Then in /accept you can translate quickly:
+
+const map = docTypeToPathMap[suggestions.docType];
+if (map) {
+  for (const f of suggestions.fields) {
+    const internal = map.fieldMap[f.key];
+    if (internal) {
+      const path = `${map.section}.${internal}`;
+      // upsert by path
+    }
+  }
+}

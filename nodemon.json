@@ -1,0 +1,12 @@
+{
+  "ignore": [
+    "**/*.md",
+    "public/**",
+    "uploads/**",
+    "prisma/*.db",
+    "**/*.{png,jpg,jpeg,svg,gif,webp}",
+    "src/**/*.css",
+    "src/**/*.scss",
+    "src/**/*.module.css"
+  ]
+}

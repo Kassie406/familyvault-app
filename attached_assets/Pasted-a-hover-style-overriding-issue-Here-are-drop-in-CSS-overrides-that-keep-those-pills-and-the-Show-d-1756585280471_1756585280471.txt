@@ -1,0 +1,126 @@
+a hover style overriding issue. Here are drop-in CSS overrides that keep those pills and the “Show details” control readable (no pitch-black), with accessible contrast in both light and dark themes.
+
+Paste this at the end of your stylesheet (or in a small override file loaded last).
+
+/* ===== Impersonation hover/readability fixes ===== */
+/* Scope to your card/container to avoid global side effects */
+#impersonation-root,
+.impersonation-card { /* use whichever wrapper you have */ }
+
+/* Duration pills (5m / 10m / 15m / 20m) */
+#impersonation-root .duration-pills button,
+.impersonation-card .duration-pills button,
+#impersonation-root .pill,
+.impersonation-card .pill {
+  background:#F2F4F7;           /* soft gray, never black */
+  color:#111827;
+  border:1px solid #D7DEE8;
+  border-radius:999px;
+  padding:8px 12px;
+  line-height:1;
+  transition:background .15s ease,color .15s ease,box-shadow .15s ease,border-color .15s ease;
+}
+
+#impersonation-root .duration-pills button:hover,
+.impersonation-card .duration-pills button:hover,
+#impersonation-root .pill:hover,
+.impersonation-card .pill:hover {
+  background:#EEF3FF !important; /* light indigo hover */
+  border-color:#BFD3FF !important;
+  color:#0F3D91;
+  box-shadow:inset 0 0 0 1px #BFD3FF;
+}
+
+#impersonation-root .duration-pills button.is-active,
+.impersonation-card .duration-pills button.is-active,
+#impersonation-root .pill.is-active,
+.impersonation-card .pill.is-active {
+  background:#1F6FEB !important; /* brand/indigo active */
+  border-color:#1F6FEB !important;
+  color:#fff !important;
+}
+
+#impersonation-root .duration-pills button.is-active:hover,
+.impersonation-card .duration-pills button.is-active:hover,
+#impersonation-root .pill.is-active:hover,
+.impersonation-card .pill.is-active:hover {
+  background:#155EEF !important; /* slightly darker on hover, never black */
+}
+
+/* Keyboard focus ring */
+#impersonation-root .duration-pills button:focus-visible,
+.impersonation-card .duration-pills button:focus-visible {
+  outline:2px solid #84A9FF;
+  outline-offset:2px;
+  border-color:#84A9FF;
+}
+
+/* "Show Details" (ghost link/button) */
+#impersonation-root .audit-toggle,
+.impersonation-card .audit-toggle,
+#impersonation-root .btn-ghost.audit,
+.impersonation-card .btn-ghost.audit {
+  background:transparent;
+  color:#475467;
+  border:1px solid transparent;
+  border-radius:10px;
+  padding:8px 12px;
+}
+
+#impersonation-root .audit-toggle:hover,
+.impersonation-card .audit-toggle:hover,
+#impersonation-root .btn-ghost.audit:hover,
+.impersonation-card .btn-ghost.audit:hover {
+  background:#F6F8FB !important;  /* light hover surface */
+  color:#1F6FEB !important;
+  border-color:#E5EAF2;
+}
+
+#impersonation-root .audit-toggle:active,
+.impersonation-card .audit-toggle:active {
+  background:#EEF2FF !important;
+}
+
+/* Dark theme support without black-on-black hovers */
+@media (prefers-color-scheme: dark) {
+  #impersonation-root .duration-pills button,
+  .impersonation-card .duration-pills button,
+  #impersonation-root .pill,
+  .impersonation-card .pill {
+    background:#1F2937;
+    border-color:#2A3646;
+    color:#E5E7EB;
+  }
+  #impersonation-root .duration-pills button:hover,
+  .impersonation-card .duration-pills button:hover,
+  #impersonation-root .pill:hover,
+  .impersonation-card .pill:hover {
+    background:#22314A !important;   /* muted navy, not black */
+    border-color:#3B4F6B !important;
+    color:#E8EEFF;
+  }
+  #impersonation-root .audit-toggle:hover,
+  .impersonation-card .audit-toggle:hover {
+    background:#1F2937 !important;
+    color:#AFC8FF !important;
+    border-color:#2A3646;
+  }
+}
+
+What this fixes
+
+Removes any “pitch-black” hover by forcing light/indigo hover surfaces.
+
+Keeps the active pill high-contrast (indigo) and never turns black on hover.
+
+Makes the “Show details” control a true ghost button with a soft hover surface.
+
+If your DOM uses different class names, just map them:
+
+Wrap container: #impersonation-root or .impersonation-card
+
+Duration buttons container: .duration-pills (use your actual class)
+
+“Show details” button: add a class like .audit-toggle (or plug your existing one into the selectors).
+
+After adding, hard-refresh and clear any CSS cache.

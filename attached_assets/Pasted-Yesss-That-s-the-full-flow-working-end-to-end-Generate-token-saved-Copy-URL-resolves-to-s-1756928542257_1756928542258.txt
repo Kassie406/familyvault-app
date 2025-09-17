@@ -1,0 +1,105 @@
+Yesss! 🎉 That’s the full flow working end-to-end:
+
+Generate → token saved
+
+Copy → URL resolves to share page
+
+Viewer → “Reveal Credential” works
+
+Before we call it done, here’s a tight production-hardening & polish checklist so this stays rock-solid.
+
+Security / backend
+
+Revoke & rotate
+
+One-click “Revoke link” on the panel.
+
+Auto-rotate when permission drops (e.g., owner removed).
+
+Expiry enforcement
+
+Server rejects expired tokens (410) and deletes them with a daily job.
+
+Require login
+
+If enabled, resolver still returns 200 but marks requireLogin:true; UI gates reveal behind auth.
+
+(Alternative: resolver returns 401; UI prompts to sign in.)
+
+Rate limit & abuse
+
+POST /shares/regenerate: 10/min/user.
+
+GET /api/share/:token: IP bucket (e.g., 60/min).
+
+Audit log
+
+Log who generated, copied, viewed, revealed (userId/IP, token, credentialId, timestamp).
+
+Expose “Recent Activity” (you already show some).
+
+Least-data principle
+
+Resolver returns only what the viewer needs (e.g., ok, requireLogin, credentialId), never secrets.
+
+Content Security Policy
+
+Lock the share page with strict CSP; disable inline scripts.
+
+UX / panel polish
+
+Green “✓ Link resolves to Shared Credential” (you already have) → also show:
+
+“Last opened: {relative time}”
+
+“Expires in: 6d 23h”
+
+Copy feedback
+
+Replace button label with “Copied” for 2s.
+
+Regenerate flow
+
+After regenerate, auto-select URL text and focus Copy.
+
+Invalidate prior token immediately (show “Previous link revoked” in activity).
+
+Require-login hint
+
+Show a small shield icon + tooltip: “Viewers must sign in to reveal”.
+
+Email/SMS sending (optional)
+
+Use a server endpoint to send (don’t expose SMTP/API keys in the client).
+
+Include short-lived signed redirect link if you want per-recipient analytics (or keep the same URL for simplicity).
+
+QA cases to test
+
+Expiry options: 24h / 7d / 30d / never.
+
+Toggle Require login on/off and confirm UI behavior.
+
+Regenerate twice → old link(s) invalidated; only the last one works (if that’s your policy).
+
+Permission drop: remove viewer → link should still work (public) or be blocked (require-login + ACL)—decide and document.
+
+Mobile open & reveal.
+
+Private/incognito session.
+
+Monitoring & ops
+
+Add health checks: /api/healthz (already there).
+
+Log aggregation with alert on 4xx/5xx spikes for /api/share/*.
+
+Daily cleanup job for expired links.
+
+Light legal/compliance (since this is sensitive data)
+
+Update ToS/Privacy to cover link sharing, expirations, revocation, and logging of access events.
+
+Add a “Report exposure / revoke all” control on the owner’s account.
+
+Document data retention for audit logs (e.g., 90 days).

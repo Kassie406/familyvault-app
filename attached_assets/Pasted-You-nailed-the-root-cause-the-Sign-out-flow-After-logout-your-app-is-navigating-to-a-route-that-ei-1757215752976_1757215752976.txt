@@ -1,0 +1,89 @@
+You nailed the root cause—the Sign out flow. After logout, your app is navigating to a route that either (a) is still behind the auth guard or (b) mounts a spinner waiting for user state that never clears. Fix it by (1) clearing the server cookie, (2) resetting client auth state, and (3) sending the user to /login (which must NOT be guarded).
+
+Do this (copy-paste level)
+1) Backend: real logout endpoint
+// server/auth.ts (or similar)
+app.post("/auth/logout", (req, res) => {
+  // Clear your session cookie
+  res.clearCookie("session", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: "/",
+  });
+  return res.json({ ok: true });
+});
+
+2) Frontend: Sign out button handler
+// wherever your Sign out button lives
+async function handleSignOut() {
+  try {
+    await fetch("/auth/logout", { method: "POST", credentials: "include" });
+  } catch {}
+  // reset client auth state immediately
+  localStorage.clear();
+  sessionStorage.clear();
+  // if you keep auth in context/state, also do: setUser(null); setLoading(false);
+
+  // send to the public login route (hard nav prevents stale state)
+  window.location.href = "/login";
+}
+
+3) Make sure /login is public (not guarded)
+// App.tsx
+import { Routes, Route, Navigate } from "react-router-dom";
+import NewSignIn from "./auth/NewSignIn";
+
+const RequireAuth = () => {
+  const { user, loading } = useAuth(); // your hook or context
+  if (loading) return <div />;            // small spinner ok
+  if (!user) return <Navigate to="/login" replace />;
+  return <Outlet />;
+};
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<NewSignIn />} />        {/* public */}
+      <Route element={<RequireAuth />}>
+        {/* protected routes here */}
+        <Route path="/dashboard" element={<Dashboard />} />
+        {/* … */}
+      </Route>
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  );
+}
+
+4) Prevent infinite spinners after logout
+
+If your app shows a global spinner while fetching “current user,” clear that state on logout:
+
+// after logout
+setUser(null);
+setLoading(false);
+
+
+In NewSignIn, you already have a timeout fallback—keep that so the form shows even if a warmup call fails.
+
+5) Quick sanity checks
+
+Clicking Sign out should:
+
+return { ok:true } from /auth/logout,
+
+clear the session cookie (verify in DevTools → Application → Cookies),
+
+navigate to /login (and render, not black screen).
+
+Ensure your Sign out button isn’t linking to any old route like /auth/google/callback.
+
+If it still goes black after these changes, grab:
+
+the Console first red error,
+
+the result of the /auth/logout request (status & response),
+
+and confirm /login shows 200 and loads your JS bundle.
+
+Send me those three bits and I’ll point to the exact line to flip.

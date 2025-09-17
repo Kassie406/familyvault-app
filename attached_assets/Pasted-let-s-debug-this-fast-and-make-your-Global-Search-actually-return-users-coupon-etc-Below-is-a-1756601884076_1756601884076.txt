@@ -1,0 +1,185 @@
+let’s debug this fast and make your Global Search actually return “users”, “coupon”, etc. Below is a 5-minute triage checklist with exact commands. Follow them in order; you’ll know exactly where it’s failing.
+
+1) Verify the UI is calling your search API
+
+In the browser devtools → Network tab, type users in the global search.
+
+You should see a request to /api/search (or /api/search/suggest).
+
+Expected response (HTTP 200) looks like:
+
+{ "ok": true, "data": [ { "entity":"user","title":"John Doe","url":"/users/123", ... } ] }
+
+
+If you don’t see the request at all: the key handler may be blocked by a min-length rule or debouncer. Ensure you fire on Enter and also on input (debounced to ~150–200ms).
+
+Quick UI fix (if min-length is enforced):
+
+const MIN_CHARS = 1; // not 3
+
+2) If the API returns 200 with an empty list, test the index directly
+
+(These commands assume you implemented the Elastic/OpenSearch flow I gave you. If you used Postgres-only, see section 6 below.)
+
+2a) Does the index exist and have docs?
+# Count docs
+curl -s http://ES_HOST:9200/search-catalog/_count | jq
+
+# Peek a few
+curl -s http://ES_HOST:9200/search-catalog/_search \
+  -H 'Content-Type: application/json' \
+  -d '{ "size": 5, "query": { "match_all": {} } }' | jq '.hits.hits[]._source'
+
+
+If count = 0 → you never ingested documents. Jump to Step 4 (ingest).
+
+2b) Does “users” match?
+curl -s http://ES_HOST:9200/search-catalog/_search \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "size": 10,
+    "query": { "multi_match": {
+      "query": "users",
+      "type": "best_fields",
+      "fields": ["title^6","title.ac^6","tags^5","subtitle^3","body^1"],
+      "fuzziness": "AUTO",
+      "operator": "and"
+    }}
+  }' | jq '.hits.hits[]._source'
+
+
+If you get hits here but your UI shows nothing → your API likely filters by tenant (next step).
+
+2c) Check tenant filter
+
+Your API probably does:
+
+"filter": [{
+  "bool": {
+    "should": [
+      { "term": { "tenant": "<user-tenant>" } },
+      { "bool": { "must_not": { "exists": { "field": "tenant" } } } }
+    ]
+  }
+}]
+
+
+If your catalog docs have no tenant or have a different tenant than the logged-in user, the filter will exclude them.
+
+Test without tenant filter:
+
+curl -s http://ES_HOST:9200/search-catalog/_search \
+ -H 'Content-Type: application/json' \
+ -d '{ "query": { "match": { "title": "users" } } }' | jq
+
+
+If this returns results, fix your API’s tenant logic or populate the correct tenant in your documents.
+
+3) Check the API code quickly (log the query going to ES)
+
+Add a temporary log to see exactly what you’re sending to ES and what comes back:
+
+const r = await es.search({ index: 'search-catalog', body });
+console.log('[SEARCH] q=', q, 'tenant=', tenant, 'hits=', r.hits.total);
+
+
+Deploy and try again. If hits=0 here, it’s either:
+
+empty index,
+
+tenant filter excluding,
+
+or mapping/analyzer mismatch (Step 5).
+
+4) (Re)ingest documents now (users, coupons, plans, articles)
+
+Use your own data—here’s a skeleton you can run today to prove the pipeline:
+
+# Users
+curl -s -X POST http://ES_HOST:9200/_bulk -H 'Content-Type: application/x-ndjson' --data-binary @- <<'NDJSON'
+{"index":{"_index":"search-catalog","_id":"user:123"}}
+{"entity":"user","entity_id":"123","tenant":"public","title":"John Doe","subtitle":"john@company.com","tags":["user","admin"],"url":"/users/123","updated_at":"2025-08-30T10:00:00Z"}
+NDJSON
+
+
+Repeat similarly for coupons, plans, articles (I included full examples previously).
+
+Then re-run:
+
+curl -s http://ES_HOST:9200/search-catalog/_count | jq
+
+5) Mapping changed after index creation? Re-create & reindex
+
+If you created search-catalog without the analyzers I provided, fuzzy/autocomplete will be weak or missing.
+
+Fix = recreate:
+
+# Save old docs (optional, for small sets)
+curl -s http://ES_HOST:9200/search-catalog/_search -H 'Content-Type: application/json' -d '{ "size":10000, "query":{ "match_all":{} } }' > dump.json
+
+# Delete and recreate with the analyzer mapping I gave you
+DELETE /search-catalog
+PUT /search-catalog
+... (settings + mappings from my earlier message) ...
+
+# Re-index
+POST /_bulk
+... (all docs) ...
+
+6) If you used the Postgres version instead of Elastic
+
+Run these checks:
+
+-- Do we have catalog rows?
+SELECT count(*), entity FROM search_catalog GROUP BY entity;
+
+-- Does 'users' match?
+WITH q AS (
+  SELECT websearch_to_tsquery('simple','users') AS tsq,
+         'users' AS uq,
+         'users:*' AS prefix
+)
+SELECT title, entity, url
+FROM search_catalog sc, q
+WHERE sc.tsv @@ q.tsq
+   OR to_tsvector('simple', sc.title) @@ to_tsquery(q.prefix)
+   OR similarity(sc.title, q.uq) > 0.25
+ORDER BY similarity(sc.title, q.uq) DESC
+LIMIT 20;
+
+
+If 0 rows → you didn’t populate the catalog (re-run the INSERT INTO search_catalog ... SELECT ... for each table).
+
+If rows exist but UI shows nothing → check your API’s tenant filter and make sure you’re not filtering everything out.
+
+7) Temporary fallback (so it “works” today)
+
+Until the index is perfect, add a basic fallback in your API for small queries:
+
+if (!hits.length) {
+  // last-resort LIKE queries (fast enough for small datasets)
+  const sql = `
+    SELECT 'user' AS entity, id AS entity_id, name AS title, email AS subtitle, '/users/'||id AS url
+    FROM users WHERE name ILIKE $1 OR email ILIKE $1
+    UNION ALL
+    SELECT 'coupon', id, code, NULL, '/coupons/'||id FROM coupons WHERE code ILIKE $1
+    UNION ALL
+    SELECT 'plan', id, name, interval, '/subscription-plans/'||id FROM plans WHERE name ILIKE $1
+    LIMIT 20`;
+  const rows = await db.any(sql, [`%${q}%`]);
+  return res.json({ ok:true, data: rows });
+}
+
+What usually breaks it (and how you just fixed it)
+
+Empty index → bulk index a few docs (Step 4).
+
+Wrong tenant filter → test without the filter, then set correct tenant on docs.
+
+Mapping lacks analyzers → re-create index with the provided settings (Step 5).
+
+Front-end never calls API → verify network requests + min-length/debounce.
+
+API returns 200 but no hits → log the ES query & hit count (Step 3).
+
+If you paste the results of these quick checks (the _count, a sample _search, and your API log showing q= and hits=), I’ll pinpoint exactly which piece needs the one-line fix.

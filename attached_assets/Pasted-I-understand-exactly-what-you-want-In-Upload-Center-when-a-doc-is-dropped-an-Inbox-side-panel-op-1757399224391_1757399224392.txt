@@ -1,0 +1,162 @@
+I understand exactly what you want:
+
+In Upload Center, when a doc is dropped, an Inbox side panel opens.
+
+The AI Auto-Suggest service scans the file (OCR), extracts fields (name, SSN, etc.), and proposes a Suggested destination (the correct Family Member under Family IDs).
+
+The card shows Details (n); clicking it opens a modal with extracted fields and an Accept / Dismiss bar.
+
+Clicking Open on the suggestion jumps to that member’s profile page so you can drop the file into the right slot.
+
+Below is a tight blueprint to make it work the way your screenshots show.
+
+What to build
+1) Frontend flow (React + shadcn)
+
+UploadDropzone → sends file → shows InboxDrawer (right panel).
+
+Each upload renders an InboxItemCard with:
+
+thumbnail + filename
+
+“Suggested destination: {Member} · Open”
+
+“Details (N)” → opens SuggestDetailsModal
+
+“Dismiss” (hide from inbox)
+
+Accept in the modal:
+
+Moves file to member’s “Files” collection
+
+Writes structured metadata (ID type, number, issue date, etc.)
+
+Marks inbox card as “accepted”
+
+Component sketch
+// types
+type ExtractedField = { key: string; value: string; confidence: number; pii?: boolean };
+type Suggestion = {
+  memberId: string; memberName: string; confidence: number;
+  fields: ExtractedField[];
+};
+
+type InboxItem = {
+  id: string;
+  fileUrl: string;
+  filename: string;
+  status: "analyzing" | "suggested" | "accepted" | "dismissed";
+  suggestion?: Suggestion;
+};
+
+// UI
+<UploadDropzone onUploaded={(file) => analyze(file)} />
+
+<InboxDrawer isOpen>
+  {items.map(item => (
+    <InboxItemCard key={item.id} item={item}
+      onOpenMember={() => router.push(`/family/${item.suggestion!.memberId}`)}
+      onDetails={() => setActive(item)}
+      onDismiss={() => dismiss(item.id)}
+    />
+  ))}
+</InboxDrawer>
+
+<SuggestDetailsModal
+  open={!!active}
+  item={active}
+  onAccept={() => accept(active!.id)}
+  onDismiss={() => dismiss(active!.id)}
+/>
+
+2) Backend pipeline
+
+Upload → S3 (or GCS/Azure) with virus scan.
+
+OCR & parsing:
+
+Fastest path: AWS Textract (ID/Document/Expense APIs) or Google Document AI.
+
+Budget/Local: Tesseract + templates + regex.
+
+Entity matching (who does it belong to?):
+
+Use your Family Members table (name, aliases, DOB, last-4 SSN, address).
+
+Compute a score from multiple signals.
+
+Matching pseudocode
+def score_member(extracted, member):
+    s = 0
+    s += fuzz.ratio(extracted.name, member.full_name) * 0.5
+    if extracted.dob and member.dob and extracted.dob == member.dob: s += 30
+    if extracted.ssn_last4 and member.ssn_last4 == extracted.ssn_last4: s += 40
+    if extracted.address and member.address and jaccard(extracted.address, member.address) > 0.6: s += 10
+    return min(s, 100)
+
+def suggest_owner(extracted, members):
+    ranked = sorted([(m, score_member(extracted, m)) for m in members], key=lambda x: -x[1])
+    top = ranked[0]
+    if top[1] >= 70:   # threshold
+        return {"memberId": top[0].id, "memberName": top[0].name, "confidence": top[1]}
+    return None
+
+
+Confidence UX:
+
+≥90: green dot “High”
+
+70–89: yellow dot “Check”
+
+<70: show “Choose a person” instead of a suggestion.
+
+3) Data model
+
+uploads: id, userId, fileKey, mime, size, status, createdAt.
+
+extractions: uploadId, fields (JSON), confidence, engine, createdAt.
+
+suggestions: uploadId, memberId, confidence, status(proposed|accepted|dismissed).
+
+On Accept: create a member_files record and move the object to members/{memberId}/....
+
+4) Security & PII
+
+Mask sensitive fields in UI (141-85-2645 → ***-**-2645), with a Show toggle.
+
+Encrypt at rest (S3 SSE) and in transit.
+
+Strict access rules: only family owner + allowed members.
+
+Audit log: who opened Details, who accepted, when moved.
+
+5) UI details that match your screenshots
+
+InboxDrawer: right side panel with “Drop files here or Browse”.
+
+Suggested destination pill with Open button.
+
+Details (2) chip → modal showing:
+
+Suggested filename + Accept / Dismiss
+
+Tabs: Details (key-value, confidence), Summary (one paragraph), Edit (inline corrections)
+
+Copy all button
+
+Keep the gold accents you standardized; icons inherit currentColor.
+
+6) Minimal API endpoints
+POST /api/uploads                    -> returns {uploadId, fileKey}
+POST /api/uploads/:id/analyze        -> triggers OCR + matching; returns {suggestion, fields}
+POST /api/uploads/:id/accept         -> {memberId, fields} moves file + persists metadata
+POST /api/uploads/:id/dismiss
+GET  /api/members                    -> list for fallback manual selection
+
+7) Edge cases to handle
+
+Multiple people in one doc → show “Split” option to duplicate with different owners.
+
+Low-quality scan → show “Re-upload clearer photo” tip.
+
+Wrong suggestion accepted → Undo within 30 min (or until file moved).

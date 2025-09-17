@@ -1,0 +1,60 @@
+here’s the single-source wiring map you can hand to devs. Every dashboard control is mapped to what it should do, where it should go, and (when applicable) which backend it should call.
+
+Dashboard Button → Action Blueprint
+Location	UI control	Primary action	Route (deep-link)	Backend (if any)	Notes
+System Status	Database	Open service detail	/security?tab=status#service=database	GET /api/status/database	Local refresh icon should call API without navigating.
+System Status	Webhooks	Open deliveries/health	/webhooks?tab=deliveries	GET /api/webhooks/deliveries?limit=50	Show recent failures + retry.
+System Status	Auth	Open auth health	/security?tab=status#service=auth	GET /api/status/auth	Include login error rate/MFA stats.
+System Status	Stripe	Open billing health	/subscription-plans?tab=stripe	GET /api/billing/stripe/health	Include “Sync Stripe” action.
+System Status	SMTP	Open email health	/security?tab=status#service=smtp	GET /api/status/smtp	Queue size, last error, DKIM/SPF.
+System Status	Storage	Open storage health	/security?tab=status#service=storage	GET /api/status/storage	Usage, backups, last snapshot.
+KPI	Total Users	Navigate to users list	/users	GET /api/users?status=active	Keep filters bar visible.
+KPI	Active Plans	Navigate to plans	/subscription-plans?audience=client	GET /api/billing/plans?audience=client	Client-facing plans by default.
+KPI	Active Coupons	Navigate to coupons	/coupons	GET /api/coupons	Sort by status/expiry.
+KPI	Content Articles	Navigate to published	/content?status=published	GET /api/content/articles?status=published	Include search in header.
+Security Center (chips)	2FA Status	Jump to policy section	/security#2fa-policy	GET /api/security/policy/2fa	Shows enforcement + non-compliant count.
+Security Center (chips)	Active Sessions	Jump to sessions section	/security#admin-sessions	GET /api/security/sessions	Terminate buttons inline.
+Security Center (chips)	IP Allowlist	Jump to allowlist	/security#ip-allowlist	GET /api/security/policy/ip-allowlist	Edit CIDRs & mode.
+Security Center (chips)	Key Rotation	Jump to API keys	/security#api-keys	GET /api/security/keys/status	Show age & last rotation.
+Security Center (notice)	Configure 2FA	Open 2FA panel	/security#2fa-policy	POST /api/security/policy/2fa { enforce:true }	Confirm then enforce; email non-compliant.
+Security Center (notice)	Configure IPs	Open allowlist drawer	/security#ip-allowlist	PUT /api/security/policy/ip-allowlist	Save & toast success.
+Security Center (row actions)	View Session History	Audit viewer filtered	/security/audit?event=session.*	GET /api/security/audit?event=session.*&limit=100	Pagination & export CSV.
+Security Center (row actions)	Manage Admin Users	Users filtered to admins	/users?role=admin	GET /api/users?role=admin	Inline role/MFA toggle optional.
+Security Center (row actions)	Rotate API Keys	Rotate then navigate	/security#api-keys	POST /api/security/keys/rotate	Use Idempotency-Key; toast + refresh status.
+Quick Actions	Create New Coupon	Open create modal	/coupons/new (modal)	POST /api/coupons	On save → /coupons with highlight.
+Quick Actions	View All Users	Navigate list	/users	GET /api/users	Preserve sort/filter in URL.
+Quick Actions	Security Audit	Open audit viewer	/security/audit	GET /api/security/audit?limit=100	Filters: actor, event, date.
+Quick Actions	GDPR Compliance	Open GDPR console	/compliance	Consents: GET /api/gdpr/consents/:user/effective • DSAR: GET /api/gdpr/requests	Include consent drawer & DSAR modal.
+Optional: small helper constants for the front-end
+export const ROUTES = {
+  USERS: '/users',
+  USERS_ADMINS: '/users?role=admin',
+  PLANS_CLIENT: '/subscription-plans?audience=client',
+  COUPONS: '/coupons',
+  COUPONS_NEW: '/coupons/new',
+  CONTENT_PUBLISHED: '/content?status=published',
+  SECURITY: '/security',
+  SECURITY_STATUS: (s:string)=> `/security?tab=status#service=${encodeURIComponent(s)}`,
+  SECURITY_2FA: '/security#2fa-policy',
+  SECURITY_SESSIONS: '/security#admin-sessions',
+  SECURITY_ALLOWLIST: '/security#ip-allowlist',
+  SECURITY_KEYS: '/security#api-keys',
+  SECURITY_AUDIT: '/security/audit',
+  COMPLIANCE: '/compliance',
+};
+
+
+And a generic click binder:
+
+function go(to:string){ window.location.assign(to); }
+document.querySelector('[data-action="rotate-keys"]')
+  ?.addEventListener('click', async ()=>{
+    if(!confirm('Rotate admin API keys now?')) return;
+    await fetch('/api/security/keys/rotate', {
+      method:'POST', headers:{'Idempotency-Key':crypto.randomUUID()}
+    });
+    go('/security#api-keys');
+  });
+
+
+If you want, tell me your front-end framework (React Router, Next.js App Router, Vue, etc.) and I’ll output the exact component handlers or Link elements to match your stack.

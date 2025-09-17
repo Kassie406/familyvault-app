@@ -1,0 +1,724 @@
+// Complete Frontend Structure for Trustworthy Upload Strategy
+// Exact workflow: Browse → Upload → LEFT Sidebar → AI Analysis → Lightning Bolt → Details Modal → Profile Routing
+
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// Main Trustworthy Upload Center Component
+export const TrustworthyUploadCenter = ({ 
+  familyId = 'camacho_family',
+  onDocumentProcessed,
+  onNavigateToProfile 
+}) => {
+  const [uploadState, setUploadState] = useState('ready'); // ready, uploading, processing, complete
+  const [uploadedDocuments, setUploadedDocuments] = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+
+  const fileInputRef = useRef(null);
+
+  // Handle file upload
+  const handleFileUpload = async (files) => {
+    if (!files || files.length === 0) return;
+
+    setUploadState('uploading');
+    setProcessingProgress(0);
+
+    try {
+      const uploadPromises = Array.from(files).map(async (file, index) => {
+        const formData = new FormData();
+        formData.append('document', file);
+        formData.append('familyId', familyId);
+
+        // Upload file
+        const uploadResponse = await fetch('/api/trustworthy/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`Upload failed for ${file.name}`);
+        }
+
+        const uploadResult = await uploadResponse.json();
+        
+        // Update progress
+        setProcessingProgress(((index + 1) / files.length) * 50);
+        
+        return uploadResult.document;
+      });
+
+      const documents = await Promise.all(uploadPromises);
+      
+      // Add documents to state and open sidebar
+      setUploadedDocuments(prev => [...documents, ...prev]);
+      setSidebarOpen(true);
+      setUploadState('processing');
+      
+      // Start AI analysis for each document
+      documents.forEach(async (doc, index) => {
+        await startAIAnalysis(doc.id);
+        setProcessingProgress(50 + ((index + 1) / documents.length) * 50);
+      });
+
+      setUploadState('complete');
+      
+      // Callback for parent component
+      if (onDocumentProcessed) {
+        onDocumentProcessed(documents);
+      }
+
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setUploadState('ready');
+      // Show error notification
+      showNotification('Upload failed. Please try again.', 'error');
+    }
+  };
+
+  // Start AI analysis
+  const startAIAnalysis = async (documentId) => {
+    try {
+      const response = await fetch('/api/trustworthy/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId })
+      });
+
+      if (!response.ok) {
+        throw new Error('Analysis failed');
+      }
+
+      const result = await response.json();
+      
+      // Update document with analysis results
+      setUploadedDocuments(prev => 
+        prev.map(doc => 
+          doc.id === documentId 
+            ? { ...doc, ...result.analysis, status: 'analyzed' }
+            : doc
+        )
+      );
+
+    } catch (error) {
+      console.error('AI Analysis failed:', error);
+      setUploadedDocuments(prev => 
+        prev.map(doc => 
+          doc.id === documentId 
+            ? { ...doc, status: 'error' }
+            : doc
+        )
+      );
+    }
+  };
+
+  // Handle browse button click
+  const handleBrowseClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Handle file input change
+  const handleFileChange = (e) => {
+    handleFileUpload(e.target.files);
+  };
+
+  return (
+    <div className="trustworthy-upload-system">
+      {/* Family Header */}
+      <FamilyHeader familyId={familyId} />
+      
+      {/* Main Upload Center */}
+      <MainUploadArea
+        uploadState={uploadState}
+        processingProgress={processingProgress}
+        onBrowseClick={handleBrowseClick}
+        onFileUpload={handleFileUpload}
+      />
+
+      {/* LEFT Sidebar */}
+      <LeftSidebar
+        isOpen={sidebarOpen}
+        documents={uploadedDocuments}
+        onClose={() => setSidebarOpen(false)}
+        onDocumentClick={setSelectedDocument}
+        onDetailsClick={(doc) => {
+          setSelectedDocument(doc);
+          setShowDetailsModal(true);
+        }}
+      />
+
+      {/* Details Modal */}
+      <DetailsModal
+        isOpen={showDetailsModal}
+        document={selectedDocument}
+        onClose={() => setShowDetailsModal(false)}
+        onAcceptSuggestion={handleAcceptSuggestion}
+        onNavigateToProfile={onNavigateToProfile}
+      />
+
+      {/* Hidden File Input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        onChange={handleFileChange}
+        accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+        multiple
+        style={{ display: 'none' }}
+      />
+    </div>
+  );
+};
+
+// Family Header Component
+const FamilyHeader = ({ familyId }) => (
+  <div className="family-header">
+    <h2 className="family-title">camacho Family</h2>
+    <div className="user-avatars">
+      <div className="avatar">KC</div>
+      <div className="avatar">AQ</div>
+    </div>
+  </div>
+);
+
+// Main Upload Area Component
+const MainUploadArea = ({ 
+  uploadState, 
+  processingProgress, 
+  onBrowseClick, 
+  onFileUpload 
+}) => {
+  const [isDragActive, setIsDragActive] = useState(false);
+
+  const handleDragEnter = useCallback((e) => {
+    e.preventDefault();
+    setIsDragActive(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setIsDragActive(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    setIsDragActive(false);
+    onFileUpload(e.dataTransfer.files);
+  }, [onFileUpload]);
+
+  return (
+    <motion.div
+      className={`main-upload-area ${isDragActive ? 'drag-active' : ''} ${uploadState}`}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      whileHover={uploadState === 'ready' ? { scale: 1.01 } : {}}
+    >
+      <div className="upload-content">
+        {uploadState === 'ready' && (
+          <ReadyState onBrowseClick={onBrowseClick} />
+        )}
+        
+        {uploadState === 'uploading' && (
+          <UploadingState progress={processingProgress} />
+        )}
+        
+        {uploadState === 'processing' && (
+          <ProcessingState progress={processingProgress} />
+        )}
+        
+        {uploadState === 'complete' && (
+          <CompleteState />
+        )}
+      </div>
+
+      {/* Drag Overlay */}
+      <AnimatePresence>
+        {isDragActive && (
+          <motion.div
+            className="drag-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="drag-content">
+              <div className="drag-icon">📄</div>
+              <span>Drop documents to upload</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
+// Upload States
+const ReadyState = ({ onBrowseClick }) => (
+  <motion.div
+    className="upload-ready"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+  >
+    <div className="upload-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+      </svg>
+    </div>
+    <h3>Upload Family Documents</h3>
+    <p>Drag & drop files here or click to browse</p>
+    <p className="ai-text">AI will automatically extract key information</p>
+    
+    <motion.button
+      className="browse-button"
+      onClick={onBrowseClick}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+    >
+      Browse
+    </motion.button>
+    
+    <span className="or-text">or drop files</span>
+    
+    <div className="file-types">
+      <span className="file-type">PDF</span>
+      <span className="file-type">JPG</span>
+      <span className="file-type">PNG</span>
+      <span className="file-type">DOC</span>
+      <span className="file-type">TXT</span>
+    </div>
+  </motion.div>
+);
+
+const UploadingState = ({ progress }) => (
+  <motion.div
+    className="upload-uploading"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+  >
+    <div className="progress-circle">
+      <svg className="progress-ring" width="80" height="80">
+        <circle
+          className="progress-ring-background"
+          stroke="var(--border-color)"
+          strokeWidth="4"
+          fill="transparent"
+          r="36"
+          cx="40"
+          cy="40"
+        />
+        <circle
+          className="progress-ring-progress"
+          stroke="var(--primary-gold)"
+          strokeWidth="4"
+          fill="transparent"
+          r="36"
+          cx="40"
+          cy="40"
+          style={{
+            strokeDasharray: `${2 * Math.PI * 36}`,
+            strokeDashoffset: `${2 * Math.PI * 36 * (1 - progress / 100)}`,
+          }}
+        />
+      </svg>
+      <div className="progress-percentage">{Math.round(progress)}%</div>
+    </div>
+    <h3>Uploading Documents</h3>
+    <p>Please wait while we upload your files...</p>
+  </motion.div>
+);
+
+const ProcessingState = ({ progress }) => (
+  <motion.div
+    className="upload-processing"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+  >
+    <div className="processing-spinner">
+      <div className="spinner"></div>
+    </div>
+    <h3>Analyzing Documents</h3>
+    <p>AI is extracting key information...</p>
+    <div className="processing-progress">
+      <div 
+        className="progress-bar"
+        style={{ width: `${progress}%` }}
+      />
+    </div>
+  </motion.div>
+);
+
+const CompleteState = () => (
+  <motion.div
+    className="upload-complete"
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+  >
+    <div className="success-icon">✅</div>
+    <h3>Upload Complete</h3>
+    <p>Documents have been processed and analyzed</p>
+  </motion.div>
+);
+
+// LEFT Sidebar Component
+const LeftSidebar = ({ 
+  isOpen, 
+  documents, 
+  onClose, 
+  onDocumentClick, 
+  onDetailsClick 
+}) => (
+  <AnimatePresence>
+    {isOpen && (
+      <>
+        {/* Backdrop */}
+        <motion.div
+          className="sidebar-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        />
+        
+        {/* Sidebar */}
+        <motion.div
+          className="left-sidebar"
+          initial={{ x: -400, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: -400, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        >
+          <div className="sidebar-header">
+            <h3>📥 Inbox</h3>
+            <button className="close-button" onClick={onClose}>×</button>
+          </div>
+          
+          <div className="sidebar-content">
+            <div className="upload-area-mini">
+              <span>Drop files here or Browse files</span>
+            </div>
+            
+            <div className="documents-list">
+              {documents.map((doc) => (
+                <DocumentCard
+                  key={doc.id}
+                  document={doc}
+                  onClick={() => onDocumentClick(doc)}
+                  onDetailsClick={() => onDetailsClick(doc)}
+                />
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      </>
+    )}
+  </AnimatePresence>
+);
+
+// Document Card Component
+const DocumentCard = ({ document, onClick, onDetailsClick }) => {
+  const getStatusIcon = () => {
+    switch (document.status) {
+      case 'analyzing': return '⏳';
+      case 'analyzed': return '⚡';
+      case 'error': return '❌';
+      default: return '📄';
+    }
+  };
+
+  const getDetailsCount = () => {
+    if (document.extractedFields) {
+      return Object.keys(document.extractedFields).length;
+    }
+    return 0;
+  };
+
+  return (
+    <motion.div
+      className="document-card"
+      onClick={onClick}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      <div className="document-thumbnail">
+        <img 
+          src={document.thumbnail || '/default-document-thumb.png'} 
+          alt={document.filename}
+        />
+        
+        {document.status === 'analyzing' && (
+          <div className="analyzing-overlay">
+            <div className="analyzing-spinner"></div>
+            <span>Analyzing...</span>
+          </div>
+        )}
+        
+        {document.status === 'analyzed' && (
+          <motion.button
+            className="details-button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDetailsClick();
+            }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            ⚡ Details {getDetailsCount()}
+          </motion.button>
+        )}
+      </div>
+      
+      <div className="document-info">
+        <span className="document-name">{document.filename}</span>
+        <div className="document-meta">
+          <span className="status-icon">{getStatusIcon()}</span>
+          <span className="upload-time">
+            {new Date(document.uploadTime).toLocaleTimeString()}
+          </span>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// Details Modal Component
+const DetailsModal = ({ 
+  isOpen, 
+  document, 
+  onClose, 
+  onAcceptSuggestion, 
+  onNavigateToProfile 
+}) => {
+  const [filenameSuggestion, setFilenameSuggestion] = useState('');
+  const [extractedData, setExtractedData] = useState({});
+
+  useEffect(() => {
+    if (document && document.extractedFields) {
+      setExtractedData(document.extractedFields);
+      
+      // Generate filename suggestion
+      const personName = document.extractedFields.personName || 'Document';
+      const docType = document.extractedFields.documentType || 'Document';
+      setFilenameSuggestion(`${docType} ${personName}`);
+    }
+  }, [document]);
+
+  const handleAcceptFilename = async () => {
+    try {
+      await fetch('/api/trustworthy/update-filename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          documentId: document.id,
+          newFilename: filenameSuggestion
+        })
+      });
+      
+      if (onAcceptSuggestion) {
+        onAcceptSuggestion(document.id, filenameSuggestion);
+      }
+      
+      onClose();
+    } catch (error) {
+      console.error('Failed to update filename:', error);
+    }
+  };
+
+  const handleNavigateToProfile = () => {
+    if (extractedData.personName && onNavigateToProfile) {
+      onNavigateToProfile(extractedData.personName, document);
+    }
+    onClose();
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && document && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            className="modal-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          
+          {/* Modal */}
+          <motion.div
+            className="details-modal"
+            initial={{ opacity: 0, scale: 0.9, y: 50 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 50 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          >
+            <div className="modal-header">
+              <h3>Document Details</h3>
+              <button className="close-button" onClick={onClose}>×</button>
+            </div>
+            
+            <div className="modal-content">
+              {/* Document Preview */}
+              <div className="document-preview">
+                <img 
+                  src={document.thumbnail || '/default-document-thumb.png'} 
+                  alt={document.filename}
+                />
+              </div>
+              
+              {/* Extracted Data */}
+              <div className="extracted-data">
+                <h4>Extracted Information</h4>
+                <div className="data-fields">
+                  {Object.entries(extractedData).map(([key, value]) => (
+                    <div key={key} className="data-field">
+                      <span className="field-label">{key}:</span>
+                      <span className="field-value">{value}</span>
+                      <span className="confidence">
+                        {document.confidence?.[key] && `${Math.round(document.confidence[key] * 100)}%`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Filename Suggestion */}
+              <div className="filename-suggestion">
+                <h4>Suggested Destination</h4>
+                <div className="suggestion-item">
+                  <span className="suggestion-label">Angel Quintana</span>
+                  <span className="suggestion-type">Family Member</span>
+                </div>
+                
+                <h4>Filename Suggestion</h4>
+                <div className="filename-input">
+                  <input
+                    type="text"
+                    value={filenameSuggestion}
+                    onChange={(e) => setFilenameSuggestion(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="modal-actions">
+              <button className="dismiss-button" onClick={onClose}>
+                Dismiss
+              </button>
+              <button className="accept-button" onClick={handleAcceptFilename}>
+                Accept
+              </button>
+              <button className="profile-button" onClick={handleNavigateToProfile}>
+                Open Profile
+              </button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+
+// Notification System
+const useNotifications = () => {
+  const [notifications, setNotifications] = useState([]);
+
+  const showNotification = (message, type = 'info') => {
+    const notification = {
+      id: Date.now(),
+      message,
+      type,
+      timestamp: new Date()
+    };
+    
+    setNotifications(prev => [notification, ...prev.slice(0, 4)]);
+    
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+    }, 4000);
+  };
+
+  return { notifications, showNotification };
+};
+
+// Main Hook for Trustworthy Upload
+export const useTrustworthyUpload = () => {
+  const [documents, setDocuments] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { notifications, showNotification } = useNotifications();
+
+  const processDocument = async (file, familyId) => {
+    setIsProcessing(true);
+    
+    try {
+      // Upload
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('familyId', familyId);
+
+      const uploadResponse = await fetch('/api/trustworthy/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const uploadResult = await uploadResponse.json();
+      const document = uploadResult.document;
+
+      // Add to documents
+      setDocuments(prev => [document, ...prev]);
+
+      // Start AI analysis
+      const analysisResponse = await fetch('/api/trustworthy/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: document.id })
+      });
+
+      if (analysisResponse.ok) {
+        const analysisResult = await analysisResponse.json();
+        
+        // Update document with analysis
+        setDocuments(prev => 
+          prev.map(doc => 
+            doc.id === document.id 
+              ? { ...doc, ...analysisResult.analysis, status: 'analyzed' }
+              : doc
+          )
+        );
+
+        showNotification('Document analyzed successfully', 'success');
+      }
+
+      return document;
+
+    } catch (error) {
+      console.error('Document processing failed:', error);
+      showNotification('Document processing failed', 'error');
+      throw error;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return {
+    documents,
+    isProcessing,
+    processDocument,
+    notifications,
+    showNotification
+  };
+};
+
+export default TrustworthyUploadCenter;

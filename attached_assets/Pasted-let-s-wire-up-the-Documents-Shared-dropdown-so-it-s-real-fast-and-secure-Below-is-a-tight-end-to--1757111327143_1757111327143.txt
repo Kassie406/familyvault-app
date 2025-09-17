@@ -1,0 +1,269 @@
+let’s wire up the Documents Shared dropdown so it’s real, fast, and secure. Below is a tight end-to-end blueprint (schema → APIs → UI hooks) that drops into your Express + Drizzle stack and your existing dark+gold UI.
+
+1) Data model (Drizzle)
+
+Create these tables (names are descriptive and small):
+
+// server/db/schema/docs.ts
+import { pgTable, uuid, varchar, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+
+export const documents = pgTable("documents", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  familyId: uuid("family_id").notNull(),
+  ownerId: uuid("owner_id").notNull(),
+  title: varchar("title", { length: 160 }).notNull(),
+  category: varchar("category", { length: 80 }),
+  storageKey: varchar("storage_key", { length: 255 }).notNull(), // e.g. r2/s3 key
+  mime: varchar("mime", { length: 100 }),
+  size: integer("size"),
+  virusStatus: varchar("virus_status", { length: 20 }).default("clean"), // clean|pending|infected
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const documentShares = pgTable("document_shares", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  documentId: uuid("document_id").notNull().references(() => documents.id, { onDelete: "cascade" }),
+  createdBy: uuid("created_by").notNull(),
+  scope: varchar("scope", { length: 20 }).notNull(), // 'family' | 'user' | 'link'
+  sharedWithUserId: uuid("shared_with_user_id"),     // required if scope='user'
+  policyId: uuid("policy_id"),                        // optional link policy
+  canDownload: boolean("can_download").default(true),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const linkPolicies = pgTable("link_policies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  familyId: uuid("family_id").notNull(),
+  name: varchar("name", { length: 120 }).notNull(),
+  requireLogin: boolean("require_login").default(true),
+  allowDownload: boolean("allow_download").default(true),
+  expireDays: integer("expire_days").default(0),      // 0 = never
+  maxViews: integer("max_views"),                     // null = unlimited
+  watermark: boolean("watermark").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const shareLinks = pgTable("share_links", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  documentId: uuid("document_id").notNull().references(() => documents.id, { onDelete: "cascade" }),
+  policyId: uuid("policy_id").references(() => linkPolicies.id, { onDelete: "set null" }),
+  slug: varchar("slug", { length: 50 }).notNull().unique(), // short code in URL
+  oneTime: boolean("one_time").default(false),
+  expiresAt: timestamp("expires_at"),
+  viewCount: integer("view_count").default(0),
+  createdBy: uuid("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const docApprovals = pgTable("doc_approvals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  documentId: uuid("document_id").notNull().references(() => documents.id, { onDelete: "cascade" }),
+  requestedBy: uuid("requested_by").notNull(),
+  status: varchar("status", { length: 20 }).default("pending"), // pending|approved|rejected
+  approverId: uuid("approver_id"),
+  decidedAt: timestamp("decided_at"),
+  reason: text("reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+2) Core APIs (Express)
+List recent documents for the dropdown
+// GET /api/documents/recent?limit=5
+// returns latest documents the current user can see (family scope + direct shares)
+
+Quick actions
+
+Share a Document
+POST /api/documents/:id/share → { scope, sharedWithUserId?, policyId?, canDownload?, expiresAt? }
+
+Manage Link Policies
+GET /api/link-policies / POST /api/link-policies / PUT /api/link-policies/:id
+
+Pending Approvals
+GET /api/approvals/pending (for the approver);
+POST /api/approvals/:id/decision → { decision: 'approve' | 'reject', reason? }
+
+Secure open/download (with policies)
+// GET /api/documents/:id/url?mode=view|download
+// Server returns a short-lived SIGNED URL from R2/S3 **after** checking:
+// - user has access (owner, family share, or user share)
+// - link policy: requireLogin, allowDownload, expireDays, maxViews
+// - virusStatus must be 'clean'
+
+
+Signing: use your existing R2/S3 SDK to create a short 60–120 sec signed URL. For view counts / maxViews, increment shareLinks.viewCount when serving via a /share/:slug redirector.
+
+3) Dropdown UI wiring (React)
+
+Your card already shows Quick Actions and Recent Items. Hook them:
+
+Quick Actions
+
+“Share a Document” → open a modal with:
+
+Select Document (autocomplete)
+
+Scope (Family / Specific User / Share Link)
+
+Policy (dropdown of linkPolicies when scope = Link)
+
+Expires (optional)
+
+Allow Download (toggle)
+
+On submit → POST /api/documents/:id/share → toast success
+
+“Manage Link Policies” → route to /family/link-policies
+
+“Pending Approvals” → route to /family/approvals
+
+Recent Items
+
+Load on mount: GET /api/documents/recent?limit=5
+
+Each row shows: title, “Shared with family/user/link”, Updated X ago
+
+On click → call GET /api/documents/:id/url?mode=view and open the signed URL in a new tab.
+
+(This keeps the dropdown snappy while relying on server checks for security.)
+
+4) Minimal controller examples
+// server/routes/documents.ts
+import { Router } from "express";
+import { and, desc, eq, inArray, or } from "drizzle-orm";
+import { documents, documentShares, linkPolicies, shareLinks } from "../db/schema/docs";
+import { db } from "../db";
+import { requireAuth } from "../lib/auth";
+import { signR2Url } from "../lib/storage"; // your S3/R2 signer
+import { addDays } from "date-fns";
+
+const r = Router();
+r.use(requireAuth);
+
+// helper: can the user view doc?
+async function userCanView(userId: string, familyId: string, docId: string) {
+  const [doc] = await db.select().from(documents).where(eq(documents.id, docId));
+  if (!doc) return null;
+  if (doc.familyId !== familyId) return null;
+  const shares = await db.select().from(documentShares).where(eq(documentShares.documentId, docId));
+  const familyShare = shares.find(s => s.scope === "family");
+  const directShare = shares.find(s => s.scope === "user" && s.sharedWithUserId === userId);
+  if (doc.ownerId === userId || familyShare || directShare) return doc;
+  return null;
+}
+
+// recent
+r.get("/api/documents/recent", async (req, res) => {
+  const { familyId, id: userId } = req.user!;
+  const limit = Number(req.query.limit ?? 5);
+
+  // documents owned by family or shared to user/family
+  const recent = await db.select()
+    .from(documents)
+    .where(eq(documents.familyId, familyId))
+    .orderBy(desc(documents.updatedAt))
+    .limit(limit);
+
+  // (Optional) filter by shares if you don’t want all family docs by default
+  res.json({ items: recent });
+});
+
+// share
+r.post("/api/documents/:id/share", async (req, res) => {
+  const { id } = req.params;
+  const { scope, sharedWithUserId, policyId, canDownload = true, expiresAt } = req.body;
+  const { id: userId } = req.user!;
+  const doc = await userCanView(userId, req.user!.familyId, id);
+  if (!doc) return res.status(404).json({ error: "not found" });
+
+  // upsert a share
+  const [share] = await db.insert(documentShares).values({
+    documentId: id,
+    createdBy: userId,
+    scope,
+    sharedWithUserId: scope === "user" ? sharedWithUserId : null,
+    policyId: policyId ?? null,
+    canDownload,
+    expiresAt: expiresAt ? new Date(expiresAt) : null,
+  }).returning();
+
+  // if scope === 'link' create a share link with policy rules applied
+  if (scope === "link") {
+    const slug = Math.random().toString(36).slice(2, 9);
+    let linkExpire: Date | null = null;
+    if (policyId) {
+      const [pol] = await db.select().from(linkPolicies).where(eq(linkPolicies.id, policyId));
+      if (pol?.expireDays && pol.expireDays > 0) linkExpire = addDays(new Date(), pol.expireDays);
+    }
+    await db.insert(shareLinks).values({
+      documentId: id,
+      policyId: policyId ?? null,
+      slug,
+      oneTime: false,
+      expiresAt: linkExpire,
+      createdBy: userId,
+    });
+  }
+
+  res.json({ ok: true });
+});
+
+// signed url
+r.get("/api/documents/:id/url", async (req, res) => {
+  const { id } = req.params;
+  const { mode = "view" } = req.query as { mode?: "view" | "download" };
+  const user = req.user!;
+  const doc = await userCanView(user.id, user.familyId, id);
+  if (!doc) return res.status(404).json({ error: "not found" });
+  if (doc.virusStatus !== "clean") return res.status(409).json({ error: "not_ready" });
+
+  // enforce policy: if there’s a direct share with allowDownload=false and mode=download → block
+  const shares = await db.select().from(documentShares).where(eq(documentShares.documentId, id));
+  const active = shares.find(s => s.scope === "family" || s.sharedWithUserId === user.id);
+  if (mode === "download" && active && !active.canDownload) {
+    return res.status(403).json({ error: "download_disabled" });
+  }
+
+  const url = await signR2Url(doc.storageKey, mode === "download" ? "attachment" : "inline", 120);
+  res.json({ url });
+});
+
+export default r;
+
+5) Hook the dropdown (client)
+
+Recent list (when the user hovers/opens dropdown):
+
+const [recentDocs, setRecentDocs] = useState([]);
+useEffect(() => { fetch("/api/documents/recent?limit=5").then(r=>r.json()).then(d=>setRecentDocs(d.items)); }, []);
+
+
+Open item:
+
+async function openDoc(id: string, mode: "view" | "download" = "view") {
+  const r = await fetch(`/api/documents/${id}/url?mode=${mode}`);
+  if (!r.ok) return toast.error("Access denied or not ready");
+  const { url } = await r.json();
+  window.open(url, "_blank");
+}
+
+
+Quick Actions buttons
+
+“Share a Document” → show modal → POST /api/documents/:id/share
+
+“Manage Link Policies” → route to /family/link-policies
+
+“Pending Approvals” → route to /family/approvals
+
+6) Nice-to-haves (fast follow)
+
+Virus scan gate: in your Upload Worker, set virusStatus='pending' on upload; only set to clean after scan → the API blocks viewing/downloading otherwise.
+
+Watermark: if policy.watermark, use Sharp in a streaming lambda (or a Cloudflare Worker) that overlays “FamilyVault • <family name>”.
+
+Audit: log open / download events to a doc_audit table (who, when, mode, ip).
+
+Unread badge: increment a user-doc counter when a new share arrives; clear on first view.

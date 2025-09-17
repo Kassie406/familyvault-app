@@ -1,0 +1,63 @@
+here’s a tiny, surgical CSS override that removes the halo/glow entirely from every tile in Quick Access, while keeping your gold border.
+
+Paste at the bottom of src/styles/quick-access.css
+/* ── Quick Access: remove hover/focus halo on all tiles ───────────────────── */
+
+#quick-access-modal {
+  --family-gold: 212,175,55; /* #D4AF37 */
+}
+
+/* Base card: keep the gold border, kill any shadow */
+#quick-access-modal .qa-tile {
+  border: 1px solid rgba(var(--family-gold), 0.28) !important;
+  box-shadow: none !important;
+  transition: border-color .15s ease;
+  background-image: linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%) !important;
+  border-radius: 16px;
+  overflow: hidden;
+  isolation: isolate;
+  background-clip: padding-box;
+}
+
+/* Nuke Tailwind/DaisyUI rings & shadows that create the glow */
+#quick-access-modal .qa-tile,
+#quick-access-modal .qa-tile * {
+  --tw-ring-inset: initial !important;
+  --tw-ring-offset-width: 0 !important;
+  --tw-ring-offset-color: transparent !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-shadow: 0 0 #0000 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  border-radius: inherit !important;
+}
+
+/* Hover/Focus: NO glow. (Optional: slight border tint for feedback) */
+#quick-access-modal .qa-tile:hover,
+#quick-access-modal .qa-tile:has(:hover),
+#quick-access-modal .qa-tile:focus,
+#quick-access-modal .qa-tile:focus-visible,
+#quick-access-modal .qa-tile:focus-within {
+  border-color: rgba(var(--family-gold), 0.40) !important; /* or keep 0.28 if you want zero change */
+  box-shadow: none !important; /* ← kill halo */
+}
+
+What this does
+
+No halo/glow anywhere (hover or focus).
+
+Keeps your gold border; you can keep the tiny border tint on hover/focus or set it back to 0.28 to make it 100% static.
+
+Neutralizes Tailwind/DaisyUI ring and shadow layers that were causing the white/gold glow.
+
+After adding
+
+Hard refresh (Ctrl/Cmd + Shift + R).
+
+Open Quick Access and hover/focus tiles — they’ll keep the gold border with no halo.
+
+If any tile still glows, it means the visible card wrapper doesn’t have qa-tile. Apply that class to the wrapper that draws the border and this override will cover it.

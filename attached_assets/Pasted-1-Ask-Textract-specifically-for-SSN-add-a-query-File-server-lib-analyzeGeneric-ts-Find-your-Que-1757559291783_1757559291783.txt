@@ -1,0 +1,146 @@
+1) Ask Textract specifically for SSN (add a query)
+
+File: server/lib/analyzeGeneric.ts
+Find your QueriesConfig = { Queries: [...] } and add these 2 lines:
+
+const QueriesConfig = {
+  Queries: [
+    { Text: "What is the document type?", Alias: "document_type" },
+    { Text: "What is the issuing agency or organization?", Alias: "issuer" },
+    // 👇 add these for SSN cards
+    { Text: "What is the Social Security Number (SSN)?", Alias: "ssn" },
+    { Text: "What is the name on the Social Security card?", Alias: "ssn_name" },
+
+    { Text: "What is the full name on the document?", Alias: "full_name" },
+    { Text: "What is the date (issue or printed date)?", Alias: "date" },
+    { Text: "What is the address?", Alias: "address" },
+    { Text: "What is the ID number or account number?", Alias: "id_or_account" },
+    { Text: "What is the expiration date?", Alias: "expiration" },
+    { Text: "What is the policy or certificate number?", Alias: "policy_or_certificate" },
+    { Text: "What is the total amount due or total?", Alias: "total" },
+  ],
+};
+
+2) Regex fallback for SSN if queries miss it
+
+Still in analyzeGeneric.ts, add a helper to pull raw text and extract SSN safely:
+
+function allWordsText(blocks: any[]): string {
+  return blocks
+    .filter((b: any) => b.BlockType === "WORD" && typeof b.Text === "string")
+    .map((b: any) => b.Text)
+    .join(" ");
+}
+
+function extractSsnFromText(txt: string): string | null {
+  // Normalize separators like '123 45 6789' or '123-45-6789'
+  const candidates = [
+    /\b(\d{3})[-\s]?(\d{2})[-\s]?(\d{4})\b/g,
+  ];
+  for (const r of candidates) {
+    const m = r.exec(txt);
+    if (m) {
+      const ssn = `${m[1]}-${m[2]}-${m[3]}`;
+      // Filter obviously invalid SSNs (000/666 or 900-999 area)
+      const area = +m[1];
+      if (area !== 0 && area !== 666 && area < 900) return ssn;
+    }
+  }
+  return null;
+}
+
+function maskSsn(ssn: string): string {
+  return ssn.replace(/^\d{3}-\d{2}/, "XXX-XX"); // show last 4 only
+}
+
+
+Then inside analyzeUniversal, right after:
+
+const tex = await textractAnalyzeDocument(bytes);
+const signal = extractSignalFromTextract(tex);
+
+
+add this fallback:
+
+// SSN fallback from raw text if query didn't find it
+if (!signal.queries.ssn) {
+  const raw = allWordsText(tex.Blocks || []);
+  const ssn = extractSsnFromText(raw);
+  if (ssn) signal.queries.ssn = ssn;
+}
+
+
+And add ssn to the JSON you return (masked for UI safety):
+
+const completion = await openai.chat.completions.create(/* … */);
+
+// parsed = … (as before)
+
+const ssnMasked = signal.queries?.ssn ? maskSsn(signal.queries.ssn) : undefined;
+
+return {
+  documentKey: key,
+  mime,
+  queries: { ...signal.queries, ssnMasked }, // keep masked in the light payload
+  kvs: signal.kvs,
+  tableRows: signal.tableRows,
+  ai: {
+    ...parsed,
+    // Ensure SSN lands in suggestions even if the model didn’t include it
+    ssnMasked: ssnMasked ?? parsed?.ssnMasked ?? null,
+    documentType: parsed?.documentType ?? "Social Security Card",
+    issuer: parsed?.issuer ?? "Social Security Administration",
+  },
+};
+
+3) Tighten the Vision fusion so it recognizes SSN cards
+
+Update the schema prompt (the SCHEMA constant) to include SSN:
+
+const SCHEMA = `
+Return a JSON object with these optional fields when present:
+{
+  "documentType": string,
+  "fullName": string,
+  "ssnMasked": string,               // mask as XXX-XX-1234 if SSN present
+  "idNumber": string,
+  "accountNumber": string,
+  "policyNumber": string,
+  "issuer": string,
+  "address": string,
+  "date": string,
+  "expiration": string,
+  "totalAmount": string,
+  "items": [ { "description": string, "qty": string, "amount": string } ],
+  "confidenceNotes": string
+}
+If the document appears to be a Social Security card, set documentType to "Social Security Card"
+and include "ssnMasked" only (mask the first 5 digits).
+Only include fields you can infer with reasonable confidence.
+`;
+
+
+And nudge the user message before sending to OpenAI:
+
+const parts: any[] = [
+  { type: "text", text:
+`You are an information extraction system. ${SCHEMA}
+
+If this appears to be a Social Security card, extract the name and mask the SSN as XXX-XX-1234.
+Prefer Textract query results when present; use the image for layout disambiguation.` },
+  { type: "text", text: `QUERIES:\n${JSON.stringify(signal.queries, null, 2)}\n\nKEY_VALUES:\n${JSON.stringify(signal.kvs.slice(0, 40), null, 2)}\n\nTABLE_ROWS:\n${JSON.stringify(signal.tableRows.slice(0, 10), null, 2)}` },
+];
+
+4) UI: friendly display & “click to reveal” (optional)
+
+Where you render the banner result, show masked SSN with a reveal toggle:
+
+// pseudo-code in your result component
+const ssnMasked = suggestions?.ssnMasked ?? queries?.ssnMasked;
+{ssnMasked && (
+  <div className="field">
+    <label>SSN</label>
+    <code>{reveal ? queries?.ssn || ssnMasked : ssnMasked}</code>
+    <button onClick={()=>setReveal(v=>!v)}>{reveal ? 'Hide' : 'Reveal'}</button>
+  </div>
+)}

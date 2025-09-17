@@ -1,0 +1,536 @@
+// Hybrid Trustworthy Upload Center - Dark Luxury Theme
+// File: components/UploadCenter/HybridTrustworthyUploadCenter.jsx
+// Combines Trustworthy workflow with your existing dark gold design system
+
+import React, { useState, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// Trustworthy Upload States (same workflow)
+const TRUSTWORTHY_STATES = {
+  BROWSE: 'browse',           // Initial state with browse button
+  UPLOADING: 'uploading',     // File upload in progress
+  INBOX_OPEN: 'inbox_open',   // Sidebar opens with uploaded document
+  ANALYZING: 'analyzing',     // AI analysis in progress
+  DETAILS_READY: 'details_ready', // Lightning bolt with field count
+  MODAL_OPEN: 'modal_open'    // Details modal showing extracted data
+};
+
+// Main Hybrid Trustworthy Upload Center Component
+export const HybridTrustworthyUploadCenter = () => {
+  const [currentState, setCurrentState] = useState(TRUSTWORTHY_STATES.BROWSE);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadedDocument, setUploadedDocument] = useState(null);
+  const [extractedData, setExtractedData] = useState(null);
+  const [isInboxOpen, setIsInboxOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const fileInputRef = useRef(null);
+
+  // Handle file selection (Browse button click)
+  const handleBrowseClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Handle file upload - Trustworthy workflow with your API
+  const handleFileUpload = useCallback(async (files) => {
+    const file = files[0];
+    if (!file) return;
+
+    try {
+      // Step 1: Start upload
+      setCurrentState(TRUSTWORTHY_STATES.UPLOADING);
+      setUploadProgress(0);
+
+      // Simulate upload progress (replace with your actual upload)
+      await simulateUploadProgress(setUploadProgress);
+
+      // Step 2: Open inbox sidebar with uploaded document
+      const documentData = {
+        id: generateDocumentId(),
+        filename: file.name,
+        uploadTime: new Date(),
+        thumbnail: await generateThumbnail(file),
+        size: file.size,
+        type: file.type
+      };
+
+      setUploadedDocument(documentData);
+      setIsInboxOpen(true);
+      setCurrentState(TRUSTWORTHY_STATES.INBOX_OPEN);
+
+      // Step 3: Start AI analysis (connect to your AWS Textract)
+      setTimeout(() => {
+        setCurrentState(TRUSTWORTHY_STATES.ANALYZING);
+        performAIAnalysis(file, documentData);
+      }, 1000);
+
+    } catch (error) {
+      console.error('Upload failed:', error);
+      // Handle error state
+    }
+  }, []);
+
+  // Perform AI analysis - Connect to your existing AWS Textract
+  const performAIAnalysis = async (file, documentData) => {
+    try {
+      // Connect to your existing API endpoint
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('fileId', documentData.id);
+
+      const response = await fetch('/api/analyze-document', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      // Transform your API response to Trustworthy format
+      const analysisResult = {
+        extractedFields: result.extractedFields || [
+          { key: "Name", value: "Angel Quintana", confidence: 92 },
+          { key: "Document Type", value: "Driver License", confidence: 88 },
+          { key: "Issuer", value: "Social Security Administration", confidence: 85 }
+        ],
+        documentType: result.documentType || "Identity Document",
+        confidence: result.confidence || 88,
+        suggestedCategory: result.suggestedCategory || "Family IDs",
+        suggestedRole: result.suggestedRole || "Family Member"
+      };
+
+      setExtractedData(analysisResult);
+      setCurrentState(TRUSTWORTHY_STATES.DETAILS_READY);
+
+    } catch (error) {
+      console.error('AI analysis failed:', error);
+      // Fallback to mock data for demo
+      const mockResult = {
+        extractedFields: [
+          { key: "Name", value: "Angel Quintana", confidence: 92 },
+          { key: "Document Type", value: "Driver License", confidence: 88 },
+          { key: "Issuer", value: "Social Security Administration", confidence: 85 }
+        ],
+        documentType: "Identity Document",
+        confidence: 88,
+        suggestedCategory: "Family IDs",
+        suggestedRole: "Family Member"
+      };
+      setExtractedData(mockResult);
+      setCurrentState(TRUSTWORTHY_STATES.DETAILS_READY);
+    }
+  };
+
+  // Handle Details button click
+  const handleDetailsClick = () => {
+    setIsModalOpen(true);
+    setCurrentState(TRUSTWORTHY_STATES.MODAL_OPEN);
+  };
+
+  // Handle modal close
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setCurrentState(TRUSTWORTHY_STATES.DETAILS_READY);
+  };
+
+  // Reset to initial state
+  const resetUpload = () => {
+    setCurrentState(TRUSTWORTHY_STATES.BROWSE);
+    setUploadProgress(0);
+    setUploadedDocument(null);
+    setExtractedData(null);
+    setIsInboxOpen(false);
+    setIsModalOpen(false);
+  };
+
+  return (
+    <div className="hybrid-trustworthy-upload-center">
+      {/* Main Upload Area */}
+      <div className="hybrid-upload-main-content">
+        <HybridUploadZone
+          state={currentState}
+          progress={uploadProgress}
+          onBrowseClick={handleBrowseClick}
+          onReset={resetUpload}
+        />
+        
+        <input
+          ref={fileInputRef}
+          type="file"
+          onChange={(e) => handleFileUpload(Array.from(e.target.files || []))}
+          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+          style={{ display: 'none' }}
+        />
+      </div>
+
+      {/* Hybrid Inbox Sidebar - Dark theme with Trustworthy workflow */}
+      <HybridInboxSidebar
+        isOpen={isInboxOpen}
+        document={uploadedDocument}
+        extractedData={extractedData}
+        analysisState={currentState}
+        onDetailsClick={handleDetailsClick}
+        onClose={() => setIsInboxOpen(false)}
+      />
+
+      {/* Details Modal - Dark theme */}
+      <HybridDetailsModal
+        isOpen={isModalOpen}
+        document={uploadedDocument}
+        extractedData={extractedData}
+        onClose={handleModalClose}
+        onAccept={() => {/* Handle accept - connect to your API */}}
+        onDismiss={() => {/* Handle dismiss - connect to your API */}}
+      />
+    </div>
+  );
+};
+
+// Hybrid Upload Zone Component - Your dark theme with Trustworthy layout
+const HybridUploadZone = ({ state, progress, onBrowseClick, onReset }) => {
+  return (
+    <div className="hybrid-trustworthy-upload-zone">
+      <div className="hybrid-upload-header">
+        <h2 className="hybrid-family-title">camacho Family</h2>
+        <div className="hybrid-user-avatars">
+          <div className="hybrid-avatar">KC</div>
+          <div className="hybrid-avatar">AQ</div>
+        </div>
+      </div>
+
+      <AnimatePresence mode="wait">
+        {state === TRUSTWORTHY_STATES.BROWSE && (
+          <HybridBrowseState key="browse" onBrowseClick={onBrowseClick} />
+        )}
+        
+        {state === TRUSTWORTHY_STATES.UPLOADING && (
+          <HybridUploadingState key="uploading" progress={progress} />
+        )}
+        
+        {(state === TRUSTWORTHY_STATES.INBOX_OPEN || 
+          state === TRUSTWORTHY_STATES.ANALYZING || 
+          state === TRUSTWORTHY_STATES.DETAILS_READY) && (
+          <HybridUploadCompleteState key="complete" onReset={onReset} />
+        )}
+      </AnimatePresence>
+
+      {/* Quick Start Section - Your existing style */}
+      <div className="hybrid-quick-start-section">
+        <h3>Quick start</h3>
+        <div className="hybrid-quick-actions">
+          <HybridQuickActionCard
+            icon="🛡️"
+            title="Add life insurance"
+            description="Ensure your policies are always accessible, with automated reminders to keep them from lapsing."
+          />
+          <HybridQuickActionCard
+            icon="📱"
+            title="Download the mobile app"
+            description="Keep your family's important information in your pocket, and add documents effortlessly with our mobile scanner."
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Browse State - Trustworthy layout with your dark gold theme
+const HybridBrowseState = ({ onBrowseClick }) => (
+  <motion.div
+    className="hybrid-browse-state"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+  >
+    <div className="hybrid-upload-area">
+      <div className="hybrid-upload-icon">
+        <svg className="hybrid-upload-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+      </div>
+      
+      <h3 className="hybrid-upload-title">Upload Family Documents</h3>
+      <p className="hybrid-upload-description">Drag & drop files here or click to browse</p>
+      <p className="hybrid-upload-description">AI will automatically extract key information</p>
+      
+      <motion.button
+        className="hybrid-browse-button"
+        onClick={onBrowseClick}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        Browse
+      </motion.button>
+      
+      <span className="hybrid-or-text">or drop files</span>
+      
+      <div className="hybrid-supported-formats">
+        <span className="hybrid-format-badge">PDF</span>
+        <span className="hybrid-format-badge">JPG</span>
+        <span className="hybrid-format-badge">PNG</span>
+        <span className="hybrid-format-badge">DOC</span>
+        <span className="hybrid-format-badge">TXT</span>
+      </div>
+    </div>
+  </motion.div>
+);
+
+// Uploading State - Your dark theme
+const HybridUploadingState = ({ progress }) => (
+  <motion.div
+    className="hybrid-uploading-state"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+  >
+    <div className="hybrid-upload-progress">
+      <div className="hybrid-progress-bar">
+        <motion.div
+          className="hybrid-progress-fill"
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
+        />
+      </div>
+      <span className="hybrid-progress-text">Uploading... {Math.round(progress)}%</span>
+    </div>
+  </motion.div>
+);
+
+// Upload Complete State - Your dark theme
+const HybridUploadCompleteState = ({ onReset }) => (
+  <motion.div
+    className="hybrid-upload-complete-state"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+  >
+    <div className="hybrid-upload-success">
+      <div className="hybrid-success-icon">✓</div>
+      <p>Document uploaded successfully</p>
+      <button className="hybrid-upload-another-btn" onClick={onReset}>
+        Upload Another Document
+      </button>
+    </div>
+  </motion.div>
+);
+
+// Hybrid Inbox Sidebar - Dark theme with Trustworthy workflow
+const HybridInboxSidebar = ({ 
+  isOpen, 
+  document, 
+  extractedData, 
+  analysisState, 
+  onDetailsClick, 
+  onClose 
+}) => {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="hybrid-trustworthy-inbox-sidebar"
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '100%' }}
+          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+        >
+          <div className="hybrid-inbox-header">
+            <h3>Inbox +</h3>
+            <button className="hybrid-close-btn" onClick={onClose}>×</button>
+          </div>
+
+          <div className="hybrid-inbox-content">
+            <div className="hybrid-upload-zone-mini">
+              <div className="hybrid-upload-icon-mini">📁</div>
+              <span>Drop files here or Browse files</span>
+            </div>
+
+            {document && (
+              <div className="hybrid-document-item">
+                <div className="hybrid-document-thumbnail">
+                  <img src={document.thumbnail} alt={document.filename} />
+                </div>
+                
+                <div className="hybrid-document-info">
+                  <div className="hybrid-document-name">{document.filename}</div>
+                  
+                  {/* Analysis States */}
+                  {analysisState === TRUSTWORTHY_STATES.ANALYZING && (
+                    <div className="hybrid-analyzing-indicator">
+                      <div className="hybrid-spinner"></div>
+                      <span>Analyzing...</span>
+                    </div>
+                  )}
+                  
+                  {analysisState === TRUSTWORTHY_STATES.DETAILS_READY && extractedData && (
+                    <HybridDetailsButton
+                      extractedData={extractedData}
+                      onClick={onDetailsClick}
+                    />
+                  )}
+                </div>
+
+                {/* Suggested Destination */}
+                {extractedData && (
+                  <div className="hybrid-suggested-destination">
+                    <span className="hybrid-suggestion-label">Suggested destination</span>
+                    <div className="hybrid-suggestion-item">
+                      <span className="hybrid-suggestion-name">{extractedData.suggestedRole}</span>
+                      <span className="hybrid-suggestion-category">{extractedData.suggestedCategory} › Family Member</span>
+                    </div>
+                    <button className="hybrid-open-btn">Open</button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+// Hybrid Details Button - Lightning bolt with your gold theme
+const HybridDetailsButton = ({ extractedData, onClick }) => (
+  <motion.button
+    className="hybrid-trustworthy-details-button"
+    onClick={onClick}
+    initial={{ scale: 0 }}
+    animate={{ scale: 1 }}
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+  >
+    <motion.div
+      className="hybrid-lightning-icon"
+      animate={{ rotate: [0, 5, -5, 0] }}
+      transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+    >
+      ⚡
+    </motion.div>
+    <span className="hybrid-details-text">
+      Details {extractedData.extractedFields.length}
+    </span>
+  </motion.button>
+);
+
+// Hybrid Details Modal - Dark theme
+const HybridDetailsModal = ({ 
+  isOpen, 
+  document, 
+  extractedData, 
+  onClose, 
+  onAccept, 
+  onDismiss 
+}) => {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="hybrid-trustworthy-modal-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        >
+          <motion.div
+            className="hybrid-trustworthy-modal"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="hybrid-modal-header">
+              <h3>Extracted Details</h3>
+              <button className="hybrid-modal-close-btn" onClick={onClose}>×</button>
+            </div>
+
+            <div className="hybrid-modal-content">
+              <div className="hybrid-document-preview">
+                <img src={document?.thumbnail} alt={document?.filename} />
+                <div className="hybrid-document-meta">
+                  <h4>{document?.filename}</h4>
+                  <p>Confidence: {extractedData?.confidence}%</p>
+                </div>
+              </div>
+
+              <div className="hybrid-extracted-fields">
+                {extractedData?.extractedFields.map((field, index) => (
+                  <motion.div
+                    key={index}
+                    className="hybrid-field-item"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <div className="hybrid-field-header">
+                      <span className="hybrid-field-key">{field.key}</span>
+                      <span className="hybrid-confidence-badge">{field.confidence}%</span>
+                    </div>
+                    <div className="hybrid-field-value">{field.value}</div>
+                    <div className="hybrid-field-actions">
+                      <button className="hybrid-accept-btn" onClick={() => onAccept(field)}>
+                        ✓ Accept
+                      </button>
+                      <button className="hybrid-dismiss-btn" onClick={() => onDismiss(field)}>
+                        × Dismiss
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            <div className="hybrid-modal-footer">
+              <button className="hybrid-add-to-vault-btn" onClick={onAccept}>
+                Add to Family Vault
+              </button>
+              <button className="hybrid-review-later-btn" onClick={onClose}>
+                Review Later
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+// Quick Action Card Component - Your dark theme
+const HybridQuickActionCard = ({ icon, title, description }) => (
+  <div className="hybrid-quick-action-card">
+    <div className="hybrid-action-icon">{icon}</div>
+    <div className="hybrid-action-content">
+      <h4>{title}</h4>
+      <p>{description}</p>
+    </div>
+  </div>
+);
+
+// Utility Functions (same as before)
+const generateDocumentId = () => {
+  return 'doc_' + Math.random().toString(36).substr(2, 9);
+};
+
+const generateThumbnail = async (file) => {
+  if (file.type.startsWith('image/')) {
+    return URL.createObjectURL(file);
+  }
+  return '/default-document-thumbnail.png';
+};
+
+const simulateUploadProgress = (setProgress) => {
+  return new Promise((resolve) => {
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.random() * 25;
+      if (progress >= 100) {
+        progress = 100;
+        setProgress(progress);
+        clearInterval(interval);
+        resolve();
+      } else {
+        setProgress(progress);
+      }
+    }, 200);
+  });
+};
+
+export default HybridTrustworthyUploadCenter;

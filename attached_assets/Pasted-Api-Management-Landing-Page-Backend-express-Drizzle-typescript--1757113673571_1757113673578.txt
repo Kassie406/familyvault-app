@@ -1,0 +1,116 @@
+Api Management Landing Page + Backend (express + Drizzle)
+· typescript
+// =============================================
+          </DialogContent>
+        </Dialog>
+      </div>
+
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {items.map(p=> (
+          <Card key={p.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl">
+            <CardHeader>
+              <CardTitle>{p.name}</CardTitle>
+              <CardDescription className="text-gray-400">{p.requireLogin?"Login required":"Public"} • {p.allowDownload?"Download allowed":"View only"} • {p.expireDays?`${p.expireDays}d expiry`:"No expiry"}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-gray-500">Max views: {p.maxViews ?? "∞"} • Watermark: {p.watermark?"On":"Off"}</div>
+              <div className="mt-4 flex justify-end"><Button variant="outline" className="border-yellow-500/30 text-yellow-400" onClick={()=>setEditing(p)}>Edit</Button></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+// =============================================
+// BACKEND: Link Policies routes
+// File: server/routes/linkPolicies.ts
+import { Router } from "express";
+import { db } from "../db";
+import { linkPolicies } from "../db/schema/docs";
+import { eq, desc } from "drizzle-orm";
+import { requireAuth } from "../lib/auth";
+
+
+const rp = Router();
+rp.use(requireAuth);
+
+
+rp.get("/api/link-policies", async (req, res) => {
+  const items = await db.select().from(linkPolicies).where(eq(linkPolicies.familyId, req.user!.familyId)).orderBy(desc(linkPolicies.createdAt));
+  res.json({ items });
+});
+
+
+rp.post("/api/link-policies", async (req, res) => {
+  const { name, requireLogin = true, allowDownload = true, expireDays = 0, maxViews = null, watermark = false } = req.body;
+  const [row] = await db.insert(linkPolicies).values({ familyId: req.user!.familyId, name, requireLogin, allowDownload, expireDays, maxViews, watermark }).returning();
+  res.json(row);
+});
+
+
+rp.put("/api/link-policies/:id", async (req, res) => {
+  const { id } = req.params;
+  const values = { ...req.body, familyId: undefined } as any;
+  await db.update(linkPolicies).set(values).where(eq(linkPolicies.id, id));
+  res.json({ ok: true });
+});
+
+
+export default rp;
+
+
+// =============================================
+// BACKEND: search docs (for modal autocomplete)
+// File: server/routes/docSearch.ts
+import { Router } from "express";
+import { db } from "../db";
+import { documents } from "../db/schema/docs";
+import { and, desc, eq, like } from "drizzle-orm";
+import { requireAuth } from "../lib/auth";
+
+
+const rs = Router();
+rs.use(requireAuth);
+
+
+rs.get("/api/documents/search", async (req, res) => {
+  const q = String(req.query.q ?? "");
+  const limit = Number(req.query.limit ?? 50);
+  const base = db.select().from(documents).where(eq(documents.familyId, req.user!.familyId)).orderBy(desc(documents.updatedAt)).limit(limit);
+  if (!q) { const items = await base; return res.json({ items }); }
+  const items = await db.select().from(documents).where(and(eq(documents.familyId, req.user!.familyId), like(documents.title, `%${q}%`))).orderBy(desc(documents.updatedAt)).limit(limit);
+  res.json({ items });
+});
+
+
+export default rs;
+
+
+// =============================================
+// FRONTEND: Wire dropdown buttons (snippet)
+// In your Documents Shared card component:
+// <ShareDocumentModal trigger={<Button variant="outline" className="border-yellow-500/30 text-yellow-400">Share a Document</Button>} />
+// <Link href="/family/link-policies"><Button variant="outline" className="border-yellow-500/30 text-yellow-400">Manage Link Policies</Button></Link>
+// <Link href="/family/approvals"><Button variant="outline" className="border-yellow-500/30 text-yellow-400">Pending Approvals</Button></Link>
+
+
+
+
+
+Done. I added:
+
+ShareDocumentModal (React) — pick a document, choose scope (Family/User/Link), optional link policy, expiry, and download toggle. Posts to /api/documents/:id/share.
+
+Link Policies page /family/link-policies — list + create/edit policies (require login, allow download, expire days, max views, watermark).
+
+Backend routes:
+
+GET/POST/PUT /api/link-policies
+
+GET /api/documents/search for the modal’s document picker
+
+I also included wiring snippets for your Documents Shared card buttons.

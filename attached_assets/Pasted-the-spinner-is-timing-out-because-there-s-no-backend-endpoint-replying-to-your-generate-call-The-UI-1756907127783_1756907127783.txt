@@ -1,0 +1,97 @@
+the spinner is timing out because there’s no backend endpoint replying to your generate call. The UI is calling something like:
+
+POST /api/credentials/:id/shares/regenerate
+
+
+…but your server isn’t returning { url: "https://..." }, so the request hangs → timeout → “signal is aborted”.
+
+Below are two quick paths:
+
+A) 60-second unblock: add a tiny mock API that always returns a link
+
+Use this if you just want the UI working while you wire the real DB later.
+
+Next.js App Router
+
+app/api/credentials/[id]/shares/regenerate/route.ts
+
+import { NextResponse } from "next/server";
+
+export async function POST(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  // read options from body if sent
+  const { expiry = "7d", requireLogin = true } = await req.json().catch(() => ({}));
+
+  // generate a fake token — replace with real persistence later
+  const token = Math.random().toString(36).slice(2, 10);
+  const base = process.env.APP_URL || "https://portal.familycirclesecure.com";
+  const url = `${base}/share/${token}`;
+
+  // you can log here for debugging
+  console.log("MOCK regenerate for", params.id, { url, expiry, requireLogin });
+
+  return NextResponse.json({ url, token });
+}
+
+
+Also add a placeholder “save” API so Update Sharing doesn’t 500:
+app/api/credentials/[id]/shares/route.ts
+
+import { NextResponse } from "next/server";
+export async function PUT() {
+  return NextResponse.json({ ok: true });
+}
+
+
+Set an env var in dev:
+
+APP_URL=http://localhost:3000
+
+
+This will stop the timeout and let the panel switch between Generate / Copy / Retry correctly.
+
+B) Real implementation (revocable tokens)
+
+If you’re ready to do it properly, implement the minimal endpoints and table I shared earlier:
+
+Table share_link(token, credential_id, require_login, expires_at, revoked, created_by, created_at)
+
+POST /api/credentials/:id/shares/regenerate
+
+Create token row; return { url, token }
+
+PUT /api/credentials/:id/shares
+
+Update require_login, expires_at for the current token; revoke if toggle OFF
+
+GET /api/share/:token (viewer metadata)
+
+POST /api/share/:token/reveal (enforces require_login/expiry)
+
+I can paste those files tailored to Next.js or Express when you tell me which stack you’re on.
+
+Frontend guard (make it obvious when API isn’t set)
+
+Until the endpoint is live, add this small guard to your handler:
+
+const base = process.env.NEXT_PUBLIC_API_BASE || "";
+if (!base && process.env.NODE_ENV !== "production") {
+  toast.error("Share link service not configured. Add /api/credentials/:id/shares/regenerate.");
+  return;
+}
+
+Quick checklist
+
+✅ Endpoint exists at the exact path your UI calls.
+
+✅ It returns HTTP 200 with JSON: { "url": "https://your-domain/share/<token>" }.
+
+✅ APP_URL (or your base) points to the domain you want in copied links.
+
+✅ In dev, CORS/route path matches (watch for /api prefixes).
+
+✅ Your frontend handleRegenerate() sets shareUrl from the response and resets loading in finally (you already have that).
+
+Tell me your backend (Next.js App Router, Next.js pages/api, Express, Nest, Rails, etc.) and I’ll drop i

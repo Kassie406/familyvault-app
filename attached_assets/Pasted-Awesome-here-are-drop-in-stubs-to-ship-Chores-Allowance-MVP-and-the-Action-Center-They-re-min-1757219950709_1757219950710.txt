@@ -1,0 +1,412 @@
+Awesome — here are drop-in stubs to ship Chores + Allowance (MVP) and the Action Center. They’re minimal, nuclear-family-safe, and match your dark/gold theme. Use as-is or adapt to your stack.
+
+1) Server
+1.1 Prisma schema (or adapt to your ORM)
+// prisma/schema.prisma
+model FamilyMember {
+  id        String   @id @default(cuid())
+  familyId  String
+  name      String
+  role      Role
+  avatarUrl String?
+  // relations
+  chores    Chore[]  @relation("AssigneeChores")
+  ledger    AllowanceLedger[]
+  @@index([familyId])
+}
+
+model Chore {
+  id          String   @id @default(cuid())
+  familyId    String
+  title       String
+  details     String?
+  assigneeId  String
+  dueAt       DateTime
+  points      Int       @default(10)
+  status      ChoreStatus @default(todo)
+  createdById String
+  createdAt   DateTime  @default(now())
+  rotationKey String?
+  // relations
+  assignee    FamilyMember @relation(fields: [assigneeId], references: [id], name: "AssigneeChores")
+  @@index([familyId, dueAt])
+  @@index([familyId, rotationKey])
+}
+
+model AllowanceLedger {
+  id         String   @id @default(cuid())
+  familyId   String
+  memberId   String
+  deltaPoints Int
+  reason     String
+  createdAt  DateTime @default(now())
+  createdById String
+  // relations
+  member     FamilyMember @relation(fields: [memberId], references: [id])
+  @@index([familyId, memberId, createdAt])
+}
+
+enum Role { parent teen child }
+enum ChoreStatus { todo done approved }
+
+
+Run:
+
+npx prisma migrate dev -n init_chores_allowance
+
+1.2 Express routes (family-scoped, role-aware)
+// src/middleware/auth.ts
+import { Request, Response, NextFunction } from "express";
+
+// Assumes you already set req.user from session cookie.
+export function requireAuth(req: any, res: Response, next: NextFunction) {
+  if (!req.user) return res.status(401).json({ error: "Unauthenticated" });
+  next();
+}
+export function requireParent(req: any, res: Response, next: NextFunction) {
+  if (req.user?.role !== "parent") return res.status(403).json({ error: "Parents only" });
+  next();
+}
+
+// src/routes/chores.ts
+import { Router } from "express";
+import { prisma } from "../prisma"; // your Prisma client
+import { requireAuth, requireParent } from "../middleware/auth";
+
+export const chores = Router();
+chores.use(requireAuth);
+
+// List chores (optionally for a specific assignee)
+chores.get("/", async (req: any, res) => {
+  const { since, assigneeId } = req.query as { since?: string; assigneeId?: string };
+  const where: any = { familyId: req.user.familyId };
+  if (assigneeId === "me") where.assigneeId = req.user.id;
+  else if (assigneeId) where.assigneeId = assigneeId;
+  if (since) where.dueAt = { gte: new Date(since) };
+
+  const rows = await prisma.chore.findMany({
+    where,
+    orderBy: [{ status: "asc" }, { dueAt: "asc" }],
+    include: { assignee: true },
+  });
+  res.json(rows);
+});
+
+// Create chore (parents)
+chores.post("/", requireParent, async (req: any, res) => {
+  const { title, details, assigneeId, dueAt, points, rotationKey } = req.body;
+  const row = await prisma.chore.create({
+    data: {
+      title,
+      details,
+      assigneeId,
+      dueAt: new Date(dueAt),
+      points: points ?? 10,
+      rotationKey: rotationKey ?? null,
+      familyId: req.user.familyId,
+      createdById: req.user.id,
+    },
+  });
+  res.status(201).json(row);
+});
+
+// Mark done (self only)
+chores.post("/:id/done", async (req: any, res) => {
+  const ch = await prisma.chore.findFirst({
+    where: { id: req.params.id, familyId: req.user.familyId },
+  });
+  if (!ch) return res.status(404).json({ error: "Not found" });
+  if (ch.assigneeId !== req.user.id && req.user.role !== "parent")
+    return res.status(403).json({ error: "Only assignee or parent" });
+
+  const row = await prisma.chore.update({
+    where: { id: ch.id },
+    data: { status: "done" },
+  });
+  res.json(row);
+});
+
+// Approve (parents) → adds ledger points
+chores.post("/:id/approve", requireParent, async (req: any, res) => {
+  const ch = await prisma.chore.findFirst({
+    where: { id: req.params.id, familyId: req.user.familyId },
+  });
+  if (!ch) return res.status(404).json({ error: "Not found" });
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const u = await tx.chore.update({
+      where: { id: ch.id },
+      data: { status: "approved" },
+    });
+    await tx.allowanceLedger.create({
+      data: {
+        familyId: req.user.familyId,
+        memberId: ch.assigneeId,
+        deltaPoints: ch.points,
+        reason: `Chore: ${ch.title} (${ch.dueAt.toISOString().slice(0,10)})`,
+        createdById: req.user.id,
+      },
+    });
+    return u;
+  });
+  res.json(updated);
+});
+
+// Simple rotation (parents): round-robin assignees for a rotationKey for next week
+chores.post("/rotate", requireParent, async (req: any, res) => {
+  const { rotationKey, assigneeIds, base } = req.body as {
+    rotationKey: string; assigneeIds: string[]; base?: string
+  };
+  if (!rotationKey || !assigneeIds?.length) return res.status(400).json({ error: "rotationKey & assigneeIds required" });
+  const start = base ? new Date(base) : new Date();
+  const nextWeek = new Date(start); nextWeek.setDate(start.getDate() + 7);
+
+  // Find current index by checking last chore’s assignee for this key
+  const last = await prisma.chore.findFirst({
+    where: { familyId: req.user.familyId, rotationKey },
+    orderBy: { createdAt: "desc" },
+  });
+  const lastIdx = last ? assigneeIds.indexOf(last.assigneeId) : -1;
+
+  // Create next chore instance rotated to the next person
+  const nextIdx = (lastIdx + 1) % assigneeIds.length;
+  const row = await prisma.chore.create({
+    data: {
+      title: rotationKey.replace(/[-_]/g, " "),
+      familyId: req.user.familyId,
+      assigneeId: assigneeIds[nextIdx],
+      dueAt: nextWeek,
+      points: 10,
+      status: "todo",
+      createdById: req.user.id,
+      rotationKey,
+    }
+  });
+  res.json(row);
+});
+
+export default chores;
+
+// src/routes/allowance.ts
+import { Router } from "express";
+import { prisma } from "../prisma";
+import { requireAuth } from "../middleware/auth";
+
+export const allowance = Router();
+allowance.use(requireAuth);
+
+allowance.get("/summary", async (req: any, res) => {
+  const { memberId } = req.query as { memberId?: string };
+  const id = memberId === "me" || !memberId ? req.user.id : memberId;
+
+  const items = await prisma.allowanceLedger.findMany({
+    where: { familyId: req.user.familyId, memberId: id },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
+  const balance = items.reduce((s, i) => s + i.deltaPoints, 0);
+  res.json({ balance, items });
+});
+
+export default allowance;
+
+
+Wire them in:
+
+// src/server.ts
+import chores from "./routes/chores";
+import allowance from "./routes/allowance";
+app.use("/api/chores", chores);
+app.use("/api/allowance", allowance);
+
+2) Client (React)
+2.1 Minimal API helper
+// src/lib/api.ts
+export async function api<T>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, { credentials: "include", ...init });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
+  return res.json();
+}
+
+2.2 Action Center tile (top of dashboard)
+// src/components/ActionCenter.tsx
+import { useEffect, useState } from "react";
+import { api } from "../lib/api";
+
+type Counts = { approvePending: number; dueToday: number; mealsUnplanned: number };
+
+export default function ActionCenter() {
+  const [data, setData] = useState<Counts | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const chores = await api<any[]>("/api/chores?since=" + new Date().toISOString());
+        const today = new Date().toDateString();
+        const approvePending = chores.filter(c => c.status === "done").length;
+        const dueToday = chores.filter(c => new Date(c.dueAt).toDateString() === today && c.status === "todo").length;
+        // mealsUnplanned placeholder (wire up later)
+        const mealsUnplanned = 0;
+        if (alive) setData({ approvePending, dueToday, mealsUnplanned });
+      } catch (e: any) { if (alive) setErr(e.message); }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  if (err) return <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-rose-300">Action Center error — {err}</div>;
+  if (!data) return <div className="rounded-xl border border-white/10 bg-white/5 p-4 animate-pulse text-white/60">Loading Action Center…</div>;
+
+  const items = [
+    `${data.approvePending} ${data.approvePending === 1 ? "chore" : "chores"} to approve`,
+    `${data.dueToday} due today`,
+    `${data.mealsUnplanned} meals unplanned`,
+  ];
+
+  return (
+    <a href="#chores" className="block rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition">
+      <div className="text-white/80 text-sm">Action Center</div>
+      <div className="text-white text-lg mt-1">{items.join(" • ")}</div>
+    </a>
+  );
+}
+
+2.3 Chores card (My / Family tabs)
+// src/components/ChoresCard.tsx
+import { useEffect, useState } from "react";
+import { api } from "../lib/api";
+
+type Member = { id: string; name: string; role: "parent"|"teen"|"child" };
+type Chore = {
+  id: string; title: string; details?: string; dueAt: string; points: number;
+  status: "todo"|"done"|"approved"; assignee: Member; assigneeId: string;
+};
+
+export default function ChoresCard({ currentUser }: { currentUser: Member }) {
+  const [tab, setTab] = useState<"mine"|"family">("mine");
+  const [rows, setRows] = useState<Chore[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const isParent = currentUser.role === "parent";
+
+  async function load() {
+    setErr(null);
+    try {
+      const data = await api<Chore[]>("/api/chores");
+      setRows(data);
+    } catch (e: any) { setErr(e.message); }
+  }
+  useEffect(() => { load(); }, []);
+
+  async function markDone(id: string) {
+    const prev = rows!;
+    setRows(prev.map(r => r.id===id ? {...r, status:"done"} : r));
+    try { await api(`/api/chores/${id}/done`, { method:"POST" }); }
+    catch { setRows(prev); }
+  }
+
+  async function approve(id: string) {
+    const prev = rows!;
+    setRows(prev.map(r => r.id===id ? {...r, status:"approved"} : r));
+    try { await api(`/api/chores/${id}/approve`, { method:"POST" }); }
+    catch { setRows(prev); }
+  }
+
+  if (err) return <Card><Header/><div className="text-rose-300">Failed to load chores — {err} <button onClick={load} className="underline">Retry</button></div></Card>;
+  if (!rows) return <Card><Header/><div className="animate-pulse text-white/60">Loading…</div></Card>;
+
+  const mine = rows.filter(r => r.assigneeId === currentUser.id);
+  const family = rows;
+
+  return (
+    <Card id="chores">
+      <Header/>
+      <div className="flex gap-2 mb-3">
+        <Tab current={tab==="mine"} onClick={()=>setTab("mine")}>My chores</Tab>
+        <Tab current={tab==="family"} onClick={()=>setTab("family")}>Family</Tab>
+      </div>
+
+      {tab==="mine" && <List
+        rows={mine}
+        renderAction={(r) => (
+          r.status==="todo" ? <Primary onClick={()=>markDone(r.id)}>Mark done</Primary> :
+          r.status==="done" ? <span className="text-amber-300">Awaiting approval</span> :
+          <span className="text-emerald-300">Approved ✓</span>
+        )}
+      />}
+
+      {tab==="family" && (
+        <List
+          rows={family}
+          renderAction={(r) => (
+            r.status==="done" && isParent ? <Primary onClick={()=>approve(r.id)}>Approve +{r.points}</Primary> :
+            r.status==="approved" ? <span className="text-emerald-300">Approved ✓</span> :
+            <span className="text-white/50">—</span>
+          )}
+        />
+      )}
+    </Card>
+  );
+}
+
+function List({ rows, renderAction }: { rows: Chore[]; renderAction: (r: Chore)=>React.ReactNode }) {
+  if (!rows.length) return <div className="text-white/60">No chores here — add one.</div>;
+  return (
+    <div className="space-y-2">
+      {rows.map(r=>(
+        <div key={r.id} className="flex items-center justify-between rounded-lg border border-white/10 bg-black/40 p-3">
+          <div className="min-w-0">
+            <div className="text-white">{r.title} <span className="text-white/50">• due {new Date(r.dueAt).toLocaleDateString()}</span></div>
+            {r.details && <div className="text-white/60 text-sm truncate">{r.details}</div>}
+            <div className="text-white/50 text-xs">Assignee: {r.assignee?.name || "—"} • {r.points} pts</div>
+          </div>
+          <div>{renderAction(r)}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Card({ children, id }: any) {
+  return <section id={id} className="rounded-2xl border border-white/10 bg-white/5 p-4">{children}</section>;
+}
+function Header() {
+  return <div className="mb-2 text-white/80">Chores & Allowance</div>;
+}
+function Tab({ current, children, onClick }:{current:boolean;children:any;onClick:()=>void}) {
+  return <button onClick={onClick} className={`px-3 py-1 rounded-lg border ${current ? "bg-[#b59732] text-black border-[#b59732]" : "border-white/15 text-white/80 hover:bg-white/10"}`}>{children}</button>;
+}
+function Primary({ children, onClick }: any) {
+  return <button onClick={onClick} className="px-3 py-1 rounded-lg bg-[#b59732] text-black font-semibold hover:brightness-110">{children}</button>;
+}
+
+
+Where to get currentUser: you already have it in your dashboard shell; pass { id, name, role }.
+
+2.4 Add to Dashboard
+// src/pages/Dashboard.tsx  (excerpt)
+import ActionCenter from "../components/ActionCenter";
+import ChoresCard from "../components/ChoresCard";
+
+export default function Dashboard({ currentUser }: any) {
+  return (
+    <div className="space-y-4">
+      <ActionCenter />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ChoresCard currentUser={currentUser} />
+        {/* right column could be Calendar / Meal Plan */}
+      </div>
+      {/* keep your existing widgets below */}
+    </div>
+  );
+}
+
+3) What to test (5 minutes)
+
+Login as teen/child → Dashboard → My chores: “Mark done” works (optimistic); no Approve button.
+
+Login as parent → Family tab: see Approve +points for items in “done”.
+
+Action Center shows counts (approve pending, due today).
+
+/api/allowance/summary?memberId=me returns balance after approvals.

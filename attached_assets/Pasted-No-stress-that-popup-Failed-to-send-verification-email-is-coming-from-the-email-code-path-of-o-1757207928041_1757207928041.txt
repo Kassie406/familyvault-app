@@ -1,0 +1,87 @@
+No stress — that popup (“Failed to send verification email”) is coming from the email-code path of our custom auth. It means Nodemailer couldn’t send via your SMTP settings (not a front-end issue).
+
+Here’s a quick, surgical fix.
+
+1) Set Gmail (App Password) secrets correctly
+
+In Replit → Secrets add:
+
+SMTP_USER = kassandrasantana406@gmail.com (your Gmail)
+
+SMTP_PASS = Gmail App Password (16 chars; create at Google Account → Security → 2-Step Verification → App passwords → “Mail”)
+
+SMTP_HOST = smtp.gmail.com
+
+SMTP_PORT = 587
+
+SMTP_SECURE = false
+
+If you already set 465/true, it may still work, but 587/false is often more reliable on hosts.
+
+Redeploy after saving.
+
+2) Add one-time debug to see the real error
+
+In server.js, right after we create the transporter, add:
+
+transporter.verify().then(
+  () => console.log('SMTP OK'),
+  (e) => console.error('SMTP ERROR:', e)
+)
+
+
+Also update the catch where we send email:
+
+} catch (e) {
+  console.error('Mail send error:', e);   // <-- check Replit Logs
+  res.status(500).json({ ok: false, msg: 'Email send failed' })
+}
+
+
+Open the Replit Logs (Console) and try “Send code” again. If you see:
+
+Invalid login → the app password is wrong / not an app password.
+
+Missing credentials → a secret isn’t loaded (name typo).
+
+ECONNECTION / ETIMEDOUT → switch to 587 + secure:false.
+
+EAUTH → enable “Less secure” is not needed; only App Password works.
+
+3) Quick test endpoints (from your browser)
+
+POST /login/start with body { "email": "your@email" }
+
+Should return { ok: true, nonce: "..." }
+
+POST /login/verify with { email, code, nonce } (after the email arrives)
+
+Should return { ok: true, redirect: "/" }
+
+(You can also try from the embedded preview, because SMTP isn’t affected by the iframe.)
+
+4) If Gmail still blocks you
+
+Use a free dev SMTP to confirm the flow:
+
+Mailtrap (free)
+
+Create inbox → copy SMTP creds → set the same 5 secrets (SMTP_*) to Mailtrap’s values.
+
+Try sending. If Mailtrap works, the code is fine → the issue is Gmail app password / account policy.
+
+5) Google sign-in works now too
+
+If you also configured GOOGLE_CLIENT_ID/SECRET, “Continue with Google” should sign you in even while you sort SMTP.
+
+Super-short checklist
+
+ Set SMTP_* secrets exactly as above (use App Password, not your login password).
+
+ Use 587 + secure:false.
+
+ Add transporter.verify() + log errors → check Replit console.
+
+ (Optional) Test with Mailtrap to isolate Gmail-specific issues.
+
+Send me the single line you see after “SMTP ERROR: …” in the Replit logs, and I’ll tell you the exact one-liner to change.

@@ -1,0 +1,123 @@
+I’ll add the /api/members endpoint (family-scoped) and a Prisma seed with a sample nuclear family, so the Create-Chore modal and future features have real data.
+
+1) Prisma seed (parents + teens/kids)
+1.1 Extend your schema (session user already carries familyId, role)
+
+No schema changes needed beyond what we added earlier. If you don’t have a Family table, we can keep familyId as a string.
+
+1.2 Seed script
+// prisma/seed.ts
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
+
+async function main() {
+  const familyId = "fam_demo_001";
+
+  // wipe existing demo family (safe for dev)
+  await prisma.allowanceLedger.deleteMany({ where: { familyId } });
+  await prisma.chore.deleteMany({ where: { familyId } });
+  await prisma.familyMember.deleteMany({ where: { familyId } });
+
+  // create parents + kids
+  const [mom, dad, teen, child] = await prisma.$transaction([
+    prisma.familyMember.create({
+      data: { familyId, name: "Kassandra", role: "parent", avatarUrl: null },
+    }),
+    prisma.familyMember.create({
+      data: { familyId, name: "Angel", role: "parent", avatarUrl: null },
+    }),
+    prisma.familyMember.create({
+      data: { familyId, name: "Emmie", role: "teen", avatarUrl: null },
+    }),
+    prisma.familyMember.create({
+      data: { familyId, name: "Michael", role: "child", avatarUrl: null },
+    }),
+  ]);
+
+  // a couple of demo chores
+  await prisma.chore.createMany({
+    data: [
+      {
+        familyId, title: "Dishes", details: "Load + run dishwasher",
+        assigneeId: teen.id, dueAt: new Date(), points: 10,
+        status: "todo", createdById: mom.id, rotationKey: "evening-dishes",
+      },
+      {
+        familyId, title: "Trash night", details: "Bins to curb",
+        assigneeId: child.id, dueAt: new Date(Date.now()+86400000), points: 8,
+        status: "todo", createdById: dad.id, rotationKey: "trash-night",
+      },
+    ],
+  });
+
+  console.log("Seeded family:", familyId, { mom, dad, teen, child });
+}
+
+main().finally(() => prisma.$disconnect());
+
+
+Add to package.json:
+
+"prisma": { "seed": "ts-node --compiler-options {\"module\":\"commonjs\"} prisma/seed.ts" },
+"devDependencies": { "ts-node": "^10.9.2" }
+
+
+Run:
+
+npx prisma migrate dev -n seed_support
+npx prisma db seed
+
+
+If you don’t want ts-node, convert seed.ts to plain JS.
+
+2) /api/members route (family-scoped, safe list)
+// src/routes/members.ts
+import { Router } from "express";
+import { prisma } from "../prisma";
+import { requireAuth } from "../middleware/auth";
+
+const members = Router();
+members.use(requireAuth);
+
+// GET /api/members
+// Returns minimal safe profile (no emails here unless you need them)
+members.get("/", async (req: any, res) => {
+  const rows = await prisma.familyMember.findMany({
+    where: { familyId: req.user.familyId },
+    orderBy: [{ role: "asc" }, { name: "asc" }],
+    select: { id: true, name: true, role: true, avatarUrl: true },
+  });
+  res.json(rows);
+});
+
+export default members;
+
+
+Wire it up:
+
+// src/server.ts
+import members from "./routes/members";
+app.use("/api/members", members);
+
+
+Assumes you already set req.user = { id, familyId, role } from your session cookie.
+
+3) Client: Create-Chore modal now works
+
+You already wired the modal to call /api/members; with the route live + seed in place, the Assignee dropdown will be populated immediately.
+
+If you want the current user to be one of the seeded parents in dev, ensure your auth mock/session sets:
+
+// dev-only example
+req.user = { id: mom.id, familyId: "fam_demo_001", role: "parent", name: "Kassandra" };
+
+4) Handy dev commands
+
+Re-seed quickly (clears demo family and reloads):
+
+npx prisma db seed
+
+
+Check data:
+
+npx prisma studio

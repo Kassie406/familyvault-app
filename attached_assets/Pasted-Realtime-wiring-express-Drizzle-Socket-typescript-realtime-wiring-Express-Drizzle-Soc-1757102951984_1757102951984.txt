@@ -1,0 +1,118 @@
+Realtime-wiring (express + Drizzle + Socket
+· typescript
+// realtime-wiring (Express + Drizzle + Socket.IO)
+  });
+
+
+  return r;
+}
+
+
+/* =========================================================
+ * 4) CLIENT — socket hooks (React) for thread + threads list
+ * =======================================================*/
+
+
+// hooks/useThreadSocket.ts
+import { useEffect } from "react";
+import io from "socket.io-client";
+
+
+export function useThreadSocket(threadId: string, self: { id: string; familyId: string }, handlers: {
+  onMessageNew?: (payload: { threadId: string; message: any }) => void;
+  onReadUpdate?: (payload: { threadId: string; userId: string; lastMessageId: string | null }) => void;
+  onTyping?: (payload: { userId: string; threadId: string; isTyping: boolean }) => void;
+}) {
+  useEffect(() => {
+    const socket = io("/", { path: "/ws", auth: { user: self } });
+    socket.emit("thread:join", { threadId });
+
+
+    if (handlers.onMessageNew) socket.on("message:new", handlers.onMessageNew);
+    if (handlers.onReadUpdate) socket.on("read:update", handlers.onReadUpdate);
+    if (handlers.onTyping) socket.on("typing", handlers.onTyping);
+
+
+    return () => {
+      socket.emit("thread:leave", { threadId });
+      socket.disconnect();
+    };
+  }, [threadId, self.id, self.familyId]);
+}
+
+
+// hooks/useThreadsListSocket.ts
+export function useThreadsListSocket(self: { id: string; familyId: string }, handlers: {
+  onThreadsDirty?: (payload: { threadId: string }) => void;
+}) {
+  useEffect(() => {
+    const socket = io("/", { path: "/ws", auth: { user: self } });
+    // family room is joined server-side on connect; we just listen
+    if (handlers.onThreadsDirty) socket.on("threads:dirty", handlers.onThreadsDirty);
+    return () => socket.disconnect();
+  }, [self.id, self.familyId]);
+}
+
+
+/* =========================================================
+ * 5) CLIENT — Using the hooks in your pages
+ * =======================================================*/
+
+
+// MessagesPage.tsx (thread detail)
+// useThreadSocket(threadId, self, {
+//   onMessageNew: ({ message }) => setMessages(prev => [...prev, message]),
+//   onReadUpdate: ({ userId, lastMessageId }) => updateSeenState(userId, lastMessageId),
+//   onTyping: (e) => showTyping(e.userId),
+// });
+// On mount and on scroll-bottom, POST /threads/:id/read with last message id.
+
+
+// ThreadsListPage.tsx
+// useThreadsListSocket(self, { onThreadsDirty: ({ threadId }) => refetchThreadRow(threadId) });
+
+
+/* =========================================================
+ * 6) WIRING — in your server bootstrap
+ * =======================================================*/
+
+
+// server.ts (excerpt)
+// import http from "http";
+// import express from "express";
+// import { initSocket, mountMessageRoutes, mountReadRoutes } from "./ws/realtime"; // adjust path
+//
+// const app = express();
+// app.use(express.json());
+// const server = http.createServer(app);
+//
+// const ioHelpers = initSocket(server);
+// app.use("/api", mountMessageRoutes(ioHelpers));
+// app.use("/api", mountReadRoutes(ioHelpers));
+//
+// server.listen(process.env.PORT || 5000, () => console.log("listening"));
+
+
+/* =========================================================
+ * 7) NOTES
+ * =======================================================*/
+// • AuthZ: ensure only family members can hit these routes and sockets.
+// • Unread counts: your GET /threads endpoint already computes them; optionally emit "threads:dirty" to prompt UI refetch per-thread.
+// • Delivery: Socket.IO is at-most-once by default; UI should be resilient (e.g., also poll first page when mounting a thread).
+// • Mobile: keep heartbeat interval ~20s to maintain presence, but don’t rely on it during background.
+
+
+
+All set. I dropped a single paste-ready file into the canvas called “realtime-wiring (Express + Drizzle + Socket.IO)” with:
+
+Server Socket.IO setup (join rooms, presence heartbeat)
+
+Helpers to broadcast message:new and read:update
+
+Updated POST /threads/:id/messages route that emits and enqueues SMS
+
+POST /threads/:id/read route that emits read receipts
+
+Two React hooks: useThreadSocket and useThreadsListSocket
+
+Bootstrapping notes for your server

@@ -1,0 +1,53 @@
+You’re seeing that white hover sheet because DaisyUI/Tailwind is adding a light hover background on the card container (and/or one of its inner wrappers). Kill it at the source for the Quick Access panel.
+
+Paste this into your existing client/src/styles/quick-access.css
+
+(keep the rest of your rules—just add these at the end so they win)
+
+/* ===== Quick Access – remove white hover background on tiles ===== */
+
+/* Scope to the Quick Access dialog so we don’t affect other cards */
+dialog[aria-label="Quick Access"] .qa-tile,
+dialog[aria-label="Quick Access"] .card,
+dialog[aria-label="Quick Access"] [role="button"] {
+  /* your normal dark background */
+  background-color: #0c0d11 !important; /* match your theme */
+}
+
+/* Block any light hover/focus/active backgrounds coming from DaisyUI/Tailwind */
+dialog[aria-label="Quick Access"] .qa-tile:is(:hover, :focus, :active, :focus-visible),
+dialog[aria-label="Quick Access"] .card:is(:hover, :focus, :active, :focus-visible),
+dialog[aria-label="Quick Access"] [role="button"]:is(:hover, :focus, :active, :focus-visible) {
+  background-color: #0c0d11 !important; /* stay dark */
+}
+
+/* Some DaisyUI components add inner wrappers with hover bg — neutralize them too */
+dialog[aria-label="Quick Access"] .qa-tile *:is(:hover, :focus, :active, :focus-visible),
+dialog[aria-label="Quick Access"] .card *:is(:hover, :focus, :active, :focus-visible) {
+  background-color: transparent !important; /* prevent inner light sheets */
+}
+
+/* Remove rings/filters that may look like a white wash */
+dialog[aria-label="Quick Access"] .qa-tile,
+dialog[aria-label="Quick Access"] .qa-tile *,
+dialog[aria-label="Quick Access"] .card,
+dialog[aria-label="Quick Access"] .card * {
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-shadow: 0 0 #0000 !important;
+  box-shadow: none !important;
+  filter: none !important;
+  outline: 0 !important;
+}
+
+/* If any pseudo-element is injecting a light hover, nuke it */
+dialog[aria-label="Quick Access"] .qa-tile::before,
+dialog[aria-label="Quick Access"] .qa-tile::after,
+dialog[aria-label="Quick Access"] .card::before,
+dialog[aria-label="Quick Access"] .card::after {
+  content: none !important;
+}
+
+
+Then hard-refresh (Ctrl/Cmd + Shift + R).
+
+This forces the tiles and their inner wrappers to keep your dark background on hover/focus/active, eliminates white rings/filters, and prevents pseudo-element overlays from showing a light sheet. If any specific tile still ignores this, right-click it → Inspect and share the exact class on its container; I’ll add a tight selector for that one too.

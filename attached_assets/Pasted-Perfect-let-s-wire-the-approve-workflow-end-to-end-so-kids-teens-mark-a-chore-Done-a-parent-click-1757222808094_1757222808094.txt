@@ -1,0 +1,274 @@
+Perfect—let’s wire the approve workflow end-to-end so:
+
+kids/teens mark a chore Done
+
+a parent clicks Approve (+points)
+
+the chore flips to approved and a ledger entry is created
+
+Allowance balance updates immediately
+
+I’m giving you minimal, drop-in routes that match the objects we’ve been using.
+
+0) (Only if missing) Chore model + enum
+
+If your Chore model isn’t defined like this yet, make sure it has the fields below (the names match what the UI expects):
+
+// prisma/schema.prisma (ensure this exists)
+enum ChoreStatus { todo done approved }
+
+model Chore {
+  id           String      @id @default(cuid())
+  familyId     String
+  title        String
+  details      String?
+  points       Int          @default(10)
+  assigneeId   String
+  createdById  String
+  dueAt        DateTime?
+  status       ChoreStatus  @default(todo)
+  completedAt  DateTime?
+  approvedAt   DateTime?
+  completedById String?
+  approverId    String?
+
+  // relations (optional, helpful for includes)
+  assignee     FamilyMember @relation("Assignee", fields: [assigneeId], references: [id])
+  createdBy    FamilyMember @relation("Creator",  fields: [createdById], references: [id])
+
+  @@index([familyId, status, dueAt])
+}
+
+
+Run:
+
+npx prisma migrate dev -n chore_status_fields
+
+
+(If your schema already has these columns, you can skip this.)
+
+1) Routes: complete / approve / unapprove / reject
+// src/routes/chores-actions.ts
+import { Router } from "express";
+import { prisma } from "../prisma";
+import { requireAuth } from "../middleware/auth";
+
+const actions = Router({ mergeParams: true }); // mounted under /api/chores/:id
+actions.use(requireAuth);
+
+/**
+ * Helper to load a family-scoped chore by id
+ */
+async function loadChoreOr404(user: any, id: string) {
+  const c = await prisma.chore.findFirst({
+    where: { id, familyId: user.familyId },
+  });
+  if (!c) throw Object.assign(new Error("Chore not found"), { code: 404 });
+  return c;
+}
+
+/**
+ * PATCH /api/chores/:id/complete  (assignee marks done)
+ */
+actions.patch("/complete", async (req: any, res) => {
+  try {
+    const id = req.params.id as string;
+    const chore = await loadChoreOr404(req.user, id);
+
+    // Only assignee (or parent) can mark complete
+    const canComplete = req.user.id === chore.assigneeId || req.user.role === "parent";
+    if (!canComplete) return res.status(403).json({ error: "Not allowed" });
+
+    if (chore.status === "approved") return res.status(400).json({ error: "Already approved" });
+
+    const updated = await prisma.chore.update({
+      where: { id },
+      data: {
+        status: "done",
+        completedAt: new Date(),
+        completedById: req.user.id,
+      },
+    });
+    res.json(updated);
+  } catch (e: any) {
+    res.status(e.code || 500).json({ error: e.message || "Failed to complete chore" });
+  }
+});
+
+/**
+ * PATCH /api/chores/:id/approve  (parent approves -> ledger + status=approved)
+ */
+actions.patch("/approve", async (req: any, res) => {
+  try {
+    if (req.user.role !== "parent") return res.status(403).json({ error: "Parent only" });
+
+    const id = req.params.id as string;
+    const chore = await loadChoreOr404(req.user, id);
+    if (chore.status !== "done") return res.status(400).json({ error: "Chore must be marked done first" });
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Flip status
+      const updated = await tx.chore.update({
+        where: { id },
+        data: { status: "approved", approvedAt: new Date(), approverId: req.user.id },
+      });
+
+      // Credit allowance
+      await tx.allowanceLedger.create({
+        data: {
+          familyId: chore.familyId,
+          memberId: chore.assigneeId,
+          deltaPoints: chore.points,
+          reason: `Chore: ${chore.title}`,
+        },
+      });
+
+      return updated;
+    });
+
+    res.json(result);
+  } catch (e: any) {
+    res.status(e.code || 500).json({ error: e.message || "Failed to approve chore" });
+  }
+});
+
+/**
+ * PATCH /api/chores/:id/unapprove  (parent undo -> compensating ledger)
+ */
+actions.patch("/unapprove", async (req: any, res) => {
+  try {
+    if (req.user.role !== "parent") return res.status(403).json({ error: "Parent only" });
+    const id = req.params.id as string;
+    const chore = await loadChoreOr404(req.user, id);
+    if (chore.status !== "approved") return res.status(400).json({ error: "Chore is not approved" });
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Move back to done (so it can be re-approved)
+      const updated = await tx.chore.update({
+        where: { id },
+        data: { status: "done", approvedAt: null, approverId: null },
+      });
+
+      // Compensate points
+      await tx.allowanceLedger.create({
+        data: {
+          familyId: chore.familyId,
+          memberId: chore.assigneeId,
+          deltaPoints: -chore.points,
+          reason: `Reversed approval: ${chore.title}`,
+        },
+      });
+
+      return updated;
+    });
+
+    res.json(result);
+  } catch (e: any) {
+    res.status(e.code || 500).json({ error: e.message || "Failed to unapprove chore" });
+  }
+});
+
+/**
+ * PATCH /api/chores/:id/reject  (parent sends back to todo)
+ * If previously done, no ledger was created yet, so just revert status.
+ */
+actions.patch("/reject", async (req: any, res) => {
+  try {
+    if (req.user.role !== "parent") return res.status(403).json({ error: "Parent only" });
+    const id = req.params.id as string;
+    const chore = await loadChoreOr404(req.user, id);
+    if (chore.status === "approved") return res.status(400).json({ error: "Cannot reject an approved chore. Unapprove first." });
+
+    const updated = await prisma.chore.update({
+      where: { id },
+      data: { status: "todo", completedAt: null, completedById: null },
+    });
+    res.json(updated);
+  } catch (e: any) {
+    res.status(e.code || 500).json({ error: e.message || "Failed to reject chore" });
+  }
+});
+
+export default actions;
+
+
+Mount these under your existing chores router:
+
+// src/server.ts (or src/routes/chores.ts where you already app.use("/api/chores", chores))
+import choresActions from "./routes/chores-actions";
+app.use("/api/chores/:id", choresActions);
+
+
+These endpoints rely on requireAuth providing req.user = { id, familyId, role }.
+
+2) Frontend hooks (tiny)
+
+Where you have Approve/Reject/Complete buttons in ChoresCard:
+
+async function completeChore(id: string) {
+  await api(`/api/chores/${id}/complete`, { method: "PATCH" });
+  reloadAfterChange();
+}
+
+async function approveChore(id: string) {
+  await api(`/api/chores/${id}/approve`, { method: "PATCH" });
+  reloadAfterChange();
+  // Let Allowance mini refresh
+  window.dispatchEvent(new CustomEvent("allowance:reload"));
+}
+
+async function unapproveChore(id: string) {
+  await api(`/api/chores/${id}/unapprove`, { method: "PATCH" });
+  reloadAfterChange();
+  window.dispatchEvent(new CustomEvent("allowance:reload"));
+}
+
+async function rejectChore(id: string) {
+  await api(`/api/chores/${id}/reject`, { method: "PATCH" });
+  reloadAfterChange();
+}
+
+function reloadAfterChange() {
+  window.dispatchEvent(new CustomEvent("chores:reload"));
+  window.dispatchEvent(new CustomEvent("actioncenter:reload"));
+}
+
+
+And make AllowanceMini listen for live reloads:
+
+useEffect(() => {
+  const h = () => load(); // your existing load function
+  window.addEventListener("allowance:reload", h);
+  return () => window.removeEventListener("allowance:reload", h);
+}, []);
+
+
+Make ActionCenter also listen:
+
+useEffect(() => {
+  const h = () => load();
+  window.addEventListener("actioncenter:reload", h);
+  return () => window.removeEventListener("actioncenter:reload", h);
+}, []);
+
+3) Quick test (2 minutes)
+
+Log in as teen/child → mark “Dishes” Done.
+
+Log in as parent → Approve (+points).
+
+Chore status becomes approved.
+
+Allowance balance increases by chore points.
+
+Action Center pending approvals count decreases.
+
+Click Unapprove → Allowance subtracts same points; status returns to done.
+
+Click Reject (when status is done) → back to todo.
+
+4) Notes & safety
+
+We used a compensating ledger approach for unapprove (no destructive deletes).
+
+If you want strict idempotency, you can store approvalLedgerId on Chore and delete that row instead of compensating. The current approach is audit-friendly and simple.

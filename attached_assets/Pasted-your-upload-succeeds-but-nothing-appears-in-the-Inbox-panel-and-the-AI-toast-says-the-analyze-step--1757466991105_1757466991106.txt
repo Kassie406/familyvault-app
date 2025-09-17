@@ -1,0 +1,103 @@
+your upload succeeds, but nothing appears in the Inbox panel and the AI toast says the analyze step failed. That means two things aren’t wired all the way through:
+
+Post-upload registration + analysis isn’t finishing (or it’s scoped to the wrong user/ID).
+
+The Inbox drawer isn’t refreshing/pushing the new item when analysis completes.
+
+Here’s a tight, battle-tested way to make it show up in that circled “Autofill suggestions” section every time.
+
+A. After S3 PUT, call register → analyze and push to Inbox
+
+Drop these 15 lines in the handler you run when an S3 upload finishes (e.g., onUploadSuccess in Upload Center). This guarantees the new item is created server-side and shows up client-side immediately.
+
+// UploadCenter.tsx (inside your S3 success callback)
+async function onUploadSuccess(file: File, s3Key: string, userId: string) {
+  // 1) Create inbox row
+  const reg = await fetch("/api/uploads", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ userId, fileKey: s3Key, fileName: file.name })
+  }).then(r => r.json());
+
+  if (!reg?.uploadId) {
+    toast.error("Could not register upload");
+    return;
+  }
+
+  // Optional: show optimistic card in the Inbox drawer
+  inbox.addOrUpdate({ id: reg.uploadId, fileName: file.name, status: "analyzing" });
+  inbox.open();
+
+  // 2) Trigger AI analysis (server will update the inbox row)
+  const ana = await fetch(`/api/inbox/${reg.uploadId}/analyze`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ userId }) // include if your server uses user scoping
+  }).then(r => r.json());
+
+  if (ana?.error) {
+    toast.error(`AI Analysis failed: ${ana.error}`);
+    inbox.addOrUpdate({ id: reg.uploadId, status: "failed" });
+  } else {
+    inbox.addOrUpdate({
+      id: reg.uploadId,
+      fileName: file.name,
+      status: ana?.suggestion ? "suggested" : "dismissed",
+      suggestion: ana?.suggestion ?? null,
+      fields: ana?.fields ?? []
+    });
+  }
+}
+
+
+If you don’t have inbox.addOrUpdate/inbox.open, replace those with your drawer state updates or a refetch (below).
+
+B. Make the Inbox drawer show new items (push or refetch)
+
+If you don’t keep a local inbox store, do a quick refetch whenever the drawer opens or analysis finishes:
+
+async function refreshInbox() {
+  const items = await fetch("/api/inbox?limit=20").then(r => r.json());
+  setInboxItems(items); // state used by your drawer list
+}
+
+// Call refreshInbox() after analyze, and also when the Inbox icon is clicked/opened.
+
+
+This populates the “Suggestions” list just like your screenshot.
+
+C. The #1 reason items don’t appear: user/ID mismatch
+
+Your backend will return “inbox item not found” if:
+
+/api/uploads inserted user_id = A but /api/inbox/:id/analyze is reading with user_id = B (or none).
+
+The client passes the wrong uploadId.
+
+Quick server checks (add logs once):
+
+// in POST /api/uploads
+console.log("UPLOAD registered", { id, userId, fileKey });
+
+// in POST /api/inbox/:id/analyze
+console.log("ANALYZE start", { id, currentUserId });
+
+
+The id you log on upload must equal the id you log on analyze, and the userId/currentUserId must match too. If they differ, fix the auth/user scoping so both endpoints use the same user.
+
+I strongly recommend a tiny retry inside the analyze endpoint to remove race conditions (DB commit lag):
+
+// inside /api/inbox/:id/analyze
+for (let i = 0; i < 5; i++) {
+  const row = await db.selectOne(`select * from inbox_items where id=$1 and user_id=$2`, [id, currentUserId]);
+  if (row) break;
+  await new Promise(r => setTimeout(r, 150));
+}
+
+D. Minimal backend expectations
+
+POST /api/uploads: inserts { id, user_id, file_key, file_name, status:'uploaded' } and returns { uploadId:id }.
+
+POST /api/inbox/:id/analyze: finds that row for the same user_id, sets status:'suggested', saves suggestion_member_id + fields_json, returns { suggestion, fields }.
+
+If those exist and you run the client code in (A) + (B), your new upload will appear in the Inbox panel’s Suggestions list with “Open” and “Details” exactly like your mock.

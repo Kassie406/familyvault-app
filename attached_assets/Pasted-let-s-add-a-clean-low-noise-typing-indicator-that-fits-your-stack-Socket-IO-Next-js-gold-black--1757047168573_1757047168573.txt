@@ -1,0 +1,164 @@
+let’s add a clean, low-noise typing indicator that fits your stack (Socket.IO + Next.js, gold/black theme).
+
+Below is everything you need:
+
+1) Server (Socket.IO) — emit typing state
+
+Add these handlers where you wire presence/threads:
+
+// server/socket typing wiring (add to your io.on('connection', ...) block)
+type TypingPayload = { threadId: string; isTyping: boolean };
+
+io.on("connection", (socket) => {
+  // ...existing presence + thread join code...
+
+  socket.on("typing", ({ threadId, isTyping }: TypingPayload) => {
+    // do not echo to sender; only others in the thread
+    socket.to(`thread:${threadId}`).emit("typing", {
+      userId: (socket.handshake.auth?.user?.id as string) || "unknown",
+      threadId,
+      isTyping: !!isTyping,
+    });
+  });
+});
+
+
+Security tip: ensure the socket handshake includes an authenticated user id (you already do that in presence).
+
+2) Client hook — emit debounced typing, listen for others
+
+Create a simple React hook to attach to your composer:
+
+// hooks/useTyping.ts
+import { useEffect, useRef, useState } from "react";
+import io, { Socket } from "socket.io-client";
+
+type TypingEvent = { userId: string; threadId: string; isTyping: boolean };
+
+export function useTyping(threadId: string, selfUser: { id: string; familyId: string }) {
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const socketRef = useRef<Socket | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const s = io("/", { path: "/ws", auth: { user: { id: selfUser.id, familyId: selfUser.familyId } } });
+    socketRef.current = s;
+    // join the thread room so we can receive typing signals
+    s.emit("thread:join", { threadId });
+
+    // when others type
+    const onTyping = ({ userId, threadId: tId, isTyping }: TypingEvent) => {
+      if (tId !== threadId || userId === selfUser.id) return;
+      setTypingUsers(prev => {
+        const next = new Set(prev);
+        if (isTyping) next.add(userId);
+        else next.delete(userId);
+        return next;
+      });
+    };
+    s.on("typing", onTyping);
+
+    return () => {
+      s.off("typing", onTyping);
+      s.emit("thread:leave", { threadId });
+      s.disconnect();
+    };
+  }, [threadId, selfUser.id, selfUser.familyId]);
+
+  // call this from your textarea onChange/onKeyDown
+  const notifyTyping = () => {
+    // burst-protect: send immediate "true", then schedule auto "false" after idle
+    socketRef.current?.emit("typing", { threadId, isTyping: true });
+
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      socketRef.current?.emit("typing", { threadId, isTyping: false });
+    }, 1500); // 1.5s idle window
+  };
+
+  // on send/blur, force stop
+  const stopTyping = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    socketRef.current?.emit("typing", { threadId, isTyping: false });
+  };
+
+  return { typingUsers, notifyTyping, stopTyping };
+}
+
+3) UI component — gold-accent typing bar
+// components/messages/TypingBar.tsx
+export function TypingBar({
+  names,
+}: {
+  names: string[]; // already resolved display names (exclude me)
+}) {
+  if (names.length === 0) return null;
+
+  const label =
+    names.length === 1 ? `${names[0]} is typing…` :
+    names.length === 2 ? `${names[0]} and ${names[1]} are typing…` :
+    `${names[0]}, ${names[1]} and others are typing…`;
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 text-xs border-t border-white/10 bg-black/40">
+      <span className="inline-block h-2 w-2 rounded-full bg-[#D4AF37] animate-pulse" />
+      <span className="text-white/70">{label}</span>
+    </div>
+  );
+}
+
+4) Plug into your MessagesPage
+
+Assuming you already load thread members (memberIds + memberNames) and you have selfUser:
+
+// inside MessagesPage.tsx (or page component)
+import { useTyping } from "@/hooks/useTyping";
+import { TypingBar } from "@/components/messages/TypingBar";
+
+// after you know threadId, selfUser, familyId:
+const { typingUsers, notifyTyping, stopTyping } = useTyping(threadId, selfUser);
+
+// map typing userIds -> names (excluding me)
+const typingNames = (threadMembers || [])
+  .filter(m => typingUsers.has(m.id) && m.id !== selfUser.id)
+  .map(m => m.name ?? m.id);
+
+// In your JSX:
+
+{/* Header (already present) */}
+// ...
+
+{/* Messages list here */}
+// ...
+
+{/* Typing indicator, sits above composer */}
+<TypingBar names={typingNames} />
+
+{/* Composer textarea: wire notifyTyping on change/keydown; stopTyping on blur or send */}
+<textarea
+  value={text}
+  onChange={(e) => { setText(e.target.value); notifyTyping(); }}
+  onKeyDown={() => notifyTyping()}
+  onBlur={() => stopTyping()}
+  // ... your styling ...
+/>
+
+<button
+  onClick={async () => {
+    await send();   // your existing send flow
+    stopTyping();   // ensure indicator clears for others
+  }}
+  // ...
+>
+  Send
+</button>
+
+Behavior & best practices
+
+Debounced off: Users who pause >1.5s automatically stop “typing”.
+
+No self-echo: You never see yourself in the list.
+
+Low traffic: This design sends at most 1 “true” burst per keystroke cluster and 1 “false” after idle—no constant spam.
+
+Privacy: “Typing” is ephemeral; we don’t store it in DB.

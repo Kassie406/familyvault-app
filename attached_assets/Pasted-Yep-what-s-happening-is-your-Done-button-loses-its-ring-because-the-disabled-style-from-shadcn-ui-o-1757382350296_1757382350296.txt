@@ -1,0 +1,65 @@
+Yep—what’s happening is your Done button loses its ring because the disabled style (from shadcn/ui or Tailwind utilities) removes focus/hover rings and lowers opacity. Keep the ring always by styling the ring unconditionally (not only on focus-visible) and overriding the disabled opacity.
+
+Drop this on the Done button:
+
+<button
+  type="button"
+  disabled={!editing} // or however you toggle it
+  className={[
+    // shape + base
+    "rounded-full px-4 py-2 font-medium",
+    // gold fill when active
+    editing ? "bg-[#c5a000] text-black" : "bg-transparent text-zinc-400",
+    // 🟡 ALWAYS-ON ring (not focus-only)
+    "ring-2 ring-[#c5a000] ring-offset-2 ring-offset-[#0c0c0f]",
+    // subtle glow
+    "shadow-[0_0_0_3px_rgba(197,160,0,0.22)]",
+    // don't fade when disabled
+    "disabled:opacity-100 disabled:cursor-default",
+  ].join(" ")}
+>
+  Done
+</button>
+
+
+If you’re using the shadcn <Button />, either pass the classes above via className, or add a gold variant so the ring persists even when disabled:
+
+// components/ui/button.tsx
+const buttonVariants = cva(
+  "inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm transition",
+  {
+    variants: {
+      variant: {
+        gold: [
+          "px-4 py-2 font-medium",
+          "ring-2 ring-[#c5a000] ring-offset-2 ring-offset-[#0c0c0f]",
+          "shadow-[0_0_0_3px_rgba(197,160,0,0.22)]",
+          "data-[state=on]:bg-[#c5a000] data-[state=on]:text-black",
+          "data-[state=off]:bg-transparent data-[state=off]:text-zinc-400",
+          "disabled:opacity-100 disabled:cursor-default", // keep ring + opacity
+        ].join(" "),
+      },
+    },
+    defaultVariants: { variant: "gold" },
+  }
+);
+
+
+Then:
+
+<Button variant="gold" disabled={!editing} data-state={editing ? "on" : "off"}>
+  Done
+</Button>
+
+
+Key points:
+
+Use ring-2 ring-[#c5a000] without focus-* so it’s always visible.
+
+Keep a contrasting ring-offset-* so the ring reads on dark backgrounds.
+
+Override shadcn’s default disabled:opacity-50 with disabled:opacity-100.
+
+Optional glow via shadow-[...] if you want that soft halo.
+
+This will keep the yellow circle visible in both states—gold-filled when editing, outlined when not—exactly like your reference.

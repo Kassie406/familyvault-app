@@ -1,0 +1,640 @@
+// Complete Backend API Structure for Trustworthy Workflow
+// Based on video analysis - exact backend implementation
+
+const express = require('express');
+const multer = require('multer');
+const AWS = require('aws-sdk');
+const mysql = require('mysql2/promise');
+const sharp = require('sharp');
+const path = require('path');
+
+const app = express();
+
+// AWS Configuration
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION
+});
+
+const textract = new AWS.Textract({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION
+});
+
+// Database Configuration
+const dbConfig = {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
+};
+
+// Multer Configuration for File Upload
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type'), false);
+    }
+  }
+});
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// 1. FILE UPLOAD ENDPOINT - From Video Step 1
+app.post('/api/upload', upload.single('file'), async (req, res) => {
+  try {
+    const { familyId } = req.body;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ success: false, error: 'No file provided' });
+    }
+
+    // Generate unique file ID
+    const fileId = generateFileId();
+    const fileExtension = path.extname(file.originalname);
+    const fileName = `${fileId}${fileExtension}`;
+
+    // Upload to S3
+    const s3Params = {
+      Bucket: process.env.S3_BUCKET,
+      Key: `documents/${familyId}/${fileName}`,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+      ACL: 'private'
+    };
+
+    const s3Result = await s3.upload(s3Params).promise();
+
+    // Generate thumbnail
+    const thumbnailUrl = await generateThumbnail(file, familyId, fileId);
+
+    // Save to database
+    const connection = await mysql.createConnection(dbConfig);
+    
+    const insertQuery = `
+      INSERT INTO documents (
+        id, family_id, filename, original_filename, file_url, thumbnail_url,
+        file_size, mime_type, analysis_status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+    `;
+
+    await connection.execute(insertQuery, [
+      fileId,
+      familyId,
+      fileName,
+      file.originalname,
+      s3Result.Location,
+      thumbnailUrl,
+      file.size,
+      file.mimetype
+    ]);
+
+    await connection.end();
+
+    // Return upload result (for LEFT sidebar display)
+    res.json({
+      success: true,
+      data: {
+        id: fileId,
+        filename: file.originalname,
+        thumbnail: thumbnailUrl,
+        uploadTime: new Date(),
+        size: file.size,
+        type: file.mimetype
+      }
+    });
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 2. AI ANALYSIS ENDPOINT - From Video Step 2 (Lightning Bolt)
+app.post('/api/analyze-document', async (req, res) => {
+  try {
+    const { fileId } = req.body;
+
+    // Get document from database
+    const connection = await mysql.createConnection(dbConfig);
+    const [documents] = await connection.execute(
+      'SELECT * FROM documents WHERE id = ?',
+      [fileId]
+    );
+
+    if (documents.length === 0) {
+      return res.status(404).json({ success: false, error: 'Document not found' });
+    }
+
+    const document = documents[0];
+
+    // Update status to processing
+    await connection.execute(
+      'UPDATE documents SET analysis_status = ? WHERE id = ?',
+      ['processing', fileId]
+    );
+
+    // Perform AI analysis using AWS Textract
+    const analysisResult = await performDocumentAnalysis(document.file_url);
+
+    // Identify person from extracted data
+    const personMatch = await identifyPersonFromData(analysisResult.extractedFields, connection);
+
+    // Generate smart filename suggestion
+    const suggestedFilename = generateSmartFilename(
+      analysisResult.documentType,
+      personMatch,
+      analysisResult.extractedFields
+    );
+
+    // Complete analysis result (for lightning bolt display)
+    const completeResult = {
+      extractedFields: analysisResult.extractedFields,
+      documentType: analysisResult.documentType,
+      confidence: analysisResult.confidence,
+      identifiedPerson: personMatch,
+      suggestedFilename: suggestedFilename,
+      documentCategory: categorizeDocument(analysisResult.documentType)
+    };
+
+    // Save analysis result
+    const analysisInsertQuery = `
+      INSERT INTO document_analysis (
+        id, document_id, extracted_fields, confidence_scores, 
+        person_matches, suggested_filename, document_type
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    await connection.execute(analysisInsertQuery, [
+      generateAnalysisId(),
+      fileId,
+      JSON.stringify(completeResult.extractedFields),
+      JSON.stringify({ overall: completeResult.confidence }),
+      JSON.stringify(personMatch),
+      suggestedFilename,
+      analysisResult.documentType
+    ]);
+
+    // Update document status
+    await connection.execute(
+      'UPDATE documents SET analysis_status = ?, analysis_result = ? WHERE id = ?',
+      ['completed', JSON.stringify(completeResult), fileId]
+    );
+
+    await connection.end();
+
+    res.json({
+      success: true,
+      data: completeResult
+    });
+
+  } catch (error) {
+    console.error('Analysis error:', error);
+    
+    // Update status to failed
+    const connection = await mysql.createConnection(dbConfig);
+    await connection.execute(
+      'UPDATE documents SET analysis_status = ? WHERE id = ?',
+      ['failed', req.body.fileId]
+    );
+    await connection.end();
+
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 3. FILENAME UPDATE ENDPOINT - From Video Step 3 (Accept/Dismiss)
+app.put('/api/documents/:id/filename', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { filename } = req.body;
+
+    const connection = await mysql.createConnection(dbConfig);
+    
+    await connection.execute(
+      'UPDATE documents SET filename = ? WHERE id = ?',
+      [filename, id]
+    );
+
+    await connection.end();
+
+    res.json({ success: true, message: 'Filename updated successfully' });
+
+  } catch (error) {
+    console.error('Filename update error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 4. FAMILY MEMBER ENDPOINTS - From Video Step 4 (Profile Routing)
+app.get('/api/family-members/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const connection = await mysql.createConnection(dbConfig);
+    const [members] = await connection.execute(
+      'SELECT * FROM family_members WHERE id = ?',
+      [id]
+    );
+
+    if (members.length === 0) {
+      return res.status(404).json({ success: false, error: 'Family member not found' });
+    }
+
+    // Get associated documents
+    const [documents] = await connection.execute(
+      'SELECT * FROM documents WHERE assigned_to_person = ? ORDER BY upload_date DESC',
+      [id]
+    );
+
+    await connection.end();
+
+    const familyMember = members[0];
+    familyMember.documents = documents;
+
+    res.json({ success: true, data: familyMember });
+
+  } catch (error) {
+    console.error('Family member fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/family-members/:id/documents', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { documentId, documentSection } = req.body;
+
+    const connection = await mysql.createConnection(dbConfig);
+    
+    // Assign document to family member
+    await connection.execute(
+      'UPDATE documents SET assigned_to_person = ?, document_category = ? WHERE id = ?',
+      [id, documentSection, documentId]
+    );
+
+    await connection.end();
+
+    res.json({ success: true, message: 'Document assigned to family member' });
+
+  } catch (error) {
+    console.error('Document assignment error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// AI ANALYSIS FUNCTIONS
+
+async function performDocumentAnalysis(fileUrl) {
+  try {
+    // Extract S3 key from URL
+    const s3Key = extractS3KeyFromUrl(fileUrl);
+
+    // Call AWS Textract
+    const textractParams = {
+      Document: {
+        S3Object: {
+          Bucket: process.env.S3_BUCKET,
+          Name: s3Key
+        }
+      },
+      FeatureTypes: ['FORMS', 'TABLES']
+    };
+
+    const textractResult = await textract.analyzeDocument(textractParams).promise();
+
+    // Extract text and form data
+    const extractedText = extractTextFromTextract(textractResult);
+    const formData = extractFormDataFromTextract(textractResult);
+
+    // Classify document type
+    const documentType = classifyDocumentType(extractedText);
+
+    // Extract structured fields based on document type
+    const extractedFields = extractStructuredFields(extractedText, formData, documentType);
+
+    // Calculate confidence
+    const confidence = calculateOverallConfidence(extractedFields);
+
+    return {
+      extractedFields,
+      documentType,
+      confidence,
+      rawTextractResult: textractResult
+    };
+
+  } catch (error) {
+    console.error('Textract analysis error:', error);
+    throw error;
+  }
+}
+
+function classifyDocumentType(text) {
+  const upperText = text.toUpperCase();
+
+  if (upperText.includes('SOCIAL SECURITY')) {
+    return 'Social Security Card';
+  } else if (upperText.includes('DRIVER') && upperText.includes('LICENSE')) {
+    return 'Driver License';
+  } else if (upperText.includes('PASSPORT')) {
+    return 'Passport';
+  } else if (upperText.includes('BIRTH') && upperText.includes('CERTIFICATE')) {
+    return 'Birth Certificate';
+  } else if (upperText.includes('INSURANCE')) {
+    return 'Insurance Document';
+  }
+
+  return 'Unknown Document';
+}
+
+function extractStructuredFields(text, formData, documentType) {
+  const fields = [];
+
+  switch (documentType) {
+    case 'Social Security Card':
+      // Extract name (usually in all caps)
+      const nameMatch = text.match(/([A-Z\s]{2,})/g);
+      if (nameMatch) {
+        const potentialNames = nameMatch.filter(name => 
+          name.trim().length > 2 && 
+          !name.includes('SOCIAL') && 
+          !name.includes('SECURITY') &&
+          !name.includes('CARD')
+        );
+        if (potentialNames.length > 0) {
+          fields.push({
+            key: 'Person Name',
+            value: potentialNames[0].trim(),
+            confidence: 95
+          });
+        }
+      }
+
+      // Extract SSN
+      const ssnMatch = text.match(/(\d{3}[-\s]?\d{2}[-\s]?\d{4})/);
+      if (ssnMatch) {
+        fields.push({
+          key: 'Social Security Number',
+          value: ssnMatch[1].replace(/\s/g, '-'),
+          confidence: 92
+        });
+      }
+      break;
+
+    case 'Driver License':
+      // Extract name
+      const dlNameMatch = text.match(/(?:NAME|LN|LAST NAME)[:\s]*([A-Z\s,]+)/i);
+      if (dlNameMatch) {
+        fields.push({
+          key: 'Full Name',
+          value: dlNameMatch[1].trim(),
+          confidence: 88
+        });
+      }
+
+      // Extract license number
+      const licenseMatch = text.match(/(?:DL|LICENSE|LIC)[#\s]*([A-Z0-9]+)/i);
+      if (licenseMatch) {
+        fields.push({
+          key: 'License Number',
+          value: licenseMatch[1],
+          confidence: 90
+        });
+      }
+
+      // Extract DOB
+      const dobMatch = text.match(/(?:DOB|BIRTH)[:\s]*(\d{1,2}\/\d{1,2}\/\d{4})/i);
+      if (dobMatch) {
+        fields.push({
+          key: 'Date of Birth',
+          value: dobMatch[1],
+          confidence: 85
+        });
+      }
+      break;
+
+    // Add more document types as needed
+  }
+
+  return fields;
+}
+
+async function identifyPersonFromData(extractedFields, connection) {
+  try {
+    // Find name field
+    const nameField = extractedFields.find(field => 
+      field.key.toLowerCase().includes('name')
+    );
+
+    if (!nameField) {
+      return null;
+    }
+
+    const extractedName = nameField.value;
+
+    // Search for existing family members
+    const [existingMembers] = await connection.execute(
+      'SELECT * FROM family_members WHERE UPPER(name) LIKE ?',
+      [`%${extractedName.toUpperCase()}%`]
+    );
+
+    if (existingMembers.length > 0) {
+      const bestMatch = existingMembers[0];
+      return {
+        id: bestMatch.id,
+        name: bestMatch.name,
+        category: 'Family IDs',
+        subcategory: 'Family Member',
+        matchConfidence: calculateNameSimilarity(extractedName, bestMatch.name),
+        isExisting: true
+      };
+    }
+
+    // Suggest new family member
+    return {
+      id: null,
+      name: formatName(extractedName),
+      category: 'Family IDs',
+      subcategory: 'Family Member',
+      matchConfidence: 0,
+      isExisting: false,
+      isNew: true
+    };
+
+  } catch (error) {
+    console.error('Person identification error:', error);
+    return null;
+  }
+}
+
+function generateSmartFilename(documentType, personMatch, extractedFields) {
+  if (personMatch && documentType) {
+    return `${documentType} ${personMatch.name}`;
+  }
+
+  if (documentType) {
+    const dateStr = new Date().toISOString().split('T')[0];
+    return `${documentType} ${dateStr}`;
+  }
+
+  return `Document ${new Date().toISOString().split('T')[0]}`;
+}
+
+function categorizeDocument(documentType) {
+  const categoryMap = {
+    'Social Security Card': 'identity_document',
+    'Driver License': 'identity_document',
+    'Passport': 'identity_document',
+    'Birth Certificate': 'vital_record',
+    'Insurance Document': 'insurance'
+  };
+
+  return categoryMap[documentType] || 'general_document';
+}
+
+// UTILITY FUNCTIONS
+
+async function generateThumbnail(file, familyId, fileId) {
+  try {
+    if (file.mimetype.startsWith('image/')) {
+      // Generate thumbnail for images
+      const thumbnailBuffer = await sharp(file.buffer)
+        .resize(200, 200, { fit: 'cover' })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+
+      // Upload thumbnail to S3
+      const thumbnailParams = {
+        Bucket: process.env.S3_BUCKET,
+        Key: `thumbnails/${familyId}/${fileId}_thumb.jpg`,
+        Body: thumbnailBuffer,
+        ContentType: 'image/jpeg',
+        ACL: 'private'
+      };
+
+      const thumbnailResult = await s3.upload(thumbnailParams).promise();
+      return thumbnailResult.Location;
+    }
+
+    // For PDFs and other documents, return a default thumbnail
+    return '/default-document-thumbnail.png';
+
+  } catch (error) {
+    console.error('Thumbnail generation error:', error);
+    return '/default-document-thumbnail.png';
+  }
+}
+
+function generateFileId() {
+  return 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+function generateAnalysisId() {
+  return 'analysis_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+function extractS3KeyFromUrl(url) {
+  const urlParts = url.split('/');
+  return urlParts.slice(3).join('/'); // Remove protocol and domain
+}
+
+function extractTextFromTextract(textractResult) {
+  let text = '';
+  
+  if (textractResult.Blocks) {
+    textractResult.Blocks.forEach(block => {
+      if (block.BlockType === 'LINE') {
+        text += block.Text + ' ';
+      }
+    });
+  }
+  
+  return text.trim();
+}
+
+function extractFormDataFromTextract(textractResult) {
+  const formData = {};
+  
+  if (textractResult.Blocks) {
+    textractResult.Blocks.forEach(block => {
+      if (block.BlockType === 'KEY_VALUE_SET' && block.EntityTypes.includes('KEY')) {
+        // Extract form key-value pairs
+        // This is a simplified version - full implementation would be more complex
+      }
+    });
+  }
+  
+  return formData;
+}
+
+function calculateOverallConfidence(extractedFields) {
+  if (extractedFields.length === 0) return 0;
+  
+  const totalConfidence = extractedFields.reduce((sum, field) => sum + field.confidence, 0);
+  return Math.round(totalConfidence / extractedFields.length);
+}
+
+function calculateNameSimilarity(name1, name2) {
+  // Simple similarity calculation - could be enhanced with more sophisticated algorithms
+  const n1 = name1.toLowerCase().trim();
+  const n2 = name2.toLowerCase().trim();
+  
+  if (n1 === n2) return 100;
+  
+  // Check if one name contains the other
+  if (n1.includes(n2) || n2.includes(n1)) return 85;
+  
+  // Basic word matching
+  const words1 = n1.split(' ');
+  const words2 = n2.split(' ');
+  let matches = 0;
+  
+  words1.forEach(word1 => {
+    words2.forEach(word2 => {
+      if (word1 === word2 && word1.length > 2) {
+        matches++;
+      }
+    });
+  });
+  
+  const similarity = (matches / Math.max(words1.length, words2.length)) * 100;
+  return Math.round(similarity);
+}
+
+function formatName(rawName) {
+  return rawName
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+    .trim();
+}
+
+// Error handling middleware
+app.use((error, req, res, next) => {
+  console.error('API Error:', error);
+  res.status(500).json({ 
+    success: false, 
+    error: 'Internal server error',
+    message: error.message 
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Trustworthy API server running on port ${PORT}`);
+});
+
+module.exports = app;

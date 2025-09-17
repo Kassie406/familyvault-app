@@ -1,0 +1,358 @@
+Consent History Drawer (per-user ledger timeline + effective view)
+
+DSAR Details Drawer (status machine + timeline + quick actions)
+
+They’re self-contained (HTML + scoped CSS + JS). Endpoints they call:
+
+GET /api/gdpr/consents/:user_id/events
+
+GET /api/gdpr/consents/:user_id/effective
+
+GET /api/gdpr/requests/:id
+
+GET /api/gdpr/requests/:id/timeline
+
+PATCH /api/gdpr/requests/:id (status/notes)
+
+POST /api/gdpr/requests/:id/verify
+
+POST /api/gdpr/requests/:id/export
+
+POST /api/gdpr/requests/:id/complete
+
+A) Consent History Drawer
+HTML
+<!-- Backdrop -->
+<div id="consent-hist-backdrop" class="gdpr-backdrop" hidden></div>
+
+<!-- Drawer -->
+<aside id="consent-hist" class="gdpr-drawer" role="dialog" aria-modal="true" aria-labelledby="ch-title" hidden>
+  <header class="gdpr-head">
+    <div>
+      <div class="eyebrow">Privacy</div>
+      <h3 id="ch-title">Consent History</h3>
+      <div class="subtle">User: <span id="ch-user"></span></div>
+    </div>
+    <button id="ch-close" class="icon-x" aria-label="Close">✖</button>
+  </header>
+
+  <div class="gdpr-body">
+    <div class="grid-3">
+      <div class="kpi-box">
+        <div class="kpi-title">Analytics</div>
+        <div id="eff-analytics" class="badge">—</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-title">Marketing</div>
+        <div id="eff-marketing" class="badge">—</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-title">Product Updates</div>
+        <div id="eff-updates" class="badge">—</div>
+      </div>
+    </div>
+
+    <h4 class="mt-10">Event Ledger</h4>
+    <table class="table" id="ch-table">
+      <thead>
+        <tr><th>When</th><th>Purpose</th><th>Status</th><th>Method</th><th>Source</th><th>Meta</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <footer class="gdpr-foot">
+    <div class="muted">Immutable append-only ledger; server adds IP and user agent.</div>
+    <div class="right"><button class="btn ghost" id="ch-close2">Close</button></div>
+  </footer>
+</aside>
+
+CSS (uses the same base classes you already added)
+.kpi-box{border:1px solid #E5EAF2;border-radius:12px;padding:10px 12px;background:#fff}
+.kpi-title{font-size:12px;color:#667085;margin-bottom:6px}
+.badge{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:600}
+.badge-ok{background:#E8F6EE;color:#1B7F3B}
+.badge-no{background:#FEECEC;color:#B42318}
+.badge-na{background:#F2F4F7;color:#475467}
+
+JS
+<script>
+(function(){
+  const bd = document.getElementById('consent-hist-backdrop');
+  const dr = document.getElementById('consent-hist');
+  const closeA = document.getElementById('ch-close');
+  const closeB = document.getElementById('ch-close2');
+  const tb = document.getElementById('ch-table').querySelector('tbody');
+
+  function pill(el, val){
+    const cls = val===true ? 'badge-ok' : val===false ? 'badge-no' : 'badge-na';
+    el.className = 'badge ' + cls;
+    el.textContent = val===true ? 'Granted' : val===false ? 'Denied' : '—';
+  }
+
+  async function fetchJSON(url){
+    const r = await fetch(url);
+    if(!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
+
+  async function loadConsents(userId){
+    document.getElementById('ch-user').textContent = userId;
+
+    // Effective
+    try{
+      const eff = await fetchJSON(`/api/gdpr/consents/${encodeURIComponent(userId)}/effective`);
+      pill(document.getElementById('eff-analytics'), !!eff.analytics);
+      pill(document.getElementById('eff-marketing'), !!eff.marketing);
+      pill(document.getElementById('eff-updates')  , !!eff.updates);
+    }catch{ pill(eff-analytics,null); pill(eff-marketing,null); pill(eff-updates,null); }
+
+    // Events ledger
+    tb.innerHTML = '';
+    const rows = await fetchJSON(`/api/gdpr/consents/${encodeURIComponent(userId)}/events`);
+    for(const e of rows){
+      const tr = document.createElement('tr');
+      const when = new Date(e.occurred_at).toLocaleString();
+      tr.innerHTML = `
+        <td>${when}</td>
+        <td>${e.purpose}</td>
+        <td>${e.status}</td>
+        <td>${e.method}</td>
+        <td>${e.source}</td>
+        <td>${e.meta ? JSON.stringify(e.meta) : ''}</td>
+      `;
+      tb.appendChild(tr);
+    }
+  }
+
+  function openConsentHistory(userId){
+    bd.hidden=false; dr.hidden=false;
+    requestAnimationFrame(()=>dr.classList.add('open'));
+    loadConsents(userId).catch(err=>alert('Failed to load: '+err.message));
+  }
+  function closeConsentHistory(){ dr.classList.remove('open'); setTimeout(()=>{bd.hidden=true; dr.hidden=true;},180); }
+  window.openConsentHistory = openConsentHistory;
+
+  [bd, closeA, closeB].forEach(n=>n.addEventListener('click', closeConsentHistory));
+  dr.addEventListener('keydown', e=>{ if(e.key==='Escape') closeConsentHistory(); });
+})();
+</script>
+
+
+Usage
+
+// e.g. from a user row action:
+openConsentHistory('u_123');
+
+B) DSAR Details Drawer (timeline + status machine)
+HTML
+<div id="dsar-det-backdrop" class="gdpr-backdrop" hidden></div>
+
+<aside id="dsar-det" class="gdpr-drawer" role="dialog" aria-modal="true" aria-labelledby="dd-title" hidden>
+  <header class="gdpr-head">
+    <div>
+      <div class="eyebrow">GDPR</div>
+      <h3 id="dd-title">Request <span id="dd-id"></span></h3>
+      <div class="subtle">Subject: <span id="dd-subject"></span></div>
+    </div>
+    <button id="dd-close" class="icon-x" aria-label="Close">✖</button>
+  </header>
+
+  <div class="gdpr-body">
+    <!-- Status block -->
+    <div class="grid-3">
+      <div class="kpi-box">
+        <div class="kpi-title">Type</div>
+        <div id="dd-type" class="badge badge-na">—</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-title">Status</div>
+        <div id="dd-status" class="badge badge-na">—</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-title">Due</div>
+        <div id="dd-due" class="badge badge-na">—</div>
+      </div>
+    </div>
+
+    <div class="mt-10"></div>
+
+    <div class="grid-3">
+      <div>
+        <label class="lbl">Change Status</label>
+        <select id="dd-status-select">
+          <option value="open">open</option>
+          <option value="id_pending">id_pending</option>
+          <option value="in_progress">in_progress</option>
+          <option value="awaiting_subject">awaiting_subject</option>
+          <option value="completed">completed</option>
+          <option value="rejected">rejected</option>
+        </select>
+      </div>
+      <div>
+        <label class="lbl">Note</label>
+        <input id="dd-note" placeholder="Internal note (optional)">
+      </div>
+      <div class="flex-end">
+        <button id="dd-save" class="btn">Save</button>
+      </div>
+    </div>
+
+    <hr class="sep">
+
+    <!-- Quick actions -->
+    <div class="grid-3">
+      <button id="dd-verify" class="btn">Send Verify Link</button>
+      <button id="dd-export" class="btn">Generate Export</button>
+      <button id="dd-complete" class="btn primary">Mark Completed</button>
+    </div>
+
+    <h4 class="mt-10">Timeline</h4>
+    <ul id="dd-timeline" class="timeline"></ul>
+  </div>
+
+  <footer class="gdpr-foot">
+    <div class="muted">All changes are added to the tamper-evident audit trail.</div>
+    <div class="right"><button id="dd-close2" class="btn ghost">Close</button></div>
+  </footer>
+</aside>
+
+CSS
+.flex-end{display:flex;align-items:end;height:100%;justify-content:flex-end}
+.timeline{list-style:none;padding:0;margin:0;border-left:2px solid #E5EAF2;margin-left:10px}
+.timeline li{position:relative;padding:8px 12px 8px 18px}
+.timeline li::before{content:"";position:absolute;left:-6px;top:14px;width:10px;height:10px;background:#1F6FEB;border-radius:50%}
+.timeline .time{color:#667085;font-size:12px}
+.timeline .ev{color:#111827;font-weight:600}
+.timeline .meta{color:#475467}
+
+JS
+<script>
+(function(){
+  const bd = document.getElementById('dsar-det-backdrop');
+  const dr = document.getElementById('dsar-det');
+
+  const el = id => document.getElementById(id);
+  const badge = (node, text, cls='badge-na') => { node.className='badge '+cls; node.textContent=text; };
+
+  function asStatusBadge(st){
+    if(st==='completed') return 'badge-ok';
+    if(st==='rejected')  return 'badge-no';
+    if(st==='open' || st==='id_pending' || st==='in_progress' || st==='awaiting_subject') return 'badge';
+    return 'badge-na';
+  }
+
+  async function j(url, opts){ const r = await fetch(url, opts); if(!r.ok) throw new Error(await r.text()); return r.json(); }
+
+  async function loadDsar(id){
+    const data = await j(`/api/gdpr/requests/${encodeURIComponent(id)}`);
+    const tl   = await j(`/api/gdpr/requests/${encodeURIComponent(id)}/timeline`);
+
+    el('dd-id').textContent = data.id;
+    el('dd-type').textContent = data.type;
+    el('dd-type').className = 'badge';
+    badge(el('dd-status'), data.status, asStatusBadge(data.status));
+    badge(el('dd-due'), new Date(data.due_at).toLocaleDateString(), 'badge');
+
+    const subj = data.subject_user_id ? data.subject_user_id : (data.subject_email || '—');
+    el('dd-subject').textContent = subj;
+
+    el('dd-status-select').value = data.status;
+    el('dd-note').value = '';
+
+    const UL = el('dd-timeline'); UL.innerHTML='';
+    for(const ev of tl){
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <div class="time">${new Date(ev.at).toLocaleString()}</div>
+        <div class="ev">${ev.event}</div>
+        <div class="meta">${ev.actor ? 'by '+ev.actor+' ' : ''}${ev.note ? '• '+ev.note : ''}</div>
+      `;
+      UL.appendChild(li);
+    }
+  }
+
+  function openDsarDetails(id){
+    bd.hidden=false; dr.hidden=false;
+    requestAnimationFrame(()=>dr.classList.add('open'));
+    loadDsar(id).catch(err=>alert('Failed to load: '+err.message));
+  }
+  function closeDsarDetails(){ dr.classList.remove('open'); setTimeout(()=>{bd.hidden=true; dr.hidden=true;},180); }
+  window.openDsarDetails = openDsarDetails;
+
+  // Close
+  ['dd-close','dd-close2','dsar-det-backdrop'].forEach(x=>{
+    const n = document.getElementById(x);
+    n && n.addEventListener('click', closeDsarDetails);
+  });
+  dr.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDsarDetails(); });
+
+  // Save status/notes
+  el('dd-save').addEventListener('click', async ()=>{
+    const id = el('dd-id').textContent;
+    const status = el('dd-status-select').value;
+    const note = el('dd-note').value.trim();
+    try{
+      await j(`/api/gdpr/requests/${encodeURIComponent(id)}`, {
+        method:'PATCH', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ status, notes: note || undefined })
+      });
+      await loadDsar(id);
+      alert('Saved');
+    }catch(err){ alert('Failed to save: '+err.message); }
+  });
+
+  // Quick actions
+  el('dd-verify').addEventListener('click', async ()=>{
+    const id = el('dd-id').textContent;
+    try{ await j(`/api/gdpr/requests/${encodeURIComponent(id)}/verify`, { method:'POST' });
+         alert('Verification link sent'); }
+    catch(err){ alert('Failed: '+err.message); }
+  });
+
+  el('dd-export').addEventListener('click', async ()=>{
+    const id = el('dd-id').textContent;
+    try{ const r = await j(`/api/gdpr/requests/${encodeURIComponent(id)}/export`, { method:'POST' });
+         alert('Export started. You will receive a download link.'); }
+    catch(err){ alert('Failed: '+err.message); }
+  });
+
+  el('dd-complete').addEventListener('click', async ()=>{
+    const id = el('dd-id').textContent;
+    if(!confirm('Mark this request as completed?')) return;
+    try{ await j(`/api/gdpr/requests/${encodeURIComponent(id)}/complete`, { method:'POST' });
+         await loadDsar(id); alert('Marked completed'); }
+    catch(err){ alert('Failed: '+err.message); }
+  });
+})();
+</script>
+
+
+Usage
+
+// e.g. click on a row in your DSAR table:
+openDsarDetails('dsr_01H9Q…');
+
+Server shape these components expect (quick recap)
+
+Consent
+
+GET /api/gdpr/consents/:user_id/effective → { analytics: true|false|null, marketing: …, updates: … }
+
+GET /api/gdpr/consents/:user_id/events → [{purpose,status,method,source,occurred_at,meta}]
+
+DSAR
+
+GET /api/gdpr/requests/:id → { id,type,status,opened_at,due_at,subject_user_id,subject_email }
+
+GET /api/gdpr/requests/:id/timeline → [{ at, event, actor, note }]
+
+PATCH /api/gdpr/requests/:id → accepts { status, notes }
+
+POST /api/gdpr/requests/:id/verify → sends verify email/link
+
+POST /api/gdpr/requests/:id/export → kicks off export, returns { job_id } or { url }
+
+POST /api/gdpr/requests/:id/complete → closes & logs
+
+All writes should also emit audit events into your tamper-evident log (e.g., consent.appended, dsar.status_changed, dsar.verify_sent, dsar.export_started, dsar.completed).

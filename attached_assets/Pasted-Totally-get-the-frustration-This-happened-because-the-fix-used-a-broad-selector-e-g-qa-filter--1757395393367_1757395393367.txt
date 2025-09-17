@@ -1,0 +1,61 @@
+Totally get the frustration. This happened because the fix used a broad selector (e.g., .qa-filter … + !important) that matches every chip, so all the other buttons inherited the change. In CSS, wide selectors + !important = collateral damage.
+
+Here’s the safe way to fix only the “All” chip, without touching Chat/Files/Emergency/Manage.
+
+Do this (pick A or B)
+A) Target only the “All” chip via its data-testid
+
+Add this at the very end of your global CSS (and remove any previous broad .qa-filter overrides):
+
+/* Only the 'All' chip inside Quick Access */
+dialog[aria-label="Quick Access"] button[data-testid="filter-all"]{
+  color:#c5a000 !important;
+  background: transparent !important;
+}
+
+/* Active/pressed for 'All' only */
+dialog[aria-label="Quick Access"] button[data-testid="filter-all"][aria-pressed="true"],
+dialog[aria-label="Quick Access"] button[data-testid="filter-all"][data-state="active"]{
+  background: rgba(197,160,0,.20) !important;
+  color:#c5a000 !important;
+}
+
+/* Hover/focus for 'All' only */
+dialog[aria-label="Quick Access"] button[data-testid="filter-all"]:hover,
+dialog[aria-label="Quick Access"] button[data-testid="filter-all"]:focus{
+  background: rgba(197,160,0,.26) !important;
+  color:#c5a000 !important;
+}
+
+/* Ensure the icon/text inside 'All' follows the gold */
+dialog[aria-label="Quick Access"] button[data-testid="filter-all"] *{
+  color: currentColor !important;
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+B) Tailwind-only (change the “All” button’s classes)
+
+In QuickAccessPanel.tsx, only on the “All” button:
+
+<button
+  data-testid="filter-all"
+  className="
+    qa-filter
+    text-[#c5a000] bg-transparent
+    hover:bg-[#c5a000]/25 focus:bg-[#c5a000]/20
+    data-[state=active]:bg-[#c5a000]/20 data-[state=active]:text-[#c5a000]
+  "
+>
+  All
+</button>
+
+Guardrails to avoid this again
+
+Never override shared classes (like .qa-filter) globally unless you truly want every chip changed.
+
+Prefer narrow selectors (button[data-testid="filter-all"]) or a unique class (e.g., .qa-filter--all).
+
+Minimize !important. If you must use it, scope it narrowly (as above).
+
+If you paste A or B exactly, “All” will be visible and gold, and the other chips will behave exactly as before.

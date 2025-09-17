@@ -1,0 +1,738 @@
+# Camera Integration with Trustworthy Workflow - Mobile Upload Edition
+
+## Overview
+This guide implements the exact Trustworthy.com upload workflow with three main upload methods: **Browse Files**, **Take Photo**, and **Mobile Upload** (replacing barcode scanning). The system follows the precise workflow pattern with LEFT sidebar integration and AI analysis.
+
+## Upload Methods
+
+### Browse Files Button:
+1. Click "📁 Browse Files" → File picker opens
+2. Select files → Upload starts with progress
+3. LEFT sidebar opens → Documents appear with thumbnails
+4. AI analysis → "Analyzing..." spinner shows
+5. Lightning bolt → "⚡ Details 2" button appears
+6. Details modal → Filename suggestions with Accept/Dismiss
+7. Profile routing → Navigate to family member pages
+
+### Take Photo Button:
+1. Click "📷 Take Photo" → Camera modal opens
+2. Document framing → Position document in frame
+3. Capture photo → High-quality image taken
+4. Auto-upload → Connects to Trustworthy workflow
+5. Same workflow → LEFT sidebar → AI → Lightning bolt → Details
+
+### Mobile Upload Button:
+1. Click "📱 Mobile Upload" → QR code modal opens
+2. QR code generation → Secure session link created
+3. Mobile scanning → Phone camera scans QR code
+4. Mobile upload page → Optimized mobile interface
+5. File upload → Documents uploaded from mobile device
+6. Session sync → Files appear in main interface
+7. Same workflow → LEFT sidebar → AI → Lightning bolt → Details
+
+## 🚀 Implementation Steps
+
+### Step 1: Replace Your Upload Component
+
+```jsx
+// Enhanced Upload Center with Mobile Upload
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+export const TrustworthyUploadCenter = ({ 
+  familyId = 'camacho_family',
+  onDocumentProcessed,
+  onNavigateToProfile 
+}) => {
+  const [uploadState, setUploadState] = useState('ready');
+  const [uploadedDocuments, setUploadedDocuments] = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [showMobileUploadModal, setShowMobileUploadModal] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [mobileUploadLink, setMobileUploadLink] = useState('');
+  const [processingProgress, setProcessingProgress] = useState(0);
+
+  const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
+
+  // Handle Browse Files
+  const handleBrowseFiles = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Handle Take Photo
+  const handleTakePhoto = () => {
+    setShowCameraModal(true);
+    startCamera();
+  };
+
+  // Handle Mobile Upload (NEW - replaces barcode scanning)
+  const handleMobileUpload = async () => {
+    try {
+      const uploadSession = await generateUploadSession();
+      const baseUrl = window.location.origin;
+      const mobileLink = `${baseUrl}/mobile-upload/${uploadSession.sessionId}?family=${familyId}`;
+      
+      // Generate QR code for mobile access
+      const qrDataUrl = await generateQRCode(mobileLink);
+      
+      setMobileUploadLink(mobileLink);
+      setQrCodeUrl(qrDataUrl);
+      setShowMobileUploadModal(true);
+      
+    } catch (error) {
+      console.error('Failed to generate mobile upload link:', error);
+      showNotification('Failed to generate mobile upload link', 'error');
+    }
+  };
+
+  // Generate upload session for mobile
+  const generateUploadSession = async () => {
+    const response = await fetch('/api/mobile-upload/create-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        familyId,
+        expiresIn: 3600 // 1 hour
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create upload session');
+    }
+
+    return response.json();
+  };
+
+  // Generate QR code
+  const generateQRCode = async (url) => {
+    // Using QR code service or library
+    return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}&bgcolor=0F0F0F&color=D4AF37`;
+  };
+
+  // Camera functions
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.error('Failed to start camera:', error);
+      showNotification('Failed to access camera', 'error');
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      const context = canvas.getContext('2d');
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0);
+      
+      canvas.toBlob(async (blob) => {
+        const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        await handleFileUpload([file]);
+        setShowCameraModal(false);
+        stopCamera();
+      }, 'image/jpeg', 0.8);
+    }
+  };
+
+  // File upload handling (same for all methods)
+  const handleFileUpload = async (files) => {
+    if (!files || files.length === 0) return;
+
+    setUploadState('uploading');
+    setProcessingProgress(0);
+
+    try {
+      const uploadPromises = Array.from(files).map(async (file, index) => {
+        const formData = new FormData();
+        formData.append('document', file);
+        formData.append('familyId', familyId);
+
+        const uploadResponse = await fetch('/api/trustworthy/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`Upload failed for ${file.name}`);
+        }
+
+        const uploadResult = await uploadResponse.json();
+        setProcessingProgress(((index + 1) / files.length) * 50);
+        
+        return uploadResult.document;
+      });
+
+      const documents = await Promise.all(uploadPromises);
+      
+      // Open LEFT sidebar with documents
+      setUploadedDocuments(prev => [...documents, ...prev]);
+      setSidebarOpen(true);
+      setUploadState('processing');
+      
+      // Start AI analysis
+      documents.forEach(async (doc, index) => {
+        await startAIAnalysis(doc.id);
+        setProcessingProgress(50 + ((index + 1) / documents.length) * 50);
+      });
+
+      setUploadState('complete');
+      
+      if (onDocumentProcessed) {
+        onDocumentProcessed(documents);
+      }
+
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setUploadState('ready');
+      showNotification('Upload failed. Please try again.', 'error');
+    }
+  };
+
+  return (
+    <div className="trustworthy-upload-system">
+      {/* Family Header */}
+      <FamilyHeader familyId={familyId} />
+      
+      {/* Enhanced Upload Area with Three Buttons */}
+      <EnhancedUploadArea
+        uploadState={uploadState}
+        processingProgress={processingProgress}
+        onBrowseFiles={handleBrowseFiles}
+        onTakePhoto={handleTakePhoto}
+        onMobileUpload={handleMobileUpload} // NEW
+        onFileUpload={handleFileUpload}
+      />
+
+      {/* Camera Modal */}
+      <CameraModal
+        isOpen={showCameraModal}
+        videoRef={videoRef}
+        canvasRef={canvasRef}
+        onCapture={capturePhoto}
+        onClose={() => {
+          setShowCameraModal(false);
+          stopCamera();
+        }}
+      />
+
+      {/* Mobile Upload Modal (NEW) */}
+      <MobileUploadModal
+        isOpen={showMobileUploadModal}
+        qrCodeUrl={qrCodeUrl}
+        mobileLink={mobileUploadLink}
+        onClose={() => setShowMobileUploadModal(false)}
+        onCopyLink={copyLinkToClipboard}
+        onShareLink={shareMobileLink}
+      />
+
+      {/* LEFT Sidebar */}
+      <LeftSidebar
+        isOpen={sidebarOpen}
+        documents={uploadedDocuments}
+        onClose={() => setSidebarOpen(false)}
+        onDocumentClick={setSelectedDocument}
+        onDetailsClick={(doc) => {
+          setSelectedDocument(doc);
+          setShowDetailsModal(true);
+        }}
+      />
+
+      {/* Details Modal */}
+      <DetailsModal
+        isOpen={showDetailsModal}
+        document={selectedDocument}
+        onClose={() => setShowDetailsModal(false)}
+        onNavigateToProfile={onNavigateToProfile}
+      />
+
+      {/* Hidden File Input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        onChange={handleFileChange}
+        accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.heic"
+        multiple
+        style={{ display: 'none' }}
+      />
+    </div>
+  );
+};
+
+// Enhanced Upload Area with Three Methods
+const EnhancedUploadArea = ({ 
+  uploadState, 
+  processingProgress, 
+  onBrowseFiles, 
+  onTakePhoto, 
+  onMobileUpload, // NEW
+  onFileUpload 
+}) => {
+  const [isDragActive, setIsDragActive] = useState(false);
+
+  // Drag and drop handlers
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    setIsDragActive(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setIsDragActive(false);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragActive(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      onFileUpload(files);
+    }
+  };
+
+  return (
+    <motion.div
+      className={`enhanced-upload-area ${isDragActive ? 'drag-active' : ''} ${uploadState}`}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      whileHover={uploadState === 'ready' ? { scale: 1.01 } : {}}
+    >
+      <div className="upload-content">
+        {uploadState === 'ready' && (
+          <ReadyStateWithMobileUpload 
+            onBrowseFiles={onBrowseFiles}
+            onTakePhoto={onTakePhoto}
+            onMobileUpload={onMobileUpload} // NEW
+            isDragActive={isDragActive}
+          />
+        )}
+        
+        {uploadState === 'uploading' && (
+          <UploadingState progress={processingProgress} />
+        )}
+        
+        {uploadState === 'processing' && (
+          <ProcessingState progress={processingProgress} />
+        )}
+        
+        {uploadState === 'complete' && (
+          <CompleteState />
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
+// Ready State with Mobile Upload Button
+const ReadyStateWithMobileUpload = ({ 
+  onBrowseFiles, 
+  onTakePhoto, 
+  onMobileUpload, // NEW
+  isDragActive 
+}) => (
+  <motion.div
+    className="upload-ready-mobile"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+  >
+    <div className="upload-icon">
+      {isDragActive ? (
+        <motion.div
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1.2 }}
+          className="drag-icon"
+        >
+          📥
+        </motion.div>
+      ) : (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+      )}
+    </div>
+    
+    <h3>Upload Family Documents</h3>
+    <p>Add documents and photos to your family vault</p>
+    <p className="ai-text">AI will automatically extract key information</p>
+    
+    {/* Three Upload Methods */}
+    <div className="upload-button-group">
+      <motion.button
+        className="upload-method-button browse-files"
+        onClick={onBrowseFiles}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <span className="button-icon">📁</span>
+        <span className="button-text">Browse Files</span>
+      </motion.button>
+      
+      <motion.button
+        className="upload-method-button take-photo"
+        onClick={onTakePhoto}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <span className="button-icon">📷</span>
+        <span className="button-text">Take Photo</span>
+      </motion.button>
+      
+      <motion.button
+        className="upload-method-button mobile-upload" // NEW
+        onClick={onMobileUpload}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <span className="button-icon">📱</span>
+        <span className="button-text">Mobile Upload</span>
+      </motion.button>
+    </div>
+    
+    <span className="or-text">or drag & drop files here</span>
+    
+    <div className="file-types">
+      <span className="file-type">PDF</span>
+      <span className="file-type">JPG</span>
+      <span className="file-type">PNG</span>
+      <span className="file-type">HEIC</span>
+      <span className="file-type">DOC</span>
+      <span className="file-type">TXT</span>
+    </div>
+  </motion.div>
+);
+
+// Mobile Upload Modal Component (NEW)
+const MobileUploadModal = ({ 
+  isOpen, 
+  qrCodeUrl, 
+  mobileLink, 
+  onClose, 
+  onCopyLink, 
+  onShareLink 
+}) => {
+  const [timeRemaining, setTimeRemaining] = useState(3600); // 1 hour
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const timer = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          onClose();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isOpen, onClose]);
+
+  const formatTime = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            className="mobile-upload-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          
+          {/* Mobile Upload Modal */}
+          <motion.div
+            className="mobile-upload-modal"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+          >
+            <div className="mobile-upload-header">
+              <h3>📱 Mobile Upload</h3>
+              <button className="close-button" onClick={onClose}>×</button>
+            </div>
+            
+            <div className="mobile-upload-content">
+              <div className="qr-code-section">
+                <div className="qr-code-container">
+                  {qrCodeUrl && (
+                    <img 
+                      src={qrCodeUrl} 
+                      alt="QR Code for Mobile Upload" 
+                      className="qr-code-image"
+                    />
+                  )}
+                </div>
+                
+                <div className="qr-instructions">
+                  <h4>Scan with your phone camera</h4>
+                  <p>Point your phone's camera at the QR code to open the upload page</p>
+                </div>
+              </div>
+              
+              <div className="link-section">
+                <div className="link-container">
+                  <input 
+                    type="text" 
+                    value={mobileLink} 
+                    readOnly 
+                    className="mobile-link-input"
+                  />
+                  <button 
+                    className="copy-link-button"
+                    onClick={onCopyLink}
+                  >
+                    📋 Copy
+                  </button>
+                </div>
+                
+                <div className="share-options">
+                  <button 
+                    className="share-button"
+                    onClick={onShareLink}
+                  >
+                    📤 Share Link
+                  </button>
+                </div>
+              </div>
+              
+              <div className="session-info">
+                <div className="timer-section">
+                  <span className="timer-label">Link expires in:</span>
+                  <span className="timer-value">{formatTime(timeRemaining)}</span>
+                </div>
+                
+                <div className="security-note">
+                  <span className="security-icon">🔒</span>
+                  <span>Secure upload session for Family</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+
+export default TrustworthyUploadCenter;
+```
+
+### Step 2: Add Mobile Upload Styles
+
+```css
+/* Mobile Upload Button Styles */
+.upload-method-button.mobile-upload {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.upload-method-button.mobile-upload:hover {
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+/* Mobile Upload Modal */
+.mobile-upload-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--dark-surface);
+  border-radius: 16px;
+  padding: 2rem;
+  z-index: 1001;
+  max-width: 500px;
+  width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid var(--gold-border);
+}
+
+.qr-code-container {
+  background: white;
+  padding: 1rem;
+  border-radius: 12px;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+.qr-code-image {
+  width: 200px;
+  height: 200px;
+  border-radius: 8px;
+}
+
+.mobile-link-input {
+  flex: 1;
+  background: var(--dark-elevated);
+  border: 1px solid var(--gold-border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.copy-link-button,
+.share-button {
+  background: var(--gold-primary);
+  color: var(--dark-bg);
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+```
+
+### Step 3: Backend Integration
+
+```javascript
+// Mobile Upload Session Management
+router.post('/mobile-upload/create-session', async (req, res) => {
+  try {
+    const { familyId, expiresIn = 3600 } = req.body;
+    
+    const sessionId = uuidv4();
+    const expiresAt = new Date(Date.now() + (expiresIn * 1000));
+    
+    const session = {
+      sessionId,
+      familyId,
+      createdAt: new Date(),
+      expiresAt,
+      isActive: true,
+      uploadCount: 0,
+      maxUploads: 50
+    };
+    
+    uploadSessions.set(sessionId, session);
+    
+    res.json({
+      sessionId,
+      expiresAt,
+      maxUploads: session.maxUploads
+    });
+    
+  } catch (error) {
+    console.error('Failed to create upload session:', error);
+    res.status(500).json({ error: 'Failed to create upload session' });
+  }
+});
+
+// Mobile upload endpoint
+router.post('/mobile-upload/upload/:sessionId', mobileUpload.array('documents'), async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const session = uploadSessions.get(sessionId);
+    
+    if (!session || new Date() > session.expiresAt) {
+      return res.status(410).json({ error: 'Session expired' });
+    }
+    
+    const files = req.files;
+    const processedFiles = [];
+    
+    for (const file of files) {
+      const document = await createDocumentRecord(file, session.familyId, 'mobile_upload', sessionId);
+      processedFiles.push({
+        id: document.id,
+        originalName: document.originalName,
+        size: document.size,
+        status: 'processing'
+      });
+      
+      session.uploadCount++;
+      startAIAnalysisBackground(document.id);
+    }
+    
+    uploadSessions.set(sessionId, session);
+    
+    res.json({
+      success: true,
+      uploadedFiles: processedFiles,
+      sessionInfo: {
+        uploadCount: session.uploadCount,
+        maxUploads: session.maxUploads
+      }
+    });
+    
+  } catch (error) {
+    console.error('Mobile upload failed:', error);
+    res.status(500).json({ error: 'Upload failed' });
+  }
+});
+```
+
+## Key Features
+
+### ✅ Mobile Upload Benefits:
+- **QR Code Generation**: Instant mobile access
+- **Secure Sessions**: Time-limited upload links
+- **Cross-Device Sync**: Files appear in main interface
+- **Mobile Optimized**: Touch-friendly upload interface
+- **Session Management**: Secure, expiring upload sessions
+
+### ✅ Workflow Integration:
+- **Same LEFT Sidebar**: All uploads appear together
+- **Unified AI Analysis**: Same processing for all methods
+- **Lightning Bolt Details**: Consistent detail modal
+- **Profile Routing**: Same navigation system
+
+### ✅ Professional Features:
+- **Dark Gold Theme**: Consistent with design
+- **Responsive Design**: Works on all devices
+- **Error Handling**: Robust error management
+- **Progress Tracking**: Real-time upload progress
+- **Security**: Session-based mobile uploads
+
+## Usage Instructions
+
+1. **Replace** your existing upload component with the new `TrustworthyUploadCenter`
+2. **Add** the mobile upload styles to your CSS
+3. **Implement** the backend mobile upload endpoints
+4. **Test** all three upload methods work with the same workflow
+5. **Deploy** and share the clean implementation
+
+This updated implementation removes all barcode scanning functionality and replaces it with a modern, secure mobile upload system that integrates seamlessly with the Trustworthy workflow pattern.

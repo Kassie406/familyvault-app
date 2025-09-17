@@ -1,0 +1,67 @@
+if the glow is still showing, it’s almost certainly coming from a pseudo-element (::before/::after) or a wrapper that adds a Tailwind/DaisyUI ring/shadow on hover. Let’s nuke those sources inside the Quick Access modal only.
+
+Drop this at the very bottom of src/styles/quick-access.css
+/* ───────────────────────────────────────────────────────────────
+   QUICK ACCESS — remove ANY halo/glow from tiles, including
+   shadows/rings on wrappers and ::before/::after overlays.
+   Keeps the gold border and your dark gradient.
+   ─────────────────────────────────────────────────────────────── */
+
+#quick-access-modal {
+  --family-gold: 212,175,55; /* #D4AF37 */
+}
+
+/* The tile itself: static border, no shadows */
+#quick-access-modal .qa-tile {
+  border: 1px solid rgba(var(--family-gold), 0.28) !important;
+  background-image: linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%) !important;
+  border-radius: 16px;
+  background-clip: padding-box;
+  isolation: isolate;
+  box-shadow: none !important;
+  outline: none !important;
+  transition: border-color .12s ease;
+}
+
+/* Kill ALL possible halo sources inside the modal */
+#quick-access-modal *,
+#quick-access-modal *::before,
+#quick-access-modal *::after {
+  /* Tailwind/Daisy ring/shadow variables */
+  --tw-ring-inset: initial !important;
+  --tw-ring-offset-width: 0 !important;
+  --tw-ring-offset-color: transparent !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-shadow: 0 0 #0000 !important;
+  --tw-shadow-colored: 0 0 #0000 !important;
+
+  /* Also neutralize filter/drop-shadow based halos and overlay tricks */
+  box-shadow: none !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  outline: none !important;
+}
+
+/* Keep hover/focus completely static (no halo) */
+#quick-access-modal .qa-tile:hover,
+#quick-access-modal .qa-tile:focus,
+#quick-access-modal .qa-tile:focus-visible,
+#quick-access-modal .qa-tile:focus-within,
+#quick-access-modal .qa-tile:has(:hover) {
+  border-color: rgba(var(--family-gold), 0.28) !important; /* static border */
+  box-shadow: none !important;
+}
+
+Why this finally sticks
+
+It targets every descendant and pseudo-element inside #quick-access-modal, so rings, shadows, and drop-shadow filters coming from wrappers or ::before/::after overlays are removed.
+
+Your tiles keep the gold border and dark gradient, but hovering/focusing will never add a halo.
+
+One sanity check
+
+Make sure the element that visually draws the tile has the class qa-tile. That’s the element we keep and style; everything else inside/around it will have shadows disabled.
+
+Do a hard refresh (Ctrl/Cmd + Shift + R) after saving. If you still see a glow on a specific card, send just that card’s HTML snippet (outer wrapper + tile) and I’ll pinpoint the exact node that’s painting it.

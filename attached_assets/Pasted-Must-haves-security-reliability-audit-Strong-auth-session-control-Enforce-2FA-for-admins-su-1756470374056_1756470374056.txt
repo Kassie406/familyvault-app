@@ -1,0 +1,173 @@
+Must-haves (security, reliability, audit)
+
+Strong auth & session control
+
+Enforce 2FA for admins; support WebAuthn / YubiKey.
+
+SSO options (Google/Microsoft/Okta) behind allow-list.
+
+Device & session management: view/revoke active sessions, show last login, IP, user-agent.
+
+IP allowlist or country allowlist for console access.
+
+Granular RBAC
+
+Roles you mentioned: PRESIDENT, ADMIN, AGENT, MEMBER, FAMILY_ACCESSOR.
+
+Add scopes (e.g., plans:write, coupons:read) so you can create custom roles.
+
+Audit log you can trust
+
+Log who/when/where + before/after diff for sensitive changes (price, role change, deletion).
+
+Tamper-evident hashing of audit entries; export to S3/BigQuery.
+
+Real-time alerting for high-risk actions (e.g., password reset of President, new admin, plan price edit).
+
+Secrets & key management
+
+Rotate API keys and webhook secrets (Stripe, email, analytics).
+
+Dashboard to view last rotation date and rotation reminders.
+
+Backups & recovery
+
+Automated nightly DB backup, point-in-time restore, tested recoveries.
+
+One-click “create staging snapshot from prod” (redacted PII) for safe testing.
+
+Growth & operations
+
+Coupon & promotion power-ups
+
+Stacking rules; one-time vs recurring; min/max cart; redemption caps; customer allow/deny lists.
+
+Campaigns grouping: schedule start/end, goal tracking, A/B buckets.
+
+Export redemption analytics (by cohort, plan, channel).
+
+Billing & plan control
+
+Draft → review → publish flow for plans/prices.
+
+Grandfathered plans management & migration tools.
+
+Proration & credit notes preview when changing plans.
+
+Content / CMS safety
+
+Draft / review / approve / publish states; scheduled publishing.
+
+Revision history with diff & rollback.
+
+Media library with alt text & compression; CDN invalidation button.
+
+User operations
+
+Impersonate (sudo) with full audit; time-boxed.
+
+Bulk actions (CSV import/export, bulk invite, role change).
+
+Flags & notes on users/orgs; internal comments.
+
+Support tooling
+
+Inbox integration (Zendesk/Intercom). Link tickets → users.
+
+“Run checks” button for a user/org (stripe sync, plan entitlements, storage quotas).
+
+Privacy, consent, compliance
+
+Consent management
+
+Per-purpose settings (analytics, marketing, functional).
+
+Record proof of consent (IP, UA, time, version of policy).
+
+Export & deletion APIs for DSAR / right-to-be-forgotten.
+
+Regions & retention policies (GDPR, CCPA)—time-based deletion.
+
+Cookie banner control
+
+Multilingual, themeable banner; A/B test consent copy.
+
+Auto-block non-essential scripts until consent.
+
+Policy pages
+
+Versioned Privacy Policy / ToS; user-specific acceptance logs.
+
+Observability & ops excellence
+
+System status panel
+
+Uptime checks per dependency (DB, auth, Stripe, email, storage, webhooks).
+
+Error budget / SLO burn rate.
+
+Queue & job runner visibility (retries, DLQ).
+
+Webhooks
+
+Delivery log, retry, manual replay with signature validation.
+
+Subscribe to your own internal events (plan_changed, coupon_redeemed).
+
+Feature flags / experiments
+
+Kill-switches & staged rollouts.
+
+A/B testing hooks w/ metrics.
+
+Product polish (console UX)
+
+Global search (⌘K) across users, orgs, coupons, articles, logs.
+
+Saved filters & views; pagination presets; CSV/JSON export on every table.
+
+Timezones & locale handling; relative & absolute timestamps.
+
+Accessibility (WCAG 2.1 AA): focus states, contrast, skip links, keyboard navigation.
+
+Theming to match your brand (gold/charcoal) with a dark-mode toggle.
+
+Data lifecycle & governance
+
+Storage quotas per plan; visual usage indicators for orgs.
+
+Data retention (e.g., delete audit rows older than X months except legal hold).
+
+PII scanner (detect SSNs/CCNs in uploads), quarantine + manual review.
+
+Quick wins you can ship next
+
+Admin security center card (2FA status, last key rotation, # of active sessions, IP allowlist set?).
+
+Impersonate with audit + banner “Impersonating John D. — Exit”.
+
+Coupons v2: redemption caps, schedule, stacking rule picker.
+
+Content revisions + rollback.
+
+Webhook panel: last 100 deliveries with replay.
+
+Consent export (CSV) and DSAR action buttons.
+
+Saved filters on Users & Logs (e.g., “All orgs w/ expired trials”).
+
+Global search (⌘K).
+
+Implementation notes (for your current stack)
+
+Keep your subdomain router: serve the admin bundle only under console..
+
+Add RBAC middleware to all admin APIs with requireRole('ADMIN') or higher.
+
+Log every admin action to an append-only AuditLog with before/after snapshot.
+
+Store consents & webhook deliveries in dedicated tables; expose read-only UI.
+
+Use Stripe for prices & coupons where possible; mirror metadata in DB for reporting.
+
+Add a jobs queue (BullMQ/Graphile Worker) for emails, syncs, scheduled publishes.

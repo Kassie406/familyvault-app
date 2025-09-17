@@ -1,0 +1,3118 @@
+Awesome—let’s ship two high-impact, “production-grade” pieces for your console:
+
+Tamper-evident Audit Log (with before/after diffs)
+
+Coupons v2 (stacking rules, caps, scheduling)
+
+I’ll assume Node/Express + PostgreSQL + React. Copy/paste the bits you need. Everything is namespaced under your admin console (console.familycirclesecure.com) and guarded by RBAC.
+
+1) Tamper-evident Audit Log (with diffs)
+DB schema (PostgreSQL)
+-- 001_audit_log.sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TABLE audit_log (
+  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  ts                TIMESTAMPTZ NOT NULL DEFAULT now(),
+  actor_user_id     UUID NOT NULL,
+  actor_email       TEXT NOT NULL,
+  actor_role        TEXT NOT NULL,               -- ADMIN, PRESIDENT, etc.
+  actor_ip          INET,                        -- captured from req.ip
+  action            TEXT NOT NULL,               -- e.g. 'coupon.update'
+  object_type       TEXT NOT NULL,               -- 'coupon', 'plan', 'user', ...
+  object_id         TEXT NOT NULL,               -- store as text; can be UUID/slug/int
+  before            JSONB,                       -- nullable; snapshot before change
+  after             JSONB,                       -- nullable; snapshot after change
+  reason            TEXT,                        -- optional “why” for risky edits
+  tamper_hash       TEXT NOT NULL,               -- hash chaining for immutability
+  prev_tamper_hash  TEXT                         -- previous row's hash
+);
+
+CREATE INDEX audit_log_ts_idx ON audit_log(ts DESC);
+CREATE INDEX audit_log_actor_idx ON audit_log(actor_user_id);
+CREATE INDEX audit_log_object_idx ON audit_log(object_type, object_id);
+
+Audit utilities (hash chain + writer)
+// src/audit/audit.js
+import crypto from 'crypto';
+import db from '../db.js'; // pg pool
+
+export async function getLastTamperHash() {
+  const { rows } = await db.query(
+    `SELECT tamper_hash FROM audit_log ORDER BY ts DESC LIMIT 1`
+  );
+  return rows[0]?.tamper_hash || null;
+}
+
+function computeHash(payload) {
+  return crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+}
+
+/**
+ * Write an audit log entry with tamper-evident chaining.
+ * @param {Object} ctx - { userId, email, role, ip }
+ * @param {Object} entry - { action, objectType, objectId, before, after, reason }
+ */
+export async function writeAudit(ctx, entry) {
+  const prev = await getLastTamperHash();
+
+  const corePayload = {
+    ts: new Date().toISOString(),
+    actor_user_id: ctx.userId,
+    actor_email: ctx.email,
+    actor_role: ctx.role,
+    actor_ip: ctx.ip,
+    action: entry.action,
+    object_type: entry.objectType,
+    object_id: String(entry.objectId),
+    before: entry.before || null,
+    after: entry.after || null,
+    reason: entry.reason || null,
+    prev_tamper_hash: prev || null,
+  };
+
+  const tamper_hash = computeHash(corePayload);
+  await db.query(
+    `INSERT INTO audit_log
+    (id, ts, actor_user_id, actor_email, actor_role, actor_ip, action,
+     object_type, object_id, before, after, reason, tamper_hash, prev_tamper_hash)
+     VALUES (uuid_generate_v4(), $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+    [
+      corePayload.ts,
+      corePayload.actor_user_id,
+      corePayload.actor_email,
+      corePayload.actor_role,
+      corePayload.actor_ip,
+      corePayload.action,
+      corePayload.object_type,
+      corePayload.object_id,
+      corePayload.before,
+      corePayload.after,
+      corePayload.reason,
+      tamper_hash,
+      corePayload.prev_tamper_hash,
+    ]
+  );
+}
+
+Express middleware (RBAC + audit helper)
+// src/mw/requireAdmin.js
+export function requireAdmin(req, res, next) {
+  const user = req.user; // set by your auth middleware
+  if (!user || !['ADMIN', 'PRESIDENT'].includes(user.role)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  return next();
+}
+
+// Attach audit context to request (for convenience)
+export function attachAuditCtx(req, res, next) {
+  req.auditCtx = {
+    userId: req.user.id,
+    email: req.user.email,
+    role: req.user.role,
+    ip: req.ip,
+  };
+  next();
+}
+
+Audit API (read-only)
+// src/routes/admin/audit.js
+import express from 'express';
+import db from '../../db.js';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+
+const router = express.Router();
+
+router.get('/', requireAdmin, async (req, res) => {
+  const { limit = 100, cursor } = req.query;
+  const params = [];
+  let sql = `SELECT * FROM audit_log`;
+  if (cursor) {
+    params.push(cursor);
+    sql += ` WHERE ts < (SELECT ts FROM audit_log WHERE id = $${params.length})`;
+  }
+  params.push(Number(limit));
+  sql += ` ORDER BY ts DESC LIMIT $${params.length}`;
+
+  const { rows } = await db.query(sql, params);
+  res.json({ items: rows });
+});
+
+export default router;
+
+React Admin: Audit Log page (minimal)
+// src/console/pages/AuditLog.jsx
+import { useEffect, useState } from 'react';
+import DiffViewer from 'react-json-view'; // or a simple custom component
+
+export default function AuditLog() {
+  const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    fetch('/admin/audit?limit=100', { credentials: 'include' })
+      .then(r => r.json()).then(d => setItems(d.items || []));
+  }, []);
+
+  return (
+    <div>
+      <h1>Audit Log</h1>
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Time</th><th>Actor</th><th>Action</th><th>Object</th><th>Diff</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map(row => (
+            <tr key={row.id}>
+              <td>{new Date(row.ts).toLocaleString()}</td>
+              <td>{row.actor_email} ({row.actor_role})</td>
+              <td>{row.action}</td>
+              <td>{row.object_type}/{row.object_id}</td>
+              <td>
+                <details>
+                  <summary>View</summary>
+                  <pre>Before: {JSON.stringify(row.before, null, 2)}</pre>
+                  <pre>After : {JSON.stringify(row.after, null, 2)}</pre>
+                </details>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+
+Use it: call writeAudit(req.auditCtx, { action: 'coupon.update', objectType: 'coupon', objectId: id, before, after, reason }) whenever a privileged change happens.
+
+2) Coupons v2 (stacking, caps, scheduling)
+DB schema
+-- 002_coupons_v2.sql
+CREATE TYPE coupon_type AS ENUM ('percent', 'amount', 'free_trial_days');
+
+CREATE TABLE coupon_campaigns (
+  id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name           TEXT NOT NULL,
+  starts_at      TIMESTAMPTZ,
+  ends_at        TIMESTAMPTZ,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE coupons (
+  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  code              TEXT UNIQUE NOT NULL,
+  campaign_id       UUID REFERENCES coupon_campaigns(id),
+  type              coupon_type NOT NULL,
+  value             NUMERIC(12,2) NOT NULL,     -- percent (0-100), amount (cents), or days
+  currency          TEXT,                       -- only for 'amount'
+  max_redemptions   INT,                        -- global cap
+  per_user_limit    INT DEFAULT 1,              -- per user cap
+  allow_stacking    BOOLEAN DEFAULT FALSE,
+  min_subtotal_cents INT,                       -- optional rule
+  allowed_plan_ids  TEXT[],                     -- whitelist of plan IDs
+  denied_plan_ids   TEXT[],                     -- blacklist (takes precedence)
+  starts_at         TIMESTAMPTZ,
+  ends_at           TIMESTAMPTZ,
+  is_recurring      BOOLEAN DEFAULT FALSE,      -- apply every cycle or once
+  metadata          JSONB,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  archived          BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE coupon_redemptions (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  coupon_id       UUID NOT NULL REFERENCES coupons(id),
+  user_id         UUID NOT NULL,
+  org_id          UUID,
+  plan_id         TEXT,
+  order_id        TEXT,
+  redeemed_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  amount_cents    INT,                          -- monetary effect if known
+  UNIQUE (coupon_id, user_id, order_id)
+);
+
+CREATE INDEX coupon_code_idx ON coupons(code);
+CREATE INDEX coupon_redemptions_coupon_idx ON coupon_redemptions(coupon_id);
+
+Validation helpers (server)
+// src/coupons/validate.js
+export function isActive(coupon, now = new Date()) {
+  if (coupon.archived) return false;
+  if (coupon.starts_at && new Date(coupon.starts_at) > now) return false;
+  if (coupon.ends_at && new Date(coupon.ends_at) < now) return false;
+  return true;
+}
+
+export function canApplyToPlan(coupon, planId) {
+  if (coupon.denied_plan_ids?.includes(planId)) return false;
+  if (coupon.allowed_plan_ids && coupon.allowed_plan_ids.length > 0) {
+    return coupon.allowed_plan_ids.includes(planId);
+  }
+  return true;
+}
+
+Admin API (create/update/evaluate/redeem)
+// src/routes/admin/coupons.js
+import express from 'express';
+import db from '../../db.js';
+import { requireAdmin, attachAuditCtx } from '../../mw/requireAdmin.js';
+import { writeAudit } from '../../audit/audit.js';
+import { isActive, canApplyToPlan } from '../../coupons/validate.js';
+
+const router = express.Router();
+
+// LIST
+router.get('/', requireAdmin, async (req, res) => {
+  const { rows } = await db.query(
+    `SELECT c.*, 
+      (SELECT COUNT(*)::int FROM coupon_redemptions r WHERE r.coupon_id = c.id) AS redemption_count
+     FROM coupons c WHERE archived = FALSE ORDER BY created_at DESC`
+  );
+  res.json({ items: rows });
+});
+
+// CREATE
+router.post('/', requireAdmin, attachAuditCtx, async (req, res) => {
+  const c = req.body;
+  const { rows } = await db.query(
+    `INSERT INTO coupons (code, campaign_id, type, value, currency, max_redemptions, per_user_limit,
+      allow_stacking, min_subtotal_cents, allowed_plan_ids, denied_plan_ids, starts_at, ends_at,
+      is_recurring, metadata)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+     RETURNING *`,
+    [
+      c.code, c.campaign_id || null, c.type, c.value, c.currency || null, c.max_redemptions || null,
+      c.per_user_limit ?? 1, c.allow_stacking ?? false, c.min_subtotal_cents || null,
+      c.allowed_plan_ids || null, c.denied_plan_ids || null,
+      c.starts_at || null, c.ends_at || null, c.is_recurring ?? false, c.metadata || {}
+    ]
+  );
+  await writeAudit(req.auditCtx, {
+    action: 'coupon.create', objectType: 'coupon', objectId: rows[0].id, before: null, after: rows[0]
+  });
+  res.status(201).json(rows[0]);
+});
+
+// UPDATE
+router.put('/:id', requireAdmin, attachAuditCtx, async (req, res) => {
+  const id = req.params.id;
+  const before = (await db.query(`SELECT * FROM coupons WHERE id=$1`, [id])).rows[0];
+  if (!before) return res.status(404).json({ error: 'Not found' });
+
+  const c = req.body;
+  const { rows } = await db.query(
+    `UPDATE coupons SET
+       code=$1, campaign_id=$2, type=$3, value=$4, currency=$5,
+       max_redemptions=$6, per_user_limit=$7, allow_stacking=$8, min_subtotal_cents=$9,
+       allowed_plan_ids=$10, denied_plan_ids=$11, starts_at=$12, ends_at=$13,
+       is_recurring=$14, metadata=$15
+     WHERE id=$16
+     RETURNING *`,
+    [
+      c.code, c.campaign_id || null, c.type, c.value, c.currency || null,
+      c.max_redemptions || null, c.per_user_limit ?? 1, c.allow_stacking ?? false,
+      c.min_subtotal_cents || null, c.allowed_plan_ids || null, c.denied_plan_ids || null,
+      c.starts_at || null, c.ends_at || null, c.is_recurring ?? false, c.metadata || {}, id
+    ]
+  );
+  const after = rows[0];
+  await writeAudit(req.auditCtx, {
+    action: 'coupon.update', objectType: 'coupon', objectId: id, before, after,
+    reason: req.body.reason || null
+  });
+  res.json(after);
+});
+
+// ARCHIVE
+router.post('/:id/archive', requireAdmin, attachAuditCtx, async (req, res) => {
+  const id = req.params.id;
+  const before = (await db.query(`SELECT * FROM coupons WHERE id=$1`, [id])).rows[0];
+  await db.query(`UPDATE coupons SET archived=TRUE WHERE id=$1`, [id]);
+  await writeAudit(req.auditCtx, {
+    action: 'coupon.archive', objectType: 'coupon', objectId: id, before, after: { ...before, archived: true }
+  });
+  res.json({ ok: true });
+});
+
+// PREVIEW / EVALUATE (apply rules without redeeming)
+router.post('/evaluate', requireAdmin, async (req, res) => {
+  const { code, planId, subtotalCents, userId } = req.body;
+  const { rows } = await db.query(`SELECT * FROM coupons WHERE code=$1 AND archived=FALSE`, [code.toUpperCase()]);
+  const coupon = rows[0];
+  if (!coupon) return res.status(404).json({ error: 'Invalid code' });
+  if (!isActive(coupon)) return res.status(400).json({ error: 'Coupon not active' });
+  if (coupon.min_subtotal_cents && subtotalCents < coupon.min_subtotal_cents) {
+    return res.status(400).json({ error: 'Subtotal too low' });
+  }
+  if (!canApplyToPlan(coupon, planId)) return res.status(400).json({ error: 'Not valid for this plan' });
+
+  // Per-user cap
+  const pu = await db.query(`SELECT COUNT(*)::int AS cnt FROM coupon_redemptions WHERE coupon_id=$1 AND user_id=$2`, [coupon.id, userId]);
+  if (coupon.per_user_limit && pu.rows[0].cnt >= coupon.per_user_limit) {
+    return res.status(400).json({ error: 'Per-user limit reached' });
+  }
+  // Global cap
+  if (coupon.max_redemptions) {
+    const g = await db.query(`SELECT COUNT(*)::int AS cnt FROM coupon_redemptions WHERE coupon_id=$1`, [coupon.id]);
+    if (g.rows[0].cnt >= coupon.max_redemptions) {
+      return res.status(400).json({ error: 'Max redemptions reached' });
+    }
+  }
+
+  // Compute effect
+  let discountCents = 0;
+  if (coupon.type === 'percent') discountCents = Math.floor(subtotalCents * (Number(coupon.value) / 100));
+  if (coupon.type === 'amount') discountCents = Math.min(subtotalCents, Number(coupon.value));
+  // free_trial_days handled by billing layer
+
+  res.json({
+    ok: true,
+    coupon,
+    discountCents,
+    isRecurring: coupon.is_recurring,
+  });
+});
+
+// REDEEM (records redemption)
+router.post('/redeem', requireAdmin, attachAuditCtx, async (req, res) => {
+  const { code, userId, orgId, planId, orderId, subtotalCents } = req.body;
+  const { rows } = await db.query(`SELECT * FROM coupons WHERE code=$1 AND archived=FALSE`, [code.toUpperCase()]);
+  const coupon = rows[0];
+  if (!coupon) return res.status(404).json({ error: 'Invalid code' });
+
+  // reuse evaluate logic quickly
+  const preview = await (await fetch('http://localhost/internal/admin/coupons/evaluate', {
+    method: 'POST', headers: { 'content-type':'application/json' },
+    body: JSON.stringify({ code, planId, subtotalCents, userId })
+  })).json();
+  if (!preview.ok) return res.status(400).json(preview);
+
+  const { rows: ins } = await db.query(
+    `INSERT INTO coupon_redemptions (coupon_id,user_id,org_id,plan_id,order_id,amount_cents)
+     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+    [coupon.id, userId, orgId || null, planId || null, orderId || null, preview.discountCents || null]
+  );
+
+  await writeAudit(req.auditCtx, {
+    action: 'coupon.redeem', objectType: 'coupon', objectId: coupon.id,
+    before: null, after: { redemption_id: ins[0].id, userId, orderId }
+  });
+
+  res.json({ ok: true, redemption: ins[0], discountCents: preview.discountCents });
+});
+
+export default router;
+
+
+Note: In your real app, redemption should happen in your checkout/billing flow (Stripe or internal billing), but the evaluation + policy checks above are the same.
+
+React Admin: Coupon List & Form (minimal)
+// src/console/pages/Coupons.jsx
+import { useEffect, useState } from 'react';
+
+export default function Coupons() {
+  const [items, setItems] = useState([]);
+  const [openForm, setOpenForm] = useState(false);
+
+  useEffect(() => {
+    fetch('/admin/coupons', { credentials: 'include' })
+      .then(r => r.json()).then(d => setItems(d.items || []));
+  }, []);
+
+  return (
+    <div>
+      <div className="headerRow">
+        <h1>Coupons</h1>
+        <button className="btn btn-primary" onClick={() => setOpenForm(true)}>Create Coupon</button>
+      </div>
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Code</th><th>Type</th><th>Value</th><th>Active Window</th><th>Redemptions</th><th>Stack</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map(c => (
+            <tr key={c.id}>
+              <td>{c.code}</td>
+              <td>{c.type}</td>
+              <td>{c.value}{c.type==='percent'?'%':c.type==='amount'?' '+(c.currency||'¢'):''}</td>
+              <td>{c.starts_at?new Date(c.starts_at).toLocaleDateString():'–'} → {c.ends_at?new Date(c.ends_at).toLocaleDateString():'–'}</td>
+              <td>{c.redemption_count ?? 0}/{c.max_redemptions ?? '∞'}</td>
+              <td>{c.allow_stacking ? 'Yes' : 'No'}</td>
+              <td><ArchiveButton id={c.id}/></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {openForm && <CouponForm onClose={() => setOpenForm(false)} onSaved={() => location.reload()} />}
+    </div>
+  );
+}
+
+function ArchiveButton({ id }) {
+  const archive = async () => {
+    if (!confirm('Archive this coupon?')) return;
+    await fetch(`/admin/coupons/${id}/archive`, { method:'POST', credentials:'include' });
+    location.reload();
+  };
+  return <button className="btn btn-ghost" onClick={archive}>Archive</button>;
+}
+
+// --- Form (simplified) ---
+function CouponForm({ onClose, onSaved }) {
+  const [form, setForm] = useState({
+    code: '', type: 'percent', value: 10, allow_stacking: false,
+    max_redemptions: null, per_user_limit: 1, starts_at: null, ends_at: null,
+    is_recurring: false, min_subtotal_cents: null, allowed_plan_ids: [], denied_plan_ids: []
+  });
+
+  const save = async () => {
+    const r = await fetch('/admin/coupons', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(form)
+    });
+    if (r.ok) onSaved();
+  };
+
+  return (
+    <div className="modal">
+      <div className="card">
+        <h2>Create Coupon</h2>
+        <label>Code <input value={form.code} onChange={e=>setForm({...form, code: e.target.value.toUpperCase()})}/></label>
+        <label>Type
+          <select value={form.type} onChange={e=>setForm({...form, type: e.target.value})}>
+            <option value="percent">Percent</option>
+            <option value="amount">Amount (cents)</option>
+            <option value="free_trial_days">Free trial (days)</option>
+          </select>
+        </label>
+        <label>Value <input type="number" value={form.value} onChange={e=>setForm({...form, value: Number(e.target.value)})}/></label>
+        <label><input type="checkbox" checked={form.allow_stacking} onChange={e=>setForm({...form, allow_stacking:e.target.checked})}/> Allow Stacking</label>
+        <label>Max Redemptions <input type="number" value={form.max_redemptions||''} onChange={e=>setForm({...form, max_redemptions: e.target.value?Number(e.target.value):null})}/></label>
+        <label>Per User Limit <input type="number" value={form.per_user_limit} onChange={e=>setForm({...form, per_user_limit:Number(e.target.value)})}/></label>
+        <label>Starts <input type="datetime-local" onChange={e=>setForm({...form, starts_at: e.target.value})}/></label>
+        <label>Ends <input type="datetime-local" onChange={e=>setForm({...form, ends_at: e.target.value})}/></label>
+        <div className="row">
+          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" onClick={save}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+Stacking policy (server-side)
+
+When applying multiple coupons at checkout, validate:
+
+// example logic
+function applyCoupons(subtotalCents, coupons) {
+  // Reject if any coupon disallows stacking and there's more than one
+  if (coupons.some(c => !c.allow_stacking) && coupons.length > 1) {
+    throw new Error('Coupons cannot be stacked');
+  }
+  // Apply percent first or amount first? pick a deterministic rule
+  const percent = coupons.filter(c => c.type==='percent');
+  const amount  = coupons.filter(c => c.type==='amount');
+
+  let total = subtotalCents;
+  for (const c of percent) total -= Math.floor(total * (Number(c.value)/100));
+  for (const c of amount)  total -= Math.min(total, Number(c.value));
+
+  if (total < 0) total = 0;
+  return total;
+}
+
+Wire-up and nav
+
+Mount routes in Express:
+
+app.use('/admin/audit', auditRouter);
+app.use('/admin/coupons', couponsRouter);
+
+
+Add console sidebar links to:
+
+/console/audit
+
+/console/coupons
+
+Gate with requireAdmin everywhere and show an Impersonation banner if req.session.impersonating === true (nice safety cue).
+
+What you get, right now
+
+Audit Log with:
+
+Actor, IP, role, before/after object snapshots
+
+Tamper-evident hash chain
+
+Read-only API + simple UI table
+
+Coupons v2 with:
+
+Create/Update/Archive
+
+Scheduling, caps, per-user limit
+
+Allowed/denied plans, minimum subtotal
+
+Stacking policy & evaluate endpoint
+
+Redemption recording + audited
+
+If you want, next I can add:
+
+Consent export + DSAR actions, or
+
+Global search (⌘K), or
+
+Webhook delivery log with replay.
+
+Tell me which one you want next and I’ll drop in the code the same way.
+
+You said:
+continue
+ChatGPT said:
+Thought for 28s
+
+Perfect—let’s keep building out your console. I’ll add three pro-level modules you can drop in right now:
+
+3) Consent + DSAR (export/delete)
+
+4) Global Command-Palette Search (⌘K)
+
+5) Webhook Delivery Log with replay & signature
+
+I’ll stay with Node/Express + PostgreSQL + React like before. You can paste each section in independently.
+
+3) Consent + DSAR (export/delete)
+DB schema
+-- 003_consent_dsar.sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TABLE privacy_policies (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  slug          TEXT NOT NULL,                -- e.g. 'privacy', 'cookies'
+  version       TEXT NOT NULL,                -- '2025-01'
+  content_hash  TEXT NOT NULL,
+  published_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (slug, version)
+);
+
+CREATE TYPE consent_action AS ENUM ('given','withdrawn');
+
+CREATE TABLE consent_events (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id         UUID NOT NULL,
+  scope           TEXT NOT NULL,              -- 'analytics','marketing','functional'
+  policy_slug     TEXT NOT NULL,
+  policy_version  TEXT NOT NULL,
+  action          consent_action NOT NULL,
+  ip              INET,
+  user_agent      TEXT,
+  ts              TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TYPE dsar_type AS ENUM ('export','delete');
+CREATE TYPE dsar_status AS ENUM ('open','processing','done','failed');
+
+CREATE TABLE dsar_requests (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id         UUID NOT NULL,
+  type            dsar_type NOT NULL,
+  status          dsar_status NOT NULL DEFAULT 'open',
+  requested_by    UUID,                        -- admin who created on behalf
+  requested_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  processed_at    TIMESTAMPTZ,
+  export_url      TEXT,                        -- signed URL to ZIP/JSON
+  notes           TEXT
+);
+
+-- Optional redaction ledger (soft delete record)
+CREATE TABLE user_redactions (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id     UUID NOT NULL,
+  redacted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  reason      TEXT
+);
+
+Consent recording (public edge endpoint)
+// src/routes/public/consent.js
+import express from 'express';
+import db from '../../db.js';
+
+const router = express.Router();
+
+/**
+ * POST /consent/record
+ * body: { userId, scope, policySlug, policyVersion, action }
+ */
+router.post('/record', async (req, res) => {
+  const { userId, scope, policySlug, policyVersion, action } = req.body;
+  if (!userId || !scope || !policySlug || !policyVersion || !['given','withdrawn'].includes(action))
+    return res.status(400).json({ error: 'Bad request' });
+
+  await db.query(
+    `INSERT INTO consent_events (user_id, scope, policy_slug, policy_version, action, ip, user_agent)
+     VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+    [userId, scope, policySlug, policyVersion, action, req.ip, req.get('user-agent')]
+  );
+  res.json({ ok: true });
+});
+
+export default router;
+
+Admin: view consent + create DSAR
+// src/routes/admin/consent.js
+import express from 'express';
+import db from '../../db.js';
+import { requireAdmin, attachAuditCtx } from '../../mw/requireAdmin.js';
+import { writeAudit } from '../../audit/audit.js';
+
+const router = express.Router();
+
+router.get('/events', requireAdmin, async (req, res) => {
+  const { userId, scope, limit = 200 } = req.query;
+  const params = [];
+  let sql = `SELECT * FROM consent_events WHERE 1=1`;
+  if (userId) { params.push(userId); sql += ` AND user_id=$${params.length}`; }
+  if (scope)  { params.push(scope);  sql += ` AND scope=$${params.length}`;  }
+  params.push(Number(limit));
+  sql += ` ORDER BY ts DESC LIMIT $${params.length}`;
+  const { rows } = await db.query(sql, params);
+  res.json({ items: rows });
+});
+
+router.post('/dsar', requireAdmin, attachAuditCtx, async (req, res) => {
+  const { userId, type, notes } = req.body;
+  if (!['export','delete'].includes(type)) return res.status(400).json({ error: 'invalid type' });
+
+  const { rows } = await db.query(
+    `INSERT INTO dsar_requests (user_id, type, requested_by, notes)
+     VALUES ($1,$2,$3,$4) RETURNING *`,
+    [userId, type, req.user.id, notes || null]
+  );
+  await writeAudit(req.auditCtx, {
+    action: `dsar.${type}.create`,
+    objectType: 'user',
+    objectId: userId,
+    before: null,
+    after: rows[0],
+    reason: notes || null
+  });
+  res.status(201).json(rows[0]);
+});
+
+export default router;
+
+Worker: process DSAR (export/delete)
+
+You can run this as a Replit background process or a cron job.
+
+// src/workers/dsarWorker.js
+import db from '../db.js';
+import fs from 'fs/promises';
+import crypto from 'crypto';
+import path from 'path';
+import { writeAudit } from '../audit/audit.js';
+
+async function fetchUserBlob(userId) {
+  // Pull everything relevant. Add more tables as needed.
+  const [user, consents, redemptions] = await Promise.all([
+    db.query(`SELECT id,email,created_at FROM users WHERE id=$1`, [userId]),
+    db.query(`SELECT * FROM consent_events WHERE user_id=$1 ORDER BY ts`, [userId]),
+    db.query(`SELECT * FROM coupon_redemptions WHERE user_id=$1 ORDER BY redeemed_at`, [userId]),
+  ]);
+  return {
+    exported_at: new Date().toISOString(),
+    user: user.rows[0] || null,
+    consent_events: consents.rows,
+    coupon_redemptions: redemptions.rows,
+  };
+}
+
+async function uploadLocal(filePath) {
+  // Replace with S3/GCS as needed; returns a URL you can share
+  return `sandbox:${filePath}`;
+}
+
+export async function runOnce(adminUserForAudit) {
+  const { rows } = await db.query(
+    `SELECT * FROM dsar_requests WHERE status IN ('open','failed') ORDER BY requested_at LIMIT 5`
+  );
+
+  for (const req of rows) {
+    try {
+      await db.query(`UPDATE dsar_requests SET status='processing' WHERE id=$1`, [req.id]);
+
+      if (req.type === 'export') {
+        const blob = await fetchUserBlob(req.user_id);
+        const json = JSON.stringify(blob, null, 2);
+        const file = path.join('/mnt/data', `dsar_export_${req.user_id}_${Date.now()}.json`);
+        await fs.writeFile(file, json);
+        const url = await uploadLocal(file);
+
+        await db.query(
+          `UPDATE dsar_requests SET status='done', processed_at=now(), export_url=$1 WHERE id=$2`,
+          [url, req.id]
+        );
+        if (adminUserForAudit) {
+          await writeAudit(
+            { ...adminUserForAudit, ip: '::1' },
+            { action:'dsar.export.complete', objectType:'user', objectId:req.user_id, before:null, after:{ export_url:url } }
+          );
+        }
+      }
+
+      if (req.type === 'delete') {
+        // Soft delete/redact
+        await db.query(`INSERT INTO user_redactions (user_id, reason) VALUES ($1,$2)`, [req.user_id, 'DSAR delete']);
+        await db.query(`UPDATE users SET email=concat('redacted+',substr(md5(id::text),1,8),'@example.com'), deleted_at=now() WHERE id=$1`, [req.user_id]);
+        // Remove PII where legally required; keep operational records if allowed (pseudonymized)
+        await db.query(`UPDATE dsar_requests SET status='done', processed_at=now() WHERE id=$1`, [req.id]);
+
+        if (adminUserForAudit) {
+          await writeAudit(
+            { ...adminUserForAudit, ip: '::1' },
+            { action:'dsar.delete.complete', objectType:'user', objectId:req.user_id, before:null, after:{ redacted:true } }
+          );
+        }
+      }
+    } catch (e) {
+      await db.query(`UPDATE dsar_requests SET status='failed', notes=$1 WHERE id=$2`, [String(e), req.id]);
+    }
+  }
+}
+
+Console UI (very light)
+
+Compliance → Consent & DSAR
+
+Table: consent events (filter by user)
+
+Button: “Export Data” / “Delete Account” → POST /admin/consent/dsar
+
+Render DSAR queue with status and download link when ready.
+
+4) Global Command-Palette Search (⌘K)
+Server search endpoint
+// src/routes/admin/search.js
+import express from 'express';
+import db from '../../db.js';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+
+const router = express.Router();
+
+router.get('/', requireAdmin, async (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (!q) return res.json({ users:[], coupons:[], content:[], plans:[] });
+
+  const like = `%${q}%`;
+  const [users, coupons, content, plans] = await Promise.all([
+    db.query(`SELECT id,email AS label FROM users WHERE email ILIKE $1 ORDER BY created_at DESC LIMIT 8`, [like]),
+    db.query(`SELECT id,code   AS label FROM coupons WHERE code ILIKE $1 ORDER BY created_at DESC LIMIT 8`, [like]),
+    db.query(`SELECT id,title  AS label FROM articles WHERE title ILIKE $1 ORDER BY published_at DESC LIMIT 8`, [like]),
+    db.query(`SELECT id,name   AS label FROM plans WHERE name ILIKE $1 ORDER BY created_at DESC LIMIT 8`, [like]),
+  ]);
+
+  res.json({
+    users:   users.rows.map(r => ({ ...r, type:'user',   url:`/console/users/${r.id}` })),
+    coupons: coupons.rows.map(r => ({ ...r, type:'coupon', url:`/console/coupons/${r.id}` })),
+    content: content.rows.map(r => ({ ...r, type:'content', url:`/console/content/${r.id}` })),
+    plans:   plans.rows.map(r => ({ ...r, type:'plan',   url:`/console/plans/${r.id}` })),
+  });
+});
+
+export default router;
+
+React command palette
+// src/console/components/CommandPalette.jsx
+import { useEffect, useState } from 'react';
+
+export default function CommandPalette() {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const [results, setResults] = useState([]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault(); setOpen(o => !o);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      if (!q) { setResults([]); return; }
+      fetch(`/admin/search?q=${encodeURIComponent(q)}`, { credentials:'include' })
+        .then(r => r.json()).then(d => {
+          const merged = [...d.users, ...d.coupons, ...d.content, ...d.plans];
+          setResults(merged);
+        });
+    }, 180);
+    return () => clearTimeout(id);
+  }, [q]);
+
+  if (!open) return null;
+
+  return (
+    <div className="palette-overlay" onClick={() => setOpen(false)}>
+      <div className="palette" onClick={(e) => e.stopPropagation()}>
+        <input
+          autoFocus placeholder="Search users, coupons, content, plans…"
+          value={q} onChange={(e)=>setQ(e.target.value)}
+        />
+        <ul>
+          {results.map((r, i) => (
+            <li key={i} onClick={()=> (window.location.href = r.url)}>
+              <span className={`tag ${r.type}`}>{r.type}</span> {r.label}
+            </li>
+          ))}
+          {results.length === 0 && q && <li className="empty">No results</li>}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+
+Add <CommandPalette /> to your console layout. Style it with your dark theme.
+
+5) Webhook Delivery Log (replay + signature)
+DB schema
+-- 004_webhooks.sql
+CREATE TYPE webhook_status AS ENUM ('pending','success','failed');
+
+CREATE TABLE webhooks (
+  id        UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name      TEXT NOT NULL,
+  url       TEXT NOT NULL,
+  secret    TEXT NOT NULL,          -- HMAC secret (store encrypted at rest)
+  active    BOOLEAN NOT NULL DEFAULT TRUE,
+  topics    TEXT[] NOT NULL,        -- e.g. '{user.created,coupon.redeemed}'
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE webhook_events (
+  id        UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  topic     TEXT NOT NULL,
+  payload   JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE webhook_deliveries (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_id    UUID NOT NULL REFERENCES webhook_events(id) ON DELETE CASCADE,
+  webhook_id  UUID NOT NULL REFERENCES webhooks(id) ON DELETE CASCADE,
+  attempt_no  INT NOT NULL,
+  status      webhook_status NOT NULL,
+  status_code INT,
+  duration_ms INT,
+  error       TEXT,
+  delivered_at TIMESTAMPTZ DEFAULT now(),
+  signature   TEXT
+);
+
+CREATE INDEX webhook_deliveries_event_idx ON webhook_deliveries(event_id);
+
+Sign + send utility
+// src/webhooks/sender.js
+import crypto from 'crypto';
+import fetch from 'node-fetch';
+import db from '../db.js';
+
+function sign(secret, body, ts) {
+  const h = crypto.createHmac('sha256', secret);
+  h.update(`${ts}.${body}`);
+  return h.digest('hex');
+}
+
+/**
+ * Deliver a single event to a specific webhook with retries.
+ */
+export async function deliver(event, webhook, attempt = 1) {
+  const body = JSON.stringify({
+    id: event.id,
+    topic: event.topic,
+    created_at: event.created_at,
+    data: event.payload,
+  });
+  const ts = Math.floor(Date.now()/1000).toString();
+  const signature = sign(webhook.secret, body, ts);
+
+  const start = Date.now();
+  try {
+    const resp = await fetch(webhook.url, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-fcs-topic': event.topic,
+        'x-fcs-timestamp': ts,
+        'x-fcs-signature': signature,
+      },
+      body
+    });
+    const ok = resp.ok;
+    await db.query(
+      `INSERT INTO webhook_deliveries (event_id, webhook_id, attempt_no, status, status_code, duration_ms, signature)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [event.id, webhook.id, attempt, ok?'success':'failed', resp.status, Date.now()-start, signature]
+    );
+    return ok;
+  } catch (e) {
+    await db.query(
+      `INSERT INTO webhook_deliveries (event_id, webhook_id, attempt_no, status, error, duration_ms, signature)
+       VALUES ($1,$2,$3,'failed',$4,$5,$6)`,
+      [event.id, webhook.id, attempt, String(e), Date.now()-start, signature]
+    );
+    return false;
+  }
+}
+
+/**
+ * Fan-out all webhooks subscribed to a topic for an event.
+ */
+export async function fanout(event) {
+  const { rows: hooks } = await db.query(
+    `SELECT * FROM webhooks WHERE active=TRUE AND $1 = ANY(topics)`, [event.topic]
+  );
+  for (const h of hooks) await deliver(event, h, 1);
+}
+
+/**
+ * Re-deliver for a given delivery or event id.
+ */
+export async function replay({ deliveryId, eventId }) {
+  let event;
+  if (deliveryId) {
+    const d = (await db.query(
+      `SELECT d.*, e.topic, e.payload, e.created_at
+         FROM webhook_deliveries d JOIN webhook_events e ON e.id=d.event_id
+       WHERE d.id=$1`, [deliveryId])).rows[0];
+    event = { id: d.event_id, topic: d.topic, payload: d.payload, created_at: d.created_at };
+    const hook = (await db.query(`SELECT * FROM webhooks WHERE id=$1`, [d.webhook_id])).rows[0];
+    if (hook) await deliver(event, hook, (d.attempt_no||0)+1);
+    return;
+  }
+  if (eventId) {
+    const e = (await db.query(`SELECT * FROM webhook_events WHERE id=$1`, [eventId])).rows[0];
+    if (e) await fanout(e);
+  }
+}
+
+Creating events from your app
+
+Whenever a thing happens (user.created, coupon.redeemed), write the event, then fanout():
+
+// Somewhere in your business logic:
+import db from '../db.js';
+import { fanout } from '../webhooks/sender.js';
+
+export async function onCouponRedeemed(payload) {
+  const { rows } = await db.query(
+    `INSERT INTO webhook_events (topic, payload) VALUES ($1,$2) RETURNING *`,
+    ['coupon.redeemed', payload]
+  );
+  await fanout(rows[0]);
+}
+
+Admin API (manage hooks + replay)
+// src/routes/admin/webhooks.js
+import express from 'express';
+import db from '../../db.js';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+import { replay } from '../../webhooks/sender.js';
+
+const router = express.Router();
+
+router.get('/hooks', requireAdmin, async (_req, res) => {
+  const { rows } = await db.query(`SELECT * FROM webhooks ORDER BY created_at DESC`);
+  res.json({ items: rows });
+});
+
+router.post('/hooks', requireAdmin, async (req, res) => {
+  const { name, url, secret, topics } = req.body;
+  const { rows } = await db.query(
+    `INSERT INTO webhooks (name,url,secret,topics) VALUES ($1,$2,$3,$4) RETURNING *`,
+    [name, url, secret, topics || []]
+  );
+  res.status(201).json(rows[0]);
+});
+
+router.get('/events', requireAdmin, async (req, res) => {
+  const { limit=50 } = req.query;
+  const { rows } = await db.query(`SELECT * FROM webhook_events ORDER BY created_at DESC LIMIT $1`, [Number(limit)]);
+  res.json({ items: rows });
+});
+
+router.get('/deliveries', requireAdmin, async (req, res) => {
+  const { eventId, limit=100 } = req.query;
+  const params = [];
+  let sql = `SELECT * FROM webhook_deliveries`;
+  if (eventId) { params.push(eventId); sql += ` WHERE event_id=$${params.length}`; }
+  params.push(Number(limit));
+  sql += ` ORDER BY delivered_at DESC LIMIT $${params.length}`;
+  const { rows } = await db.query(sql, params);
+  res.json({ items: rows });
+});
+
+router.post('/replay', requireAdmin, async (req, res) => {
+  const { deliveryId, eventId } = req.body;
+  await replay({ deliveryId, eventId });
+  res.json({ ok: true });
+});
+
+export default router;
+
+Verify signatures on receiver side (doc for your integrators)
+POST body: JSON with { id, topic, created_at, data }
+Headers:
+  X-FCS-Topic:        <topic>
+  X-FCS-Timestamp:    <unix sec>
+  X-FCS-Signature:    <hex sha256 of `${timestamp}.${rawBody}` using shared secret>
+
+Wiring notes
+
+Mount new routes:
+
+app.use('/admin/consent', consentAdminRouter);
+app.use('/admin/search', searchRouter);
+app.use('/admin/webhooks', webhooksAdminRouter);
+app.use('/consent', publicConsentRouter);         // public edge
+
+
+Add console pages:
+
+Compliance → Consent & DSAR (table + actions)
+
+Integrations → Webhooks (hooks list, events, deliveries, replay)
+
+Include <CommandPalette /> near the top of your console layout.
+
+Schedule dsarWorker.runOnce() (every minute via cron, or an internal queue) with an admin audit context:
+
+// src/workers/run.js
+import { runOnce } from './dsarWorker.js';
+setInterval(() => runOnce({ userId:'00000000-0000-0000-0000-000000000001', email:'system@familycirclesecure.com', role:'ADMIN' }), 60_000);
+
+What you’ve got now
+
+Consent & DSAR flow (recording, queue, export link, soft-delete/redaction) with audit trails.
+
+Global ⌘K search across Users/Coupons/Content/Plans (fast navigation).
+
+Webhook infrastructure: topics, signed deliveries, logs, retry/replay, admin UI.
+
+If you want, the next “quality-of-life” upgrades I recommend:
+
+Feature Flags (gradual rollouts inside console)
+
+Impersonation with guardrails (already partially in place—add reason + timeout)
+
+Admin SSO (OIDC) for your team only
+
+Tell me which you want next and I’ll drop the code.
+
+You said:
+go ahead
+ChatGPT said:
+Thought for 10s
+
+Awesome — let’s add the next three “pro-grade” console capabilities you asked for:
+
+6) Feature Flags (percent rollouts, targeting rules, kill-switch)
+
+7) Admin Impersonation with guardrails (reason, timeout, audit)
+
+8) Admin SSO (OIDC) for your internal team
+
+I’ll keep using Node/Express + PostgreSQL + React like the rest of your stack. You can paste each section independently.
+
+6) Feature Flags (rollouts & targeting)
+DB schema
+-- 005_feature_flags.sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TYPE flag_status AS ENUM ('active','archived');
+
+CREATE TABLE feature_flags (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  key           TEXT UNIQUE NOT NULL,            -- e.g. 'new-billing-ui'
+  name          TEXT NOT NULL,
+  description   TEXT,
+  status        flag_status NOT NULL DEFAULT 'active',
+  force_on      BOOLEAN,                         -- hard override
+  force_off     BOOLEAN,
+  targeting     JSONB NOT NULL DEFAULT '{}'::jsonb, -- rules (see below)
+  created_by    UUID,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Example targeting JSON shape
+-- {
+--   "percentage": 25,                 // rollout % (0..100)
+--   "allowDomains": ["@myco.com"],    // user.email endsWith any
+--   "allowUserIds": ["uuid", ...],    // explicit allow list
+--   "blockUserIds": []
+-- }
+
+Deterministic bucketing (user → 0..99)
+// src/flags/hash.js
+import crypto from 'crypto';
+
+export function bucket(userId, flagKey) {
+  const h = crypto.createHash('sha1');
+  h.update(`${flagKey}:${userId}`);
+  // map to 0..99 (stable per flag+user)
+  return parseInt(h.digest('hex').slice(0, 8), 16) % 100;
+}
+
+Evaluate function
+// src/flags/evalFlag.js
+import db from '../db.js';
+import { bucket } from './hash.js';
+
+export async function evalFlag(flagKey, user) {
+  const { rows } = await db.query(`SELECT * FROM feature_flags WHERE key=$1 AND status='active'`, [flagKey]);
+  if (!rows.length) return false; // default off if unknown
+  const f = rows[0];
+
+  if (f.force_on === true)  return true;
+  if (f.force_off === true) return false;
+
+  const t = f.targeting || {};
+  if (t.blockUserIds?.includes(user.id)) return false;
+  if (t.allowUserIds?.includes(user.id)) return true;
+
+  if (t.allowDomains?.length && user.email) {
+    const hit = t.allowDomains.some(sfx => user.email.toLowerCase().endsWith(sfx.toLowerCase()));
+    if (hit) return true;
+  }
+
+  const pct = Number(t.percentage || 0);
+  if (pct <= 0) return false;
+  const b = bucket(user.id, flagKey);
+  return b < pct; // 25% → allow buckets 0..24
+}
+
+Admin API to manage flags
+// src/routes/admin/flags.js
+import express from 'express';
+import db from '../../db.js';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+
+const router = express.Router();
+
+router.get('/', requireAdmin, async (_req, res) => {
+  const { rows } = await db.query(`SELECT * FROM feature_flags ORDER BY updated_at DESC`);
+  res.json({ items: rows });
+});
+
+router.post('/', requireAdmin, async (req, res) => {
+  const { key, name, description, targeting } = req.body;
+  const { rows } = await db.query(
+    `INSERT INTO feature_flags (key, name, description, targeting, created_by)
+     VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+    [key, name, description || null, targeting || {}, req.user.id]
+  );
+  res.status(201).json(rows[0]);
+});
+
+router.patch('/:id', requireAdmin, async (req, res) => {
+  const cols = ['name','description','status','force_on','force_off','targeting'];
+  const sets = [];
+  const params = [];
+  cols.forEach(c => { if (c in req.body) { params.push(req.body[c]); sets.push(`${c}=$${params.length}`); }});
+  params.push(req.params.id);
+  const sql = `UPDATE feature_flags SET ${sets.join(', ')}, updated_at=now() WHERE id=$${params.length} RETURNING *`;
+  const { rows } = await db.query(sql, params);
+  res.json(rows[0]);
+});
+
+export default router;
+
+Edge endpoint to fetch flags for the signed-in user
+// src/routes/app/flags.js
+import express from 'express';
+import db from '../../db.js';
+import { evalFlag } from '../../flags/evalFlag.js';
+import { requireUser } from '../../mw/requireUser.js';
+
+const router = express.Router();
+
+router.get('/mine', requireUser, async (req, res) => {
+  const { rows } = await db.query(`SELECT key FROM feature_flags WHERE status='active'`);
+  const out = {};
+  for (const r of rows) out[r.key] = await evalFlag(r.key, req.user);
+  res.json(out); // { 'new-billing-ui': true, ... }
+});
+
+export default router;
+
+Client hook (React)
+// src/console/hooks/useFlags.ts
+import { useEffect, useState } from 'react';
+
+export function useFlags() {
+  const [flags, setFlags] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    fetch('/app/flags/mine', { credentials:'include' })
+      .then(r => r.json()).then(setFlags).catch(() => setFlags({}));
+  }, []);
+  return (key: string, fallback=false) => flags[key] ?? fallback;
+}
+
+
+Console UI: add Settings → Feature Flags with:
+
+grid of flags (key/name),
+
+slider 0–100% rollout, allow lists, force on/off,
+
+instant preview by entering a user id/email (evaluates server-side).
+
+7) Admin Impersonation (reason + timeout + audit)
+
+You already have basic impersonation. These upgrades add reason capture, fixed TTL, no nesting, and strong audit.
+
+Session storage
+-- 006_impersonation_guardrails.sql
+CREATE TABLE impersonation_sessions (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  admin_id     UUID NOT NULL,
+  target_id    UUID NOT NULL,
+  reason       TEXT,
+  started_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at   TIMESTAMPTZ NOT NULL,
+  ended_at     TIMESTAMPTZ,
+  ended_reason TEXT
+);
+CREATE INDEX ON impersonation_sessions(admin_id, ended_at);
+
+Middleware helpers
+// src/mw/impersonation.js
+import db from '../db.js';
+
+export async function startImpersonation({ adminId, targetId, reason, ttlMinutes = 20 }) {
+  // ensure no active session for this admin
+  const active = await db.query(
+    `SELECT * FROM impersonation_sessions WHERE admin_id=$1 AND ended_at IS NULL AND expires_at > now()`,
+    [adminId]
+  );
+  if (active.rowCount) throw new Error('Impersonation already active');
+
+  const { rows } = await db.query(
+    `INSERT INTO impersonation_sessions (admin_id, target_id, reason, expires_at)
+     VALUES ($1,$2,$3, now() + ($4||' minutes')::interval) RETURNING *`,
+    [adminId, targetId, reason || null, String(ttlMinutes)]
+  );
+  return rows[0];
+}
+
+export async function stopImpersonation(sessionId, endedReason='ended') {
+  await db.query(
+    `UPDATE impersonation_sessions SET ended_at=now(), ended_reason=$2 WHERE id=$1 AND ended_at IS NULL`,
+    [sessionId, endedReason]
+  );
+}
+
+Routes (start/stop) + cookie marker
+// src/routes/admin/impersonate.js
+import express from 'express';
+import db from '../../db.js';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+import { startImpersonation, stopImpersonation } from '../../mw/impersonation.js';
+import { writeAudit } from '../../audit/audit.js';
+
+const router = express.Router();
+
+router.post('/start', requireAdmin, async (req, res) => {
+  const { userId, reason, ttlMinutes } = req.body;
+  const session = await startImpersonation({ adminId: req.user.id, targetId: userId, reason, ttlMinutes });
+
+  // store tiny cookie w/ session id (separate from auth token)
+  res.cookie('impersonation', session.id, { httpOnly:true, sameSite:'Lax', secure:true });
+  await writeAudit({ ...req.auditCtx }, {
+    action: 'impersonation.start',
+    objectType: 'user',
+    objectId: userId,
+    after: { reason, expires_at: session.expires_at }
+  });
+  res.json({ ok:true, sessionId: session.id, expiresAt: session.expires_at });
+});
+
+router.post('/stop', requireAdmin, async (req, res) => {
+  const sid = req.cookies.impersonation;
+  if (sid) await stopImpersonation(sid, req.body.reason || 'ended-by-admin');
+  res.clearCookie('impersonation');
+  await writeAudit({ ...req.auditCtx }, { action:'impersonation.stop', objectType:'user', objectId:req.user.id });
+  res.json({ ok:true });
+});
+
+export default router;
+
+Apply the effective user on each request
+// src/mw/effectiveUser.js
+import db from '../db.js';
+
+export async function applyEffectiveUser(req, _res, next) {
+  req.effectiveUser = req.user; // default
+  const sid = req.cookies?.impersonation;
+  if (!sid) return next();
+
+  const { rows } = await db.query(
+    `SELECT s.*, u.id AS target_id
+       FROM impersonation_sessions s
+       JOIN users u ON u.id=s.target_id
+      WHERE s.id=$1 AND s.ended_at IS NULL AND s.expires_at > now()`,
+    [sid]
+  );
+  if (!rows.length) return next();
+
+  // Side-channel banner
+  req.flags = { ...(req.flags||{}), __impersonating: true, __impersonation_exp: rows[0].expires_at };
+  // Use target as effective user
+  req.effectiveUser = { ...req.user, id: rows[0].target_id, __impersonated: true, __impSid: sid };
+  next();
+}
+
+
+Mount applyEffectiveUser after your auth middleware. In your UI, if __impersonating, show the red banner with “Stop Impersonation (⌥Esc)” and countdown.
+
+Guardrails recommended
+
+Disable dangerous actions while impersonating (e.g., deleting payment methods, changing password).
+
+Force stop when TTL hits zero (worker/cron to clean up expired sessions).
+
+8) Admin SSO (OIDC) for your team
+
+Use openid-client
+. Supports Okta, Auth0, Azure AD, Google Workspace, etc.
+
+Env
+OIDC_ISSUER_URL=https://YOUR_ISSUER/.well-known/openid-configuration
+OIDC_CLIENT_ID=...
+OIDC_CLIENT_SECRET=...
+OIDC_REDIRECT_URI=https://console.familycirclesecure.com/auth/sso/callback
+OIDC_ALLOWED_DOMAIN=@familycirclesecure.com   # or leave blank to use group claim
+OIDC_ALLOWED_GROUP=fcs-admins                 # optional: check `groups` claim
+
+OIDC wiring
+// src/auth/oidc.js
+import { Issuer, generators } from 'openid-client';
+import db from '../db.js';
+
+let client;
+export async function getClient() {
+  if (client) return client;
+  const issuer = await Issuer.discover(process.env.OIDC_ISSUER_URL);
+  client = new issuer.Client({
+    client_id: process.env.OIDC_CLIENT_ID,
+    client_secret: process.env.OIDC_CLIENT_SECRET,
+    redirect_uris: [process.env.OIDC_REDIRECT_URI],
+    response_types: ['code'],
+  });
+  return client;
+}
+
+export async function ssoStart(req, res) {
+  const c = await getClient();
+  const state = generators.state();
+  const nonce = generators.nonce();
+  req.session.oidc = { state, nonce, returnTo: req.query.returnTo || '/console' };
+  const url = c.authorizationUrl({
+    scope: 'openid email profile',
+    state, nonce
+  });
+  res.redirect(url);
+}
+
+export async function ssoCallback(req, res) {
+  const { state, nonce, returnTo } = req.session.oidc || {};
+  const c = await getClient();
+  const params = c.callbackParams(req);
+  const tokenSet = await c.callback(process.env.OIDC_REDIRECT_URI, params, { state, nonce });
+  const claims = tokenSet.claims();
+
+  // Gatekeeping: allowed domain OR group
+  const email = (claims.email || '').toLowerCase();
+  const domainOk = process.env.OIDC_ALLOWED_DOMAIN
+    ? email.endsWith(process.env.OIDC_ALLOWED_DOMAIN.toLowerCase())
+    : true;
+  const groups = claims.groups || claims['custom:groups'] || [];
+  const groupOk = process.env.OIDC_ALLOWED_GROUP
+    ? Array.isArray(groups) && groups.includes(process.env.OIDC_ALLOWED_GROUP)
+    : true;
+
+  if (!domainOk || !groupOk) return res.status(403).send('Not allowed');
+
+  // Upsert admin user
+  const { rows } = await db.query(
+    `INSERT INTO users (email, role)
+     VALUES ($1,'ADMIN')
+     ON CONFLICT (email) DO UPDATE SET role='ADMIN'
+     RETURNING *`,
+    [email]
+  );
+
+  // Establish your normal admin session (cookie/JWT)
+  req.session.userId = rows[0].id;
+  res.redirect(returnTo || '/console');
+}
+
+Routes
+// src/routes/auth/sso.js
+import express from 'express';
+import { ssoStart, ssoCallback } from '../../auth/oidc.js';
+
+const router = express.Router();
+router.get('/login', ssoStart);
+router.get('/callback', ssoCallback);
+export default router;
+
+
+Console UI:
+
+On the admin login page, show “Sign in with SSO” (link to /auth/sso/login).
+
+Keep your local admin login as a recovery path (behind “Having trouble?”).
+
+Wire everything
+// app.js (or server bootstrap)
+import flagsAdmin from './routes/admin/flags.js';
+import consentAdmin from './routes/admin/consent.js';
+import webhooksAdmin from './routes/admin/webhooks.js';
+import impersonateAdmin from './routes/admin/impersonate.js';
+import searchAdmin from './routes/admin/search.js';
+import userFlags from './routes/app/flags.js';
+import ssoRoutes from './routes/auth/sso.js';
+import { applyEffectiveUser } from './mw/effectiveUser.js';
+
+// ... auth/session middleware first ...
+app.use(applyEffectiveUser);
+
+app.use('/admin/flags', flagsAdmin);
+app.use('/admin/consent', consentAdmin);
+app.use('/admin/webhooks', webhooksAdmin);
+app.use('/admin/impersonate', impersonateAdmin);
+app.use('/admin/search', searchAdmin);
+app.use('/app/flags', userFlags);
+app.use('/auth/sso', ssoRoutes);
+
+What you get now
+
+Feature Flags with % rollouts, allow-lists, overrides, and a single /app/flags/mine endpoint the client can cache.
+
+Impersonation that’s time-boxed, audited, and bannered, with safe defaults and easy kill-switch.
+
+Admin SSO (OIDC) that restricts access to your org’s domain/groups but still lets you fall back to local admin login.
+
+If you want, I can provide:
+
+a minimal React UI for the Flags and Webhooks pages (cards/forms),
+
+CSS for the impersonation red banner + ⌥Esc keyboard handler,
+
+a seed script for one example flag and one OIDC config.
+
+Say the word and I’ll drop those next.
+
+You said:
+ok go ahead
+ChatGPT said:
+Thought for 20s
+
+Perfect—here are the drop-in pieces you asked for:
+
+A minimal React UI for Feature Flags and Webhooks
+
+A fixed Impersonation red banner (with ⌥Esc to stop) + tiny status API
+
+A small seed script to create a sample flag and print OIDC envs
+
+I’ve kept everything framework-agnostic (plain React + fetch). Paths match the REST you already have.
+
+0) Small server add-ons
+a) Impersonation status endpoint (for the banner)
+// src/routes/admin/impersonate-status.js
+import express from 'express';
+import db from '../../db.js';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+
+const router = express.Router();
+
+router.get('/status', requireAdmin, async (req, res) => {
+  const sid = req.cookies?.impersonation;
+  if (!sid) return res.json({ active: false });
+
+  const { rows } = await db.query(
+    `SELECT s.id, s.expires_at, s.target_id, u.email AS target_email
+       FROM impersonation_sessions s
+       JOIN users u ON u.id = s.target_id
+      WHERE s.id=$1 AND s.ended_at IS NULL AND s.expires_at > now()`,
+    [sid]
+  );
+
+  if (!rows.length) return res.json({ active: false });
+  res.json({
+    active: true,
+    sessionId: rows[0].id,
+    targetId: rows[0].target_id,
+    targetEmail: rows[0].target_email,
+    expiresAt: rows[0].expires_at
+  });
+});
+
+export default router;
+
+
+Mount it:
+
+// app.js
+import impersonationStatus from './routes/admin/impersonate-status.js';
+app.use('/admin/impersonate', impersonationStatus);
+
+1) React UI – Feature Flags
+src/console/pages/FlagsPage.tsx
+src/console/components/FlagEditor.tsx
+
+src/console/pages/FlagsPage.tsx
+import React, { useEffect, useMemo, useState } from 'react';
+import FlagEditor from '../components/FlagEditor';
+
+type Flag = {
+  id: string;
+  key: string;
+  name: string;
+  description?: string;
+  status: 'active'|'archived';
+  force_on?: boolean;
+  force_off?: boolean;
+  targeting: {
+    percentage?: number;
+    allowDomains?: string[];
+    allowUserIds?: string[];
+    blockUserIds?: string[];
+  };
+  updated_at: string;
+};
+
+export default function FlagsPage() {
+  const [items, setItems] = useState<Flag[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Flag|null>(null);
+  const [creating, setCreating] = useState(false);
+  const [query, setQuery] = useState('');
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(f =>
+      f.key.toLowerCase().includes(q) ||
+      f.name.toLowerCase().includes(q)
+    );
+  }, [items, query]);
+
+  async function load() {
+    setLoading(true);
+    const r = await fetch('/admin/flags', { credentials:'include' });
+    const j = await r.json();
+    setItems(j.items || []);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  return (
+    <div className="page flags">
+      <div className="page-header">
+        <h1>Feature Flags</h1>
+        <div className="actions">
+          <input
+            className="input"
+            placeholder="Search flags…"
+            value={query}
+            onChange={e=>setQuery(e.target.value)}
+          />
+          <button className="btn btn-primary" onClick={()=>setCreating(true)}>
+            + New Flag
+          </button>
+        </div>
+      </div>
+
+      {loading ? <div className="card">Loading…</div> : (
+        <div className="card">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Name</th>
+                <th>Rollout</th>
+                <th>Force</th>
+                <th>Status</th>
+                <th>Updated</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(f => (
+                <tr key={f.id}>
+                  <td><code>{f.key}</code></td>
+                  <td>{f.name}</td>
+                  <td>{(f.targeting?.percentage ?? 0)}%</td>
+                  <td>
+                    {f.force_on ? 'ON' : f.force_off ? 'OFF' : '—'}
+                  </td>
+                  <td>{f.status}</td>
+                  <td>{new Date(f.updated_at).toLocaleString()}</td>
+                  <td>
+                    <button className="btn btn-small" onClick={()=>setEditing(f)}>Edit</button>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan={7} style={{textAlign:'center', opacity:.7}}>No flags</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {(creating || editing) && (
+        <FlagEditor
+          initial={editing || undefined}
+          onClose={() => { setCreating(false); setEditing(null); }}
+          onSaved={() => { setCreating(false); setEditing(null); load(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+src/console/components/FlagEditor.tsx
+import React, { useEffect, useState } from 'react';
+
+type FlagDraft = {
+  id?: string;
+  key: string;
+  name: string;
+  description?: string;
+  status: 'active'|'archived';
+  force_on?: boolean;
+  force_off?: boolean;
+  targeting: {
+    percentage?: number;
+    allowDomains?: string[];
+    allowUserIds?: string[];
+    blockUserIds?: string[];
+  };
+};
+
+export default function FlagEditor({
+  initial,
+  onClose,
+  onSaved
+}: {
+  initial?: FlagDraft;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [draft, setDraft] = useState<FlagDraft>(initial || {
+    key: '',
+    name: '',
+    status: 'active',
+    targeting: { percentage: 0, allowDomains:[], allowUserIds:[], blockUserIds:[] }
+  });
+  const [testingUser, setTestingUser] = useState('');
+  const [preview, setPreview] = useState<boolean|null>(null);
+  const isEdit = Boolean(initial?.id);
+
+  function update<K extends keyof FlagDraft>(k: K, v: FlagDraft[K]) {
+    setDraft(d => ({ ...d, [k]: v }));
+  }
+
+  async function save() {
+    const body = JSON.stringify(draft);
+    const opts = { method: isEdit ? 'PATCH' : 'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body };
+    const url = isEdit ? `/admin/flags/${draft.id}` : '/admin/flags';
+    const r = await fetch(url, opts);
+    if (!r.ok) return alert('Save failed');
+    onSaved();
+  }
+
+  async function testUser() {
+    // simple preview: hit your existing evaluation path by injecting `X-Preview-User`
+    const r = await fetch('/app/flags/mine', {
+      credentials:'include',
+      headers:{ 'X-Preview-User': testingUser } // optional if you add support server-side
+    });
+    const flags = await r.json();
+    setPreview(Boolean(flags[draft.key]));
+  }
+
+  // keep force_on/off mutually exclusive
+  useEffect(() => {
+    if (draft.force_on && draft.force_off) {
+      setDraft(d => ({ ...d, force_off: false }));
+    }
+  }, [draft.force_on]);
+  useEffect(() => {
+    if (draft.force_on && draft.force_off) {
+      setDraft(d => ({ ...d, force_on: false }));
+    }
+  }, [draft.force_off]);
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <h2>{isEdit ? 'Edit Flag' : 'Create Flag'}</h2>
+
+        {!isEdit && (
+          <div className="form-row">
+            <label>Key</label>
+            <input value={draft.key} onChange={e=>update('key', e.target.value)} placeholder="new-billing-ui" />
+          </div>
+        )}
+
+        <div className="form-row">
+          <label>Name</label>
+          <input value={draft.name} onChange={e=>update('name', e.target.value)} />
+        </div>
+
+        <div className="form-row">
+          <label>Description</label>
+          <textarea value={draft.description || ''} onChange={e=>update('description', e.target.value)} />
+        </div>
+
+        <div className="grid2">
+          <div className="form-row">
+            <label>Rollout %</label>
+            <input
+              type="number" min={0} max={100}
+              value={draft.targeting.percentage ?? 0}
+              onChange={e=>setDraft(d=>({ ...d, targeting:{ ...d.targeting, percentage: Number(e.target.value) }}))}
+            />
+          </div>
+          <div className="form-row">
+            <label>Status</label>
+            <select value={draft.status} onChange={e=>update('status', e.target.value as any)}>
+              <option value="active">active</option>
+              <option value="archived">archived</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid3">
+          <div className="form-row">
+            <label>Force On</label>
+            <input type="checkbox" checked={!!draft.force_on} onChange={e=>update('force_on', e.target.checked)} />
+          </div>
+          <div className="form-row">
+            <label>Force Off</label>
+            <input type="checkbox" checked={!!draft.force_off} onChange={e=>update('force_off', e.target.checked)} />
+          </div>
+        </div>
+
+        <div className="grid3">
+          <div className="form-row">
+            <label>Allow Domains</label>
+            <input
+              placeholder="@myco.com, @partner.org"
+              value={(draft.targeting.allowDomains||[]).join(', ')}
+              onChange={e=>setDraft(d=>({ ...d, targeting:{ ...d.targeting, allowDomains: e.target.value.split(',').map(s=>s.trim()).filter(Boolean) }}))}
+            />
+          </div>
+          <div className="form-row">
+            <label>Allow User IDs</label>
+            <input
+              placeholder="uuid, uuid"
+              value={(draft.targeting.allowUserIds||[]).join(', ')}
+              onChange={e=>setDraft(d=>({ ...d, targeting:{ ...d.targeting, allowUserIds: e.target.value.split(',').map(s=>s.trim()).filter(Boolean) }}))}
+            />
+          </div>
+          <div className="form-row">
+            <label>Block User IDs</label>
+            <input
+              placeholder="uuid, uuid"
+              value={(draft.targeting.blockUserIds||[]).join(', ')}
+              onChange={e=>setDraft(d=>({ ...d, targeting:{ ...d.targeting, blockUserIds: e.target.value.split(',').map(s=>s.trim()).filter(Boolean) }}))}
+            />
+          </div>
+        </div>
+
+        <div className="preview-row">
+          <input className="input" placeholder="Preview as user id or email…" value={testingUser} onChange={e=>setTestingUser(e.target.value)} />
+          <button className="btn" onClick={testUser}>Preview</button>
+          {preview !== null && (
+            <span className="pill" style={{marginLeft:8, background: preview ? '#22c55e' : '#ef4444'}}>
+              {preview ? 'ENABLED' : 'DISABLED'}
+            </span>
+          )}
+        </div>
+
+        <div className="modal-actions">
+          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" onClick={save}>{isEdit ? 'Save' : 'Create'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+2) React UI – Webhooks (outbound)
+
+Schema (if you haven’t added it yet)
+
+-- 007_webhooks.sql
+CREATE TABLE webhook_endpoints (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  url         TEXT NOT NULL,
+  secret      TEXT NOT NULL,
+  events      TEXT[] NOT NULL,            -- e.g. '{user.created,invoice.paid}'
+  active      BOOLEAN NOT NULL DEFAULT TRUE,
+  created_by  UUID,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+
+Admin routes (CRUD + test send)
+
+// src/routes/admin/webhooks.js
+import express from 'express';
+import db from '../../db.js';
+import crypto from 'crypto';
+import fetch from 'node-fetch';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+
+const router = express.Router();
+
+router.get('/', requireAdmin, async (_req, res) => {
+  const { rows } = await db.query(`SELECT id, url, events, active, created_at, updated_at FROM webhook_endpoints ORDER BY created_at DESC`);
+  res.json({ items: rows });
+});
+
+router.post('/', requireAdmin, async (req, res) => {
+  const { url, events, active, secret } = req.body;
+  const sec = secret || crypto.randomBytes(24).toString('hex');
+  const { rows } = await db.query(
+    `INSERT INTO webhook_endpoints (url, events, active, secret, created_by)
+     VALUES ($1,$2,$3,$4,$5) RETURNING id, url, events, active, created_at, updated_at`,
+    [url, events, active ?? true, sec, req.user.id]
+  );
+  res.status(201).json(rows[0]);
+});
+
+router.patch('/:id', requireAdmin, async (req, res) => {
+  const fields = ['url','events','active'];
+  const sets=[]; const params=[];
+  for (const f of fields) if (f in req.body) { params.push(req.body[f]); sets.push(`${f}=$${params.length}`); }
+  params.push(req.params.id);
+  const { rows } = await db.query(
+    `UPDATE webhook_endpoints SET ${sets.join(', ')}, updated_at=now() WHERE id=$${params.length} RETURNING id,url,events,active,created_at,updated_at`
+  , params);
+  res.json(rows[0]);
+});
+
+router.post('/:id/test', requireAdmin, async (req, res) => {
+  // send a sample event to verify signature/receiver
+  const { rows } = await db.query(`SELECT * FROM webhook_endpoints WHERE id=$1`, [req.params.id]);
+  if (!rows.length) return res.status(404).end();
+  const ep = rows[0];
+
+  const event = {
+    id: crypto.randomUUID(),
+    type: 'webhook.test',
+    created: new Date().toISOString(),
+    data: { ok:true, hello: 'FamilyCircle Secure' }
+  };
+  const payload = JSON.stringify(event);
+  const sig = crypto.createHmac('sha256', ep.secret).update(payload).digest('hex');
+
+  const r = await fetch(ep.url, {
+    method:'POST',
+    headers: { 'Content-Type':'application/json', 'X-FCS-Signature': sig },
+    body: payload
+  });
+  res.json({ status: r.status, ok: r.ok });
+});
+
+export default router;
+
+
+React page
+
+src/console/pages/WebhooksPage.tsx
+
+import React, { useEffect, useState } from 'react';
+
+type Endpoint = {
+  id: string;
+  url: string;
+  events: string[];
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+const ALL_EVENTS = [
+  'user.created', 'user.deleted' ,
+  'subscription.created','subscription.updated','subscription.canceled',
+  'invoice.paid','invoice.failed',
+  'webhook.test'
+];
+
+export default function WebhooksPage() {
+  const [items, setItems] = useState<Endpoint[]>([]);
+  const [creating, setCreating] = useState(false);
+  const [draft, setDraft] = useState<Partial<Endpoint>>({ url:'', events:['user.created'], active:true });
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    setLoading(true);
+    const r = await fetch('/admin/webhooks', { credentials:'include' });
+    const j = await r.json();
+    setItems(j.items || []);
+    setLoading(false);
+  }
+  useEffect(()=>{ load(); }, []);
+
+  async function create() {
+    const r = await fetch('/admin/webhooks', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(draft)
+    });
+    if (!r.ok) return alert('Create failed');
+    setCreating(false);
+    setDraft({ url:'', events:['user.created'], active:true });
+    load();
+  }
+
+  async function toggleActive(id: string, active: boolean) {
+    const r = await fetch(`/admin/webhooks/${id}`, {
+      method:'PATCH', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ active })
+    });
+    if (!r.ok) return alert('Update failed');
+    load();
+  }
+
+  async function testSend(id: string) {
+    const r = await fetch(`/admin/webhooks/${id}/test`, {
+      method:'POST', credentials:'include'
+    });
+    const j = await r.json();
+    alert(`Test sent → status ${j.status} (ok=${j.ok})`);
+  }
+
+  return (
+    <div className="page webhooks">
+      <div className="page-header">
+        <h1>Webhooks</h1>
+        <button className="btn btn-primary" onClick={()=>setCreating(true)}>+ New Endpoint</button>
+      </div>
+
+      {loading ? <div className="card">Loading…</div> : (
+        <div className="card">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>URL</th>
+                <th>Events</th>
+                <th>Active</th>
+                <th>Updated</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {items.map(e => (
+                <tr key={e.id}>
+                  <td style={{maxWidth:420, overflow:'hidden', textOverflow:'ellipsis'}}>{e.url}</td>
+                  <td>{e.events.join(', ')}</td>
+                  <td>
+                    <label className="switch">
+                      <input type="checkbox" checked={e.active} onChange={ev=>toggleActive(e.id, ev.target.checked)} />
+                      <span />
+                    </label>
+                  </td>
+                  <td>{new Date(e.updated_at).toLocaleString()}</td>
+                  <td>
+                    <button className="btn btn-small" onClick={()=>testSend(e.id)}>Send test</button>
+                  </td>
+                </tr>
+              ))}
+              {items.length === 0 && <tr><td colSpan={5} style={{textAlign:'center'}}>No endpoints</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {creating && (
+        <div className="modal-backdrop" onClick={()=>setCreating(false)}>
+          <div className="modal" onClick={e=>e.stopPropagation()}>
+            <h2>New Endpoint</h2>
+            <div className="form-row">
+              <label>Destination URL</label>
+              <input value={draft.url || ''} onChange={e=>setDraft(d=>({ ...d, url: e.target.value }))} placeholder="https://example.com/webhooks/fcs" />
+            </div>
+
+            <div className="form-row">
+              <label>Events</label>
+              <div className="tags">
+                {ALL_EVENTS.map(ev => {
+                  const on = draft.events?.includes(ev);
+                  return (
+                    <button
+                      key={ev}
+                      className={'tag' + (on ? ' on' : '')}
+                      onClick={()=>{
+                        setDraft(d=>{
+                          const curr = new Set(d.events || []);
+                          if (curr.has(ev)) curr.delete(ev); else curr.add(ev);
+                          return { ...d, events: Array.from(curr) };
+                        });
+                      }}
+                    >
+                      {ev}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="form-row">
+              <label>Active</label>
+              <input type="checkbox" checked={!!draft.active} onChange={e=>setDraft(d=>({ ...d, active: e.target.checked }))} />
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn" onClick={()=>setCreating(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={create}>Create</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+3) Impersonation red banner (with ⌥Esc)
+src/console/components/ImpersonationBanner.tsx
+src/console/styles/impersonation.css
+
+src/console/components/ImpersonationBanner.tsx
+import React, { useEffect, useState } from 'react';
+
+type Status = { active: boolean; targetEmail?: string; expiresAt?: string };
+
+export default function ImpersonationBanner() {
+  const [st, setSt] = useState<Status>({ active:false });
+
+  async function load() {
+    try {
+      const r = await fetch('/admin/impersonate/status', { credentials:'include' });
+      const j = await r.json(); setSt(j);
+    } catch {}
+  }
+
+  async function stop(reason='ended-by-admin') {
+    await fetch('/admin/impersonate/stop', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ reason })
+    });
+    setSt({ active:false });
+    window.location.reload();
+  }
+
+  useEffect(()=>{ load(); const t = setInterval(load, 10_000); return ()=>clearInterval(t); }, []);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.key === 'Escape' || e.keyCode === 27) && (e.altKey || e.metaKey)) {
+        e.preventDefault();
+        stop('keyboard-stop');
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  if (!st.active) return null;
+
+  const exp = st.expiresAt ? new Date(st.expiresAt).toLocaleTimeString() : '';
+
+  return (
+    <div className="impersonation-banner">
+      <div className="impersonation-inner">
+        <span className="dot" /> <strong>IMPERSONATING</strong>
+        <span className="sep">•</span>
+        {st.targetEmail}
+        {exp && <span className="sep">•</span>}
+        {exp && <>expires <b>{exp}</b></>}
+      </div>
+      <div className="grow" />
+      <button className="btn btn-danger" onClick={()=>stop()}>Stop (⌥Esc)</button>
+    </div>
+  );
+}
+
+src/console/styles/impersonation.css
+.impersonation-banner {
+  position: fixed;
+  z-index: 9999;
+  top: 0; left: 0; right: 0;
+  height: 44px;
+  display: flex; align-items: center;
+  padding: 0 12px;
+  background: #b91c1c; /* red-700 */
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(0,0,0,.25);
+  font-size: 14px;
+}
+.impersonation-inner { display: inline-flex; align-items: center; gap: 8px; }
+.impersonation-inner .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #fff;
+  display:inline-block; margin-right: 6px;
+  animation: ping 1.6s infinite ease-in-out;
+}
+@keyframes ping { 0% { opacity: .9; transform: scale(1); } 50% { opacity: .5; transform: scale(1.4); } 100% { opacity: .9; transform: scale(1); } }
+.impersonation-banner .sep { opacity: .8; margin: 0 6px; }
+.impersonation-banner .grow { flex: 1 1 auto; }
+.btn.btn-danger {
+  background:#111; border:1px solid rgba(255,255,255,.35); color:#fff; padding:6px 10px; border-radius:8px;
+}
+
+
+Add it to your console layout (once):
+
+// src/console/AppShell.tsx
+import React from 'react';
+import ImpersonationBanner from './components/ImpersonationBanner';
+import './styles/impersonation.css';
+
+export default function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <ImpersonationBanner />
+      {/* push content 44px down */}
+      <div style={{ paddingTop: 44 }}>{children}</div>
+    </>
+  );
+}
+
+4) Seed script – one flag + OIDC reminder
+scripts/seed_flags_oidc.js
+
+// scripts/seed_flags_oidc.js
+import db from '../src/db.js';
+
+async function main() {
+  console.log('Seeding sample feature flag...');
+  await db.query(`
+    INSERT INTO feature_flags (key, name, description, targeting, status)
+    VALUES ($1,$2,$3,$4,'active')
+    ON CONFLICT (key) DO NOTHING
+  `, [
+    'new-billing-ui',
+    'New Billing UI',
+    'Gradual rollout of the redesigned billing experience.',
+    { percentage: 10, allowDomains: ['@familycirclesecure.com'] }
+  ]);
+
+  console.log('\nExample OIDC env (paste to .env):\n');
+  console.log(`OIDC_ISSUER_URL=https://YOUR_IDP/.well-known/openid-configuration`);
+  console.log(`OIDC_CLIENT_ID=xxxxxxxxxxxxxxxx`);
+  console.log(`OIDC_CLIENT_SECRET=xxxxxxxxxxxxxxxx`);
+  console.log(`OIDC_REDIRECT_URI=https://console.familycirclesecure.com/auth/sso/callback`);
+  console.log(`OIDC_ALLOWED_DOMAIN=@familycirclesecure.com # or blank`);
+  console.log(`# OIDC_ALLOWED_GROUP=fcs-admins       # optional`);
+}
+
+main().then(()=>process.exit(0)).catch(err=>{ console.error(err); process.exit(1); });
+
+
+Run:
+
+node scripts/seed_flags_oidc.js
+
+5) Small style bits used above
+
+If you don’t already have basic UI utility styles:
+
+/* shared console styles (add to your main console CSS) */
+.page-header { display:flex; align-items:center; justify-content:space-between; margin:12px 0 8px; }
+.actions { display:flex; gap:8px; align-items:center; }
+.card { background:#0f1316; border:1px solid #23282d; border-radius:12px; padding:12px; }
+.table { width:100%; border-collapse:collapse; }
+.table th, .table td { border-bottom:1px solid #1b2025; padding:10px; text-align:left; }
+.btn { background:#222; color:#fff; border:1px solid #3a3f45; padding:8px 12px; border-radius:10px; }
+.btn-small { padding:6px 10px; border-radius:8px; }
+.btn-primary { background:#e0b530; border-color:#e0b530; color:#0b0c0f; font-weight:600; }
+.input, textarea, select { background:#0c1013; border:1px solid #2b3036; color:#dfe5ee; padding:8px 10px; border-radius:8px; }
+.modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:2000; }
+.modal { width:min(780px, 92vw); background:#0c1013; border:1px solid #2a2f35; border-radius:14px; padding:16px; }
+.form-row { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.tags { display:flex; flex-wrap:wrap; gap:8px; }
+.tag { border:1px solid #3b4148; background:#11161a; color:#dfe5ee; border-radius:999px; padding:6px 10px; cursor:pointer; }
+.tag.on { background:#e0b530; color:#0b0c0f; border-color:#e0b530; }
+.pill { display:inline-flex; align-items:center; height:24px; padding:0 8px; border-radius:999px; font-size:12px; color:#fff; }
+.switch { position:relative; width:40px; height:22px; display:inline-block; }
+.switch input { display:none; }
+.switch span { position:absolute; inset:0; background:#3a3f45; border-radius:999px; }
+.switch span:after { content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; background:#fff; border-radius:50%; transition:all .18s; }
+.switch input:checked + span { background:#22c55e; }
+.switch input:checked + span:after { transform:translateX(18px); }
+
+
+(Colors follow your dark console with the gold accent #E0B530 used for primary buttons to match the site.)
+
+What’s now ready
+
+Flags UI: search, create/edit, rollout %, allow-lists, force on/off, quick preview
+
+Webhooks UI: create endpoints, choose events, activate, send test
+
+Impersonation banner: always visible on top while impersonating, ⌥Esc to stop, countdown
+
+Seed script for a sample flag and explicit OIDC env reminders
+
+If you want me to wire Consent Manager (cookie categories + records) or a simple inbound webhook receiver tester page next, say the word and I’ll add it in the same style.
+
+You said:
+go ahead
+ChatGPT said:
+
+You got it—here are two more production-grade modules you can drop in:
+
+9) Consent Manager (configure cookie categories, banner copy, regions, script auto-blocking; record + export consent)
+
+10) Inbound Webhook Receiver “Tester” (endpoint to receive + verify signatures, console UI to inspect deliveries)
+
+Everything matches your existing stack (Node/Express + Postgres + React). Just paste what you need.
+
+9) Consent Manager (config + banner + auto-block)
+DB schema
+-- 008_consent_manager.sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TABLE consent_configs (
+  id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  version        TEXT NOT NULL,                 -- e.g. "2025-01"
+  banner_title   TEXT NOT NULL,
+  banner_body    TEXT NOT NULL,
+  regions        TEXT[] NOT NULL DEFAULT '{}',  -- e.g. {'EU','US-CA'}
+  categories     JSONB NOT NULL,                -- { functional:true, analytics:false, marketing:false, custom: [{key,label,required}] }
+  scripts        JSONB NOT NULL,                -- [{key,label,category,src,integrity?}]
+  is_active      BOOLEAN NOT NULL DEFAULT FALSE,
+  created_by     UUID,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX consent_configs_active_once ON consent_configs (is_active) WHERE is_active = TRUE;
+
+
+Shape examples
+
+{
+  "categories": {
+    "functional": true,
+    "analytics": false,
+    "marketing": false,
+    "custom": [
+      {"key":"ads","label":"Personalized Ads","required":false}
+    ]
+  },
+  "scripts": [
+    {"key":"plausible","label":"Analytics","category":"analytics","src":"https://plausible.io/js/script.js"},
+    {"key":"posthog","label":"Product Analytics","category":"analytics","src":"https://cdn.posthog.com/js"}
+  ]
+}
+
+Admin API
+// src/routes/admin/consent-config.js
+import express from 'express';
+import db from '../../db.js';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+
+const router = express.Router();
+
+// list (latest first)
+router.get('/', requireAdmin, async (_req,res) => {
+  const { rows } = await db.query(`SELECT * FROM consent_configs ORDER BY created_at DESC`);
+  res.json({ items: rows });
+});
+
+// create draft
+router.post('/', requireAdmin, async (req,res) => {
+  const { version, banner_title, banner_body, regions, categories, scripts } = req.body;
+  const { rows } = await db.query(
+    `INSERT INTO consent_configs (version,banner_title,banner_body,regions,categories,scripts,created_by)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [version, banner_title, banner_body, regions||[], categories||{}, scripts||[], req.user.id]
+  );
+  res.status(201).json(rows[0]);
+});
+
+// activate (enforce single active)
+router.post('/:id/activate', requireAdmin, async (req,res) => {
+  await db.query(`UPDATE consent_configs SET is_active=FALSE WHERE is_active=TRUE`);
+  const { rows } = await db.query(`UPDATE consent_configs SET is_active=TRUE WHERE id=$1 RETURNING *`, [req.params.id]);
+  res.json(rows[0]);
+});
+
+// public: fetch active config
+export async function getActiveConsentConfig() {
+  const { rows } = await db.query(`SELECT * FROM consent_configs WHERE is_active=TRUE LIMIT 1`);
+  return rows[0] || null;
+}
+
+export default router;
+
+
+Mount:
+
+import consentConfigAdmin from './routes/admin/consent-config.js';
+app.use('/admin/consent-config', consentConfigAdmin);
+
+Public “edge” route to get config + record consent
+
+(You already have /consent/record from prior steps; keep it. Add fetch-config:)
+
+// src/routes/public/consent-config.js
+import express from 'express';
+import { getActiveConsentConfig } from '../admin/consent-config.js';
+
+const router = express.Router();
+router.get('/active', async (_req,res) => {
+  const cfg = await getActiveConsentConfig();
+  res.json({ config: cfg || null });
+});
+export default router;
+
+
+Mount:
+
+import publicConsentConfig from './routes/public/consent-config.js';
+app.use('/consent', publicConsentConfig);
+
+Client: lazy load scripts only if consented
+<!-- Add in your public/portal bundle head or before </body> -->
+<script>
+(async function() {
+  // Load active config
+  const r = await fetch('/consent/active'); const j = await r.json();
+  if (!j.config) return;
+
+  const key = 'fcs-consent';
+  const saved = localStorage.getItem(key);
+  const prefs = saved ? JSON.parse(saved) : null;
+
+  // Simple banner if no consent yet
+  if (!prefs) {
+    const banner = document.createElement('div');
+    banner.id = 'consent-banner';
+    banner.innerHTML = `
+      <div class="cb">
+        <div>
+          <strong>${j.config.banner_title}</strong>
+          <p>${j.config.banner_body}</p>
+          <label><input id="cb-functional" type="checkbox" checked disabled> Functional (required)</label>
+          <label><input id="cb-analytics" type="checkbox"> Analytics</label>
+          <label><input id="cb-marketing" type="checkbox"> Marketing</label>
+        </div>
+        <div class="actions">
+          <button id="cb-accept">Accept</button>
+          <button id="cb-reject">Reject non-essential</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(banner);
+
+    const save = async (allowAnalytics, allowMarketing) => {
+      const val = { functional:true, analytics:allowAnalytics, marketing:allowMarketing, at:Date.now(), version:j.config.version };
+      localStorage.setItem(key, JSON.stringify(val));
+      // record event
+      await fetch('/consent/record', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ userId:null, scope:'analytics', policySlug:'privacy', policyVersion:j.config.version, action: allowAnalytics?'given':'withdrawn' })
+      });
+      document.getElementById('consent-banner').remove();
+      loadAllowedScripts(val, j.config.scripts);
+    };
+
+    document.getElementById('cb-accept').onclick = () => save(true,true);
+    document.getElementById('cb-reject').onclick = () => save(false,false);
+  } else {
+    loadAllowedScripts(prefs, j.config.scripts);
+  }
+
+  function loadAllowedScripts(prefs, scripts) {
+    scripts.forEach(s => {
+      const category = s.category || 'functional';
+      if (category === 'functional' || prefs[category]) {
+        const el = document.createElement('script');
+        el.src = s.src; el.async = true;
+        if (s.integrity) { el.integrity = s.integrity; el.crossOrigin='anonymous'; }
+        document.head.appendChild(el);
+      }
+    });
+  }
+})();
+</script>
+
+<style>
+#consent-banner { position:fixed; left:0; right:0; bottom:0; z-index:9999; background:#0b0c0f; border-top:1px solid #2a2f35; color:#e8eaf0; }
+#consent-banner .cb { max-width:1100px; margin:0 auto; display:flex; gap:16px; padding:16px; align-items:center; }
+#consent-banner label { display:block; margin:6px 0; opacity:.9; }
+#consent-banner .actions { margin-left:auto; display:flex; gap:10px; }
+#consent-banner button { background:#e0b530; color:#0b0c0f; border:0; padding:8px 12px; border-radius:10px; font-weight:600; }
+</style>
+
+
+This respects your gold/charcoal theme, shows a simple consent bar, stores choices, calls /consent/record, and only loads analytics scripts when allowed.
+
+Console UI (minimal)
+
+Add a page “Compliance → Consent Config” that lists versions and lets you:
+
+Create new config (version, copy, categories, scripts)
+
+Activate a config (enforces single active)
+
+Preview banner
+
+(You can reuse the modal and table styles from earlier pages.)
+
+10) Inbound Webhook “Receiver” Tester
+
+Use this to confirm third-party systems (or your own outbound hooks) post correctly.
+
+DB schema
+-- 009_inbound_webhooks.sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TABLE inbound_endpoints (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  slug         TEXT UNIQUE NOT NULL,         -- e.g. "stripe-test", "zapier-1"
+  secret       TEXT NOT NULL,                -- HMAC secret to verify signatures
+  created_by   UUID,
+  active       BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE inbound_deliveries (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  endpoint_id  UUID NOT NULL REFERENCES inbound_endpoints(id) ON DELETE CASCADE,
+  received_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  status_code  INT,                          -- your response code back to sender
+  signature_ok BOOLEAN,
+  headers      JSONB,
+  body         JSONB
+);
+
+CREATE INDEX inbound_deliveries_endpoint_idx ON inbound_deliveries(endpoint_id, received_at DESC);
+
+Verify + receive endpoint
+// src/routes/public/inbound-webhooks.js
+import express from 'express';
+import crypto from 'crypto';
+import db from '../../db.js';
+
+const router = express.Router();
+
+// Raw body for signature verification
+router.use('/receiver/:slug', express.raw({ type: '*/*' }));
+
+router.post('/receiver/:slug', async (req, res) => {
+  const { rows } = await db.query(`SELECT * FROM inbound_endpoints WHERE slug=$1 AND active=TRUE`, [req.params.slug]);
+  if (!rows.length) return res.status(404).json({ error:'unknown endpoint' });
+  const ep = rows[0];
+
+  const raw = req.body instanceof Buffer ? req.body.toString('utf8') : '';
+  const hdrSig = req.get('X-FCS-Signature') || req.get('X-Signature') || '';
+  const calc = crypto.createHmac('sha256', ep.secret).update(raw).digest('hex');
+  const signature_ok = crypto.timingSafeEqual(Buffer.from(calc), Buffer.from(hdrSig || '', 'utf8'));
+
+  // attempt JSON parse safely
+  let json = null;
+  try { json = JSON.parse(raw); } catch {}
+
+  // persist
+  const ins = await db.query(
+    `INSERT INTO inbound_deliveries (endpoint_id, signature_ok, headers, body)
+     VALUES ($1,$2,$3,$4) RETURNING id`,
+    [ep.id, signature_ok, req.headers, json || { raw }]
+  );
+
+  // Respond 200 if signature ok, else 400
+  const code = signature_ok ? 200 : 400;
+  await db.query(`UPDATE inbound_deliveries SET status_code=$1 WHERE id=$2`, [code, ins.rows[0].id]);
+
+  res.status(code).json({ ok: signature_ok });
+});
+
+export default router;
+
+
+Mount:
+
+import inboundReceiver from './routes/public/inbound-webhooks.js';
+app.use('/hooks', inboundReceiver); // POST /hooks/receiver/:slug
+
+Admin API: manage endpoints + list deliveries
+// src/routes/admin/inbound-webhooks.js
+import express from 'express';
+import crypto from 'crypto';
+import db from '../../db.js';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+
+const router = express.Router();
+
+router.get('/endpoints', requireAdmin, async (_req,res) => {
+  const { rows } = await db.query(`SELECT id, slug, active, created_at FROM inbound_endpoints ORDER BY created_at DESC`);
+  res.json({ items: rows });
+});
+
+router.post('/endpoints', requireAdmin, async (req,res) => {
+  const { slug, secret } = req.body;
+  const s = secret || crypto.randomBytes(24).toString('hex');
+  const { rows } = await db.query(
+    `INSERT INTO inbound_endpoints (slug, secret, created_by) VALUES ($1,$2,$3) RETURNING id, slug, active, created_at`,
+    [slug, s, req.user.id]
+  );
+  res.status(201).json(rows[0]);
+});
+
+router.get('/deliveries', requireAdmin, async (req,res) => {
+  const { endpointId, limit=100 } = req.query;
+  const params=[]; let sql=`SELECT * FROM inbound_deliveries`;
+  if (endpointId) { params.push(endpointId); sql += ` WHERE endpoint_id=$${params.length}`; }
+  params.push(Number(limit)); sql += ` ORDER BY received_at DESC LIMIT $${params.length}`;
+  const { rows } = await db.query(sql, params);
+  res.json({ items: rows });
+});
+
+export default router;
+
+
+Mount:
+
+import inboundAdmin from './routes/admin/inbound-webhooks.js';
+app.use('/admin/inbound', inboundAdmin);
+
+Console UI (minimal)
+
+Page Integrations → Inbound Tester
+
+Create endpoint (slug → gives you URL POST https://portal.familycirclesecure.com/hooks/receiver/<slug> and a secret).
+
+Table of deliveries (time, signature ok, status, short payload preview).
+
+Click a row → modal with full headers/body.
+
+(Reuse your table, modal, input, btn styles.)
+
+“Tell Replit what to do” (prompt you can paste)
+
+Prompt for Replit
+
+Add a Consent Manager with Postgres tables (consent_configs) and admin routes at /admin/consent-config to create versions of banner copy, categories, and script definitions, with an activation endpoint that ensures only one active config. Add a public route /consent/active to fetch the active config. On the public site, implement a consent banner that stores choices in localStorage and only loads non-essential scripts if consented. When a user accepts/rejects analytics, POST to /consent/record (already exists).
+
+Add an Inbound Webhook Receiver Tester:
+
+DB: inbound_endpoints (slug, secret, active) and inbound_deliveries (headers, body, signature_ok, status_code).
+
+Public endpoint: POST /hooks/receiver/:slug that verifies HMAC sha256 signature from header X-FCS-Signature against the endpoint’s secret using the raw body, stores the request, and returns 200 if signature matches, 400 otherwise.
+
+Admin endpoints under /admin/inbound: create/list endpoints and list deliveries with pagination.
+
+Add minimal console pages:
+
+Compliance → Consent Config: list, create, activate; preview banner.
+
+Integrations → Inbound Tester: create endpoint (show URL + secret), list recent deliveries, modal to view payload.
+
+Use our existing styles/components. Primary accent stays gold #E0B530 on the dark console theme. Protect all admin routes with RBAC.
+
+If you want, next I can:
+
+wire email templates for DSAR export links & admin alerts,
+
+add Status page (internal checks + uptime),
+
+or package a one-click database backup/restore from the console.
+
+You said:
+yes go ahead
+ChatGPT said:
+Thought for 29s
+
+Awesome—here are three more “drop-in” admin console modules, ready to paste:
+
+11) Email templates & notifications (DSAR export link to user; high-risk admin alerts)
+
+12) System Status page (dependency health checks + history)
+
+13) Backup / Restore (JSON logical backups with audit + role guard)
+
+I’m keeping to Node/Express + Postgres + React like the rest of your console.
+
+11) Email templates & notifications
+Env
+SMTP_HOST=smtp.yourprovider.com
+SMTP_PORT=587
+SMTP_USER=apikey_or_username
+SMTP_PASS=secret
+SMTP_FROM="FamilyCircle Secure <no-reply@familycirclesecure.com>"
+
+Mailer + queue
+// src/email/mailer.js
+import nodemailer from 'nodemailer';
+const tx = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT || 587),
+  secure: false,
+  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+});
+export async function sendMail({ to, subject, html, text }) {
+  return tx.sendMail({ from: process.env.SMTP_FROM, to, subject, html, text });
+}
+
+-- 010_email_queue.sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE TABLE email_queue (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  to_email TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  html TEXT NOT NULL,
+  text TEXT,
+  status TEXT NOT NULL DEFAULT 'queued', -- queued|sent|failed
+  error TEXT,
+  attempts INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  sent_at TIMESTAMPTZ
+);
+
+// src/email/templates.js
+const base = (title, body) => `
+  <div style="background:#0b0c0f;color:#e8eaf0;padding:24px;font-family:Inter,Arial">
+    <div style="max-width:640px;margin:0 auto">
+      <h1 style="color:#E0B530;margin:0 0 12px">${title}</h1>
+      <div style="background:#0f1316;border:1px solid #23282d;border-radius:12px;padding:16px;line-height:1.5">
+        ${body}
+      </div>
+      <p style="opacity:.7;font-size:12px;margin-top:14px">© FamilyCircle Secure</p>
+    </div>
+  </div>`;
+export function dsarExportReady({ link }) {
+  const subject = 'Your data export is ready';
+  const html = base('Data Export Ready', `
+    <p>Your FamilyCircle Secure data export is ready.</p>
+    <p><a href="${link}" style="background:#E0B530;color:#0b0c0f;padding:10px 14px;border-radius:8px;text-decoration:none;font-weight:600">Download export</a></p>
+    <p>This link may expire. If it does, request a new export from your account.</p>`);
+  return { subject, html, text: `Your export is ready: ${link}` };
+}
+export function adminHighRiskAlert({ actor, action, object }) {
+  const subject = `Admin alert: ${action}`;
+  const html = base('High-risk admin action detected', `
+    <p><b>${actor.email}</b> (${actor.role}) performed <code>${action}</code> on <code>${object}</code>.</p>
+    <p>Review the audit log if you did not expect this.</p>`);
+  return { subject, html, text: `${actor.email} did ${action} on ${object}` };
+}
+
+// src/email/queue.js
+import db from '../db.js';
+import { sendMail } from './mailer.js';
+
+export async function enqueueEmail({ to, subject, html, text }) {
+  await db.query(
+    `INSERT INTO email_queue (to_email, subject, html, text) VALUES ($1,$2,$3,$4)`,
+    [to, subject, html, text || null]
+  );
+}
+
+export async function processEmailQueue(limit = 20) {
+  const { rows } = await db.query(
+    `SELECT * FROM email_queue WHERE status='queued' ORDER BY created_at ASC LIMIT $1`, [limit]
+  );
+  for (const m of rows) {
+    try {
+      await db.query(`UPDATE email_queue SET attempts=attempts+1 WHERE id=$1`, [m.id]);
+      await sendMail({ to:m.to_email, subject:m.subject, html:m.html, text:m.text || undefined });
+      await db.query(`UPDATE email_queue SET status='sent', sent_at=now() WHERE id=$1`, [m.id]);
+    } catch (e) {
+      await db.query(`UPDATE email_queue SET status='failed', error=$2 WHERE id=$1`, [m.id, String(e)]);
+    }
+  }
+}
+
+Wire DSAR emails (re-use your dsarWorker)
+// in src/workers/dsarWorker.js after finishing an export
+import { enqueueEmail } from '../email/queue.js';
+import { dsarExportReady } from '../email/templates.js';
+
+// … when export_url is ready:
+const msg = dsarExportReady({ link: url });
+await enqueueEmail({ to: userEmail /* look up by user_id */, ...msg });
+
+Admin “high-risk” alerts (example)
+// wherever you write high-risk audit entries
+import { enqueueEmail } from '../email/queue.js';
+import { adminHighRiskAlert } from '../email/templates.js';
+
+await enqueueEmail({
+  to: 'security@familycirclesecure.com',
+  ...adminHighRiskAlert({ actor:req.auditCtx, action:'plan.price_change', object:`plan:${planId}` })
+});
+
+Background loop
+// src/workers/runEmails.js
+import { processEmailQueue } from '../email/queue.js';
+setInterval(() => processEmailQueue(25), 15_000);
+
+12) System Status page (checks + history)
+DB
+-- 011_status_checks.sql
+CREATE TABLE status_checks (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  ts TIMESTAMPTZ NOT NULL DEFAULT now(),
+  component TEXT NOT NULL,           -- db|smtp|storage|webhooks|auth|stripe
+  ok BOOLEAN NOT NULL,
+  latency_ms INT,
+  details TEXT
+);
+CREATE INDEX status_checks_comp_ts ON status_checks(component, ts DESC);
+
+Checker
+// src/status/checks.js
+import db from '../db.js';
+import fetch from 'node-fetch';
+import { sendMail } from '../email/mailer.js';
+
+export async function checkDB() {
+  const t = Date.now();
+  await db.query('SELECT 1');
+  return { component:'db', ok:true, latency_ms: Date.now()-t, details:'ok' };
+}
+
+export async function checkSMTP() {
+  const t = Date.now();
+  try { await sendMail({ to:'noop@example.com', subject:'noop', html:'noop' }); }
+  catch { /* we don’t actually want to send; just creating transport is enough */ }
+  return { component:'smtp', ok:true, latency_ms: Date.now()-t, details:'tx init' };
+}
+
+export async function checkStripe() {
+  if (!process.env.STRIPE_STATUS_URL) return { component:'stripe', ok:true, latency_ms:0, details:'skipped' };
+  const t = Date.now();
+  const r = await fetch(process.env.STRIPE_STATUS_URL).catch(()=>null);
+  return { component:'stripe', ok: !!(r && r.ok), latency_ms: Date.now()-t, details: r?`status ${r.status}`:'unreachable' };
+}
+
+export async function saveCheck(row) {
+  const { component, ok, latency_ms, details } = row;
+  await db.query(
+    `INSERT INTO status_checks (component, ok, latency_ms, details) VALUES ($1,$2,$3,$4)`,
+    [component, ok, latency_ms||0, details||null]
+  );
+}
+
+Routes
+// src/routes/admin/status.js
+import express from 'express';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+import { checkDB, checkSMTP, checkStripe, saveCheck } from '../../status/checks.js';
+import db from '../../db.js';
+
+const router = express.Router();
+
+router.post('/run', requireAdmin, async (_req,res) => {
+  const checks = [];
+  for (const fn of [checkDB, checkSMTP, checkStripe]) {
+    const r = await fn(); checks.push(r); await saveCheck(r);
+  }
+  res.json({ checks });
+});
+
+router.get('/history', requireAdmin, async (req,res) => {
+  const { rows } = await db.query(
+    `SELECT * FROM status_checks ORDER BY ts DESC LIMIT 200`
+  );
+  res.json({ items: rows });
+});
+
+router.get('/public', async (_req,res) => {
+  // quick summary for external status page (optional)
+  const { rows } = await db.query(
+    `SELECT component, (array_agg(ok ORDER BY ts DESC))[1] AS ok
+       FROM status_checks
+      GROUP BY component`
+  );
+  res.json({ components: rows });
+});
+
+export default router;
+
+Console page
+// src/console/pages/StatusPage.tsx
+import React, { useEffect, useState } from 'react';
+type Row = { id:string; ts:string; component:string; ok:boolean; latency_ms:number; details:string };
+
+export default function StatusPage() {
+  const [rows, setRows] = useState<Row[]>([]);
+  const [running, setRunning] = useState(false);
+
+  const load = async () => {
+    const r = await fetch('/admin/status/history', { credentials:'include' });
+    const j = await r.json(); setRows(j.items||[]);
+  };
+  useEffect(()=>{ load(); }, []);
+
+  const run = async () => {
+    setRunning(true);
+    await fetch('/admin/status/run', { method:'POST', credentials:'include' });
+    setRunning(false); load();
+  };
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <h1>System Status</h1>
+        <button className="btn btn-primary" onClick={run} disabled={running}>
+          {running ? 'Running…' : 'Run checks'}
+        </button>
+      </div>
+      <div className="card">
+        <table className="table">
+          <thead><tr><th>Time</th><th>Component</th><th>OK</th><th>Latency</th><th>Details</th></tr></thead>
+          <tbody>
+            {rows.map(r => (
+              <tr key={r.id}>
+                <td>{new Date(r.ts).toLocaleString()}</td>
+                <td>{r.component}</td>
+                <td style={{color:r.ok?'#22c55e':'#ef4444'}}>{r.ok?'OK':'FAIL'}</td>
+                <td>{r.latency_ms} ms</td>
+                <td>{r.details}</td>
+              </tr>
+            ))}
+            {!rows.length && <tr><td colSpan={5} style={{textAlign:'center'}}>No checks yet</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+13) Backup / Restore (JSON logical backups)
+
+Role guard: only PRESIDENT or ADMIN you trust.
+
+DB
+-- 012_backups.sql
+CREATE TYPE backup_status AS ENUM ('started','done','failed');
+CREATE TABLE backups (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  kind TEXT NOT NULL,               -- logical_json
+  location TEXT,                    -- sandbox:/mnt/data/...
+  size_bytes BIGINT,
+  status backup_status NOT NULL DEFAULT 'started',
+  error TEXT,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finished_at TIMESTAMPTZ
+);
+
+Backup service
+// src/backup/service.js
+import fs from 'fs/promises';
+import path from 'path';
+import db from '../db.js';
+
+const TABLES = [
+  'users','organizations','plans','coupons','coupon_redemptions',
+  'articles','webhook_events','webhook_deliveries',
+  'audit_log','consent_events'
+];
+
+export async function createLogicalBackup() {
+  const { rows: b } = await db.query(`INSERT INTO backups (kind) VALUES ('logical_json') RETURNING *`);
+  const id = b[0].id;
+  try {
+    const dir = '/mnt/data';
+    const file = path.join(dir, `backup_${id}.json`);
+    const payload = {};
+    for (const t of TABLES) {
+      const r = await db.query(`SELECT * FROM ${t}`);
+      payload[t] = r.rows;
+    }
+    const buf = Buffer.from(JSON.stringify(payload, null, 2));
+    await fs.writeFile(file, buf);
+    await db.query(
+      `UPDATE backups SET location=$1, size_bytes=$2, status='done', finished_at=now() WHERE id=$3`,
+      [`sandbox:${file}`, buf.byteLength, id]
+    );
+    return { id, file:`sandbox:${file}` };
+  } catch (e) {
+    await db.query(`UPDATE backups SET status='failed', error=$2, finished_at=now() WHERE id=$1`, [id, String(e)]);
+    throw e;
+  }
+}
+
+export async function restoreLogicalBackup(filePath) {
+  const raw = await fs.readFile(filePath, 'utf8');
+  const data = JSON.parse(raw);
+  // Wrap in a transaction
+  await db.query('BEGIN');
+  try {
+    for (const t of Object.keys(data)) {
+      // naive upsert by full replace—fine for dev/staging; for prod do keyed UPSERT per table
+      await db.query(`TRUNCATE ${t} RESTART IDENTITY CASCADE`);
+      for (const row of data[t]) {
+        const cols = Object.keys(row);
+        const vals = Object.values(row);
+        const params = cols.map((_,i)=>`$${i+1}`).join(',');
+        await db.query(`INSERT INTO ${t} (${cols.join(',')}) VALUES (${params})`, vals);
+      }
+    }
+    await db.query('COMMIT');
+  } catch (e) {
+    await db.query('ROLLBACK'); throw e;
+  }
+}
+
+Routes
+// src/routes/admin/backups.js
+import express from 'express';
+import { requireAdmin } from '../../mw/requireAdmin.js';
+import db from '../../db.js';
+import { createLogicalBackup, restoreLogicalBackup } from '../../backup/service.js';
+import path from 'path';
+
+const router = express.Router();
+
+// only PRESIDENT (or elevate requireAdmin to require PRESIDENT)
+function requirePresident(req, res, next) {
+  if (!req.user || !['PRESIDENT'].includes(req.user.role)) return res.status(403).json({ error:'President only' });
+  next();
+}
+
+router.post('/create', requirePresident, async (_req,res) => {
+  const out = await createLogicalBackup();
+  res.json({ ok:true, id: out.id, download: out.file });
+});
+
+router.get('/list', requireAdmin, async (_req,res) => {
+  const { rows } = await db.query(`SELECT * FROM backups ORDER BY started_at DESC LIMIT 50`);
+  res.json({ items: rows });
+});
+
+router.post('/restore', requirePresident, async (req,res) => {
+  const { location, confirm } = req.body;
+  if (confirm !== 'I_UNDERSTAND_THIS_WILL_OVERWRITE_DATA') return res.status(400).json({ error:'Confirmation phrase missing' });
+  if (!location || !location.startsWith('sandbox:/mnt/data/')) return res.status(400).json({ error:'Invalid location' });
+  const filePath = location.replace('sandbox:', '');
+  await restoreLogicalBackup(filePath);
+  res.json({ ok:true });
+});
+
+export default router;
+
+Console page
+// src/console/pages/BackupPage.tsx
+import React, { useEffect, useState } from 'react';
+type B = { id:string; kind:string; location?:string; size_bytes?:number; status:string; started_at:string; finished_at?:string; error?:string };
+
+export default function BackupPage() {
+  const [items, setItems] = useState<B[]>([]);
+  const [confirm, setConfirm] = useState('');
+  const load = async () => {
+    const r = await fetch('/admin/backups/list', { credentials:'include' });
+    const j = await r.json(); setItems(j.items||[]);
+  };
+  useEffect(()=>{ load(); }, []);
+
+  const createBackup = async () => {
+    const r = await fetch('/admin/backups/create', { method:'POST', credentials:'include' });
+    const j = await r.json(); if (j.ok) { alert('Backup created'); load(); }
+    else alert('Failed');
+  };
+
+  const restore = async (location: string) => {
+    if (!confirm) return alert('Enter the confirmation phrase to proceed.');
+    const r = await fetch('/admin/backups/restore', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ location, confirm })
+    });
+    const j = await r.json();
+    if (j.ok) alert('Restore complete'); else alert(j.error || 'Restore failed');
+  };
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <h1>Backups</h1>
+        <button className="btn btn-primary" onClick={createBackup}>Create backup</button>
+      </div>
+
+      <div className="card" style={{marginBottom:12}}>
+        <p><b>DANGER:</b> Restoring will overwrite data. Type <code>I_UNDERSTAND_THIS_WILL_OVERWRITE_DATA</code> to enable restore buttons.</p>
+        <input className="input" placeholder="Type confirmation phrase…" value={confirm} onChange={e=>setConfirm(e.target.value)} />
+      </div>
+
+      <div className="card">
+        <table className="table">
+          <thead><tr><th>Started</th><th>Status</th><th>Size</th><th>File</th><th /></tr></thead>
+          <tbody>
+            {items.map(b => (
+              <tr key={b.id}>
+                <td>{new Date(b.started_at).toLocaleString()}</td>
+                <td style={{color: b.status==='done' ? '#22c55e' : b.status==='failed' ? '#ef4444' : '#e0b530' }}>{b.status}</td>
+                <td>{b.size_bytes ? `${Math.round(b.size_bytes/1024)} KB` : '–'}</td>
+                <td>{b.location ? <a href={b.location}>download</a> : '–'}</td>
+                <td>{b.location && <button className="btn btn-small" onClick={()=>restore(b.location)} disabled={confirm!=='I_UNDERSTAND_THIS_WILL_OVERWRITE_DATA'}>Restore</button>}</td>
+              </tr>
+            ))}
+            {!items.length && <tr><td colSpan={5} style={{textAlign:'center'}}>No backups</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+Wire routes
+// app.js
+import statusAdmin from './routes/admin/status.js';
+import backupsAdmin from './routes/admin/backups.js';
+
+app.use('/admin/status', statusAdmin);
+app.use('/admin/backups', backupsAdmin);
+
+“Tell Replit what to do” (paste this as a prompt)
+
+Prompt for Replit
+
+Add email notifications: create email_queue table and implement a Nodemailer mailer, a template module with dsarExportReady() and adminHighRiskAlert(), an enqueueEmail() helper, and a background worker that processes the queue every 15s. Wire DSAR export completion to queue a download email.
+
+Add a System Status page: status_checks table; routes /admin/status/run and /admin/status/history; implement checks for DB, SMTP (transport init), and optional Stripe status URL; save results and render a console page “Status” with a “Run checks” button and a table of recent checks.
+
+Add Backups: backups table and a logical JSON backup service that exports core tables to /mnt/data/backup_<id>.json, records location/size/status, lists backups, and allows restore only for PRESIDENT role with a confirmation phrase I_UNDERSTAND_THIS_WILL_OVERWRITE_DATA. Add console page “Backups” to create, download, and restore.
+
+Keep all admin routes behind RBAC and match the existing dark theme with gold primary (#E0B530).

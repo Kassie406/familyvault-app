@@ -1,0 +1,105 @@
+The reason your (+) disappears is because it’s being re-mounted when the dropdown opens/closes. In other words: the trigger button is inside the same conditional block as the menu. When React re-renders, the button briefly unmounts → vanishes → then reappears.
+
+✅ Permanent Fix
+
+We’ll separate the trigger (the + button) from the menu content. The trigger must always stay mounted. Only the dropdown toggles.
+
+Here’s a fixed version:
+
+import { useState, useRef, useEffect } from "react";
+import { Plus } from "lucide-react";
+
+export function FamilyIdsAddMenu() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // click outside closes the menu
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div className="relative inline-block" ref={ref}>
+      {/* trigger is always mounted */}
+      <button
+        type="button"
+        aria-haspopup="true"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="
+          h-8 w-8 rounded-full flex items-center justify-center
+          bg-[#D4AF37] text-black
+          hover:bg-[#caa62f] active:bg-[#b59324]
+          shadow
+        "
+      >
+        <Plus className="h-4 w-4" />
+      </button>
+
+      {/* dropdown */}
+      {open && (
+        <div
+          className="
+            absolute mt-2 w-48 rounded-md bg-[#1a1a1a] shadow-lg border border-neutral-700
+            z-50
+          "
+        >
+          <div className="px-3 py-2 text-sm text-neutral-300 font-medium">
+            Add to Family IDs
+          </div>
+          <ul className="text-sm">
+            <li>
+              <button
+                onClick={() => setOpen(false)}
+                className="w-full px-3 py-2 text-left hover:bg-white/5"
+              >
+                Person
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => setOpen(false)}
+                className="w-full px-3 py-2 text-left hover:bg-white/5"
+              >
+                Pet
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => setOpen(false)}
+                className="w-full px-3 py-2 text-left hover:bg-white/5"
+              >
+                Household member
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => setOpen(false)}
+                className="w-full px-3 py-2 text-left hover:bg-white/5"
+              >
+                Other
+              </button>
+            </li>
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+🔑 Why this works
+
+Trigger button never unmounts → the + stays visible always.
+
+Menu is controlled by open state only.
+
+Clicking (+) toggles open/close reliably.
+
+Click outside or selecting an item closes the menu.

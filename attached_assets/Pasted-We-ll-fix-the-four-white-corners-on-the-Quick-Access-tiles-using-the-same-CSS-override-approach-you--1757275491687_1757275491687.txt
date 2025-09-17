@@ -1,0 +1,76 @@
+We’ll fix the four white corners on the Quick Access tiles using the same CSS override approach you already used—no alternatives.
+
+Those corners are coming from pseudo-elements / focus rings (like ::before, ::after, or DaisyUI outlines) that aren’t transparent and don’t inherit the border radius. We’ll nuke them and clip the tile so nothing can poke outside the rounded edges.
+
+Update the same file you just added
+
+src/styles/quick-access.css — add the lines below (or replace the file with this complete version):
+
+/* Scope: ONLY the Quick Access modal */
+#quick-access-modal .qa-tile,
+#quick-access-modal .qa-tile * {
+  background: transparent !important;
+}
+
+/* Fix for 4 white corners:
+   - clip content to radius
+   - ensure pseudo-elements are transparent + rounded
+   - neutralize focus/outline rings from UI libs */
+#quick-access-modal .qa-tile {
+  border-radius: 16px;                               /* rounded-2xl */
+  border: 1px solid rgba(255,255,255,0.08);
+  background-image: linear-gradient(180deg,#0b0b0e 0%,#0e0e14 100%) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.45);
+  transition: box-shadow .2s ease, border-color .2s ease;
+  isolation: isolate;
+
+  /* critical for corner artifacts */
+  overflow: hidden;               /* clip anything that escapes the radius */
+  background-clip: padding-box;   /* prevent bleed under the border */
+}
+
+/* Make ALL pseudo-elements inside the tile transparent + inherit radius */
+#quick-access-modal .qa-tile::before,
+#quick-access-modal .qa-tile::after,
+#quick-access-modal .qa-tile *::before,
+#quick-access-modal .qa-tile *::after {
+  background: transparent !important;
+  border-radius: inherit !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Neutralize library focus rings that can appear as light corners */
+#quick-access-modal .qa-tile:focus,
+#quick-access-modal .qa-tile:focus-visible,
+#quick-access-modal .qa-tile *:focus,
+#quick-access-modal .qa-tile *:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Gold glow on hover (no bg change) */
+#quick-access-modal .qa-tile:hover {
+  border-color: rgba(212,175,55,0.40);
+  box-shadow:
+    0 0 0 1px rgba(212,175,55,.35),
+    0 18px 50px rgba(212,175,55,.12);
+}
+
+/* Optional link styling to match theme */
+#quick-access-modal .qa-tile a { color: inherit; text-decoration: none; }
+#quick-access-modal .qa-tile a:hover { text-decoration: underline; }
+
+Verify (same steps)
+
+Hard refresh (Cmd/Ctrl+Shift+R).
+
+Open Quick Access; hover any tile.
+
+You should see no white corner nicks.
+
+The tile shows dark gradient + gold glow; background stays dark.
+
+If a specific tile still shows corners, it means that tile’s outermost element isn’t the one with qa-tile. Ensure the visible card wrapper for each tile has className="qa-tile p-4" (no extra rounded-* or bg-* on inner wrappers).
+
+That’s it—no options, just the exact patch.

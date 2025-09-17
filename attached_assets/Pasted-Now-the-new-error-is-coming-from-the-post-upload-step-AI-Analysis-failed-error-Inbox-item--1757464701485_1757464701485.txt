@@ -1,0 +1,139 @@
+Now the new error is coming from the post-upload step:
+
+**AI Analysis failed – {"error":"Inbox item not found"}
+
+That message means your analyzer endpoint is trying to load an inbox item by ID, but the ID it’s given doesn’t exist (or it’s null). This usually happens for one of these reasons:
+
+No inbox (or no selected inbox) → the client sends inboxId: null.
+
+The client never created an inbox item before asking the analyzer to process it.
+
+You created the item, but your API/analyzer is reading a different DB (env mismatch) than the one that created it.
+
+The item ID in the analyze request doesn’t match what was created (wrong param name or stale value).
+
+Here’s how to pin it down fast and fix.
+
+1) Quick checks in the UI
+
+In Upload Center, top-right dropdown shows “All Inbox”. Pick a specific inbox (or create one in the Inbox page if you don’t have any).
+
+Re-upload once with a specific inbox selected.
+If that fixes it → the client was sending inboxId: null.
+
+2) Inspect the failing request
+
+Open DevTools → Network → filter: analyze (or ai, or whatever your analyze route is).
+Click the failing request and check Request Payload. Look for:
+
+{
+  "inboxId": "...?",
+  "itemId": "...?",
+  "s3Key": "...?"
+}
+
+
+If inboxId or itemId is null / missing → frontend bug (see #3).
+
+If they’re present, but analyzer still says “not found” → likely DB/env mismatch (see #4).
+
+3) Frontend fixes (ensure an inbox + create the item before analyze)
+
+Make sure you always have a valid inbox id and you create an inbox item immediately after the S3 PUT succeeds, then pass that item’s id to the analyzer.
+
+Good client flow (pseudocode / TS):
+
+// after PUT to S3 returns 200
+const payload = {
+  inboxId: selectedInbox?.id ?? null, // better: require a real inbox id
+  fileName,
+  contentType,
+  size,
+  s3Key, // key you PUT to
+};
+
+const createRes = await fetch('/api/inbox/items', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload),
+});
+if (!createRes.ok) throw new Error('Failed to create inbox item');
+
+const { item } = await createRes.json(); // item.id will be used for analysis
+
+const analyzeRes = await fetch('/api/ai/analyze', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ itemId: item.id }),
+});
+
+
+If you want a safer UX, auto-resolve a default inbox when none is selected:
+
+async function getEffectiveInboxId() {
+  if (selectedInbox?.id) return selectedInbox.id;
+  const r = await fetch('/api/inbox/default');
+  const j = await r.json();
+  return j.id; // ensure server returns/creates a default inbox
+}
+
+4) Server-side guard rails
+
+(a) Create/validate item before analyzing)
+
+// POST /api/inbox/items
+const inbox = await prisma.inbox.findUnique({
+  where: { id: body.inboxId, userId: req.user.id }
+});
+if (!inbox) return res.status(400).json({ error: 'Invalid inbox' });
+
+const item = await prisma.inboxItem.create({
+  data: {
+    inboxId: inbox.id,
+    userId: req.user.id,
+    fileName: body.fileName,
+    contentType: body.contentType,
+    size: body.size,
+    s3Key: body.s3Key,
+    status: 'uploaded',
+  },
+});
+res.json({ item });
+
+
+(b) Analyzer endpoint must check the item exists in the same DB)
+
+// POST /api/ai/analyze
+const { itemId } = req.body;
+const item = await prisma.inboxItem.findFirst({
+  where: { id: itemId, userId: req.user.id }
+});
+if (!item) return res.status(404).json({ error: 'Inbox item not found' });
+
+// enqueue work with item.id
+await queue.enqueue('analyze-document', { itemId: item.id });
+res.json({ ok: true });
+
+
+(c) Optional: provide a default inbox
+
+// GET /api/inbox/default
+let inbox = await prisma.inbox.findFirst({ where: { userId: req.user.id } });
+if (!inbox) {
+  inbox = await prisma.inbox.create({ data: { userId: req.user.id, name: 'General' }});
+}
+res.json(inbox);
+
+5) Environment / DB mismatch sanity check
+
+Since you just switched CSP/CORS and are using the Replit preview, confirm all API calls are relative (/api/...) so the preview frontend and API share the same env & DB.
+
+If any call goes to a prod domain while your create call hit preview, you’ll create the item in one DB but analyze in another → “item not found.”
+
+6) Fast bypass for demos
+
+If you need the page to stop yelling while you fix it, gate analysis behind a flag:
+
+if (enableAutoAnalyze && item?.id) {
+  // call /api/ai/analyze
+}

@@ -1,0 +1,282 @@
+Love that pattern—clean, obvious, and low-friction. Here’s a drop-in Autofill banner that matches your reference and works in both places:
+
+Top of Upload Center (right after a file uploads & analysis finishes)
+
+Inside the Inbox drawer (on the card)
+
+It shows: “Suggested autofill”, N details found, field previews (Number, Expiration date, …), Dismiss all, Accept all, and a View all details button.
+
+1) Types (shared)
+// types/ai.ts
+export type ExtractField = {
+  key: string;              // e.g., "Driver’s License.Number"
+  label: string;            // "Number"
+  value: string;            // "C0336 42600 56932"
+  confidence?: number;      // 0..1
+  pii?: boolean;
+};
+
+export type AutoFillSuggestion = {
+  uploadId: string;
+  itemType: string;         // e.g., "Driver’s License"
+  fields: ExtractField[];   // flattened (see mapping comment below)
+  target?: { memberId: string; memberName: string } | null;
+};
+
+
+Mapping tip: In your analyze route, send fields flattened with a dotted key:
+
+Driver’s License.Number
+
+Driver’s License.Expiration date
+The banner will group by itemType and show the two “headline” fields first.
+
+2) The Banner component
+// components/AutofillBanner.tsx
+import { Check, X, Sparkles } from "lucide-react";
+import { AutoFillSuggestion } from "@/types/ai";
+
+type Props = {
+  suggestion: AutoFillSuggestion | null;  // null = hidden
+  loading?: boolean;                      // show skeleton while "Analyzing…"
+  onAcceptAll: (s: AutoFillSuggestion) => void;
+  onDismissAll: (s: AutoFillSuggestion) => void;
+  onViewDetails?: (s: AutoFillSuggestion) => void;
+};
+
+export default function AutofillBanner({
+  suggestion,
+  loading = false,
+  onAcceptAll,
+  onDismissAll,
+  onViewDetails,
+}: Props) {
+  if (!loading && !suggestion) return null;
+
+  const count = suggestion?.fields.length ?? 0;
+
+  return (
+    <div className="rounded-xl border border-indigo-200/30 bg-indigo-50/50 dark:bg-indigo-950/20 p-4 shadow-sm mt-3">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5">
+          <Sparkles className="h-5 w-5 text-indigo-500" />
+        </div>
+
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-indigo-900 dark:text-indigo-100">
+              {loading ? "Analyzing…" : "Suggested autofill"}
+            </span>
+
+            {!loading && (
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200">
+                {count} {count === 1 ? "detail" : "details"} found
+              </span>
+            )}
+          </div>
+
+          {/* Headline preview */}
+          {!loading && suggestion && (
+            <div className="mt-3 rounded-lg border border-indigo-200/30 bg-white/60 dark:bg-black/10 px-4 py-3">
+              <div className="text-sm font-medium mb-1">
+                {suggestion.itemType}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                {headline(suggestion.fields).map((f) => (
+                  <div key={f.key} className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">{f.label}</span>
+                    <span className="font-medium text-right break-all">
+                      {f.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                className="mt-3 w-full text-center text-sm text-indigo-700 dark:text-indigo-300 hover:underline"
+                onClick={() => onViewDetails?.(suggestion)}
+              >
+                View all details
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-2 shrink-0">
+          <button
+            className="inline-flex items-center gap-1 rounded-md border border-slate-300/60 px-3 py-1.5 text-sm hover:bg-white/70 dark:border-slate-700"
+            onClick={() => suggestion && onDismissAll(suggestion)}
+            disabled={loading}
+          >
+            <X className="h-4 w-4" />
+            Dismiss all
+          </button>
+
+          <button
+            className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-1.5 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
+            onClick={() => suggestion && onAcceptAll(suggestion)}
+            disabled={loading}
+          >
+            <Check className="h-4 w-4" />
+            Accept all
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// pick two “headline” fields for the preview
+function headline(fields: AutoFillSuggestion["fields"]) {
+  const lookup = (label: string) => fields.find((f) => f.label === label);
+  const first = lookup("Number") || fields[0];
+  const second =
+    lookup("Expiration date") ||
+    fields.find((f) => f.key !== first?.key) ||
+    fields[1];
+  return [first, second].filter(Boolean) as typeof fields;
+}
+
+
+Matches the visual structure of your reference.
+
+Handles Analyzing… vs. Suggested autofill.
+
+“Accept all” and “Dismiss all” are action props—no wiring assumptions.
+
+3) Show it in Upload Center (top area)
+// pages/upload/UploadCenter.tsx
+import { useState } from "react";
+import AutofillBanner from "@/components/AutofillBanner";
+import type { AutoFillSuggestion } from "@/types/ai";
+
+export default function UploadCenter() {
+  const [loadingAI, setLoadingAI] = useState(false);
+  const [autoFill, setAutoFill] = useState<AutoFillSuggestion | null>(null);
+
+  async function onUploadSuccess(file: File, s3Key: string) {
+    // 1) register
+    const reg = await fetch("/api/inbox/register", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ fileName: file.name, fileKey: s3Key }),
+    }).then((r) => r.json());
+
+    // 2) analyze
+    setLoadingAI(true);
+    const res = await fetch(`/api/inbox/${reg.uploadId}/analyze`, {
+      method: "POST",
+    });
+    const data = await res.json().catch(() => ({}));
+    setLoadingAI(false);
+
+    if (Array.isArray(data?.fields) && data.fields.length) {
+      setAutoFill({
+        uploadId: reg.uploadId,
+        itemType: inferType(data.fields), // "Driver’s License" if you set it in backend
+        fields: data.fields,
+        target: data?.suggestion
+          ? { memberId: data.suggestion.memberId, memberName: data.suggestion.memberName }
+          : null,
+      });
+    } else {
+      setAutoFill(null); // nothing to suggest
+    }
+  }
+
+  return (
+    <div>
+      {/* Banner right under the page title */}
+      <AutofillBanner
+        loading={loadingAI}
+        suggestion={autoFill}
+        onAcceptAll={handleAcceptAll}
+        onDismissAll={() => setAutoFill(null)}
+        onViewDetails={openDetailsModal}
+      />
+
+      {/* ...your existing Upload Center UI... */}
+    </div>
+  );
+
+  async function handleAcceptAll(s: AutoFillSuggestion) {
+    await fetch(`/api/inbox/${s.uploadId}/accept-autofill`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        memberId: s.target?.memberId ?? null, // or let user pick if null
+        fields: s.fields,
+      }),
+    });
+    setAutoFill(null);
+  }
+
+  function openDetailsModal(s: AutoFillSuggestion) {
+    // open your “Details” modal; you already have one for the Inbox
+  }
+}
+
+function inferType(fields: AutoFillSuggestion["fields"]) {
+  // If backend didn’t send itemType, derive it from field keys
+  const k = fields[0]?.key || "";
+  return k.split(".")[0] || "Document";
+}
+
+
+Wire onUploadSuccess to your existing upload completion handler (the one that currently triggers analyze).
+
+4) Show it in the Inbox drawer (optional)
+
+Inside your Inbox card, when item.status === "suggested", render the same banner and pass the right handlers:
+
+// InboxDrawer.tsx (inside each item)
+{item.status === "suggested" && (
+  <AutofillBanner
+    suggestion={{
+      uploadId: item.id,
+      itemType: item.itemType ?? "Document",
+      fields: item.fields ?? [],
+      target: item.suggestion
+        ? { memberId: item.suggestion.memberId, memberName: item.suggestion.memberName }
+        : null,
+    }}
+    onAcceptAll={(s) => acceptAutofill(s)}
+    onDismissAll={(s) => dismissAutofill(s.uploadId)}
+    onViewDetails={(s) => openDetails(s.uploadId)}
+  />
+)}
+
+5) Minimal backend endpoints
+
+If you don’t have them yet, add these light endpoints:
+
+// POST /api/inbox/:id/accept-autofill
+// body: { memberId?: string, fields: ExtractField[] }
+router.post("/api/inbox/:id/accept-autofill", async (req, res) => {
+  const { id } = req.params;
+  const { memberId, fields } = req.body;
+  // 1) attach file to member (if provided)
+  // 2) map fields into your schema (ex: DL number, expiry, etc.)
+  // 3) mark inbox item accepted
+  await db.applyAutofill(id, memberId ?? null, fields);
+  res.json({ ok: true });
+});
+
+
+You already return { suggestion, fields } from /analyze. Keep that JSON stable so both Upload Center and Inbox can reuse this banner with no branching.
+
+6) Styling notes
+
+The component uses Tailwind classes and lucide-react icons to match the reference vibe.
+
+It’s responsive, and the “View all details” link spans full width like your screenshot.
+
+What you’ll see
+
+Upload finishes → Analyzing… banner appears briefly at the top.
+
+Then Suggested autofill with “2 details found”, showing Number and Expiration date, Dismiss all / Accept all / View all details.
+
+Accept all posts the fields to your backend and removes the banner.
+
+The same banner can render inside an Inbox card for consistency.

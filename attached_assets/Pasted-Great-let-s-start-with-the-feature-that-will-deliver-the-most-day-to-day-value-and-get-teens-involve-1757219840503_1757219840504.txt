@@ -1,0 +1,150 @@
+Great—let’s start with the feature that will deliver the most day-to-day value and get teens involved immediately:
+
+Start with: Chores + Allowance (MVP)
+
+…and add a tiny Action Center tile to the top of the dashboard so parents see “what needs attention” at a glance.
+
+Why this first?
+
+Daily engagement for kids/teens.
+
+Clear parent workflow (approve/deny).
+
+Easy wins to measure: chores done/week, approvals pending, points/allowance.
+
+1) Data model (compact + future-proof)
+
+Use whatever you have (SQL/Prisma/Firestore). Here’s a minimal shape you can map:
+
+FamilyMember {
+  id: string;
+  familyId: string;
+  name: string;
+  role: "parent" | "teen" | "child";
+  avatarUrl?: string;
+}
+
+Chore {
+  id: string;
+  familyId: string;
+  title: string;                 // "Dishes", "Trash", "Walk dog"
+  details?: string;              // short instructions
+  assigneeId: string;            // FamilyMember.id
+  dueAt: string;                 // ISO
+  points: number;                // 5–20 typical
+  status: "todo" | "done" | "approved";
+  createdById: string;           // parent
+  createdAt: string;             // ISO
+  rotationKey?: string;          // group chores that rotate together
+}
+
+AllowanceLedger {
+  id: string;
+  familyId: string;
+  memberId: string;
+  deltaPoints: number;           // +points on approval, negative for penalties
+  reason: string;                // "Chore: Dishes 2025-09-07"
+  createdAt: string;
+  createdById: string;           // parent
+}
+
+
+Permissions:
+
+Parents: create/assign/rotate, approve/deny, edit, adjust ledger.
+
+Teen/Child: mark done only for their own chores; cannot approve.
+
+2) API endpoints (clean + role-aware)
+GET    /api/chores?since=<iso>&assigneeId=<id|me>   // list (family scoped)
+POST   /api/chores                                   // create
+PATCH  /api/chores/:id                               // edit (parents)
+POST   /api/chores/:id/done                          // child/teen self mark
+POST   /api/chores/:id/approve                       // parents -> approved + ledger
+POST   /api/chores/rotate                            // rotate a set (by rotationKey)
+GET    /api/allowance/summary?memberId=<id|me>       // points balance + history
+
+
+Server rules:
+
+All queries filtered by familyId from session.
+
+Validate roles per route (parents only for approve/rotate/edit).
+
+On approve:
+
+status = "approved"
+
+append AllowanceLedger{ deltaPoints = chore.points }.
+
+3) Dashboard UI (what to add now)
+A) Action Center (top, small tile)
+
+“2 chores to approve • 3 due today • 1 meal unplanned”
+
+Click → opens Chores panel (anchor link).
+
+This keeps the dashboard focused and actionable.
+
+B) Chores card (two tabs)
+
+My chores (for current user): checklist with big “Mark done”.
+
+Family (parents default): table/list grouped by person with Approve buttons.
+
+Empty/Loading/Error states:
+
+Loading skeleton rows.
+
+Empty text: “No chores due—add one.”
+
+Error toast with Retry.
+
+Micro-interactions:
+
+Optimistic UI for done.
+
+When parent approves, row animates → fades to “Approved ✓” and ledger increments.
+
+4) Rotation (simple but powerful)
+
+Give recurring/rotating chores a shared rotationKey (e.g., "evening-dishes").
+
+POST /api/chores/rotate:
+
+Find all chores with rotationKey scheduled for the next period (e.g., next week).
+
+Rotate assignee across the family member list (parents can exclude themselves).
+
+5) Allowance view (MVP)
+
+In profile menu (or a small card):
+Points: 145 (This month) • View history
+
+Parents can convert points → allowance payout (manual now; automate later).
+
+6) Acceptance criteria (so we know it’s done)
+
+Parents can: create chores, see Approvals Pending, approve → points ledger updates.
+
+Teens/children can: see My chores, mark done; can’t approve/edit.
+
+Dashboard Action Center shows correct counts (approvals pending, due today).
+
+Everything loads in parallel; no console errors; first render < 2.5s.
+
+Unit tests for role enforcement (kids can’t approve/edit).
+
+Analytics: events for chore_done, chore_approved, rotation_run.
+
+7) Rollout plan (low risk)
+
+Ship endpoints + “My chores” tab (self-serve completion).
+
+Add “Family” tab + approvals for parents.
+
+Add Action Center tile.
+
+Enable rotation and points ledger.
+
+Add Allowance mini-view.

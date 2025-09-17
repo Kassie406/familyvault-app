@@ -1,0 +1,64 @@
+/* Header icon hover/ring overrides — light gold tint, no white flash */
+:root {
+  /* subtle gold you've been using */
+  --kc-gold-08: rgba(212, 175, 55, 0.08);
+  --kc-gold-24: rgba(212, 175, 55, 0.24);
+}
+
+/* Scope to the top header area — adjust selectors if your header wrapper differs */
+header, .topbar, [data-kc="header"], nav[aria-label="Header"] {
+  /* nothing here, just a scope anchor */
+}
+
+/* Kill default white hovers/rings on header buttons/icons */
+.sticky button,
+.header-notify-btn,
+.header-menu-btn,
+button[data-testid="mobile-notifications"],
+button[data-testid="mobile-menu-open"],
+header button,
+header a[role="button"],
+.topbar button,
+.topbar a[role="button"] {
+  background-color: transparent !important;
+  border-radius: 9999px; /* keep round pills for icons */
+  /* neutralize Tailwind/DaisyUI rings */
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  outline: none !important;
+  transition: background-color .15s ease, box-shadow .15s ease;
+}
+
+/* Light gold hover (replaces white) */
+.sticky button:hover,
+.header-notify-btn:hover,
+.header-menu-btn:hover,
+button[data-testid="mobile-notifications"]:hover,
+button[data-testid="mobile-menu-open"]:hover,
+header button:hover,
+header a[role="button"]:hover,
+.topbar button:hover,
+.topbar a[role="button"]:hover {
+  background-color: var(--kc-gold-08) !important;
+}
+
+/* Accessible focus state — soft gold ring, no white */
+.sticky button:focus-visible,
+.header-notify-btn:focus-visible,
+.header-menu-btn:focus-visible,
+button[data-testid="mobile-notifications"]:focus-visible,
+button[data-testid="mobile-menu-open"]:focus-visible,
+header button:focus-visible,
+header a[role="button"]:focus-visible,
+.topbar button:focus-visible,
+.topbar a[role="button"]:focus-visible {
+  box-shadow: 0 0 0 2px var(--kc-gold-24) !important;
+}
+
+/* Optional: target the two specific icons defensively by aria-label if present */
+button[aria-label="Quick Access"],
+button[aria-label="Shortcuts"],
+button[aria-label="Actions"] {
+  background-color: transparent !important;
+}

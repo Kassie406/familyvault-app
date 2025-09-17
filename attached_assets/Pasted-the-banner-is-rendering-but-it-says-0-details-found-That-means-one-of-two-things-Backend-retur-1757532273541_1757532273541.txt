@@ -1,0 +1,137 @@
+the banner is rendering, but it says “0 details found”. That means one of two things:
+
+Backend returned no fields, or
+
+Frontend isn’t reading the fields it received.
+
+Here’s the fastest way to nail it and fix both sides in one pass.
+
+1) Check one thing in DevTools (takes 10s)
+
+Open Network tab.
+
+Upload a file again.
+
+Click POST /api/inbox/:id/analyze.
+
+Look at the Response JSON.
+
+If you do not see a fields array with 2 items, it’s a backend issue.
+
+If you do see fields with items, it’s a frontend wiring/count issue.
+
+Either way, apply the tiny patches below (safe even if only one side was wrong).
+
+2) Backend: always return fields + suggestion (and log)
+// server/routes/ai-inbox.ts  (replace the analyze handler body with this)
+r.post('/:id/analyze', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const item = await db.query.inboxItems.findFirst({ where: eq(inboxItems.id, id) });
+    if (!item) return res.status(404).json({ error: 'inbox_item_not_found' });
+
+    await db.update(inboxItems).set({ status: 'analyzing' }).where(eq(inboxItems.id, id));
+
+    // ---- DEMO ANALYZER (always produces 2 fields) ----
+    const suggestion = { memberId: 'angel-quintana', memberName: 'Angel Quintana', confidence: 0.92 };
+    const fields = [
+      { key: "Driver's License Number", value: 'C03364260056932', confidence: 0.96, pii: true },
+      { key: 'Expiration Date', value: '2027-04-06', confidence: 0.98, pii: false },
+    ];
+    // -----------------------------------------------
+
+    // persist fields
+    for (const f of fields) {
+      await db.insert(extractedFields).values({
+        inboxId: id, key: f.key, value: f.value, confidence: f.confidence, pii: !!f.pii,
+      });
+    }
+
+    await db.update(inboxItems).set({
+      status: 'suggested',
+      suggestionMemberId: suggestion.memberId,
+    }).where(eq(inboxItems.id, id));
+
+    // return exactly what UI expects
+    return res.json({ suggestion, fields });
+  } catch (e:any) {
+    console.error('analyze error', e);
+    return res.status(500).json({ error: 'analyze_failed' });
+  }
+});
+
+
+Why: even if the DB insert works, the UI relies on the response payload. This guarantees we always send fields.
+
+3) Frontend: make sure the banner uses those fields
+
+Hook sets fields correctly (verify this line exists):
+
+// client/src/hooks/useAutofill.ts
+setBanner({
+  id: uploadId,
+  fileName: file.name,
+  loading: false,
+  suggestion: analyze.suggestion ?? null,
+  fields: analyze.fields ?? [],      // <- this must be here (not undefined)
+});
+
+
+Banner counts properly:
+
+// client/src/components/AutofillBanner.tsx
+const count = (fields?.length ?? 0);
+
+<span className="ml-2 text-xs bg-white/10 px-2 py-0.5 rounded-full">
+  {count} details found
+</span>
+
+{!loading && !error && count > 0 && (
+  <div className="mt-3">
+    {fields!.slice(0, 2).map((f) => (
+      <div key={f.key} className="flex items-center justify-between text-sm py-1">
+        <div className="text-white/70">{f.key}</div>
+        <div className="font-mono">{f.pii ? maskPII(f.value) : f.value}</div>
+      </div>
+    ))}
+    <button className="mt-2 text-xs underline text-white/70">View all details</button>
+  </div>
+)}
+
+
+Optional “no details” state (so users aren’t confused):
+
+{!loading && !error && count === 0 && (
+  <div className="mt-3 text-sm text-white/70">
+    No details detected. You can try <button className="underline" onClick={onRegenerate}>Regenerate</button>.
+  </div>
+)}
+
+4) Re-run a quick test
+
+Hard refresh (Ctrl+F5 / Cmd+Shift+R).
+
+Upload the same license image.
+
+In Network, POST /api/inbox/:id/analyze should return:
+
+{
+  "suggestion": { "memberId":"angel-quintana", "memberName":"Angel Quintana", "confidence":0.92 },
+  "fields": [
+    { "key":"Driver's License Number","value":"C03364260056932","confidence":0.96,"pii":true },
+    { "key":"Expiration Date","value":"2027-04-06","confidence":0.98,"pii":false }
+  ]
+}
+
+
+Banner should show “2 details found” and render those two rows.
+
+Accept all should call /api/inbox/:id/accept and close the banner.
+
+5) If it STILL says “0 details”
+
+The analyze response is being transformed elsewhere. In the Network tab → Preview, confirm the property name is exactly fields. If your code uses extracted or data, rename it to fields in the hook.
+
+Ensure your banner prop isn’t getting overwritten by another state update. Add a console right before <AutofillBanner …> render:
+
+console.log('BANNER_STATE', banner);

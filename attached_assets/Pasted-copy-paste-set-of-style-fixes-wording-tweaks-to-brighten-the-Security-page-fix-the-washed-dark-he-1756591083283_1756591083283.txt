@@ -1,0 +1,198 @@
+copy-paste set of style fixes + wording tweaks to brighten the Security page, fix the washed/dark header, and keep all chips/buttons readable regardless of theme.
+
+1) Force clean, bright styling on the Security page
+
+Drop this at the end of your stylesheet (it’s scoped to #security-root so it won’t bleed into other tabs).
+
+/* ================= Security page readability fixes ================= */
+#security-root {
+  /* Optional: force a light surface on this page even in dark OS theme */
+  color-scheme: light;
+  --sec-bg: #ffffff;
+  --sec-card: #ffffff;
+  --sec-border: #E5EAF2;
+  --sec-subtle: #667085;
+  --sec-text: #111827;
+  --sec-muted: #475467;
+  --sec-hover: #F6F8FB;
+
+  --pill-ok-bg: #E8F6EE;  --pill-ok-fg: #067647;
+  --pill-warn-bg: #FFF4E5;--pill-warn-fg:#B54708;
+  --pill-bad-bg: #FEECEC; --pill-bad-fg:#B42318;
+  --pill-neutral-bg:#F2F4F7; --pill-neutral-fg:#344054;
+
+  --action: #1F6FEB;
+}
+
+#security-root .page-title,
+#security-root h1, #security-root h2, #security-root h3 {
+  color: var(--sec-text);
+}
+
+/* Cards and sections */
+#security-root .card {
+  background: var(--sec-card);
+  border: 1px solid var(--sec-border);
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(16,24,40,.06);
+}
+
+/* Fix “Security & Audit” header being too low-contrast */
+#security-root .section-header {
+  color: var(--sec-text);
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+/* Posture bar + buttons */
+#security-root .posture.card { background: var(--sec-card); }
+#security-root .btn {
+  border: 1px solid #CBD2E0;
+  background: #fff;
+  color: var(--sec-muted);
+  border-radius: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+#security-root .btn:hover { background: var(--sec-hover); }
+#security-root .btn.primary { background: var(--action); color: #fff; border-color: transparent; }
+
+/* Pills */
+#security-root .pill           { display:inline-block;padding:4px 10px;border-radius:999px;font-weight:700;font-size:12px }
+#security-root .pill-ok        { background:var(--pill-ok-bg);    color:var(--pill-ok-fg) }
+#security-root .pill-warn      { background:var(--pill-warn-bg);  color:var(--pill-warn-fg) }
+#security-root .pill-bad       { background:var(--pill-bad-bg);   color:var(--pill-bad-fg) }
+#security-root .pill-neutral   { background:var(--pill-neutral-bg); color:var(--pill-neutral-fg) }
+
+/* Session rows (no dark wash, readable icons/text) */
+#security-root .session {
+  background: #fff;
+  border: 1px solid var(--sec-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: var(--sec-text);
+}
+#security-root .session.current {
+  background: #ECFDF3;                /* soft green */
+  border-color: #CFF2DD;
+}
+#security-root .session .meta { color: var(--sec-subtle); }
+
+/* Icon buttons (eye, X) */
+#security-root .icon-btn {
+  background:#fff; border:1px solid #CBD2E0; border-radius:10px; cursor:pointer;
+  color: var(--sec-muted);
+}
+#security-root .icon-btn:hover { background: var(--sec-hover); }
+#security-root .icon-btn.danger { color: var(--pill-bad-fg); border-color:#F3C3C3; }
+#security-root .icon-btn.danger:hover { background: var(--pill-bad-bg); }
+
+/* Audit chain box chips */
+#security-root .state-compromised { background:var(--pill-bad-bg); color:var(--pill-bad-fg) }
+#security-root .state-verified    { background:var(--pill-ok-bg);  color:var(--pill-ok-fg) }
+#security-root .state-stale       { background:var(--pill-warn-bg);color:var(--pill-warn-fg) }
+
+
+If you do want to keep dark mode but fix contrast, delete color-scheme: light; and the rest still improves pill/button contrast in dark themes.
+
+2) Copy/wording tweaks (what to change in your UI text)
+
+Header: change “Security & Audit” → Security & Audit (keep title case; ensure it renders as a header element, e.g., <h2 class="section-header">Security & Audit</h2>).
+
+Posture chips:
+
+2FA disabled → Admin 2FA not enforced
+
+audit chain stale → Audit chain verification required
+
+Keys 90+ days old → API keys older than 90 days
+
+Buttons:
+
+Enable Admin 2FA (keep)
+
+Verify Audit Chain (keep)
+
+Rotate API Keys (keep)
+
+Configure IP Allowlist (keep)
+
+Sessions:
+
+Current → Current
+
+Recent → Recent
+
+Add tooltips:
+
+Eye: Reveal IP
+
+X: Terminate session
+
+Audit chain status:
+
+Compromised → Integrity compromised
+
+Never → Never verified
+
+Success pill: Verified
+
+Example pills:
+
+<span class="pill state-verified">Verified</span>
+<span class="pill state-stale">Verification required</span>
+<span class="pill state-compromised">Integrity compromised</span>
+
+3) Make the header and session labels pop (HTML touch-ups)
+<!-- Top of page -->
+<h2 class="section-header page-title">Security &amp; Audit</h2>
+
+<!-- Session row snippet -->
+<div class="session current">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+    <div>
+      <div style="font-weight:700">
+        MacBook Pro <span class="pill pill-ok">Current</span>
+      </div>
+      <div class="meta">Chrome 120 • macOS 14.2</div>
+      <div class="meta"><span class="ip" data-ip="192.168.1.100">•••.•••.•••.•••</span> • San Francisco, CA • Last active: Aug 30, 5:54 PM</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="icon-btn" title="Reveal IP">👁</button>
+      <button class="icon-btn danger" title="Terminate session">✖</button>
+    </div>
+  </div>
+</div>
+
+4) If the page still appears “dark”
+
+You likely have a high-opacity gradient/overlay on the section container. Nuke it for this page:
+
+/* Remove any inherited dark gradient for this page */
+#security-root .section-surface,
+#security-root .gradient-bg {
+  background: none !important;
+}
+
+
+And ensure the page wrapper uses a light base:
+
+body.security-page,
+#security-root {
+  background: #F8FAFC; /* light app canvas */
+}
+
+5) Optional: theme switch (respects user preference, but keeps contrast)
+// Run once at boot
+(function(){
+  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  document.documentElement.dataset.theme = prefersDark ? 'dark' : 'light';
+})();
+
+
+Then in CSS, guard only color tokens, not hover/contrast:
+
+:root[data-theme="dark"] #security-root {
+  --sec-card:#0F172A; --sec-border:#1E293B; --sec-text:#E5E7EB; --sec-subtle:#9AA4B2; --sec-muted:#C9D2DF; --sec-hover:#141D2E;
+  /* Pills already readable in dark due to explicit tokens */
+}

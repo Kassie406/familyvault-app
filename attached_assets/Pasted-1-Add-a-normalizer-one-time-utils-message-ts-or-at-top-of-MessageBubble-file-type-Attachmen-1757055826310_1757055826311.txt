@@ -1,0 +1,116 @@
+1) Add a normalizer (one time)
+// utils/message.ts (or at top of MessageBubble file)
+
+type Attachment = { id?: string; url?: string; name?: string; type?: string; size?: number };
+
+export type MessageSafe = {
+  id?: string;
+  chatId?: string;
+  senderId?: string;
+  body: string;
+  createdAt?: string | Date;
+  author?: { id?: string; name?: string; avatarUrl?: string | null } | null;
+  authorName?: string;
+  attachments: Attachment[];
+  reactions: any[];
+  mentions: any[];
+  kind?: "message" | "system";
+};
+
+const toArray = <T,>(v: T[] | null | undefined): T[] => (Array.isArray(v) ? v.filter(Boolean) : []);
+
+export function normalizeMessage(raw: any): MessageSafe {
+  return {
+    id: raw?.id,
+    chatId: raw?.chatId,
+    senderId: raw?.senderId,
+    body: String(raw?.body ?? ""),
+    createdAt: raw?.createdAt ?? new Date().toISOString(),
+    author: raw?.author ?? null,
+    authorName: raw?.authorName ?? raw?.senderName ?? "",
+    attachments: toArray<Attachment>(raw?.attachments),
+    reactions: toArray(raw?.reactions),
+    mentions: toArray(raw?.mentions),
+    kind: raw?.kind ?? "message",
+  };
+}
+
+2) Use the normalizer inside your component
+// in MessageBubble (client/src/pages/messages/[threadId].tsx)
+
+import { normalizeMessage } from "../utils/message"; // adjust path
+
+export default function MessageBubble({ message: raw }: { message: any }) {
+  const message = normalizeMessage(raw);
+
+  const displayName =
+    message.author?.name ||
+    message.authorName ||
+    "Unknown";
+
+  const initials = displayName
+    .trim()
+    .split(/\s+/)
+    .map(p => p[0])
+    .filter(Boolean)
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  // ...
+  return (
+    <div className="...">
+      {/* Avatar initials (safe) */}
+      {!isMe && (
+        <div className="w-8 h-8 rounded-full bg-[#D4AF37]/20 flex items-center justify-center text-xs text-[#D4AF37] font-medium mt-1">
+          {initials || "??"}
+        </div>
+      )}
+
+      {/* Attachments (safe) */}
+      {message.attachments.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-2">
+          {message.attachments.map((att, i) => (
+            <AttachmentPill key={att.id ?? i} attachment={att} />
+          ))}
+        </div>
+      )}
+
+      {/* ...the rest of your bubble */}
+    </div>
+  );
+}
+
+
+Important: Everywhere you render a list of messages, normalize them once:
+
+// e.g., in Thread page where you map messages
+const safeMessages = rawMessages.map(normalizeMessage);
+return safeMessages.map(m => <MessageBubble key={m.id} message={m} />);
+
+3) Quick “no more crashes” replacements (if you prefer inline guards)
+
+If you don’t want to add a helper file, at minimum change these patterns throughout the file:
+
+message.author.name → message.author?.name ?? message.authorName ?? "Unknown"
+
+message.attachments.length → (message.attachments?.length ?? 0)
+
+message.attachments.map(...) → (message.attachments ?? []).map(...)
+
+Do the same for any reactions, mentions, files, etc.
+
+4) (Optional but recommended) API-side defaulting
+
+In the API that returns messages, coalesce arrays so the UI always gets arrays:
+
+res.json(rows.map(r => ({
+  ...r,
+  attachments: r.attachments ?? [],
+  reactions: r.reactions ?? [],
+  mentions: r.mentions ?? [],
+  authorName: r.authorName ?? r.senderName ?? "",
+})));
+
+
+Apply step 1–2 and the error at .../messages/[threadId].tsx:369 (reading length) will stop immediately, and you won’t get new “cannot read X of undefined” from other optional fields in this view. If another component also touches raw message objects, run them through normalizeMessage in the parent before passing down.

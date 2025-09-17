@@ -1,0 +1,134 @@
+seeing the wrong item because the link you copied isn’t tied to the “Garage Door Code.” It’s pointing at a demo token/page (that Bank of America card), not a real share created for your credential.
+
+Here’s how this usually happens and how to fix it cleanly.
+
+Why this happened
+
+Demo/fallback token
+Your Copy button is likely copying a placeholder like /share/demo-abc123 or a static preview route. That route renders a fixed demo card (Bank of America), regardless of what you shared.
+
+Token not bound to credential
+The “regenerate” logic may be making a token but not saving (token → credential_id) on the server, so the view page fetches a default demo.
+
+Wrong environment/domain
+The link goes to a replit dev share host that serves a demo viewer, while your panel runs on your app. (Ref image shows a ...replit.dev/share/demo-abc123 URL.)
+
+Quick triage (5-minute checks)
+
+In your Share panel, click Regenerate once.
+Confirm the copied URL is your domain (e.g., https://portal.familycirclesecure.com/share/<token>), not .../share/demo-* or a replit host.
+
+Hit GET /api/share/<token> in the browser/console.
+The JSON should include the correct title (“Garage Door Code”). If it returns demo content or 404, the token isn’t mapped to the credential.
+
+The correct wiring (server + client)
+1) Create/Save a real share token for the selected credential
+
+POST /api/credentials/:id/shares/regenerate
+
+// returns a token and canonical URL
+return {
+  url: `https://portal.familycirclesecure.com/share/${token}`,
+  token
+};
+
+
+Server must also persist
+
+token → {
+  credential_id: <garage_door_credential_id>,
+  expires_at,
+  require_login,
+  revoked: false,
+}
+
+2) The Copy button must use that saved URL
+
+Ensure your panel’s state shareUrl is set from the server response and copied:
+
+const { url } = await fetch(`/api/credentials/${id}/shares/regenerate`, { method:'POST' }).then(r=>r.json());
+setShareUrl(url);   // <-- this is what Copy uses
+
+3) Viewer route must resolve token → credential
+
+GET /api/share/:token should return the actual item:
+
+// Expected response
+{
+  "title": "Garage Door Code",
+  "owner": "Home",
+  "tag": "Access",
+  "requireLogin": true,
+  "allowReveal": false
+}
+
+
+If that returns a “Bank of America…” title, you’re still hitting a demo resolver. Point the link to your real resolver and delete the demo route.
+
+Guardrails so this can’t happen again
+A. Peek endpoint to verify before copying
+
+When you regenerate or paste a custom token, validate it and show the resolved title inline.
+
+// GET /api/share/:token/peek
+// returns { title, credentialId }
+
+
+UI (under the input):
+
+✅ Link resolves to Garage Door Code
+
+If it doesn’t match, show:
+
+⚠️ This link resolves to Bank of America – Personal Account.
+[Regenerate] [Fix mapping]
+
+B. Demo token fence
+
+If a token starts with demo- or is from non-prod host, show a small badge:
+
+“Demo preview link — not tied to your credential”
+
+C. Domain lock
+
+Only allow links with your production host to be copied in prod:
+
+const isProd = window.location.host.endsWith("familycirclesecure.com");
+if (isProd && !shareUrl.startsWith("https://portal.familycirclesecure.com/share/")) {
+  toast.error("This is a demo link; regenerate a production link.");
+  return;
+}
+
+Drop-in API contract (copy/paste)
+
+Regenerate link
+
+POST /api/credentials/:id/shares/regenerate
+→ 200 { "url": "https://portal.familycirclesecure.com/share/3e1x9...", "token": "3e1x9..." }
+
+
+Resolve view
+
+GET /api/share/:token
+→ 200 { "title": "Garage Door Code", "owner":"Home", "tag":"Access", "requireLogin": true }
+→ 410 { "error": "expired" }
+→ 404 { "error": "invalid" }
+
+Likely one-line fix in your panel now
+
+In your current panel code, make sure the Copy button uses shareUrl that came from your backend, not a hardcoded demo value:
+
+<Button
+  size="sm"
+  className="bg-[#D4AF37] text-black"
+  onClick={() => navigator.clipboard.writeText(shareUrl)}
+>
+  Copy
+</Button>
+
+
+And ensure shareUrl is set by the regenerate/save response:
+
+const res = await fetch(`/api/credentials/${id}/shares/regenerate`, { method: "POST" });
+const data = await res.json();
+setShareUrl(data.url);              // ✅ real, credential-bound URL

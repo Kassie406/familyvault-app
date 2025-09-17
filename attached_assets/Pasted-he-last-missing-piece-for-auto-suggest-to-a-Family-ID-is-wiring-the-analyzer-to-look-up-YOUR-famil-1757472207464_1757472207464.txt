@@ -1,0 +1,273 @@
+he last missing piece for “auto-suggest to a Family ID” is wiring the analyzer to look up YOUR family members and write a suggestion back to the inbox record.
+
+Here’s a tight plan you can drop in to make the Inbox → Family IDs loop work end-to-end.
+
+What’s happening now
+
+Upload Center → S3 upload ✅
+
+We register the upload (/api/inbox/register) ✅
+
+We call analyze (/api/inbox/:id/analyze) but it has nothing to match against, so it can’t suggest a Family ID.
+
+The Inbox UI is already ready to show a Suggested destination if the backend returns it.
+
+So we just need the analyzer to (1) OCR/extract, (2) fetch Family IDs for this user/household, (3) score matches, and (4) store the suggestion.
+
+Minimal backend wiring
+1) DB: keep suggestion + fields on the inbox item
+
+(If you already created these tables/columns earlier, great—just ensure they exist.)
+
+-- inbox_items: add columns to hold suggestion + status
+ALTER TABLE inbox_items
+  ADD COLUMN suggested_member_id TEXT NULL,
+  ADD COLUMN suggested_member_name TEXT NULL,
+  ADD COLUMN suggestion_confidence REAL NULL,
+  ADD COLUMN status TEXT NOT NULL DEFAULT 'analyzing';
+
+-- extracted_fields table (one-to-many)
+CREATE TABLE IF NOT EXISTS extracted_fields (
+  id TEXT PRIMARY KEY,
+  inbox_id TEXT NOT NULL,
+  key TEXT NOT NULL,
+  value TEXT NOT NULL,
+  confidence REAL NOT NULL DEFAULT 1.0,
+  pii BOOLEAN NOT NULL DEFAULT FALSE,
+  FOREIGN KEY (inbox_id) REFERENCES inbox_items(id) ON DELETE CASCADE
+);
+
+2) Family IDs lookup for this user/household
+
+Expose a tiny service (or reuse yours) to get members the current user can see.
+
+// server/services/family.ts
+import { db } from "../db";
+export type FamilyMember = {
+  id: string;
+  fullName: string;
+  birthDate?: string;     // "1983-06-16"
+  ssnLast4?: string;      // "2645"
+  aliases?: string[];     // nicknames, maiden names, etc.
+};
+
+export async function getFamilyMembersForUser(userId: string): Promise<FamilyMember[]> {
+  // Replace with your existing joins/tenant scoping
+  return db.query(/* ... */) as unknown as FamilyMember[];
+}
+
+
+If you already have a Family IDs API, you can call that instead of hitting the DB directly.
+
+3) Simple matching logic in the analyzer
+
+Use OCR’d fields (name, dob, ssn last-4) and score candidates. This works extremely well for your examples (Angel Quintana, etc.) and is fast.
+
+// server/services/match.ts
+import type { FamilyMember } from "./family";
+
+export type Extracted = {
+  name?: string;
+  dob?: string;       // "1983-06-16" or "Jun 16, 1983"
+  ssn?: string;       // "141-85-2645" or just "2645"
+};
+
+export type Suggestion = {
+  memberId: string;
+  memberName: string;
+  confidence: number;
+};
+
+export function suggestMember(fields: Extracted, members: FamilyMember[]): Suggestion | null {
+  const name = (fields.name ?? "").toLowerCase().trim();
+  const last4 = (fields.ssn ?? "").replace(/\D/g, "").slice(-4);
+  const dob = normalizeDate(fields.dob);
+
+  let best: Suggestion | null = null;
+
+  for (const m of members) {
+    let score = 0;
+    const mName = m.fullName.toLowerCase();
+    const nameHit =
+      name && (mName.includes(name) || nameIncludesAny(name, m.aliases ?? []));
+    if (nameHit) score += 0.5;
+
+    const mLast4 = (m.ssnLast4 ?? "").replace(/\D/g, "");
+    if (last4 && mLast4 && last4 === mLast4) score += 0.35;
+
+    const mDob = normalizeDate(m.birthDate ?? "");
+    if (dob && mDob && dob === mDob) score += 0.25;
+
+    // Small allowances for partial/close name matches
+    if (!nameHit && name && levenshtein(name, mName) <= 2) score += 0.25;
+
+    if (!best || score > best.confidence) {
+      best = { memberId: m.id, memberName: m.fullName, confidence: round(score) };
+    }
+  }
+  return best && best.confidence >= 0.6 ? best : null; // threshold
+}
+
+function normalizeDate(s: string | undefined) {
+  if (!s) return "";
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+function nameIncludesAny(name: string, aliases: string[]) {
+  return aliases.some(a => name.includes(a.toLowerCase()));
+}
+
+function round(n: number) { return Math.round(n * 100) / 100; }
+
+// tiny Levenshtein for typo tolerance
+function levenshtein(a: string, b: string) {
+  const dp = Array.from({ length: a.length + 1 }, (_, i) =>
+    Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)));
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      dp[i][j] = Math.min(
+        dp[i-1][j] + 1,
+        dp[i][j-1] + 1,
+        dp[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1)
+      );
+    }
+  }
+  return dp[a.length][b.length];
+}
+
+4) Plug it into /api/inbox/:id/analyze
+
+This is the only place you need to modify to produce suggestions your Inbox already knows how to show.
+
+// server/routes/inbox.ts (excerpt)
+import { getFamilyMembersForUser } from "../services/family";
+import { suggestMember } from "../services/match";
+import { db, inboxItems, extractedFields } from "../db"; // adjust to your ORM
+
+router.post("/api/inbox/:id/analyze", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id; // however you store auth
+
+    // 1) Load the inbox item (has s3Key, etc.)
+    const inbox = await db.getInboxItemById(id);
+    if (!inbox) return res.status(404).json({ error: "inbox item not found" });
+
+    // 2) OCR / extraction (you already had a mock; keep or replace with real OCR)
+    const fields = await extractFieldsFromS3(inbox.s3Key); 
+    // Expect at least: name, dob?, ssn?
+
+    // 3) Persist extracted fields (so the Details modal can show them)
+    await db.transaction(async (tx) => {
+      await tx.deleteExtractedFieldsForInbox(id);
+      for (const f of fieldsToRows(fields)) {
+        await tx.insertExtractedField(id, f.key, f.value, f.confidence ?? 1, !!f.pii);
+      }
+    });
+
+    // 4) Fetch Family IDs visible to this user
+    const members = await getFamilyMembersForUser(userId);
+
+    // 5) Score suggestion
+    const suggestion = suggestMember(
+      { name: fields.name, dob: fields.dob, ssn: fields.ssn },
+      members
+    );
+
+    // 6) Update inbox item with suggestion + status
+    await db.updateInboxItem(id, {
+      status: "suggested",
+      suggested_member_id: suggestion?.memberId ?? null,
+      suggested_member_name: suggestion?.memberName ?? null,
+      suggestion_confidence: suggestion?.confidence ?? null,
+    });
+
+    return res.json({
+      suggestion: suggestion
+        ? { memberId: suggestion.memberId, memberName: suggestion.memberName, confidence: suggestion.confidence }
+        : null,
+      fields: fieldsToClient(fields),
+    });
+  } catch (e: any) {
+    // set status to failed so UI shows the red toast only when truly failing
+    await db.safeUpdateInboxStatus(req.params.id, "failed");
+    return res.status(500).json({ error: e?.message ?? "analyze error" });
+  }
+});
+
+// helpers
+function fieldsToRows(f: any) {
+  const out = [];
+  if (f.name) out.push({ key: "Person Name", value: f.name, confidence: 0.95 });
+  if (f.ssn)  out.push({ key: "SSN", value: f.ssn, confidence: 0.99, pii: true });
+  if (f.dob)  out.push({ key: "Date of Birth", value: f.dob, confidence: 0.9, pii: true });
+  // add more as you extract (state issued, expiration, etc.)
+  return out;
+}
+function fieldsToClient(f: any) {
+  return fieldsToRows(f).map(r => ({
+    key: r.key, value: r.value, confidence: r.confidence, pii: !!r.pii
+  }));
+}
+
+
+Keep your existing “mock OCR” if you like — just make sure it returns { name, dob, ssn } for sample images so the flow is visible immediately.
+
+5) Accept / Dismiss (already wired)
+
+Your UI’s Accept should hit:
+
+POST /api/inbox/:id/accept { memberId, fields }
+
+
+On the server, move the file to the member’s vault location (or link the S3 key), mark status='accepted', and optionally write the extracted field values into that member’s profile slots (e.g., License number, SSN last-4, etc.).
+
+Dismiss simply marks status='dismissed'.
+
+Frontend (just confirm the response shape)
+
+The Inbox drawer is already expecting a payload like:
+
+{
+  "suggestion": {
+    "memberId": "mem_123",
+    "memberName": "Angel Quintana",
+    "confidence": 0.83
+  },
+  "fields": [
+    {"key":"Person Name","value":"ANGEL D QUINTANA","confidence":0.95},
+    {"key":"Social Security Number","value":"141-85-2645","confidence":0.99,"pii":true}
+  ]
+}
+
+
+That will render the Suggested destination pill pointing to Angel Quintana, plus the Details modal with masked PII.
+
+Test it with your real Family IDs
+
+You already have:
+
+Angel Quintana (parent)
+
+Emma Johnson (child)
+
+Linda Johnson (grandparent)
+
+Kassandra Santana (owner)
+
+Test cases:
+
+Upload a Social Security card image named/containing “Angel” or OCR’d with ANGEL D QUINTANA and last-4 2645.
+→ Expect suggestion Angel Quintana with high confidence (≥ 0.8).
+
+Try a driver’s license for Emma Johnson (DOB helps a lot).
+→ Expect Emma Johnson (if DOB match kicks in).
+
+Upload a generic PDF with no names.
+→ Expect no suggestion; UI shows “No confident match”.
+
+Why your earlier toast said “analyze failed after 3 attempts”
+
+That was the retrier doing its job while the analyzer didn’t return a proper JSON (or route mismatch). After we fixed the route conflict (/api/inbox/register vs /api/uploads catcher) you should no longer see that unless OCR crashes. With this matching addition, results will populate the Inbox drawer instead.

@@ -1,0 +1,321 @@
+Perfect—let’s finish the core loop so parents can add chores, see points at a glance, and (optionally) rotate chores. Below are drop-in components + tiny wiring. They match the dark/gold style you already use and fit the stubs we shipped.
+
+1) “Create Chore” modal (parents)
+1.1 Component
+// src/components/CreateChoreModal.tsx
+import { useEffect, useState } from "react";
+import { api } from "../lib/api";
+
+type Member = { id: string; name: string; role: "parent"|"teen"|"child" };
+
+export default function CreateChoreModal({
+  open, onClose, currentUser,
+}: { open: boolean; onClose: (created?: boolean)=>void; currentUser: Member }) {
+  const [members, setMembers] = useState<Member[]>([]);
+  const [title, setTitle] = useState("");
+  const [details, setDetails] = useState("");
+  const [assigneeId, setAssigneeId] = useState("");
+  const [dueAt, setDueAt] = useState<string>(() => new Date().toISOString().slice(0,16)); // yyyy-MM-ddTHH:mm
+  const [points, setPoints] = useState(10);
+  const [rotationKey, setRotationKey] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string|null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      setErr(null);
+      try {
+        // Replace with your actual members endpoint
+        const data = await api<Member[]>("/api/members");
+        setMembers(data);
+        if (!assigneeId && data.length) setAssigneeId(data[0].id);
+      } catch (e:any) { setErr(e.message); }
+    })();
+    // reset form when closed
+    if (!open) {
+      setTitle(""); setDetails(""); setPoints(10); setRotationKey("");
+    }
+  }, [open]);
+
+  if (!open) return null;
+  const canSave = title.trim().length >= 2 && assigneeId && dueAt;
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canSave || saving) return;
+    setSaving(true); setErr(null);
+    try {
+      await api("/api/chores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          details: details.trim() || undefined,
+          assigneeId,
+          dueAt: new Date(dueAt).toISOString(),
+          points,
+          rotationKey: rotationKey.trim() || undefined,
+        }),
+      });
+      onClose(true);
+    } catch (e:any) {
+      setErr(e.message || "Could not create chore");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (currentUser.role !== "parent") {
+    return (
+      <Modal onClose={() => onClose()}>
+        <div className="text-white">Only parents can create chores.</div>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal onClose={() => onClose()}>
+      <form onSubmit={onSubmit} className="space-y-3">
+        <h3 className="text-lg text-white">Create Chore</h3>
+
+        <div>
+          <label className="block text-sm text-white/70 mb-1">Title</label>
+          <input value={title} onChange={e=>setTitle(e.target.value)}
+            placeholder="Dishes, Trash, Walk dog…"
+            className="w-full rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white placeholder-white/40 focus:ring-2 focus:ring-[#b59732]" />
+        </div>
+
+        <div>
+          <label className="block text-sm text-white/70 mb-1">Details (optional)</label>
+          <textarea value={details} onChange={e=>setDetails(e.target.value)}
+            rows={2}
+            className="w-full rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white placeholder-white/40 focus:ring-2 focus:ring-[#b59732]" />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Assignee</label>
+            <select value={assigneeId} onChange={e=>setAssigneeId(e.target.value)}
+              className="w-full rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white focus:ring-2 focus:ring-[#b59732]">
+              {members.map(m => <option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Due</label>
+            <input type="datetime-local" value={dueAt} onChange={e=>setDueAt(e.target.value)}
+              className="w-full rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white focus:ring-2 focus:ring-[#b59732]" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Points</label>
+            <input type="number" min={1} max={100} value={points} onChange={e=>setPoints(Number(e.target.value))}
+              className="w-full rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white focus:ring-2 focus:ring-[#b59732]" />
+          </div>
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Rotation Key (optional)</label>
+            <input value={rotationKey} onChange={e=>setRotationKey(e.target.value)}
+              placeholder="evening-dishes, trash-night"
+              className="w-full rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white placeholder-white/40 focus:ring-2 focus:ring-[#b59732]" />
+          </div>
+        </div>
+
+        {err && <div className="text-rose-300 text-sm">{err}</div>}
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={()=>onClose()} className="px-3 py-2 rounded-lg border border-white/15 text-white/90">Cancel</button>
+          <button disabled={!canSave || saving}
+            className="px-3 py-2 rounded-lg bg-[#b59732] text-black font-semibold disabled:opacity-60 hover:brightness-110">
+            {saving ? "Creating…" : "Create"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function Modal({ children, onClose }: { children: any; onClose: ()=>void }) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur">
+      <div className="w-[92vw] max-w-lg rounded-2xl border border-white/10 bg-white/5 p-4 shadow-xl">
+        <div className="flex justify-end">
+          <button onClick={onClose} className="text-white/60 hover:text-white">✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+
+/api/members: If you don’t have it yet, expose a simple family-scoped list: [{id,name,role}].
+
+1.2 Hook into the dashboard
+
+Add a “New Chore” button near the Chores card header (parents only).
+
+// in ChoresCard.tsx, replace Header() with a prop; or inline below
+// Example wrapper around ChoresCard:
+import { useState } from "react";
+import CreateChoreModal from "./CreateChoreModal";
+
+export function ChoresSection({ currentUser }: any) {
+  const [open, setOpen] = useState(false);
+  const isParent = currentUser.role === "parent";
+  return (
+    <section className="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="text-white/80">Chores & Allowance</div>
+        {isParent && (
+          <button onClick={()=>setOpen(true)} className="px-3 py-1 rounded-lg bg-[#b59732] text-black font-semibold hover:brightness-110">
+            + New Chore
+          </button>
+        )}
+      </div>
+
+      <ChoresCard currentUser={currentUser} />
+
+      {open && (
+        <CreateChoreModal
+          open={open}
+          onClose={(created) => {
+            setOpen(false);
+            // naive reload trigger — you can lift state instead
+            if (created) window.dispatchEvent(new CustomEvent("chores:reload"));
+          }}
+          currentUser={currentUser}
+        />
+      )}
+    </section>
+  );
+}
+
+
+And tweak ChoresCard to listen for reload:
+
+// inside ChoresCard component
+useEffect(() => {
+  const h = () => load();
+  window.addEventListener("chores:reload", h);
+  return () => window.removeEventListener("chores:reload", h);
+}, []);
+
+
+Update your dashboard page to use ChoresSection instead of raw ChoresCard.
+
+2) Allowance mini-view
+2.1 Component
+// src/components/AllowanceMini.tsx
+import { useEffect, useState } from "react";
+import { api } from "../lib/api";
+
+type Item = { deltaPoints: number; reason: string; createdAt: string };
+
+export default function AllowanceMini({ memberId = "me" }: { memberId?: string }) {
+  const [balance, setBalance] = useState<number|null>(null);
+  const [items, setItems] = useState<Item[]>([]);
+  const [err, setErr] = useState<string|null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async ()=>{
+      try {
+        const data = await api<{balance:number; items: Item[]}>(`/api/allowance/summary?memberId=${memberId}`);
+        if (!alive) return;
+        setBalance(data.balance);
+        setItems(data.items.slice(0,5));
+      } catch (e:any) { if (alive) setErr(e.message); }
+    })();
+    return () => { alive = false; };
+  }, [memberId]);
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <div className="mb-2 text-white/80">Allowance</div>
+      {err && <div className="text-rose-300 text-sm">{err}</div>}
+      {balance === null ? (
+        <div className="animate-pulse text-white/60">Loading…</div>
+      ) : (
+        <>
+          <div className="text-2xl text-white">{balance} pts</div>
+          <div className="mt-2 text-sm text-white/70">Recent</div>
+          <ul className="mt-1 space-y-1">
+            {items.map((i, idx)=>(
+              <li key={idx} className="flex justify-between text-white/80">
+                <span className="truncate">{i.reason}</span>
+                <span className={i.deltaPoints>=0 ? "text-emerald-300" : "text-rose-300"}>
+                  {i.deltaPoints>=0 ? "+" : ""}{i.deltaPoints}
+                </span>
+              </li>
+            ))}
+            {!items.length && <li className="text-white/50">No history yet.</li>}
+          </ul>
+        </>
+      )}
+    </section>
+  );
+}
+
+2.2 Add to dashboard (right column)
+// Dashboard.tsx (excerpt)
+import { ChoresSection } from "../components/ChoresSection";
+import AllowanceMini from "../components/AllowanceMini";
+import ActionCenter from "../components/ActionCenter";
+
+export default function Dashboard({ currentUser }: any) {
+  return (
+    <div className="space-y-4">
+      <ActionCenter />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ChoresSection currentUser={currentUser} />
+        <AllowanceMini memberId="me" />
+      </div>
+      {/* keep your other widgets below */}
+    </div>
+  );
+}
+
+3) (Optional) Rotate chores button
+
+Add a small button (parents) to seed next week’s chore from a rotation key.
+
+// somewhere in ChoresSection header (parents only)
+<button
+  onClick={async ()=>{
+    // you might keep a per-key list; simple prompt for now
+    const rotationKey = prompt("Rotation key (e.g., evening-dishes)")?.trim();
+    if (!rotationKey) return;
+    // Replace with real family member ids you want in rotation:
+    const resMembers = await api<{id:string}[]>("/api/members");
+    const assigneeIds = resMembers.filter(m=>m.role!=="parent")  // example: kids/teens only
+                                  .map(m=>m.id);
+    if (!assigneeIds.length) return alert("No eligible assignees");
+    await api("/api/chores/rotate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rotationKey, assigneeIds }),
+    });
+    window.dispatchEvent(new CustomEvent("chores:reload"));
+  }}
+  className="px-3 py-1 rounded-lg border border-white/15 text-white/90 hover:bg-white/10"
+>
+  Rotate
+</button>
+
+4) Quick test plan (5 min)
+
+Login as parent:
+
+Click + New Chore, assign to teen/child, save → appears in Family list and assignee’s “My chores”.
+
+Teen marks done → parent sees Approve +points.
+
+Approve → allowance increases; Action Center “chores to approve” decreases.
+
+Login as teen/child:
+
+“My chores” shows only mine; “Family” tab still visible (read-only approve hidden).
+
+No “+ New Chore” / “Rotate” buttons.

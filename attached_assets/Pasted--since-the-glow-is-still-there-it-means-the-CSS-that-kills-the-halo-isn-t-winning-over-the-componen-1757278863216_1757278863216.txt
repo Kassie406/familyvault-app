@@ -1,0 +1,167 @@
+—since the glow is still there, it means the CSS that kills the halo isn’t winning over the component’s own hover/focus styles (usually DaisyUI/Tailwind “card / ring / shadow” utilities). Let’s force it to win without guessing class names.
+
+Below is a single, stronger override that (1) does not depend on any custom class and (2) targets the most common tile elements (div.card, button, a, and [role="button"]) including their :hover / :focus / :focus-visible states.
+
+What to do (one paste to your codebase)
+
+Open (or create) client/src/styles/quick-access.css and replace the content with the rules below (or paste these at the very end of the file).
+
+/* ========= QUICK ACCESS: remove every hover/focus glow ========== */
+
+/* Match the Quick Access dialog no matter how it’s mounted/named */
+dialog[aria-label="Quick Access"],
+#quick-access-modal,
+#quickAccessModal,
+.quick-access-modal,
+[data-qa="quick-access"] {
+  /* Kill ring/shadow CSS variables at the container */
+  --tw-ring-inset: initial !important;
+  --tw-ring-offset-width: 0 !important;
+  --tw-ring-offset-color: transparent !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-shadow: 0 0 #0000 !important;
+  --tw-shadow-colored: 0 0 #0000 !important;
+}
+
+/* Hard-select all common tile wrappers */
+dialog[aria-label="Quick Access"] .card,
+dialog[aria-label="Quick Access"] .tile,
+dialog[aria-label="Quick Access"] button,
+dialog[aria-label="Quick Access"] a,
+dialog[aria-label="Quick Access"] [role="button"],
+#quick-access-modal .card,
+#quick-access-modal .tile,
+#quick-access-modal button,
+#quick-access-modal a,
+#quick-access-modal [role="button"],
+#quickAccessModal .card,
+#quickAccessModal .tile,
+#quickAccessModal button,
+#quickAccessModal a,
+#quickAccessModal [role="button"],
+.quick-access-modal .card,
+.quick-access-modal .tile,
+.quick-access-modal button,
+.quick-access-modal a,
+.quick-access-modal [role="button"],
+[data-qa="quick-access"] .card,
+[data-qa="quick-access"] .tile,
+[data-qa="quick-access"] button,
+[data-qa="quick-access"] a,
+[data-qa="quick-access"] [role="button"] {
+  /* keep your gold border only */
+  border: 1px solid rgba(212,175,55,0.28) !important;
+  border-radius: 16px !important;
+
+  /* nuke all possible glows */
+  box-shadow: none !important;
+  outline: none !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+
+  /* stop pseudo-element glows */
+  --tw-before-shadow: 0 0 #0000 !important;
+  --tw-after-shadow: 0 0 #0000 !important;
+}
+
+dialog[aria-label="Quick Access"] .card:hover,
+dialog[aria-label="Quick Access"] .card:focus,
+dialog[aria-label="Quick Access"] .card:focus-visible,
+dialog[aria-label="Quick Access"] .tile:hover,
+dialog[aria-label="Quick Access"] .tile:focus,
+dialog[aria-label="Quick Access"] .tile:focus-visible,
+dialog[aria-label="Quick Access"] button:hover,
+dialog[aria-label="Quick Access"] button:focus,
+dialog[aria-label="Quick Access"] button:focus-visible,
+dialog[aria-label="Quick Access"] a:hover,
+dialog[aria-label="Quick Access"] a:focus,
+dialog[aria-label="Quick Access"] a:focus-visible,
+dialog[aria-label="Quick Access"] [role="button"]:hover,
+dialog[aria-label="Quick Access"] [role="button"]:focus,
+dialog[aria-label="Quick Access"] [role="button"]:focus-visible,
+
+#quick-access-modal .card:hover,
+#quick-access-modal .card:focus,
+#quick-access-modal .card:focus-visible,
+#quick-access-modal .tile:hover,
+#quick-access-modal .tile:focus,
+#quick-access-modal .tile:focus-visible,
+#quick-access-modal button:hover,
+#quick-access-modal button:focus,
+#quick-access-modal button:focus-visible,
+#quick-access-modal a:hover,
+#quick-access-modal a:focus,
+#quick-access-modal a:focus-visible,
+#quick-access-modal [role="button"]:hover,
+#quick-access-modal [role="button"]:focus,
+#quick-access-modal [role="button"]:focus-visible,
+
+#quickAccessModal .card:hover,
+#quickAccessModal .card:focus,
+#quickAccessModal .card:focus-visible,
+#quickAccessModal .tile:hover,
+#quickAccessModal .tile:focus,
+#quickAccessModal .tile:focus-visible,
+#quickAccessModal button:hover,
+#quickAccessModal button:focus,
+#quickAccessModal button:focus-visible,
+#quickAccessModal a:hover,
+#quickAccessModal a:focus,
+#quickAccessModal a:focus-visible,
+#quickAccessModal [role="button"]:hover,
+#quickAccessModal [role="button"]:focus,
+#quickAccessModal [role="button"]:focus-visible,
+
+.quick-access-modal .card:hover,
+.quick-access-modal .card:focus,
+.quick-access-modal .card:focus-visible,
+.quick-access-modal .tile:hover,
+.quick-access-modal .tile:focus,
+.quick-access-modal .tile:focus-visible,
+.quick-access-modal button:hover,
+.quick-access-modal button:focus,
+.quick-access-modal button:focus-visible,
+.quick-access-modal a:hover,
+.quick-access-modal a:focus,
+.quick-access-modal a:focus-visible,
+.quick-access-modal [role="button"]:hover,
+.quick-access-modal [role="button"]:focus,
+.quick-access-modal [role="button"]:focus-visible,
+
+[data-qa="quick-access"] .card:hover,
+[data-qa="quick-access"] .card:focus,
+[data-qa="quick-access"] .card:focus-visible,
+[data-qa="quick-access"] .tile:hover,
+[data-qa="quick-access"] .tile:focus,
+[data-qa="quick-access"] .tile:focus-visible,
+[data-qa="quick-access"] button:hover,
+[data-qa="quick-access"] button:focus,
+[data-qa="quick-access"] button:focus-visible,
+[data-qa="quick-access"] a:hover,
+[data-qa="quick-access"] a:focus,
+[data-qa="quick-access"] a:focus-visible,
+[data-qa="quick-access"] [role="button"]:hover,
+[data-qa="quick-access"] [role="button"]:focus,
+[data-qa="quick-access"] [role="button"]:focus-visible {
+  border-color: rgba(212,175,55,0.28) !important; /* keep steady gold line */
+  box-shadow: none !important;
+  outline: none !important;
+  filter: none !important;
+}
+
+
+Confirm the stylesheet is imported (this is the common miss).
+In client/src/main.tsx or the file where you import global styles, add:
+
+import './styles/quick-access.css';
+
+
+Hard refresh the browser (Ctrl/Cmd + Shift + R) after the dev server recompiles.
+
+If you still see a glow after this
+
+Please right-click exactly one glowing tile → Inspect → in Elements panel copy the outermost two elements (the wrapper and the tile node) and paste those two lines here. With that exact markup I can give you a tiny selector that will 100% win for your structure.
+
+This approach keeps your thin gold border and removes every hover/focus halo from the Quick Access tiles.

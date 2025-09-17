@@ -1,0 +1,154 @@
+What to implement (quick order)
+
+Rename + clarify
+
+“AI Inbox” → AI Document Analysis
+
+Banner label “Suggested autofill” → AI Suggestions
+
+Single source of truth for AI state
+
+Keep one store (React context/zustand) that any screen can read:
+
+type AIScan =
+  | { state:'idle' }
+  | { state:'analyzing', id:string, step:1|2|3 }
+  | { state:'ready'|'partial', id:string, count:number, suggestion?:{memberId:string; memberName:string; confidence:number}, fields: ExtractField[] }
+  | { state:'none' | 'failed' | 'unsupported', id:string, message:string };
+
+// minimal store
+const useAI = create<{
+  scan: AIScan;
+  start:(uploadId:string)=>void;
+  poll:(uploadId:string)=>void;
+  reset:()=>void;
+}>()
+
+
+start() sets analyzing/step:1
+
+poll() (or websocket) updates steps → final state
+
+Any page (Upload Center, Drawer) renders the same state
+
+Banner that mirrors the store
+
+Drop in your AIBanner (from my prior message). Map states:
+
+analyzing → spinner + “Step X/3”
+
+ready/partial → “Review” opens the drawer to that item
+
+none/failed/unsupported → “Retry” / “How to get better results”
+
+Fire a toast when analyzing → ready|partial to pull attention back to the banner:
+“✨ AI found 3 details · Review”
+
+Drawer card uses the same state
+
+The inbox card shows step bar while analyzing, and the “Open” button when ready.
+
+Confidence < 0.7 → treat as partial (don’t claim a match).
+
+Action buttons
+
+Review/Open → opens Details modal with fields + suggested destination
+
+Accept → POST /api/inbox/:id/accept
+
+Dismiss → POST /api/inbox/:id/dismiss
+
+Retry → POST /api/inbox/:id/analyze
+
+API contracts (keep it small)
+Start / Register
+
+POST /api/inbox/register
+
+{ "fileKey":"s3/key.jpg","fileName":"aq.jpg","mime":"image/jpeg","size":1084321 }
+
+
+→
+
+{ "uploadId":"abc-123" }
+
+Analyze
+
+POST /api/inbox/:id/analyze
+→
+
+{
+  "status":"ready"|"partial"|"none"|"failed"|"unsupported",
+  "fields":[{"key":"Person Name","value":"ANGEL D QUINTANA","confidence":0.92,"pii":true}],
+  "suggestion":{"memberId":"m_42","memberName":"Angel Quintana","confidence":0.86},
+  "message": "Readable text not found" // only for none/failed/unsupported
+}
+
+Poll (or use WS)
+
+GET /api/inbox/:id/status
+
+{ "stage":1|2|3, "status":"analyzing"|"ready"|"partial"|"none"|"failed" }
+
+
+If you already emit socket events, just dispatch them into useAI.poll() and skip HTTP polling.
+
+Why it feels “stuck” now (and how to fix)
+
+Cold starts / long OCR
+
+Resize images server-side (max ~2000px longest edge) before OCR.
+
+If using Tesseract or Textract, set a 30–60s worker timeout and queue (BullMQ/Sidekiq-style). Return 202 Accepted + poll.
+
+Lost registration → “Inbox item not found”
+
+You already fixed the route clash—keep register then analyze; do not call analyze until register returns uploadId.
+
+Race between upload and analyze
+
+Wait for S3 HEAD of the object before starting OCR (or a small jitter 300–800ms).
+
+Time-box analysis
+
+If OCR > 20s, return partial with a “Still processing… we’ll notify here” message; continue in background and push a socket event to flip to ready.
+
+Copy you can paste (for trust)
+
+Analyzing: “Looking for key fields (name, number, dates) and a likely destination.”
+
+Ready: “We’ve suggested a destination. Review and accept.”
+
+Partial: “No confident match. Pick where this belongs and accept.”
+
+None: “This file doesn’t contain enough readable text. Use PDFs or clear, flat photos.”
+
+Failed: “Something went wrong. Try again.”
+
+Unsupported: “Please upload PDF, PNG, or JPEG.”
+
+Minimal front-end glue (Upload Center)
+async function onUploadComplete(file: File, s3Key: string) {
+  const reg = await fetch('/api/inbox/register',{method:'POST',headers:{'content-type':'application/json'},
+             body:JSON.stringify({fileKey:s3Key,fileName:file.name,mime:file.type,size:file.size})}).then(r=>r.json());
+  useAI.getState().start(reg.uploadId);
+
+  await fetch(`/api/inbox/${reg.uploadId}/analyze`,{method:'POST'}); // fire-and-go
+  // Either start polling or the server will push socket updates:
+  pollUntilDone(reg.uploadId);
+}
+
+function pollUntilDone(id:string){
+  const tick = async () => {
+    const s = await fetch(`/api/inbox/${id}/status`).then(r=>r.json());
+    useAI.getState().poll(id); // map stage/status into store
+    if (s.status==='analyzing') setTimeout(tick, 1000);
+  };
+  tick();
+}
+
+Done = visible
+
+When state flips to ready|partial, show toast and update banner immediately (no need for the user to open the drawer to discover it).
+
+Add a tiny badge next to the “AI Document Analysis” button: • 1 new to nudge.

@@ -1,0 +1,112 @@
+Api Management Landing Page + Backend (express + Drizzle)
+· typescript
+// =============================================
+// FRONTEND: Share a Document Modal (React)
+// File: client/src/components/documents/ShareDocumentModal.tsx
+// =============================================
+import React, { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+
+
+interface DocumentItem {
+  id: string;
+  title: string;
+}
+interface PolicyItem {
+  id: string;
+  name: string;
+}
+
+
+export function ShareDocumentModal({ docId }: { docId: string }) {
+  const [open, setOpen] = useState(false);
+  const [scope, setScope] = useState("family");
+  const [userId, setUserId] = useState("");
+  const [policyId, setPolicyId] = useState<string | undefined>(undefined);
+  const [allowDownload, setAllowDownload] = useState(true);
+  const [expiresAt, setExpiresAt] = useState("");
+  const [policies, setPolicies] = useState<PolicyItem[]>([]);
+
+
+  useEffect(() => {
+    if (open) {
+      fetch("/api/link-policies")
+        .then((r) => r.json())
+        .then((d) => setPolicies(d.items ?? []));
+    }
+  }, [open]);
+
+
+  async function onSubmit() {
+    const body: any = { scope, canDownload: allowDownload };
+    if (scope === "user") body.sharedWithUserId = userId;
+    if (scope === "link") body.policyId = policyId;
+    if (expiresAt) body.expiresAt = expiresAt;
+
+
+    const res = await fetch(`/api/documents/${docId}/share`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return toast.error("Failed to share document");
+    toast.success("Document shared");
+    setOpen(false);
+  }
+
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline">Share</Button>
+      </DialogTrigger>
+      <DialogContent className="bg-zinc-900 border border-zinc-800">
+        <DialogHeader>
+          <DialogTitle className="text-yellow-400">Share Document</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label>Scope</Label>
+            <Select value={scope} onValueChange={(v) => setScope(v)}>
+              <SelectTrigger className="bg-zinc-900 border-zinc-800">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-900 border-zinc-800">
+                <SelectItem value="family">Family</SelectItem>
+
+Locked down ✅
+
+I added role gating so only Owner/Admin can change settings or compose updates:
+
+Server
+
+New middleware requireOwnerOrAdmin (server/lib/roles.ts).
+
+Family Settings routes gated:
+
+GET /api/family/settings → Owner/Admin only
+
+PUT /api/family/settings → Owner/Admin only
+
+Compose Update routes gated:
+
+POST /api/updates → Owner/Admin only
+
+POST /api/updates/:id/dismiss → Owner/Admin only (keeps dismissal global; see note below)
+
+Client
+
+Hide Compose Update button and Settings panel for non-admins using your me.role:
+
+Show only when role is owner or admin.
+
+Policy note
+
+Right now, dismiss hides an update for the entire family (global).
+If you want per-user “snooze/dismiss,” I left an optional pattern in the canvas: create family_update_seen and filter in GET /api/updates instead of toggling isDismissed.

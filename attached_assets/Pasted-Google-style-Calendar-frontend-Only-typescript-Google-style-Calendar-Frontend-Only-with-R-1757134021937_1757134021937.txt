@@ -1,0 +1,231 @@
+Google‑style Calendar (frontend Only)
+· typescript
+// Google‑style Calendar (Frontend Only) — with Recurrence UI + ICS export + My Calendars & Other Calendars
+export default function CalendarApp(){
+  const [view, setView] = useState("week");
+  const [cursor, setCursor] = useState(new Date());
+  const [events, setEvents] = useState(()=> seedEvents());
+  const [activeCalendars, setActiveCalendars] = useState({ "Kassandra Santana":true, "Birthdays":true, "Tasks":true });
+  const [otherCalendars, setOtherCalendars] = useState({ "Holidays in United States": true });
+  const [miniMonth, setMiniMonth] = useState(new Date());
+  const [modal, setModal] = useState(null);
+
+
+  const title = view==="month" ? fmtDateTitle(cursor) : view==="week" ? fmtWeekRange(cursor) : cursor.toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric', year:'numeric'});
+  const filteredEvents = events;
+
+
+  const onCreate = (partial)=>{ const e = { id:id(), color: colors[0], ...partial }; setEvents(prev=>[...prev, e]); };
+  const onUpdate = (idv, patch)=> setEvents(prev=> prev.map(e=> e.id===idv? {...e,...patch}:e));
+  const onDelete = (idv)=> setEvents(prev=> prev.filter(e=> e.id!==idv));
+
+
+  const goToday = ()=> setCursor(new Date());
+  const goPrev = ()=> setCursor(prev=> view==='month'? addDays(new Date(prev.getFullYear(), prev.getMonth(), 1), -1) : addDays(prev, view==='week'? -7 : -1));
+  const goNext = ()=> setCursor(prev=> view==='month'? addDays(new Date(prev.getFullYear(), prev.getMonth()+1, 1), 0) : addDays(prev, view==='week'? 7 : 1));
+
+
+  const downloadICS = (events)=>{
+    const ics = buildICS(events);
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'family-calendar.ics'; a.click(); URL.revokeObjectURL(url);
+  };
+
+
+  return (
+    <div className="grid grid-cols-12 gap-4 text-gray-200">
+      {/* Sidebar */}
+      <aside className="col-span-12 lg:col-span-3 xl:col-span-2 space-y-4">
+        <SidebarMiniCalendar value={miniMonth} setValue={setMiniMonth} onPick={(d)=> setCursor(d)} />
+        <SidebarCalendars label="My calendars" active={activeCalendars} setActive={setActiveCalendars} />
+        <SidebarCalendars label="Other calendars" active={otherCalendars} setActive={setOtherCalendars} />
+      </aside>
+
+
+      {/* Main */}
+      <main className="col-span-12 lg:col-span-9 xl:col-span-10">
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3">
+          <Toolbar
+            title={title}
+            view={view}
+            setView={setView}
+            onToday={goToday}
+            onPrev={goPrev}
+            onNext={goNext}
+            onAdd={()=> setModal({ mode:'create', event:null, anchorDate: new Date(cursor) })}
+            onExportICS={()=> downloadICS(filteredEvents)}
+          />
+          {/* Views omitted for brevity (MonthView, WeekView, DayView same as before) */}
+        </div>
+      </main>
+
+
+      {modal && (
+        <EventModal
+          mode={modal.mode}
+          event={modal.event}
+          anchorDate={modal.anchorDate}
+          defaultEnd={modal.defaultEnd}
+          onClose={()=> setModal(null)}
+          onCreate={onCreate}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      )}
+    </div>
+  );
+}
+
+
+// ---------- Sidebar: calendars list ----------
+function SidebarCalendars({ label, active, setActive }){
+  const items = Object.keys(active);
+  return (
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3">
+      <div className="text-sm font-medium mb-2">{label}</div>
+      <div className="space-y-2">
+        {items.map((k,i)=> (
+          <label key={k} className="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" checked={active[k]} onChange={()=> setActive(a=>({...a,[k]:!a[k]}))} className="accent-yellow-400"/>
+            <Circle className="h-3 w-3" style={{color: colors[i%colors.length]}}/>
+            <span>{k}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+
+Got it — we’ll add the two sections exactly like your screenshot:
+
+My calendars: kassandra santana, Birthdays, Tasks
+
+Other calendars: Holidays in United States
+
+and make the checkboxes actually filter what’s shown.
+
+My attempt to live-patch your canvas failed (regex didn’t match a couple lines), so here are copy-paste replacements you can drop into your existing Google-style Calendar (Frontend Only) file. They’re minimal and safe.
+
+1) Seed events carry a cal (calendar) tag
+
+Replace your current seedEvents with this:
+
+const seedEvents = ()=>{
+  const now = new Date();
+  const s1 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 0);
+  const e1 = addMinutes(s1,60);
+  return [
+    // Owner/admin calendar
+    { id:id(), cal:'kassandra santana', title:"Family Meeting", start:s1, end:e1, location:"Home", notes:"Discuss weekend plans", color:colors[0] },
+
+    // Birthdays calendar (recurs yearly)
+    { id:id(), cal:'Birthdays', title:"Mom Birthday", start:new Date(now.getFullYear(), now.getMonth(), now.getDate()+3, 9, 0), end:addMinutes(new Date(now.getFullYear(), now.getMonth(), now.getDate()+3, 10,0),60), allDay:true, color:colors[1], rrule:{ freq:'YEARLY', byMonth: now.getMonth()+1, byMonthDay: now.getDate()+3 } },
+
+    // Other calendars: US holiday (example)
+    { id:id(), cal:'Holidays in United States', title:"Labor Day", start:new Date(now.getFullYear(), 8, 1, 0, 0), end:new Date(now.getFullYear(), 8, 1, 23, 59), allDay:true, color:colors[3] },
+  ];
+};
+
+2) State for the two groups + filtering
+
+At the top of CalendarApp (where your state is defined), add/replace:
+
+export default function CalendarApp(){
+  const [view, setView] = useState("week");
+  const [cursor, setCursor] = useState(new Date());
+  const [events, setEvents] = useState(()=> seedEvents());
+
+  // NEW: two groups exactly like Google’s left rail
+  const [myCals, setMyCals] = useState({ 'kassandra santana': true, 'Birthdays': true, 'Tasks': true });
+  const [otherCals, setOtherCals] = useState({ 'Holidays in United States': true });
+
+  const [miniMonth, setMiniMonth] = useState(new Date());
+  const [modal, setModal] = useState(null);
+
+
+Then, replace your filteredEvents assignment with:
+
+const filteredEvents = events.filter(e => {
+  const active = { ...myCals, ...otherCals };
+  return active[e.cal] !== false;         // show only checked calendars
+});
+
+
+When creating events from the “Add Event” modal, default them to the main calendar:
+
+const onCreate = (partial)=>{
+  const e = { id:id(), color: colors[0], cal:'kassandra santana', ...partial };
+  setEvents(prev => [...prev, e]);
+};
+
+3) Sidebar: render “My calendars” & “Other calendars”
+
+Replace your SidebarCalendars component with this:
+
+function SidebarCalendars({ myCals, setMyCals, otherCals, setOtherCals }){
+  const myItems = Object.keys(myCals);
+  const otherItems = Object.keys(otherCals);
+
+  return (
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3 space-y-4">
+      {/* My calendars */}
+      <div>
+        <div className="text-sm font-medium mb-2">My calendars</div>
+        <div className="space-y-2">
+          {myItems.map((k,i)=> (
+            <label key={k} className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={myCals[k]}
+                onChange={()=> setMyCals(a=>({...a,[k]:!a[k]}))}
+                className="accent-yellow-400"
+              />
+              <Circle className="h-3 w-3" style={{color: colors[i%colors.length]}}/>
+              <span>{k}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Other calendars */}
+      <div>
+        <div className="text-sm font-medium mb-2">Other calendars</div>
+        <div className="space-y-2">
+          {otherItems.map((k,i)=> (
+            <label key={k} className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={otherCals[k]}
+                onChange={()=> setOtherCals(a=>({...a,[k]:!a[k]}))}
+                className="accent-yellow-400"
+              />
+              <Circle className="h-3 w-3" style={{color: colors[(i+myItems.length)%colors.length]}}/>
+              <span>{k}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+And update the call site in the left sidebar:
+
+<SidebarCalendars
+  myCals={myCals}
+  setMyCals={setMyCals}
+  otherCals={otherCals}
+  setOtherCals={setOtherCals}
+/>
+
+That’s it
+
+You’ll see the two sections with the same labeling and checkboxes.
+
+Toggling any box live-filters the events on the calendar.
+
+New events default to the kassandra santana calendar (you can later add a small select in the event modal to choose a calendar if you want).

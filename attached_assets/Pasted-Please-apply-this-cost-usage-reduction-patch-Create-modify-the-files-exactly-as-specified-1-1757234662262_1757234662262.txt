@@ -1,0 +1,134 @@
+Please apply this “cost + usage reduction” patch. Create/modify the files exactly as specified.
+
+1) Create src/lib/api.ts
+--------------------------------
+export async function api<T = any>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, init);
+  if (!res.ok) {
+    let msg = res.statusText;
+    try { msg = await res.text(); } catch {}
+    throw new Error(msg || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+2) Create src/lib/time.ts
+--------------------------------
+export function withTimeout<T>(p: Promise<T>, ms = 8000): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, rej) => setTimeout(() => rej(new Error("Timeout")), ms)),
+  ]);
+}
+
+3) Create src/hooks/useOnce.ts
+--------------------------------
+import { useRef, useEffect } from "react";
+export function useOnce(cb: () => void) {
+  const ran = useRef(false);
+  useEffect(() => {
+    if (!ran.current) { ran.current = true; cb(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+}
+
+4) Update ActionCenter component to load only once + safe reload
+(Usually at src/components/ActionCenter.tsx; if path differs, update the current file.)
+--------------------------------
+- Import: import { api } from "@/lib/api"; import { withTimeout } from "@/lib/time";
+- Ensure data loads once:
+  const load = useCallback(async () => {
+    try {
+      setError(null);
+      const data = await withTimeout(api("/api/chores/summary"), 8000);
+      setData(data);
+    } catch (e:any) {
+      setError(e.message || "Failed to load summary");
+    }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+- Add event-dedupe reload:
+  useEffect(() => {
+    let inFlight = false;
+    const h = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try { await load(); } finally { inFlight = false; }
+    };
+    window.addEventListener("actioncenter:reload", h);
+    return () => window.removeEventListener("actioncenter:reload", h);
+  }, [load]);
+
+5) Update Chores card to avoid duplicate fetches and emit reload events
+(Usually src/components/ChoresCard.tsx.)
+--------------------------------
+- Wrap its fetchers in useCallback and call them in a single useEffect([]).
+- On approve/unapprove/complete/reject success, dispatch:
+  window.dispatchEvent(new CustomEvent("chores:reload"));
+  window.dispatchEvent(new CustomEvent("actioncenter:reload"));
+  window.dispatchEvent(new CustomEvent("allowance:reload"));
+
+6) Update Allowance mini widget to listen for allowance:reload and load once
+(Usually src/components/AllowanceMini.tsx.)
+--------------------------------
+- Import api/withTimeout.
+- const load = useCallback(async ()=>{ setErr(null); setData(await withTimeout(api("/api/allowance/summary?memberId=me"), 8000)); },[]);
+- useEffect(()=>{ load(); }, [load]);
+- useEffect(()=>{ const h=()=>load(); window.addEventListener("allowance:reload", h); return ()=>window.removeEventListener("allowance:reload", h); }, [load]);
+
+7) Add nodemon ignore so server doesn’t restart on non-server changes
+Create nodemon.json at project root (or merge into existing).
+--------------------------------
+{
+  "ignore": ["**/*.md", "public/**", "uploads/**", "prisma/*.db", "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.svg"]
+}
+
+8) Reduce Prisma logging noise in dev
+(Edit src/prisma.ts or wherever PrismaClient is created.)
+--------------------------------
+// before: new PrismaClient({ log: ["query","info","warn","error"] })
+import { PrismaClient } from "@prisma/client";
+export const prisma = new PrismaClient({
+  log: process.env.NODE_ENV === "production" ? [] : ["warn", "error"]
+});
+
+9) Disable Vite file polling to cut rebuild churn
+(Edit vite.config.ts.)
+--------------------------------
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    watch: { usePolling: false },
+    hmr: { overlay: true }
+  }
+});
+
+10) Optional: add tiny in-memory cache for very stable lists (members/recipes)
+Create src/utils/cache.ts and use it in API routes if easy; skip if routes differ.
+--------------------------------
+const store = new Map<string, { at: number; data: any }>();
+export function memo<T>(key: string, ttlMs: number, fn: () => Promise<T>) {
+  return async () => {
+    const hit = store.get(key);
+    const now = Date.now();
+    if (hit && now - hit.at < ttlMs) return hit.data as T;
+    const data = await fn();
+    store.set(key, { at: now, data });
+    return data;
+  };
+}
+
+If you have /api/members and /api/recipes routes, wrap their loaders:
+const getMembers = memo("members:"+req.user.familyId, 60000, async ()=> prisma.familyMember.findMany({...}));
+res.json(await getMembers());
+
+11) Optional: in .env set EMAIL_MODE=log for dev so we log codes instead of sending actual SMTP emails.
+--------------------------------
+
+After applying, restart the dev server, refresh the dashboard, and confirm:
+- No polling/loops, widgets load once
+- Approve/unapprove triggers single reload via events
+- Server doesn’t restart on CSS/image changes

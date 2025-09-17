@@ -1,0 +1,209 @@
+/* HEADER GOLD THEMING - Clean and effective approach */
+
+/* Header hover: replace any white hover with a subtle gold tint */
+.sticky button:hover,
+.sticky [role="button"]:hover {
+  /* kill library rings/white pills */
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-bg-opacity: 0 !important;
+  box-shadow: none !important;
+
+  /* your brand gold hover */
+  background-color: rgba(212, 175, 55, 0.10) !important; /* soft gold wash */
+  color: #D4AF37 !important; /* gold text (for icon fonts, etc.) */
+}
+
+/* Make SVG icons turn gold on hover */
+.sticky button:hover svg,
+.sticky button:hover svg * {
+  stroke: #D4AF37 !important;
+  fill: #D4AF37 !important;
+}
+
+/* Extra precision (only needed if any are stubborn) */
+button[data-testid="button-logout"]:hover,
+.notification-center button:hover,
+button[aria-label="Help"]:hover,
+button[aria-label="Settings"]:hover,
+button[aria-label="Menu"]:hover,
+button[data-testid="button-quick-access"]:hover,
+button[data-testid="button-toggle-layout"]:hover {
+  background-color: rgba(212, 175, 55, 0.10) !important;
+  color: #D4AF37 !important;
+}
+
+/* Settings button specific - MAXIMUM SPECIFICITY override */
+button[data-testid="button-settings"],
+a[href="/family/settings"] button {
+  background-color: transparent !important;
+  --tw-bg-opacity: 0 !important;
+}
+
+button[data-testid="button-settings"]:hover,
+a[href="/family/settings"] button:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;
+  color: #D4AF37 !important;
+  --tw-bg-opacity: 1 !important;
+}
+
+button[data-testid="button-settings"]:hover svg,
+a[href="/family/settings"] button:hover svg {
+  stroke: #D4AF37 !important;
+  color: #D4AF37 !important;
+}
+
+/* NUCLEAR OPTION - Kill any white hover on Settings button */
+button[data-testid="button-settings"].hover\:bg-white\/10:hover,
+a[href="/family/settings"] > button.hover\:bg-white\/10:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;
+}
+
+/* Help button specific targeting */
+button:has(span):hover {
+  background-color: rgba(212, 175, 55, 0.10) !important;
+  color: #D4AF37 !important;
+}
+
+button:has(span):hover svg {
+  stroke: #D4AF37 !important;
+  color: #D4AF37 !important;
+}
+
+/* USER AVATAR CIRCLE KC - Gold styling */
+.bg-\[var\(--gold\)\] {
+  background-color: #D4AF37 !important;
+}
+
+/* ===== NUCLEAR OPTION: Kill ALL White Hovers and Replace with Gold ===== */
+
+/* Target any button with white hover classes - be extremely specific */
+button[class*="hover:bg-white"]:hover,
+[class*="hover:bg-white"]:hover,
+*[class*="hover:bg-white"]:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;
+  color: #D4AF37 !important;
+  --tw-bg-opacity: 1 !important;
+}
+
+/* Target buttons with white hover SVG icons */
+button[class*="hover:bg-white"]:hover svg,
+[class*="hover:bg-white"]:hover svg {
+  color: #D4AF37 !important;
+  stroke: #D4AF37 !important;
+}
+
+/* Override any button in header area with white hover */
+header button:hover,
+nav button:hover,
+.header-icon:hover,
+button.header-icon:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;
+  color: #D4AF37 !important;
+}
+
+header button:hover svg,
+nav button:hover svg,
+.header-icon:hover svg,
+button.header-icon:hover svg {
+  color: #D4AF37 !important;
+  stroke: #D4AF37 !important;
+}
+
+/* ===== BULLETPROOF Settings Button Fix - Maximum Specificity ===== */
+
+.sticky [data-testid="button-settings"] {
+  /* baseline */
+  background: transparent !important;
+  --tw-bg-opacity: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+}
+
+.sticky [data-testid="button-settings"]:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;  /* light gold */
+}
+
+.sticky [data-testid="button-settings"]:focus-visible {
+  background-color: rgba(212, 175, 55, 0.12) !important;  /* a hair stronger for a11y */
+}
+
+/* icon color (SVG) */
+.sticky [data-testid="button-settings"] svg {
+  color: rgb(255 255 255 / 0.70) !important; /* default */
+  stroke: currentColor !important;
+}
+.sticky [data-testid="button-settings"]:hover svg,
+.sticky [data-testid="button-settings"]:focus-visible svg {
+  color: #D4AF37 !important;                 /* brand gold on hover/focus */
+  stroke: #D4AF37 !important;
+}
+
+/* Safety: if any old white hover utility remains somewhere, neutralize it */
+.sticky [data-testid="button-settings"][class*="hover:bg-white"],
+.sticky [data-testid="button-settings"] *[class*="hover:bg-white"] {
+  --tw-bg-opacity: 0 !important;
+  background-color: transparent !important;
+}
+
+/* ===== PROFILE AVATAR CHIP FIX ===== */
+
+/* Keep the gold circle visible always - lock background color across all states */
+.profile-chip,
+.profile-chip:hover,
+.profile-chip:focus,
+.profile-chip[aria-expanded="true"],
+#header-profile-btn,
+#header-profile-btn:hover,
+#header-profile-btn:focus,
+#header-profile-btn[aria-expanded="true"],
+[data-testid="button-profile"],
+[data-testid="button-profile"]:hover,
+[data-testid="button-profile"]:focus,
+[data-testid="button-profile"][aria-expanded="true"] {
+  background-color: #D4AF37 !important;  /* Lock the gold background */
+  color: white !important;               /* White text on gold */
+  opacity: 1 !important;
+  visibility: visible !important;
+  position: relative !important;
+  z-index: 61 !important;               /* Above header hairline */
+}
+
+/* Common open-state hooks across libraries */
+#header-profile-btn[data-state="open"],
+[data-testid="button-profile"][data-state="open"],
+#header-profile-btn[data-headlessui-state~="open"],
+[data-testid="button-profile"][data-headlessui-state~="open"] {
+  background-color: #D4AF37 !important;  /* Keep gold even in open states */
+  color: white !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Kill any conflicting background utilities */
+#header-profile-btn,
+[data-testid="button-profile"],
+.profile-chip {
+  --tw-bg-opacity: 1 !important;
+  --tw-text-opacity: 1 !important;
+}
+
+/* Guard the text inside the chip */
+#header-profile-btn span,
+[data-testid="button-profile"] span,
+.profile-chip span {
+  color: white !important;  /* White text on gold background */
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Make sure the dropdown sits above the header line */
+.header-profile-menu {
+  position: absolute !important;
+  right: 0 !important;
+  margin-top: 0.5rem !important; /* mt-2 */
+  z-index: 70 !important;        /* above chip but below modals */
+}

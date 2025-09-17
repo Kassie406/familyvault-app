@@ -1,0 +1,113 @@
+drop-in upgrade that adds a spinner and a timeout fail-safe (12s) with a one-click Retry. It plugs right into your existing Share panel.
+
+1) State + helpers
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+
+const GEN_TIMEOUT_MS = 12_000;
+
+const [genLoading, setGenLoading] = useState(false);
+const [genTimedOut, setGenTimedOut] = useState(false);
+const abortRef = useRef<AbortController | null>(null);
+const timeoutRef = useRef<number | null>(null);
+
+function clearGenGuards() {
+  abortRef.current?.abort();
+  abortRef.current = null;
+  if (timeoutRef.current) {
+    clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+  }
+  setGenLoading(false);
+}
+
+/** Promise.race timeout helper */
+function withTimeout<T>(p: Promise<T>, ms: number) {
+  return Promise.race([
+    p,
+    new Promise<never>((_, rej) => {
+      timeoutRef.current = window.setTimeout(
+        () => rej(new Error("timeout")),
+        ms
+      );
+    }),
+  ]);
+}
+
+2) Generate / Regenerate handler with timeout + retry
+async function handleRegenerate() {
+  if (genLoading) return;
+  setGenTimedOut(false);
+  setGenLoading(true);
+
+  abortRef.current?.abort();
+  const ctrl = new AbortController();
+  abortRef.current = ctrl;
+
+  try {
+    const req = fetch(`/api/credentials/${credentialId}/shares/regenerate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ expiry, requireLogin }),
+      signal: ctrl.signal,
+    });
+
+    const res = await withTimeout(req, GEN_TIMEOUT_MS);
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const ct = res.headers.get("content-type") || "";
+    const data = ct.includes("application/json") ? await res.json() : { url: await res.text() };
+    if (!data?.url) throw new Error("No URL returned");
+
+    setShareUrl(data.url);
+    toast.success("Link generated");
+  } catch (e: any) {
+    if (e?.message === "timeout") {
+      setGenTimedOut(true);
+      toast.error("Generation timed out. Please retry.");
+    } else if (e?.name !== "AbortError") {
+      toast.error("Could not generate link");
+      console.error(e);
+    }
+  } finally {
+    clearGenGuards();
+  }
+}
+
+/** optional: clean up on unmount */
+useEffect(() => () => clearGenGuards(), []);
+
+3) Button UI (spinner + retry)
+<Button
+  onClick={handleRegenerate}
+  disabled={genLoading}
+  className="bg-[#D4AF37] text-black disabled:opacity-70"
+  aria-live="polite"
+  aria-busy={genLoading}
+>
+  {genLoading && (
+    <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" fill="none" opacity=".25"/>
+      <path d="M22 12a10 10 0 0 1-10 10" fill="none" stroke="currentColor" strokeWidth="3" />
+    </svg>
+  )}
+  {genLoading ? "Generating…" : genTimedOut ? "Retry" : (shareUrl ? "Regenerate" : "Generate")}
+</Button>
+
+4) Copy button guard (unchanged but explicit)
+<Button
+  onClick={() => shareUrl ? navigator.clipboard.writeText(shareUrl) : toast.message("Generate a link first")}
+  disabled={!shareUrl || genLoading}
+  className="bg-[#D4AF37] text-black disabled:opacity-50"
+>
+  Copy
+</Button>
+
+5) Accessibility & UX notes
+
+aria-busy + live region gives screen-reader feedback during generation.
+
+The spinner is pure SVG (no dependencies) and respects your gold/black palette.
+
+Timeout triggers a Retry label and a toast; pressing it re-calls handleRegenerate.

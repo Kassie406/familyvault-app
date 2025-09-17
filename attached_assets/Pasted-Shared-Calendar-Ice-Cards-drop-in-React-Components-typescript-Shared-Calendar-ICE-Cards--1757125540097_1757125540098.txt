@@ -1,0 +1,132 @@
+Shared Calendar & Ice Cards (drop‑in React Components)
+· typescript
+// Shared Calendar & ICE Cards — drop‑in components for your dashboard
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="h-5 w-5 text-red-400"/>
+            <CardTitle className="text-gray-200">In Case of Emergency (ICE)</CardTitle>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={download} variant="outline" className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"><Download className="h-4 w-4 mr-2"/>Download PDF</Button>
+            <Button onClick={()=>setEdit(v=>!v)} variant="secondary" className="bg-zinc-800 text-gray-200 hover:bg-zinc-700">{edit?"Cancel":"Edit"}</Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {!data && <div className="text-sm text-gray-500">Loading…</div>}
+        {data && !edit && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Section title="Emergency Contacts">
+              <Field label="Primary" value={data.contacts?.primary ?? "—"}/>
+              <Field label="Doctor" value={data.contacts?.doctor ?? "—"}/>
+              <Field label="Neighbor" value={data.contacts?.neighbor ?? "—"}/>
+            </Section>
+            <Section title="Medical Notes">
+              <Field label="Allergies" value={data.medical?.allergies ?? "—"}/>
+              <Field label="Conditions" value={data.medical?.conditions ?? "—"}/>
+              <Field label="Medications" value={data.medical?.medications ?? "—"}/>
+            </Section>
+            <Section title="Blood Types">
+              <Field label="Dad" value={data.blood?.dad ?? "—"}/>
+              <Field label="Mom" value={data.blood?.mom ?? "—"}/>
+              <Field label="Kids" value={data.blood?.kids ?? "—"}/>
+            </Section>
+          </div>
+        )}
+
+
+        {edit && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <EditSection title="Emergency Contacts">
+              <EditInput label="Primary" value={data.contacts?.primary} onChange={v=>setData((x:any)=>({...x, contacts:{...x.contacts, primary:v}}))}/>
+              <EditInput label="Doctor" value={data.contacts?.doctor} onChange={v=>setData((x:any)=>({...x, contacts:{...x.contacts, doctor:v}}))}/>
+              <EditInput label="Neighbor" value={data.contacts?.neighbor} onChange={v=>setData((x:any)=>({...x, contacts:{...x.contacts, neighbor:v}}))}/>
+            </EditSection>
+            <EditSection title="Medical Notes">
+              <EditInput label="Allergies" value={data.medical?.allergies} onChange={v=>setData((x:any)=>({...x, medical:{...x.medical, allergies:v}}))}/>
+              <EditInput label="Conditions" value={data.medical?.conditions} onChange={v=>setData((x:any)=>({...x, medical:{...x.medical, conditions:v}}))}/>
+              <EditInput label="Medications" value={data.medical?.medications} onChange={v=>setData((x:any)=>({...x, medical:{...x.medical, medications:v}}))}/>
+            </EditSection>
+            <EditSection title="Blood Types">
+              <EditInput label="Dad" value={data.blood?.dad} onChange={v=>setData((x:any)=>({...x, blood:{...x.blood, dad:v}}))}/>
+              <EditInput label="Mom" value={data.blood?.mom} onChange={v=>setData((x:any)=>({...x, blood:{...x.blood, mom:v}}))}/>
+              <EditInput label="Kids" value={data.blood?.kids} onChange={v=>setData((x:any)=>({...x, blood:{...x.blood, kids:v}}))}/>
+            </EditSection>
+            <div className="md:col-span-3 flex justify-end">
+              <Button disabled={busy} onClick={save} className="rounded-2xl border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10" variant="outline">{busy?"Saving…":"Save"}</Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+
+function Section({ title, children }:{ title:string; children: React.ReactNode }){
+  return (
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-3">
+      <div className="text-sm text-gray-300 font-medium mb-2">{title}</div>
+      <div className="space-y-1">{children}</div>
+    </div>
+  );
+}
+function Field({ label, value }:{ label:string; value:string }){
+  return (
+    <div className="text-sm">
+      <span className="text-gray-500 mr-2">{label}:</span>
+      <span className="text-gray-200">{value}</span>
+    </div>
+  );
+}
+function EditSection({ title, children }:{ title:string; children: React.ReactNode }){
+  return (
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-3">
+      <div className="text-sm text-gray-300 font-medium mb-2">{title}</div>
+      <div className="space-y-2">{children}</div>
+    </div>
+  );
+}
+function EditInput({ label, value, onChange }:{ label:string; value?:string; onChange:(v:string)=>void }){
+  return (
+    <div>
+      <Label>{label}</Label>
+      <Input value={value ?? ""} onChange={e=>onChange(e.target.value)} className="bg-zinc-900 border-zinc-700"/>
+    </div>
+  );
+}
+
+
+export default {};
+
+
+
+Added! I dropped two drop-in React components into the canvas:
+
+SharedCalendarCard — lightweight Month/Week views (no extra libs), Add Event modal, gold-accent UI.
+
+ICECard — structured emergency info (contacts, medical notes, blood types), Edit mode, and Download ICE PDF hook.
+
+How to use
+import { SharedCalendarCard, ICECard } from "./FamilyCards"; // name shown in canvas
+
+// In your dashboard grid
+<SharedCalendarCard />
+<ICECard />
+
+Endpoints these components call (simple stubs you can back with your API)
+
+Calendar:
+
+GET /api/calendar/events?from=ISO&to=ISO → { items: FamilyEvent[] }
+
+POST /api/calendar/events → create event { title, start, end?, location?, type? }
+
+ICE:
+
+GET /api/ice → returns stored ICE JSON
+
+PUT /api/ice → updates ICE JSON
+
+GET /api/ice/print → returns a PDF (the component triggers a download)
+
+They’re built with Tailwind + shadcn/ui + lucide-react, matching your dark + gold theme. If you want me to wire the minimal backend handlers for those endpoints next, I can sketch them quickly against your Express + Drizzle stack.

@@ -1,0 +1,471 @@
+here’s a lean, ready-to-plug backend package for your stack (Express + Drizzle + WebSockets), plus a Google sync worker skeleton. I’ve kept it focused: production-grade types, minimal routes, and clean separation.
+
+1) Drizzle schema (TypeScript)
+
+/server/db/schema/calendar.ts
+
+import { pgTable, uuid, text, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+
+export const calendars = pgTable("calendars", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  familyId: uuid("family_id").notNull(),
+  name: text("name").notNull(),
+  color: text("color").default("#facc15"),
+  isSystem: boolean("is_system").default(false), // e.g., Holidays
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const events = pgTable("events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  calendarId: uuid("calendar_id").notNull(),
+  creatorUserId: uuid("creator_user_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  location: text("location"),
+  startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+  endAt: timestamp("end_at", { withTimezone: true }).notNull(),
+  allDay: boolean("all_day").default(false).notNull(),
+  timezone: text("timezone").default("UTC").notNull(), // IANA TZ
+  recurrence: jsonb("recurrence"), // {freq, interval, byDay, byMonth, byMonthDay, bySetPos, count, until}
+  visibility: text("visibility").default("family"), // 'private' | 'family' | 'public'
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const eventAttendees = pgTable("event_attendees", {
+  eventId: uuid("event_id").notNull(),
+  userId: uuid("user_id").notNull(),
+  role: text("role").default("viewer"), // 'owner' | 'editor' | 'viewer'
+  rsvp: text("rsvp").default("none"),   // 'yes' | 'no' | 'maybe' | 'none'
+});
+
+export const reminders = pgTable("reminders", {
+  eventId: uuid("event_id").notNull(),
+  userId: uuid("user_id").notNull(),
+  minutesBefore: text("minutes_before").notNull(), // store as string/int
+  channel: text("channel").default("push"),        // 'push' | 'email' | 'sms'
+});
+
+export const snoozes = pgTable("snoozes", {
+  eventId: uuid("event_id").notNull(),
+  userId: uuid("user_id").notNull(),
+  snoozeUntil: timestamp("snooze_until", { withTimezone: true }).notNull(),
+});
+
+export const syncAccounts = pgTable("sync_accounts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  provider: text("provider").notNull(),         // 'google'
+  extCalendarId: text("ext_calendar_id"),       // provider calendar id
+  scopes: text("scopes"),
+  accessToken: text("access_token").notNull(),  // encrypt at rest
+  refreshToken: text("refresh_token"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const syncDelta = pgTable("sync_delta", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  provider: text("provider").notNull(),
+  lastCursor: text("last_cursor"),   // Google: syncToken / updatedMin
+  lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
+});
+
+Minimal SQL migration (if you prefer SQL files)
+
+001_calendar_core.sql
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TABLE calendars (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  family_id uuid NOT NULL,
+  name text NOT NULL,
+  color text DEFAULT '#facc15',
+  is_system boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE events (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  calendar_id uuid NOT NULL,
+  creator_user_id uuid NOT NULL,
+  title text NOT NULL,
+  description text,
+  location text,
+  start_at timestamptz NOT NULL,
+  end_at timestamptz NOT NULL,
+  all_day boolean DEFAULT false NOT NULL,
+  timezone text NOT NULL DEFAULT 'UTC',
+  recurrence jsonb,
+  visibility text DEFAULT 'family',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX events_calendar_start_idx ON events (calendar_id, start_at);
+CREATE INDEX events_start_idx ON events (start_at);
+
+CREATE TABLE event_attendees (
+  event_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  role text DEFAULT 'viewer',
+  rsvp text DEFAULT 'none'
+);
+
+CREATE TABLE reminders (
+  event_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  minutes_before int NOT NULL,
+  channel text DEFAULT 'push'
+);
+
+CREATE TABLE snoozes (
+  event_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  snooze_until timestamptz NOT NULL
+);
+
+CREATE TABLE sync_accounts (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  provider text NOT NULL,
+  ext_calendar_id text,
+  scopes text,
+  access_token text NOT NULL,
+  refresh_token text,
+  expires_at timestamptz,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE sync_delta (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  provider text NOT NULL,
+  last_cursor text,
+  last_sync_at timestamptz
+);
+
+2) Express routes (focused, production-ready stubs)
+
+/server/routes/calendar.ts
+
+import { Router } from "express";
+import { db } from "../db"; // your drizzle instance
+import { calendars, events, snoozes } from "../db/schema/calendar";
+import { and, eq, gte, lte } from "drizzle-orm";
+import { z } from "zod";
+
+export const calendarRouter = Router();
+
+// Auth middleware assumed: req.user = { id, familyId, role }
+const mustOwnFamily = (req, res, next) => {
+  if (!req.user?.familyId) return res.status(401).end();
+  next();
+};
+
+calendarRouter.get("/api/calendars", mustOwnFamily, async (req, res) => {
+  const rows = await db.select().from(calendars).where(eq(calendars.familyId, req.user.familyId));
+  res.json(rows);
+});
+
+calendarRouter.post("/api/calendars", mustOwnFamily, async (req, res) => {
+  // Owner/Admin-only check here
+  const schema = z.object({ name: z.string().min(1), color: z.string().optional(), isSystem: z.boolean().optional() });
+  const body = schema.parse(req.body);
+  const [row] = await db.insert(calendars).values({ familyId: req.user.familyId, ...body }).returning();
+  res.status(201).json(row);
+});
+
+// Events query: window + selected calendars
+calendarRouter.get("/api/events", mustOwnFamily, async (req, res) => {
+  const { from, to, calendarId } = req.query;
+  const where = [
+    eq(events.calendarId, calendarId as string),
+    gte(events.endAt, new Date(from as string)),
+    lte(events.startAt, new Date(to as string)),
+  ];
+  const rows = await db.select().from(events).where(and(...where));
+  // NOTE: expand recurrence here or in service layer; for lean demo, return raw
+  res.json(rows);
+});
+
+calendarRouter.post("/api/events", mustOwnFamily, async (req, res) => {
+  const schema = z.object({
+    calendarId: z.string().uuid(),
+    title: z.string().min(1),
+    description: z.string().optional(),
+    location: z.string().optional(),
+    startAt: z.string(), endAt: z.string(),
+    allDay: z.boolean().optional(),
+    timezone: z.string().default("UTC"),
+    recurrence: z.any().optional(),
+    visibility: z.enum(["private","family","public"]).optional(),
+    attendees: z.array(z.object({ userId: z.string().uuid(), role: z.string().optional() })).optional(),
+  });
+  const body = schema.parse(req.body);
+
+  const [row] = await db.insert(events).values({
+    ...body,
+    startAt: new Date(body.startAt),
+    endAt: new Date(body.endAt),
+    creatorUserId: req.user.id,
+  }).returning();
+
+  // TODO: insert attendees, reminders if provided
+
+  // WebSocket broadcast
+  req.app.get("ws")?.to(`family:${req.user.familyId}`).emit("calendar:event", { type: "created", event: row });
+
+  res.status(201).json(row);
+});
+
+calendarRouter.patch("/api/events/:id", mustOwnFamily, async (req, res) => {
+  const { id } = req.params;
+  const patch = req.body;
+  if (patch.startAt) patch.startAt = new Date(patch.startAt);
+  if (patch.endAt) patch.endAt = new Date(patch.endAt);
+
+  const [row] = await db.update(events).set({ ...patch }).where(eq(events.id, id)).returning();
+  req.app.get("ws")?.to(`family:${req.user.familyId}`).emit("calendar:event", { type: "updated", event: row });
+  res.json(row);
+});
+
+calendarRouter.delete("/api/events/:id", mustOwnFamily, async (req, res) => {
+  const { id } = req.params;
+  await db.delete(events).where(eq(events.id, id));
+  req.app.get("ws")?.to(`family:${req.user.familyId}`).emit("calendar:event", { type: "deleted", id });
+  res.status(204).end();
+});
+
+// Snooze & reset
+calendarRouter.post("/api/events/:id/snooze", mustOwnFamily, async (req, res) => {
+  const { id } = req.params;
+  const { until } = z.object({ until: z.string() }).parse(req.body);
+  await db.insert(snoozes).values({ eventId: id, userId: req.user.id, snoozeUntil: new Date(until) })
+    .onConflictDoUpdate({ target: [snoozes.eventId, snoozes.userId], set: { snoozeUntil: new Date(until) } });
+  res.status(204).end();
+});
+
+calendarRouter.delete("/api/events/:id/snooze", mustOwnFamily, async (req, res) => {
+  const { id } = req.params;
+  await db.delete(snoozes).where(and(eq(snoozes.eventId, id), eq(snoozes.userId, req.user.id)));
+  res.status(204).end();
+});
+
+Mount
+// server/index.ts
+import { calendarRouter } from "./routes/calendar";
+app.use(calendarRouter);
+
+// WebSocket room binding after auth
+io.on("connection", (socket) => {
+  const { familyId } = socket.request.user || {};
+  if (familyId) socket.join(`family:${familyId}`);
+});
+app.set("ws", io);
+
+3) ICS export route (server-side)
+
+/server/routes/ics.ts
+
+import { Router } from "express";
+import { db } from "../db";
+import { events } from "../db/schema/calendar";
+import { and, eq, gte, lte } from "drizzle-orm";
+
+export const icsRouter = Router();
+
+function esc(v=""){ return String(v).replace(/\n/g,"\\n").replace(/,/g,"\\,").replace(/;/g,"\\;"); }
+function dt(d: Date){ const p=(n:number)=>String(n).padStart(2,"0");
+  return `${d.getUTCFullYear()}${p(d.getUTCMonth()+1)}${p(d.getUTCDate())}T${p(d.getUTCHours())}${p(d.getUTCMinutes())}${p(d.getUTCSeconds())}Z`;
+}
+function rruleStr(rr?: any){
+  if(!rr) return "";
+  const parts = [`FREQ=${rr.freq||"DAILY"}`, `INTERVAL=${rr.interval||1}`];
+  if (rr.byDay?.length) parts.push(`BYDAY=${rr.byDay.join(",")}`);
+  if (rr.byMonth) parts.push(`BYMONTH=${rr.byMonth}`);
+  if (rr.byMonthDay) parts.push(`BYMONTHDAY=${rr.byMonthDay}`);
+  if (rr.bySetPos) parts.push(`BYSETPOS=${rr.bySetPos}`);
+  if (rr.count) parts.push(`COUNT=${rr.count}`);
+  if (rr.until) parts.push(`UNTIL=${dt(new Date(rr.until))}`);
+  return `RRULE:${parts.join(";")}`;
+}
+
+icsRouter.post("/api/export/ics", async (req, res) => {
+  const { calendarId, from, to } = req.query as any;
+  const rows = await db.select().from(events)
+    .where(and(eq(events.calendarId, calendarId), gte(events.endAt, new Date(from)), lte(events.startAt, new Date(to))));
+  const lines = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//FamilyVault//Calendar//EN"];
+  for(const ev of rows){
+    lines.push("BEGIN:VEVENT");
+    lines.push(`UID:${ev.id}@familyvault`);
+    lines.push(`DTSTAMP:${dt(new Date())}`);
+    lines.push(`DTSTART:${dt(new Date(ev.startAt))}`);
+    lines.push(`DTEND:${dt(new Date(ev.endAt))}`);
+    if (ev.title) lines.push(`SUMMARY:${esc(ev.title)}`);
+    if (ev.location) lines.push(`LOCATION:${esc(ev.location)}`);
+    if (ev.description) lines.push(`DESCRIPTION:${esc(ev.description)}`);
+    const rr = rruleStr(ev.recurrence);
+    if (rr) lines.push(rr);
+    lines.push("END:VEVENT");
+  }
+  lines.push("END:VCALENDAR");
+
+  res.setHeader("Content-Type","text/calendar; charset=utf-8");
+  res.setHeader("Content-Disposition","attachment; filename=calendar.ics");
+  res.send(lines.join("\r\n"));
+});
+
+
+Mount it:
+
+import { icsRouter } from "./routes/ics";
+app.use(icsRouter);
+
+4) Google sync — minimal worker skeleton
+
+Dependencies: googleapis
+
+/server/sync/google.ts
+
+import { google } from "googleapis";
+import { db } from "../db";
+import { events, syncAccounts, syncDelta } from "../db/schema/calendar";
+import { eq } from "drizzle-orm";
+
+const SCOPES = ["https://www.googleapis.com/auth/calendar"];
+const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET, process.env.GOOGLE_REDIRECT_URL);
+
+export function authUrl() {
+  return oauth2Client.generateAuthUrl({ access_type: "offline", scope: SCOPES, prompt: "consent" });
+}
+
+export async function exchangeCode(userId: string, code: string) {
+  const { tokens } = await oauth2Client.getToken(code);
+  // TODO encrypt tokens
+  await db.insert(syncAccounts).values({
+    userId, provider:"google",
+    accessToken: tokens.access_token!, refreshToken: tokens.refresh_token || null,
+    expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+    scopes: SCOPES.join(" "),
+  });
+}
+
+function clientFromTokens(tokens: { accessToken: string; refreshToken?: string | null }) {
+  const c = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+  c.setCredentials({ access_token: tokens.accessToken, refresh_token: tokens.refreshToken || undefined });
+  return google.calendar({ version: "v3", auth: c });
+}
+
+// One-way export: our -> Google
+export async function exportChangedEvents(userId: string, calendarId: string, providerCalendarId: string) {
+  const [acct] = await db.select().from(syncAccounts).where(eq(syncAccounts.userId, userId));
+  if (!acct) return;
+
+  const gcal = clientFromTokens({ accessToken: acct.accessToken, refreshToken: acct.refreshToken });
+  // TODO: keep a mapping table events<->googleId (not shown here for brevity)
+
+  // Example: upsert a single event
+  // await gcal.events.insert({ calendarId: providerCalendarId, requestBody: { summary: "...", start: { dateTime: ... }, end: { dateTime: ... } }});
+}
+
+// Two-way pull: Google -> our
+export async function pullDelta(userId: string, providerCalendarId: string) {
+  const [acct] = await db.select().from(syncAccounts).where(eq(syncAccounts.userId, userId));
+  const [delta] = await db.select().from(syncDelta).where(eq(syncDelta.userId, userId));
+
+  const gcal = clientFromTokens({ accessToken: acct.accessToken, refreshToken: acct.refreshToken });
+
+  const params: any = { calendarId: providerCalendarId, showDeleted: true, singleEvents: false, maxResults: 50 };
+  if (delta?.lastCursor) params.syncToken = delta.lastCursor; else params.timeMin = new Date(Date.now() - 30*24*3600e3).toISOString();
+
+  const resp = await gcal.events.list(params);
+  for (const item of resp.data.items || []) {
+    // TODO: map item <-> local event; upsert by id/extendedProperties
+  }
+  // Save new cursor
+  const newToken = resp.data.nextSyncToken;
+  if (newToken) {
+    if (delta) {
+      await db.update(syncDelta).set({ lastCursor: newToken, lastSyncAt: new Date() }).where(eq(syncDelta.userId, userId));
+    } else {
+      await db.insert(syncDelta).values({ userId, provider: "google", lastCursor: newToken, lastSyncAt: new Date() });
+    }
+  }
+}
+
+
+Auth routes (very small):
+/server/routes/google-sync.ts
+
+import { Router } from "express";
+import { authUrl, exchangeCode, exportChangedEvents, pullDelta } from "../sync/google";
+
+export const googleSyncRouter = Router();
+
+googleSyncRouter.get("/api/sync/google/auth-url", (req, res) => {
+  res.json({ url: authUrl() });
+});
+
+googleSyncRouter.get("/api/sync/google/callback", async (req, res) => {
+  // req.user.id assumed from session
+  await exchangeCode(req.user.id, String(req.query.code));
+  res.redirect("/settings?linked=google");
+});
+
+googleSyncRouter.post("/api/sync/google/sync-now", async (req, res) => {
+  const { providerCalendarId, calendarId } = req.body;
+  await exportChangedEvents(req.user.id, calendarId, providerCalendarId);
+  await pullDelta(req.user.id, providerCalendarId);
+  res.status(204).end();
+});
+
+
+Mount:
+
+import { googleSyncRouter } from "./routes/google-sync";
+app.use(googleSyncRouter);
+
+5) Real-time (WebSockets)
+
+Already shown: broadcast on create/update/delete.
+
+Client listens on calendar:{familyId} and merges updates into local state.
+
+6) Reminders worker (BullMQ sketch)
+// /server/workers/reminders.ts
+import { Queue, Worker } from "bullmq";
+import { db } from "../db";
+import { reminders, events } from "../db/schema/calendar";
+import { and, eq, lt } from "drizzle-orm";
+
+export const reminderQueue = new Queue("reminders");
+
+export const reminderWorker = new Worker("reminders", async job => {
+  const now = new Date();
+  // find events with reminders that should fire now (run per minute)
+  // (implement a query joining reminders+events; send push/email/sms)
+});
+
+// scheduler (every minute)
+setInterval(async () => {
+  await reminderQueue.add("tick", {}, { removeOnComplete: true, removeOnFail: true });
+}, 60_000);
+
+What you need to do next (short)
+
+Apply the migration (TS or SQL) and restart.
+
+Mount calendarRouter, icsRouter, googleSyncRouter.
+
+Set up io (WebSockets) and join users to family:{familyId}.
+
+Add the client fetch for /api/events + wire WS updates.
+
+(Optional now / later) Fill in the Google mapping table and upsert logic in the worker.

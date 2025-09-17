@@ -1,0 +1,114 @@
+1) Smoke test (no UI)
+cURL (replace values)
+# 1) presign
+curl -sS -X POST $API/storage/presign \
+  -H 'content-type: application/json' --cookie "$COOKIE" \
+  -d '{"fileName":"diag.txt","contentType":"text/plain","type":"document","familyId":"family-1"}' | tee /tmp/p.json
+
+# 2) put to S3
+curl -sS -X PUT "$(jq -r .uploadUrl </tmp/p.json)" \
+  -H 'content-type: text/plain' --data-binary "diag $(date +%s)"
+
+# 3) register inbox item
+curl -sS -X POST $API/inbox \
+  -H 'content-type: application/json' --cookie "$COOKIE" \
+  -d '{"fileId":"'$(jq -r .fileId </tmp/p.json)'","familyId":"family-1","title":"diag.txt"}' | tee /tmp/i.json
+
+# 4) start analysis
+curl -sS -X POST $API/analysis/start \
+  -H 'content-type: application/json' --cookie "$COOKIE" \
+  -d '{"inboxItemId":"'$(jq -r .inboxItemId </tmp/i.json)'"}' | tee /tmp/a.json
+
+# 5) poll
+JOB=$(jq -r .jobId </tmp/a.json)
+while :; do
+  curl -sS "$API/analysis/status?jobId=$JOB" --cookie "$COOKIE" | tee /tmp/s.json
+  jq -e 'select(.status=="completed" or .status=="failed")' /tmp/s.json && break
+  sleep 1
+done
+
+
+Pass criteria: status: "completed" and suggestions JSON present.
+
+2) One-click DevTools probe (paste in Console)
+(async()=>{const API='/api',F='family-1';
+const ok=async r=>{if(r.ok)return r;throw new Error(`[${r.status}] ${r.url} :: ${await r.text()}`)};
+const P=(p,b)=>fetch(API+p,{method:'POST',credentials:'include',headers:{'content-type':'application/json'},body:JSON.stringify(b)}).then(ok);
+const pr=await P('/storage/presign',{fileName:'diag.txt',contentType:'text/plain',type:'document',familyId:F}).then(r=>r.json());
+await fetch(pr.uploadUrl,{method:'PUT',headers:{'content-type':'text/plain'},body:new Blob([`diag ${Date.now()}`])}).then(ok);
+const ib=await P('/inbox',{fileId:pr.fileId,familyId:F,title:'diag.txt'}).then(r=>r.json());
+const st=await P('/analysis/start',{inboxItemId:ib.inboxItemId}).then(r=>r.json());
+for(let i=0;i<30;i++){const s=await fetch(`${API}/analysis/status?jobId=${encodeURIComponent(st.jobId)}`,{credentials:'include'}).then(ok).then(r=>r.json());console.log('status',s);if(s.status==='completed')return console.log('✅',s.suggestions);if(s.status==='failed')throw new Error(s.error||'failed');await new Promise(r=>setTimeout(r,1000))}throw new Error('timeout')})().catch(e=>console.error('❌',e.message));
+
+3) Expected output shape (UI can rely on this)
+{
+  "status": "completed",
+  "suggestions": {
+    "documentType": "Invoice | Driver License | Passport | Insurance Card | Bank Statement | …",
+    "fullName": "…",
+    "idNumber": "…",
+    "accountNumber": "…",
+    "policyNumber": "…",
+    "issuer": "…",
+    "address": "…",
+    "date": "YYYY-MM-DD",
+    "expiration": "YYYY-MM-DD",
+    "totalAmount": "123.45",
+    "items": [{"description":"…","qty":"…","amount":"…"}],
+    "confidenceNotes": "…"
+  },
+  "mini": {
+    "queries": { "document_type": "…", "full_name": "…" },
+    "kvs": [ { "key": "…", "value": "…" } ],
+    "tableRows": [["Header1","Header2"],["Row1Col1","Row1Col2"]]
+  }
+}
+
+4) Banner states wiring
+
+analyzing → show progress labels: Textract → Fusion → Finalizing
+
+completed → render suggestions (pretty-print fields; add “View raw details”).
+
+error → show server error string. Common ones you might see:
+
+unsupported_file_type (guarded before running)
+
+textract_unavailable (AWS outage) → retry/backoff
+
+vision_disabled (no OPENAI_API_KEY) → still returns Textract-only fields
+
+5) Tuning QUERIES (quick wins)
+
+Start with what you have and add as needed:
+
+“What is the document type?”
+
+“What is the full name?”
+
+“What is the ID or account number?”
+
+“What is the issuer/organization?”
+
+“What is the policy/certificate number?”
+
+“What is the statement or issue date and expiration?”
+
+“What is the total amount due / total?”
+
+Tip: keep aliases snake_case; keep <10 to control cost/latency.
+
+6) Cost/latency controls (already supported—verify)
+
+Page caps: e.g., preview 1 page, full up to N (10). Return needsUpgrade: true if exceeded.
+
+Region: use the nearest AWS region you configured; keep S3/Textract together.
+
+Vision optional: if OPENAI_API_KEY missing, skip fusion and return Textract-only result (you added this fallback).
+
+7) Troubleshooting quick-table
+Symptom	Likely cause	Fix
+AnalyzeID InvalidParameter	Analyzer routed to ID for a screenshot	Your universal path uses AnalyzeDocument/Queries → ✅
+415 unsupported_file_type	HEIC/WEBP, etc.	Convert client-side to JPEG/PDF or allow HEIC in guards
+status: failed, error: textract_unavailable	AWS outage/creds	Retry with backoff; show banner hint
+completed but sparse fields	Queries not tailored	Add one or two doc-type-specific queries

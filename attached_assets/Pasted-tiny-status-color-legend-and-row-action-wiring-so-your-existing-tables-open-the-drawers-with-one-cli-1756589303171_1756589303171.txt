@@ -1,0 +1,185 @@
+tiny status-color legend and row-action wiring so your existing tables open the drawers with one click.
+
+1) Status color legend (drop near your GDPR pages)
+HTML
+<div class="gdpr-legend">
+  <span class="dot ok"></span> Completed
+  <span class="dot warn"></span> Open / In progress
+  <span class="dot due"></span> Due ≤ 7 days
+  <span class="dot bad"></span> Rejected / Overdue
+</div>
+
+CSS (scoped; matches your console palette)
+.gdpr-legend{
+  display:flex; gap:16px; align-items:center;
+  padding:8px 12px; border:1px solid #E5EAF2; border-radius:12px; background:#fff; color:#475467;
+  width:max-content; margin:8px 0;
+}
+.gdpr-legend .dot{display:inline-block;width:10px;height:10px;border-radius:999px;margin-right:6px}
+.gdpr-legend .ok{ background:#12B76A }         /* green */
+.gdpr-legend .warn{ background:#FDB022 }       /* amber */
+.gdpr-legend .due{ background:#F97066 }        /* orange/red */
+.gdpr-legend .bad{ background:#D92D20 }        /* red */
+
+
+Tip: place the legend above your DSAR table header.
+
+2) Add row actions to open the drawers
+
+We’ll enhance your existing tables:
+
+Consent table (#consent-table) — adds a compact “History” button to each row (per user).
+
+DSAR table (#dsar-table) — turns the ID into a clickable link and adds an “Open” action.
+
+These rely on the drawer functions you already included earlier:
+openConsentHistory(userId) and openDsarDetails(dsarId)
+
+HTML (action column headers)
+
+Make sure your table headers include an “Actions” column:
+
+<!-- CONSENT TABLE -->
+<table class="table" id="consent-table">
+  <thead>
+    <tr>
+      <th>User</th><th>Purpose</th><th>Status</th><th>Method</th><th>At</th><th>Source</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody><!-- rows via JS/server --></tbody>
+</table>
+
+<!-- DSAR TABLE -->
+<table class="table" id="dsar-table">
+  <thead>
+    <tr>
+      <th>ID</th><th>Type</th><th>Subject</th><th>Status</th><th>Opened</th><th>Due</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody><!-- rows via JS/server --></tbody>
+</table>
+
+CSS for tiny action buttons
+.tbl-action{
+  border:1px solid #CBD2E0;background:#fff;color:#374151;border-radius:8px;
+  padding:6px 10px;font-size:12px;cursor:pointer
+}
+.tbl-action:hover{background:#F6F8FB}
+.tbl-link{color:#1F6FEB;text-decoration:none}
+.tbl-link:hover{text-decoration:underline}
+
+JS to wire actions (non-destructive, adds if missing)
+<script>
+(function(){
+
+  // Helper to append an "Actions" cell if your server doesn't render one
+  function ensureActionsCell(tr){
+    let td = tr.querySelector('td[data-actions]');
+    if (!td) {
+      td = document.createElement('td');
+      td.setAttribute('data-actions','');
+      tr.appendChild(td);
+    }
+    return td;
+  }
+
+  // CONSENT: add History action per unique user in the row
+  // Assumes first two columns are "User" and "Purpose" (adapt if needed)
+  function enhanceConsentTable(){
+    const tbl = document.getElementById('consent-table');
+    if (!tbl) return;
+
+    Array.from(tbl.tBodies[0]?.rows || []).forEach(tr=>{
+      const userCell = tr.cells[0];
+      if (!userCell) return;
+      const userId = (userCell.dataset.userId || userCell.textContent || '').trim();
+      if (!userId) return;
+
+      const actions = ensureActionsCell(tr);
+      if (actions.dataset.enhanced) return; // idempotent
+
+      const btn = document.createElement('button');
+      btn.className = 'tbl-action';
+      btn.textContent = 'History';
+      btn.title = `View consent history for ${userId}`;
+      btn.addEventListener('click', ()=> openConsentHistory(userId));
+
+      actions.appendChild(btn);
+      actions.dataset.enhanced = '1';
+    });
+  }
+
+  // DSAR: make ID clickable + add "Open" button
+  function enhanceDsarTable(){
+    const tbl = document.getElementById('dsar-table');
+    if (!tbl) return;
+
+    Array.from(tbl.tBodies[0]?.rows || []).forEach(tr=>{
+      const idCell = tr.cells[0];
+      if (!idCell) return;
+      const dsarId = (idCell.dataset.id || idCell.textContent || '').trim();
+      if (!dsarId) return;
+
+      // Make ID a link (once)
+      if (!idCell.querySelector('a')) {
+        const a = document.createElement('a');
+        a.href = 'javascript:void(0)';
+        a.className = 'tbl-link';
+        a.textContent = dsarId;
+        a.addEventListener('click', ()=> openDsarDetails(dsarId));
+        idCell.textContent = '';
+        idCell.appendChild(a);
+      }
+
+      const actions = ensureActionsCell(tr);
+      if (actions.dataset.enhanced) return;
+
+      const btn = document.createElement('button');
+      btn.className = 'tbl-action';
+      btn.textContent = 'Open';
+      btn.title = `Open DSAR ${dsarId}`;
+      btn.addEventListener('click', ()=> openDsarDetails(dsarId));
+
+      actions.appendChild(btn);
+      actions.dataset.enhanced = '1';
+    });
+  }
+
+  // Run once on load
+  enhanceConsentTable();
+  enhanceDsarTable();
+
+  // If you re-render via AJAX, call these again afterward.
+  window.refreshGdprTableActions = function(){
+    enhanceConsentTable();
+    enhanceDsarTable();
+  };
+
+})();
+</script>
+
+3) Optional: status pill helper for DSAR rows
+
+If your DSAR table is server-rendered and you want consistent colors without “pitch-black” hover, add:
+
+.status-pill{
+  padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;display:inline-block
+}
+.status-open, .status-id_pending, .status-in_progress, .status-awaiting_subject { background:#FFF4E5; color:#B54708 } /* amber */
+.status-completed{ background:#E8F6EE; color:#067647 }   /* green */
+.status-rejected{ background:#FEECEC; color:#B42318 }   /* red */
+
+
+Server output example:
+
+<td><span class="status-pill status-in_progress">in_progress</span></td>
+
+4) Where to place things
+
+Put the legend above your DSAR table.
+
+Include the CSS once (shared with previous drawers).
+
+The JS wiring can live at the end of the page; call refreshGdprTableActions() anytime you replace table rows via AJAX.

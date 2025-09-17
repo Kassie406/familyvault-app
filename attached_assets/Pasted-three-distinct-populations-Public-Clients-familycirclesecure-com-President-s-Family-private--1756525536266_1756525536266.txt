@@ -1,0 +1,118 @@
+three distinct populations:
+
+Public Clients → familycirclesecure.com
+
+President’s Family (private) → portal.familycirclesecure.com
+
+Employees/Agents → hub.familycirclesecure.com
+
+Here’s the clean, secure way to model and implement this.
+
+Role/Access Model (RBAC + tenancy)
+
+Tenants (audiences): PUBLIC, FAMILY, STAFF
+
+Roles (per-tenant):
+
+PUBLIC: client, client_plus (paid), support_view
+
+FAMILY: family_member, family_admin
+
+STAFF: agent, manager, admin, security_officer
+
+Permissions (examples):
+view_content, manage_subscription, view_case, edit_case, view_audit, manage_users, rotate_api_keys, export_data, see_phi (if applicable)
+
+Minimal schema (works with SQL/Prisma/etc.)
+User(id, email, name, status, mfa_enabled, last_login_at, source_subdomain) -- source_subdomain = www|portal|hub
+Tenant(id, key UNIQUE) -- PUBLIC|FAMILY|STAFF
+Role(id, tenant_id, name) -- e.g., STAFF/admin
+UserTenantRole(user_id, tenant_id, role_id) -- many-to-many
+Permission(id, code)
+RolePermission(role_id, permission_id)
+
+
+Keep subdomain source AND tenant membership. Even if a user belongs to two audiences (e.g., a family member who is also staff), RBAC still resolves cleanly.
+
+Auth & routing
+
+Separate entry points per subdomain, single IdP (one auth backend) with audience claim in the JWT:
+
+aud (tenant): PUBLIC|FAMILY|STAFF
+
+roles: array of role codes
+
+subdomain: enforce subdomain–audience match at middleware
+
+Signup modes:
+
+PUBLIC (www): self-signup (email + 2FA required before activation).
+
+FAMILY (portal): invite-only, enforce allowlist domain / explicit invite token.
+
+STAFF (hub): HR-provisioned only, IP allowlist optional, hardware key (WebAuthn) required for admin/security_officer.
+
+Security baselines
+
+2FA mandatory for FAMILY & STAFF; recommended for PUBLIC.
+
+IP allowlist on hub for admin/security_officer.
+
+Session lifetime: PUBLIC 12h, FAMILY 8h, STAFF 4h (with re-auth for high-risk actions).
+
+Key rotation reminder for STAFF every 90 days; surface in your Security Center.
+
+Scoped API keys by tenant; keys can’t cross tenants.
+
+Admin UI (your “Users” page)
+
+Add top filters and badges so it’s effortless to manage all three groups:
+
+Filters: Tenant (Public/Family/Staff), Role, Status, Subdomain, MFA
+
+Badges:
+
+Tenant chip: PUBLIC (blue), FAMILY (purple), STAFF (green)
+
+Role chip: small pill next to name (e.g., admin, agent)
+
+Columns: Name | Email | Tenant | Role(s) | Status | MFA | Last Login | Actions
+
+Bulk actions respect tenant boundaries (no cross-tenant mass edits).
+
+Empty/Invite flows
+
+www Users: “Invite client” (optional) or public signup.
+
+portal Users: “Invite family member” (email, relationship, role).
+
+hub Users: “Provision staff” (role, department, initial IP policy, force-MFA flag).
+
+Routing guard (pseudo-middleware)
+if (req.subdomain === 'hub' && token.aud !== 'STAFF') deny(403);
+if (req.subdomain === 'portal' && token.aud !== 'FAMILY') deny(403);
+if (req.subdomain === 'www' && token.aud !== 'PUBLIC') deny(403); // or allow mixed read-only
+
+Legal/Policy (lawyer hat on)
+
+Separate Terms & Privacy (or one master with audience-specific annexes):
+
+PUBLIC: consumer terms, cancellations, refunds, arbitration/venue.
+
+FAMILY: private access policy, confidentiality.
+
+STAFF: employee/contractor acceptable-use, confidentiality, BYOD/MFA, monitoring notice.
+
+Data maps per tenant (who sees what). Document lawful basis for processing and retention periods.
+
+Access logs + tamper-evident audit enabled by default for FAMILY/STAFF.
+
+Quick UI tweaks you can ship now
+
+Add a Tenant dropdown and chips on the Users table.
+
+Color the left sidebar section headers or group items under three headings:
+
+“Clients” (Public), “Family Portal,” “Staff Hub” (only show sections the current user is authorized to see).
+
+On the Invite User modal: first field = Audience (Public/Family/Staff) → then Role list filtered accordingly.

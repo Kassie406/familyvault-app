@@ -1,0 +1,122 @@
+Perfect. Here’s a tight, copy-paste deployment script you (or ops) can run to get the new share-links live on portal.familycirclesecure.com. It assumes Ubuntu/Debian + Nginx + PM2 and your codebase already includes the new Express endpoints.
+
+0) One-time prerequisites
+sudo apt-get update -y
+sudo apt-get install -y nginx git curl build-essential
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt-get install -y nodejs
+sudo npm i -g pm2
+
+1) Deploy/update the app
+# put code under /srv/familycircle
+sudo mkdir -p /srv/familycircle && sudo chown -R $USER /srv/familycircle
+cd /srv/familycircle
+
+# initial clone or pull latest
+if [ -d .git ]; then git pull; else git clone <YOUR_REPO_URL> .; fi
+
+# env file
+cat > .env << 'EOF'
+NODE_ENV=production
+APP_URL=https://portal.familycirclesecure.com
+DATABASE_URL=postgres://<neon_user>:<password>@<neon_host>/<db>
+DEV_BYPASS_AUTH=false
+# CORS_ORIGIN can be omitted if FE+API are same origin:
+# CORS_ORIGIN=https://portal.familycirclesecure.com
+EOF
+
+# install deps & run DB migration against *production* DB
+npm ci
+npm run db:push
+
+# build FE and start API
+npm run build
+# use your compiled entry (adjust if your server file path differs)
+pm2 start "node server/index.js" --name familycircle-api || pm2 restart familycircle-api
+pm2 save
+
+2) Nginx (API before SPA fallback)
+
+/etc/nginx/sites-available/familycircle:
+
+server {
+  listen 80;
+  listen [::]:80;
+  server_name portal.familycirclesecure.com;
+  return 301 https://$host$request_uri;
+}
+
+server {
+  listen 443 ssl http2;
+  listen [::]:443 ssl http2;
+  server_name portal.familycirclesecure.com;
+
+  ssl_certificate     /etc/letsencrypt/live/portal.familycirclesecure.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/portal.familycirclesecure.com/privkey.pem;
+  add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+
+  # --- API first ---
+  location /api/ {
+    proxy_pass http://127.0.0.1:5000;  # match your Express port
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Cookie $http_cookie;
+  }
+
+  # --- Static app (Vite build output) ---
+  root /srv/familycircle/dist;
+  index index.html;
+
+  # SPA fallback
+  location / {
+    try_files $uri /index.html;
+  }
+}
+
+
+Enable & reload:
+
+sudo ln -sf /etc/nginx/sites-available/familycircle /etc/nginx/sites-enabled/familycircle
+sudo nginx -t && sudo systemctl reload nginx
+# (if needed) sudo certbot --nginx -d portal.familycirclesecure.com
+
+3) Smoke tests (prod)
+# health should return {"ok":true}
+curl -s https://portal.familycirclesecure.com/api/healthz
+
+# In a logged-in browser session:
+# Open DevTools → Network → on a credential click "Click Regenerate"
+# Expect: POST /api/credentials/:id/shares/regenerate → 200 JSON { url, token }
+
+
+Optional curls with a session cookie:
+
+# regenerate (requires auth)
+curl -i -X POST https://portal.familycirclesecure.com/api/credentials/c-garage/shares/regenerate \
+  -H 'content-type: application/json' \
+  --cookie "session=<YOUR_SESSION_COOKIE>" \
+  -d '{"expiry":"7d","requireLogin":true}'
+
+# viewer (public)
+curl -i https://portal.familycirclesecure.com/api/share/<TOKEN>
+
+# reveal (requires auth if 'require login' is on)
+curl -i -X POST https://portal.familycirclesecure.com/api/share/<TOKEN>/reveal \
+  --cookie "session=<YOUR_SESSION_COOKIE>"
+
+4) If it still “times out”, check these quickly
+
+/api/healthz returns HTML → Nginx ordering wrong; SPA is intercepting. Ensure /api/* block is above SPA fallback.
+
+401 on regenerate → session cookie not forwarded. Verify cookie attributes (Secure; SameSite=Lax) and proxy forwards Cookie header.
+
+5xx on regenerate → check pm2 logs familycircle-api for DB/ENV errors.
+
+HTML on regenerate → FE might be calling http://localhost:5000. Ensure FE uses relative /api/... paths in production.
+
+5) Rollback (safe)
+pm2 list
+pm2 restart familycircle-api --json   # quick restart
+# or switch back to previous release directory if you keep versions

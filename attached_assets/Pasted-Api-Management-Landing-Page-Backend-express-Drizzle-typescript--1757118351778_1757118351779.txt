@@ -1,0 +1,99 @@
+Api Management Landing Page + Backend (express + Drizzle)
+· typescript
+// =============================================
+    setBusy(true);
+    const r = await fetch("/api/updates", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ type, title, body, severity, dueAt, actionUrl }) });
+    setBusy(false);
+    if(!r.ok) return toast.error("Failed to post update");
+    toast.success("Update posted");
+    setOpen(false);
+    setTitle(""); setBody(""); setActionUrl(""); setDueAt(undefined); setSeverity("info"); setType("custom");
+    afterCreate?.();
+  };
+
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        {trigger ?? <Button className="rounded-2xl border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10">Compose Update</Button>}
+      </DialogTrigger>
+      <DialogContent className="bg-zinc-900 border border-zinc-800">
+        <DialogHeader>
+          <DialogTitle className="text-yellow-400">Compose Family Update</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Type</Label>
+              <Select value={type} onValueChange={setType}>
+                <SelectTrigger className="bg-zinc-900 border-zinc-800"><SelectValue/></SelectTrigger>
+                <SelectContent className="bg-zinc-900 border-zinc-800">
+                  {["custom","meeting","insurance_expiry","doc_expiry","birthday","security"].map(t=> <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Severity</Label>
+              <Select value={severity} onValueChange={setSeverity}>
+                <SelectTrigger className="bg-zinc-900 border-zinc-800"><SelectValue/></SelectTrigger>
+                <SelectContent className="bg-zinc-900 border-zinc-800">
+                  {(["info","warning","urgent"] as const).map(s=> <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label>Title</Label>
+            <Input value={title} onChange={(e)=>setTitle(e.target.value)} placeholder="Insurance renewal due"/>
+          </div>
+          <div>
+            <Label>Body (optional)</Label>
+            <Textarea value={body} onChange={(e)=>setBody(e.target.value)} placeholder="Click to review and renew."/>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Due At (optional)</Label>
+              <Input type="datetime-local" value={dueAt ?? ""} onChange={(e)=>setDueAt(e.target.value || undefined)} />
+            </div>
+            <div>
+              <Label>Action URL (optional)</Label>
+              <Input value={actionUrl} onChange={(e)=>setActionUrl(e.target.value)} placeholder="/family/security"/>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button disabled={busy} onClick={submit} className="rounded-2xl border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10">{busy?"Posting…":"Post Update"}</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+// =============================================
+// FRONTEND: Add Compose button to FamilyUpdates panel (admins only)
+// File: client/src/components/family/FamilyUpdates.tsx (snippet to place above the list)
+// import ComposeUpdateModal from "./ComposeUpdateModal";
+// const isAdmin = true; // TODO: derive from Roles & Access
+// {isAdmin && (
+//   <div className="flex justify-end mb-2">
+//     <ComposeUpdateModal afterCreate={load} />
+//   </div>
+// )}
+
+
+// =============================================
+// PERMISSIONS NOTE
+// Gate POST /api/updates to Owner/Admin using your existing auth middleware.
+
+
+
+
+
+Done. I added an Admin “Compose Update” modal and wiring:
+
+New component: ComposeUpdateModal with fields for type, severity, title, body, due at, and action URL.
+
+Posts directly to POST /api/updates, then calls afterCreate() to refresh the list.
+
+Snippet to show the button in the Family Updates card (wrap with your existing roles so only Owner/Admin see it).

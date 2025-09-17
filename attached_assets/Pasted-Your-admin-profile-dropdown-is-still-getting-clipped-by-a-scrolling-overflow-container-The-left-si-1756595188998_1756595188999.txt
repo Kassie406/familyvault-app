@@ -1,0 +1,87 @@
+Your admin/profile dropdown is still getting clipped by a scrolling/overflow container.
+
+The left sidebar doesn’t reach/scroll to the bottom (and the page shows that tall right gutter).
+
+Here’s a small, safe set of fixes that will make the sidebar full-height & scrollable and guarantee menus/dropdowns are never clipped.
+
+1) Make the SIDEBAR full-height and independently scrollable
+/* Layout */
+.app-shell{ display:grid; grid-template-columns: 260px 1fr; min-height:100dvh; }
+
+/* Sidebar column */
+.sidebar{
+  position: sticky;               /* stays in view while main scrolls */
+  top: 0;
+  height: 100dvh;                 /* full viewport height, mobile-safe */
+  overflow-y: auto;               /* its own scroll */
+  overscroll-behavior: contain;   /* no rubber-band into page */
+  -webkit-overflow-scrolling: touch;
+  background: #0f1420;            /* your current dark */
+}
+
+/* Make sure the background reaches the very bottom even if content is short */
+.sidebar::after{ content:""; display:block; height: 24px; } /* breathing room */
+
+/* Main content column */
+.main{ min-height:100%; overflow: visible; }  /* no hidden overflow here */
+
+
+If your layout isn’t in a grid yet, you can emulate with:
+.sidebar{ position:fixed; inset:0 auto 0 0; width:260px } and .main{ margin-left:260px }. The grid version is cleaner.
+
+2) Kill the container that’s clipping dropdowns/menus
+
+Some wrapper likely has overflow:hidden or a transform that creates a new stacking context. Neutralize it for your app shell:
+
+/* Anything that wraps your page content */
+.page, .main, .content-wrap, #app {
+  overflow: visible !important;              /* avoid clipping popovers */
+  contain: none !important;                  /* no containing block */
+  transform: none !important;                /* remove 3D/translateZ(0) traps */
+}
+
+
+If you use a specific container for scroll (e.g., .main-scroll), keep overflow:auto there, but ensure any dropdown is portaled to <body> (see next).
+
+3) Guarantee dropdowns/popovers render above everything
+
+Use fixed positioning under <body> (portal) and a high z-index. You already have this for the admin menu; ensure all other popovers match:
+
+.popover, .dropdown, .admin-menu{
+  position: fixed;               /* not absolute inside a clipping parent */
+  z-index: 12000;                /* higher than sidebars/cards */
+  will-change: transform;
+}
+
+
+Position with JS on open using getBoundingClientRect() so it sits next to the trigger (like we did for the admin menu).
+
+4) Remove the tall right gutter / double scroll
+
+Global scroll should be on the browser, not on a nested container:
+
+html, body{ height:auto; overflow:auto; }
+#app, .app-root{ height:auto; overflow:visible; }  /* no full-height traps */
+
+
+If you previously set height:100vh on #app or body, it can create a phantom gutter when content is taller than the viewport. Remove it.
+
+5) (Optional) Sticky security footer buttons in cards
+
+Cards like “Security Center” shouldn’t overflow their container on hover. If a card needs internal scroll, do:
+
+.card.scroll{ display:flex; flex-direction:column; max-height: calc(100dvh - 220px); }
+.card.scroll .card-body{ overflow:auto; }
+.card.scroll .card-actions{ position:sticky; bottom:0; background:inherit; }
+
+Minimal JS to position any dropdown under <body>
+function placePopover(pop, trigger, offset=8){
+  const r = trigger.getBoundingClientRect();
+  requestAnimationFrame(()=>{
+    pop.style.left = Math.min(window.innerWidth - pop.offsetWidth - 8, r.left) + 'px';
+    pop.style.top  = (r.bottom + offset) + 'px';
+  });
+}
+
+
+Call placePopover(popoverEl, triggerEl) when opening.

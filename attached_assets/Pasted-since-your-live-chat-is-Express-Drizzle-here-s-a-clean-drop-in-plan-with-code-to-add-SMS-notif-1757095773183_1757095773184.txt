@@ -1,0 +1,427 @@
+since your live chat is Express + Drizzle, here’s a clean, drop-in plan (with code) to add SMS notifications + deep links. I’ll keep it tight and production-oriented.
+
+0) What you’ll have when done
+
+Phone verify (start + confirm) via Twilio
+
+User prefs (smsEnabled, quiet hours, per-thread mute)
+
+Queue worker (BullMQ) that sends SMS only when user is offline, opted-in, outside quiet hours, and not rate-limited
+
+Links that open the app if installed, otherwise store → app → thread (deferred deep link). Web fallback via signed magic link
+
+STOP/HELP inbound webhook (compliant)
+
+1) Drizzle schema (Postgres)
+
+If you already have users, threads, messages, keep those; add the fields/tables below.
+
+// db/schema/users.ts
+import { pgTable, text, timestamp, boolean, jsonb, integer, primaryKey } from "drizzle-orm/pg-core";
+
+export const users = pgTable("users", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  name: text("name"),
+  familyId: text("family_id").notNull(),
+  phone: text("phone").unique(),
+  phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const notificationPreferences = pgTable("notification_preferences", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  smsEnabled: boolean("sms_enabled").notNull().default(false),
+  quietStart: integer("quiet_start"), // minutes 0..1440
+  quietEnd: integer("quiet_end"),     // minutes 0..1440
+  perThreadMute: jsonb("per_thread_mute"), // {"thread_123": true}
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const smsDeliveryLog = pgTable("sms_delivery_log", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  threadId: text("thread_id").notNull(),
+  messageId: text("message_id").notNull(),
+  toPhone: text("to_phone").notNull(),
+  providerId: text("provider_id"),
+  status: text("status"), // queued/sent/delivered/failed
+  error: text("error"),
+  sentAt: timestamp("sent_at", { withTimezone: true }).defaultNow(),
+});
+
+// If you prefer DB-backed verification codes (Redis works too):
+export const verificationCodes = pgTable("verification_codes", {
+  userId: text("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  codeHash: text("code_hash").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});
+
+
+Migrations: generate with your usual Drizzle process (drizzle-kit) from these schemas.
+
+2) Express routes (phone verify + inbound SMS)
+
+Assumes you have db (Drizzle client), authMiddleware attaching req.user with { id, familyId, name }, and Twilio creds.
+
+// routes/sms.ts
+import { Router } from "express";
+import crypto from "crypto";
+import twilio from "twilio";
+import { db } from "../db"; // your drizzle client
+import { users, verificationCodes, notificationPreferences } from "../db/schema/users";
+import { eq } from "drizzle-orm";
+
+const r = Router();
+const tw = twilio(process.env.TWILIO_SID!, process.env.TWILIO_AUTH!);
+
+const hash = (s: string) => crypto.createHash("sha256").update(s).digest("hex");
+
+// POST /api/phone/start-verify
+r.post("/phone/start-verify", async (req, res) => {
+  const user = req.user; // from your auth middleware
+  const { phone } = req.body as { phone: string };
+  if (!phone) return res.status(400).json({ error: "phone required" });
+
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const codeHash = hash(code);
+  const expiresAt = new Date(Date.now() + 5 * 60_000);
+
+  await db.transaction(async (tx) => {
+    await tx.update(users).set({ phone }).where(eq(users.id, user.id));
+    await tx
+      .insert(verificationCodes)
+      .values({ userId: user.id, codeHash, expiresAt })
+      .onConflictDoUpdate({ target: verificationCodes.userId, set: { codeHash, expiresAt } });
+  });
+
+  await tw.messages.create({
+    to: phone,
+    from: process.env.TWILIO_FROM!,
+    body: `FamilyCircleSecure: Your verification code is ${code}. Expires in 5 minutes.`,
+  });
+
+  res.json({ ok: true });
+});
+
+// POST /api/phone/confirm
+r.post("/phone/confirm", async (req, res) => {
+  const user = req.user;
+  const { code } = req.body as { code: string };
+  const [row] = await db.select().from(verificationCodes).where(eq(verificationCodes.userId, user.id));
+  if (!row) return res.status(400).json({ error: "no_code" });
+  if (row.expiresAt < new Date()) return res.status(400).json({ error: "expired" });
+  if (hash(code) !== row.codeHash) return res.status(400).json({ error: "invalid" });
+
+  await db.update(users).set({ phoneVerifiedAt: new Date() }).where(eq(users.id, user.id));
+  // enable SMS by default or leave it as a toggle:
+  await db
+    .insert(notificationPreferences)
+    .values({ id: `np_${user.id}`, userId: user.id, smsEnabled: true })
+    .onConflictDoNothing();
+
+  res.json({ ok: true });
+});
+
+// POST /api/sms/inbound  (Twilio webhook - URL-encoded)
+r.post("/sms/inbound", async (req, res) => {
+  const from = req.body.From as string;
+  const body = String(req.body.Body || "").trim().toUpperCase();
+
+  const [u] = await db.select().from(users).where(eq(users.phone, from));
+  if (!u) {
+    res.type("text/xml").send("<Response/>");
+    return;
+  }
+
+  if (body === "STOP") {
+    await db
+      .insert(notificationPreferences)
+      .values({ id: `np_${u.id}`, userId: u.id, smsEnabled: false })
+      .onConflictDoUpdate({ target: notificationPreferences.userId, set: { smsEnabled: false } });
+    res.type("text/xml").send("<Response><Message>You have opted out. Reply START to resume.</Message></Response>");
+    return;
+  }
+
+  if (body === "START") {
+    await db
+      .insert(notificationPreferences)
+      .values({ id: `np_${u.id}`, userId: u.id, smsEnabled: true })
+      .onConflictDoUpdate({ target: notificationPreferences.userId, set: { smsEnabled: true } });
+    res.type("text/xml").send("<Response><Message>You are opted in. You will receive alerts.</Message></Response>");
+    return;
+  }
+
+  if (body === "HELP") {
+    res.type("text/xml").send("<Response><Message>FamilyCircleSecure: visit portal.familycirclesecure.com/help</Message></Response>");
+    return;
+  }
+
+  res.type("text/xml").send("<Response/>");
+});
+
+export default r;
+
+3) Notification worker (BullMQ + Redis + Twilio)
+
+Producer: from your “message created” handler, enqueue jobs for candidate recipients
+
+Worker: enforces offline, opt-in, quiet hours, per-thread mute, and rate limit
+
+// queue/smsNotify.ts
+import { Queue, Worker, JobsOptions } from "bullmq";
+import { createClient } from "redis";
+import twilio from "twilio";
+import { db } from "../db";
+import { users, notificationPreferences, smsDeliveryLog } from "../db/schema/users";
+import { eq } from "drizzle-orm";
+
+const connection = { url: process.env.REDIS_URL! };
+export const smsQueue = new Queue("smsNotify", { connection });
+const tw = twilio(process.env.TWILIO_SID!, process.env.TWILIO_AUTH!);
+
+type SmsJob = {
+  userId: string;
+  threadId: string;
+  messageId: string;
+  senderName: string;
+  preview: string;
+  magicToken: string; // short-lived signed JWT you generate
+};
+
+const redis = createClient({ url: process.env.REDIS_URL! });
+await redis.connect();
+
+function isQuiet(nowMin: number, start?: number | null, end?: number | null) {
+  if (start == null || end == null) return false;
+  return start < end ? nowMin >= start && nowMin < end : nowMin >= start || nowMin < end;
+}
+
+// Express “message created” → call this for each potential recipient
+export async function enqueueSms(job: SmsJob) {
+  await smsQueue.add("notify", job, { attempts: 3, backoff: { type: "exponential", delay: 1500 } } as JobsOptions);
+}
+
+// Worker
+export const smsWorker = new Worker<SmsJob>(
+  "smsNotify",
+  async (job) => {
+    const { userId, threadId, messageId, senderName, preview, magicToken } = job.data;
+
+    // 1) User + prefs
+    const [[u], [pref]] = await Promise.all([
+      db.select().from(users).where(eq(users.id, userId)),
+      db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, userId)),
+    ]);
+    if (!u || !u.phone || !u.phoneVerifiedAt) return;
+    if (!pref || !pref.smsEnabled) return;
+
+    // 2) Online check (presence via Redis Set)
+    const online = await redis.sIsMember(`presence:family:${u.familyId}`, userId);
+    if (online) return; // don’t SMS if online
+
+    // 3) Rate limit (per user per thread)
+    const rlKey = `notify:rl:${userId}:${threadId}`;
+    const hit = await redis.get(rlKey);
+    if (hit) return;
+    await redis.set(rlKey, "1", { EX: 120 }); // 2 min window
+
+    // 4) Quiet hours (use user-local TZ minutes if you store it; here server time)
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    if (isQuiet(nowMin, pref.quietStart ?? null, pref.quietEnd ?? null)) return;
+
+    // 5) Per-thread mute
+    const perMute = (pref.perThreadMute as any) || {};
+    if (perMute[threadId]) return;
+
+    // 6) Build link (use Branch/Firebase dynamic link). Fallback to web magic link:
+    const dynamicShort = await createDynamicLink({
+      link: `https://portal.familycirclesecure.com/ul/thread/${threadId}?mt=${magicToken}`,
+      fallback: `https://portal.familycirclesecure.com/magic?token=${magicToken}`,
+    });
+
+    const body = `FamilyCircleSecure • New message from ${senderName}: “${preview.slice(0, 60)}”\nOpen: ${dynamicShort}\nReply STOP to opt out, HELP for help.`;
+
+    // 7) Send
+    const resp = await tw.messages.create({
+      to: u.phone,
+      from: process.env.TWILIO_FROM!,
+      body,
+    });
+
+    await db.insert(smsDeliveryLog).values({
+      id: `sms_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      userId,
+      threadId,
+      messageId,
+      toPhone: u.phone,
+      providerId: resp.sid,
+      status: "sent",
+    });
+  },
+  { connection }
+);
+
+// Stub to keep code compiling — swap with Branch/Firebase SDK/API
+async function createDynamicLink(opts: { link: string; fallback: string }) {
+  // TODO: implement (Firebase Dynamic Links REST) and return short URL
+  return opts.link; // temporary: use the universal link directly
+}
+
+
+Producer example (call when you save a message):
+
+// in your POST /threads/:id/messages handler (after DB insert):
+for (const recipient of recipientUserIds) {
+  if (recipient === authorId) continue;
+  await enqueueSms({
+    userId: recipient,
+    threadId,
+    messageId: createdMessageId,
+    senderName: authorDisplayName,
+    preview: body || "[Attachment]",
+    magicToken: await signMagicToken({ sub: recipient, threadId }), // short-lived JWT
+  });
+}
+
+4) Deep links & magic links (server)
+
+Universal/App Links: host these JSON files on your domain (as we outlined earlier).
+
+Magic token: short-lived JWT (e.g., 10 minutes) that logs the user in on web, then redirects to /messages/:threadId.
+
+// auth/magic.ts
+import jwt from "jsonwebtoken";
+export function signMagicToken(payload: { sub: string; threadId: string }) {
+  return jwt.sign(payload, process.env.MAGIC_SECRET!, { expiresIn: "10m" });
+}
+// GET /magic?token=... -> verify, create session/cookie, redirect /messages/:threadId
+
+5) Presence (you likely already have)
+
+Keep your Redis Set per family: presence:family:{familyId}.
+
+Maintain with socket heartbeats every ~20s and a TTL key per user.
+
+The worker’s “online check” above uses that Set.
+
+6) Settings UI (what to expose)
+
+Phone (E.164), Verify (start/confirm)
+
+Toggle “Text me about new messages”
+
+Quiet Hours picker (Off / 10pm–7am / Custom)
+
+Per-thread Mute in the thread menu
+
+“Test SMS” button (calls the queue with a test job)
+
+7) Security & compliance (quick checklist)
+
+Store consent timestamp + language version when enabling SMS (you can add columns on notification_preferences)
+
+Honor STOP/HELP/START in the inbound webhook (done)
+
+No secrets in SMS content
+
+Rate limit (done) and quiet hours (done)
+
+Log deliveries in sms_delivery_log
+
+Plug-and-play order
+
+Apply Drizzle migrations from the schema above.
+
+Mount routes/sms.ts in your Express app.
+
+Start the BullMQ worker (smsWorker) alongside your API.
+
+In your message create route, call enqueueSms(...) for recipients.
+
+Swap createDynamicLink with Branch/Firebase to get short deferred-deep-links.
+
+Add Settings UI toggles.
+
+If you want, I can also paste a minimal Express message-create route that shows exactly where to call enqueueSms and how to compute recipientUserIds using your existing Drizzle chat tables.
+
+You said:
+ok
+ChatGPT said:
+
+Nice 👍 since you’re good with the Drizzle + Express setup, here’s the final puzzle piece: a message create route that shows exactly how to wire the SMS enqueue step into your chat system.
+
+📌 Express route: POST /threads/:id/messages
+import { Router } from "express";
+import { db } from "../db";
+import { messages, threads } from "../db/schema/chat"; // adapt to your schema
+import { enqueueSms } from "../queue/smsNotify";
+import { eq } from "drizzle-orm";
+
+const r = Router();
+
+r.post("/threads/:id/messages", async (req, res) => {
+  const user = req.user; // from your auth middleware
+  const { body, fileIds = [] } = req.body;
+  const { id: threadId } = req.params;
+
+  if (!body && (!fileIds || fileIds.length === 0)) {
+    return res.status(400).json({ error: "empty_message" });
+  }
+
+  // 1. Validate thread exists
+  const [thread] = await db.select().from(threads).where(eq(threads.id, threadId));
+  if (!thread) return res.status(404).json({ error: "thread_not_found" });
+
+  // 2. Insert new message
+  const [msg] = await db
+    .insert(messages)
+    .values({
+      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      threadId,
+      authorId: user.id,
+      body: body || "",
+      fileIds,
+      createdAt: new Date(),
+    })
+    .returning();
+
+  // 3. Figure out recipients (all members except sender)
+  const memberIds: string[] = thread.memberIds; // adjust to your schema
+  const recipients = memberIds.filter((m) => m !== user.id);
+
+  // 4. Enqueue SMS notify jobs
+  for (const rId of recipients) {
+    await enqueueSms({
+      userId: rId,
+      threadId,
+      messageId: msg.id,
+      senderName: user.name || "Someone",
+      preview: body || "[Attachment]",
+      magicToken: await signMagicToken({ sub: rId, threadId }), // your JWT signer
+    });
+  }
+
+  // 5. Return response
+  res.status(201).json({ message: msg });
+});
+
+export default r;
+
+🔑 Key bits
+
+enqueueSms(...) is the worker job you already have (BullMQ + Twilio).
+
+signMagicToken(...) creates a short-lived JWT that lets the recipient open the thread securely via dynamic link or web fallback.
+
+thread.memberIds → adapt depending on how you store members (array column vs join table).
+
+Rate limiting, quiet hours, and presence are enforced inside the worker, not here.
+
+👉 Next step for you:
+Would you like me to also sketch how to extend the Drizzle threads schema to store memberIds cleanly

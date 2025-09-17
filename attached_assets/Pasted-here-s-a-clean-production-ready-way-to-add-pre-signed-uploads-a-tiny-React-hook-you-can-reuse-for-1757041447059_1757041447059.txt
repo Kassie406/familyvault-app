@@ -1,0 +1,306 @@
+here’s a clean, production-ready way to add pre-signed uploads + a tiny React hook you can reuse for Documents and Photos.
+
+1) Backend: pre-sign endpoint (S3/R2 compatible)
+.env (new)
+S3_ENDPOINT=https://<your-s3-or-r2-endpoint>
+S3_REGION=auto
+S3_ACCESS_KEY=...
+S3_SECRET_KEY=...
+S3_FORCE_PATH_STYLE=true              # R2/MinIO usually wants this
+S3_BUCKET_DOCS=familyvault-docs
+S3_BUCKET_PHOTOS=familyvault-photos
+PUBLIC_CDN_BASE=https://cdn.familycirclesecure.com   # or your S3 public domain
+
+server/storage.ts (or inside your main server)
+// server/storage.ts
+import { Router } from "express";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { randomUUID } from "crypto";
+
+const s3 = new S3Client({
+  region: process.env.S3_REGION ?? "auto",
+  endpoint: process.env.S3_ENDPOINT,
+  forcePathStyle: process.env.S3_FORCE_PATH_STYLE === "true",
+  credentials: {
+    accessKeyId: process.env.S3_ACCESS_KEY!,
+    secretAccessKey: process.env.S3_SECRET_KEY!,
+  },
+});
+
+const storage = Router();
+
+/**
+ * POST /api/storage/presign
+ * Request: { type: "document" | "photo", fileName, contentType, contentLength?: number, familyId?: string }
+ * Response: { uploadUrl, key, bucket, expiresIn, publicUrl }
+ */
+storage.post("/presign", async (req, res) => {
+  try {
+    const { type, fileName, contentType, contentLength, familyId } = req.body as {
+      type: "document" | "photo";
+      fileName: string;
+      contentType: string;
+      contentLength?: number;
+      familyId?: string;
+    };
+
+    if (!type || !fileName || !contentType) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const bucket =
+      type === "photo" ? process.env.S3_BUCKET_PHOTOS! : process.env.S3_BUCKET_DOCS!;
+
+    const now = new Date();
+    const yyyy = String(now.getUTCFullYear());
+    const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
+    const baseName = fileName.replace(/[^\w.\-]+/g, "_").toLowerCase();
+    const key = `${familyId ?? "family"}/${type}s/${yyyy}/${mm}/${randomUUID()}-${baseName}`;
+
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ContentType: contentType,
+      // (optional) limit size server-side:
+      // ContentLength: contentLength,
+      ACL: "private",
+    });
+
+    const expiresIn = 60 * 5; // 5 minutes
+    const uploadUrl = await getSignedUrl(s3, command, { expiresIn });
+
+    const publicBase = process.env.PUBLIC_CDN_BASE?.replace(/\/+$/, "");
+    const publicUrl = publicBase ? `${publicBase}/${key}` : undefined;
+
+    res.json({ uploadUrl, key, bucket, expiresIn, publicUrl });
+  } catch (err: any) {
+    console.error("[presign.error]", err);
+    res.status(500).json({ error: "Failed to create presigned URL" });
+  }
+});
+
+export default storage;
+
+Mount the router in your server
+// server/index.ts
+import storage from "./storage";
+// ...
+app.use("/api/storage", storage);
+
+
+You already have endpoints to create documents/photos and to attach the uploaded file to a record. We’ll call those after the upload finishes.
+
+2) React: a tiny upload hook with progress
+
+This hook:
+
+asks the API for a pre-signed URL
+
+uploads to S3/R2 using PUT (no weird form fields)
+
+reports progress
+
+returns the S3 key + a publicUrl you can store or display
+
+// client/src/hooks/usePresignedUpload.ts
+import { useState, useCallback } from "react";
+
+export type PresignBody = {
+  type: "document" | "photo";
+  fileName: string;
+  contentType: string;
+  contentLength?: number;
+  familyId?: string;
+};
+
+export type PresignResponse = {
+  uploadUrl: string;
+  key: string;
+  bucket: string;
+  expiresIn: number;
+  publicUrl?: string;
+};
+
+export function usePresignedUpload() {
+  const [progress, setProgress] = useState<number>(0);
+  const [uploading, setUploading] = useState<boolean>(false);
+
+  const presign = useCallback(async (body: PresignBody): Promise<PresignResponse> => {
+    const r = await fetch("/api/storage/presign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      credentials: "include",
+    });
+    if (!r.ok) throw new Error(`Presign failed: ${r.status}`);
+    return (await r.json()) as PresignResponse;
+  }, []);
+
+  const uploadToSignedUrl = useCallback(
+    async (file: File, signed: PresignResponse) => {
+      setProgress(0);
+      setUploading(true);
+
+      // Use XHR so we can report progress:
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", signed.uploadUrl);
+        xhr.setRequestHeader("Content-Type", file.type);
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            setProgress(Math.round((e.loaded / e.total) * 100));
+          }
+        };
+        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload failed ${xhr.status}`)));
+        xhr.onerror = () => reject(new Error("Network error during upload"));
+        xhr.send(file);
+      });
+
+      setUploading(false);
+      setProgress(100);
+      return { key: signed.key, publicUrl: signed.publicUrl };
+    },
+    []
+  );
+
+  return { presign, uploadToSignedUrl, progress, uploading };
+}
+
+3) Wire it: Documents (create → upload → attach)
+// client/src/features/documents/QuickUpload.tsx
+import { useState } from "react";
+import { usePresignedUpload } from "@/hooks/usePresignedUpload";
+
+export default function QuickUpload() {
+  const { presign, uploadToSignedUrl, progress, uploading } = usePresignedUpload();
+  const [title, setTitle] = useState("");
+
+  async function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+
+    // 1) create doc metadata (you likely already have this endpoint)
+    const createRes = await fetch("/api/documents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ title: title || file.name }),
+    });
+    if (!createRes.ok) throw new Error("Create document failed");
+    const doc = await createRes.json(); // { id: string, ... }
+
+    // 2) presign upload
+    const signed = await presign({
+      type: "document",
+      fileName: file.name,
+      contentType: file.type || "application/octet-stream",
+      contentLength: file.size,
+      // familyId: currentFamilyId // if you have multi-family context
+    });
+
+    // 3) upload to S3/R2
+    const { key, publicUrl } = await uploadToSignedUrl(file, signed);
+
+    // 4) attach file to document
+    const attachRes = await fetch(`/api/documents/${doc.id}/attach-file`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        key,
+        bucket: signed.bucket,
+        size: file.size,
+        contentType: file.type || "application/octet-stream",
+        fileName: file.name,
+        publicUrl, // optional if you store CDN URL
+      }),
+    });
+    if (!attachRes.ok) throw new Error("Attach file failed");
+
+    // 5) done → refresh list or toast
+    // toast.success("Document uploaded");
+  }
+
+  return (
+    <div className="space-y-2">
+      <input
+        className="w-full rounded bg-neutral-900 px-3 py-2"
+        placeholder="Document title (optional)"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+      />
+      <label className="inline-flex items-center gap-2 rounded-xl bg-yellow-600/90 px-4 py-2 text-black hover:bg-yellow-500 cursor-pointer">
+        <input
+          type="file"
+          hidden
+          onChange={(e) => handleFiles(e.target.files)}
+          accept="*/*"
+        />
+        Upload document
+      </label>
+      {uploading && <div className="text-sm text-neutral-300">Uploading… {progress}%</div>}
+    </div>
+  );
+}
+
+4) Wire it: Photos (same flow, different endpoints)
+// client/src/features/photos/UploadPhoto.tsx
+import { usePresignedUpload } from "@/hooks/usePresignedUpload";
+
+export default function UploadPhoto({ albumId }: { albumId?: string }) {
+  const { presign, uploadToSignedUrl, progress, uploading } = usePresignedUpload();
+
+  async function onPick(files: FileList | null) {
+    if (!files || !files.length) return;
+    const file = files[0];
+
+    // 1) create photo record
+    const create = await fetch("/api/photos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ albumId }),
+    });
+    if (!create.ok) throw new Error("Create photo failed");
+    const photo = await create.json(); // {id}
+
+    // 2) presign
+    const signed = await presign({
+      type: "photo",
+      fileName: file.name,
+      contentType: file.type || "image/jpeg",
+      contentLength: file.size,
+    });
+
+    // 3) upload
+    const { key, publicUrl } = await uploadToSignedUrl(file, signed);
+
+    // 4) attach
+    const attach = await fetch(`/api/photos/${photo.id}/attach`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        key,
+        bucket: signed.bucket,
+        size: file.size,
+        contentType: file.type || "image/jpeg",
+        fileName: file.name,
+        publicUrl,
+      }),
+    });
+    if (!attach.ok) throw new Error("Attach photo failed");
+
+    // toast.success("Photo uploaded");
+  }
+
+  return (
+    <label className="inline-flex items-center gap-2 rounded-xl bg-yellow-600/90 px-4 py-2 text-black hover:bg-yellow-500 cursor-pointer">
+      <input type="file" hidden accept="image/*" onChange={(e) => onPick(e.target.files)} />
+      Upload photo
+      {uploading && <span className="ml-2 text-neutral-900">{progress}%</span>}
+    </label>
+  );
+}

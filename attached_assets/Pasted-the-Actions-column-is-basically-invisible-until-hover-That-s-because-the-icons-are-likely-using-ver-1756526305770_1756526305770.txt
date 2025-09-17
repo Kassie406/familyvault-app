@@ -1,0 +1,134 @@
+the Actions column is basically invisible until hover. That’s because the icons are likely using very low opacity and a color that blends into the row background.
+
+Here’s a drop-in fix that makes them always visible, with clear hover/active/disabled states, keyboard focus, and tooltips.
+
+CSS (paste as-is)
+/* Column container */
+.table .col-actions {
+  width: 172px;                 /* keep width stable */
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Base icon buttons */
+.row-actions button {
+  --icon-size: 14px;
+  --pad: 6px;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: var(--pad);
+  margin-left: 6px;
+  border-radius: 8px;
+  color: #667085;               /* visible grey (AA vs white bg) */
+  opacity: 0.9;                 /* make them visible even when not hovered */
+  line-height: 0;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, opacity .15s ease, box-shadow .15s ease;
+}
+
+/* Icon sizing when using inline SVG with currentColor */
+.row-actions button svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  stroke: currentColor;
+  fill: none;
+}
+
+/* Hover/active */
+.row-actions button:hover {
+  background: #EEF3FF;          /* soft blue pill */
+  color: #1F6FEB;               /* brand blue */
+  opacity: 1;
+}
+
+.row-actions button:active {
+  background: #DDE8FF;
+  color: #134DCC;
+}
+
+/* Keyboard accessibility */
+.row-actions button:focus-visible {
+  outline: 2px solid #1F6FEB;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px rgba(31,111,235,.15);
+}
+
+/* Disabled state (e.g., actions not allowed) */
+.row-actions button[disabled],
+.row-actions button.is-disabled {
+  color: #CBD2E0;
+  cursor: not-allowed;
+  opacity: 1;                   /* keep visible but clearly disabled */
+}
+
+.row-actions button[disabled]:hover {
+  background: transparent;
+  color: #CBD2E0;
+}
+
+/* Optional: only slightly dim when row not hovered */
+tbody tr:not(:hover) .row-actions button {
+  opacity: 0.75;                /* still visible */
+}
+
+/* Tooltip (simple, no JS) */
+.row-actions button[data-tip] {
+  position: relative;
+}
+.row-actions button[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  background: #111827;
+  color: #fff;
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease;
+}
+.row-actions button:hover[data-tip]::after,
+.row-actions button:focus-visible[data-tip]::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+Example markup (per row)
+<td class="col-actions">
+  <div class="row-actions" role="group" aria-label="Row actions">
+    <button aria-label="Edit user" data-tip="Edit">
+      <!-- edit icon -->
+      <svg viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16v4zM14 6l4 4"/></svg>
+    </button>
+
+    <button aria-label="Reset password" data-tip="Reset password">
+      <svg viewBox="0 0 24 24"><path d="M12 5v4m0 6v4m7-7H5"/></svg>
+    </button>
+
+    <button aria-label="Suspend user" data-tip="Suspend">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>
+    </button>
+
+    <button aria-label="Reactivate user" data-tip="Reactivate" class="is-disabled" disabled>
+      <svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 8-8M4 4v6h6"/></svg>
+    </button>
+
+    <button aria-label="Delete user" data-tip="Delete">
+      <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6l1-2h6l1 2M6 6l1 14h10L18 6"/></svg>
+    </button>
+  </div>
+</td>
+
+
+Use inline SVG with currentColor so the icon automatically adopts the text color in each state.
+
+Optional UX niceties
+
+Row hover highlight so actions feel connected to the row:
+
+tbody tr:hover { background:#F6F8FB; }

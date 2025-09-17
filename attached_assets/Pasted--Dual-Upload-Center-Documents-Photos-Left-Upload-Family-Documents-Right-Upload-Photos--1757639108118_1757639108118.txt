@@ -1,0 +1,444 @@
+// Dual Upload Center - Documents & Photos
+// Left: Upload Family Documents | Right: Upload Photos
+
+import React, { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+export const DualUploadCenter = ({ 
+  onDocumentUpload, 
+  onPhotoUpload,
+  onNavigateToAlbum 
+}) => {
+  const [documentDragActive, setDocumentDragActive] = useState(false);
+  const [photoDragActive, setPhotoDragActive] = useState(false);
+  const [uploadingDocuments, setUploadingDocuments] = useState(false);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+
+  const documentInputRef = useRef(null);
+  const photoInputRef = useRef(null);
+
+  // Document Upload Handlers
+  const handleDocumentBrowse = () => {
+    documentInputRef.current?.click();
+  };
+
+  const handleDocumentDrop = (e) => {
+    e.preventDefault();
+    setDocumentDragActive(false);
+    const files = Array.from(e.dataTransfer.files);
+    const documentFiles = files.filter(file => 
+      file.type.includes('pdf') || 
+      file.type.includes('document') || 
+      file.type.includes('text') ||
+      file.name.toLowerCase().includes('.doc')
+    );
+    if (documentFiles.length > 0) {
+      handleDocumentUpload(documentFiles);
+    }
+  };
+
+  const handleDocumentUpload = async (files) => {
+    setUploadingDocuments(true);
+    try {
+      if (onDocumentUpload) {
+        await onDocumentUpload(files);
+      }
+    } finally {
+      setUploadingDocuments(false);
+    }
+  };
+
+  // Photo Upload Handlers
+  const handlePhotoBrowse = () => {
+    photoInputRef.current?.click();
+  };
+
+  const handlePhotoDrop = (e) => {
+    e.preventDefault();
+    setPhotoDragActive(false);
+    const files = Array.from(e.dataTransfer.files);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    if (imageFiles.length > 0) {
+      handlePhotoUpload(imageFiles);
+    }
+  };
+
+  const handlePhotoUpload = async (files) => {
+    setUploadingPhotos(true);
+    try {
+      if (onPhotoUpload) {
+        await onPhotoUpload(files);
+      }
+      // Auto-navigate to Family Album after upload
+      setTimeout(() => {
+        if (onNavigateToAlbum) {
+          onNavigateToAlbum();
+        }
+      }, 1000);
+    } finally {
+      setUploadingPhotos(false);
+    }
+  };
+
+  // Drag handlers
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDocumentDragEnter = (e) => {
+    e.preventDefault();
+    setDocumentDragActive(true);
+  };
+
+  const handleDocumentDragLeave = (e) => {
+    e.preventDefault();
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDocumentDragActive(false);
+    }
+  };
+
+  const handlePhotoDragEnter = (e) => {
+    e.preventDefault();
+    setPhotoDragActive(true);
+  };
+
+  const handlePhotoDragLeave = (e) => {
+    e.preventDefault();
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setPhotoDragActive(false);
+    }
+  };
+
+  return (
+    <div className="dual-upload-center">
+      {/* Family Header */}
+      <div className="family-header">
+        <h2 className="family-title">camacho Family</h2>
+        <div className="user-avatars">
+          <div className="avatar">KC</div>
+          <div className="avatar">AQ</div>
+        </div>
+      </div>
+
+      {/* Dual Upload Boxes */}
+      <div className="upload-boxes-container">
+        
+        {/* LEFT BOX: Upload Family Documents */}
+        <motion.div
+          className={`upload-box document-upload ${documentDragActive ? 'drag-active' : ''} ${uploadingDocuments ? 'uploading' : ''}`}
+          onDrop={handleDocumentDrop}
+          onDragOver={handleDragOver}
+          onDragEnter={handleDocumentDragEnter}
+          onDragLeave={handleDocumentDragLeave}
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300 }}
+        >
+          <div className="upload-content">
+            <div className="upload-icon">
+              {uploadingDocuments ? (
+                <div className="uploading-spinner"></div>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              )}
+            </div>
+            
+            <h3>Upload Family Documents</h3>
+            <p>Drag & drop files here or click to browse</p>
+            <p className="ai-text">AI will automatically extract key information</p>
+            
+            <motion.button
+              className="browse-button primary"
+              onClick={handleDocumentBrowse}
+              disabled={uploadingDocuments}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {uploadingDocuments ? 'Uploading...' : '📁 Browse'}
+            </motion.button>
+            
+            <span className="or-text">or drop files</span>
+            
+            {/* Document File Types */}
+            <div className="file-types">
+              <span className="file-type">PDF</span>
+              <span className="file-type">DOC</span>
+              <span className="file-type">TXT</span>
+            </div>
+          </div>
+
+          {/* Upload Progress Overlay */}
+          {uploadingDocuments && (
+            <div className="upload-overlay">
+              <div className="upload-progress">
+                <div className="progress-bar"></div>
+                <span>Processing documents...</span>
+              </div>
+            </div>
+          )}
+        </motion.div>
+
+        {/* RIGHT BOX: Upload Photos */}
+        <motion.div
+          className={`upload-box photo-upload ${photoDragActive ? 'drag-active' : ''} ${uploadingPhotos ? 'uploading' : ''}`}
+          onDrop={handlePhotoDrop}
+          onDragOver={handleDragOver}
+          onDragEnter={handlePhotoDragEnter}
+          onDragLeave={handlePhotoDragLeave}
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300 }}
+        >
+          <div className="upload-content">
+            <div className="upload-icon photo-icon">
+              {uploadingPhotos ? (
+                <div className="uploading-spinner"></div>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <polyline points="21,15 16,10 5,21"/>
+                </svg>
+              )}
+            </div>
+            
+            <h3>Upload Photos</h3>
+            <p>Add memories to your family album</p>
+            <p className="ai-text">Photos will be organized automatically</p>
+            
+            <motion.button
+              className="browse-button secondary"
+              onClick={handlePhotoBrowse}
+              disabled={uploadingPhotos}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {uploadingPhotos ? 'Uploading...' : '📷 Browse Photos'}
+            </motion.button>
+            
+            <span className="or-text">or drop photos</span>
+            
+            {/* Photo File Types */}
+            <div className="file-types">
+              <span className="file-type">JPG</span>
+              <span className="file-type">PNG</span>
+              <span className="file-type">HEIC</span>
+            </div>
+          </div>
+
+          {/* Upload Progress Overlay */}
+          {uploadingPhotos && (
+            <div className="upload-overlay">
+              <div className="upload-progress">
+                <div className="progress-bar photo-progress"></div>
+                <span>Adding to Family Album...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Family Album Link */}
+          <div className="album-link">
+            <button 
+              className="view-album-btn"
+              onClick={onNavigateToAlbum}
+            >
+              📖 View Family Album
+            </button>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Hidden File Inputs */}
+      <input
+        ref={documentInputRef}
+        type="file"
+        onChange={(e) => handleDocumentUpload(Array.from(e.target.files || []))}
+        accept=".pdf,.doc,.docx,.txt"
+        multiple
+        style={{ display: 'none' }}
+      />
+      
+      <input
+        ref={photoInputRef}
+        type="file"
+        onChange={(e) => handlePhotoUpload(Array.from(e.target.files || []))}
+        accept="image/*"
+        multiple
+        style={{ display: 'none' }}
+      />
+
+      {/* Upload Success Notifications */}
+      <UploadNotifications />
+    </div>
+  );
+};
+
+// Upload Success Notifications Component
+const UploadNotifications = () => {
+  const [notifications, setNotifications] = useState([]);
+
+  const addNotification = (type, message) => {
+    const id = Date.now();
+    setNotifications(prev => [...prev, { id, type, message }]);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 3000);
+  };
+
+  return (
+    <div className="upload-notifications">
+      <AnimatePresence>
+        {notifications.map(notification => (
+          <motion.div
+            key={notification.id}
+            className={`notification ${notification.type}`}
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -50, scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          >
+            <div className="notification-content">
+              <div className="notification-icon">
+                {notification.type === 'document' ? '📄' : '📷'}
+              </div>
+              <span>{notification.message}</span>
+            </div>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// Enhanced Upload Box with Camera Integration
+export const EnhancedUploadBox = ({ 
+  type = 'document', 
+  onUpload, 
+  onCameraCapture,
+  className = '' 
+}) => {
+  const [showCameraOptions, setShowCameraOptions] = useState(false);
+
+  const handleCameraClick = () => {
+    if (onCameraCapture) {
+      onCameraCapture(type);
+    }
+  };
+
+  return (
+    <div className={`enhanced-upload-box ${type} ${className}`}>
+      {/* Main upload area */}
+      <div className="main-upload-area">
+        {/* Upload content */}
+      </div>
+
+      {/* Camera Options (for photos) */}
+      {type === 'photo' && (
+        <div className="camera-options">
+          <button 
+            className="camera-btn"
+            onClick={handleCameraClick}
+          >
+            📱 Take Photo
+          </button>
+          <button 
+            className="camera-btn"
+            onClick={() => handleCameraClick('barcode')}
+          >
+            📷 Scan Document
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Hook for managing dual uploads
+export const useDualUpload = () => {
+  const [documentUploads, setDocumentUploads] = useState([]);
+  const [photoUploads, setPhotoUploads] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const uploadDocuments = async (files) => {
+    setIsUploading(true);
+    try {
+      // Process document files
+      const processedDocs = await Promise.all(
+        files.map(async (file) => ({
+          id: generateId(),
+          file,
+          name: file.name,
+          size: file.size,
+          type: 'document',
+          uploadTime: new Date().toISOString(),
+          status: 'processing'
+        }))
+      );
+      
+      setDocumentUploads(prev => [...processedDocs, ...prev]);
+      return processedDocs;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const uploadPhotos = async (files) => {
+    setIsUploading(true);
+    try {
+      // Process photo files
+      const processedPhotos = await Promise.all(
+        files.map(async (file) => ({
+          id: generateId(),
+          file,
+          name: file.name,
+          size: file.size,
+          type: 'photo',
+          uploadTime: new Date().toISOString(),
+          status: 'processing',
+          thumbnail: await generateThumbnail(file)
+        }))
+      );
+      
+      setPhotoUploads(prev => [...processedPhotos, ...prev]);
+      return processedPhotos;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const clearUploads = () => {
+    setDocumentUploads([]);
+    setPhotoUploads([]);
+  };
+
+  return {
+    documentUploads,
+    photoUploads,
+    isUploading,
+    uploadDocuments,
+    uploadPhotos,
+    clearUploads
+  };
+};
+
+// Utility functions
+const generateId = () => {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+};
+
+const generateThumbnail = (file) => {
+  return new Promise((resolve) => {
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    } else {
+      resolve(null);
+    }
+  });
+};
+
+export default DualUploadCenter;

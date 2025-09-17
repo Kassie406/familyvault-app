@@ -1,0 +1,188 @@
+Thanks for the screenshot—that behavior (panel looks “washed out” until you hover it) means the dropdown’s visible styles are tied to :hover instead of its open state. Even if we fixed clipping and z-index, if your CSS says “make the panel opaque only on hover,” you’ll keep seeing this.
+
+Below is a drop-in way to make the notification popover fully visible whenever it’s open, without needing hover. It also avoids clipping by rendering to <body> and adds a dim overlay that closes the popover when you click outside.
+
+What’s causing the issue
+
+You likely have one (or more) of these:
+
+group-hover:opacity-100 / hover:bg-white on the popover
+
+Base class with transparency like bg-white/0, opacity-0, mix-blend-*, etc.
+
+A parent container that applies opacity-50 until hover
+
+Visibility controlled by :hover (e.g., .group:hover .popover { opacity: 1 })
+
+Result: the panel is semi-transparent unless you hover it.
+
+Fix: control visibility by state, not hover
+React (Tailwind version)
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+
+export function NotificationsButton() {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  // Close on ESC
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="relative inline-flex items-center justify-center rounded-full h-9 w-9 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30"
+      >
+        🔔
+      </button>
+
+      {open && btnRef.current && (
+        <>
+          {/* backdrop to close on outside click */}
+          {createPortal(
+            <div
+              className="fixed inset-0 z-[9999] bg-black/30"
+              onClick={() => setOpen(false)}
+            />,
+            document.body
+          )}
+
+          {/* portal popover */}
+          <Popover anchor={btnRef.current} onClose={() => setOpen(false)}>
+            {/* header */}
+            <div className="flex items-center justify-between px-4 py-2 border-b border-black/10">
+              <div className="font-medium">Notifications</div>
+              <button className="text-sm text-blue-600 hover:underline">
+                Mark all read
+              </button>
+            </div>
+
+            {/* list */}
+            <div className="max-h-[60vh] overflow-auto">
+              {/* …your notification items… */}
+            </div>
+
+            {/* footer */}
+            <div className="px-4 py-2 border-t border-black/10 text-center">
+              <button className="text-sm text-blue-600 hover:underline">
+                View all notifications
+              </button>
+            </div>
+          </Popover>
+        </>
+      )}
+    </>
+  );
+}
+
+function Popover({
+  anchor,
+  children,
+  onClose,
+}: {
+  anchor: HTMLElement;
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+
+  useEffect(() => {
+    const place = () => {
+      const r = anchor.getBoundingClientRect();
+      setPos({
+        top: r.bottom + 10, // below the bell
+        right: Math.max(8, window.innerWidth - r.right),
+      });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [anchor]);
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      style={{ top: pos.top, right: pos.right }}
+      className="
+        fixed z-[10000]
+        w-[360px] rounded-2xl
+        bg-white text-slate-900
+        shadow-2xl ring-1 ring-black/10
+        transition-transform duration-150
+      "
+      // OPTIONAL: close when focus leaves the popover
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) onClose();
+      }}
+    >
+      {children}
+    </div>,
+    document.body
+  );
+}
+
+Important style choices (no hover dependencies)
+
+Base BG is opaque: bg-white (or your panel token)
+Remove hover:bg-white, bg-white/0, opacity-* on the base class.
+
+Always visible when open: the component renders when open === true; not controlled by :hover.
+
+High stacking order: z-[10000] on popover, z-[9999] on overlay.
+
+No clipping: uses a portal (createPortal) with position: fixed, so parents’ overflow/transform can’t clip it.
+
+If you aren’t using React/Tailwind
+
+Set the default, non-hover styles to visible:
+
+/* default popover (OPEN) */
+.notifications-popover {
+  position: fixed;          /* or absolute + portal container with fixed coords */
+  top: var(--calc-from-button);
+  right: var(--calc-from-button);
+  background: #fff;         /* NOT transparent */
+  color: #0f1115;
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0,0,0,.25);
+  border: 1px solid rgba(0,0,0,.08);
+  z-index: 10000;
+  opacity: 1;               /* visible by default when rendered */
+  pointer-events: auto;
+}
+
+/* only use hover for subtle effects, not visibility */
+.notifications-popover:hover { filter: none; }
+
+/* backdrop (click to close) */
+.notifications-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.3);
+  z-index: 9999;
+}
+
+
+Then toggle the element’s presence with a JS open flag (not :hover).
+
+Also check for these “gotchas” in your codebase
+
+Remove any group-hover:opacity-100, hover:bg-white, or hover:backdrop-blur on the popover.
+
+Ensure the parent does not apply opacity-50 or a filter that changes on hover.
+
+If your header has overflow:hidden or transform, keep the portal approach; otherwise set the header to overflow-visible.
+
+Keep z-index higher than any sticky headers/sidebars.

@@ -1,0 +1,80 @@
+Thanks for the screenshot—looks like the glow is still sneaking in from a different element (not the .qa-tile itself). On many Tailwind/DaisyUI builds the halo comes from utility classes on wrappers (e.g., hover:shadow-*, ring-*, drop-shadow-*, or DaisyUI .card shadows), so even if you zero out the tile, the parent/child can still paint the glow.
+
+Here’s a scoped, stronger “no-halo” override that removes all shadows/rings/drops inside the Quick Access modal, no matter what element has them—while keeping your gold border.
+
+Paste at the bottom of src/styles/quick-access.css
+/* ───────────────────────────────────────────────────────────────
+   QUICK ACCESS — Remove ALL glow/halo (hover/focus) from tiles
+   Keeps the gold border; kills shadows/rings/drop-shadows anywhere.
+   ─────────────────────────────────────────────────────────────── */
+
+#quick-access-modal {
+  --family-gold: 212,175,55; /* #D4AF37 */
+}
+
+/* Keep your gold border; no glow */
+#quick-access-modal .qa-tile {
+  border: 1px solid rgba(var(--family-gold), 0.28) !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background-image: linear-gradient(180deg, #0b0b0e 0%, #0e0e14 100%) !important;
+  border-radius: 16px;
+  overflow: hidden;
+  isolation: isolate;
+  background-clip: padding-box;
+  transition: border-color .15s ease;
+}
+
+/* Zero-out ANY source of glow inside the modal, even if applied on wrappers */
+#quick-access-modal .qa-tile,
+#quick-access-modal .qa-tile *,
+#quick-access-modal [class*="shadow"],
+#quick-access-modal [class*="ring"],
+#quick-access-modal [class*="drop-shadow"],
+#quick-access-modal .card,
+#quick-access-modal .card:hover,
+#quick-access-modal .card:focus,
+#quick-access-modal .card:focus-within {
+  /* Tailwind/Daisy ring/shadow variables */
+  --tw-ring-inset: initial !important;
+  --tw-ring-offset-width: 0 !important;
+  --tw-ring-offset-color: transparent !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-shadow: 0 0 #0000 !important;
+  --tw-shadow-colored: 0 0 #0000 !important;
+
+  box-shadow: none !important;
+  outline: none !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  border-radius: inherit !important;
+}
+
+/* Make hover/focus do NOTHING visually (optional: keep slight border tint) */
+#quick-access-modal .qa-tile:hover,
+#quick-access-modal .qa-tile:has(:hover),
+#quick-access-modal .qa-tile:focus,
+#quick-access-modal .qa-tile:focus-visible,
+#quick-access-modal .qa-tile:focus-within {
+  border-color: rgba(var(--family-gold), 0.28) !important; /* keep static */
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+Why this works
+
+It’s scoped to #quick-access-modal, so it won’t affect other parts of your app.
+
+It nukes all sources of glow (Tailwind rings, DaisyUI card shadows, drop-shadow, etc.) even when they’re set on parent or child elements, not just .qa-tile.
+
+Tiles keep the gold border and dark background—no halo on hover or focus.
+
+After adding
+
+Save the file, then hard refresh (Ctrl/Cmd + Shift + R).
+
+Open Quick Access and hover/focus the tiles — the halo should be gone across the board.
+
+If any tile still shows a halo, send me the HTML snippet for that specific tile (the outer wrapper plus the .qa-tile element) and I’ll pinpoint the exact element painting the effect.

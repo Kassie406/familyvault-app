@@ -1,0 +1,67 @@
+created the access key for your uploader IAM user (FamilyPortal-DocsUploader).
+Here’s exactly what to do with it now:
+
+1) Save the keys now
+
+Click Download .csv file and/or copy both values:
+
+Access key ID (starts with AKIA…)
+
+Secret access key (the long string you can only see this one time)
+
+Store them in your password manager. You won’t be able to view the secret again.
+
+2) Add them to your backend environment (NOT the frontend)
+
+In Replit (or your server’s env/Secrets), add these variables:
+
+AWS_ACCESS_KEY_ID = <the new AKIA…>
+
+AWS_SECRET_ACCESS_KEY = <the secret you just saw>
+
+AWS_REGION = us-east-2 (your account shows “United States (Ohio)” → us-east-2)
+
+(Optional but helpful)
+DOCS_BUCKET = familyportal-photos-prod (or familyportal-docs-prod, whichever bucket your app is targeting)
+UPLOAD_PREFIX = family-1/ (or the folder/prefix you use)
+
+If your code already expects custom names, use those instead (e.g. UPLOADER_ACCESS_KEY_ID, etc.). The important part is: the backend uses these.
+
+3) Use the uploader keys when presigning S3 PUT URLs
+
+Make sure your server creates the S3 client with these credentials:
+
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
+
+export async function createPresignedPutUrl(key: string, contentType: string) {
+  const cmd = new PutObjectCommand({
+    Bucket: process.env.DOCS_BUCKET,
+    Key: key,                 // e.g. `family-1/${uuid}.jpg`
+    ContentType: contentType, // match what the browser sends
+  });
+  return getSignedUrl(s3, cmd, { expiresIn: 60 * 5 }); // 5 minutes
+}
+
+
+Do not embed keys in the frontend. The frontend only uses the presigned URL returned by your backend.
+
+4) Quick permissions check
+
+For the uploader IAM user you just keyed:
+
+Has an inline policy that allows:
+
+s3:PutObject (and optionally s3:AbortMultipartUpload) on
+arn:aws:s3:::familyportal-photos-prod/family-1/* (adjust bucket/prefix)
+
+(Optional) s3:ListBucket on the bucket ARN
+arn:aws:s3:::familyportal-photos-prod with a condition s3:prefix = "family-1/*".
