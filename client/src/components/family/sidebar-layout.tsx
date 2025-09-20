@@ -5,9 +5,12 @@ import {
   Key, Umbrella, Receipt, Scale, Building2, BookOpen, 
   Phone, Heart, Baby, UserCheck, HeartHandshake, Plane, Package,
   AlertTriangle, FileText, Home as HouseIcon, Users as FamilyIcon, Leaf,
-  Menu, X, ChevronLeft, ChevronRight
+  Menu, X, ChevronLeft, ChevronRight, UserPlus, User
 } from 'lucide-react';
+import * as Popover from '@radix-ui/react-popover';
 import EnhancedLeftSidebar from './EnhancedLeftSidebar';
+import EnhancedRemindersSidebar from './EnhancedRemindersSidebar';
+import { useQuery } from '@tanstack/react-query';
 
 interface SidebarLayoutProps {
   children: React.ReactNode;
@@ -20,6 +23,14 @@ export default function SidebarLayout({ children, onInboxClick }: SidebarLayoutP
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
+  const [remindersSidebarOpen, setRemindersSidebarOpen] = useState(false);
+  const [isMainMenuCollapsed, setIsMainMenuCollapsed] = useState(false);
+
+  // Fetch family members for the submenu
+  const { data: familyMembers } = useQuery<Array<{ id: string; name: string; relationship?: string }>>({
+    queryKey: ['/api/family/members'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
   const [activeSection, setActiveSection] = useState(() => {
     // Determine active section based on current path
     if (location === '/family' || location === '/') return 'dashboard';
@@ -79,15 +90,33 @@ export default function SidebarLayout({ children, onInboxClick }: SidebarLayoutP
 
   const handleInboxClick = () => {
     setLeftSidebarOpen(true);
+    setRemindersSidebarOpen(false); // Close reminders if open
+    setIsMainMenuCollapsed(true); // ✅ Collapse main menu to icons
     if (onInboxClick) {
       onInboxClick();
     }
   };
 
+  const handleRemindersClick = () => {
+    setRemindersSidebarOpen(true);
+    setLeftSidebarOpen(false); // Close inbox if open
+    setIsMainMenuCollapsed(true); // ✅ Collapse main menu to icons
+  };
+
+  const handleLeftSidebarClose = () => {
+    setLeftSidebarOpen(false);
+    setIsMainMenuCollapsed(false); // ✅ Expand main menu back
+  };
+
+  const handleRemindersSidebarClose = () => {
+    setRemindersSidebarOpen(false);
+    setIsMainMenuCollapsed(false); // ✅ Expand main menu back
+  };
+
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, href: '/family' },
     { id: 'inbox', label: 'Inbox', icon: Inbox, href: '/family/inbox', onClick: handleInboxClick },
-    { id: 'reminders', label: 'Reminders', icon: AlarmClock, href: '/family/reminders' },
+    { id: 'reminders', label: 'Reminders', icon: AlarmClock, href: '/family/reminders', onClick: handleRemindersClick },
     { id: 'family-ids', label: 'Family IDs', icon: Users, href: '/family/ids' },
     { id: 'finance', label: 'Finance', icon: DollarSign, href: '/family/finance' },
     { id: 'property', label: 'Property', icon: HomeIcon, href: '/family/property' },
@@ -135,7 +164,7 @@ export default function SidebarLayout({ children, onInboxClick }: SidebarLayoutP
       )}
 
       {/* Desktop Sidebar */}
-      <div className={`${isMobile ? 'hidden' : `${desktopSidebarCollapsed ? 'w-16' : 'w-64'} bg-[var(--bg-850)] border-r border-[var(--line-700)] flex flex-col fixed h-full z-30 transition-all duration-300 ease-in-out`}`}>
+      <div className={`${isMobile ? 'hidden' : `${desktopSidebarCollapsed || isMainMenuCollapsed ? 'w-16' : 'w-64'} bg-[var(--bg-850)] border-r border-[var(--line-700)] flex flex-col fixed h-full z-40`}`} style={{ transition: 'width 300ms ease-in-out' }}>
         {/* Desktop Sidebar Header */}
         {!isMobile && (
           <div className="p-6 border-b border-[var(--line-700)] relative">
@@ -172,48 +201,218 @@ export default function SidebarLayout({ children, onInboxClick }: SidebarLayoutP
             {sidebarItems.map((item) => {
               const Icon = item.icon;
               const isActive = item.id === activeSection;
+              
+              // Special handling for Family IDs with submenu using Radix Popover
+              if (item.id === 'family-ids') {
+                const [open, setOpen] = useState(false);
+                const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
+                const canShow = !desktopSidebarCollapsed && !isMainMenuCollapsed;
+                
+                const handleMouseEnter = () => {
+                  if (hoverTimeout) {
+                    clearTimeout(hoverTimeout);
+                    setHoverTimeout(null);
+                  }
+                  setOpen(true);
+                };
+                
+                const handleMouseLeave = () => {
+                  const timeout = setTimeout(() => {
+                    setOpen(false);
+                  }, 150); // 150ms delay before closing
+                  setHoverTimeout(timeout);
+                };
+                
+                return (
+                  <div key={item.id} className="relative group">
+                    <Popover.Root open={open && canShow} onOpenChange={setOpen}>
+                      <Popover.Trigger asChild>
+                        <div
+                          onMouseEnter={handleMouseEnter}
+                          onMouseLeave={handleMouseLeave}
+                          className="relative"
+                        >
+                          <Link
+                            to={item.href}
+                            onClick={() => setActiveSection(item.id)}
+                            className={`sidebar-nav-link group flex items-center ${desktopSidebarCollapsed ? 'px-4 justify-center' : 'px-6'} py-3 text-sm font-medium transition-all duration-200 relative ${
+                              isActive
+                                ? 'text-[#c5a000] border-r-2 border-[#c5a000] bg-[var(--bg-800)]'
+                                : 'text-[var(--ink-300)] hover:text-[#c5a000] hover:bg-[var(--bg-800)] focus:text-[#c5a000]'
+                            }`}
+                            data-testid={`sidebar-${item.id}`}
+                            style={isActive ? { color: '#c5a000' } : {}}
+                          >
+                            <div className={`relative ${isActive && desktopSidebarCollapsed ? 'ring-2 ring-[var(--gold)] ring-opacity-50 rounded-lg p-1' : ''}`}>
+                              <Icon className={`w-5 h-5 ${desktopSidebarCollapsed ? '' : 'mr-3'} transition-colors ${
+                                isActive ? 'text-[var(--gold)]' : 'text-[var(--ink-300)] group-hover:text-[var(--gold)]'
+                              }`} />
+                            </div>
+                            {!desktopSidebarCollapsed && (
+                              <span className={`transition-opacity duration-200 ${isActive ? 'font-bold' : ''}`}>{item.label}</span>
+                            )}
+                          </Link>
+                        </div>
+                      </Popover.Trigger>
+
+                      <Popover.Portal>
+                        <Popover.Content
+                          side="right"
+                          align="start"
+                          sideOffset={8}
+                          onMouseEnter={handleMouseEnter}
+                          onMouseLeave={handleMouseLeave}
+                          className="z-[9999] w-64 bg-[var(--bg-850)] border-r border-[var(--line-700)] shadow-xl outline-none"
+                        >
+                          <span className="pointer-events-none absolute -left-2 top-4 h-3 w-3 rotate-45 bg-[var(--bg-850)] border-l border-t border-[var(--line-700)]" />
+                          
+                          <div className="p-6 border-b border-[var(--line-700)]">
+                            <div className="text-xs font-medium text-[var(--ink-400)]">Family Members</div>
+                          </div>
+                          
+                          <nav className="py-4">
+                            <Link
+                              to="/family/ids/kassandra-santana"
+                              className="sidebar-nav-link group flex items-center px-6 py-3 text-sm font-medium transition-all duration-200 relative text-[var(--ink-300)] hover:text-[#c5a000] hover:bg-[rgba(212,175,55,0.14)] focus:text-[#c5a000]"
+                            >
+                              <div className="w-5 h-5 rounded-full bg-[#D4AF37] flex items-center justify-center text-black text-xs font-semibold mr-3 transition-colors group-hover:text-black">
+                                KS
+                              </div>
+                              <div className="flex-1">
+                                <div className="text-[var(--ink-100)] group-hover:text-[#c5a000] leading-tight">Kassandra Santana</div>
+                                <div className="text-[11px] text-zinc-500 group-hover:text-[#c5a000] opacity-70">Main Household, Parent</div>
+                              </div>
+                            </Link>
+                            
+                            <Link
+                              to="/family/ids/angel-quintana"
+                              className="sidebar-nav-link group flex items-center px-6 py-3 text-sm font-medium transition-all duration-200 relative text-[var(--ink-300)] hover:text-[#c5a000] hover:bg-[rgba(212,175,55,0.14)] focus:text-[#c5a000]"
+                            >
+                              <div className="w-5 h-5 rounded-full bg-[#3498DB] flex items-center justify-center text-white text-xs font-semibold mr-3 transition-colors group-hover:text-white">
+                                AQ
+                              </div>
+                              <div className="flex-1">
+                                <div className="text-[var(--ink-100)] group-hover:text-[#c5a000] leading-tight">Angel Quintana</div>
+                                <div className="text-[11px] text-zinc-500 group-hover:text-[#c5a000] opacity-70">Husband, Parent</div>
+                              </div>
+                            </Link>
+                            
+                            <Link
+                              to="/family/ids/emma-johnson"
+                              className="sidebar-nav-link group flex items-center px-6 py-3 text-sm font-medium transition-all duration-200 relative text-[var(--ink-300)] hover:text-[#c5a000] hover:bg-[rgba(212,175,55,0.14)] focus:text-[#c5a000]"
+                            >
+                              <div className="w-5 h-5 rounded-full bg-[#2ECC71] flex items-center justify-center text-white text-xs font-semibold mr-3 transition-colors group-hover:text-white">
+                                EJ
+                              </div>
+                              <div className="flex-1">
+                                <div className="text-[var(--ink-100)] group-hover:text-[#c5a000] leading-tight">Emma Johnson</div>
+                                <div className="text-[11px] text-zinc-500 group-hover:text-[#c5a000] opacity-70">Child</div>
+                              </div>
+                            </Link>
+                            
+                            <Link
+                              to="/family/ids/linda-johnson"
+                              className="sidebar-nav-link group flex items-center px-6 py-3 text-sm font-medium transition-all duration-200 relative text-[var(--ink-300)] hover:text-[#c5a000] hover:bg-[rgba(212,175,55,0.14)] focus:text-[#c5a000]"
+                            >
+                              <div className="w-5 h-5 rounded-full bg-[#E74C3C] flex items-center justify-center text-white text-xs font-semibold mr-3 transition-colors group-hover:text-white">
+                                LJ
+                              </div>
+                              <div className="flex-1">
+                                <div className="text-[var(--ink-100)] group-hover:text-[#c5a000] leading-tight">Linda Johnson</div>
+                                <div className="text-[11px] text-zinc-500 group-hover:text-[#c5a000] opacity-70">Grandparent</div>
+                              </div>
+                            </Link>
+                          </nav>
+                          
+                          <div className="p-6 border-t border-[var(--line-700)]">
+                            <Link
+                              to="/family/ids"
+                              className="sidebar-nav-link group flex items-center px-6 py-3 text-sm font-medium transition-all duration-200 relative text-[#c5a000] hover:text-[var(--gold)] focus:text-[var(--gold)]"
+                            >
+                              <UserPlus className="w-5 h-5 mr-3 transition-colors group-hover:text-[#D4AF37]" />
+                              <span className="group-hover:text-[var(--gold)]">Add Family Member</span>
+                            </Link>
+                          </div>
+                        </Popover.Content>
+                      </Popover.Portal>
+                      
+                      {/* Tooltip for collapsed state */}
+                      {desktopSidebarCollapsed && (
+                        <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 bg-[var(--bg-900)] text-white text-sm px-3 py-2 rounded-lg shadow-lg border border-[var(--line-700)] opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-nowrap">
+                          {item.label}
+                          <div className="absolute left-0 top-1/2 transform -translate-x-1 -translate-y-1/2 w-2 h-2 bg-[var(--bg-900)] border-l border-b border-[var(--line-700)] rotate-45"></div>
+                        </div>
+                      )}
+                    </Popover.Root>
+                  </div>
+                );
+              }
+              
+              // Regular menu items
               return item.onClick ? (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveSection(item.id);
-                    item.onClick();
-                  }}
-                  className={`sidebar-nav-link flex items-center w-full ${desktopSidebarCollapsed ? 'px-4 justify-center' : 'px-6'} py-3 text-sm font-medium transition-all duration-200 relative group ${
-                    isActive
-                      ? 'text-[var(--gold)] border-r-2 border-[var(--gold)] bg-[var(--bg-800)]'
-                      : 'text-[var(--ink-300)]'
-                  }`}
-                  data-testid={`sidebar-${item.id}`}
-                  title={desktopSidebarCollapsed ? item.label : ''}
-                >
-                  <Icon className={`w-5 h-5 ${desktopSidebarCollapsed ? '' : 'mr-3'} transition-colors ${
-                    isActive ? 'text-[var(--gold)]' : 'text-[var(--ink-300)] group-hover:text-[var(--gold)]'
-                  }`} />
-                  {!desktopSidebarCollapsed && (
-                    <span className="transition-opacity duration-200">{item.label}</span>
+                <div key={item.id} className="relative group">
+                  <button
+                    onClick={() => {
+                      setActiveSection(item.id);
+                      item.onClick();
+                    }}
+                    className={`sidebar-nav-link group flex items-center w-full ${desktopSidebarCollapsed ? 'px-4 justify-center' : 'px-6'} py-3 text-sm font-medium transition-all duration-200 relative ${
+                      isActive
+                        ? 'text-[#c5a000] border-r-2 border-[#c5a000] bg-[var(--bg-800)]'
+                        : 'text-[var(--ink-300)] hover:text-[#c5a000] hover:bg-[var(--bg-800)] focus:text-[#c5a000]'
+                    } [&:hover]:!text-[#c5a000]`}
+                    data-testid={`sidebar-${item.id}`}
+                    style={isActive ? { color: '#c5a000' } : {}}
+                  >
+                    <div className={`relative ${isActive && desktopSidebarCollapsed ? 'ring-2 ring-[var(--gold)] ring-opacity-50 rounded-lg p-1' : ''}`}>
+                      <Icon className={`w-5 h-5 ${desktopSidebarCollapsed ? '' : 'mr-3'} transition-colors ${
+                        isActive ? 'text-[var(--gold)]' : 'text-[var(--ink-300)] group-hover:text-[var(--gold)]'
+                      }`} />
+                    </div>
+                    {!desktopSidebarCollapsed && (
+                      <span className={`transition-opacity duration-200 ${isActive ? 'font-bold' : ''}`}>{item.label}</span>
+                    )}
+                  </button>
+                  
+                  {/* Tooltip for collapsed state */}
+                  {desktopSidebarCollapsed && (
+                    <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 bg-[var(--bg-900)] text-white text-sm px-3 py-2 rounded-lg shadow-lg border border-[var(--line-700)] opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-nowrap">
+                      {item.label}
+                      <div className="absolute left-0 top-1/2 transform -translate-x-1 -translate-y-1/2 w-2 h-2 bg-[var(--bg-900)] border-l border-b border-[var(--line-700)] rotate-45"></div>
+                    </div>
                   )}
-                </button>
+                </div>
               ) : (
-                <Link
-                  key={item.id}
-                  to={item.href}
-                  onClick={() => setActiveSection(item.id)}
-                  className={`sidebar-nav-link flex items-center ${desktopSidebarCollapsed ? 'px-4 justify-center' : 'px-6'} py-3 text-sm font-medium transition-all duration-200 relative group ${
-                    isActive
-                      ? 'text-[var(--gold)] border-r-2 border-[var(--gold)] bg-[var(--bg-800)]'
-                      : 'text-[var(--ink-300)]'
-                  }`}
-                  data-testid={`sidebar-${item.id}`}
-                  title={desktopSidebarCollapsed ? item.label : ''}
-                >
-                  <Icon className={`w-5 h-5 ${desktopSidebarCollapsed ? '' : 'mr-3'} transition-colors ${
-                    isActive ? 'text-[var(--gold)]' : 'text-[var(--ink-300)] group-hover:text-[var(--gold)]'
-                  }`} />
-                  {!desktopSidebarCollapsed && (
-                    <span className="transition-opacity duration-200">{item.label}</span>
+                <div key={item.id} className="relative group">
+                  <Link
+                    to={item.href}
+                    onClick={() => setActiveSection(item.id)}
+                    className={`sidebar-nav-link group flex items-center ${desktopSidebarCollapsed ? 'px-4 justify-center' : 'px-6'} py-3 text-sm font-medium transition-all duration-200 relative ${
+                      isActive
+                        ? 'text-[#c5a000] border-r-2 border-[#c5a000] bg-[var(--bg-800)]'
+                        : 'text-[var(--ink-300)] hover:text-[#c5a000] hover:bg-[var(--bg-800)] focus:text-[#c5a000]'
+                    }`}
+                    data-testid={`sidebar-${item.id}`}
+                    style={isActive ? { color: '#c5a000' } : {}}
+                  >
+                    <div className={`relative ${isActive && desktopSidebarCollapsed ? 'ring-2 ring-[var(--gold)] ring-opacity-50 rounded-lg p-1' : ''}`}>
+                      <Icon className={`w-5 h-5 ${desktopSidebarCollapsed ? '' : 'mr-3'} transition-colors ${
+                        isActive ? 'text-[var(--gold)]' : 'text-[var(--ink-300)] group-hover:text-[var(--gold)]'
+                      }`} />
+                    </div>
+                    {!desktopSidebarCollapsed && (
+                      <span className={`transition-opacity duration-200 ${isActive ? 'font-bold' : ''}`}>{item.label}</span>
+                    )}
+                  </Link>
+                  
+                  {/* Tooltip for collapsed state */}
+                  {desktopSidebarCollapsed && (
+                    <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 bg-[var(--bg-900)] text-white text-sm px-3 py-2 rounded-lg shadow-lg border border-[var(--line-700)] opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-nowrap">
+                      {item.label}
+                      <div className="absolute left-0 top-1/2 transform -translate-x-1 -translate-y-1/2 w-2 h-2 bg-[var(--bg-900)] border-l border-b border-[var(--line-700)] rotate-45"></div>
+                    </div>
                   )}
-                </Link>
+                </div>
               );
             })}
           </nav>
@@ -328,7 +527,7 @@ export default function SidebarLayout({ children, onInboxClick }: SidebarLayoutP
       <div className={`flex-1 transition-all duration-300 ease-in-out ${
         isMobile 
           ? 'pt-16' 
-          : desktopSidebarCollapsed 
+          : (desktopSidebarCollapsed || isMainMenuCollapsed)
             ? 'ml-16' 
             : 'ml-64'
       }`}>
@@ -338,7 +537,8 @@ export default function SidebarLayout({ children, onInboxClick }: SidebarLayoutP
       {/* Enhanced Left Sidebar */}
       <EnhancedLeftSidebar
         isOpen={leftSidebarOpen}
-        onClose={() => setLeftSidebarOpen(false)}
+        onClose={handleLeftSidebarClose}
+        mainMenuWidth={isMainMenuCollapsed ? 64 : 256}
         documents={[]} // This will be populated with actual documents
         onDocumentAnalyze={(doc, analysis) => {
           console.log('Document analyzed:', doc, analysis);
@@ -346,6 +546,13 @@ export default function SidebarLayout({ children, onInboxClick }: SidebarLayoutP
         onDocumentRoute={(doc, person) => {
           console.log('Document routed:', doc, person);
         }}
+      />
+
+      {/* Enhanced Reminders Sidebar */}
+      <EnhancedRemindersSidebar
+        isOpen={remindersSidebarOpen}
+        onClose={handleRemindersSidebarClose}
+        mainMenuWidth={isMainMenuCollapsed ? 64 : 256}
       />
     </div>
   );

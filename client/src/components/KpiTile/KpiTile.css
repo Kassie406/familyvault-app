@@ -1,0 +1,132 @@
+.kpi-card {
+  min-height: 148px;
+  padding: 16px;
+  border: 1px solid #25252b;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: border-color 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.kpi-card:hover {
+  border-color: #c5a000;
+}
+
+.kpi-card.button {
+  background: transparent;
+  text-align: left;
+}
+
+.kpi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.kpi-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.kpi-icon {
+  display: flex;
+  align-items: center;
+  width: 18px;
+  height: 18px;
+  color: inherit;
+}
+
+.kpi-icon svg {
+  width: 18px;
+  height: 18px;
+  color: inherit;
+}
+
+.meta {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  opacity: 0.8;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.kpi-value {
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 600;
+  color: #D4AF37;
+  margin-top: auto;
+}
+
+/* Ensure icons inherit text color */
+.kpi-card * {
+  color: inherit;
+}
+
+/* Focus states for accessibility */
+.kpi-card:focus {
+  outline: 2px solid #c5a000;
+  outline-offset: 2px;
+}
+
+/* Remove default button styles when used as button */
+.kpi-card[role="button"],
+button.kpi-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid #25252b;
+}
+
+button.kpi-card:hover {
+  border-color: #c5a000;
+}
+
+/* Mask sensitive values until hover/focus */
+.mask-on-blur {
+  filter: blur(6px);
+  transition: filter 0.2s ease;
+}
+
+.mask-on-blur:hover,
+.mask-on-blur:focus {
+  filter: none;
+}
+
+/* Error fallback styling */
+.error-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 148px;
+}
+
+.alert-inline {
+  padding: 8px 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+  color: #fca5a5;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* Updated timestamp styling */
+.kpi-updated {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  opacity: 0.8;
+}

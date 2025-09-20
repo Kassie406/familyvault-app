@@ -18,6 +18,7 @@ import { calendarRouter } from "./routes/calendar";
 import familyMeetingsRouter from "./routes/family-meetings";
 import { aiInboxRouter } from "./routes/ai-inbox";
 import aiAgentRouter from "./routes/ai-agent";
+import { getActivity, markActivityRead, markAllActivityRead, emitActivity } from "./routes/activity";
 import axios from "axios";
 import { sendSMSNotification } from "./lib/twilio";
 import { sendSMSNotificationsForMessage, markUserOnline, markUserOffline } from "./lib/sms-notifications";
@@ -154,6 +155,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount SMS routes
   app.use("/api", smsRoutes);
+
+  // Activity API endpoints
+  app.get("/api/activity", getActivity);
+  app.post("/api/activity/mark-read", markActivityRead);
+  app.post("/api/activity/mark-all-read", markAllActivityRead);
+  app.post("/api/activity/emit", emitActivity);
 
   const httpServer = createServer(app);
   

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { Search, Plus, MoreVertical, Heart, Shield, Car, Home, Umbrella, HelpCircle, MoreHorizontal, Edit2, Check, X } from 'lucide-react';
+import { Search, Plus, MoreVertical, Heart, Shield, Car, Home, Umbrella, HelpCircle, MoreHorizontal, Edit2, Check, X, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -337,9 +337,26 @@ export default function FamilyInsurance() {
               <HelpCircle className="h-4 w-4 mr-2" />
               Help
             </Button>
+            
             <div className="w-8 h-8 rounded-full bg-[var(--gold)] flex items-center justify-center">
               <span className="text-black text-sm font-medium">KC</span>
             </div>
+            
+            {/* Notification Bell with Badge */}
+            <button 
+              className="relative p-2 rounded-lg hover:bg-white/10 transition-colors"
+              onClick={() => {
+                // TODO: Open inbox/notifications
+                console.log('Open notifications');
+              }}
+              data-testid="button-notifications"
+            >
+              <Bell className="h-5 w-5 text-white/70" />
+              {/* Badge */}
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                3
+              </span>
+            </button>
           </div>
         </div>
       </LuxuryCard>

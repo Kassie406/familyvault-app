@@ -1,0 +1,116 @@
+/* Reusable dashboard card shell — matches KPI tiles exactly */
+.dash-card {
+  /* Exact background gradient from StatCard */
+  background: linear-gradient(to bottom, rgba(39, 39, 42, 0.6), rgba(9, 9, 11, 0.7));
+  
+  /* Exact border and styling */
+  border: 1px solid rgba(39, 39, 42, 0.8);
+  border-radius: 1rem; /* rounded-2xl = 16px */
+  padding: 1.25rem; /* p-5 = 20px */
+  min-height: 148px;
+  display: flex;
+  flex-direction: column;
+  
+  /* Exact inset shadows from StatCard */
+  box-shadow: 
+    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  
+  /* Smooth transitions */
+  transition: all 0.3s ease;
+  
+  /* Group behavior for hover effects */
+  position: relative;
+}
+
+.dash-card:hover { 
+  /* Exact hover background from StatCard */
+  background: 
+    linear-gradient(to bottom, rgba(39, 39, 42, 0.6), rgba(9, 9, 11, 0.7)),
+    rgba(212, 175, 55, 0.08); /* #D4AF37 with 8% opacity */
+}
+
+.dash-card:focus-within {
+  outline: none;
+  box-shadow: 
+    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 0 0 2px rgba(251, 191, 36, 0.4); /* focus:ring-amber-400/40 */
+}
+
+.dash-title { 
+  display: flex; 
+  align-items: center; 
+  gap: 0.75rem; /* gap-3 = 12px */
+  font-weight: 700; /* font-bold */
+  font-size: 0.875rem; /* text-sm */
+  color: white;
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+.dash-card:hover .dash-title {
+  color: #D4AF37; /* group-hover:text-[#D4AF37] */
+}
+
+.dash-title .dash-icon {
+  height: 1.5rem; /* h-6 */
+  width: 1.5rem; /* w-6 */
+  color: rgba(251, 191, 36, 0.7); /* text-amber-400/70 */
+  transition: all 0.3s ease;
+}
+
+.dash-card:hover .dash-title .dash-icon {
+  color: rgb(251, 191, 36); /* group-hover:text-amber-400 */
+  filter: drop-shadow(0 10px 8px rgba(212, 175, 55, 0.3)); /* group-hover:shadow-[#D4AF37]/30 */
+}
+
+.dash-meta { 
+  position: absolute; 
+  top: 0.75rem; /* top-3 */
+  right: 0.75rem; /* right-3 */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.375rem; /* rounded-md */
+  padding: 0.25rem 0.5rem; /* px-2 py-1 */
+  font-size: 0.75rem; /* text-xs */
+  font-weight: 500; /* font-medium */
+  color: rgb(113, 113, 122); /* text-zinc-500 */
+  transition: color 0.3s ease;
+}
+
+.dash-meta:hover {
+  color: rgb(251, 191, 36); /* hover:text-amber-400 */
+}
+
+.dash-meta:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.4); /* focus:ring-amber-400/40 */
+}
+
+.kpi-value { 
+  font-size: 1.75rem; /* text-[28px] */
+  line-height: 2.125rem; /* leading-[34px] */
+  font-weight: 600; /* font-semibold */
+  color: #D4AF37; /* text-[#D4AF37] */
+  margin-top: auto; /* flex-1 flex items-end equivalent */
+}
+
+/* Additional utility classes for consistency */
+.dash-card .dash-content {
+  background: transparent;
+  border: none;
+}
+
+.dash-card .dash-item {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.dash-card .dash-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}

@@ -14,7 +14,8 @@ import {
   User,
   Sparkles,
   FileImage,
-  Eye
+  Eye,
+  Bell
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
@@ -447,12 +448,29 @@ export default function Inbox() {
           <div className="flex items-center justify-center gap-2 mb-2">
             <FileText className="h-8 w-8 text-[#D4AF37]" />
             <h1 className="text-3xl font-bold">Inbox</h1>
-            <button
-              className="ml-4 p-2 text-gray-400 hover:text-white transition-colors"
-              data-testid="button-close-inbox"
-            >
-              <X className="h-6 w-6" />
-            </button>
+            <div className="flex items-center gap-2 ml-4">
+              <button
+                className="p-2 text-gray-400 hover:text-white transition-colors"
+                data-testid="button-close-inbox"
+              >
+                <X className="h-6 w-6" />
+              </button>
+              {/* Notification Bell with Badge */}
+              <button 
+                className="relative p-2 rounded-lg hover:bg-white/10 transition-colors"
+                onClick={() => {
+                  // TODO: Open notifications
+                  console.log('Open notifications');
+                }}
+                data-testid="button-notifications"
+              >
+                <Bell className="h-5 w-5 text-white/70" />
+                {/* Badge */}
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                  3
+                </span>
+              </button>
+            </div>
           </div>
           <p className="text-gray-400">
             Drop files, forward emails, or browse to add documents to your family vault.

@@ -215,6 +215,19 @@ export function ActivityFeed({ limit = 10, showFilters = true, className = '' }:
           </div>
           
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                // Quick add activity - could open a modal or trigger an action
+                const activityType = prompt('Add activity (message/upload/event):');
+                if (activityType) {
+                  alert(`Would add ${activityType} activity`);
+                }
+              }}
+              className="px-3 py-1.5 text-xs rounded-lg bg-[#c5a000] text-black font-medium hover:brightness-110 transition-all"
+              data-testid="button-add-activity"
+            >
+              + Add
+            </button>
             {showFilters && (
               <button
                 onClick={() => setShowFiltersPanel(!showFiltersPanel)}
@@ -298,8 +311,14 @@ export function ActivityFeed({ limit = 10, showFilters = true, className = '' }:
           </div>
         ) : filteredActivities.length === 0 ? (
           <div className="text-center py-8 text-white/60">
-            <Activity className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p>No recent activity</p>
+            <div className="text-4xl mb-3">💬</div>
+            <p className="text-white/70 mb-4">Start your first family conversation</p>
+            <button
+              onClick={() => window.location.href = '/inbox/new'}
+              className="px-4 py-2 bg-[#D4AF37] text-black font-medium rounded-lg hover:bg-[#D4AF37]/80 transition-colors"
+            >
+              Send Message
+            </button>
           </div>
         ) : (
           <div className="space-y-4">

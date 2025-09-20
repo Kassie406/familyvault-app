@@ -7,6 +7,7 @@ export interface UploadedItem {
   status: "pending" | "analyzing" | "complete" | "error";
   mode: string;
   analyzed: boolean;
+  backendId?: string;
   result?: {
     extractedData?: Record<string, any>;
     extractedText?: string;

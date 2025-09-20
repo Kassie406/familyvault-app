@@ -53,6 +53,19 @@ import PhotosShared from '@/pages/photos-shared';
 import FamilyMeeting from '@/pages/family-meeting';
 import AuthCallback from '@/auth/AuthCallback';
 import UploadCenter from '@/pages/upload-center';
+import EditProfile from '@/pages/family/profile';
+import ManageFamilyMembers from '@/pages/family/members';
+import PrivacySecurity from '@/pages/family/privacy';
+import AISettings from '@/pages/family/ai-settings';
+import ActivityPage from '@/pages/activity';
+import QuickCall from '@/pages/emergency/quick-call';
+import EmergencyPlan from '@/pages/emergency/emergency-plan';
+import ContactList from '@/pages/emergency/contact-list';
+import SharedLists from '@/pages/family/shared-lists';
+import RecipeBook from '@/pages/family/recipe-book';
+import BudgetTracker from '@/pages/family/budget-tracker';
+import MealPlanner from '@/pages/family/meal-planner';
+import FamilyVacation from '@/pages/family/family-vacation';
 
 // Placeholder components for family portal pages
 function FamilyMembers() {
@@ -218,7 +231,6 @@ export default function FamilyRouter() {
         <Route path="/family/bereavement/support" component={withSidebarLayout(() => <BereavementSectionPage title="Support Resources" createTo="/family/bereavement/new/support" />)} />
         <Route path="/family/bereavement/notifications" component={withSidebarLayout(() => <BereavementSectionPage title="Notifications" createTo="/family/bereavement/new/notification" />)} />
         <Route path="/family/bereavement/memorial" component={withSidebarLayout(() => <BereavementSectionPage title="Memorial & Legacy" createTo="/family/bereavement/new/memorial" />)} />
-        <Route path="/family/members" component={withSidebarLayout(FamilyMembers)} />
         <Route path="/family/documents" component={withSidebarLayout(FamilyDocuments)} />
         <Route path="/family/inbox" component={withSidebarLayout(FamilyHome)} />
         <Route path="/inbox" component={withSidebarLayout(FamilyHome)} />
@@ -235,6 +247,34 @@ export default function FamilyRouter() {
         <Route path="/family/settings" component={withSidebarLayout(() => <FamilySettings />)} />
         <Route path="/family/api-management" component={withSidebarLayout(() => <ApiManagement />)} />
         <Route path="/family/approvals" component={withSidebarLayout(() => <ApprovalsPage />)} />
+        
+        {/* Profile Dropdown Pages */}
+        <Route path="/family/profile" component={() => <EditProfile />} />
+        <Route path="/family/manage" component={() => <ManageFamilyMembers />} />
+        <Route path="/family/privacy" component={() => <PrivacySecurity />} />
+        <Route path="/family/ai-settings" component={() => <AISettings />} />
+        <Route path="/activity" component={() => <ActivityPage />} />
+        
+        {/* Emergency Contact Pages */}
+        <Route path="/emergency/quick-call" component={withSidebarLayout(() => <QuickCall />)} />
+        <Route path="/emergency/emergency-plan" component={withSidebarLayout(() => <EmergencyPlan />)} />
+        <Route path="/emergency/contact-list" component={withSidebarLayout(() => <ContactList />)} />
+        
+        {/* Shared Lists Page */}
+        <Route path="/family/shared-lists" component={withSidebarLayout(() => <SharedLists />)} />
+        
+        {/* Recipe Book Page */}
+        <Route path="/family/recipe-book" component={withSidebarLayout(() => <RecipeBook />)} />
+        
+        {/* Budget Tracker Page */}
+        <Route path="/family/budget-tracker" component={withSidebarLayout(() => <BudgetTracker />)} />
+        
+        {/* Meal Planner Page */}
+        <Route path="/family/meal-planner" component={withSidebarLayout(() => <MealPlanner />)} />
+        
+        {/* Family Vacation Page */}
+        <Route path="/family/family-vacation" component={withSidebarLayout(() => <FamilyVacation />)} />
+        
         <Route component={withSidebarLayout(FamilyHome)} />
       </Switch>
       

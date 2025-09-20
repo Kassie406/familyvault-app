@@ -198,13 +198,16 @@ const FamilyUpdates = forwardRef<{ refresh: () => Promise<void> }>((props, ref) 
   if (updates.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center">
-        <Bell className="h-12 w-12 text-white/20 mb-4" />
-        <div className="text-white/60 text-sm">
-          No updates right now
+        <div className="text-4xl mb-3">📸</div>
+        <div className="text-white/70 text-sm mb-4">
+          Share a family moment
         </div>
-        <div className="text-white/40 text-xs mt-1">
-          We'll notify you of important reminders and notices
-        </div>
+        <button
+          onClick={() => window.location.href = '/upload?type=photo'}
+          className="px-4 py-2 bg-[#D4AF37] text-black font-medium rounded-lg hover:bg-[#D4AF37]/80 transition-colors"
+        >
+          Upload Photo
+        </button>
       </div>
     );
   }
@@ -214,7 +217,7 @@ const FamilyUpdates = forwardRef<{ refresh: () => Promise<void> }>((props, ref) 
       {/* Header with snoozed count badge */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
-          <h3 className="text-lg font-medium text-white">Family Updates</h3>
+          <h3 className="text-lg font-medium text-white">Family Moments</h3>
           {snoozedCount > 0 && (
             <span className="text-xs px-2 py-0.5 rounded-full border border-[#D4AF37]/30 text-[#D4AF37] bg-[#D4AF37]/5">
               {snoozedCount} snoozed
@@ -222,6 +225,19 @@ const FamilyUpdates = forwardRef<{ refresh: () => Promise<void> }>((props, ref) 
           )}
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              // Quick add update - could open a modal or trigger an action
+              const updateTitle = prompt('Add family update:');
+              if (updateTitle) {
+                alert(`Would add update: ${updateTitle}`);
+              }
+            }}
+            className="px-3 py-1.5 text-xs rounded-lg bg-[#c5a000] text-black font-medium hover:brightness-110 transition-all"
+            data-testid="button-add-update"
+          >
+            + Add
+          </button>
           {/* Refresh button */}
           <button
             onClick={handleRefresh}

@@ -26,6 +26,7 @@ export function SharedCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<"month" | "week">("month");
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [focusedDayIndex, setFocusedDayIndex] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -50,11 +51,13 @@ export function SharedCalendar() {
   // Add event mutation
   const addEventMutation = useMutation({
     mutationFn: async (eventData: Partial<CalendarEvent>) => {
-      await apiRequest('/api/calendar/events', {
+      const response = await fetch('/api/calendar/events', {
         method: 'POST',
         body: JSON.stringify(eventData),
         headers: { 'Content-Type': 'application/json' },
       });
+      if (!response.ok) throw new Error('Failed to create event');
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -153,6 +156,31 @@ export function SharedCalendar() {
     });
   };
 
+  // Keyboard navigation handler
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    const cols = 7;
+    const totalDays = 42;
+    
+    switch (e.key) {
+      case 'ArrowRight':
+        e.preventDefault();
+        setFocusedDayIndex(prev => Math.min(prev + 1, totalDays - 1));
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        setFocusedDayIndex(prev => Math.max(prev - 1, 0));
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        setFocusedDayIndex(prev => Math.min(prev + cols, totalDays - 1));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setFocusedDayIndex(prev => Math.max(prev - cols, 0));
+        break;
+    }
+  };
+
   const renderCalendarGrid = () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -170,7 +198,13 @@ export function SharedCalendar() {
     }
 
     return (
-      <div className="grid grid-cols-7 gap-1">
+      <div 
+        role="grid" 
+        aria-label="Calendar month view"
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        className="grid grid-cols-7 gap-1 outline-none"
+      >
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
           <div key={day} className="p-2 text-center text-sm font-medium text-zinc-400">
             {day}
@@ -179,19 +213,40 @@ export function SharedCalendar() {
         {days.map((date, index) => {
           const isCurrentMonth = date.getMonth() === month;
           const isToday = date.toDateString() === new Date().toDateString();
+          const isFocused = index === focusedDayIndex;
           const dayEvents = getEventsForDate(date);
           
           return (
             <div
               key={index}
+              role="gridcell"
+              tabIndex={isFocused ? 0 : -1}
+              onFocus={() => setFocusedDayIndex(index)}
               className={`min-h-[80px] p-1 border border-zinc-800/50 rounded-lg transition-colors ${
                 isCurrentMonth 
                   ? 'bg-zinc-900/40 hover:bg-zinc-800/60' 
                   : 'bg-zinc-950/20 text-zinc-600'
-              } ${isToday ? 'ring-2 ring-[#D4AF37]/50' : ''}`}
+              } ${isToday ? 'ring-2 ring-[#D4AF37]/50' : ''} ${
+                isFocused ? 'ring-2 ring-blue-400/50' : ''
+              }`}
             >
-              <div className={`text-sm mb-1 ${isToday ? 'font-bold text-[#D4AF37]' : isCurrentMonth ? 'text-white' : 'text-zinc-600'}`}>
-                {date.getDate()}
+              <div className="flex items-center justify-between mb-1">
+                <div className={`text-sm ${isToday ? 'font-bold text-[#D4AF37]' : isCurrentMonth ? 'text-white' : 'text-zinc-600'}`}>
+                  {date.getDate()}
+                </div>
+                {/* Multi-event dots (up to 3) */}
+                {dayEvents.length > 0 && (
+                  <div className="flex gap-0.5">
+                    {dayEvents.slice(0, 3).map((event: CalendarEvent, dotIndex: number) => (
+                      <div
+                        key={`${event.id}-dot`}
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{ backgroundColor: event.color }}
+                        title={event.title}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="space-y-1">
                 {dayEvents.slice(0, 2).map((event: CalendarEvent) => (
@@ -415,6 +470,31 @@ export function SharedCalendar() {
                 Week view coming soon
               </div>
             )}
+          </div>
+        )}
+
+        {/* Upcoming Events (next 3) */}
+        {events.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-zinc-800">
+            <h5 className="text-sm font-medium text-white/80 mb-3">Upcoming</h5>
+            <ul className="space-y-1">
+              {events
+                .filter((event: CalendarEvent) => new Date(event.startDate) >= new Date())
+                .sort((a: CalendarEvent, b: CalendarEvent) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+                .slice(0, 3)
+                .map((event: CalendarEvent) => (
+                  <li key={event.id} className="flex items-center gap-2 text-sm">
+                    <span className="w-2 h-2 rounded-full bg-[#c5a000]" />
+                    <span className="opacity-80 text-white/70">
+                      {new Date(event.startDate).toLocaleDateString(undefined, { 
+                        month: 'short', 
+                        day: 'numeric' 
+                      })}
+                    </span>
+                    <span className="truncate text-white">{event.title}</span>
+                  </li>
+                ))}
+            </ul>
           </div>
         )}
       </div>

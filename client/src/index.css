@@ -4,6 +4,101 @@
 @tailwind components;
 @tailwind utilities;
 
+:root { --brand-gold: #c5a000; }
+
+/* ONLY fix Inbox hover - override Tailwind classes and inline styles */
+button[data-testid="sidebar-inbox"]:hover,
+button[data-testid="mobile-sidebar-inbox"]:hover,
+.sidebar-nav-link[data-testid="sidebar-inbox"]:hover,
+.sidebar-nav-link[data-testid="mobile-sidebar-inbox"]:hover {
+  /* Override the hover:bg-[var(--bg-800)] Tailwind class */
+  background-color: rgba(212, 175, 55, 0.1) !important;
+  /* Ensure text stays gold */
+  color: #c5a000 !important;
+  /* Add the gold border line */
+  border-right: 2px solid #c5a000 !important;
+}
+
+/* Fix the text span specifically */
+button[data-testid="sidebar-inbox"]:hover span,
+button[data-testid="mobile-sidebar-inbox"]:hover span,
+.sidebar-nav-link[data-testid="sidebar-inbox"]:hover span,
+.sidebar-nav-link[data-testid="mobile-sidebar-inbox"]:hover span {
+  color: #c5a000 !important;
+}
+
+/* Fix the icon specifically */
+button[data-testid="sidebar-inbox"]:hover svg,
+button[data-testid="mobile-sidebar-inbox"]:hover svg,
+.sidebar-nav-link[data-testid="sidebar-inbox"]:hover svg,
+.sidebar-nav-link[data-testid="mobile-sidebar-inbox"]:hover svg {
+  color: #c5a000 !important;
+}
+
+/* ALSO fix Reminders hover - same treatment as Inbox */
+button[data-testid="sidebar-reminders"]:hover,
+button[data-testid="mobile-sidebar-reminders"]:hover,
+.sidebar-nav-link[data-testid="sidebar-reminders"]:hover,
+.sidebar-nav-link[data-testid="mobile-sidebar-reminders"]:hover {
+  /* Override the hover:bg-[var(--bg-800)] Tailwind class */
+  background-color: rgba(212, 175, 55, 0.1) !important;
+  /* Ensure text stays gold */
+  color: #c5a000 !important;
+  /* Add the gold border line */
+  border-right: 2px solid #c5a000 !important;
+}
+
+/* Fix the text span specifically for Reminders */
+button[data-testid="sidebar-reminders"]:hover span,
+button[data-testid="mobile-sidebar-reminders"]:hover span,
+.sidebar-nav-link[data-testid="sidebar-reminders"]:hover span,
+.sidebar-nav-link[data-testid="mobile-sidebar-reminders"]:hover span {
+  color: #c5a000 !important;
+}
+
+/* Fix the icon specifically for Reminders */
+button[data-testid="sidebar-reminders"]:hover svg,
+button[data-testid="mobile-sidebar-reminders"]:hover svg,
+.sidebar-nav-link[data-testid="sidebar-reminders"]:hover svg,
+.sidebar-nav-link[data-testid="mobile-sidebar-reminders"]:hover svg {
+  color: #c5a000 !important;
+}
+
+/* ===== INBOX SIDEBAR BUTTON SHIMMER EFFECTS ===== */
+/* Shimmer overlay for premium button effects */
+.shimmer-overlay {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+  pointer-events: none;
+}
+
+/* Trigger shimmer on button hover */
+.upload-method-button:hover .shimmer-overlay {
+  left: 100%;
+}
+
+/* Enhanced hover effects for inbox sidebar buttons */
+.upload-method-button:hover {
+  transform: translateY(-2px);
+}
+
+.upload-method-button.browse-files:hover {
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4) !important;
+}
+
+.upload-method-button.take-photo:hover {
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4) !important;
+}
+
+.upload-method-button.mobile-upload:hover {
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4) !important;
+}
+
 /* ===== shadcn/Radix UI Accent Override ===== */
 :root {
   --accent: rgba(212, 175, 55, 0.08);
@@ -1033,9 +1128,88 @@ div:hover .stable-add-button,
 }
 
 /* Optional: slim scrollbar style */
-.sidebar__scroll::-webkit-scrollbar{ width:10px }
-.sidebar__scroll::-webkit-scrollbar-thumb{ background:#2b3446; border-radius:8px }
-.sidebar__scroll::-webkit-scrollbar-track{ background:transparent }
+.sidebar__scroll::-webkit-scrollbar { 
+  width: 12px;
+}
+.sidebar__scroll::-webkit-scrollbar-track {
+  background: #1F1F26;
+  border-radius: 6px;
+}
+.sidebar__scroll::-webkit-scrollbar-thumb { 
+  background: #4A4A52; 
+  border-radius: 6px;
+  border: 2px solid #1F1F26;
+}
+.sidebar__scroll::-webkit-scrollbar-thumb:hover {
+  background: #5A5A62;
+}
+.sidebar__scroll::-webkit-scrollbar-corner {
+  background: #1F1F26;
+}
+.sidebar__scroll {
+  scrollbar-width: auto;
+  scrollbar-color: #4A4A52 #1F1F26;
+}
+
+/* Main navigation sidebar scrollbar styling */
+#desktop-sidebar-nav::-webkit-scrollbar,
+#mobile-sidebar-nav::-webkit-scrollbar {
+  width: 12px;
+}
+#desktop-sidebar-nav::-webkit-scrollbar-track,
+#mobile-sidebar-nav::-webkit-scrollbar-track {
+  background: #1F1F26;
+  border-radius: 6px;
+}
+#desktop-sidebar-nav::-webkit-scrollbar-thumb,
+#mobile-sidebar-nav::-webkit-scrollbar-thumb {
+  background: #4A4A52;
+  border-radius: 6px;
+  border: 2px solid #1F1F26;
+}
+#desktop-sidebar-nav::-webkit-scrollbar-thumb:hover,
+#mobile-sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: #5A5A62;
+}
+#desktop-sidebar-nav::-webkit-scrollbar-corner,
+#mobile-sidebar-nav::-webkit-scrollbar-corner {
+  background: #1F1F26;
+}
+#desktop-sidebar-nav,
+#mobile-sidebar-nav {
+  scrollbar-width: auto;
+  scrollbar-color: #4A4A52 #1F1F26;
+}
+
+/* Main page/body scrollbar styling */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 12px;
+}
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: #1F1F26;
+  border-radius: 6px;
+}
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  background: #4A4A52;
+  border-radius: 6px;
+  border: 2px solid #1F1F26;
+}
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+  background: #5A5A62;
+}
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner {
+  background: #1F1F26;
+}
+html,
+body {
+  scrollbar-width: auto;
+  scrollbar-color: #4A4A52 #1F1F26;
+}
 
 /* If any wrapper was clipping popovers/menus, neutralize it */
 #app, .page, .content-wrap, .main { overflow: visible !important; transform: none !important; contain: none !important; }
@@ -4542,6 +4716,44 @@ a:hover,
   color: #D4AF37 !important; /* Gold icon color */
 }
 
+/* --- Family IDs submenu: force light gold hover background --- */
+[data-radix-popper-content-wrapper] a.sidebar-nav-link:hover,
+.family-ids-submenu a.sidebar-nav-link:hover {
+  background-color: rgba(212, 175, 55, 0.14) !important; /* #D4AF37 @14% */
+  color: #D4AF37 !important; /* Gold text color */
+}
+
+[data-radix-popper-content-wrapper] a.sidebar-nav-link:hover .w-5,
+.family-ids-submenu a.sidebar-nav-link:hover .w-5 {
+  color: #D4AF37 !important; /* Gold icon color */
+}
+
+/* --- User profile dropdown menu: force light gold hover background --- */
+[data-radix-popper-content-wrapper] [role="menuitem"]:hover,
+.user-profile-menu [role="menuitem"]:hover,
+.profile-dropdown [role="menuitem"]:hover {
+  background-color: rgba(212, 175, 55, 0.14) !important; /* #D4AF37 @14% */
+  color: #D4AF37 !important; /* Gold text color */
+  border: none !important; /* Remove gold border */
+  outline: none !important; /* Remove any outline */
+  box-shadow: none !important; /* Remove any box shadow */
+}
+
+[data-radix-popper-content-wrapper] [role="menuitem"]:hover svg,
+.user-profile-menu [role="menuitem"]:hover svg,
+.profile-dropdown [role="menuitem"]:hover svg {
+  color: #D4AF37 !important; /* Gold icon color */
+}
+
+/* Remove borders from all dropdown menu items */
+[data-radix-popper-content-wrapper] [role="menuitem"],
+.user-profile-menu [role="menuitem"],
+.profile-dropdown [role="menuitem"] {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 #desktop-sidebar-nav a.sidebar-nav-link:active,
 #mobile-sidebar-nav a.sidebar-nav-link:active {
   background-color: rgba(212, 175, 55, 0.20) !important;
@@ -5264,5 +5476,67 @@ dialog[aria-label="Quick Access"] button[data-testid^="filter-"] *{
   
   .upload-content {
     padding: 2rem;
+  }
+}
+
+/* ===== ICE Print Styling for PDF Output ===== */
+@media print {
+  .ice-print {
+    background: #fff !important;
+    color: #000 !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 1in !important;
+    page-break-inside: avoid;
+  }
+  
+  .ice-print h2,
+  .ice-print h3,
+  .ice-print h4 {
+    font-size: 20pt !important;
+    color: #000 !important;
+    margin-bottom: 12pt !important;
+  }
+  
+  .ice-print .ice-actions {
+    display: none !important;
+  }
+  
+  .ice-print section {
+    page-break-inside: avoid;
+    margin-bottom: 12pt !important;
+    background: #fff !important;
+    border: 1px solid #000 !important;
+    padding: 8pt !important;
+  }
+  
+  .ice-print .rounded-xl {
+    border-radius: 0 !important;
+  }
+  
+  .ice-print .text-white,
+  .ice-print .text-zinc-400,
+  .ice-print .text-zinc-300 {
+    color: #000 !important;
+  }
+  
+  .ice-print .bg-zinc-900,
+  .ice-print .bg-zinc-800 {
+    background: #fff !important;
+  }
+  
+  .ice-print .border-zinc-800 {
+    border-color: #000 !important;
+  }
+  
+  .ice-print .text-[#D4AF37],
+  .ice-print .text-[#c5a000] {
+    color: #000 !important;
+    font-weight: bold !important;
+  }
+  
+  .ice-print .border-[#c5a000] {
+    border-color: #000 !important;
   }
 }

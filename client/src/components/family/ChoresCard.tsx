@@ -4,6 +4,7 @@ import CreateChoreModal from "./CreateChoreModal";
 import { api } from "@/lib/api";
 import { withTimeout } from "@/lib/time";
 import "@/styles/chores-card.css";
+import "@/styles/dashboard-card.css";
 
 type Member = { id: string; name: string; role: "parent"|"teen"|"child" };
 type Chore = {
@@ -143,18 +144,24 @@ export default function ChoresCard({ currentUser }: ChoresCardProps) {
   return (
     <>
       <Card id="chores">
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-white/80 font-medium">Chores & Allowance</div>
-          {isParent && (
-            <button 
-              onClick={() => setCreateModalOpen(true)} 
-              className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#D4AF37] text-black font-semibold hover:brightness-110 transition-all text-sm"
-            >
-              <Plus className="w-4 h-4" />
-              New Chore
-            </button>
-          )}
-        </div>
+        <header className="dash-title relative mb-4">
+          <span>Chores & Allowance</span>
+          <button className="dash-meta" type="button">
+            Recent
+            <svg className="h-4 w-4 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </header>
+        {isParent && (
+          <button 
+            onClick={() => setCreateModalOpen(true)} 
+            className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#D4AF37] text-black font-semibold hover:brightness-110 transition-all text-sm mb-4"
+          >
+            <Plus className="w-4 h-4" />
+            New Chore
+          </button>
+        )}
 
         <div className="flex gap-2 mb-3" id="chores-tabs">
           <Tab current={tab === "mine"} onClick={() => setTab("mine")} className="qa-tab">My chores</Tab>
@@ -164,6 +171,8 @@ export default function ChoresCard({ currentUser }: ChoresCardProps) {
         {tab === "mine" && (
           <List
             rows={mine}
+            isParent={isParent}
+            onNewChore={() => setCreateModalOpen(true)}
             renderAction={(r) => (
               r.status === "todo" ? (
                 <Primary onClick={() => markDone(r.id)}>Mark done</Primary>
@@ -182,6 +191,8 @@ export default function ChoresCard({ currentUser }: ChoresCardProps) {
         {tab === "family" && (
           <List
             rows={family}
+            isParent={isParent}
+            onNewChore={() => setCreateModalOpen(true)}
             renderAction={(r) => (
               r.status === "done" && isParent ? (
                 <div className="flex gap-2">
@@ -232,75 +243,109 @@ export default function ChoresCard({ currentUser }: ChoresCardProps) {
   );
 }
 
-function List({ rows, renderAction }: { 
+function List({ rows, renderAction, isParent, onNewChore }: { 
   rows: Chore[]; 
-  renderAction: (r: Chore) => React.ReactNode 
+  renderAction: (r: Chore) => React.ReactNode;
+  isParent?: boolean;
+  onNewChore?: () => void;
 }) {
+  const total = rows.length;
+  const done = rows.filter(r => r.status === "approved").length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+
   if (!rows.length) {
     return (
-      <div className="text-center py-8 text-white/60">
-        <User className="w-12 h-12 mx-auto mb-3 opacity-50" />
-        <div>No chores here</div>
-        <div className="text-sm text-white/40 mt-1">Add one to get started!</div>
+      <div className="text-center py-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm opacity-80 text-white/70">🧹 No chores yet — add your first chore</div>
+            <div className="text-xs text-white/50 mt-1">Tip: start with repeating chores (daily/weekly)</div>
+          </div>
+          {isParent && onNewChore && (
+            <button 
+              className="px-3 py-1.5 rounded-lg bg-[#D4AF37] text-black font-medium hover:brightness-110 transition-all text-sm"
+              onClick={onNewChore}
+              data-new-chore
+            >
+              + New Chore
+            </button>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-      {rows.map(r => (
-        <div 
-          key={r.id} 
-          className={`flex items-center justify-between rounded-lg border border-white/10 bg-black/40 p-3 transition-colors ${
-            r.status === "done" ? "border-amber-500/30" : 
-            r.status === "approved" ? "border-emerald-500/30" : 
-            "hover:bg-black/60"
-          }`}
-        >
-          <div className="min-w-0 flex-1 mr-4">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-white font-medium">{r.title}</span>
-              {r.status === "done" && (
-                <AlertCircle className="w-4 h-4 text-amber-400" />
-              )}
-              {r.status === "approved" && (
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              )}
-            </div>
-            
-            {r.details && (
-              <div className="text-white/60 text-sm truncate mb-1">
-                {r.details}
-              </div>
-            )}
-            
-            <div className="flex items-center gap-3 text-xs text-white/50">
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                Due {new Date(r.dueAt).toLocaleDateString()}
-              </div>
-              <div className="flex items-center gap-1">
-                <User className="w-3 h-3" />
-                {r.assignee?.name || "Unassigned"}
-              </div>
-              <div className="text-[#D4AF37]">
-                {r.points} pts
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex-shrink-0">
-            {renderAction(r)}
-          </div>
+    <div className="space-y-3">
+      {/* Progress Bar */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="h-2 w-40 bg-[#1f1f26] rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-[#c5a000] transition-all duration-300" 
+            style={{ width: `${pct}%` }} 
+          />
         </div>
-      ))}
+        <span className="text-xs px-2 py-1 rounded-full border border-[#25252b] text-white/80">
+          {pct}%
+        </span>
+      </div>
+
+      {/* Chore Items */}
+      <div className="space-y-2">
+        {rows.map(r => (
+          <div 
+            key={r.id} 
+            className={`flex items-center justify-between rounded-lg border border-white/10 bg-transparent p-3 transition-colors ${
+              r.status === "done" ? "border-amber-500/30" : 
+              r.status === "approved" ? "border-emerald-500/30" : 
+              "hover:bg-white/5"
+            }`}
+          >
+            <div className="min-w-0 flex-1 mr-4">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-white font-medium">{r.title}</span>
+                {r.status === "done" && (
+                  <AlertCircle className="w-4 h-4 text-amber-400" />
+                )}
+                {r.status === "approved" && (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                )}
+              </div>
+              
+              {r.details && (
+                <div className="text-white/60 text-sm truncate mb-1">
+                  {r.details}
+                </div>
+              )}
+              
+              <div className="flex items-center gap-3 text-xs text-white/50">
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  Due {new Date(r.dueAt).toLocaleDateString()}
+                </div>
+                <div className="flex items-center gap-1">
+                  <User className="w-3 h-3" />
+                  {r.assignee?.name || "Unassigned"}
+                </div>
+                <div className="text-[#D4AF37]">
+                  {r.points} pts
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex-shrink-0">
+              {renderAction(r)}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 function Card({ children, id }: { children: React.ReactNode; id?: string }) {
   return (
-    <section id={id} className="rounded-2xl border border-white/10 bg-white/5 p-4 h-auto flex flex-col">
+    <section id={id} className="dash-card">
       {children}
     </section>
   );

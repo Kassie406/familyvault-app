@@ -86,7 +86,7 @@ export function StatCard({
     }
   }
 
-  const baseClassName = "group no-hover-bg rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] hover:bg-[#D4AF37]/8 focus:outline-none focus:ring-2 focus:ring-amber-400/40 transition-all duration-300";
+  const baseClassName = "group no-hover-bg rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/70 p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_0_0_1px_rgba(255,255,255,0.03)_inset] hover:bg-[#D4AF37]/8 focus:outline-none focus:ring-2 focus:ring-amber-400/40 transition-all duration-300 min-h-[148px] flex flex-col";
   
   return (
     <div ref={wrapRef} className="relative">
@@ -113,29 +113,31 @@ export function StatCard({
             </span>
           </div>
 
-          {/* The ONLY trigger for the preview */}
-          <button
-            type="button"
-            aria-expanded={open}
-            aria-controls={`stat-preview-${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'custom'}`}
-            className="inline-flex items-center gap-1 rounded-md px-3 py-2
-                       text-xs font-medium text-zinc-500 hover:text-amber-400
-                       focus:outline-none focus:ring-2 focus:ring-amber-400/40
-                       touch-manipulation min-h-[44px] md:min-h-0 md:px-2 md:py-1"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              togglePreview();
-            }}
-          >
-            Recent
-            <ChevronDown
-              className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
-            />
-          </button>
-        </div>
+            {/* The ONLY trigger for the preview */}
+            <button
+              type="button"
+              aria-expanded={open}
+              aria-controls={`stat-preview-${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'custom'}`}
+              className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-md px-2 py-1
+                         text-xs font-medium text-zinc-500 hover:text-amber-400
+                         focus:outline-none focus:ring-2 focus:ring-amber-400/40
+                         touch-manipulation"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                togglePreview();
+              }}
+            >
+              Recent
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
+              />
+            </button>
+          </div>
 
-          <p className="mt-3 text-3xl font-bold text-[#D4AF37]">{value}</p>
+          <div className="flex-1 flex items-end">
+            <p className="text-[28px] leading-[34px] font-semibold text-[#D4AF37] highlight-value">{value}</p>
+          </div>
         </button>
       ) : (
         <Link
@@ -164,10 +166,10 @@ export function StatCard({
               type="button"
               aria-expanded={open}
               aria-controls={`stat-preview-${typeof label === 'string' ? label.replace(/\s+/g, "-").toLowerCase() : 'custom'}`}
-              className="inline-flex items-center gap-1 rounded-md px-3 py-2
+              className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-md px-2 py-1
                          text-xs font-medium text-zinc-500 hover:text-amber-400
                          focus:outline-none focus:ring-2 focus:ring-amber-400/40
-                         touch-manipulation min-h-[44px] md:min-h-0 md:px-2 md:py-1"
+                         touch-manipulation"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -181,7 +183,9 @@ export function StatCard({
             </button>
           </div>
 
-          <p className="mt-3 text-3xl font-bold text-[#D4AF37]">{value}</p>
+          <div className="flex-1 flex items-end">
+            <p className="text-[28px] leading-[34px] font-semibold text-[#D4AF37] highlight-value">{value}</p>
+          </div>
         </Link>
       )}
 

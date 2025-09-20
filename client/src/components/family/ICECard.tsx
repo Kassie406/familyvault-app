@@ -24,54 +24,6 @@ export function ICECard() {
           </div>
         </div>
         
-        {/* Controls */}
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={handleDownloadPDF}
-            variant="outline"
-            size="sm"
-            className="border-[#D4AF37]/30 text-[#D4AF37] hover:bg-[#D4AF37]/10 bg-transparent"
-            data-testid="button-download-ice-pdf"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Download PDF
-          </Button>
-          
-          {!isEditing ? (
-            <Button
-              onClick={() => setIsEditing(true)}
-              variant="outline"
-              size="sm"
-              className="border-gray-600 text-gray-400 hover:bg-gray-800 bg-transparent"
-              data-testid="button-edit-ice"
-            >
-              <Edit2 className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-          ) : (
-            <div className="flex gap-2">
-              <Button
-                onClick={() => setIsEditing(false)}
-                variant="outline"
-                size="sm"
-                className="border-[#D4AF37]/30 text-[#D4AF37] hover:bg-[#D4AF37]/10 bg-transparent"
-                data-testid="button-save-ice"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Save
-              </Button>
-              <Button
-                onClick={() => setIsEditing(false)}
-                variant="outline"
-                size="sm"
-                className="border-gray-600 text-gray-400 hover:bg-gray-800 bg-transparent"
-                data-testid="button-cancel-ice-edit"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* ICE Content */}

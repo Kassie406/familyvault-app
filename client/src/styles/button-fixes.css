@@ -1,0 +1,41 @@
+/* Button icon color inheritance and black color prevention */
+
+/* Make icons inherit text color in gold buttons */
+button[data-variant="gold"] svg,
+.gold svg,
+[class*="gold"] svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: currentColor !important;
+}
+
+/* Safety net: Nuke any accidental black overrides in ICE actions */
+.ice-actions .text-black,
+.ice-actions [style*="color:#000"],
+.ice-actions [style*="color: #000"],
+.ice-actions [style*="color:#000000"],
+.ice-actions [style*="color: #000000"],
+.ice-actions .bg-black {
+  color: #0b0b0e !important;
+  background: #c5a000 !important;
+}
+
+/* Ensure gold buttons have proper text color */
+button[class*="gold"],
+.gold {
+  background-color: #c5a000 !important;
+  color: #0b0b0e !important;
+}
+
+button[class*="gold"]:hover,
+.gold:hover {
+  background-color: rgba(197, 160, 0, 0.9) !important;
+  color: #0b0b0e !important;
+}
+
+/* Force icon colors in gold buttons */
+button[class*="gold"] svg,
+.gold svg {
+  color: #0b0b0e !important;
+  stroke: #0b0b0e !important;
+}

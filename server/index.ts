@@ -7,6 +7,7 @@ import { createServer } from "http";
 
 import authRoutes from "./routes/auth";
 import { customAuthRouter } from "./custom-auth";
+import iceShare from "./routes/iceShare";
 import { setupVite, serveStatic } from "./vite";
 
 async function createServerAndListen() {
@@ -47,6 +48,7 @@ async function createServerAndListen() {
   app.get("/health", (_, res) => res.json({ ok: true }));
 
   app.use("/api/auth", authRoutes);
+  app.use("/api/ice", iceShare);
   app.use(customAuthRouter); // Add the /login routes
 
   if (process.env.NODE_ENV === "development") {

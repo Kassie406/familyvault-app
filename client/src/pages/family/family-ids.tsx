@@ -15,7 +15,8 @@ import {
   Check,
   X,
   Mail,
-  Settings
+  Settings,
+  Bell
 } from 'lucide-react';
 import { LuxuryCard } from '@/components/luxury-cards';
 import { InviteFamilyMemberDialog } from '@/components/InviteFamilyMemberDialog';
@@ -49,7 +50,7 @@ export default function FamilyIds() {
     {
       id: '1',
       name: 'Kassandra Santana',
-      role: 'Owner',
+      role: 'Main Household',
       initials: 'KS',
       avatarColor: 'var(--gold)',
       itemCount: 8
@@ -264,9 +265,26 @@ export default function FamilyIds() {
               <HelpCircle className="h-4 w-4 mr-2" />
               Help
             </Button>
+            
             <div className="w-8 h-8 rounded-full bg-[var(--gold)] flex items-center justify-center">
               <span className="text-black text-sm font-medium">KC</span>
             </div>
+            
+            {/* Notification Bell with Badge */}
+            <button 
+              className="relative p-2 rounded-lg hover:bg-white/10 transition-colors"
+              onClick={() => {
+                // TODO: Open inbox/notifications
+                console.log('Open notifications');
+              }}
+              data-testid="button-notifications"
+            >
+              <Bell className="h-5 w-5 text-white/70" />
+              {/* Badge */}
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                3
+              </span>
+            </button>
           </div>
         </div>
       </LuxuryCard>
@@ -316,62 +334,110 @@ export default function FamilyIds() {
                 <Plus className="h-4 w-4" />
               </button>
 
-              {/* CONTROLLED DROPDOWN - NEVER UNMOUNT THE BUTTON */}
+              {/* BULLET-PROOF DROPDOWN - NO TEXT WARPING */}
               {addMenuOpen && (
                 <div
                   role="menu"
                   aria-label="Add to Family IDs"
-                  className="absolute left-0 top-10 w-64 rounded-xl border border-[#252733] bg-[#0F0F10] text-white shadow-xl p-2"
-                  style={{ zIndex: 1002 }}
+                  className="absolute left-0 top-10 w-64 rounded-xl border border-[#252733] bg-[#0F0F10] shadow-xl p-2 antialiased overflow-visible"
+                  style={{ zIndex: 1002, backdropFilter: 'none' }}
                   onMouseDown={(e) => e.stopPropagation()}
                   onMouseUp={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <ul className="mt-1">
+                  <ul className="space-y-1">
                     <li>
                       <button
                         role="menuitem"
-                        className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
+                        className="
+                          group/menuitem relative flex items-center gap-2
+                          h-9 px-3 rounded-md w-full
+                          text-sm font-medium leading-5 tracking-normal
+                          text-neutral-200 antialiased
+                          transition-colors
+                          hover:text-white focus-visible:outline-none
+                          focus-visible:ring-2 focus-visible:ring-[#c5a000]
+                        "
                         onClick={() => handleCreateMember("person")}
                       >
-                        <span className="text-[#D4AF37]"><User className="h-4 w-4" /></span>
-                        <span>Person</span>
+                        {/* Hover background as separate layer */}
+                        <span className="pointer-events-none absolute inset-0 rounded-md opacity-0 transition-opacity group-hover/menuitem:opacity-100 bg-neutral-900" />
+                        <span className="relative z-10 shrink-0 text-neutral-400 transition-colors group-hover/menuitem:text-[#c5a000]">
+                          <User className="w-4 h-4" />
+                        </span>
+                        <span className="relative z-10 truncate">Person</span>
                       </button>
                     </li>
                     <li>
                       <button
                         role="menuitem"
-                        className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
+                        className="
+                          group/menuitem relative flex items-center gap-2
+                          h-9 px-3 rounded-md w-full
+                          text-sm font-medium leading-5 tracking-normal
+                          text-neutral-200 antialiased
+                          transition-colors
+                          hover:text-white focus-visible:outline-none
+                          focus-visible:ring-2 focus-visible:ring-[#c5a000]
+                        "
                         onClick={() => handleCreateMember("pet")}
                       >
-                        <span className="text-[#D4AF37]"><PawPrint className="h-4 w-4" /></span>
-                        <span>Pet</span>
+                        {/* Hover background as separate layer */}
+                        <span className="pointer-events-none absolute inset-0 rounded-md opacity-0 transition-opacity group-hover/menuitem:opacity-100 bg-neutral-900" />
+                        <span className="relative z-10 shrink-0 text-neutral-400 transition-colors group-hover/menuitem:text-[#c5a000]">
+                          <PawPrint className="w-4 h-4" />
+                        </span>
+                        <span className="relative z-10 truncate">Pet</span>
                       </button>
                     </li>
                     <li>
                       <button
                         role="menuitem"
-                        className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
+                        className="
+                          group/menuitem relative flex items-center gap-2
+                          h-9 px-3 rounded-md w-full
+                          text-sm font-medium leading-5 tracking-normal
+                          text-neutral-200 antialiased
+                          transition-colors
+                          hover:text-white focus-visible:outline-none
+                          focus-visible:ring-2 focus-visible:ring-[#c5a000]
+                        "
                         onClick={() => handleCreateMember("invite")}
                       >
-                        <span className="text-[#D4AF37]"><Mail className="h-4 w-4" /></span>
-                        <span>Invite Family Member</span>
+                        {/* Hover background as separate layer */}
+                        <span className="pointer-events-none absolute inset-0 rounded-md opacity-0 transition-opacity group-hover/menuitem:opacity-100 bg-neutral-900" />
+                        <span className="relative z-10 shrink-0 text-neutral-400 transition-colors group-hover/menuitem:text-[#c5a000]">
+                          <Mail className="w-4 h-4" />
+                        </span>
+                        <span className="relative z-10 truncate">Invite Family Member</span>
                       </button>
                     </li>
                     <li>
-                      <hr className="border-[#2A2A33] my-1" />
+                      <hr className="border-neutral-700 my-2" />
                     </li>
                     <li>
                       <button
                         role="menuitem"
-                        className="w-full text-left px-2 py-2 rounded-md hover:bg-white/5 transition-colors flex items-center gap-2"
+                        className="
+                          group/menuitem relative flex items-center gap-2
+                          h-9 px-3 rounded-md w-full
+                          text-sm font-medium leading-5 tracking-normal
+                          text-neutral-200 antialiased
+                          transition-colors
+                          hover:text-white focus-visible:outline-none
+                          focus-visible:ring-2 focus-visible:ring-[#c5a000]
+                        "
                         onClick={() => {
                           setAddMenuOpen(false);
                           setLocation('/family/settings');
                         }}
                       >
-                        <span className="text-[#D4AF37]"><Settings className="h-4 w-4" /></span>
-                        <span>Manage Roles & Access</span>
+                        {/* Hover background as separate layer */}
+                        <span className="pointer-events-none absolute inset-0 rounded-md opacity-0 transition-opacity group-hover/menuitem:opacity-100 bg-neutral-900" />
+                        <span className="relative z-10 shrink-0 text-neutral-400 transition-colors group-hover/menuitem:text-[#c5a000]">
+                          <Settings className="w-4 h-4" />
+                        </span>
+                        <span className="relative z-10 truncate">Manage Roles & Access</span>
                       </button>
                     </li>
                   </ul>

@@ -13,7 +13,7 @@ import {
   UserPlus, Mail, Settings, Share, Camera, FolderOpen, AlertCircle,
   Zap, Grid, BarChart3, Video, ListTodo, CalendarDays, User,
   X, CheckCircle2, Trash2, LogOut, Search, HelpCircle, ChefHat,
-  ChevronDown, RefreshCw
+  ChevronDown, RefreshCw, MoreHorizontal, Edit, Lock, Bot
 } from 'lucide-react';
 import { 
   ActionCard, 
@@ -38,6 +38,7 @@ import { NewMessageModal } from '@/components/messaging/NewMessageModal';
 import NotificationCenter from '@/components/family/NotificationCenter';
 import QuickAccessPanel from '@/components/family/QuickAccessPanel';
 import ActivityFeed from '@/components/family/ActivityFeed';
+import { FamilyActivityCard } from '@/components/family/FamilyActivityCard';
 import DashboardWidget from '@/components/family/DashboardWidget';
 import FamilyUpdates from '@/components/family/FamilyUpdates';
 import MobileNavigationBar from '@/components/family/MobileNavigationBar';
@@ -61,6 +62,10 @@ import ChoresCard from '@/components/family/ChoresCard';
 import AllowanceMini from '@/components/family/AllowanceMini';
 import ActionCenter from '@/components/family/ActionCenter';
 import { RobotGuide } from '@/components/RobotGuide';
+import { FamilyHeader } from '@/components/Header/FamilyHeader';
+import { QuickActionsPills } from '@/components/QuickActions/QuickActionsPills';
+import NotificationModal from '@/components/ui/NotificationModal';
+import { PlanTripModal, BookActivitiesModal, TravelDocumentsModal } from '@/components/family/VacationPlanningModals';
 
 export default function FamilyHome() {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -69,6 +74,10 @@ export default function FamilyHome() {
   const [highlightDocumentUpload, setHighlightDocumentUpload] = useState(false);
   const [highlightPhotoUpload, setHighlightPhotoUpload] = useState(false);
   const [highlightICE, setHighlightICE] = useState(false);
+  const [dashboardName, setDashboardName] = useState('Family Dashboard');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempDashboardName, setTempDashboardName] = useState('Family Dashboard');
+  const dashboardInputRef = useRef<HTMLInputElement>(null);
   const [robotHidden, setRobotHidden] = useState(() => {
     // Load robot visibility preference from localStorage
     const saved = localStorage.getItem('familyvault-robot-hidden');
@@ -87,6 +96,10 @@ export default function FamilyHome() {
   const [couplesConnectionOpen, setCouplesConnectionOpen] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  // Vacation planning modals
+  const [planTripOpen, setPlanTripOpen] = useState(false);
+  const [bookActivitiesOpen, setBookActivitiesOpen] = useState(false);
+  const [travelDocumentsOpen, setTravelDocumentsOpen] = useState(false);
   // AI state managed at parent level (single source of truth)
   const { state: aiState, run: runAI, retry: retryAI, cancel: cancelAI } = useAiSuggestions({ 
     logs: true,
@@ -114,6 +127,51 @@ export default function FamilyHome() {
     setRobotHidden(newValue);
     localStorage.setItem('familyvault-robot-hidden', newValue.toString());
   };
+
+  // Dashboard name editing handlers (matching Family IDs style)
+  const handleEditDashboardName = () => {
+    setTempDashboardName(dashboardName);
+    setIsEditingName(true);
+  };
+
+  const handleSaveDashboardName = () => {
+    if (tempDashboardName.trim()) {
+      setDashboardName(tempDashboardName.trim());
+    } else {
+      setTempDashboardName(dashboardName);
+    }
+    setIsEditingName(false);
+  };
+
+  const handleCancelDashboardEdit = () => {
+    setTempDashboardName(dashboardName);
+    setIsEditingName(false);
+  };
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (isEditingName && dashboardInputRef.current) {
+      dashboardInputRef.current.focus();
+      dashboardInputRef.current.select();
+    }
+  }, [isEditingName]);
+
+  // Handle escape key for dashboard name editing
+  useEffect(() => {
+    if (!isEditingName) return;
+    
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleCancelDashboardEdit();
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isEditingName, dashboardName]);
   
   // Current user mock (TODO: replace with real user data)
   const currentUser = { 
@@ -252,15 +310,16 @@ export default function FamilyHome() {
         );
 
       case 'sharedLists':
-        const sharedListsData = familyStats.find(s => s.label === 'Shared Lists');
+        const sharedListsData = familyStats.find(s => s.label === 'To Do/Shared Lists');
         return (
           <StatCard 
             icon={<ListTodo className="h-5 w-5" />}
             value={sharedListsData?.value || 0}
-            label="Shared Lists"
+            label="To Do/Shared Lists"
             href={sharedListsData?.href || '#'}
             fetchPreview={sharedListsData?.fetchPreview || (async () => [])}
             dropdownActions={sharedListsData?.dropdownActions || []}
+            onViewAll={sharedListsData?.onViewAll}
           />
         );
 
@@ -274,6 +333,7 @@ export default function FamilyHome() {
             href={recipeBookData?.href || '#'}
             fetchPreview={recipeBookData?.fetchPreview || (async () => [])}
             dropdownActions={recipeBookData?.dropdownActions || []}
+            onViewAll={recipeBookData?.onViewAll}
           />
         );
 
@@ -287,6 +347,7 @@ export default function FamilyHome() {
             href={budgetData?.href || '#'}
             fetchPreview={budgetData?.fetchPreview || (async () => [])}
             dropdownActions={budgetData?.dropdownActions || []}
+            onViewAll={budgetData?.onViewAll}
           />
         );
 
@@ -313,6 +374,7 @@ export default function FamilyHome() {
             href={mealPlannerData?.href || '#'}
             fetchPreview={mealPlannerData?.fetchPreview || (async () => [])}
             dropdownActions={mealPlannerData?.dropdownActions || []}
+            onViewAll={mealPlannerData?.onViewAll}
           />
         );
 
@@ -326,6 +388,7 @@ export default function FamilyHome() {
             href={familyVacationData?.href || '#'}
             fetchPreview={familyVacationData?.fetchPreview || (async () => [])}
             dropdownActions={familyVacationData?.dropdownActions || []}
+            onViewAll={familyVacationData?.onViewAll}
           />
         );
 
@@ -365,7 +428,7 @@ export default function FamilyHome() {
         return (
           <div 
             ref={uploadCenterRef}
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 h-auto flex flex-col"
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 h-auto flex flex-col mb-6"
           >
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 rounded-lg bg-blue-600/10">
@@ -485,12 +548,34 @@ export default function FamilyHome() {
     }, 3000);
   };
 
-  // Quick access keyboard shortcut
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if user is typing in an input field or using modifier keys
+      if (e.target instanceof HTMLInputElement || e.metaKey || e.ctrlKey) return;
+      
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setQuickAccessOpen(true);
+        return;
+      }
+      
+      // Global keyboard shortcuts
+      if (e.key === '/') { 
+        const searchInput = document.querySelector('#global-search') as HTMLInputElement;
+        searchInput?.focus(); 
+        e.preventDefault(); 
+      }
+      if (e.key.toLowerCase() === 'u') {
+        document.querySelector('#upload-center')?.scrollIntoView({behavior:'smooth'});
+      }
+      if (e.key.toLowerCase() === 'n') {
+        const newChoreBtn = document.querySelector('[data-new-chore]') as HTMLElement;
+        newChoreBtn?.click();
+      }
+      if (e.key.toLowerCase() === 'e') {
+        const addEventBtn = document.querySelector('[data-add-event]') as HTMLElement;
+        addEventBtn?.click();
       }
     };
 
@@ -612,7 +697,7 @@ export default function FamilyHome() {
       label: 'Family Members', 
       value: familyData?.totalMembers || 0, 
       icon: Users,
-      href: '/family/ids?tab=people&sort=recent',
+      href: '/family/ids',
       previewItems: familyData?.recentlyAdded?.map((member: any) => ({
         id: member.id,
         title: member.name,
@@ -620,9 +705,9 @@ export default function FamilyHome() {
         href: `/family/ids/person/${member.id}`
       })) || [],
       dropdownActions: [
-        { label: "Add Person", href: "/family/ids/new?type=person", icon: <UserPlus className="h-4 w-4" /> },
+        { label: "Add Person", href: "/family/manage?open=add", icon: <UserPlus className="h-4 w-4" /> },
         { label: "Invite Family Member", onClick: () => setInviteDialogOpen(true), icon: <Mail className="h-4 w-4" /> },
-        { label: "Manage Roles & Access", href: "/family/settings", icon: <Settings className="h-4 w-4" /> }
+        { label: "Manage Roles & Access", href: "/family/manage", icon: <Settings className="h-4 w-4" /> }
       ]
     },
     { 
@@ -780,11 +865,12 @@ export default function FamilyHome() {
       ]
     },
     { 
-      label: 'Shared Lists', 
+      label: 'To Do/Shared Lists', 
       value: 8, 
       icon: ListTodo,
       href: '#',
       onClick: () => setSharedListsOpen(true),
+      onViewAll: () => setLocation('/family/shared-lists'),
       fetchPreview: async () => {
         try {
           const response = await fetch('/api/lists?limit=5');
@@ -811,7 +897,7 @@ export default function FamilyHome() {
       },
       dropdownActions: [
         { label: "Quick Add", onClick: () => setSharedListsOpen(true), icon: <Plus className="h-4 w-4" /> },
-        { label: "View All Lists", onClick: () => setSharedListsOpen(true), icon: <ListTodo className="h-4 w-4" /> },
+        { label: "View All Lists", href: "/family/shared-lists", icon: <ListTodo className="h-4 w-4" /> },
         { label: "Family Assignments", onClick: () => setSharedListsOpen(true), icon: <User className="h-4 w-4" /> }
       ]
     },
@@ -821,6 +907,7 @@ export default function FamilyHome() {
       icon: ChefHat,
       href: '#',
       onClick: () => setRecipeBookOpen(true),
+      onViewAll: () => setLocation('/family/recipe-book'),
       fetchPreview: async () => {
         try {
           const response = await fetch('/api/recipes?limit=5');
@@ -858,6 +945,7 @@ export default function FamilyHome() {
       icon: DollarSign,
       href: '#',
       onClick: () => setBudgetTrackerOpen(true),
+      onViewAll: () => setLocation('/family/budget-tracker'),
       fetchPreview: async () => {
         try {
           const response = await fetch('/api/budget/summary?limit=5');
@@ -928,6 +1016,7 @@ export default function FamilyHome() {
       icon: CalendarDays,
       href: '#',
       onClick: () => setMealPlannerOpen(true),
+      onViewAll: () => setLocation('/family/meal-planner'),
       fetchPreview: async () => {
         try {
           const response = await fetch('/api/mealplan/week');
@@ -976,6 +1065,7 @@ export default function FamilyHome() {
       icon: MapPin,
       href: '#',
       onClick: () => alert('Family Vacation planner coming soon!'),
+      onViewAll: () => setLocation('/family/family-vacation'),
       fetchPreview: async () => {
         return [
           { id: "1", title: "Flight to Honolulu", sub: "Booked • July 15-22", href: "#" },
@@ -986,9 +1076,9 @@ export default function FamilyHome() {
         ];
       },
       dropdownActions: [
-        { label: "Plan Trip", onClick: () => alert('Trip planner coming soon!'), icon: <MapPin className="h-4 w-4" /> },
-        { label: "Book Activities", onClick: () => alert('Activity booking coming soon!'), icon: <Calendar className="h-4 w-4" /> },
-        { label: "Travel Documents", onClick: () => alert('Travel docs coming soon!'), icon: <FileText className="h-4 w-4" /> }
+        { label: "Plan Trip", onClick: () => setPlanTripOpen(true), icon: <MapPin className="h-4 w-4" /> },
+        { label: "Book Activities", onClick: () => setBookActivitiesOpen(true), icon: <Calendar className="h-4 w-4" /> },
+        { label: "Travel Documents", onClick: () => setTravelDocumentsOpen(true), icon: <FileText className="h-4 w-4" /> }
       ]
     },
     { 
@@ -1016,20 +1106,20 @@ export default function FamilyHome() {
       label: 'Emergency Contacts', 
       value: '24/7 Ready', 
       icon: ShieldAlert,
-      href: '/family/emergency',
+      href: '/emergency/contact-list',
       fetchPreview: async () => {
         return [
-          { id: "1", title: "911 Emergency", sub: "Police • Fire • Medical", href: "#" },
-          { id: "2", title: "Dr. Sarah Johnson", sub: "Family Doctor • (555) 123-4567", href: "#" },
-          { id: "3", title: "Children's Hospital", sub: "Pediatric Emergency • (555) 987-6543", href: "#" },
-          { id: "4", title: "Poison Control", sub: "24/7 Hotline • 1-800-222-1222", href: "#" },
-          { id: "5", title: "Mom's Cell", sub: "Always available • (555) 111-2222", href: "#" }
+          { id: "1", title: "911 Emergency", sub: "Police • Fire • Medical", href: "/emergency/quick-call" },
+          { id: "2", title: "Dr. Sarah Johnson", sub: "Family Doctor • (555) 123-4567", href: "/emergency/contact-list" },
+          { id: "3", title: "Children's Hospital", sub: "Pediatric Emergency • (555) 987-6543", href: "/emergency/contact-list" },
+          { id: "4", title: "Poison Control", sub: "24/7 Hotline • 1-800-222-1222", href: "/emergency/quick-call" },
+          { id: "5", title: "Mom's Cell", sub: "Always available • (555) 111-2222", href: "/emergency/quick-call" }
         ];
       },
       dropdownActions: [
-        { label: "Add Contact", onClick: () => alert('Add contact coming soon!'), icon: <UserPlus className="h-4 w-4" /> },
-        { label: "Medical Info", onClick: () => alert('Medical info coming soon!'), icon: <FileText className="h-4 w-4" /> },
-        { label: "Quick Call", onClick: () => alert('Quick call coming soon!'), icon: <Phone className="h-4 w-4" /> }
+        { label: "Add Contact", href: "/emergency/contact-list", icon: <UserPlus className="h-4 w-4" /> },
+        { label: "Medical Info", href: "/emergency/emergency-plan", icon: <FileText className="h-4 w-4" /> },
+        { label: "Quick Call", href: "/emergency/quick-call", icon: <Phone className="h-4 w-4" /> }
       ]
     }
   ];
@@ -1043,23 +1133,61 @@ export default function FamilyHome() {
         {/* Top Navigation Bar */}
         <div className="relative z-20 flex items-center justify-between p-4 border-b border-white/10">
           <div className="flex items-center gap-4">
-            <h2 className="text-xl font-semibold text-white">Family Dashboard</h2>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setDashboardLayout(dashboardLayout === 'default' ? 'compact' : 'default')}
-                className="p-2 rounded-lg transition-colors"
-                data-testid="button-toggle-layout"
-              >
-                <Grid className="h-4 w-4 text-white/70" />
-              </button>
-              <button
-                onClick={() => setQuickAccessOpen(true)}
-                className="p-2 rounded-lg transition-colors"
-                data-testid="button-quick-access"
-              >
-                <Zap className="h-4 w-4 text-white/70" />
-              </button>
-            </div>
+            {isEditingName ? (
+              <div className="flex items-center gap-2">
+                <input
+                  ref={dashboardInputRef}
+                  type="text"
+                  value={tempDashboardName}
+                  onChange={(e) => setTempDashboardName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSaveDashboardName();
+                    } else if (e.key === 'Escape') {
+                      handleCancelDashboardEdit();
+                    }
+                  }}
+                  className="text-xl font-semibold text-white bg-transparent border-b-2 border-[#D4AF37] outline-none focus:border-[#D4AF37] min-w-0"
+                  style={{ background: 'transparent' }}
+                  maxLength={50}
+                />
+                <button
+                  onClick={handleSaveDashboardName}
+                  className="p-1 text-green-400 hover:text-green-300 transition-colors"
+                  title="Save changes"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={handleCancelDashboardEdit}
+                  className="p-1 text-red-400 hover:text-red-300 transition-colors"
+                  title="Cancel changes"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-xl font-semibold text-white">{dashboardName}</h2>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleEditDashboardName}
+                    className="p-1 text-white/60 hover:text-white rounded transition-colors"
+                    title="Edit dashboard name"
+                    data-testid="button-edit-dashboard-name"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setQuickAccessOpen(true)}
+                    className="p-2 rounded-lg transition-colors"
+                    data-testid="button-quick-access"
+                  >
+                    <Zap className="h-4 w-4 text-white/70" />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
           
           <div className="flex items-center gap-4">
@@ -1095,33 +1223,59 @@ export default function FamilyHome() {
               </DropdownMenuTrigger>
               <DropdownMenuContent 
                 align="end" 
-                className="header-profile-menu w-48 bg-[#1A1A1A] border-[#2A2A33] text-white absolute right-0 mt-2 z-[60]"
+                className="rounded-xl border border-zinc-800 bg-zinc-900 p-1 shadow-xl z-50 min-w-[240px]"
+                sideOffset={8}
               >
                 <DropdownMenuItem asChild>
-                  <Link href="/family/settings" className="flex items-center gap-2 px-2 py-2 hover:bg-[#2A2A33] transition-colors cursor-pointer">
-                    <Settings className="h-4 w-4" />
-                    <span>Settings</span>
+                  <Link 
+                    href="/family/profile" 
+                    className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors text-gray-200 hover:bg-zinc-800 hover:text-white focus:bg-zinc-800 focus:text-white no-underline outline-none"
+                  >
+                    <Edit className="h-4 w-4 text-gray-400" />
+                    <span>Edit Profile</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={toggleRobotVisibility}
-                  className="flex items-center gap-2 px-2 py-2 hover:bg-[#2A2A33] transition-colors cursor-pointer"
-                >
-                  {robotHidden ? <User className="h-4 w-4" /> : <X className="h-4 w-4" />}
-                  <span>{robotHidden ? 'Show Robot' : 'Hide Robot'}</span>
+                <DropdownMenuItem asChild>
+                  <Link 
+                    href="/family/manage" 
+                    className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors text-gray-200 hover:bg-zinc-800 hover:text-white focus:bg-zinc-800 focus:text-white no-underline outline-none"
+                  >
+                    <Users className="h-4 w-4 text-gray-400" />
+                    <span>Manage Family Members</span>
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-[#2A2A33]" />
-                <DropdownMenuItem 
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 px-2 py-2 hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>Sign Out</span>
+                <DropdownMenuItem asChild>
+                  <Link 
+                    href="/family/privacy" 
+                    className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors text-gray-200 hover:bg-zinc-800 hover:text-white focus:bg-zinc-800 focus:text-white no-underline outline-none"
+                  >
+                    <Lock className="h-4 w-4 text-gray-400" />
+                    <span>Privacy & Security</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link 
+                    href="/family/ai-settings" 
+                    className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors text-gray-200 hover:bg-zinc-800 hover:text-white focus:bg-zinc-800 focus:text-white no-underline outline-none"
+                  >
+                    <Bot className="h-4 w-4 text-gray-400" />
+                    <span>AI Settings</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link 
+                    href="/activity" 
+                    className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors text-gray-200 hover:bg-zinc-800 hover:text-white focus:bg-zinc-800 focus:text-white no-underline outline-none"
+                  >
+                    <Activity className="h-4 w-4 text-gray-400" />
+                    <span>Recent Activity</span>
+                  </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             
-            <NotificationCenter />
+            {/* Notification Modal */}
+            <NotificationModal />
           </div>
         </div>
 
@@ -1136,7 +1290,11 @@ export default function FamilyHome() {
               <Heart className="w-10 h-10 text-black" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">
+          <h1 className="text-4xl font-bold text-white mb-2 flex items-center justify-center gap-3">
+            {/* Family Avatar */}
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#B8860B] flex items-center justify-center text-black text-sm font-bold">
+              F
+            </div>
             Welcome to Your{' '}
             <span className="text-[#D4AF37] relative group">
               Family Portal
@@ -1160,24 +1318,18 @@ export default function FamilyHome() {
           setEditing={setEditing}
         />
 
-        {/* Legacy Quick Actions Row - Moved to top */}
+        {/* Quick Actions Row */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 rounded-lg bg-[#D4AF37]/10">
               <Zap className="h-5 w-5 text-[#D4AF37]" />
             </div>
             <div>
-              <h3 className="text-gray-200 font-semibold">Legacy Actions</h3>
-              <p className="text-xs text-gray-500">These will be integrated into the customizable cards</p>
+              <h3 className="text-gray-200 font-semibold">Quick Actions</h3>
+              <p className="text-xs text-gray-500">Essential family tools and shortcuts</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <ActionCard 
-              icon={<Upload className="h-5 w-5"/>} 
-              title="Upload Document" 
-              subtitle="Add new family document"
-              onClick={scrollToDocumentUpload}
-            />
             <ActionCard 
               icon={<MessageCircle className="h-5 w-5"/>} 
               title="Send Message" 
@@ -1189,6 +1341,27 @@ export default function FamilyHome() {
               title="Upload Photos" 
               subtitle="Add photos to your family album"
               onClick={scrollToPhotoUpload}
+            />
+            <ActionCard 
+              icon={<Calendar className="h-5 w-5"/>} 
+              title="Create Event" 
+              subtitle="Add to family calendar"
+              onClick={() => {
+                // Open calendar modal with add event functionality
+                const calendarPanel = document.querySelector('[data-calendar-panel]');
+                if (calendarPanel) {
+                  const addEventBtn = calendarPanel.querySelector('[data-add-event]');
+                  if (addEventBtn) {
+                    (addEventBtn as HTMLElement).click();
+                  }
+                } else {
+                  // Fallback: show a simple prompt for now
+                  const eventTitle = prompt('Enter event title:');
+                  if (eventTitle) {
+                    alert(`Event "${eventTitle}" would be added to calendar`);
+                  }
+                }
+              }}
             />
             <ActionCard 
               icon={<ShieldAlert className="h-5 w-5"/>} 
@@ -1218,28 +1391,15 @@ export default function FamilyHome() {
 
       {/* Resizable Family Activity + Family Updates + Shared Calendar - Restored Original Layout */}
       <div className="h-[600px]">
-        <PanelGroup direction="horizontal" className="gap-3">
+        <PanelGroup direction="horizontal" className="!gap-0">
           {/* Family Activity Panel */}
           <Panel defaultSize={25} minSize={15} maxSize={40}>
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 h-full">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-[#D4AF37]/10">
-                  <Activity className="h-5 w-5 text-[#D4AF37]" />
-                </div>
-                <div>
-                  <h3 className="text-gray-200 font-semibold">Family Activity</h3>
-                  <p className="text-xs text-gray-500">Recent family updates</p>
-                </div>
-              </div>
-              <div className="overflow-y-auto h-[calc(100%-80px)] custom-scrollbar">
-                <ActivityFeed limit={6} showFilters={false} />
-              </div>
-            </div>
+            <FamilyActivityCard />
           </Panel>
 
           {/* Resize Handle */}
-          <PanelResizeHandle className="w-3 bg-transparent hover:bg-[#D4AF37]/20 rounded-full transition-colors duration-200 group flex items-center justify-center">
-            <div className="w-1 h-12 bg-zinc-700 group-hover:bg-[#D4AF37] rounded-full transition-colors duration-200"></div>
+          <PanelResizeHandle className="w-[2px] bg-transparent hover:bg-[#D4AF37]/20 transition-colors duration-200 cursor-col-resize">
+            <div className="w-full h-full bg-zinc-700 hover:bg-[#D4AF37] transition-colors duration-200"></div>
           </PanelResizeHandle>
 
           {/* Family Updates Panel */}
@@ -1247,22 +1407,29 @@ export default function FamilyHome() {
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 h-full">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 rounded-lg bg-[#D4AF37]/10">
-                  <Bell className="h-5 w-5 text-[#D4AF37]" />
+                  <Activity className="h-5 w-5 text-[#D4AF37]" />
                 </div>
                 <div>
                   <h3 className="text-gray-200 font-semibold">Family Updates</h3>
                   <p className="text-xs text-gray-500">Important notifications</p>
                 </div>
               </div>
-              <div className="overflow-y-auto h-[calc(100%-80px)] custom-scrollbar">
-                <FamilyUpdates ref={familyUpdatesRef} />
+              <div className="text-center py-8 text-white/60">
+                <div className="text-4xl mb-3">📷</div>
+                <p className="text-white/70 mb-4">Share a family moment</p>
+                <button
+                  onClick={() => window.location.href = '/photos/upload'}
+                  className="px-4 py-2 bg-[#D4AF37] text-black font-medium rounded-lg hover:bg-[#D4AF37]/80 transition-colors"
+                >
+                  Upload Photo
+                </button>
               </div>
             </div>
           </Panel>
 
           {/* Resize Handle */}
-          <PanelResizeHandle className="w-3 bg-transparent hover:bg-[#D4AF37]/20 rounded-full transition-colors duration-200 group flex items-center justify-center">
-            <div className="w-1 h-12 bg-zinc-700 group-hover:bg-[#D4AF37] rounded-full transition-colors duration-200"></div>
+          <PanelResizeHandle className="w-[2px] bg-transparent hover:bg-[#D4AF37]/20 transition-colors duration-200 cursor-col-resize">
+            <div className="w-full h-full bg-zinc-700 hover:bg-[#D4AF37] transition-colors duration-200"></div>
           </PanelResizeHandle>
 
           {/* Calendar Panel */}
@@ -1275,6 +1442,17 @@ export default function FamilyHome() {
                 <div>
                   <h3 className="text-gray-200 font-semibold">Shared Calendar</h3>
                   <p className="text-xs text-gray-500">September 2025</p>
+                </div>
+                <div className="ml-auto flex items-center gap-2">
+                  <button className="px-3 py-1.5 text-xs rounded-lg bg-zinc-700 text-white hover:bg-zinc-600 transition-all">
+                    Month
+                  </button>
+                  <button className="px-3 py-1.5 text-xs rounded-lg bg-zinc-800 text-white/70 hover:bg-zinc-700 transition-all">
+                    Week
+                  </button>
+                  <button className="px-3 py-1.5 text-xs rounded-lg bg-[#c5a000] text-black font-medium hover:brightness-110 transition-all">
+                    + Add Event
+                  </button>
                 </div>
               </div>
               <div className="overflow-y-auto h-[calc(100%-80px)] custom-scrollbar">
@@ -1315,6 +1493,14 @@ export default function FamilyHome() {
           <p className="text-gray-300 text-sm">
             Private Family Portal — Where Family Legacy Meets Security
           </p>
+          <div className="mt-3">
+            <a 
+              href="/help" 
+              className="text-[#D4AF37] hover:text-[#B8860B] text-sm font-medium transition-colors"
+            >
+              Help / FAQs
+            </a>
+          </div>
         </div>
       </div>
       </div>
@@ -1413,6 +1599,22 @@ export default function FamilyHome() {
       <InboxDrawer 
         isOpen={inboxOpen}
         onClose={() => setInboxOpen(false)}
+      />
+
+      {/* Vacation Planning Modals */}
+      <PlanTripModal 
+        open={planTripOpen}
+        onClose={() => setPlanTripOpen(false)}
+      />
+      
+      <BookActivitiesModal 
+        open={bookActivitiesOpen}
+        onClose={() => setBookActivitiesOpen(false)}
+      />
+      
+      <TravelDocumentsModal 
+        open={travelDocumentsOpen}
+        onClose={() => setTravelDocumentsOpen(false)}
       />
     </div>
   );
