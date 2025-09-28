@@ -30,9 +30,14 @@ export default function SuggestDetailsModal({
   const suggestion = item.suggestion;
   
   const handleCopyAll = async () => {
-    const text = suggestion.fields
+    const text = (suggestion.fields || [])
       .map(field => `${field.key}: ${field.value}`)
       .join('\n');
+    
+    if (!text.trim()) {
+      console.log('No fields to copy');
+      return;
+    }
     
     try {
       await navigator.clipboard.writeText(text);
@@ -112,7 +117,7 @@ export default function SuggestDetailsModal({
               <button className="pb-3 border-b-2 border-[#D4AF37] text-[#D4AF37] text-sm font-medium">
                 Details
                 <span className="ml-2 px-1.5 py-0.5 rounded bg-[#D4AF37]/20 text-[#D4AF37] text-xs">
-                  {suggestion.fields.length}
+                  {suggestion.fields?.length || 0}
                 </span>
               </button>
               <button className="pb-3 text-white/60 text-sm hover:text-white/80 transition-colors">
@@ -148,7 +153,13 @@ export default function SuggestDetailsModal({
             </div>
             
             <div className="space-y-1 rounded-lg border border-[#232530] overflow-hidden">
-              {suggestion.fields.map((field, index) => (
+              {(suggestion.fields || []).length === 0 ? (
+                <div className="p-6 text-center text-white/60">
+                  <p>No extracted fields available</p>
+                  <p className="text-sm mt-2">The document analysis may still be in progress</p>
+                </div>
+              ) : (
+                (suggestion.fields || []).map((field, index) => (
                 <div key={index} className="grid grid-cols-5 gap-4 p-3 border-b border-[#232530]/50 last:border-b-0">
                   <div className="col-span-2 text-white/60 text-xs uppercase tracking-wide font-medium">
                     {field.key}
@@ -168,11 +179,12 @@ export default function SuggestDetailsModal({
                     </div>
                   </div>
                 </div>
-              ))}
+                ))
+              )}
             </div>
             
             {/* Show/Hide PII Toggle */}
-            {suggestion.fields.some(f => f.pii) && (
+            {(suggestion.fields || []).some(f => f.pii) && (
               <button
                 onClick={() => setShowPII(!showPII)}
                 className="text-xs text-white/60 hover:text-white/80 transition-colors"

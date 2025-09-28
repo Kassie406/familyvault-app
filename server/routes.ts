@@ -2871,14 +2871,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
             memberName = member?.name || null;
           }
 
+          // Transform fields to match frontend expectations
+          const transformedFields = fields.map(f => ({
+            key: f.fieldKey,
+            label: f.fieldKey,
+            value: f.fieldValue,
+            confidence: f.confidence || 0,
+            pii: f.isPii || false,
+            path: `extracted.${f.fieldKey.toLowerCase().replace(/\s+/g, '_')}`
+          }));
+
           return {
             ...item,
-            fields,
+            fields: transformedFields,
             suggestion: item.suggestedMemberId ? {
               memberId: item.suggestedMemberId,
               memberName,
               confidence: item.confidence || 0,
-              fields
+              fields: transformedFields // Ensure fields are included in suggestion
             } : null
           };
         })
