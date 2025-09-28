@@ -861,7 +861,7 @@ function TrustworthyInboxItemCard({ item, onOpenMember, onShowDetails, onDismiss
               <Zap className="w-3 h-3 mr-1 text-[#D4AF37]" />
               Details
               <span className="ml-1 px-1.5 py-0.5 rounded bg-[#D4AF37]/20 text-[#D4AF37] text-xs">
-                {suggestion.fields.length}
+                {suggestion.fields?.length || 0}
               </span>
             </button>
           </>
