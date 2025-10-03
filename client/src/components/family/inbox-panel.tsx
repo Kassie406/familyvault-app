@@ -784,9 +784,9 @@ function TrustworthyInboxItemCard({ item, onOpenMember, onShowDetails, onDismiss
       {/* File Info with Thumbnail */}
       <div className="flex items-center gap-3">
         <div className="relative h-12 w-16 rounded-lg bg-[#111111] border border-[#2A2A33] overflow-hidden flex items-center justify-center">
-          {item.fileUrl ? (
+          {(item.thumbnailPath || (item.fileUrl && item.mimeType?.startsWith('image/'))) ? (
             <img 
-              src={item.fileUrl} 
+              src={item.thumbnailPath || item.fileUrl} 
               alt="" 
               className="w-full h-full object-cover"
               onError={(e) => {
@@ -795,9 +795,11 @@ function TrustworthyInboxItemCard({ item, onOpenMember, onShowDetails, onDismiss
               }}
             />
           ) : null}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <FileText className="w-6 h-6 text-white/40" />
-          </div>
+          {!item.thumbnailPath && (!item.fileUrl || !item.mimeType?.startsWith('image/')) && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <FileText className="w-6 h-6 text-white/40" />
+            </div>
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-white text-sm truncate font-medium">

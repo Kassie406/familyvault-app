@@ -40,6 +40,7 @@ export type InboxItem = {
   id: string;
   fileUrl: string;
   filename: string;
+  thumbnailPath?: string;
   status: "analyzing" | "suggested" | "accepted" | "dismissed" | "none" | "unsupported" | "failed";
   suggestion?: Suggestion;
   uploadedAt: Date;

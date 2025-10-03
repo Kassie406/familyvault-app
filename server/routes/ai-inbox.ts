@@ -96,6 +96,7 @@ const RegisterBody = z.object({
   userId: z.string().optional(), // Made optional - will derive from session if not provided
   fileKey: z.string(),     // s3 key you just uploaded to
   fileName: z.string(),
+  thumbnailPath: z.string().optional(), // Add thumbnail path
   mime: z.string().optional(),
   size: z.number().optional(),
   s3Bucket: z.string().optional(), // Add bucket info
@@ -116,6 +117,7 @@ aiInboxRouter.post("/register", async (req, res) => {
       userId: userId,
       filename: body.fileName,
       fileUrl: body.fileKey, // S3 key serves as file URL
+      thumbnailPath: body.thumbnailPath, // Save thumbnail path if provided
       fileSize: body.size,
       mimeType: body.contentType || body.mime, // Prioritize contentType
       status: "uploaded" // Start as uploaded, not analyzing

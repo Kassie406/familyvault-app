@@ -2840,6 +2840,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: inboxItems.id,
         filename: inboxItems.filename,
         fileUrl: inboxItems.fileUrl,
+        thumbnailPath: inboxItems.thumbnailPath,
         fileSize: inboxItems.fileSize,
         mimeType: inboxItems.mimeType,
         status: inboxItems.status,
