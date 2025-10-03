@@ -1085,6 +1085,7 @@ export const inboxItems = pgTable("inbox_items", {
   userId: varchar("user_id").notNull().references(() => users.id),
   filename: varchar("filename").notNull(),
   fileUrl: varchar("file_url").notNull(),
+  thumbnailPath: varchar("thumbnail_path"),
   fileSize: integer("file_size"),
   mimeType: varchar("mime_type"),
   status: varchar("status").notNull().default("analyzing"), // analyzing, suggested, accepted, dismissed
